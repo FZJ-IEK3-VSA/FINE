@@ -13,7 +13,7 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 ## Installation
 Install via pip by cloning a local copy of the repository to your computer
 
-	git clone https://github.com/FZJ-IEK3-VSA/tsam.git
+	git clone https://github.com/FZJ-IEK3-VSA/FINE.git
 
 Alternatively, you can download it as ZIP file.
 	
@@ -29,7 +29,7 @@ Or install directly via python as
 	
 ## Examples
 
-A [**first example**](https://github.com/FZJ-IEK3-VSA/FINE/blob/master/example/Multi-regional%20Energy%20Workflow.ipynb) shows the capabilites of FINE as jupyter notebook
+A [**first example**](https://github.com/FZJ-IEK3-VSA/FINE/blob/master/example/Multi-regional%20Energy%20System%20Workflow.ipynb) shows the capabilites of FINE as jupyter notebook
 
 ## License
 
@@ -51,6 +51,3 @@ We are the [Process and Systems Analysis](http://www.fz-juelich.de/iek/iek-3/EN/
 This work was supported by the Helmholtz Association under the Joint Initiative ["Energy System 2050   A Contribution of the Research Field Energy"](https://www.helmholtz.de/en/research/energy/energy_system_2050/).
 
 <a href="https://www.helmholtz.de/en/"><img src="https://www.helmholtz.de/fileadmin/user_upload/05_aktuelles/Marke_Design/logos/HG_LOGO_S_ENG_RGB.jpg" alt="Helmholtz Logo" width="200px" style="float:right"></a>
-
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.597956.svg)](https://doi.org/10.5281/zenodo.597956)
