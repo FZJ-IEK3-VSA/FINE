@@ -78,6 +78,11 @@ class Source(Component):
                                                                      capacityFix, designDecisionFix,
                                                                      hasDesignDimensionVariables, operationTimeSeries)
 
+        # Variables at optimum (set after optimization)
+        self._designDimensionVariablesOptimum = None
+        self._designDecisionVariablesOptimum = None
+        self._operationVariablesOptimum = None
+
     def getCapitalChargeFactor(self):
         """ Computes and returns capital charge factor (inverse of annuity factor) """
         return 1 / self._interestRate - 1 / (pow(1 + self._interestRate, self._economicLifetime) * self._interestRate)
@@ -151,6 +156,9 @@ class SourceSinkModeling(ComponentModeling):
     """ Doc """
     def __init__(self):
         self._componentsDict = {}
+        self._designDimensionVariablesOptimum = None
+        self._designDecisionVariablesOptimum = None
+        self._operationVariablesOptimum = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -232,7 +240,7 @@ class SourceSinkModeling(ComponentModeling):
                 if ID in yearlyCommodityLimitationDict and limit != yearlyCommodityLimitationDict[ID][0]:
                     raise ValueError('yearlyLimitationIDs with different upper limits detected.')
                 yearlyCommodityLimitationDict.setdefault(ID, (limit, []))[1].append(compName)
-        pyM._yearlyCommodityLimitationDict = yearlyCommodityLimitationDict
+        pyM.yearlyCommodityLimitationDict = yearlyCommodityLimitationDict
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -341,17 +349,14 @@ class SourceSinkModeling(ComponentModeling):
         pyM.ConstrOperation5_srcSnk = pyomo.Constraint(pyM.opConstrSet5_srcSnk, pyM.timeSet, rule=op5_srcSnk)
 
         def yearlyLimitationConstraint(pyM, key):
-            limitDict = pyM._yearlyCommodityLimitationDict
+            limitDict = pyM.yearlyCommodityLimitationDict
             sumEx = -sum(pyM.op_srcSnk[loc, compName, p, t] * self._componentsDict[compName]._sign *
                          esM._periodOccurrences[p]/esM._years
                          for loc, compName, p, t in pyM.op_srcSnk if compName in limitDict[key][1])
-            if limitDict[key][0] != 0:
-                sign = limitDict[key][0]/abs(limitDict[key][0])
-            else:
-                sign = 1
+            sign = limitDict[key][0]/abs(limitDict[key][0]) if limitDict[key][0] != 0 else 1
             return sign * sumEx <= sign * limitDict[key][0]
         pyM.ConstryearlyLimitation = \
-            pyomo.Constraint(pyM._yearlyCommodityLimitationDict.keys(), rule=yearlyLimitationConstraint)
+            pyomo.Constraint(pyM.yearlyCommodityLimitationDict.keys(), rule=yearlyLimitationConstraint)
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
@@ -402,5 +407,19 @@ class SourceSinkModeling(ComponentModeling):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def getOptimalValues(self, pyM):
-        pass
+    def setOptimalValues(self, esM, pyM):
+        optVal = utils.formatOptimizationOutput(pyM.cap_srcSnk.get_values(), 'designVariables', '1dim')
+        self._designDimensionVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_designDimensionVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.designBin_srcSnk.get_values(), 'designVariables', '1dim')
+        self._designDecisionVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_designDecisionVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.op_srcSnk.get_values(), 'operationVariables', '1dim',
+                                                esM._periodsOrder)
+        self._operationVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_operationVariablesOptimum', self._componentsDict)
+
+    def getOptimalCapacities(self):
+        return self._capacitiesOpt

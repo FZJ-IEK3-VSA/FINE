@@ -9,7 +9,7 @@ class Transmission(Component):
     """
     Doc
     """
-    def __init__(self, esM, name, commodity, efficiency=1,
+    def __init__(self, esM, name, commodity, losses=0,
                  distances=None, hasDesignDimensionVariables=True,
                  designDimensionVariableDomain='continuous', capacityPerUnit=1,
                  hasDesignDecisionVariables=False, bigM=None,
@@ -23,8 +23,8 @@ class Transmission(Component):
         # Set general component data
         utils.checkCommodities(esM, {commodity})
         self._name, self._commodity = name, commodity
-        self._efficiency = utils.checkAndSetCostParameter(esM, name, efficiency, '2dim')
         self._distances = utils.checkAndSetDistances(esM, distances)
+        self._losses = utils.checkAndSetTransmissionLosses(esM, losses, distances)
 
         # Set design variable modeling parameters
         utils.checkDesignVariableModelingParameters(designDimensionVariableDomain, hasDesignDimensionVariables,
@@ -78,6 +78,11 @@ class Transmission(Component):
                                                                      capacityFix, designDecisionFix,
                                                                      hasDesignDimensionVariables, operationTimeSeries,
                                                                      '2dim')
+
+        # Variables at optimum (set after optimization)
+        self._designDimensionVariablesOptimum = None
+        self._designDecisionVariablesOptimum = None
+        self._operationVariablesOptimum = None
 
     def getCapitalChargeFactor(self):
         """ Computes and returns capital charge factor (inverse of annuity factor) """
@@ -139,6 +144,9 @@ class TransmissionModeling(ComponentModeling):
     """ Doc """
     def __init__(self):
         self._componentsDict = {}
+        self._designDimensionVariablesOptimum = None
+        self._designDecisionVariablesOptimum = None
+        self._operationVariablesOptimum = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -359,8 +367,9 @@ class TransmissionModeling(ComponentModeling):
                     for comp in self._componentsDict.values() for loc_ in esM._locations])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t): # TODO losses connected to distances
-        return sum(pyM.op_trans[loc_, loc, compName, p, t] * self._componentsDict[compName]._efficiency[loc_][loc] *
-                   self._componentsDict[compName]._distances[loc_][loc]
+        return sum(pyM.op_trans[loc_, loc, compName, p, t] *
+                   (1 - self._componentsDict[compName]._losses[loc_][loc] *
+                    self._componentsDict[compName]._distances[loc_][loc])
                    for loc_ in pyM.operationVarDict_transIn[loc].keys()
                    for compName in pyM.operationVarDict_transIn[loc][loc_]
                    if commod in self._componentsDict[compName]._commodity) - \
@@ -395,5 +404,19 @@ class TransmissionModeling(ComponentModeling):
 
         return capexDim + capexDec + opexDim + opexDec + opexOp
 
-    def getOptimalValues(self, pyM):
-        pass
+    def setOptimalValues(self, esM, pyM):
+        optVal = utils.formatOptimizationOutput(pyM.cap_trans.get_values(), 'designVariables', '1dim')
+        self._designDimensionVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_designDimensionVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.designBin_trans.get_values(), 'designVariables', '1dim')
+        self._designDecisionVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_designDecisionVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.op_trans.get_values(), 'operationVariables', '1dim',
+                                                esM._periodsOrder)
+        self._operationVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_operationVariablesOptimum', self._componentsDict)
+
+    def getOptimalCapacities(self):
+        return self._capacitiesOpt

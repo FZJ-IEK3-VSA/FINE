@@ -88,15 +88,39 @@ def checkCommodities(esM, commodity):
 def checkAndSetDistances(esM, distances):
     if distances is None:
         print('The distances of a component are set to a normalized values of 1.')
-        return pd.DataFrame([[1 for loc in esM._locations] for loc in esM._locations],
-                            index=esM._locations, columns=esM._locations)
+        distances = pd.DataFrame([[1 for loc in esM._locations] for loc in esM._locations],
+                                 index=esM._locations, columns=esM._locations)
     else:
         if not isinstance(distances, pd.DataFrame):
             raise TypeError('Input data has to be a pandas DataFrame')
         if (distances < 0).any().any():
-            raise ValueError('distances values smaller than 0 were detected.')
+            raise ValueError('Distance values smaller than 0 were detected.')
         checkRegionalColumnTitles(esM, distances), checkRegionalIndex(esM, distances)
-        return distances
+
+    return distances
+
+
+def checkAndSetTransmissionLosses(esM, losses, distances):
+    if not (isinstance(losses, int) or isinstance(losses, float) or isinstance(losses, pd.DataFrame)):
+        raise TypeError('The input data has to be a number or a pandas DataFrame.')
+
+    if isinstance(losses, int) or isinstance(losses, float):
+        if losses < 0 or losses > 1:
+            raise ValueError('Losses have to be values between 0 <= losses <= 1.')
+        return pd.DataFrame([[float(losses) for loc in esM._locations] for loc in esM._locations],
+                            index=esM._locations, columns=esM._locations)
+    checkRegionalColumnTitles(esM, losses), checkRegionalIndex(esM, losses)
+
+    _losses = losses.astype(float)
+    if _losses.isnull().any().any():
+        raise ValueError('The losses parameter contains values which are not a number.')
+    if (_losses < 0).any().any() or (_losses > 1).any().any():
+            raise ValueError('Losses have to be values between 0 <= losses <= 1.')
+
+    if (1-losses*distances < 0).any().any():
+        raise ValueError('The losses per distance multiplied with the distances result in negative values.')
+
+    return _losses
 
 
 def checkLocationSpecficDesignInputParams(esM, hasDesignDimensionVariables, hasDesignDecisionVariables,
@@ -349,3 +373,73 @@ def setFormattedTimeSeries(timeSeries):
         data = timeSeries.copy()
         data["Period"], data["TimeStep"] = 0, data.index
         return data.set_index(['Period', 'TimeStep'])
+
+
+def buildFullTimeSeries(df, periodsOrder):
+    data = []
+    for p in periodsOrder:
+        data.append(df.loc[p])
+    return pd.concat(data, axis=1, ignore_index=True)
+
+
+def formatOptimizationOutput(data, varType, dimension, periodsOrder=None):
+    # If data is an empty dictionary (because no variables of that type were declared) return None
+    if not data:
+        return None
+    # If the dictionary is not empty, format it into a DataFrame
+    if varType == 'designVariables' and dimension == '1dim':
+        # Convert dictionary to DataFrame, transpose, put the components name first and sort the index
+        # Results in a one dimensional DataFrame
+        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=1, axis=0).sort_index()
+        # Unstack the regions (convert to a two dimensional DataFrame with the region indices being the columns)
+        # and fill NaN values (i.e. when a component variable was not initiated for that region)
+        df = df.unstack(level=-1)
+        # Get rid of the unnecessary 0 level
+        df.columns = df.columns.droplevel()
+        return df
+    elif varType == 'designVariables' and dimension == '2dim':
+        # Convert dictionary to DataFrame, transpose, put the components name first while keeping the order of the
+        # regions and sort the index
+        # Results in a one dimensional DataFrame
+        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=2, axis=0).swaplevel(i=1, j=2, axis=0).sort_index()
+        # Unstack the regions (convert to a two dimensional DataFrame with the region indices being the columns)
+        # and fill NaN values (i.e. when a component variable was not initiated for that region)
+        df = df.unstack(level=-1)
+        # Get rid of the unnecessary 0 level
+        df.columns = df.columns.droplevel()
+        return df
+    elif varType == 'operationVariables' and dimension == '1dim':
+        # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
+        # Results in a one dimensional DataFrame
+        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-2).sort_index()
+        # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
+        df = df.unstack(level=-1)
+        # Get rid of the unnecessary 0 level
+        df.columns = df.columns.droplevel()
+        # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
+        # used)
+        return buildFullTimeSeries(df, periodsOrder)
+    elif varType == 'operationVariables' and dimension == '2dim':
+        # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
+        # regions and sort the index
+        # Results in a one dimensional DataFrame
+        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=3,axis=0).sort_index()
+        # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
+        df = df.unstack(level=-1)
+        # Get rid of the unnecessary 0 level
+        df.columns = df.columns.droplevel()
+        # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
+        # used)
+        return buildFullTimeSeries(df, periodsOrder)
+    else:
+        raise ValueError('The varType parameter has to be either \'designVariables\' or \'operationVariables\'\n' +
+                         'and the dimension parameter has to be either \'1dim\' or \'2dim\'.')
+
+
+def setOptimalComponentVariables(optVal, varType, compDict):
+    if optVal is not None:
+        for compName, comp in compDict.items():
+            if compName in optVal.index:
+                setattr(comp, varType, optVal.loc[compName])
+            else:
+                setattr(comp, varType, None)

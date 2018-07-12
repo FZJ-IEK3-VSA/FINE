@@ -72,6 +72,11 @@ class Conversion(Component):
                                                                      capacityFix, designDecisionFix,
                                                                      hasDesignDimensionVariables, operationTimeSeries)
 
+        # Variables at optimum (set after optimization)
+        self._designDimensionVariablesOptimum = None
+        self._designDecisionVariablesOptimum = None
+        self._operationVariablesOptimum = None
+
     def getCapitalChargeFactor(self):
         """ Computes and returns capital charge factor (inverse of annuity factor) """
         return 1 / self._interestRate - 1 / (pow(1 + self._interestRate, self._economicLifetime) * self._interestRate)
@@ -124,6 +129,9 @@ class ConversionModeling(ComponentModeling):
     """ Doc """
     def __init__(self):
         self._componentsDict = {}
+        self._designDimensionVariablesOptimum = None
+        self._designDecisionVariablesOptimum = None
+        self._operationVariablesOptimum = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -344,5 +352,19 @@ class ConversionModeling(ComponentModeling):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def getOptimalValues(self, pyM):
-        pass
+    def setOptimalValues(self, esM, pyM):
+        optVal = utils.formatOptimizationOutput(pyM.cap_conv.get_values(), 'designVariables', '1dim')
+        self._designDimensionVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_designDimensionVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.designBin_conv.get_values(), 'designVariables', '1dim')
+        self._designDecisionVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_designDecisionVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.op_conv.get_values(), 'operationVariables', '1dim',
+                                                esM._periodsOrder)
+        self._operationVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_operationVariablesOptimum', self._componentsDict)
+
+    def getOptimalCapacities(self):
+        return self._capacitiesOpt
