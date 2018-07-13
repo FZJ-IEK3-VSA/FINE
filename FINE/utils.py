@@ -38,14 +38,33 @@ def isStrictlyPositiveNumber(value):
 
 
 def isSetOfStrings(setOfStrings):
-    """
-    Checks if the input argument is a set of strings
-    """
+    """ Checks if the input argument is a set of strings """
     if not type(setOfStrings) == set:
-        raise TypeError("The input argument has to be a list")
+        raise TypeError("The input argument has to be a set")
     if not any([type(r) == str for r in setOfStrings]):
-        raise TypeError("The list entries in the input argument" +
-                        " must be strings")
+        raise TypeError("The list entries in the input argument must be strings")
+
+
+def checkEnergySystemModelInput(locations, commodities, commoditiyUnitsDict, numberOfTimeSteps, hoursPerTimeStep,
+                                costUnit, lengthUnit):
+    """ Checks input arguments of an EnergySystemModel instance for value/type correctness """
+
+    # Locations and commodities have to be sets
+    isSetOfStrings(locations), isSetOfStrings(commodities)
+
+    # The commodityUnitDict has to be a dictionary which keys equal the specified commodities and which values are
+    # strings
+    if not type(commoditiyUnitsDict) == dict:
+        raise TypeError("The commoditiyUnitsDict input argument has to be a dictionary.")
+    if commodities != set(commoditiyUnitsDict.keys()):
+        raise ValueError("The keys of the commodityUnitDict must equal the specified commodities.")
+    isSetOfStrings(set(commoditiyUnitsDict.values()))
+
+    # The numberOfTimeSteps and the hoursPerTimeStep have to be strictly positive numbers
+    isStrictlyPositiveInt(numberOfTimeSteps), isStrictlyPositiveNumber(hoursPerTimeStep)
+
+    # The costUnit and lengthUnit input parameter have to be strings
+    isString(costUnit), isString(lengthUnit)
 
 
 def checkTimeUnit(timeUnit):

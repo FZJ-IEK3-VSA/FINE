@@ -156,7 +156,7 @@ class Storage(Component):
         """ Computes and returns capital charge factor (inverse of annuity factor) """
         return 1 / self._interestRate - 1 / (pow(1 + self._interestRate, self._economicLifetime) * self._interestRate)
 
-    def addToESM(self, esM):
+    def addToEnergySystemModel(self, esM):
         esM._isTimeSeriesDataClustered = False
         if self._name in esM._componentNames:
             if esM._componentNames[self._name] == StorageModeling.__name__:
@@ -603,7 +603,7 @@ class StorageModeling(ComponentModeling):
         # Constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime
         def cyclicLifetime_stor(pyM, loc, compName):
             return (sum(pyM.chargeOp[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet) /
-                    esM._years <= pyM.cap_stor[loc, compName] *
+                    esM._numberOfYears <= pyM.cap_stor[loc, compName] *
                     (compDict[compName]._stateOfChargeMax - compDict[compName]._stateOfChargeMin) *
                     compDict[compName]._cyclicLifetime / compDict[compName]._economicLifetime[loc]
                     if compDict[compName]._cyclicLifetime is not None else pyomo.Constraint.Skip)
@@ -619,7 +619,7 @@ class StorageModeling(ComponentModeling):
                     (1-compDict[compName]._selfDischarge)**((esM._timeStepsPerPeriod[-1]+1) * esM._hoursPerTimeStep) + \
                     pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], esM._timeStepsPerPeriod[-1]+1]
             pyM.ConstrInterSOC_stor = \
-                pyomo.Constraint(pyM.operationVarSet_stor, esM._interPeriodTimeSteps[:-1], rule=interSOC_stor)
+                pyomo.Constraint(pyM.operationVarSet_stor, esM._periods, rule=interSOC_stor)
 
             # The (virtual) state of charge at the beginning of a typical period is zero
             def SOCPeriodStart_stor(pyM, loc, compName, p):
@@ -635,7 +635,7 @@ class StorageModeling(ComponentModeling):
                 else:
                     return pyomo.Constraint.Skip
             pyM.ConstrEqualInterSOC_stor = pyomo.Constraint(pyM.operationVarSet_stor,
-                                                            esM._interPeriodTimeSteps[:-1], rule=equalInterSOC_stor)
+                                                            esM._periods, rule=equalInterSOC_stor)
 
         # Ensure that the state of charge is within the operating limits of the installed capacities
         if not pyM.hasTSA:
@@ -710,7 +710,7 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfChargeMax[loc, compName, esM._periodsOrder[pInter]]
                         <= pyM.cap_stor[loc, compName] * compDict[compName]._stateOfChargeMax)
             pyM.ConstrSOCMaxSimple_stor = pyomo.Constraint(pyM.designDimensionVarSetSimple_stor,
-                                                           esM._interPeriodTimeSteps[:-1], rule=SOCMaxSimple_stor)
+                                                           esM._periods, rule=SOCMaxSimple_stor)
 
             # The state of charge at the beginning of one period plus the minimum (virtual) state of charge
             # during that period has to be larger than the installed capacities multiplied with the relative minimum
@@ -721,7 +721,7 @@ class StorageModeling(ComponentModeling):
                         + pyM.stateOfChargeMin[loc, compName, esM._periodsOrder[pInter]]
                         >= pyM.cap_stor[loc, compName] * compDict[compName]._stateOfChargeMin)
             pyM.ConstrSOCMinSimple_stor = pyomo.Constraint(pyM.designDimensionVarSetSimple_stor,
-                                                           esM._interPeriodTimeSteps[:-1], rule=SOCMinSimple_stor)
+                                                           esM._periods, rule=SOCMinSimple_stor)
 
             #                        Precise version of the state of charge limitation control                         #
 
@@ -735,7 +735,7 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], t]
                         <= pyM.cap_stor[loc, compName] * compDict[compName]._stateOfChargeMax)
             pyM.ConstrSOCMaxPrecise1_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet1_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise1_stor)
 
             def SOCMaxPrecise2_stor(pyM, loc, compName, pInter, t):
@@ -745,7 +745,7 @@ class StorageModeling(ComponentModeling):
                         == pyM.cap_stor[loc, compName] *
                         compDict[compName]._stateOfChargeOpRateFix[loc][esM._periodsOrder[pInter], t])
             pyM.ConstrSOCMaxPrecise2_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet2_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise2_stor)
 
             def SOCMaxPrecise3_stor(pyM, loc, compName, pInter, t):
@@ -755,7 +755,7 @@ class StorageModeling(ComponentModeling):
                         <= pyM.cap_stor[loc, compName] *
                         compDict[compName]._stateOfChargeOpRateMax[loc][esM._periodsOrder[pInter], t])
             pyM.ConstrSOCMaxPrecise3_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet3_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise3_stor)
 
             def SOCMaxPrecise4_stor(pyM, loc, compName, pInter, t):
@@ -764,7 +764,7 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], t]
                         == compDict[compName]._stateOfChargeOpRateFix[loc][esM._periodsOrder[pInter], t])
             pyM.ConstrSOCMaxPrecise4_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet4_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise4_stor)
 
             def SOCMaxPrecise5_stor(pyM, loc, compName, pInter, t):
@@ -773,7 +773,7 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], t]
                         <= compDict[compName]._stateOfChargeOpRateMax[loc][esM._periodsOrder[pInter], t])
             pyM.ConstrSOCMaxPrecise5_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet5_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise5_stor)
 
             # The state of charge at each time step cannot be smaller than the installed capacity multiplied with the
@@ -784,7 +784,7 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], t]
                         >= pyM.cap_stor[loc, compName] * compDict[compName]._stateOfChargeMin)
             pyM.ConstrSOCMinPrecise_stor = pyomo.Constraint(pyM.designDimensionVarSetPrecise_stor,
-                                                            esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                            esM._periods, esM._timeStepsPerPeriod,
                                                             rule=SOCMinPrecise_stor)
 
     ####################################################################################################################
@@ -826,7 +826,7 @@ class StorageModeling(ComponentModeling):
                      compDict[compName]._opexPerDischargeOperation[loc] *
                      sum(pyM.dischargeOp[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet)
                      for loc, compNames in pyM.operationVarDict_stor.items() for compName in
-                     compNames) / esM._years
+                     compNames) / esM._numberOfYears
 
         return capexDim + capexDec + opexDim + opexDec + opexOp
 

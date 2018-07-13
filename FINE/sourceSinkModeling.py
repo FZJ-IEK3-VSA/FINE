@@ -87,7 +87,7 @@ class Source(Component):
         """ Computes and returns capital charge factor (inverse of annuity factor) """
         return 1 / self._interestRate - 1 / (pow(1 + self._interestRate, self._economicLifetime) * self._interestRate)
 
-    def addToESM(self, esM):
+    def addToEnergySystemModel(self, esM):
         esM._isTimeSeriesDataClustered = False
         if self._name in esM._componentNames:
             if esM._componentNames[self._name] == SourceSinkModeling.__name__:
@@ -351,7 +351,7 @@ class SourceSinkModeling(ComponentModeling):
         def yearlyLimitationConstraint(pyM, key):
             limitDict = pyM.yearlyCommodityLimitationDict
             sumEx = -sum(pyM.op_srcSnk[loc, compName, p, t] * self._componentsDict[compName]._sign *
-                         esM._periodOccurrences[p]/esM._years
+                         esM._periodOccurrences[p]/esM._numberOfYears
                          for loc, compName, p, t in pyM.op_srcSnk if compName in limitDict[key][1])
             sign = limitDict[key][0]/abs(limitDict[key][0]) if limitDict[key][0] != 0 else 1
             return sign * sumEx <= sign * limitDict[key][0]
@@ -394,12 +394,12 @@ class SourceSinkModeling(ComponentModeling):
         opexOp = sum(compDict[compName]._opexPerOperation[loc] *
                      sum(pyM.op_srcSnk[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet)
                      for loc, compNames in pyM.operationVarDict_srcSnk.items()
-                     for compName in compNames) / esM._years
+                     for compName in compNames) / esM._numberOfYears
 
         commodCosts = sum((compDict[compName]._commodityCost[loc] - compDict[compName]._commodityRevenue[loc]) *
                           sum(pyM.op_srcSnk[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet)
                           for loc, compNames in pyM.operationVarDict_srcSnk.items()
-                          for compName in compNames) / esM._years
+                          for compName in compNames) / esM._numberOfYears
 
         return capexDim + capexDec + opexDim + opexDec + opexOp + commodCosts
 

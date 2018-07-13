@@ -88,7 +88,7 @@ class Transmission(Component):
         """ Computes and returns capital charge factor (inverse of annuity factor) """
         return 1 / self._interestRate - 1 / (pow(1 + self._interestRate, self._economicLifetime) * self._interestRate)
 
-    def addToESM(self, esM):
+    def addToEnergySystemModel(self, esM):
         esM._isTimeSeriesDataClustered = False
         if self._name in esM._componentNames:
             if esM._componentNames[self._name] == TransmissionModeling.__name__:
@@ -400,7 +400,7 @@ class TransmissionModeling(ComponentModeling):
                      sum(pyM.op_trans[loc, loc_, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet)
                      for loc, subDict in pyM.operationVarDict_transOut.items()
                      for loc_, compNames in subDict.items()
-                     for compName in compNames) / esM._years
+                     for compName in compNames) / esM._numberOfYears
 
         return capexDim + capexDec + opexDim + opexDec + opexOp
 

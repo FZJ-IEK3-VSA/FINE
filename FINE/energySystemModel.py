@@ -39,9 +39,19 @@ class EnergySystemModel:
     is initiated, components are added or user accessible functions are called.
 
     Instances of this class provide function for
-    * TODO 
+    * adding components and their respective modeling classes (**add**)
+    * clustering the time series data of all added components using the time series aggregation package tsam, cf.
+      https://github.com/FZJ-IEK3-VSA/tsam (**cluster**)
+    * optimizing the specified energy system (**optimize**), for which a pyomo discrete model instance is build and
+      filled with
+      (0) basic time sets,
+      (1) sets, variables and constraints contributed by the component modeling classes,
+      (2) basic, component overreaching constraints, and
+      (3) an objective function.
+      The pyomo instance is then optimized by a specified solver and the optimization results processed once available.
+    * getting components and their attributes (**getComponent, getCompAttr**)
 
-    Last edited: July 12, 2018
+    Last edited: July 13, 2018
     |br| @author: Lara Welder
     """
 
@@ -51,43 +61,73 @@ class EnergySystemModel:
         Doc
         """
         # Check correctness of inputs
-        for sets in [locations, commodities]:
-            utils.isSetOfStrings(sets)
-        utils.isStrictlyPositiveInt(numberOfTimeSteps)
-        utils.isStrictlyPositiveNumber(hoursPerTimeStep)
-        for string in [costUnit, lengthUnit]:
-            utils.isString(string)
+        utils.checkEnergySystemModelInput(locations, commodities, commoditiyUnitsDict, numberOfTimeSteps,
+                                          hoursPerTimeStep, costUnit, lengthUnit)
 
-        # Spatial resolution parameters
+        ################################################################################################################
+        #                                        Spatial resolution parameters                                         #
+        ################################################################################################################
+
+        # The locations (set of string) name the considered location in an energy system model instance. The parameter
+        # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
+        # variables and constraints.
+        # The length unit refers to length measure referred troughout the model.
         self._locations, self._lengthUnit = locations, lengthUnit
 
-        # Time series parameters
+        ################################################################################################################
+        #                                            Time series parameters                                            #
+        ################################################################################################################
+
+        # The totalTimeSteps (list, ranging from 0 to the total numberOfTimeSteps-1) refers to the total number of time
+        # steps considered when modeling the specified energy system. The parameter is used for validating time series
+        # data input and for setting other time series parameters when modeling a full temporal resolution.
+        # The hoursPerTimeStep parameter (float > 0) refers to the temporal length of a time step in the totalTimeSteps
+        # From the numberOfTimeSteps and the hoursPerTimeStep the numberOfYears parameter is computed.
         self._totalTimeSteps, self._hoursPerTimeStep = list(range(numberOfTimeSteps)), hoursPerTimeStep
-        self._years = numberOfTimeSteps * hoursPerTimeStep / 8760.0
+        self._numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
+
+        # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
+        # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents the
+        # the periods considered when modeling the energy system. Only one period exists when considering the full
+        # temporal resolution. When applying time series aggregation, the full time series are broken down into
+        # periods to which a typical period is assigned to.
+        # These periods have an order which is stored in the periodsOrder parameter (list, [0] when considering a full
+        # temporal resolution, [typicalPeriod(0), ..., typicalPeriod(totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod)
+        # when applying time series aggregation).
+        # The occurrences of these periods are stored in the periodsOccurrences parameter (list, [1] when considering a
+        # full temporal resolution, [occurrences(typicalPeriod_0), ..., occurrences(typicalPeriod_n)) when applying time
+        # series aggregation).
         self._periods, self._periodsOrder, self._periodOccurrences = [0], [0], [1]
         self._timeStepsPerPeriod = list(range(numberOfTimeSteps))
         self._interPeriodTimeSteps = list(range(int(len(self._totalTimeSteps) / len(self._timeStepsPerPeriod)) + 1))
 
+        # TODO continue here
         self._isTimeSeriesDataClustered, self._typicalPeriods, self._tsaInstance = False, [0], None
         self._timeUnit = 'h'
 
-        # Commodity specific parameters
+        ################################################################################################################
+        #                                        Commodity specific parameters                                         #
+        ################################################################################################################
         self._commodities = commodities
         self._commoditiyUnitsDict = commoditiyUnitsDict
 
-        # Component specific parameters
+        ################################################################################################################
+        #                                        Component specific parameters                                         #
+        ################################################################################################################
         self._componentNames = {}
         self._componentModelingDict = {}
         self._costUnit = costUnit
 
-        # Optimization parameters
+        ################################################################################################################
+        #                                           Optimization parameters                                            #
+        ################################################################################################################
         self._pyM = pyomo.ConcreteModel()
         self._solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'runtime': 0, 'timeLimit': None,
                              'threads': 0, 'jobName': ''}
 
     def add(self, component):
-        """ Function for adding components to the energy system model """
-        component.addToESM(self)
+        """ Function for adding a component and its respective modeling class to the EnergySystemModel instance"""
+        component.addToEnergySystemModel(self)
 
     def getComponent(self, componentName):
         modelingClass = self._componentNames[componentName]
@@ -135,31 +175,33 @@ class EnergySystemModel:
         clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
                                              hoursPerPeriod=numberOfTimeStepsPerPeriod*self._hoursPerTimeStep,
                                              extremePeriodMethod=extremePeriodMethod, clusterMethod=clusterMethod,
-                                             sortValues=sortValues, rescaleClusterPeriods=False, **kwargs) #weightDict
+                                             sortValues=sortValues, rescaleClusterPeriods=False, weightDict=weightDict,
+                                             **kwargs)
 
         # Store time series aggregation parameters in class instance
         if storeTSAinstance:
             self._tsaInstance = clusterClass
         self._typicalPeriods = clusterClass.clusterPeriodIdx
-        for mdlName, mdl in self._componentModelingDict.items():
-            for compName, comp in mdl._componentsDict.items():
-                comp.setAggregatedTimeSeriesData(data)
-        self._timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
-        self._interPeriodTimeSteps = list(range(int(len(self._totalTimeSteps) / len(self._timeStepsPerPeriod)) + 1))
-        self._periodsOrder = clusterClass.clusterOrder
-        self._periodOccurrences = [(self._periodsOrder == p).sum()/self._years for p in self._typicalPeriods]
 
         # Convert clustered data to DataFrame
         data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
 
         # Store clustered data in components
+        for mdlName, mdl in self._componentModelingDict.items():
+            for compName, comp in mdl._componentsDict.items():
+                comp.setAggregatedTimeSeriesData(data)
+        self._timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
+        self._periods = list(range(int(len(self._totalTimeSteps) / len(self._timeStepsPerPeriod))))
+        self._interPeriodTimeSteps = list(range(int(len(self._totalTimeSteps) / len(self._timeStepsPerPeriod)) + 1))
+        self._periodsOrder = clusterClass.clusterOrder
+        self._periodOccurrences = [(self._periodsOrder == p).sum()/self._numberOfYears for p in self._typicalPeriods]
 
         # Set cluster flag to true
         self._isTimeSeriesDataClustered = True
         print("\t\t(%.4f" % (time.time() - timeStart), "sec)\n")
 
-
-    def optimize(self, timeSeriesAggregation=False, jobName='job', threads=0, solver='gurobi', timeLimit=None,
+    def optimize(self, timeSeriesAggregation=False,
+                 jobName='job', threads=0, solver='gurobi', timeLimit=None,
                  optimizationSpecs='LogToConsole=1 OptimalityTol=1e-6', warmstart=False, tsamSpecs=None):
         timeStart = time.time()
         self._solverSpecs['jobName'] = jobName
@@ -190,6 +232,7 @@ class EnergySystemModel:
             self._timeStepsPerPeriod = self._totalTimeSteps
             self._interPeriodTimeSteps = list(range(int(len(self._totalTimeSteps) /
                                                         len(self._timeStepsPerPeriod)) + 1))
+            self._periods = [0]
             self._periodsOrder = [0]
             self._periodOccurrences = [1]
 

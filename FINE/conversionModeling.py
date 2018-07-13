@@ -81,7 +81,7 @@ class Conversion(Component):
         """ Computes and returns capital charge factor (inverse of annuity factor) """
         return 1 / self._interestRate - 1 / (pow(1 + self._interestRate, self._economicLifetime) * self._interestRate)
 
-    def addToESM(self, esM):
+    def addToEnergySystemModel(self, esM):
         esM._isTimeSeriesDataClustered = False
         if self._name in esM._componentNames:
             if esM._componentNames[self._name] == ConversionModeling.__name__:
@@ -344,7 +344,7 @@ class ConversionModeling(ComponentModeling):
         opexOp = sum(compDict[compName]._opexPerOperation[loc] *
                      sum(pyM.op_conv[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet)
                      for loc, compNames in pyM.operationVarDict_conv.items()
-                     for compName in compNames) / esM._years
+                     for compName in compNames) / esM._numberOfYears
 
         return capexDim + capexDec + opexDim + opexDec + opexOp
 
