@@ -10,3 +10,4 @@ example/.ipynb_checkpoints/
 *.pyc
 *.egg-info
 *.log
+*.lp
