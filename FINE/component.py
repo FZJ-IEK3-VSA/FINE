@@ -10,6 +10,10 @@ class Component(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def addToEnergySystemModel(self, esM):
+        esM._isTimeSeriesDataClustered = False
+
+    @abstractmethod
     def getDataForTimeSeriesAggregation(self):
         pass
 

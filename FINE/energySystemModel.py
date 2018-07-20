@@ -71,7 +71,7 @@ class EnergySystemModel:
         # The locations (set of string) name the considered location in an energy system model instance. The parameter
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
-        # The length unit refers to length measure referred troughout the model.
+        # The length unit refers to length measure referred throughout the model.
         self._locations, self._lengthUnit = locations, lengthUnit
 
         ################################################################################################################
@@ -92,28 +92,46 @@ class EnergySystemModel:
         # temporal resolution. When applying time series aggregation, the full time series are broken down into
         # periods to which a typical period is assigned to.
         # These periods have an order which is stored in the periodsOrder parameter (list, [0] when considering a full
-        # temporal resolution, [typicalPeriod(0), ..., typicalPeriod(totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod)
+        # temporal resolution, [typicalPeriod(0), ..., typicalPeriod(totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod)]
         # when applying time series aggregation).
         # The occurrences of these periods are stored in the periodsOccurrences parameter (list, [1] when considering a
-        # full temporal resolution, [occurrences(typicalPeriod_0), ..., occurrences(typicalPeriod_n)) when applying time
+        # full temporal resolution, [occurrences(0), ..., occurrences(numberOfTypicalPeriods-1)) when applying time
         # series aggregation).
         self._periods, self._periodsOrder, self._periodOccurrences = [0], [0], [1]
         self._timeStepsPerPeriod = list(range(numberOfTimeSteps))
         self._interPeriodTimeSteps = list(range(int(len(self._totalTimeSteps) / len(self._timeStepsPerPeriod)) + 1))
 
-        # TODO continue here
-        self._isTimeSeriesDataClustered, self._typicalPeriods, self._tsaInstance = False, [0], None
+        # The isTimeSeriesDataClustered is used to check data consistency. It is set to True is the class' cluster
+        # function is called. It set to False if a new component is added.
+        # If the cluster function is called, the typicalPeriods parameters is set from None to
+        # [0, ..., numberOfTypicalPeriods-1] and if specified the resulting TimeSeriesAggregation instance is stored
+        # in the tsaInstance parameter (default None)
+        # The time unit refers to time measure referred throughout the model. Currently, it has to be an hour 'h'.
+        self._isTimeSeriesDataClustered, self._typicalPeriods, self._tsaInstance = False, None, None
         self._timeUnit = 'h'
 
         ################################################################################################################
         #                                        Commodity specific parameters                                         #
         ################################################################################################################
+
+        # The commodities parameter is a set of strings which describes what commodities are considered in the energy
+        # system and hence which commodity balances need to be considered in the energy system model and its
+        # optimization.
+        # The commodityUnitsDict is a dictionary which assigns each considered commodity (string) a unit (string)
+        # which is can be used by results output functions.
         self._commodities = commodities
         self._commoditiyUnitsDict = commoditiyUnitsDict
 
         ################################################################################################################
         #                                        Component specific parameters                                         #
         ################################################################################################################
+
+        # The componentNames parameter is a set of strings in which all in the EnergySystemModel instance considered
+        # components are stored. It is used to check that all components have unique indices.
+        # The componentModelingDict is a dictionary (modelingClass name: modelingClass instance) in which the in the
+        # energy system considered modeling classes are stored (in which again the components modeled with the
+        # modelingClass as well as the equations to model them with are stored)
+        # The costUnit parameter (string) is the parameter in which all cost input parameter have to be specified
         self._componentNames = {}
         self._componentModelingDict = {}
         self._costUnit = costUnit
@@ -121,10 +139,22 @@ class EnergySystemModel:
         ################################################################################################################
         #                                           Optimization parameters                                            #
         ################################################################################################################
-        self._pyM = pyomo.ConcreteModel()
+
+        # The pyM parameter (None when the EnergySystemModel is initialized otherwise a Concrete Pyomo instance which
+        # stores parameters, sets, variables, constraints and objective required for the optimization set up and
+        # solving)
+        # The solverSpecs parameter is a dictionary (string: param) which stores different parameters that were used
+        # when solving the last optimization problem. The parameter are: solver (string, solver which was used to solve
+        # the optimization problem), optimizationSpecs (string representing **kwargs for the solver), hasTSA (boolean,
+        # indicating if time series aggregation is used for the optimization), runtime (positive float, runtime of the
+        # optimization run in seconds), timeLimit (positive float or None, if specified indicates the maximum allowed
+        # runtime of the solver), threads (positive int, number of threads used for optimization, can depend on solver),
+        # jobName (string, name of logfile)
+        self._pyM = None
         self._solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'runtime': 0, 'timeLimit': None,
                              'threads': 0, 'jobName': ''}
 
+    # TODO continue here
     def add(self, component):
         """ Function for adding a component and its respective modeling class to the EnergySystemModel instance"""
         component.addToEnergySystemModel(self)
