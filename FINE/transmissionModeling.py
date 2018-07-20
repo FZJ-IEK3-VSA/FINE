@@ -9,16 +9,14 @@ class Transmission(Component):
     """
     Doc
     """
-    def __init__(self, esM, name, commodity, losses=0,
-                 distances=None, hasDesignDimensionVariables=True,
-                 designDimensionVariableDomain='continuous', capacityPerUnit=1,
-                 hasDesignDecisionVariables=False, bigM=None,
+    def __init__(self, esM, name, commodity, losses=0, distances=None,
+                 hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
-                 capacityFix=None, designDecisionFix=None,
-                 capexPerDesignDimension=0, capexForDesignDecision=0, opexPerOperation=0, opexPerDesignDimension=0,
-                 opexForDesignDecision=0, interestRate=0.08, economicLifetime=10
-                 ):
+                 capacityFix=None, isBuiltFix=None,
+                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
+                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         # TODO add unit checks
         # Set general component data
         utils.checkCommodities(esM, {commodity})
@@ -27,20 +25,20 @@ class Transmission(Component):
         self._losses = utils.checkAndSetTransmissionLosses(esM, losses, distances)
 
         # Set design variable modeling parameters
-        utils.checkDesignVariableModelingParameters(designDimensionVariableDomain, hasDesignDimensionVariables,
-                                                    hasDesignDecisionVariables, bigM)
-        self._hasDesignDimensionVariables = hasDesignDimensionVariables
-        self._designDimensionVariableDomain = designDimensionVariableDomain
-        self._capacityPerUnit = capacityPerUnit
-        self._hasDesignDecisionVariables = hasDesignDecisionVariables
+        utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable,
+                                                    hasIsBuiltBinaryVariable, bigM)
+        self._hasCapacityVariable = hasCapacityVariable
+        self._capacityVariableDomain = capacityVariableDomain
+        self._capacityPerPlantUnit = capacityPerPlantUnit
+        self._hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self._bigM = bigM
 
         # Set economic data
-        self._capexPerDesignDimension = utils.checkAndSetCostParameter(esM, name, capexPerDesignDimension, '2dim')
-        self._capexForDesignDecision = utils.checkAndSetCostParameter(esM, name, capexForDesignDecision, '2dim')
+        self._investPerCapacity = utils.checkAndSetCostParameter(esM, name, investPerCapacity, '2dim')
+        self._investIfBuilt = utils.checkAndSetCostParameter(esM, name, investIfBuilt, '2dim')
         self._opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim')
-        self._opexPerDesignDimension = utils.checkAndSetCostParameter(esM, name, opexPerDesignDimension, '2dim')
-        self._opexForDesignDecision = utils.checkAndSetCostParameter(esM, name, opexForDesignDecision, '2dim')
+        self._opexPerCapacity = utils.checkAndSetCostParameter(esM, name, opexPerCapacity, '2dim')
+        self._opexIfBuilt = utils.checkAndSetCostParameter(esM, name, opexIfBuilt, '2dim')
         self._interestRate = utils.checkAndSetCostParameter(esM, name, interestRate, '2dim')
         self._economicLifetime = utils.checkAndSetCostParameter(esM, name, economicLifetime, '2dim')
         self._CCF = self.getCapitalChargeFactor()
@@ -65,18 +63,18 @@ class Transmission(Component):
 
         # Set location-specific design parameters
         self._sharedPotentialID = sharedPotentialID
-        utils.checkLocationSpecficDesignInputParams(esM, hasDesignDimensionVariables, hasDesignDecisionVariables,
+        utils.checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBinaryVariable,
                                                     capacityMin, capacityMax, capacityFix,
-                                                    locationalEligibility, designDecisionFix, sharedPotentialID,
+                                                    locationalEligibility, isBuiltFix, sharedPotentialID,
                                                     '2dim')
         self._capacityMin, self._capacityMax, self._capacityFix = capacityMin, capacityMax, capacityFix
-        self._designDecisionFix = designDecisionFix
+        self._isBuiltFix = isBuiltFix
 
         # Set locational eligibility
         operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
         self._locationalEligibility = utils.setLocationalEligibility(esM, locationalEligibility, capacityMax,
-                                                                     capacityFix, designDecisionFix,
-                                                                     hasDesignDimensionVariables, operationTimeSeries,
+                                                                     capacityFix, isBuiltFix,
+                                                                     hasCapacityVariable, operationTimeSeries,
                                                                      '2dim')
 
         # Variables at optimum (set after optimization)
@@ -163,22 +161,22 @@ class TransmissionModeling(ComponentModeling):
         def initDesignVarSet(pyM):
             return ((loc, loc_, compName) for loc in esM._locations for loc_ in esM._locations
                     for compName, comp in compDict.items()
-                    if comp._locationalEligibility[loc][loc_] == 1 and comp._hasDesignDimensionVariables)
+                    if comp._locationalEligibility[loc][loc_] == 1 and comp._hasCapacityVariable)
         pyM.designDimensionVarSet_trans = pyomo.Set(dimen=3, initialize=initDesignVarSet)
 
         def initContinuousDesignVarSet(pyM):
             return ((loc, loc_, compName) for loc, loc_, compName, in pyM.designDimensionVarSet_trans
-                    if compDict[compName]._designDimensionVariableDomain == 'continuous')
+                    if compDict[compName]._capacityVariableDomain == 'continuous')
         pyM.continuousDesignDimensionVarSet_trans = pyomo.Set(dimen=3, initialize=initContinuousDesignVarSet)
 
         def initDiscreteDesignVarSet(pyM):
             return ((loc, loc_, compName) for loc, loc_, compName in pyM.designDimensionVarSet_trans
-                    if compDict[compName]._designDimensionVariableDomain == 'discrete')
+                    if compDict[compName]._capacityVariableDomain == 'discrete')
         pyM.discreteDesignDimensionVarSet_trans = pyomo.Set(dimen=3, initialize=initDiscreteDesignVarSet)
 
         def initDesignDecisionVarSet(pyM):
             return ((loc, loc_, compName) for loc, loc_, compName in pyM.designDimensionVarSet_trans
-                    if compDict[compName]._hasDesignDecisionVariables)
+                    if compDict[compName]._hasIsBuiltBinaryVariable)
         pyM.designDecisionVarSet_trans = pyomo.Set(dimen=3, initialize=initDesignDecisionVarSet)
 
         ################################################################################################################
@@ -202,28 +200,28 @@ class TransmissionModeling(ComponentModeling):
 
         def initOpConstrSet1(pyM):
             return ((loc, loc_, compName) for loc, loc_, compName in pyM.operationVarSet_trans if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateMax is None
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateMax is None
                     and compDict[compName]._operationRateFix is None)
         pyM.opConstrSet1_trans = pyomo.Set(dimen=3, initialize=initOpConstrSet1)
 
         def initOpConstrSet2(pyM):
             return ((loc, loc_, compName) for loc, loc_, compName in pyM.operationVarSet_trans if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateFix is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateFix is not None)
         pyM.opConstrSet2_trans = pyomo.Set(dimen=3, initialize=initOpConstrSet2)
 
         def initOpConstrSet3(pyM):
             return ((loc, loc_, compName) for loc, loc_, compName in pyM.operationVarSet_trans if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateMax is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateMax is not None)
         pyM.opConstrSet3_trans = pyomo.Set(dimen=3, initialize=initOpConstrSet3)
 
         def initOpConstrSet4(pyM):
             return ((loc, loc_, compName) for loc, loc_, compName in pyM.operationVarSet_trans if not
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateFix is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateFix is not None)
         pyM.opConstrSet4_trans = pyomo.Set(dimen=3, initialize=initOpConstrSet4)
 
         def initOpConstrSet5(pyM):
             return ((loc, loc_, compName) for loc, loc_, compName in pyM.operationVarSet_trans if not
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateMax is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateMax is not None)
         pyM.opConstrSet5_trans = pyomo.Set(dimen=3, initialize=initOpConstrSet5)
 
         potentialDict = {} # TODO adapt for 2dim components
@@ -242,7 +240,7 @@ class TransmissionModeling(ComponentModeling):
         def capBounds(pyM, loc, loc_, compName):
             comp = self._componentsDict[compName]
             return (comp._capacityMin[loc][loc_]
-                    if (comp._capacityMin is not None and not comp._hasDesignDecisionVariables) else 0,
+                    if (comp._capacityMin is not None and not comp._hasIsBuiltBinaryVariable) else 0,
                     comp._capacityMax[loc][loc_] if comp._capacityMax is not None else None)
 
         # Capacity of components [powerUnit]
@@ -271,14 +269,14 @@ class TransmissionModeling(ComponentModeling):
         # Determine the components' capacities from the number of installed units
         def capToNbReal_trans(pyM, loc, loc_, compName):
             return pyM.cap_trans[loc, loc_, compName] == \
-                   pyM.nbReal_trans[loc, loc_, compName] * compDict[compName]._capacityPerUnit
+                   pyM.nbReal_trans[loc, loc_, compName] * compDict[compName]._capacityPerPlantUnit
         pyM.ConstrCapToNbReal_trans = pyomo.Constraint(pyM.continuousDesignDimensionVarSet_trans,
                                                          rule=capToNbReal_trans)
 
         # Determine the components' capacities from the number of installed units
         def capToNbInt_trans(pyM, loc, loc_, compName):
             return pyM.cap_trans[loc, loc_, compName] == \
-                   pyM.nbInt_trans[loc, loc_, compName] * compDict[compName]._capacityPerUnit
+                   pyM.nbInt_trans[loc, loc_, compName] * compDict[compName]._capacityPerPlantUnit
         pyM.ConstrCapToNbInt_trans = pyomo.Constraint(pyM.discreteDesignDimensionVarSet_trans,
                                                        rule=capToNbInt_trans)
 
@@ -303,8 +301,8 @@ class TransmissionModeling(ComponentModeling):
 
         # Sets, if applicable, the binary design variables of a component
         def designBinFix_trans(pyM, loc, loc_, compName):
-            return (pyM.designBin_trans[loc, loc_, compName] == compDict[compName]._designDecisionFix[loc][loc_]
-                    if compDict[compName]._designDecisionFix is not None else pyomo.Constraint.Skip)
+            return (pyM.designBin_trans[loc, loc_, compName] == compDict[compName]._isBuiltFix[loc][loc_]
+                    if compDict[compName]._isBuiltFix is not None else pyomo.Constraint.Skip)
         pyM.ConstrDesignBinFix_trans = pyomo.Constraint(pyM.designDecisionVarSet_trans, rule=designBinFix_trans)
 
         def sharedPotentialTransmission(pyM, key, loc, loc_):
@@ -382,18 +380,18 @@ class TransmissionModeling(ComponentModeling):
         # TODO replace 0.5 with factor which is one when non-directional and 0.5 when bi-directional
         compDict = self._componentsDict
 
-        capexDim = sum(compDict[compName]._capexPerDesignDimension[loc][loc_] * pyM.cap_trans[loc, loc_, compName] *
+        capexDim = sum(compDict[compName]._investPerCapacity[loc][loc_] * pyM.cap_trans[loc, loc_, compName] *
                        compDict[compName]._distances[loc][loc_] /
                        compDict[compName]._CCF[loc][loc_] for loc, loc_, compName in pyM.cap_trans) * 0.5
 
-        capexDec = sum(compDict[compName]._capexForDesignDecision[loc][loc_] *
+        capexDec = sum(compDict[compName]._investIfBuilt[loc][loc_] *
                        pyM.designBin_trans[loc, loc_, compName] * compDict[compName]._distances[loc][loc_] /
                        compDict[compName]._CCF[loc][loc_] for loc, loc_, compName in pyM.designBin_trans) * 0.5
 
-        opexDim = sum(compDict[compName]._opexPerDesignDimension[loc][loc_] * pyM.cap_trans[loc, loc_, compName] *
+        opexDim = sum(compDict[compName]._opexPerCapacity[loc][loc_] * pyM.cap_trans[loc, loc_, compName] *
                       compDict[compName]._distances[loc][loc_] for loc, loc_, compName in pyM.cap_trans) * 0.5
 
-        opexDec = sum(compDict[compName]._opexForDesignDecision[loc][loc_] * pyM.designBin_trans[loc, loc_, compName] *
+        opexDec = sum(compDict[compName]._opexIfBuilt[loc][loc_] * pyM.designBin_trans[loc, loc_, compName] *
                       compDict[compName]._distances[loc][loc_] for loc, loc_, compName in pyM.designBin_trans) * 0.5
 
         opexOp = sum(compDict[compName]._opexPerOperation[loc][loc_] *

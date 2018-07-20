@@ -9,33 +9,33 @@ class Conversion(Component):
     """
     Doc
     """
-    def __init__(self, esM, name, commodityConversionFactors, hasDesignDimensionVariables=True,
-                 designDimensionVariableDomain='continuous', capacityPerUnit=1,
-                 hasDesignDecisionVariables=False, bigM=None,
+    def __init__(self, esM, name, commodityConversionFactors, hasCapacityVariable=True,
+                 capacityVariableDomain='continuous', capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
-                 capacityFix=None, designDecisionFix=None,
-                 capexPerDesignDimension=0, capexForDesignDecision=0, opexPerOperation=0, opexPerDesignDimension=0,
-                 opexForDesignDecision=0, interestRate=0.08, economicLifetime=10):
+                 capacityFix=None, isBuiltFix=None,
+                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
+                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         # Set general component data
         utils.checkCommodities(esM, set(commodityConversionFactors.keys()))
         self._name, self._commodityConversionFactors = name, commodityConversionFactors
 
         # Set design variable modeling parameters
-        utils.checkDesignVariableModelingParameters(designDimensionVariableDomain, hasDesignDimensionVariables,
-                                                    hasDesignDecisionVariables, bigM)
-        self._hasDesignDimensionVariables = hasDesignDimensionVariables
-        self._designDimensionVariableDomain = designDimensionVariableDomain
-        self._capacityPerUnit = capacityPerUnit
-        self._hasDesignDecisionVariables = hasDesignDecisionVariables
+        utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable,
+                                                    hasIsBuiltBinaryVariable, bigM)
+        self._hasCapacityVariable = hasCapacityVariable
+        self._capacityVariableDomain = capacityVariableDomain
+        self._capacityPerPlantUnit = capacityPerPlantUnit
+        self._hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self._bigM = bigM
 
         # Set economic data
-        self._capexPerDesignDimension = utils.checkAndSetCostParameter(esM, name, capexPerDesignDimension)
-        self._capexForDesignDecision = utils.checkAndSetCostParameter(esM, name, capexForDesignDecision)
+        self._investPerCapacity = utils.checkAndSetCostParameter(esM, name, investPerCapacity)
+        self._investIfBuilt = utils.checkAndSetCostParameter(esM, name, investIfBuilt)
         self._opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation)
-        self._opexPerDesignDimension = utils.checkAndSetCostParameter(esM, name, opexPerDesignDimension)
-        self._opexForDesignDecision = utils.checkAndSetCostParameter(esM, name, opexForDesignDecision)
+        self._opexPerCapacity = utils.checkAndSetCostParameter(esM, name, opexPerCapacity)
+        self._opexIfBuilt = utils.checkAndSetCostParameter(esM, name, opexIfBuilt)
         self._interestRate = utils.checkAndSetCostParameter(esM, name, interestRate)
         self._economicLifetime = utils.checkAndSetCostParameter(esM, name, economicLifetime)
         self._CCF = self.getCapitalChargeFactor()
@@ -59,18 +59,18 @@ class Conversion(Component):
 
         # Set location-specific design parameters
         self._sharedPotentialID = sharedPotentialID
-        utils.checkLocationSpecficDesignInputParams(esM, hasDesignDimensionVariables, hasDesignDecisionVariables,
+        utils.checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBinaryVariable,
                                                     capacityMin, capacityMax, capacityFix,
-                                                    locationalEligibility, designDecisionFix, sharedPotentialID,
+                                                    locationalEligibility, isBuiltFix, sharedPotentialID,
                                                     dimension='1dim')
         self._capacityMin, self._capacityMax, self._capacityFix = capacityMin, capacityMax, capacityFix
-        self._designDecisionFix = designDecisionFix
+        self._isBuiltFix = isBuiltFix
 
         # Set locational eligibility
         operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
         self._locationalEligibility = utils.setLocationalEligibility(esM, locationalEligibility, capacityMax,
-                                                                     capacityFix, designDecisionFix,
-                                                                     hasDesignDimensionVariables, operationTimeSeries)
+                                                                     capacityFix, isBuiltFix,
+                                                                     hasCapacityVariable, operationTimeSeries)
 
         # Variables at optimum (set after optimization)
         self._designDimensionVariablesOptimum = None
@@ -147,22 +147,22 @@ class ConversionModeling(ComponentModeling):
 
         def initDesignVarSet(pyM):
             return ((loc, compName) for loc in esM._locations for compName, comp in compDict.items()
-                    if comp._locationalEligibility[loc] == 1 and comp._hasDesignDimensionVariables)
+                    if comp._locationalEligibility[loc] == 1 and comp._hasCapacityVariable)
         pyM.designDimensionVarSet_conv = pyomo.Set(dimen=2, initialize=initDesignVarSet)
 
         def initContinuousDesignVarSet(pyM):
             return ((loc, compName) for loc, compName in pyM.designDimensionVarSet_conv
-                    if compDict[compName]._designDimensionVariableDomain == 'continuous')
+                    if compDict[compName]._capacityVariableDomain == 'continuous')
         pyM.continuousDesignDimensionVarSet_conv = pyomo.Set(dimen=2, initialize=initContinuousDesignVarSet)
 
         def initDiscreteDesignVarSet(pyM):
             return ((loc, compName) for loc, compName in pyM.designDimensionVarSet_conv
-                    if compDict[compName]._designDimensionVariableDomain == 'discrete')
+                    if compDict[compName]._capacityVariableDomain == 'discrete')
         pyM.discreteDesignDimensionVarSet_conv = pyomo.Set(dimen=2, initialize=initDiscreteDesignVarSet)
 
         def initDesignDecisionVarSet(pyM):
             return ((loc, compName) for loc, compName in pyM.designDimensionVarSet_conv
-                    if compDict[compName]._hasDesignDecisionVariables)
+                    if compDict[compName]._hasIsBuiltBinaryVariable)
         pyM.designDecisionVarSet_conv = pyomo.Set(dimen=2, initialize=initDesignDecisionVarSet)
 
         ################################################################################################################
@@ -182,28 +182,28 @@ class ConversionModeling(ComponentModeling):
 
         def initOpConstrSet1(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_conv if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateMax is None
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateMax is None
                     and compDict[compName]._operationRateFix is None)
         pyM.opConstrSet1_conv = pyomo.Set(dimen=2, initialize=initOpConstrSet1)
 
         def initOpConstrSet2(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_conv if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateFix is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateFix is not None)
         pyM.opConstrSet2_conv = pyomo.Set(dimen=2, initialize=initOpConstrSet2)
 
         def initOpConstrSet3(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_conv if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateMax is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateMax is not None)
         pyM.opConstrSet3_conv = pyomo.Set(dimen=2, initialize=initOpConstrSet3)
 
         def initOpConstrSet4(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_conv if not
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateFix is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateFix is not None)
         pyM.opConstrSet4_conv = pyomo.Set(dimen=2, initialize=initOpConstrSet4)
 
         def initOpConstrSet5(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_conv if not
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateMax is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateMax is not None)
         pyM.opConstrSet5_conv = pyomo.Set(dimen=2, initialize=initOpConstrSet5)
 
     ####################################################################################################################
@@ -215,7 +215,7 @@ class ConversionModeling(ComponentModeling):
         # Function for setting lower and upper capacity bounds
         def capBounds(pyM, loc, compName):
             comp = self._componentsDict[compName]
-            return (comp._capacityMin[loc] if (comp._capacityMin is not None and not comp._hasDesignDecisionVariables)
+            return (comp._capacityMin[loc] if (comp._capacityMin is not None and not comp._hasIsBuiltBinaryVariable)
                     else 0, comp._capacityMax[loc] if comp._capacityMax is not None else None)
 
         # Capacity of components [powerUnit]
@@ -243,12 +243,12 @@ class ConversionModeling(ComponentModeling):
 
         # Determine the components' capacities from the number of installed units
         def capToNbReal_conv(pyM, loc, compName):
-            return pyM.cap_conv[loc, compName] == pyM.nbReal_conv[loc, compName] * compDict[compName]._capacityPerUnit
+            return pyM.cap_conv[loc, compName] == pyM.nbReal_conv[loc, compName] * compDict[compName]._capacityPerPlantUnit
         pyM.ConstrCapToNbReal_conv = pyomo.Constraint(pyM.continuousDesignDimensionVarSet_conv, rule=capToNbReal_conv)
 
         # Determine the components' capacities from the number of installed units
         def capToNbInt_conv(pyM, loc, compName):
-            return pyM.cap_conv[loc, compName] == pyM.nbInt_conv[loc, compName] * compDict[compName]._capacityPerUnit
+            return pyM.cap_conv[loc, compName] == pyM.nbInt_conv[loc, compName] * compDict[compName]._capacityPerPlantUnit
         pyM.ConstrCapToNbInt_conv = pyomo.Constraint(pyM.discreteDesignDimensionVarSet_conv, rule=capToNbInt_conv)
 
         # Enforce the consideration of the binary design variables of a component
@@ -271,8 +271,8 @@ class ConversionModeling(ComponentModeling):
 
         # Sets, if applicable, the binary design variables of a component
         def designBinFix_conv(pyM, loc, compName):
-            return (pyM.designBin_conv[loc, compName] == compDict[compName]._designDecisionFix[loc]
-                    if compDict[compName]._designDecisionFix is not None else pyomo.Constraint.Skip)
+            return (pyM.designBin_conv[loc, compName] == compDict[compName]._isBuiltFix[loc]
+                    if compDict[compName]._isBuiltFix is not None else pyomo.Constraint.Skip)
         pyM.ConstrDesignBinFix_conv = pyomo.Constraint(pyM.designDecisionVarSet_conv, rule=designBinFix_conv)
 
         ################################################################################################################
@@ -329,16 +329,16 @@ class ConversionModeling(ComponentModeling):
     def getObjectiveFunctionContribution(self, esM, pyM):
         compDict = self._componentsDict
 
-        capexDim = sum(compDict[compName]._capexPerDesignDimension[loc] * pyM.cap_conv[loc, compName] /
+        capexDim = sum(compDict[compName]._investPerCapacity[loc] * pyM.cap_conv[loc, compName] /
                        compDict[compName]._CCF[loc] for loc, compName in pyM.cap_conv)
 
-        capexDec = sum(compDict[compName]._capexForDesignDecision[loc] * pyM.designBin_conv[loc, compName] /
+        capexDec = sum(compDict[compName]._investIfBuilt[loc] * pyM.designBin_conv[loc, compName] /
                        compDict[compName]._CCF[loc] for loc, compName in pyM.designBin_conv)
 
-        opexDim = sum(compDict[compName]._opexPerDesignDimension[loc] * pyM.cap_conv[loc, compName]
+        opexDim = sum(compDict[compName]._opexPerCapacity[loc] * pyM.cap_conv[loc, compName]
                       for loc, compName in pyM.cap_conv)
 
-        opexDec = sum(compDict[compName]._opexForDesignDecision[loc] * pyM.designBin_conv[loc, compName]
+        opexDec = sum(compDict[compName]._opexIfBuilt[loc] * pyM.designBin_conv[loc, compName]
                       for loc, compName in pyM.designBin_conv)
 
         opexOp = sum(compDict[compName]._opexPerOperation[loc] *

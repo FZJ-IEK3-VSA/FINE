@@ -142,10 +142,10 @@ def checkAndSetTransmissionLosses(esM, losses, distances):
     return _losses
 
 
-def checkLocationSpecficDesignInputParams(esM, hasDesignDimensionVariables, hasDesignDecisionVariables,
+def checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBinaryVariable,
                                           capacityMin, capacityMax, capacityFix,
-                                          locationalEligibility, designDecisionFix, sharedPotentialID, dimension):
-    for data in [capacityMin, capacityFix, capacityMax, locationalEligibility, designDecisionFix]:
+                                          locationalEligibility, isBuiltFix, sharedPotentialID, dimension):
+    for data in [capacityMin, capacityFix, capacityMax, locationalEligibility, isBuiltFix]:
         if data is not None:
             if dimension == '1dim':
                 if not isinstance(data, pd.Series):
@@ -167,11 +167,11 @@ def checkLocationSpecficDesignInputParams(esM, hasDesignDimensionVariables, hasD
     if capacityMax is not None and (capacityMax < 0).any().any():
         raise ValueError('capacityMax values smaller than 0 were detected.')
 
-    if (capacityMin is not None or capacityMax is not None or capacityFix is not None) and not hasDesignDimensionVariables:
+    if (capacityMin is not None or capacityMax is not None or capacityFix is not None) and not hasCapacityVariable:
         raise ValueError('Capacity bounds are given but hasDesignDimensionVar was set to False.')
 
-    if designDecisionFix is not None and not hasDesignDecisionVariables:
-        raise ValueError('Fixed design decisions are given but hasDesignDecisionVariables was set to False.')
+    if isBuiltFix is not None and not hasIsBuiltBinaryVariable:
+        raise ValueError('Fixed design decisions are given but hasIsBuiltBinaryVariable was set to False.')
 
     if sharedPotentialID is not None and capacityMax is None:
         raise ValueError('A capacityMax parameter is required if a sharedPotentialID is considered.')
@@ -208,40 +208,40 @@ def checkLocationSpecficDesignInputParams(esM, hasDesignDimensionVariables, hasD
             data[data > 0] = 1
             if (data > locationalEligibility).any().any():
                 raise ValueError('The locationEligibility and capacityFix parameters indicate different eligibilities.')
-        if designDecisionFix is not None:
-            if (designDecisionFix != locationalEligibility).any().any():
-                raise ValueError('The locationEligibility and designDecisionFix parameters indicate different' +
+        if isBuiltFix is not None:
+            if (isBuiltFix != locationalEligibility).any().any():
+                raise ValueError('The locationEligibility and isBuiltFix parameters indicate different' +
                                  'eligibilities.')
 
-    if designDecisionFix is not None:
+    if isBuiltFix is not None:
         # Check if values are either one or zero
-        if ((designDecisionFix != 0) & (designDecisionFix != 1)).any().any():
-            raise ValueError('The designDecisionFix entries have to be either 0 or 1.')
+        if ((isBuiltFix != 0) & (isBuiltFix != 1)).any().any():
+            raise ValueError('The isBuiltFix entries have to be either 0 or 1.')
         # Check if given capacities indicate the same design decisions
         if capacityFix is not None:
             data = capacityFix.copy()
             data[data > 0] = 1
-            if (data > designDecisionFix).any().any():
-                raise ValueError('The designDecisionFix and capacityFix parameters indicate different design decisions.')
+            if (data > isBuiltFix).any().any():
+                raise ValueError('The isBuiltFix and capacityFix parameters indicate different design decisions.')
         if capacityMax is not None:
             data = capacityMax.copy()
             data[data > 0] = 1
-            if (data > designDecisionFix).any().any():
-                warnings.warn('The designDecisionFix and capacityMax parameters indicate different design options.')
+            if (data > isBuiltFix).any().any():
+                warnings.warn('The isBuiltFix and capacityMax parameters indicate different design options.')
         if capacityMin is not None:
             data = capacityMin.copy()
             data[data > 0] = 1
-            if (data > designDecisionFix).any().any():
-                raise ValueError('The designDecisionFix and capacityMin parameters indicate different design decisions.')
+            if (data > isBuiltFix).any().any():
+                raise ValueError('The isBuiltFix and capacityMin parameters indicate different design decisions.')
 
 
-def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFix, designDecisionFix,
-                             hasDesignDimensionVariables, operationTimeSeries, dimension='1dim'):
+def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFix, isBuiltFix,
+                             hasCapacityVariable, operationTimeSeries, dimension='1dim'):
     if locationalEligibility is not None:
         return locationalEligibility
     else:
         # If the location eligibility is None set it based on other information available
-        if not hasDesignDimensionVariables and operationTimeSeries is not None:
+        if not hasCapacityVariable and operationTimeSeries is not None:
             if dimension == '1dim':
                 data = operationTimeSeries.copy().sum()
                 data[data > 0] = 1
@@ -260,7 +260,7 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
                 return _locationalEligibility
             else:
                 raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
-        elif capacityFix is None and capacityMax is None and designDecisionFix is None:
+        elif capacityFix is None and capacityMax is None and isBuiltFix is None:
             # If no information is given all values are set to 1
             if dimension == '1dim':
                 print('The locationalEligibility of a component is set to 1 (eligible) for all locations.')
@@ -269,9 +269,9 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
                 print('The locationalEligibility of a component is set to 1 (eligible) for all locations.')
                 return pd.DataFrame([[1 if loc != loc_ else 0 for loc in esM._locations] for loc_ in esM._locations],
                                     index=esM._locations, columns=esM._locations)
-        elif designDecisionFix is not None:
-            # If the designDecisionFix is not empty, the eligibility is set based on the fixed capacity
-            data = designDecisionFix.copy()
+        elif isBuiltFix is not None:
+            # If the isBuiltFix is not empty, the eligibility is set based on the fixed capacity
+            data = isBuiltFix.copy()
             data[data > 0] = 1
             print('The locationalEligibility of a component was set based on the '
                   'given fixed design decisions of the component.')
@@ -332,22 +332,22 @@ def checkOperationTimeSeriesInputParameters(esM, operationTimeSeries, locational
         raise ValueError('operationTimeSeries values smaller than 0 were detected.')
 
 
-def checkDesignVariableModelingParameters(designDimensionVariableDomain, hasDesignDimensionVariables,
-                                          hasDesignDecisionVariables, bigM):
-    if designDimensionVariableDomain != 'continuous' and designDimensionVariableDomain != 'discrete':
+def checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable,
+                                          hasIsBuiltBinaryVariable, bigM):
+    if capacityVariableDomain != 'continuous' and capacityVariableDomain != 'discrete':
         raise ValueError('The design dimension variable domain has to be either \'continuous\' or \'discrete\'.')
 
-    if not isinstance(hasDesignDimensionVariables, bool):
-        raise ValueError('The hasDesignDimensionVariables variable domain has to be a boolean.')
+    if not isinstance(hasCapacityVariable, bool):
+        raise ValueError('The hasCapacityVariable variable domain has to be a boolean.')
 
-    if not isinstance(hasDesignDecisionVariables, bool):
-        raise ValueError('The hasDesignDimensionVariables variable domain has to be a boolean.')
+    if not isinstance(hasIsBuiltBinaryVariable, bool):
+        raise ValueError('The hasCapacityVariable variable domain has to be a boolean.')
 
-    if not hasDesignDimensionVariables and hasDesignDecisionVariables:
+    if not hasCapacityVariable and hasIsBuiltBinaryVariable:
         raise ValueError('To consider additional fixed cost contributions when installing'
                          'capacities, design dimension variables are required.')
 
-    if bigM is None and hasDesignDecisionVariables:
+    if bigM is None and hasIsBuiltBinaryVariable:
         raise ValueError('A bigM value needs to be specified when considering fixed cost contributions.')
 
 
