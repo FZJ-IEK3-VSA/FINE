@@ -338,7 +338,7 @@ class EnergySystemModel:
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
 
         optimizer = opt.SolverFactory(solver)
-        if self._timeLimit is not None:
+        if self._solverSpecs['timeLimit'] is not None:
             optimizer.options['timelimit'] = timeLimit
         optimizer.set_options('Threads=' + str(threads) + ' logfile=' + jobName + ' ' + optimizationSpecs)
         solver_info = optimizer.solve(pyM, warmstart=warmstart, tee=True)
