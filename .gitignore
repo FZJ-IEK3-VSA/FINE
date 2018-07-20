@@ -4,8 +4,10 @@ FINE.egg-info
 __pycache__/
 example/.ipynb_checkpoints/
 *.eggs/
+*.testing/
 
 # file types to ignore
 *.pyc
 *.egg-info
 *.log
+*.lp

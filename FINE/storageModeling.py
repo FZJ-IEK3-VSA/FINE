@@ -13,17 +13,16 @@ class Storage(Component):
     def __init__(self, esM, name, commodity, chargeRate=1, dischargeRate=1,
                  chargeEfficiency=1, dischargeEfficiency=1, selfDischarge=0, cyclicLifetime=None,
                  stateOfChargeMin=0, stateOfChargeMax=1,
-                 hasDesignDimensionVariables=True, designDimensionVariableDomain='continuous', capacityPerUnit=1,
-                 hasDesignDecisionVariables=False, bigM=None, doPreciseTsaModeling=False,
+                 hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False, bigM=None, doPreciseTsaModeling=False,
                  chargeOpRateMax=None, chargeOpRateFix=None, chargeTsaWeight=1,
                  dischargeOpRateMax=None, dischargeOpRateFix=None, dischargeTsaWeight=1,
                  stateOfChargeOpRateMax=None, stateOfChargeOpRateFix=None, stateOfChargeTsaWeight=1,
                  isPeriodicalStorage=False,
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
-                 capacityFix=None, designDecisionFix=None,
-                 capexPerDesignDimension=0, capexForDesignDecision=0, opexPerChargeOperation=0,
-                 opexPerDischargeOperation=0, opexPerDesignDimension=0, opexForDesignDecision=0, interestRate=0.08,
-                 economicLifetime=10):
+                 capacityFix=None, isBuiltFix=None,
+                 investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
+                 opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         # Set general component data
         utils.checkCommodities(esM, {commodity})
         self._name, self._commodity = name, commodity
@@ -36,22 +35,22 @@ class Storage(Component):
         self._doPreciseTsaModeling = doPreciseTsaModeling
 
         # Set design variable modeling parameters
-        utils.checkDesignVariableModelingParameters(designDimensionVariableDomain, hasDesignDimensionVariables,
-                                                    hasDesignDecisionVariables, bigM)
-        self._hasDesignDimensionVariables = hasDesignDimensionVariables
-        self._hasDesignDimensionVariables = hasDesignDimensionVariables
-        self._designDimensionVariableDomain = designDimensionVariableDomain
-        self._capacityPerUnit = capacityPerUnit
-        self._hasDesignDecisionVariables = hasDesignDecisionVariables
+        utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable,
+                                                    hasIsBuiltBinaryVariable, bigM)
+        self._hasCapacityVariable = hasCapacityVariable
+        self._hasCapacityVariable = hasCapacityVariable
+        self._capacityVariableDomain = capacityVariableDomain
+        self._capacityPerPlantUnit = capacityPerPlantUnit
+        self._hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self._bigM = bigM
 
         # Set economic data
-        self._capexPerDesignDimension = utils.checkAndSetCostParameter(esM, name, capexPerDesignDimension)
-        self._capexForDesignDecision = utils.checkAndSetCostParameter(esM, name, capexForDesignDecision)
+        self._investPerCapacity = utils.checkAndSetCostParameter(esM, name, investPerCapacity)
+        self._investIfBuilt = utils.checkAndSetCostParameter(esM, name, investIfBuilt)
         self._opexPerChargeOperation = utils.checkAndSetCostParameter(esM, name, opexPerChargeOperation)
         self._opexPerDischargeOperation = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation)
-        self._opexPerDesignDimension = utils.checkAndSetCostParameter(esM, name, opexPerDesignDimension)
-        self._opexForDesignDecision = utils.checkAndSetCostParameter(esM, name, opexForDesignDecision)
+        self._opexPerCapacity = utils.checkAndSetCostParameter(esM, name, opexPerCapacity)
+        self._opexIfBuilt = utils.checkAndSetCostParameter(esM, name, opexIfBuilt)
         self._interestRate = utils.checkAndSetCostParameter(esM, name, interestRate)
         self._economicLifetime = utils.checkAndSetCostParameter(esM, name, economicLifetime)
         self._CCF = self.getCapitalChargeFactor()
@@ -126,12 +125,12 @@ class Storage(Component):
 
         # Set location-specific design parameters
         self._sharedPotentialID = sharedPotentialID
-        utils.checkLocationSpecficDesignInputParams(esM, hasDesignDimensionVariables, hasDesignDecisionVariables,
+        utils.checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBinaryVariable,
                                                     capacityMin, capacityMax, capacityFix,
-                                                    locationalEligibility, designDecisionFix, sharedPotentialID,
+                                                    locationalEligibility, isBuiltFix, sharedPotentialID,
                                                     dimension='1dim')
         self._capacityMin, self._capacityMax, self._capacityFix = capacityMin, capacityMax, capacityFix
-        self._designDecisionFix = designDecisionFix
+        self._isBuiltFix = isBuiltFix
 
         # Set locational eligibility
         timeSeriesData = None
@@ -142,14 +141,21 @@ class Storage(Component):
                                   dischargeOpRateFix, stateOfChargeOpRateMax, stateOfChargeOpRateFix]
                                   if data is not None])
         self._locationalEligibility = utils.setLocationalEligibility(esM, locationalEligibility, capacityMax,
-                                                                     capacityFix, designDecisionFix,
-                                                                     hasDesignDimensionVariables, timeSeriesData)
+                                                                     capacityFix, isBuiltFix,
+                                                                     hasCapacityVariable, timeSeriesData)
+
+        # Variables at optimum (set after optimization)
+        self._capacityVariablesOptimum = None
+        self._isBuiltVariablesOptimum = None
+        self._chargeOperationVariablesOptimum = None
+        self._dischargeOperationVariablesOptimum = None
+        self._stateOfChargeVariablesOptimum = None
 
     def getCapitalChargeFactor(self):
         """ Computes and returns capital charge factor (inverse of annuity factor) """
         return 1 / self._interestRate - 1 / (pow(1 + self._interestRate, self._economicLifetime) * self._interestRate)
 
-    def addToESM(self, esM):
+    def addToEnergySystemModel(self, esM):
         esM._isTimeSeriesDataClustered = False
         if self._name in esM._componentNames:
             if esM._componentNames[self._name] == StorageModeling.__name__:
@@ -244,6 +250,12 @@ class StorageModeling(ComponentModeling):
 
     def __init__(self):
         self._componentsDict = {}
+        self._capacityVariablesOptimum = None
+        self._isBuiltVariablesOptimum = None
+        self._chargeOperationVariablesOptimum = None
+        self._dischargeOperationVariablesOptimum = None
+        self._stateOfChargeVariablesOptimum = None
+
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -259,7 +271,7 @@ class StorageModeling(ComponentModeling):
 
         def initDesignVarSet(pyM):
             return ((loc, compName) for loc in esM._locations for compName, comp in compDict.items()
-                    if comp._locationalEligibility[loc] == 1 and comp._hasDesignDimensionVariables)
+                    if comp._locationalEligibility[loc] == 1 and comp._hasCapacityVariable)
         pyM.designDimensionVarSet_stor = pyomo.Set(dimen=2, initialize=initDesignVarSet)
 
         if pyM.hasTSA:
@@ -275,17 +287,17 @@ class StorageModeling(ComponentModeling):
 
         def initContinuousDesignVarSet(pyM):
             return ((loc, compName) for loc, compName in pyM.designDimensionVarSet_stor
-                    if compDict[compName]._designDimensionVariableDomain == 'continuous')
+                    if compDict[compName]._capacityVariableDomain == 'continuous')
         pyM.continuousDesignDimensionVarSet_stor = pyomo.Set(dimen=2, initialize=initContinuousDesignVarSet)
 
         def initDiscreteDesignVarSet(pyM):
             return ((loc, compName) for loc, compName in pyM.designDimensionVarSet_stor
-                    if compDict[compName]._designDimensionVariableDomain == 'discrete')
+                    if compDict[compName]._capacityVariableDomain == 'discrete')
         pyM.discreteDesignDimensionVarSet_stor = pyomo.Set(dimen=2, initialize=initDiscreteDesignVarSet)
 
         def initDesignDecisionVarSet(pyM):
             return ((loc, compName) for loc, compName in pyM.designDimensionVarSet_stor
-                    if compDict[compName]._hasDesignDecisionVariables)
+                    if compDict[compName]._hasIsBuiltBinaryVariable)
         pyM.designDecisionVarSet_stor = pyomo.Set(dimen=2, initialize=initDesignDecisionVarSet)
 
         ################################################################################################################
@@ -306,93 +318,99 @@ class StorageModeling(ComponentModeling):
         # Charge operation
         def initChargeOpConstrSet1(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._chargeOpRateMax is None
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._chargeOpRateMax is None
                     and compDict[compName]._chargeOpRateFix is None)
         pyM.chargeOpConstrSet1_stor = pyomo.Set(dimen=2, initialize=initChargeOpConstrSet1)
 
         def initChargeOpConstrSet2(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._chargeOpRateFix is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._chargeOpRateFix is not None)
         pyM.chargeOpConstrSet2_stor = pyomo.Set(dimen=2, initialize=initChargeOpConstrSet2)
 
         def initChargeOpConstrSet3(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._chargeOpRateMax is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._chargeOpRateMax is not None)
         pyM.chargeOpConstrSet3_stor = pyomo.Set(dimen=2, initialize=initChargeOpConstrSet3)
 
         def initChargeOpConstrSet4(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    not compDict[compName]._hasDesignDimensionVariables and
+                    not compDict[compName]._hasCapacityVariable and
                     compDict[compName]._chargeOpRateFix is not None)
         pyM.chargeOpConstrSet4_stor = pyomo.Set(dimen=2, initialize=initChargeOpConstrSet4)
 
         def initChargeOpConstrSet5(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    not compDict[compName]._hasDesignDimensionVariables and
+                    not compDict[compName]._hasCapacityVariable and
                     compDict[compName]._chargeOpRateFix is not None)
         pyM.chargeOpConstrSet5_stor = pyomo.Set(dimen=2, initialize=initChargeOpConstrSet5)
 
         # Discharge operation
         def initDischargeOpConstrSet1(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._dischargeOpRateMax is None
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._dischargeOpRateMax is None
                     and compDict[compName]._dischargeOpRateFix is None)
         pyM.dischargeOpConstrSet1_stor = pyomo.Set(dimen=2, initialize=initDischargeOpConstrSet1)
 
         def initDischargeOpConstrSet2(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    compDict[compName]._hasDesignDimensionVariables and
+                    compDict[compName]._hasCapacityVariable and
                     compDict[compName]._dischargeOpRateFix is not None)
         pyM.dischargeOpConstrSet2_stor = pyomo.Set(dimen=2, initialize=initDischargeOpConstrSet2)
 
         def initDischargeOpConstrSet3(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    compDict[compName]._hasDesignDimensionVariables and
+                    compDict[compName]._hasCapacityVariable and
                     compDict[compName]._dischargeOpRateMax is not None)
         pyM.dischargeOpConstrSet3_stor = pyomo.Set(dimen=2, initialize=initDischargeOpConstrSet3)
 
         def initDischargeOpConstrSet4(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    not compDict[compName]._hasDesignDimensionVariables and
+                    not compDict[compName]._hasCapacityVariable and
                     compDict[compName]._dischargeOpRateFix is not None)
         pyM.dischargeOpConstrSet4_stor = pyomo.Set(dimen=2, initialize=initDischargeOpConstrSet4)
 
         def initDischargeOpConstrSet5(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    not compDict[compName]._hasDesignDimensionVariables and
+                    not compDict[compName]._hasCapacityVariable and
                     compDict[compName]._dischargeOpRateMax is not None)
         pyM.dischargeOpConstrSet5_stor = pyomo.Set(dimen=2, initialize=initDischargeOpConstrSet5)
 
         # State of charge operation
+        # TODO check if also applied for simple SOC modeling
         def initStateOfChargeOpConstrSet1(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    compDict[compName]._hasDesignDimensionVariables and
+                    compDict[compName]._hasCapacityVariable and
                     compDict[compName]._stateOfChargeOpRateMax is None
-                    and compDict[compName]._dischargeOpRateFix is None)
+                    and compDict[compName]._stateOfChargeOpRateFix is None
+                    and (compDict[compName]._doPreciseTsaModeling if pyM.hasTSA else True))
         pyM.stateOfChargeOpConstrSet1_stor = pyomo.Set(dimen=2, initialize=initStateOfChargeOpConstrSet1)
 
         def initStateOfChargeOpConstrSet2(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    compDict[compName]._hasDesignDimensionVariables and
-                    compDict[compName]._stateOfChargeOpRateFix is not None)
+                    compDict[compName]._hasCapacityVariable and
+                    compDict[compName]._stateOfChargeOpRateFix is not None
+                    and (compDict[compName]._doPreciseTsaModeling if pyM.hasTSA else True))
         pyM.stateOfChargeOpConstrSet2_stor = pyomo.Set(dimen=2, initialize=initStateOfChargeOpConstrSet2)
 
         def initStateOfChargeOpConstrSet3(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    compDict[compName]._hasDesignDimensionVariables and
-                    compDict[compName]._stateOfChargeOpRateMax is not None)
+                    compDict[compName]._hasCapacityVariable and
+                    compDict[compName]._stateOfChargeOpRateMax is not None
+                    and (compDict[compName]._doPreciseTsaModeling if pyM.hasTSA else True))
         pyM.stateOfChargeOpConstrSet3_stor = pyomo.Set(dimen=2, initialize=initStateOfChargeOpConstrSet3)
 
         def initStateOfChargeOpConstrSet4(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    not compDict[compName]._hasDesignDimensionVariables and
-                    compDict[compName]._stateOfChargeOpRateFix is not None)
+                    not compDict[compName]._hasCapacityVariable and
+                    compDict[compName]._stateOfChargeOpRateFix is not None
+                    and (compDict[compName]._doPreciseTsaModeling if pyM.hasTSA else True))
         pyM.stateOfChargeOpConstrSet4_stor = pyomo.Set(dimen=2, initialize=initStateOfChargeOpConstrSet4)
 
         def initStateOfChargeOpConstrSet5(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_stor if
-                    not compDict[compName]._hasDesignDimensionVariables and
-                    compDict[compName]._stateOfChargeOpRateMax is not None)
+                    not compDict[compName]._hasCapacityVariable and
+                    compDict[compName]._stateOfChargeOpRateMax is not None
+                    and (compDict[compName]._doPreciseTsaModeling if pyM.hasTSA else True))
         pyM.stateOfChargeOpConstrSet5_stor = pyomo.Set(dimen=2, initialize=initStateOfChargeOpConstrSet5)
 
     ####################################################################################################################
@@ -405,7 +423,7 @@ class StorageModeling(ComponentModeling):
         # Function for setting lower and upper capacity bounds
         def capBounds(pyM, loc, compName):
             comp = self._componentsDict[compName]
-            return (comp._capacityMin[loc] if (comp._capacityMin is not None and not comp._hasDesignDecisionVariables)
+            return (comp._capacityMin[loc] if (comp._capacityMin is not None and not comp._hasIsBuiltBinaryVariable)
                     else 0, comp._capacityMax[loc] if comp._capacityMax is not None else None)
 
         # Capacity of components [energyUnit]
@@ -459,12 +477,12 @@ class StorageModeling(ComponentModeling):
 
         # Determine the components' capacities from the number of installed units
         def capToNbReal_stor(pyM, loc, compName):
-            return pyM.cap_stor[loc, compName] == pyM.nbReal_stor[loc, compName] * compDict[compName]._capacityPerUnit
+            return pyM.cap_stor[loc, compName] == pyM.nbReal_stor[loc, compName] * compDict[compName]._capacityPerPlantUnit
         pyM.ConstrCapToNbReal_stor = pyomo.Constraint(pyM.continuousDesignDimensionVarSet_stor, rule=capToNbReal_stor)
 
         # Determine the components' capacities from the number of installed units
         def capToNbInt_stor(pyM, loc, compName):
-            return pyM.cap_stor[loc, compName] == pyM.nbInt_stor[loc, compName] * compDict[compName]._capacityPerUnit
+            return pyM.cap_stor[loc, compName] == pyM.nbInt_stor[loc, compName] * compDict[compName]._capacityPerPlantUnit
         pyM.ConstrCapToNbInt_stor = pyomo.Constraint(pyM.discreteDesignDimensionVarSet_stor, rule=capToNbInt_stor)
 
         # Enforce the consideration of the binary design variables of a component
@@ -487,8 +505,8 @@ class StorageModeling(ComponentModeling):
 
         # Sets, if applicable, the binary design variables of a component
         def designBinFix_stor(pyM, loc, compName):
-            return pyM.designBin_stor[loc, compName] == compDict[compName]._designDecisionFix[loc] \
-                if compDict[compName]._designDecisionFix is not None else pyomo.Constraint.Skip
+            return pyM.designBin_stor[loc, compName] == compDict[compName]._isBuiltFix[loc] \
+                if compDict[compName]._isBuiltFix is not None else pyomo.Constraint.Skip
         pyM.ConstrDesignBinFix_stor = pyomo.Constraint(pyM.designDecisionVarSet_stor, rule=designBinFix_stor)
 
         ################################################################################################################
@@ -583,8 +601,8 @@ class StorageModeling(ComponentModeling):
 
         # Constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime
         def cyclicLifetime_stor(pyM, loc, compName):
-            return (sum(pyM.chargeOp[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet) <=
-                    pyM.cap_stor[loc, compName] *
+            return (sum(pyM.chargeOp[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet) /
+                    esM._numberOfYears <= pyM.cap_stor[loc, compName] *
                     (compDict[compName]._stateOfChargeMax - compDict[compName]._stateOfChargeMin) *
                     compDict[compName]._cyclicLifetime / compDict[compName]._economicLifetime[loc]
                     if compDict[compName]._cyclicLifetime is not None else pyomo.Constraint.Skip)
@@ -597,10 +615,10 @@ class StorageModeling(ComponentModeling):
             def interSOC_stor(pyM, loc, compName, pInter):
                 return pyM.stateOfChargeInterPeriods[loc, compName, pInter + 1] == \
                     pyM.stateOfChargeInterPeriods[loc, compName, pInter] * \
-                    (1 - compDict[compName]._selfDischarge) ** (esM._timeStepsPerPeriod[-1] * esM._hoursPerTimeStep) + \
-                    pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], esM._timeStepsPerPeriod[-1]]
+                    (1-compDict[compName]._selfDischarge)**((esM._timeStepsPerPeriod[-1]+1) * esM._hoursPerTimeStep) + \
+                    pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], esM._timeStepsPerPeriod[-1]+1]
             pyM.ConstrInterSOC_stor = \
-                pyomo.Constraint(pyM.operationVarSet_stor, esM._interPeriodTimeSteps[:-1], rule=interSOC_stor)
+                pyomo.Constraint(pyM.operationVarSet_stor, esM._periods, rule=interSOC_stor)
 
             # The (virtual) state of charge at the beginning of a typical period is zero
             def SOCPeriodStart_stor(pyM, loc, compName, p):
@@ -610,11 +628,13 @@ class StorageModeling(ComponentModeling):
 
             # If periodic storage is selected, the states of charge between periods have the same value
             def equalInterSOC_stor(pyM, loc, compName, pInter):
-                return (pyM.stateOfChargeInterPeriods[loc, compName, pInter] ==
-                        pyM.stateOfChargeInterPeriods[loc, compName, pInter + 1]
-                        if compDict[compName]._isPeriodicalStorage else pyomo.Constraint.Skip)
+                if compDict[compName]._isPeriodicalStorage:
+                    return pyM.stateOfChargeInterPeriods[loc, compName, pInter] == \
+                           pyM.stateOfChargeInterPeriods[loc, compName, pInter + 1]
+                else:
+                    return pyomo.Constraint.Skip
             pyM.ConstrEqualInterSOC_stor = pyomo.Constraint(pyM.operationVarSet_stor,
-                                                            esM._interPeriodTimeSteps[:-1], rule=equalInterSOC_stor)
+                                                            esM._periods, rule=equalInterSOC_stor)
 
         # Ensure that the state of charge is within the operating limits of the installed capacities
         if not pyM.hasTSA:
@@ -668,14 +688,14 @@ class StorageModeling(ComponentModeling):
             #           (The error compared to the precise version is small in cases of small selfDischarge)           #
 
             # The maximum (virtual) state of charge during a typical period is larger than all occurring (virtual)
-            # states of charge in that period
+            # states of charge in that period (the last time step is considered in the subsequent period for t=0)
             def SOCintraPeriodMax_stor(pyM, loc, compName, p, t):
                 return pyM.stateOfCharge[loc, compName, p, t] <= pyM.stateOfChargeMax[loc, compName, p]
             pyM.ConstSOCintraPeriodMax_stor = \
                 pyomo.Constraint(pyM.designDimensionVarSetSimple_stor, pyM.timeSet, rule=SOCintraPeriodMax_stor)
 
             # The minimum (virtual) state of charge during a typical period is smaller than all occurring (virtual)
-            # states of charge in that period
+            # states of charge in that period (the last time step is considered in the subsequent period for t=0)
             def SOCintraPeriodMin_stor(pyM, loc, compName, p, t):
                 return pyM.stateOfCharge[loc, compName, p, t] >= pyM.stateOfChargeMin[loc, compName, p]
             pyM.ConstSOCintraPeriodMin_stor = \
@@ -689,18 +709,18 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfChargeMax[loc, compName, esM._periodsOrder[pInter]]
                         <= pyM.cap_stor[loc, compName] * compDict[compName]._stateOfChargeMax)
             pyM.ConstrSOCMaxSimple_stor = pyomo.Constraint(pyM.designDimensionVarSetSimple_stor,
-                                                           esM._interPeriodTimeSteps[:-1], rule=SOCMaxSimple_stor)
+                                                           esM._periods, rule=SOCMaxSimple_stor)
 
             # The state of charge at the beginning of one period plus the minimum (virtual) state of charge
             # during that period has to be larger than the installed capacities multiplied with the relative minimum
             # state of charge
             def SOCMinSimple_stor(pyM, loc, compName, pInter):
                 return (pyM.stateOfChargeInterPeriods[loc, compName, pInter] *
-                        (1-compDict[compName]._selfDischarge) ** (esM._timeStepsPerPeriod[-1]*esM._hoursPerTimeStep)
+                        (1-compDict[compName]._selfDischarge)**((esM._timeStepsPerPeriod[-1]+1)*esM._hoursPerTimeStep)
                         + pyM.stateOfChargeMin[loc, compName, esM._periodsOrder[pInter]]
                         >= pyM.cap_stor[loc, compName] * compDict[compName]._stateOfChargeMin)
             pyM.ConstrSOCMinSimple_stor = pyomo.Constraint(pyM.designDimensionVarSetSimple_stor,
-                                                           esM._interPeriodTimeSteps[:-1], rule=SOCMinSimple_stor)
+                                                           esM._periods, rule=SOCMinSimple_stor)
 
             #                        Precise version of the state of charge limitation control                         #
 
@@ -714,7 +734,7 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], t]
                         <= pyM.cap_stor[loc, compName] * compDict[compName]._stateOfChargeMax)
             pyM.ConstrSOCMaxPrecise1_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet1_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise1_stor)
 
             def SOCMaxPrecise2_stor(pyM, loc, compName, pInter, t):
@@ -724,7 +744,7 @@ class StorageModeling(ComponentModeling):
                         == pyM.cap_stor[loc, compName] *
                         compDict[compName]._stateOfChargeOpRateFix[loc][esM._periodsOrder[pInter], t])
             pyM.ConstrSOCMaxPrecise2_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet2_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise2_stor)
 
             def SOCMaxPrecise3_stor(pyM, loc, compName, pInter, t):
@@ -734,7 +754,7 @@ class StorageModeling(ComponentModeling):
                         <= pyM.cap_stor[loc, compName] *
                         compDict[compName]._stateOfChargeOpRateMax[loc][esM._periodsOrder[pInter], t])
             pyM.ConstrSOCMaxPrecise3_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet3_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise3_stor)
 
             def SOCMaxPrecise4_stor(pyM, loc, compName, pInter, t):
@@ -743,7 +763,7 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], t]
                         == compDict[compName]._stateOfChargeOpRateFix[loc][esM._periodsOrder[pInter], t])
             pyM.ConstrSOCMaxPrecise4_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet4_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise4_stor)
 
             def SOCMaxPrecise5_stor(pyM, loc, compName, pInter, t):
@@ -752,7 +772,7 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], t]
                         <= compDict[compName]._stateOfChargeOpRateMax[loc][esM._periodsOrder[pInter], t])
             pyM.ConstrSOCMaxPrecise5_stor = pyomo.Constraint(pyM.stateOfChargeOpConstrSet5_stor,
-                                                             esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                             esM._periods, esM._timeStepsPerPeriod,
                                                              rule=SOCMaxPrecise5_stor)
 
             # The state of charge at each time step cannot be smaller than the installed capacity multiplied with the
@@ -763,7 +783,7 @@ class StorageModeling(ComponentModeling):
                         pyM.stateOfCharge[loc, compName, esM._periodsOrder[pInter], t]
                         >= pyM.cap_stor[loc, compName] * compDict[compName]._stateOfChargeMin)
             pyM.ConstrSOCMinPrecise_stor = pyomo.Constraint(pyM.designDimensionVarSetPrecise_stor,
-                                                            esM._interPeriodTimeSteps[:-1], esM._timeStepsPerPeriod,
+                                                            esM._periods, esM._timeStepsPerPeriod,
                                                             rule=SOCMinPrecise_stor)
 
     ####################################################################################################################
@@ -788,16 +808,16 @@ class StorageModeling(ComponentModeling):
     def getObjectiveFunctionContribution(self, esM, pyM):
         compDict = self._componentsDict
 
-        capexDim = sum(compDict[compName]._capexPerDesignDimension[loc] * pyM.cap_stor[loc, compName] /
+        capexDim = sum(compDict[compName]._investPerCapacity[loc] * pyM.cap_stor[loc, compName] /
                        compDict[compName]._CCF[loc] for loc, compName in pyM.cap_stor)
 
-        capexDec = sum(compDict[compName]._capexForDesignDecision[loc] * pyM.designBin_stor[loc, compName] /
+        capexDec = sum(compDict[compName]._investIfBuilt[loc] * pyM.designBin_stor[loc, compName] /
                        compDict[compName]._CCF[loc] for loc, compName in pyM.designBin_stor)
 
-        opexDim = sum(compDict[compName]._opexPerDesignDimension[loc] * pyM.cap_stor[loc, compName]
+        opexDim = sum(compDict[compName]._opexPerCapacity[loc] * pyM.cap_stor[loc, compName]
                       for loc, compName in pyM.cap_stor)
 
-        opexDec = sum(compDict[compName]._opexForDesignDecision[loc] * pyM.designBin_stor[loc, compName]
+        opexDec = sum(compDict[compName]._opexIfBuilt[loc] * pyM.designBin_stor[loc, compName]
                       for loc, compName in pyM.designBin_stor)
 
         opexOp = sum(compDict[compName]._opexPerChargeOperation[loc] *
@@ -805,7 +825,7 @@ class StorageModeling(ComponentModeling):
                      compDict[compName]._opexPerDischargeOperation[loc] *
                      sum(pyM.dischargeOp[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet)
                      for loc, compNames in pyM.operationVarDict_stor.items() for compName in
-                     compNames) / esM._years
+                     compNames) / esM._numberOfYears
 
         return capexDim + capexDec + opexDim + opexDec + opexOp
 
@@ -813,5 +833,58 @@ class StorageModeling(ComponentModeling):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def getOptimalValues(self, pyM):
-        pass
+    def setOptimalValues(self, esM, pyM):
+        optVal = utils.formatOptimizationOutput(pyM.cap_stor.get_values(), 'designVariables', '1dim')
+        self._capacityVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_capacityVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.designBin_stor.get_values(), 'designVariables', '1dim')
+        self._isBuiltVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_isBuiltVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.chargeOp.get_values(), 'operationVariables', '1dim',
+                                                esM._periodsOrder)
+        self._chargeOperationVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_chargeOperationVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.dischargeOp.get_values(), 'operationVariables', '1dim',
+                                                esM._periodsOrder)
+        self._dischargeOperationVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_dischargeOperationVariablesOptimum', self._componentsDict)
+
+        if not pyM.hasTSA:
+            optVal = utils.formatOptimizationOutput(pyM.stateOfCharge.get_values(), 'operationVariables', '1dim',
+                                                    esM._periodsOrder)
+            self._stateOfChargeOperationVariablesOptimum = optVal
+            utils.setOptimalComponentVariables(optVal, '_stateOfChargeVariablesOptimum', self._componentsDict)
+        else:
+            stateOfChargeIntra = pyM.stateOfCharge.get_values()
+            stateOfChargeInter = pyM.stateOfChargeInterPeriods.get_values()
+            if stateOfChargeIntra is not None:
+                # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
+                # Results in a one dimensional DataFrame
+                stateOfChargeIntra = pd.DataFrame(stateOfChargeIntra, index=[0]).T.swaplevel(i=0, j=-2).sort_index()
+                stateOfChargeInter = pd.DataFrame(stateOfChargeInter, index=[0]).T.swaplevel(i=0, j=1).sort_index()
+                # Unstack time steps (convert to a two dimensional DataFrame with the time indices being the columns)
+                stateOfChargeIntra = stateOfChargeIntra.unstack(level=-1)
+                stateOfChargeInter = stateOfChargeInter.unstack(level=-1)
+                # Get rid of the unnecessary 0 level
+                stateOfChargeIntra.columns = stateOfChargeIntra.columns.droplevel()
+                stateOfChargeInter.columns = stateOfChargeInter.columns.droplevel()
+                # Concat data
+                data = []
+                for count, p in enumerate(esM._periodsOrder):
+                    data.append((stateOfChargeInter.loc[:, count] +
+                                 stateOfChargeIntra.loc[p].loc[:, :esM._timeStepsPerPeriod[-1]].T).T)
+                optVal = pd.concat(data, axis=1, ignore_index=True)
+            else:
+                optVal = None
+            self._stateOfChargeOperationVariablesOptimum = optVal
+            utils.setOptimalComponentVariables(optVal, '_stateOfChargeVariablesOptimum', self._componentsDict)
+
+
+
+        #TODO state of charge
+
+    def getOptimalCapacities(self):
+        return self._capacitiesOpt

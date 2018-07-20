@@ -9,15 +9,14 @@ class Source(Component):
     """
     Doc
     """
-    def __init__(self, esM, name, commodity, hasDesignDimensionVariables,
-                 designDimensionVariableDomain='continuous', capacityPerUnit=1,
-                 hasDesignDecisionVariables=False, bigM=None,
+    def __init__(self, esM, name, commodity, hasCapacityVariable,
+                 capacityVariableDomain='continuous', capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1, commodityLimitID=None,
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
-                 sharedPotentialID=None, capacityFix=None, designDecisionFix=None,
-                 capexPerDesignDimension=0, capexForDesignDecision=0, opexPerOperation=0, commodityCost=0,
-                 commodityRevenue=0, opexPerDesignDimension=0, opexForDesignDecision=0, interestRate=0.08,
-                 economicLifetime=10):
+                 sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
+                 commodityRevenue=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         # Set general component data
         utils.checkCommodities(esM, {commodity})
         self._name, self._commodity = name, commodity
@@ -25,20 +24,20 @@ class Source(Component):
         self._sign = 1
 
         # Set design variable modeling parameters
-        utils.checkDesignVariableModelingParameters(designDimensionVariableDomain, hasDesignDimensionVariables,
-                                                    hasDesignDecisionVariables, bigM)
-        self._hasDesignDimensionVariables = hasDesignDimensionVariables
-        self._designDimensionVariableDomain = designDimensionVariableDomain
-        self._capacityPerUnit = capacityPerUnit
-        self._hasDesignDecisionVariables = hasDesignDecisionVariables
+        utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable,
+                                                    hasIsBuiltBinaryVariable, bigM)
+        self._hasCapacityVariable = hasCapacityVariable
+        self._capacityVariableDomain = capacityVariableDomain
+        self._capacityPerPlantUnit = capacityPerPlantUnit
+        self._hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self._bigM = bigM
 
         # Set economic data
-        self._capexPerDesignDimension = utils.checkAndSetCostParameter(esM, name, capexPerDesignDimension)
-        self._capexForDesignDecision = utils.checkAndSetCostParameter(esM, name, capexForDesignDecision)
+        self._investPerCapacity = utils.checkAndSetCostParameter(esM, name, investPerCapacity)
+        self._investIfBuilt = utils.checkAndSetCostParameter(esM, name, investIfBuilt)
         self._opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation)
-        self._opexPerDesignDimension = utils.checkAndSetCostParameter(esM, name, opexPerDesignDimension)
-        self._opexForDesignDecision = utils.checkAndSetCostParameter(esM, name, opexForDesignDecision)
+        self._opexPerCapacity = utils.checkAndSetCostParameter(esM, name, opexPerCapacity)
+        self._opexIfBuilt = utils.checkAndSetCostParameter(esM, name, opexIfBuilt)
         self._commodityCost = utils.checkAndSetCostParameter(esM, name, commodityCost)
         self._commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue)
         self._interestRate = utils.checkAndSetCostParameter(esM, name, interestRate)
@@ -65,24 +64,29 @@ class Source(Component):
 
         # Set location-specific design parameters
         self._sharedPotentialID = sharedPotentialID
-        utils.checkLocationSpecficDesignInputParams(esM, hasDesignDimensionVariables, hasDesignDecisionVariables,
+        utils.checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBinaryVariable,
                                                     capacityMin, capacityMax, capacityFix,
-                                                    locationalEligibility, designDecisionFix, sharedPotentialID,
+                                                    locationalEligibility, isBuiltFix, sharedPotentialID,
                                                     dimension='1dim')
         self._capacityMin, self._capacityMax, self._capacityFix = capacityMin, capacityMax, capacityFix
-        self._designDecisionFix = designDecisionFix
+        self._isBuiltFix = isBuiltFix
 
         # Set locational eligibility
         operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
         self._locationalEligibility = utils.setLocationalEligibility(esM, locationalEligibility, capacityMax,
-                                                                     capacityFix, designDecisionFix,
-                                                                     hasDesignDimensionVariables, operationTimeSeries)
+                                                                     capacityFix, isBuiltFix,
+                                                                     hasCapacityVariable, operationTimeSeries)
+
+        # Variables at optimum (set after optimization)
+        self._capacityVariablesOptimum = None
+        self._isBuiltVariablesOptimum = None
+        self._operationVariablesOptimum = None
 
     def getCapitalChargeFactor(self):
         """ Computes and returns capital charge factor (inverse of annuity factor) """
         return 1 / self._interestRate - 1 / (pow(1 + self._interestRate, self._economicLifetime) * self._interestRate)
 
-    def addToESM(self, esM):
+    def addToEnergySystemModel(self, esM):
         esM._isTimeSeriesDataClustered = False
         if self._name in esM._componentNames:
             if esM._componentNames[self._name] == SourceSinkModeling.__name__:
@@ -127,22 +131,22 @@ class Source(Component):
 
 
 class Sink(Source):
-    def __init__(self, esM, name, commodity, hasDesignDimensionVariables,
-                 designDimensionVariableDomain='continuous', capacityPerUnit=1,
-                 hasDesignDecisionVariables=False, bigM=None,
+    def __init__(self, esM, name, commodity, hasCapacityVariable,
+                 capacityVariableDomain='continuous', capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsamWeight=1, commodityLimitID=None,
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
-                 sharedPotentialID=None, capacityFix=None, designDecisionFix=None,
-                 capexPerDesignDimension=0, capexForDesignDecision=0, opexPerOperation=0, commodityCost=0,
-                 commodityRevenue=0, opexPerDesignDimension=0, opexForDesignDecision=0, interestRate=0.08,
+                 sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
+                 commodityRevenue=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08,
                  economicLifetime=10):
 
-        Source.__init__(self, esM, name, commodity, hasDesignDimensionVariables, designDimensionVariableDomain,
-                        capacityPerUnit, hasDesignDecisionVariables, bigM, operationRateMax, operationRateFix,
+        Source.__init__(self, esM, name, commodity, hasCapacityVariable, capacityVariableDomain,
+                        capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix,
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
-                        capacityMax, sharedPotentialID, capacityFix, designDecisionFix, capexPerDesignDimension,
-                        capexForDesignDecision, opexPerOperation, commodityCost, commodityRevenue,
-                        opexPerDesignDimension, opexForDesignDecision, interestRate, economicLifetime)
+                        capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
+                        investIfBuilt, opexPerOperation, commodityCost, commodityRevenue,
+                        opexPerCapacity, opexIfBuilt, interestRate, economicLifetime)
 
         self._sign = -1
 
@@ -151,6 +155,9 @@ class SourceSinkModeling(ComponentModeling):
     """ Doc """
     def __init__(self):
         self._componentsDict = {}
+        self._capacityVariablesOptimum = None
+        self._isBuiltVariablesOptimum = None
+        self._operationVariablesOptimum = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -166,22 +173,22 @@ class SourceSinkModeling(ComponentModeling):
 
         def initDesignVarSet(pyM):
             return ((loc, compName) for loc in esM._locations for compName, comp in compDict.items()
-                    if comp._locationalEligibility[loc] == 1 and comp._hasDesignDimensionVariables)
+                    if comp._locationalEligibility[loc] == 1 and comp._hasCapacityVariable)
         pyM.designDimensionVarSet_srcSnk = pyomo.Set(dimen=2, initialize=initDesignVarSet)
 
         def initContinuousDesignVarSet(pyM):
             return ((loc, compName) for loc, compName in pyM.designDimensionVarSet_srcSnk
-                    if compDict[compName]._designDimensionVariableDomain == 'continuous')
+                    if compDict[compName]._capacityVariableDomain == 'continuous')
         pyM.continuousDesignDimensionVarSet_srcSnk = pyomo.Set(dimen=2, initialize=initContinuousDesignVarSet)
 
         def initDiscreteDesignVarSet(pyM):
             return ((loc, compName) for loc, compName in pyM.designDimensionVarSet_srcSnk
-                    if compDict[compName]._designDimensionVariableDomain == 'discrete')
+                    if compDict[compName]._capacityVariableDomain == 'discrete')
         pyM.discreteDesignDimensionVarSet_srcSnk = pyomo.Set(dimen=2, initialize=initDiscreteDesignVarSet)
 
         def initDesignDecisionVarSet(pyM):
             return ((loc, compName) for loc, compName in pyM.designDimensionVarSet_srcSnk
-                    if compDict[compName]._hasDesignDecisionVariables)
+                    if compDict[compName]._hasIsBuiltBinaryVariable)
         pyM.designDecisionVarSet_srcSnk = pyomo.Set(dimen=2, initialize=initDesignDecisionVarSet)
 
         ################################################################################################################
@@ -201,28 +208,28 @@ class SourceSinkModeling(ComponentModeling):
 
         def initOpConstrSet1(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_srcSnk if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateMax is None
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateMax is None
                     and compDict[compName]._operationRateFix is None)
         pyM.opConstrSet1_srcSnk = pyomo.Set(dimen=2, initialize=initOpConstrSet1)
 
         def initOpConstrSet2(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_srcSnk if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateFix is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateFix is not None)
         pyM.opConstrSet2_srcSnk = pyomo.Set(dimen=2, initialize=initOpConstrSet2)
 
         def initOpConstrSet3(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_srcSnk if
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateMax is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateMax is not None)
         pyM.opConstrSet3_srcSnk = pyomo.Set(dimen=2, initialize=initOpConstrSet3)
 
         def initOpConstrSet4(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_srcSnk if not
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateFix is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateFix is not None)
         pyM.opConstrSet4_srcSnk = pyomo.Set(dimen=2, initialize=initOpConstrSet4)
 
         def initOpConstrSet5(pyM):
             return ((loc, compName) for loc, compName in pyM.operationVarSet_srcSnk if not
-                    compDict[compName]._hasDesignDimensionVariables and compDict[compName]._operationRateMax is not None)
+                    compDict[compName]._hasCapacityVariable and compDict[compName]._operationRateMax is not None)
         pyM.opConstrSet5_srcSnk = pyomo.Set(dimen=2, initialize=initOpConstrSet5)
 
         yearlyCommodityLimitationDict = {}
@@ -232,7 +239,7 @@ class SourceSinkModeling(ComponentModeling):
                 if ID in yearlyCommodityLimitationDict and limit != yearlyCommodityLimitationDict[ID][0]:
                     raise ValueError('yearlyLimitationIDs with different upper limits detected.')
                 yearlyCommodityLimitationDict.setdefault(ID, (limit, []))[1].append(compName)
-        pyM._yearlyCommodityLimitationDict = yearlyCommodityLimitationDict
+        pyM.yearlyCommodityLimitationDict = yearlyCommodityLimitationDict
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -243,7 +250,7 @@ class SourceSinkModeling(ComponentModeling):
         # Function for setting lower and upper capacity bounds
         def capBounds(pyM, loc, compName):
             comp = self._componentsDict[compName]
-            return (comp._capacityMin[loc] if (comp._capacityMin is not None and not comp._hasDesignDecisionVariables)
+            return (comp._capacityMin[loc] if (comp._capacityMin is not None and not comp._hasIsBuiltBinaryVariable)
                     else 0, comp._capacityMax[loc] if comp._capacityMax is not None else None)
 
         # Capacity of components [powerUnit]
@@ -272,14 +279,14 @@ class SourceSinkModeling(ComponentModeling):
         # Determine the components' capacities from the number of installed units
         def capToNbReal_srcSnk(pyM, loc, compName):
             return pyM.cap_srcSnk[loc, compName] == \
-                   pyM.nbReal_srcSnk[loc, compName] * compDict[compName]._capacityPerUnit
+                   pyM.nbReal_srcSnk[loc, compName] * compDict[compName]._capacityPerPlantUnit
         pyM.ConstrCapToNbReal_srcSnk = pyomo.Constraint(pyM.continuousDesignDimensionVarSet_srcSnk,
                                                          rule=capToNbReal_srcSnk)
 
         # Determine the components' capacities from the number of installed units
         def capToNbInt_srcSnk(pyM, loc, compName):
             return pyM.cap_srcSnk[loc, compName] == \
-                   pyM.nbInt_srcSnk[loc, compName] * compDict[compName]._capacityPerUnit
+                   pyM.nbInt_srcSnk[loc, compName] * compDict[compName]._capacityPerPlantUnit
         pyM.ConstrCapToNbInt_srcSnk = pyomo.Constraint(pyM.discreteDesignDimensionVarSet_srcSnk,
                                                        rule=capToNbInt_srcSnk)
 
@@ -303,8 +310,8 @@ class SourceSinkModeling(ComponentModeling):
 
         # Sets, if applicable, the binary design variables of a component
         def designBinFix_srcSnk(pyM, loc, compName):
-            return (pyM.designBin_srcSnk[loc, compName] == compDict[compName]._designDecisionFix[loc]
-                    if compDict[compName]._designDecisionFix is not None else pyomo.Constraint.Skip)
+            return (pyM.designBin_srcSnk[loc, compName] == compDict[compName]._isBuiltFix[loc]
+                    if compDict[compName]._isBuiltFix is not None else pyomo.Constraint.Skip)
         pyM.ConstrDesignBinFix_srcSnk = pyomo.Constraint(pyM.designDecisionVarSet_srcSnk, rule=designBinFix_srcSnk)
 
         ################################################################################################################
@@ -341,17 +348,14 @@ class SourceSinkModeling(ComponentModeling):
         pyM.ConstrOperation5_srcSnk = pyomo.Constraint(pyM.opConstrSet5_srcSnk, pyM.timeSet, rule=op5_srcSnk)
 
         def yearlyLimitationConstraint(pyM, key):
-            limitDict = pyM._yearlyCommodityLimitationDict
+            limitDict = pyM.yearlyCommodityLimitationDict
             sumEx = -sum(pyM.op_srcSnk[loc, compName, p, t] * self._componentsDict[compName]._sign *
-                         esM._periodOccurrences[p]/esM._years
+                         esM._periodOccurrences[p]/esM._numberOfYears
                          for loc, compName, p, t in pyM.op_srcSnk if compName in limitDict[key][1])
-            if limitDict[key][0] != 0:
-                sign = limitDict[key][0]/abs(limitDict[key][0])
-            else:
-                sign = 1
+            sign = limitDict[key][0]/abs(limitDict[key][0]) if limitDict[key][0] != 0 else 1
             return sign * sumEx <= sign * limitDict[key][0]
         pyM.ConstryearlyLimitation = \
-            pyomo.Constraint(pyM._yearlyCommodityLimitationDict.keys(), rule=yearlyLimitationConstraint)
+            pyomo.Constraint(pyM.yearlyCommodityLimitationDict.keys(), rule=yearlyLimitationConstraint)
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
@@ -374,27 +378,27 @@ class SourceSinkModeling(ComponentModeling):
     def getObjectiveFunctionContribution(self, esM, pyM):
         compDict = self._componentsDict
 
-        capexDim = sum(compDict[compName]._capexPerDesignDimension[loc] * pyM.cap_srcSnk[loc, compName] /
+        capexDim = sum(compDict[compName]._investPerCapacity[loc] * pyM.cap_srcSnk[loc, compName] /
                        compDict[compName]._CCF[loc] for loc, compName in pyM.cap_srcSnk)
 
-        capexDec = sum(compDict[compName]._capexForDesignDecision[loc] * pyM.designBin_srcSnk[loc, compName] /
+        capexDec = sum(compDict[compName]._investIfBuilt[loc] * pyM.designBin_srcSnk[loc, compName] /
                        compDict[compName]._CCF[loc] for loc, compName in pyM.designBin_srcSnk)
 
-        opexDim = sum(compDict[compName]._opexPerDesignDimension[loc] * pyM.cap_srcSnk[loc, compName]
+        opexDim = sum(compDict[compName]._opexPerCapacity[loc] * pyM.cap_srcSnk[loc, compName]
                       for loc, compName in pyM.cap_srcSnk)
 
-        opexDec = sum(compDict[compName]._opexForDesignDecision[loc] * pyM.designBin_srcSnk[loc, compName]
+        opexDec = sum(compDict[compName]._opexIfBuilt[loc] * pyM.designBin_srcSnk[loc, compName]
                       for loc, compName in pyM.designBin_srcSnk)
 
         opexOp = sum(compDict[compName]._opexPerOperation[loc] *
                      sum(pyM.op_srcSnk[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet)
                      for loc, compNames in pyM.operationVarDict_srcSnk.items()
-                     for compName in compNames) / esM._years
+                     for compName in compNames) / esM._numberOfYears
 
         commodCosts = sum((compDict[compName]._commodityCost[loc] - compDict[compName]._commodityRevenue[loc]) *
                           sum(pyM.op_srcSnk[loc, compName, p, t] * esM._periodOccurrences[p] for p, t in pyM.timeSet)
                           for loc, compNames in pyM.operationVarDict_srcSnk.items()
-                          for compName in compNames) / esM._years
+                          for compName in compNames) / esM._numberOfYears
 
         return capexDim + capexDec + opexDim + opexDec + opexOp + commodCosts
 
@@ -402,5 +406,19 @@ class SourceSinkModeling(ComponentModeling):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def getOptimalValues(self, pyM):
-        pass
+    def setOptimalValues(self, esM, pyM):
+        optVal = utils.formatOptimizationOutput(pyM.cap_srcSnk.get_values(), 'designVariables', '1dim')
+        self._capacityVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_capacityVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.designBin_srcSnk.get_values(), 'designVariables', '1dim')
+        self._isBuiltVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_isBuiltVariablesOptimum', self._componentsDict)
+
+        optVal = utils.formatOptimizationOutput(pyM.op_srcSnk.get_values(), 'operationVariables', '1dim',
+                                                esM._periodsOrder)
+        self._operationVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_operationVariablesOptimum', self._componentsDict)
+
+    def getOptimalCapacities(self):
+        return self._capacitiesOpt

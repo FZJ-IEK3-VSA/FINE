@@ -10,6 +10,10 @@ class Component(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def addToEnergySystemModel(self, esM):
+        esM._isTimeSeriesDataClustered = False
+
+    @abstractmethod
     def getDataForTimeSeriesAggregation(self):
         pass
 
@@ -55,5 +59,5 @@ class ComponentModeling(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def getOptimalValues(self, pyM):
+    def setOptimalValues(self, esM, pyM):
         pass
