@@ -145,8 +145,8 @@ class Storage(Component):
                                                                      hasCapacityVariable, timeSeriesData)
 
         # Variables at optimum (set after optimization)
-        self._designDimensionVariablesOptimum = None
-        self._designDecisionVariablesOptimum = None
+        self._capacityVariablesOptimum = None
+        self._isBuiltVariablesOptimum = None
         self._chargeOperationVariablesOptimum = None
         self._dischargeOperationVariablesOptimum = None
         self._stateOfChargeVariablesOptimum = None
@@ -250,8 +250,8 @@ class StorageModeling(ComponentModeling):
 
     def __init__(self):
         self._componentsDict = {}
-        self._designDimensionVariablesOptimum = None
-        self._designDecisionVariablesOptimum = None
+        self._capacityVariablesOptimum = None
+        self._isBuiltVariablesOptimum = None
         self._chargeOperationVariablesOptimum = None
         self._dischargeOperationVariablesOptimum = None
         self._stateOfChargeVariablesOptimum = None
@@ -835,12 +835,12 @@ class StorageModeling(ComponentModeling):
 
     def setOptimalValues(self, esM, pyM):
         optVal = utils.formatOptimizationOutput(pyM.cap_stor.get_values(), 'designVariables', '1dim')
-        self._designDimensionVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, '_designDimensionVariablesOptimum', self._componentsDict)
+        self._capacityVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_capacityVariablesOptimum', self._componentsDict)
 
         optVal = utils.formatOptimizationOutput(pyM.designBin_stor.get_values(), 'designVariables', '1dim')
-        self._designDecisionVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, '_designDecisionVariablesOptimum', self._componentsDict)
+        self._isBuiltVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, '_isBuiltVariablesOptimum', self._componentsDict)
 
         optVal = utils.formatOptimizationOutput(pyM.chargeOp.get_values(), 'operationVariables', '1dim',
                                                 esM._periodsOrder)

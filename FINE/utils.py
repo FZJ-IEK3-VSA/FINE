@@ -245,8 +245,6 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
             if dimension == '1dim':
                 data = operationTimeSeries.copy().sum()
                 data[data > 0] = 1
-                print('The locationalEligibility of a component was set based on the '
-                      'given operation time series of the component.')
                 return data
             elif dimension == '2dim':
                 data = operationTimeSeries.copy().sum()
@@ -255,33 +253,25 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
                 _locationalEligibility = pd.DataFrame([[0 for loc in esM._locations] for loc in esM._locations],
                                                       index=esM._locations, columns=esM._locations)
                 _locationalEligibility.loc[data.index, data.columns] = data
-                print('The locationalEligibility of a component was set based on the '
-                      'given operation time series of the component.')
                 return _locationalEligibility
             else:
                 raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
         elif capacityFix is None and capacityMax is None and isBuiltFix is None:
             # If no information is given all values are set to 1
             if dimension == '1dim':
-                print('The locationalEligibility of a component is set to 1 (eligible) for all locations.')
                 return pd.Series([1 for loc in esM._locations], index=esM._locations)
             else:
-                print('The locationalEligibility of a component is set to 1 (eligible) for all locations.')
                 return pd.DataFrame([[1 if loc != loc_ else 0 for loc in esM._locations] for loc_ in esM._locations],
                                     index=esM._locations, columns=esM._locations)
         elif isBuiltFix is not None:
             # If the isBuiltFix is not empty, the eligibility is set based on the fixed capacity
             data = isBuiltFix.copy()
             data[data > 0] = 1
-            print('The locationalEligibility of a component was set based on the '
-                  'given fixed design decisions of the component.')
             return data
         else:
             # If the fixCapacity is not empty, the eligibility is set based on the fixed capacity
             data = capacityFix.copy() if capacityFix is not None else capacityMax.copy()
             data[data > 0] = 1
-            print('The locationalEligibility of a component was set based on the '
-                  'given fixed/maximum capacity of the component.')
             return data
 
 
