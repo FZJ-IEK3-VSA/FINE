@@ -375,6 +375,16 @@ def checkAndSetCostParameter(esM, name, data, dimension='1dim'):
     return _data
 
 
+def checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps):
+    isStrictlyPositiveInt(numberOfTypicalPeriods), isStrictlyPositiveInt(numberOfTimeStepsPerPeriod)
+    if not totalNumberOfTimeSteps % numberOfTimeStepsPerPeriod == 0:
+        raise ValueError('The numberOfTimeStepsPerPeriod has to be an integer divisor of the total number of time\n' +
+                         ' steps considered in the energy system model.')
+    if totalNumberOfTimeSteps < numberOfTypicalPeriods * numberOfTimeStepsPerPeriod:
+        raise ValueError('The product of the numberOfTypicalPeriods and the numberOfTimeStepsPerPeriod has to be \n' +
+                         'smaller than the total number of time steps considered in the energy system model.')
+
+
 def setFormattedTimeSeries(timeSeries):
     if timeSeries is None:
         return timeSeries
