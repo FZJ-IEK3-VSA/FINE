@@ -32,20 +32,21 @@ class EnergySystemModel:
     The parameter which are stored in an instance of the class refer to:
     * the modeled spatial representation of the energy system (**locations, lengthUnit**)
     * the modeled temporal representation of the energy system (**totalTimeSteps,
-      hoursPerTimeStep, years, periods, periodsOrder, periodsOccurrences, timeStepsPerPeriod,
-      interPeriodTimeSteps, isTimeSeriesDataClustered, typicalPeriods, tsaInstance, timeUnit**)
+      hoursPerTimeStep, years, periods, periodsOrder, periodsOccurrences,
+      timeStepsPerPeriod, interPeriodTimeSteps, isTimeSeriesDataClustered, typicalPeriods,
+      tsaInstance, timeUnit**)
     * the considered commodities in the energy system (**commodities, commoditiyUnitsDict**)
-    * the considered components in the energy system (**componentNames, componentModelingDict,
-      costUnit**)
+    * the considered components in the energy system (**componentNames,
+      componentModelingDict, costUnit**)
     * optimization related parameters (**pyM, solverSpecs**)
-      all parameters are marked as protected (thus they all begin with an underscore) and are
-      set when an class instance is initiated, components are added or user accessible
+      all parameters are marked as protected (thus they all begin with an underscore) and
+      are set when an class instance is initiated, components are added or user accessible
       functions are called.
 
     Instances of this class provide function for
     * adding components and their respective modeling classes (**add**)
-    * clustering the time series data of all added components using the time series aggregation
-      package tsam, cf. https://github.com/FZJ-IEK3-VSA/tsam (**cluster**)
+    * clustering the time series data of all added components using the time series
+      aggregation package tsam, cf. https://github.com/FZJ-IEK3-VSA/tsam (**cluster**)
     * optimizing the specified energy system (**optimize**), for which a pyomo discrete model
       instance is build and filled with
       (0) basic time sets,
