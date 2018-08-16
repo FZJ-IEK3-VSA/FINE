@@ -24,8 +24,8 @@ class Storage(Component):
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
                  opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         # Set general component data
-        utils.checkCommodities(esM, {commodity})
-        self._name, self._commodity = name, commodity
+        utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
+        self._name, self._commodity, self._commodityUnit = name, commodity, esM._commoditiyUnitsDict[commodity]
         self._chargeRate, self._dischargeRate = chargeRate, dischargeRate
         self._chargeEfficiency, self._dischargeEfficiency = chargeEfficiency, dischargeEfficiency
         self._selfDischarge = selfDischarge
@@ -35,7 +35,7 @@ class Storage(Component):
         self._doPreciseTsaModeling = doPreciseTsaModeling
 
         # Set design variable modeling parameters
-        utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable,
+        utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
                                                     hasIsBuiltBinaryVariable, bigM)
         self._hasCapacityVariable = hasCapacityVariable
         self._hasCapacityVariable = hasCapacityVariable
@@ -53,7 +53,7 @@ class Storage(Component):
         self._opexIfBuilt = utils.checkAndSetCostParameter(esM, name, opexIfBuilt)
         self._interestRate = utils.checkAndSetCostParameter(esM, name, interestRate)
         self._economicLifetime = utils.checkAndSetCostParameter(esM, name, economicLifetime)
-        self._CCF = self.getCapitalChargeFactor()
+        self._CCF = utils.getCapitalChargeFactor(self._interestRate, self._economicLifetime)
 
         # Set location-specific operation parameters (Charging rate, discharging rate, state of charge rate)
         # and time series aggregation weighting factor
@@ -72,6 +72,7 @@ class Storage(Component):
         self._aggregatedChargeOpRateFix = None
         self._chargeOpRateFix = None
 
+        utils.isPositiveNumber(chargeTsaWeight)
         self._chargeTsaWeight = chargeTsaWeight
 
         if dischargeOpRateMax is not None and dischargeOpRateFix is not None:
@@ -89,6 +90,7 @@ class Storage(Component):
         self._aggregatedDischargeOpRateFix = None
         self._dischargeOpRateFix = None
 
+        utils.isPositiveNumber(dischargeTsaWeight)
         self._dischargeTsaWeight = dischargeTsaWeight
 
         # TODO describe that the state of charge refers to the SOC before the i-th time step
@@ -121,6 +123,7 @@ class Storage(Component):
         self._aggregatedStateOfChargeOpRateFix = None
         self._stateOfChargeOpRateFix = None
 
+        utils.isPositiveNumber(stateOfChargeTsaWeight)
         self._stateOfChargeTsaWeight = stateOfChargeTsaWeight
 
         # Set location-specific design parameters
@@ -150,10 +153,6 @@ class Storage(Component):
         self._chargeOperationVariablesOptimum = None
         self._dischargeOperationVariablesOptimum = None
         self._stateOfChargeVariablesOptimum = None
-
-    def getCapitalChargeFactor(self):
-        """ Computes and returns capital charge factor (inverse of annuity factor) """
-        return 1 / self._interestRate - 1 / (pow(1 + self._interestRate, self._economicLifetime) * self._interestRate)
 
     def addToEnergySystemModel(self, esM):
         esM._isTimeSeriesDataClustered = False
@@ -250,12 +249,10 @@ class StorageModeling(ComponentModeling):
 
     def __init__(self):
         self._componentsDict = {}
-        self._capacityVariablesOptimum = None
-        self._isBuiltVariablesOptimum = None
-        self._chargeOperationVariablesOptimum = None
-        self._dischargeOperationVariablesOptimum = None
-        self._stateOfChargeVariablesOptimum = None
-
+        self._capacityVariablesOptimum, self._isBuiltVariablesOptimum = None, None
+        self._chargeOperationVariablesOptimum, self._dischargeOperationVariablesOptimum = None, None
+        self._stateOfChargeOperationVariablesOptimum = None
+        self._optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -834,29 +831,85 @@ class StorageModeling(ComponentModeling):
     ####################################################################################################################
 
     def setOptimalValues(self, esM, pyM):
+        compDict = self._componentsDict
+        props = ['capacity', 'isBuilt', 'operationCharge', 'operationDischarge','capexCap', 'capexIfBuilt', 'opexCap',
+                 'opexIfBuilt', 'opexCharge', 'opexDischarge', 'TAC', 'invest']
+        units = ['[-]', '[-]', '[-]', '[-]', '[' + esM._costUnit + '/a]', '[' + esM._costUnit + '/a]',
+                 '[' + esM._costUnit + '/a]', '[' + esM._costUnit + '/a]', '[' + esM._costUnit + '/a]',
+                 '[' + esM._costUnit + '/a]', '[' + esM._costUnit + ']', '[' + esM._costUnit + ']']
+        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
+        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]]._commodityUnit + '*h]') if x[1] == 'capacity'
+                          else x, tuples))
+        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]]._commodityUnit + '*h/a]')
+                          if x[1] == 'operationCharge' else x, tuples))
+        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]]._commodityUnit + '*h/a]')
+                          if x[1] == 'operationDischarge' else x, tuples))
+        mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
+        optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM._locations)).sort_index()
+
+        # Get optimal variable values and contributions to the total annual cost and invest
         optVal = utils.formatOptimizationOutput(pyM.cap_stor.get_values(), 'designVariables', '1dim')
         self._capacityVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, '_capacityVariablesOptimum', self._componentsDict)
+        utils.setOptimalComponentVariables(optVal, '_capacityVariablesOptimum', compDict)
+
+        if optVal is not None:
+            i = optVal.apply(lambda cap: cap * compDict[cap.name]._investPerCapacity[cap.index], axis=1)
+            cx = optVal.apply(lambda cap: cap * compDict[cap.name]._investPerCapacity[cap.index] /
+                              compDict[cap.name]._CCF[cap.index], axis=1)
+            ox = optVal.apply(lambda cap: cap*compDict[cap.name]._opexPerCapacity[cap.index], axis=1)
+            optSummary.loc[[(ix, 'capacity', '[' + compDict[ix]._commodityUnit + '*h]') for ix in optVal.index],
+                            optVal.columns] = optVal.values
+            optSummary.loc[[(ix, 'invest', '[' + esM._costUnit + ']') for ix in i.index], i.columns] = i.values
+            optSummary.loc[[(ix, 'capexCap', '[' + esM._costUnit + '/a]') for ix in cx.index], cx.columns] = cx.values
+            optSummary.loc[[(ix, 'opexCap', '[' + esM._costUnit + '/a]') for ix in ox.index], ox.columns] = ox.values
 
         optVal = utils.formatOptimizationOutput(pyM.designBin_stor.get_values(), 'designVariables', '1dim')
         self._isBuiltVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, '_isBuiltVariablesOptimum', self._componentsDict)
+        utils.setOptimalComponentVariables(optVal, '_isBuiltVariablesOptimum', compDict)
+
+        if optVal is not None:
+            i = optVal.apply(lambda dec: dec * compDict[dec.name]._investIfBuilt[dec.index], axis=1)
+            cx = optVal.apply(lambda dec: dec * compDict[dec.name]._investIfBuilt[dec.index] /
+                              compDict[dec.name]._CCF[dec.index], axis=1)
+            ox = optVal.apply(lambda dec: dec * compDict[dec.name]._opexIfBuilt[dec.index], axis=1)
+            optSummary.loc[[(ix, 'isBuilt', '[-]') for ix in optVal.index], optVal.columns] = optVal.values
+            optSummary.loc[[(ix, 'invest', '[' + esM._costUnit + ']') for ix in cx.index], cx.columns] += i.values
+            optSummary.loc[[(ix, 'capexIfBuilt', '[' + esM._costUnit + '/a]') for ix in cx.index],
+                            cx.columns] = cx.values
+            optSummary.loc[[(ix, 'opexIfBuilt', '[' + esM._costUnit + '/a]') for ix in ox.index],
+                            ox.columns] = ox.values
 
         optVal = utils.formatOptimizationOutput(pyM.chargeOp.get_values(), 'operationVariables', '1dim',
                                                 esM._periodsOrder)
         self._chargeOperationVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, '_chargeOperationVariablesOptimum', self._componentsDict)
+        utils.setOptimalComponentVariables(optVal, '_chargeOperationVariablesOptimum', compDict)
+
+        if optVal is not None:
+            opSum = optVal.sum(axis=1).unstack(-1)
+            ox = opSum.apply(lambda op: op * compDict[op.name]._opexPerChargeOperation[op.index], axis=1)
+            optSummary.loc[[(ix, 'operationCharge', '[' + compDict[ix]._commodityUnit + '*h/a]')
+                             for ix in opSum.index], opSum.columns] = opSum.values
+            optSummary.loc[[(ix, 'opexCharge', '[' + esM._costUnit + '/a]') for ix in ox.index],
+                            ox.columns] = ox.values
 
         optVal = utils.formatOptimizationOutput(pyM.dischargeOp.get_values(), 'operationVariables', '1dim',
                                                 esM._periodsOrder)
         self._dischargeOperationVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, '_dischargeOperationVariablesOptimum', self._componentsDict)
+        utils.setOptimalComponentVariables(optVal, '_dischargeOperationVariablesOptimum', compDict)
+
+        if optVal is not None:
+            opSum = optVal.sum(axis=1).unstack(-1)
+            ox = opSum.apply(lambda op: op * compDict[op.name]._opexPerDischargeOperation[op.index], axis=1)
+            optSummary.loc[[(ix, 'operationDischarge', '[' + compDict[ix]._commodityUnit + '*h/a]')
+                             for ix in opSum.index], opSum.columns] = opSum.values
+            optSummary.loc[[(ix, 'opexDischarge', '[' + esM._costUnit + '/a]') for ix in ox.index],
+                            ox.columns] = ox.values
 
         if not pyM.hasTSA:
             optVal = utils.formatOptimizationOutput(pyM.stateOfCharge.get_values(), 'operationVariables', '1dim',
                                                     esM._periodsOrder)
             self._stateOfChargeOperationVariablesOptimum = optVal
-            utils.setOptimalComponentVariables(optVal, '_stateOfChargeVariablesOptimum', self._componentsDict)
+            utils.setOptimalComponentVariables(optVal, '_stateOfChargeVariablesOptimum', compDict)
         else:
             stateOfChargeIntra = pyM.stateOfCharge.get_values()
             stateOfChargeInter = pyM.stateOfChargeInterPeriods.get_values()
@@ -880,11 +933,19 @@ class StorageModeling(ComponentModeling):
             else:
                 optVal = None
             self._stateOfChargeOperationVariablesOptimum = optVal
-            utils.setOptimalComponentVariables(optVal, '_stateOfChargeVariablesOptimum', self._componentsDict)
+            utils.setOptimalComponentVariables(optVal, '_stateOfChargeVariablesOptimum', compDict)
 
+            # Summarize all contributions to the total annual cost
+            optSummary.loc[optSummary.index.get_level_values(1) == 'TAC'] = \
+                optSummary.loc[(optSummary.index.get_level_values(1) == 'capexCap') |
+                                (optSummary.index.get_level_values(1) == 'opexCap') |
+                                (optSummary.index.get_level_values(1) == 'capexIfBuilt') |
+                                (optSummary.index.get_level_values(1) == 'opexIfBuilt') |
+                                (optSummary.index.get_level_values(1) == 'opexCharge') |
+                                (optSummary.index.get_level_values(1) == 'opexDischarge')].\
+                groupby(level=0).sum().values
 
-
-        #TODO state of charge
+            self._optSummary = optSummary
 
     def getOptimalCapacities(self):
         return self._capacitiesOpt

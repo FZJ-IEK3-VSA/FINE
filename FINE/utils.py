@@ -5,6 +5,7 @@ Last edited: May 13 2018
 """
 import warnings
 import pandas as pd
+import FINE as fn
 
 
 def isString(string):
@@ -37,12 +38,25 @@ def isStrictlyPositiveNumber(value):
         raise ValueError("The input argument has to be strictly positive")
 
 
+def isPositiveNumber(value):
+    """ Checks if the input argument is a positive number """
+    if not (type(value) == float or type(value) == int):
+        raise TypeError("The input argument has to be an number")
+    if not value >= 0:
+        raise ValueError("The input argument has to be positive")
+
+
 def isSetOfStrings(setOfStrings):
     """ Checks if the input argument is a set of strings """
     if not type(setOfStrings) == set:
         raise TypeError("The input argument has to be a set")
     if not any([type(r) == str for r in setOfStrings]):
         raise TypeError("The list entries in the input argument must be strings")
+
+
+def isEnergySystemModelInstance(esM):
+    if not isinstance(esM, fn.EnergySystemModel):
+        raise TypeError('The input is not an EnergySystemModel instance.')
 
 
 def checkEnergySystemModelInput(locations, commodities, commoditiyUnitsDict, numberOfTimeSteps, hoursPerTimeStep,
@@ -142,6 +156,13 @@ def checkAndSetTransmissionLosses(esM, losses, distances):
     return _losses
 
 
+def getCapitalChargeFactor(interestRate, economicLifetime):
+    """ Computes and returns capital charge factor (inverse of annuity factor) """
+    CCF = 1 / interestRate - 1 / (pow(1 + interestRate, economicLifetime) * interestRate)
+    CCF = CCF.fillna(economicLifetime)
+    return CCF
+
+
 def checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBinaryVariable,
                                           capacityMin, capacityMax, capacityFix,
                                           locationalEligibility, isBuiltFix, sharedPotentialID, dimension):
@@ -172,6 +193,9 @@ def checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBi
 
     if isBuiltFix is not None and not hasIsBuiltBinaryVariable:
         raise ValueError('Fixed design decisions are given but hasIsBuiltBinaryVariable was set to False.')
+
+    if sharedPotentialID is not None:
+        isString(sharedPotentialID)
 
     if sharedPotentialID is not None and capacityMax is None:
         raise ValueError('A capacityMax parameter is required if a sharedPotentialID is considered.')
@@ -322,23 +346,25 @@ def checkOperationTimeSeriesInputParameters(esM, operationTimeSeries, locational
         raise ValueError('operationTimeSeries values smaller than 0 were detected.')
 
 
-def checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable,
+def checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
                                           hasIsBuiltBinaryVariable, bigM):
     if capacityVariableDomain != 'continuous' and capacityVariableDomain != 'discrete':
-        raise ValueError('The design dimension variable domain has to be either \'continuous\' or \'discrete\'.')
-
-    if not isinstance(hasCapacityVariable, bool):
-        raise ValueError('The hasCapacityVariable variable domain has to be a boolean.')
+        raise ValueError('The capacity variable domain has to be either \'continuous\' or \'discrete\'.')
 
     if not isinstance(hasIsBuiltBinaryVariable, bool):
-        raise ValueError('The hasCapacityVariable variable domain has to be a boolean.')
+        raise TypeError('The hasCapacityVariable variable domain has to be a boolean.')
+
+    isStrictlyPositiveNumber(capacityPerPlantUnit)
 
     if not hasCapacityVariable and hasIsBuiltBinaryVariable:
-        raise ValueError('To consider additional fixed cost contributions when installing'
-                         'capacities, design dimension variables are required.')
+        raise ValueError('To consider additional fixed cost contributions when installing\n' +
+                         'capacities, capacity variables are required.')
 
     if bigM is None and hasIsBuiltBinaryVariable:
         raise ValueError('A bigM value needs to be specified when considering fixed cost contributions.')
+
+    if bigM is not None:
+        isinstance(bigM, bool)
 
 
 def checkAndSetCostParameter(esM, name, data, dimension='1dim'):
@@ -368,7 +394,7 @@ def checkAndSetCostParameter(esM, name, data, dimension='1dim'):
     _data = data.astype(float)
     if _data.isnull().any().any():
         raise ValueError('Value error in ' + name + ' detected.\n' +
-                         'An economic parameter contains values which are not a number.')
+                         'An economic parameter contains values which are not numbers.')
     if (_data < 0).any().any():
         raise ValueError('Value error in ' + name + ' detected.\n' +
                          'All entries in economic parameter series have to be positive.')
@@ -383,6 +409,37 @@ def checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, tot
     if totalNumberOfTimeSteps < numberOfTypicalPeriods * numberOfTimeStepsPerPeriod:
         raise ValueError('The product of the numberOfTypicalPeriods and the numberOfTimeStepsPerPeriod has to be \n' +
                          'smaller than the total number of time steps considered in the energy system model.')
+
+
+def checkOptimizeInput(timeSeriesAggregation, isTimeSeriesDataClustered, logFileName, threads, solver,
+                       timeLimit, optimizationSpecs, warmstart):
+    if not isinstance(timeSeriesAggregation, bool):
+        raise TypeError('The timeSeriesAggregation parameter has to be a boolean.')
+
+    if timeSeriesAggregation and not isTimeSeriesDataClustered:
+        raise ValueError('The time series flag indicates possible inconsistencies in the aggregated time series '
+                         ' data.\n--> Call the cluster function first, then the optimize function.')
+
+    if not isinstance(timeSeriesAggregation, bool):
+        raise ValueError('The timeSeriesAggregation parameter has to be a boolean.')
+
+    if not isinstance(logFileName, str):
+        raise TypeError('The logFileName parameter has to be a string.')
+
+    if not isinstance(threads, int) or threads < 0:
+        raise TypeError('The threads parameter has to be a nonnegative integer.')
+
+    if not isinstance(solver, str):
+        raise TypeError('The solver parameter has to be a string.')
+
+    if timeLimit is not None:
+        isStrictlyPositiveNumber(timeLimit)
+
+    if not isinstance(optimizationSpecs, str):
+        raise TypeError('The optimizationSpecs parameter has to be a string.')
+
+    if not isinstance(warmstart, bool):
+        raise ValueError('The warmstart parameter has to be a boolean.')
 
 
 def setFormattedTimeSeries(timeSeries):
@@ -442,7 +499,8 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None):
         # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
         # regions and sort the index
         # Results in a one dimensional DataFrame
-        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=3,axis=0).sort_index()
+        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=3,axis=0). \
+            swaplevel(i=2, j=3, axis=0).sort_index()
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level

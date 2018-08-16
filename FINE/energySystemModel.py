@@ -17,38 +17,39 @@ class EnergySystemModel:
     """
     EnergySystemModel class
 
-    The functionality of the the EnergySystemModel class is fourfold:
-    * With it, the **basic structure** (spatial and temporal resolution, considered commodities) of the investigated
-      energy system is defined.
-    * It serves as a **container for all components** investigated in the energy system model. These components, namely
-      sources and sinks, conversion options, storage options, and transmission options in the core module, can be added
-      to an EnergySystemModel instance.
-    * It provides the core functionality of **modeling and optimizing the energy system** based, on the one hand, on the
-      specified structure and components and, on the other hand, of specified simulation parameters.
-    * It provides options to **store optimization results** which can then be post-processed with other modules.
+    The functionality provided by the EnergySystemModel class is fourfold:
+    * With it, the **basic structure** (spatial and temporal resolution, considered commodities) of
+      the investigated energy system is defined.
+    * It serves as a **container for all components** investigated in the energy system model. These components,
+      namely sources and sinks, conversion options, storage options, and transmission options
+      (in the core module), can be added to an EnergySystemModel instance.
+    * It provides the core functionality of **modeling and optimizing the energy system** based on the specified
+      structure and components on the one hand and of specified simulation parameters on the other hand,.
+    * It **stores optimization results** which can then be post-processed with other modules.
 
     The parameter which are stored in an instance of the class refer to:
     * the modeled spatial representation of the energy system (**locations, lengthUnit**)
-    * the modeled temporal representation of the energy system (**totalTimeSteps, hoursPerTimeStep, years, periods,
-      periodsOrder, periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps, isTimeSeriesDataClustered,
-      typicalPeriods, tsaInstance, timeUnit**)
+    * the modeled temporal representation of the energy system (**totalTimeSteps, hoursPerTimeStep,
+      years, periods, periodsOrder, periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps,
+      isTimeSeriesDataClustered, typicalPeriods, tsaInstance, timeUnit**)
     * the considered commodities in the energy system (**commodities, commoditiyUnitsDict**)
     * the considered components in the energy system (**componentNames, componentModelingDict, costUnit**)
     * optimization related parameters (**pyM, solverSpecs**)
-    all parameters are marked as protected (thus they all begin with an underscore) and are set when an class instance
-    is initiated, components are added or user accessible functions are called.
+      all parameters are marked as protected (thus they all begin with an underscore) and are set when an class
+      instance is initiated, components are added or user accessible functions are called.
 
     Instances of this class provide function for
     * adding components and their respective modeling classes (**add**)
     * clustering the time series data of all added components using the time series aggregation package tsam, cf.
       https://github.com/FZJ-IEK3-VSA/tsam (**cluster**)
-    * optimizing the specified energy system (**optimize**), for which a pyomo discrete model instance is build and
-      filled with
+    * optimizing the specified energy system (**optimize**), for which a pyomo discrete model instance is build
+      and filled with
       (0) basic time sets,
       (1) sets, variables and constraints contributed by the component modeling classes,
       (2) basic, component overreaching constraints, and
       (3) an objective function.
-      The pyomo instance is then optimized by a specified solver and the optimization results processed once available.
+      The pyomo instance is then optimized by a specified solver and the optimization results processed once
+      available.
     * getting components and their attributes (**getComponent, getCompAttr**)
 
     Last edited: July 27, 2018
@@ -58,7 +59,7 @@ class EnergySystemModel:
     def __init__(self, locations, commodities, commoditiyUnitsDict, numberOfTimeSteps=8760, hoursPerTimeStep=1,
                  costUnit='1e9 Euro', lengthUnit='km'):
         """
-        Constructor for creating an energy system model class instance
+        Constructor for creating an EnergySystemModel class instance
 
         **Required arguments:**
 
@@ -68,18 +69,20 @@ class EnergySystemModel:
         :param commodities: commodities considered in the energy system
         :type commodities: set of strings
 
-        :param commoditiyUnitsDict: dictionary which assigns each commodity a quantitative unit per time (e.g. GW_el,
-            GW_H2, Mio.t_CO2/h). The dictionary is used for results output.
-            Note for advanced users: the scale of these units can influence the numerical stability of the optimization
-            solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model coefficients is suggested
+        :param commoditiyUnitsDict: dictionary which assigns each commodity a quantitative unit per time
+            (e.g. GW_el, GW_H2, Mio.t_CO2/h). The dictionary is used for results output.
+            Note for advanced users: the scale of these units can influence the numerical stability of the
+            optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
+            coefficients is suggested
         :type commoditiyUnitsDict: dictionary of strings
 
         **Default arguments:**
 
-        :param numberOfTimeSteps: number of time steps considered when modeling the energy system (for each time step,
-            or each representative time step, variables and constraints are constituted). Together with the hours per
-            time step, the total number of hours considered can be derived. The total number of hours is again used for
-            scaling the arising costs to the arising total annual costs (TAC), which are minimized during optimization.
+        :param numberOfTimeSteps: number of time steps considered when modeling the energy system (for each
+            time step, or each representative time step, variables and constraints are constituted). Together
+            with the hours per time step, the total number of hours considered can be derived. The total
+            number of hours is again used for scaling the arising costs to the arising total annual costs (TAC),
+            which are minimized during optimization.
             |br| * the default value is 8760
         :type totalNumberOfHours: strictly positive integer
 
@@ -87,18 +90,20 @@ class EnergySystemModel:
             |br| * the default value is 1
         :type totalNumberOfHours: strictly positive float
 
-        :param costUnit: cost unit of all cost related values in the energy system. This value sets the unit of all
-            cost parameters which are given as an input to the EnergySystemModel instance (i.e. for the invest per
-            capacity or the cost per operation).
-            Note for advanced users: the scale of this unit can influence the numerical stability of the optimization
-            solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model coefficients is suggested
-            |br| * the default value is '10^9 Euro' (billion euros), which can be a suitable scale for national energy
-                systems.
+        :param costUnit: cost unit of all cost related values in the energy system. This value sets the unit of
+            all cost parameters which are given as an input to the EnergySystemModel instance (i.e. for the
+            invest per capacity or the cost per operation).
+            Note for advanced users: the scale of this unit can influence the numerical stability of the
+            optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
+            coefficients is suggested
+            |br| * the default value is '10^9 Euro' (billion euros), which can be a suitable scale for national
+                energy systems.
         :type costUnit: string
 
         :param lengthUnit: length unit for all length related values in the energy system
-            Note for advanced users: the scale of this unit can influence the numerical stability of the optimization
-            solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model coefficients is suggested
+            Note for advanced users: the scale of this unit can influence the numerical stability of the
+            optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
+            coefficients is suggested.
             |br| * the default value is 'km' (kilometers)
         :type lengthUnit: string
 
@@ -242,19 +247,45 @@ class EnergySystemModel:
         """
         return getattr(self.getComponent(componentName), attributeName)
 
+    def getOptimizationSummary(self, modelingClass, outputLevel=0):
+        """
+        Function which returns an attribute of a component considered in the energy system
+
+        :param modelingClass: name of the modeling class from which the optimization summary should be obtained
+        :type modelingClass: string
+
+        :param outputLevel: states the level of detail of the output summary:
+            - if equal to 0 if the full optimization summary is returned
+            - if equal to 1 rows in which all values are NaN (not a number) are dropped
+            - if equal to 2 rows in which all values are NaN or 0 (not a number) are dropped
+            |br| * the default value is True
+        :type outputLevel: integer (0, 1 or 2)
+
+        :returns: the attribute specified by the attributeName of the component with the name componentName
+        :rtype: depends on the specified attribute
+        """
+        if outputLevel == 0:
+            return self._componentModelingDict[modelingClass]._optSummary
+        elif outputLevel == 1:
+            return self._componentModelingDict[modelingClass]._optSummary.dropna(how='all')
+        else:
+            df = self._componentModelingDict[modelingClass]._optSummary.dropna(how='all')
+            return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
+
     def cluster(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical',
                 sortValues=True, storeTSAinstance=False, **kwargs):
         """
-        Clusters the time series data of all components considered in the EnergySystemModel instance and then stores the
-        clustered data in the respective components. For the clustering itself, the tsam package is used (cf.
-        https://github.com/FZJ-IEK3-VSA/tsam).
+        Clusters the time series data of all components considered in the EnergySystemModel instance and then
+        stores the clustered data in the respective components. For the clustering itself, the tsam package is
+        used (cf. https://github.com/FZJ-IEK3-VSA/tsam).
 
         **Default arguments:**
 
-        :param numberOfTypicalPeriods: states the number of typical periods into which the time series data should be
-            clustered. The number of typical periods multiplied with the number of time steps per period must be an
-            integer divisor of the total number of considered time steps in the energy system.
-            Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more information.
+        :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
+            should be clustered. The number of typical periods multiplied with the number of time steps per
+            period must be an integer divisor of the total number of considered time steps in the energy system.
+            Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
+            information.
             |br| * the default value is 7
         :type numberOfTypicalPeriods: strictly positive integer
 
@@ -262,27 +293,31 @@ class EnergySystemModel:
             |br| * the default value is 24
         :type numberOfTimeStepsPerPeriod: strictly positive integer
 
-        :param clusterMethod: states the method which is used in the tsam package for clustering the time series data.
-            Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+        :param clusterMethod: states the method which is used in the tsam package for clustering the time series
+            data. Note: Please refer to the tsam package documentation of the parameter clusterMethod for more
+            information.
             |br| * the default value is 'hierarchical'
         :type clusterMethod: string
 
         :param sortValues: states if the algorithm in the tsam package should use
             (a) the sorted duration curves (-> True) or
             (b) the original profiles (-> False)
-            of the time series data within a period for clustering.
-            Note: Please refer to the tsam package documentation of the parameter sortValues for more information.
+            of the time series data within a period for clustering. Note: Please refer to the tsam package
+            documentation of the parameter sortValues for more information.
             |br| * the default value is True
         :type clusterMethod: boolean
 
-        :param storeTSAinstance: states if the TimeSeriesAggregation instance create during clustering should be stored
-            in the EnergySystemModel instance.
+        :param storeTSAinstance: states if the TimeSeriesAggregation instance create during clustering should be
+            stored in the EnergySystemModel instance.
             |br| * the default value is False
         :type storeTSAinstance: boolean
 
-        Moreover, additional keyword arguments for the TimeSeriesAggregation instance can be added (facilitated by
-        **kwargs). As an example: it might be useful to add extreme periods to the clustered typical periods (cf.
-        https://github.com/FZJ-IEK3-VSA/tsam).
+        Moreover, additional keyword arguments for the TimeSeriesAggregation instance can be added (facilitated
+        by **kwargs). As an example: it might be useful to add extreme periods to the clustered typical periods
+        (cf. https://github.com/FZJ-IEK3-VSA/tsam).
+
+        Last edited: August 10, 2018
+        |br| @author: Lara Welder
         """
 
         # Check input arguments which have to fit the temporal representation of the energy system
@@ -338,47 +373,51 @@ class EnergySystemModel:
     def optimize(self, timeSeriesAggregation=False, logFileName='job', threads=3, solver='gurobi', timeLimit=None,
                  optimizationSpecs='LogToConsole=1 OptimalityTol=1e-6', warmstart=False):
         """
-        Optimizes the specified energy system, for which a pyomo discrete model instance is build and filled with
+        Optimizes the specified energy system, for which a pyomo discrete model instance is build and filled
+        with
         (0) basic time sets,
         (1) sets, variables and constraints contributed by the component modeling classes,
         (2) basic, component overreaching constraints, and
         (3) an objective function.
-        The pyomo instance is then optimized by the specified solver and the optimization results are further processed.
+        The pyomo instance is then optimized by the specified solver and the optimization results are further
+        processed.
 
         **Default arguments:**
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
             (a) the full time series (False) or
             (b) clustered time series data (True).
-            If: the argument is True, the time series data was previously clustered, and no further tsamSpecs are
-            declared, the clustered time series data from the last cluster function call is used. Otherwise the time
-            series data is clustered within the optimize function, using, if specified, the tsamSpecs argument.
+            If: the argument is True, the time series data was previously clustered, and no further tsamSpecs
+            are declared, the clustered time series data from the last cluster function call is used. Otherwise
+            the time series data is clustered within the optimize function, using, if specified, the tsamSpecs
+            argument.
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
-        :param logFileName: logFileName is used for naming the log file of the optimization solver output. If the
-            logFileName is given as an absolute path (i.e. logFileName = os.path.join(os.getcwd(), 'Results',
-            'logFileName.txt')) the log file will be stored in the specified directory. Otherwise it will be by default
-            stored in the directory where the executing python script is called.
+        :param logFileName: logFileName is used for naming the log file of the optimization solver output.
+            If the logFileName is given as an absolute path (i.e. logFileName = os.path.join(os.getcwd(),
+            'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise
+            it will be by default stored in the directory where the executing python script is called.
             |br| * the default value is 'job'
         :type logFileName: string
 
-        :param threads: number of computational threads used for solving the optimization (solver dependent input).
-            If gurobi is selected as the solver: a value of 0 results in using all available threads. If a value larger
-            than the available number of threads are chosen, the value will reset to the maximum number of threads.
+        :param threads: number of computational threads used for solving the optimization (solver dependent
+            input). If gurobi is selected as the solver: a value of 0 results in using all available threads. If
+            a value larger than the available number of threads are chosen, the value will reset to the maximum
+            number of threads.
             |br| * the default value is 3
         :type threads: positive integer
 
-        :param solver: specifies which solver should solve the optimization problem (which of course has to be installed
-            on the machine on which the model is run).
+        :param solver: specifies which solver should solve the optimization problem (which of course has to be
+            installed on the machine on which the model is run).
             |br| * the default value is 'gurobi'
         :type solver: string
 
-        :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem in
-            seconds (solver dependent input). The use of this parameter is suggested when running models in runtime
-            restricted environments (such as clusters with job submission systems). If the runtime limitation is
-            triggered before an optimal solution is available, the best solution obtained up until then (if available)
-            is processed.
+        :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
+            in seconds (solver dependent input). The use of this parameter is suggested when running models in
+            runtime restricted environments (such as clusters with job submission systems). If the runtime
+            limitation is triggered before an optimal solution is available, the best solution obtained up
+            until then (if available) is processed.
             |br| * None
         :type timeLimit: strictly positive integer or None
 
@@ -387,19 +426,21 @@ class EnergySystemModel:
             |br| * 'LogToConsole=1 OptimalityTol=1e-6'
         :type timeLimit: string
 
-        :param warmstart: specifies if a warm start of the optimization should be considered (not supported by all
-            solvers).
+        :param warmstart: specifies if a warm start of the optimization should be considered
+            (not supported by all solvers).
             |br| * the default value is False
         :type warmstart: boolean
+
+        Last edited: August 10, 2018
+        |br| @author: Lara Welder
         """
         # Get starting time of the optimization to later on obtain the total run time of the optimize function call
         timeStart = time.time()
 
         # Check correctness of inputs
-        # TODO input parameter check
-        if timeSeriesAggregation and not self._isTimeSeriesDataClustered:
-            raise ValueError('The time series flag indicates possible inconsistencies in the aggregated time series '
-                             ' data.\n--> Call the cluster function first, then the optimize function.')
+        # Check input arguments which have to fit the temporal representation of the energy system
+        utils.checkOptimizeInput(timeSeriesAggregation, self._isTimeSeriesDataClustered, logFileName, threads, solver,
+                                 timeLimit, optimizationSpecs, warmstart)
 
         # Store keyword arguments in the EnergySystemModel instance
         self._solverSpecs['logFileName'], self._solverSpecs['threads'] = logFileName, threads
