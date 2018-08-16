@@ -30,246 +30,216 @@ class Conversion(Component):
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+        # TODO
         """
         Constructor for creating an Conversion class instance
 
         **Required arguments:**
 
-        :param esM: energy system model to which the Conversion component should be added.
-            Used for unit checks.
+        :param esM: energy system model to which the Conversion component should be added. Used for unit checks.
         :type esM: EnergySystemModel instance from the FINE package
 
-        :param name: name of the component. Has to be a unique (i.e. not other components
-            with that name can already exist in the energy system model to which the
-            component is added).
+        :param name: name of the component. Has to be a unique (i.e. not other components with that name
+            can already exist in the energy system model to which the component is added).
         :type name: string
 
-        :param physicalUnit: reference physical unit of the plants to which maximum capacity
-            limitations and cost parameters refer to.
+        :param physicalUnit: reference physical unit of the plants to which maximum capacity limitations and
+            cost parameters refer to.
         :type physicalUnit: string
 
-        :param commodityConversionFactors: conversion factors with which commodities are
-            converted into each other with one unit of operation (dictionary). Each
-            commodity which is converted in this component is indicated by a string in this
-            dictionary. The conversion factor related to this commodity is given as a float.
-            A negative value indicates that the commoditiy is consumed. A positive value
-            indicates that the commodity is produced. Check unit consistency when specifying
-            this parameter!
+        :param commodityConversionFactors: conversion factors with which commodities are converted into each
+            other with one unit of operation (dictionary). Each commodity which is converted in this component
+            is indicated by a string in this dictionary. The conversion factor related to this commodity is
+            given as a float. A negative value indicates that the commoditiy is consumed. A positive value
+            indicates that the commodity is produced. Check unit consistency when specifying this parameter!
             Examples:
-            (a) An electrolyzer converts, simply put, electricty into hydrogen with an
-                efficiency of 70%. The cost are given in GW_electric (physicalUnit of the
-                plant), the unit for the 'electricity' commodity is given in GW_electric
-                and the 'hydrogen' commodity is given in
-                GW_hydrogen_lowerHeatingValue -> the commodityConversionFactors are defined
-                as {'electricity':-1,'hydrogen':0.7}.
-            (b) An fuel cell converts, simply put, hydrogen into electricty with an
-                efficiency of 60%. The cost are given in GW_electric (physicalUnit of the
-                plant), the unit for the 'electricity' commodity is given in GW_electric and
-                the 'hydrogen' commodity is given in
-                GW_hydrogen_lowerHeatingValue -> the commodityConversionFactors are defined
-                as {'electricity':1,'hydrogen':-1/0.6}.
-        :type commodityConversionFactors: dictionary, assigns commodities (string)
-            conversion factors (float)
+            (a) An electrolyzer converts, simply put, electricty into hydrogen with an efficiency of 70%.
+                The cost are given in GW_electric (physicalUnit of the plant), the unit for the 'electricity'
+                commodity is given in GW_electric and the 'hydrogen' commodity is given in
+                GW_hydrogen_lowerHeatingValue -> the commodityConversionFactors are defined as
+                {'electricity':-1,'hydrogen':0.7}.
+            (b) An fuel cell converts, simply put, hydrogen into electricty with an efficiency of 60%.
+                The cost are given in GW_electric (physicalUnit of the plant), the unit for the 'electricity'
+                commodity is given in GW_electric and the 'hydrogen' commodity is given in
+                GW_hydrogen_lowerHeatingValue -> the commodityConversionFactors are defined as
+                {'electricity':1,'hydrogen':-1/0.6}.
+        :type commodityConversionFactors: dictionary, assigns commodities (string) conversion factors (float)
 
         **Default arguments:**
 
-        :param hasCapacityVariable: specifies if the component should be modeled with a
-            capacity or not.
+        :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not.
             Examples:
-            (a) An electrolyzer has a capacity given in GW_electrict -> hasCapacityVariable
-                is True.
-            (b) In the energy system, biogas can, from a model perspective, be converted
-                into methane (and then used in conventional power plants which emit CO2) by
-                getting CO2 from the enviroment. Thus, using biogas in conventional power
-                plants from a balance perspective CO2 free. This conversion is purely
-                theoretical and does not require a capacity -> hasCapacityVariable is False.
+            (a) An electrolyzer has a capacity given in GW_electrict -> hasCapacityVariable is True.
+            (b) In the energy system, biogas can, from a model perspective, be converted into methane (and then
+                used in conventional power plants which emit CO2) by getting CO2 from the enviroment. Thus,
+                using biogas in conventional power plants from a balance perspective CO2 free. This conversion
+                is purely theoretical and does not require a capacity -> hasCapacityVariable is False.
             |br| * the default value is True
         :type hasCapacityVariable: boolean
 
-        :param capacityVariableDomain: the mathematical domain of the capacity variables, if
-            they are specfied. By default, the domain is specified as 'continuous' and thus
-            declares the variables as non-negative (>=0) real values. The second input
-            option that is available for this parameter is 'discrete', which declares the
-            variables as non-negative (>=0) integer values.
+        :param capacityVariableDomain: the mathematical domain of the capacity variables, if they are specfied.
+            By default, the domain is specified as 'continuous' and thus declares the variables as non-negative
+            (>=0) real values. The second input option that is available for this parameter is 'discrete', which
+            declares the variables as non-negative (>=0) integer values.
             |br| * the default value is 'continuous'
         :type capacityVariableDomain: string
 
-        :param capacityPerPlantUnit: capacity of one plant of the component (in the unit in
-            which the cost parameters are specified). The default is 1, thus the number of
-            plants is equal to the installed capacity. This parameter should be specified
-            when using a 'discrete' capacityVariableDomain. It can be specified when using
-            a 'continuous' variable domain.
+        :param capacityPerPlantUnit: capacity of one plant of the component (in the unit in which the cost
+            parameters are specified). The default is 1, thus the number of plants is equal to the installed
+            capacity. This parameter should be specified when using a 'discrete' capacityVariableDomain.
+            It can be specified when using a 'continuous' variable domain.
             |br| * the default value is 1
         :type capacityPerPlantUnit: strictly positive float
 
-        :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be
-            declared for each eligible location of the component which indicate if the
-            component is built at that location or not. The binary variables can be used to
-            enforce one-time invest cost or one capacity-independent annual operation cost.
-            If a minimum capacity is specified and this parameter is set to True, the
-            minimum capacities are only considered if a component is built (i.e. if a
-            component is built in that location it has to be built with a minimum capacity
-            of XY GW, otherwise it is set to 0 GW).
+        :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for each
+            eligible location of the component which indicate if the component is built at that location or
+            not. The binary variables can be used to enforce one-time invest cost or one capacity-independent
+             annual operation cost. If a minimum capacity is specified and this parameter is set to True,
+             the minimum capacities are only considered if a component is built (i.e. if a component is built
+             in that location it has to be built with a minimum capacity of XY GW, otherwise it is set to 0 GW).
             |br| * the default value is False
         :type hasIsBuiltBinaryVariable: boolean
 
-        :param bigM: the bigM parameter is only required when the ifBuiltBinaryVariables
-            parameter is set to True. In that case, it is set as a strictly positive float,
-            otherwise it can remain a None value. If not None and the ifBuiltBinaryVariables
-            parameter is set to True, the parameter enforces an artificial upper bound on the
-            maximum capacities which should, however, never be reached. The value should be
-            chosen as small as possible but as large as necessary so that the optimal values
-            of the designed capacities are in the end well below this value.
+        :param bigM: the bigM parameter is only required when the ifBuiltBinaryVariables parameter is set to
+            True. In that case, it is set as a strictly positive float, otherwise it can remain a None value.
+            If not None and the ifBuiltBinaryVariables parameter is set to True, the parameter enforces an
+            artificial upper bound on the maximum capacities which should, however, never be reached. The value
+            should be chosen as small as possible but as large as necessary so that the optimal values of the
+            designed capacities are in the end well below this value.
             |br| * the default value is None
         :type bigM: None or strictly positive float
 
-        :param operationRateMax: if specified indicates a maximum operation rate for each
-            location and each time step by a non-negative float. If hasCapacityVariable is
-            set to True, the values are given relative to the installed capacities (i.e. in
-            that case a value of 1 indicates a utilization of 100% of the capacity). If
-            hasCapacityVariable is set to False, the values are given as absolute values in
-            form of an energy or mass unit, referring to the converted energy or mass (after
-            multiplying the conversion factors for each commodity) during one time step.
+        :param operationRateMax: if specified indicates a maximum operation rate for each location and each time
+            step by a non-negative float. If hasCapacityVariable is set to True, the values are given relative
+            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+            of an energy or mass unit, referring to the converted energy or mass (after multiplying the
+            conversion factors for each commodity) during one time step.
             |br| * the default value is None
-        :type operationRateMax: None or Pandas DataFrame with non-negative entries. The row
-            indices have to match the specified time steps. The column indices have to match
-            the specified locations.
+        :type operationRateMax: None or Pandas DataFrame with non-negative entries. The row indices have to
+            match the specified time steps. The column indices have to match the specified locations.
 
-        :param operationRateFix: if specified indicates a fixed operation rate for each
-            location and each time step by a non-negative float. If hasCapacityVariable
-            is set to True, the values are given relative to the installed capacities (i.e.
-            in that case a value of 1 indicates a utilization of 100% of the capacity). If
-            hasCapacityVariable is set to False, the values are given as absolute values in
-            form of an energy or mass unit, referring to the converted energy or mass (after
-            multiplying the conversion factors for each commodity) during one time step.
+        :param operationRateFix: if specified indicates a fixed operation rate for each location and each time
+            step by a non-negative float. If hasCapacityVariable is set to True, the values are given relative
+            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+            of an energy or mass unit, referring to the converted energy or mass (after multiplying the
+            conversion factors for each commodity) during one time step.
             |br| * the default value is None
-        :type operationRateFix: None or Pandas DataFrame with non-negative entries. The
-            row indices have to match the in the energy system model specified time steps.
-            The column indices have to match the in the energy system model specified
-            locations.
+        :type operationRateFix: None or Pandas DataFrame with non-negative entries. The row indices have to
+            match the in the energy system model specified time steps. The column indices have to match the
+            in the energy system model specified locations.
 
-        :param tsaWeight: weight with which the time series of the component should be
-            considered when applying time series aggregation.
+        :param tsaWeight: weight with which the time series of the component should be considered when applying
+            time series aggregation.
             |br| * the default value is 1
         :type tsaWeight: non-negative (>= 0) float
 
-        :param locationalEligibility: Pandas Series that indicates if a component can be
-            built at a location (=1) or not (=0). If not specified and a maximum or fixed
-            capacity or time series is given, the parameter will be set based on these
-            inputs. If the parameter is specified, a consistency check is done to ensure
-            that the parameters indicate the same location eligibility. If the parameter is
-            not specified and also no other of the parameters is specified it is assumed
-            that the component is eligible in each location and all values are set to 1.
-            This parameter is key for ensuring small built times of the optimization problem
-            by avoiding the declaration of unnecessary variables and constraints.
+        :param locationalEligibility: Pandas Series that indicates if a component can be built at a location
+            (=1) or not (=0). If not specified and a maximum or fixed capacity or time series is given, the
+            parameter will be set based on these inputs. If the parameter is specified, a consistency check
+            is done to ensure that the parameters indicate the same location eligibility. If the parameter is
+            not specified and also no other of the parameters is specified it is assumed that the component is
+            eligible in each location and all values are set to 1.
+            This parameter is key for ensuring small built times of the optimization problem by avoiding the
+            declaration of unnecessary variables and constraints.
             |br| * the default value is None
-        :type locationalEligibility: None or Pandas Series with values equal to 0 and 1. The
-            indices of the series have to equal the in the energy system model specified
-            locations.
+        :type locationalEligibility: None or Pandas Series with values equal to 0 and 1. The indices of the
+            series have to equal the in the energy system model specified locations.
 
-        :param capacityMin: if specified, Pandas Series indicating minimum capacities (in
-            the plants physicalUnit) else None.
-            If binary decision variables are declared which indicate if a component is built
-            at a location or not, the minimum capacity is only enforced if the component is
-            built (i.e. if a component is built in that location it has to be built with a
-            minimum capacity of XY GW, otherwise it is set to 0 GW).
+        :param capacityMin: if specified, Pandas Series indicating minimum capacities (in the plants
+            physicalUnit) else None.
+            If binary decision variables are declared which indicate if a component is built at a location or
+            not, the minimum capacity is only enforced if the component is built (i.e. if a component is built
+            in that location it has to be built with a minimum capacity of XY GW, otherwise it is set to 0 GW).
             |br| * the default value is None
-        :type capacityMin: None or Pandas Series with non-negative (>=0) values. The indices
-            of the series have to equal the in the energy system model specified locations.
+        :type capacityMin: None or Pandas Series with non-negative (>=0) values. The indices of the series
+            have to equal the in the energy system model specified locations.
 
-        :param capacityMax:  if specified, Pandas Series indicating maximum capacities (in
-            the plants physicalUnit) else None.
+        :param capacityMax:  if specified, Pandas Series indicating maximum capacities (in the plants
+            physicalUnit) else None.
             |br| * the default value is None
-        :type capacityMax: None or Pandas Series with non-negative (>=0) values. The
-            indices of the series have to equal the in the energy system model specified
-            locations.
+        :type capacityMax: None or Pandas Series with non-negative (>=0) values. The indices of the series
+            have to equal the in the energy system model specified locations.
 
-        :param sharedPotentialID: if specified, indicates that the component has to share
-            its maximum potential capacity with other components (i.e. due to space
-            limitations).
+        :param sharedPotentialID: if specified, indicates that the component has to share its maximum
+            potential capacity with other components (i.e. due to space limitations).
             |br| * the default value is None
         :type sharedPotentialID: string
 
-        :param capacityFix: if specified, Pandas Series indicating fixed capacities
-            (in the plants physicalUnit) else None.
+        :param capacityFix: if specified, Pandas Series indicating fixed capacities (in the plants
+            physicalUnit) else None.
             |br| * the default value is None
-        :type capacityFix: None or Pandas Series with non-negative (>=0) values. The indices
-            of the series have to equal the in the energy system model specified locations.
+        :type capacityFix: None or Pandas Series with non-negative (>=0) values. The indices of the series
+            have to equal the in the energy system model specified locations.
 
-        :param isBuiltFix: if specified, Pandas Series indicating fixed decisions in which
-            locations the component is built else None.
+        :param isBuiltFix: if specified, Pandas Series indicating fixed decisions in which locations the
+            component is built else None.
             |br| * the default value is None
-        :type isBuiltFix: None or Pandas Series with values equal to 0 and 1. The indices
-            of the series have to equal the in the energy system model specified locations.
+        :type isBuiltFix: None or Pandas Series with values equal to 0 and 1. The indices of the series
+            have to equal the in the energy system model specified locations.
 
-        :param investPerCapacity: the invest of a component is obtained by multiplying the
-            capacity of the component (in the physicalUnit of the component) at that
-            location with the investPerCapacity factor. The investPerCapacity can either be
-            given as a float or a Pandas Series with location specific values.
-            The cost unit in which the parameter is given has to match the one specified in
-            the energy system model (i.e. Euro, Dollar, 1e6 Euro).
+        :param investPerCapacity: the invest of a component is obtained by multiplying the capacity of the
+            component (in the physicalUnit of the component) at that location with the investPerCapacity
+            factor. The investPerCapacity can either be given as a float or a Pandas Series with location
+            specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type investPerCapacity: non-negative (>=0) float or Pandas Series with non-negative
-            (>=0) values. The indices of the series have to equal the in the energy system
-            model specified locations.
+        :type investPerCapacity: non-negative (>=0) float or Pandas Series with non-negative (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
 
-        :param investIfBuilt: a capacity-independent invest which only arises in a location
-            if a component is built at that location. The investIfBuilt can either be given
-            as a float or a Pandas Series with location specific values.
-            The cost unit in which the parameter is given has to match the one specified in
-            the energy system model (i.e. Euro, Dollar, 1e6 Euro).
+        :param investIfBuilt: a capacity-independent invest which only arises in a location if a component
+            is built at that location. The investIfBuilt can either be given as a float or a Pandas Series
+            with location specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type investIfBuilt: non-negative (>=0) float or Pandas Series with non-negative
-            (>=0) values. The indices of the series have to equal the in the energy system
-            model specified locations.
+        :type investIfBuilt: non-negative (>=0) float or Pandas Series with non-negative (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
 
-        :param opexPerOperation: cost which is directly proportional to the operation of the
-            component is obtained by multiplying the opexPerOperation parameter with the
-            annual sum of the operational time series of the components. The
-            opexPerOperation can either be given as a float or a Pandas Series with location
-            specific values. The cost unit in which the parameter is given has to match the
-            one specified in the energy system model (i.e. Euro, Dollar, 1e6 Euro).
+        :param opexPerOperation: cost which is directly proportional to the operation of the component
+            is obtained by multiplying the opexPerOperation parameter with the annual sum of the operational
+            time series of the components. The opexPerOperation can either be given as a float or a Pandas
+            Series with location specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerOperation: non-negative (>=0) float or Pandas Series with non-negative
-            (>=0) values. The indices of the series have to equal the in the energy system
-            model specified locations.
+        :type opexPerOperation: non-negative (>=0) float or Pandas Series with non-negative (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
 
-        :param opexPerCapacity: annual operational cost which are only a function of the
-            capacity of the component (in the physicalUnit of the component) and not of the
-            specific operation itself are obtained by multiplying the capacity of the
-            component at a location with the opexPerCapacity factor. The opexPerCapacity can
-            either be given as a float or a Pandas Series with location specific values.
-            The cost unit in which the parameter is given has to match the one specified in
-            the energy system model (i.e. Euro, Dollar, 1e6 Euro).
+        :param opexPerCapacity: annual operational cost which are only a function of the capacity of the
+            component (in the physicalUnit of the component) and not of the specific operation itself are
+            obtained by multiplying the capacity of the component at a location with the opexPerCapacity
+            factor. The opexPerCapacity can either be given as a float or a Pandas Series with location
+            specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerCapacity: non-negative (>=0) float or Pandas Series with non-negative
-            (>=0) values. The indices of the series have to equal the in the energy system
-            model specified locations.
+        :type opexPerCapacity: non-negative (>=0) float or Pandas Series with non-negative (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
 
-        :param opexIfBuilt: a capacity-independent annual operational cost which only arises
-            in a location if a component is built at that location. The opexIfBuilt can
-            either be given as a float or a Pandas Series with location specific values.
-            The cost unit in which the parameter is given has to match the one specified in
-            the energy system model (i.e. Euro, Dollar, 1e6 Euro).
+        :param opexIfBuilt: a capacity-independent annual operational cost which only arises in a location
+            if a component is built at that location. The opexIfBuilt can either be given as a float or a
+            Pandas Series with location specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexIfBuilt: non-negative (>=0) float or Pandas Series with non-negative (>=0)
-            values. The indices of the series have to equal the in the energy system model
-            specified locations.
+        :type opexIfBuilt: non-negative (>=0) float or Pandas Series with non-negative (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
 
-        :param interestRate: interest rate which is considered for computing the annuities
-            of the invest of the component (in particular to depreciate the invests over
-            the economic lifetime). A value of 0.08 corresponds to an interest rate of 8%.
+        :param interestRate: interest rate which is considered for computing the annuities of the invest
+            of the component (in particular to depreciate the invests over the economic lifetime).
+            A value of 0.08 corresponds to an interest rate of 8%.
             |br| * the default value is 0.08
-        :type interestRate: non-negative (>=0) float or Pandas Series with non-negative (>=0)
-            values. The indices of the series have to equal the in the energy system model
-            specified locations.
+        :type interestRate: non-negative (>=0) float or Pandas Series with non-negative (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
 
-        :param economicLifetime: economic lifetime of the component which is considered for
-            computing the annuities of the invest of the component (aka depreciation time).
+        :param economicLifetime: economic lifetime of the component which is considered for computing the
+            annuities of the invest of the component (aka depreciation time).
             |br| * the default value is 10
-        :type economicLifetime: strictly-positive (>0) float or Pandas Series with
-            strictly-positive (>0) values. The indices of the series have to equal the in
-            the energy system model specified locations.
+        :type economicLifetime: strictly-positive (>0) float or Pandas Series with strictly-positive (>=0)
+            values. The indices of the series have to equal the in the energy system model specified locations.
 
         Last edited: July 27, 2018
         |br| @author: Lara Welder
