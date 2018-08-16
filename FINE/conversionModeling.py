@@ -30,7 +30,6 @@ class Conversion(Component):
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
-        # TODO
         """
         Constructor for creating an Conversion class instance
 
@@ -146,7 +145,8 @@ class Conversion(Component):
             |br| * the default value is None
         :type operationRateFix: None or Pandas DataFrame with non-negative entries. The
             row indices have to match the in the energy system model specified time steps.
-            The column indices have to match the in the energy system model specified locations.
+            The column indices have to match the in the energy system model specified
+            locations.
 
         :param tsaWeight: weight with which the time series of the component should be
             considered when applying time series aggregation.
@@ -164,7 +164,8 @@ class Conversion(Component):
             by avoiding the declaration of unnecessary variables and constraints.
             |br| * the default value is None
         :type locationalEligibility: None or Pandas Series with values equal to 0 and 1. The
-            indices of the series have to equal the in the energy system model specified locations.
+            indices of the series have to equal the in the energy system model specified
+            locations.
 
         :param capacityMin: if specified, Pandas Series indicating minimum capacities (in
             the plants physicalUnit) else None.
