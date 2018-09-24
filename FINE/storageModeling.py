@@ -836,7 +836,7 @@ class StorageModeling(ComponentModeling):
                  'opexIfBuilt', 'opexCharge', 'opexDischarge', 'TAC', 'invest']
         units = ['[-]', '[-]', '[-]', '[-]', '[' + esM._costUnit + '/a]', '[' + esM._costUnit + '/a]',
                  '[' + esM._costUnit + '/a]', '[' + esM._costUnit + '/a]', '[' + esM._costUnit + '/a]',
-                 '[' + esM._costUnit + '/a]', '[' + esM._costUnit + ']', '[' + esM._costUnit + ']']
+                 '[' + esM._costUnit + '/a]', '[' + esM._costUnit + '/a]', '[' + esM._costUnit + ']']
         tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
         tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]]._commodityUnit + '*h]') if x[1] == 'capacity'
                           else x, tuples))
