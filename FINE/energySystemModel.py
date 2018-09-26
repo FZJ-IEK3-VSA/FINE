@@ -272,6 +272,105 @@ class EnergySystemModel:
             df = self._componentModelingDict[modelingClass]._optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
+    def createOutputAsNetCDF(self, output='output.nc', year=2050, freq='H', saveLocationWKT=False, locationSource=None):
+        
+    ds = nc.Dataset(output, mode='w')
+    ds.createDimension('locations', size=len(self._locations))
+    ds.createDimension('time', size=len(self._totalTimeSteps))
+
+    ds.createGroup('/operationTimeSeries/')
+    for compMod in self._componentModelingDict.keys():
+        tsD = ds.createGroup('/operationTimeSeries/{}'.format(compMod[:-8]))
+        if compMod == 'StorageModeling': df = self._componentModelingDict[compMod]._stateOfChargeOperationVariablesOptimum
+        else: df = self._componentModelingDict[compMod]._operationVariablesOptimum
+
+        if compMod =='TransmissionModeling':colNames = ['{}:{}:{}'.format(i,j,k) for i,j,k in zip(df.index.get_level_values(2), 
+                                                                                                  df.index.get_level_values(1),
+                                                                                                  df.index.get_level_values(0))]
+        else:colNames = ['{}:{}'.format(i,j) for i,j in zip(df.index.get_level_values(1), df.index.get_level_values(0))]
+
+        dimName = '{}_cols'.format(compMod[:-8])
+        tsD.createDimension(dimName, size=len(colNames))
+
+        var = tsD.createVariable('{}_operation'.format(compMod[:-8]), 'f', dimensions=('time', dimName,), zlib=True)
+        var.description = 'Big table containing operation data for all technologies and regions under {} class'.format(compMod)
+        var.longname = 'Some numbers with time series'
+        var[:]= df.T.values
+
+        var = tsD.createVariable('{}_cols'.format(compMod[:-8]), str, dimensions=(dimName,))
+        var.description = 'Columns of {} class that are zipped to be used in big table of the class'.format(compMod)
+        var.longname = '{} columns for big table'.format(compMod)
+        for i in range(len(colNames)): var[i]= colNames[i]
+
+        for levelNo in range(len(df.index.levels)):
+            var = tsD.createVariable('{}_cols_lev{}'.format(compMod[:-8],levelNo), str, dimensions=(dimName,))
+            var.description = 'Level_{} index to be used in multiIndex'.format(levelNo)
+            var.longname = 'Level_{} index of big table'.format(levelNo)
+            for i in range(len(df.index.get_level_values(levelNo))): var[i]= df.index.get_level_values(levelNo)[i]
+
+    ds.createGroup('/capacityVariables/')
+    for compMod in self._componentModelingDict.keys():
+        cvD = ds.createGroup('/capacityVariables/{}'.format(compMod[:-8]))
+        df = self._componentModelingDict[compMod]._capacityVariablesOptimum
+
+        dil = pd.Series()
+        if compMod =='TransmissionModeling':
+            for loc1 in df.columns: 
+                for tech in df.index.get_level_values(0):
+                    for loc2 in df.loc[tech].index:
+                        capVar = df.loc[tech].loc[loc2][loc1]
+                        if not np.isnan(capVar): dil['{}:{}:{}'.format(loc1,loc2,tech)]=capVar   
+        else:
+            for loc1 in df.columns: 
+                for tech in df.index.get_level_values(0):
+                    capVar = df.loc[tech][loc1]
+                    if not np.isnan(capVar): dil['{}:{}'.format(loc1,tech)]=capVar
+        dil.sort_index(inplace=True)    
+
+        dimName = '{}_capVar_ix'.format(compMod[:-8])
+        cvD.createDimension(dimName, size=len(dil.index))
+        
+        var = cvD.createVariable('{}_capVar'.format(compMod[:-8]), 'f', dimensions=(dimName,), zlib=True)
+        var.description = 'Not important'
+        var.longname = 'Some numbers with time series'
+        var[:]= dil.values
+
+        var = cvD.createVariable('{}_capVar_cols'.format(compMod[:-8]), str, dimensions=(dimName,))
+        var.description = 'Not important'
+        var.longname = 'Some numbers with time series'
+        for i in range(len(dil.index)): var[i]= dil.index[i]
+
+    #this part is shortened as much as possible.Do not try to change it...
+    ds.createGroup('/costComponents/')
+    for compMod in self._componentModelingDict.keys():
+        ccD = ds.createGroup('/costComponents/{}'.format(compMod[:-8]))   
+
+        data = self._componentModelingDict[compMod]._optSummary
+        s = data.index.get_level_values(1) == 'TAC'
+        df = data.loc[s].sum(level=0)
+        df.sort_index(inplace=True) 
+
+        colDim ='{}_TACcols'.format(compMod[:-8])
+        indexDim= '{}_TACixs'.format(compMod[:-8])
+        ccD.createDimension(colDim, size=len(df.columns))
+        ccD.createDimension(indexDim, size=len(df.index))
+
+        var = ccD.createVariable('{}_TAC'.format(compMod[:-8]), 'f', dimensions=(indexDim, colDim,), zlib=True)
+        var.description = 'Not important'
+        var.longname = 'Some numbers with time series'
+        var.unit = '{}/a'.format(self._costUnit)
+        var[:]= df.values
+
+        var = ccD .createVariable('{}_TACcols'.format(compMod[:-8]), str, dimensions=(colDim,))
+        var.longname = 'Some numbers with time series'
+        for i in range(len(df.columns)): var[i]= df.columns[i]
+
+        var = ccD .createVariable('{}_TACixs'.format(compMod[:-8]), str, dimensions=(indexDim,))
+        var.longname = 'Some numbers with time series'
+        for i in range(len(df.index)): var[i]= df.index[i]
+
+    ds.close()
+
     def cluster(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical',
                 sortValues=True, storeTSAinstance=False, **kwargs):
         """
