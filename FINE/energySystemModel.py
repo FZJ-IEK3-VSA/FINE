@@ -272,13 +272,21 @@ class EnergySystemModel:
             df = self._componentModelingDict[modelingClass]._optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def createOutputAsNetCDF(self, output='output.nc', year=2050, freq='H', saveLocationWKT=False, locationSource=None):
+    def createOutputAsNetCDF(self, output='output.nc', initialTime='2050-01-01 00:30:00', freq='H', saveLocationWKT=False, locationSource=None):
         import netCDF4 as nc
         import numpy as np
 
         ds = nc.Dataset(output, mode='w')
         ds.createDimension('locations', size=len(self._locations))
         ds.createDimension('time', size=len(self._totalTimeSteps))
+
+        var = ds.createVariable('time', 'u4', dimensions=('time',))
+        var.description = 'Time stamps to be used in the operation time series'
+        var.units = 'Minutes since 1900-01-01 00:00:00'
+        datetimes = pd.date_range(initialTime, periods=len(self._totalTimeSteps), freq=freq)
+        var[:]= nc.date2num( datetimes.to_pydatetime(), var.units )
+        #to create the time stamps back...
+        #pd.to_datetime( nc.num2date( var[:], var.units ) )
 
         ds.createGroup('/operationTimeSeries/')
         for compMod in self._componentModelingDict.keys():
