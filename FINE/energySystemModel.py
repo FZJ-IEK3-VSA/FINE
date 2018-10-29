@@ -50,7 +50,7 @@ class EnergySystemModel:
       (3) an objective function.
       The pyomo instance is then optimized by a specified solver and the optimization results processed once
       available.
-    * getting components and their attributes (**getComponent, getCompAttr**)
+    * getting components and their attributes (**getComponent, getCompAttr, getOptimizationSummary**)
 
     Last edited: July 27, 2018
     |br| @author: Lara Welder
@@ -107,8 +107,6 @@ class EnergySystemModel:
             |br| * the default value is 'km' (kilometers)
         :type lengthUnit: string
 
-        Last edited: July 27, 2018
-        |br| @author: Lara Welder
         """
 
         # Check correctness of inputs
@@ -257,7 +255,7 @@ class EnergySystemModel:
         :param outputLevel: states the level of detail of the output summary:
             - if equal to 0 if the full optimization summary is returned
             - if equal to 1 rows in which all values are NaN (not a number) are dropped
-            - if equal to 2 rows in which all values are NaN or 0 (not a number) are dropped
+            - if equal to 2 rows in which all values are NaN (not a number) or 0 are dropped
             |br| * the default value is True
         :type outputLevel: integer (0, 1 or 2)
 

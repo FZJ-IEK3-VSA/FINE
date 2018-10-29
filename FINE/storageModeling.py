@@ -9,7 +9,6 @@ class Storage(Component):
     """
     Doc
     """
-
     def __init__(self, esM, name, commodity, chargeRate=1, dischargeRate=1,
                  chargeEfficiency=1, dischargeEfficiency=1, selfDischarge=0, cyclicLifetime=None,
                  stateOfChargeMin=0, stateOfChargeMax=1,
@@ -23,9 +22,323 @@ class Storage(Component):
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
                  opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+        # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
+        # TODO: eligible locations
+        """
+        Constructor for creating an Storage class instance.
+
+        **Required arguments:**
+
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param name: name of the component. Has to be unique (i.e. no other components with that name can
+        already exist in the EnergySystemModel instance to which the component is added).
+        :type name: string
+
+        :param commodity: to the component related commodity.
+        :type commodity: string
+
+        **Default arguments:**
+
+        :param chargeRate: ratio of the maximum storage inflow (in commodityUnit/hour) and the
+            storage capacity (in commodityUnit).
+            Example:
+            * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be charged 0.45 GWh_H2_LHV during
+              one hour. The chargeRate thus equals 0.45/133.
+            |br| * the default value is 1
+        :type chargeRate: 0 <= float <=1
+
+        :param dischargeRate: ratio of the maximum storage outflow (in commodityUnit/hour) and
+            the storage capacity (in commodityUnit).
+            Example:
+            * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be discharged 0.45 GWh_H2_LHV during
+              one hour. The dischargeRate thus equals 0.45/133.
+            |br| * the default value is 1
+        :type chargeRate: 0 <= float <=1
+
+        :param chargeEfficiency: defines the efficiency with which the storage can be charged (equals
+            the percentage of the injected commodity that is transformed into stored commodity).
+            Enter 0.98 for 98% etc.
+            |br| * the default value is 1
+        :type chargeEfficiency: 0 <= float <=1
+
+        :param dischargeEfficiency: defines the efficiency with which the storage can be discharged
+            (equals the percentage of the withdrawn commodity that is transformed into stored commodity).
+            Enter 0.98 for 98% etc.
+            |br| * the default value is 1
+        :type dischargeEfficiency: 0 <= float <=1
+
+        :param selfDischarge: percentage of self-discharge from the storage during one hour
+            |br| * the default value is 0
+        :type selfDischarge: 0 <= float <=1
+
+        :param cyclicLifetime: if specified, the total number of full cycle equivalents that are supported
+            by the technology.
+            |br| * the default value is None
+        :type cyclicLifetime: positive float
+
+        :param stateOfChargeMin: threshold (percentage) that the state of charge can not drop under
+            |br| * the default value is 0
+        :type stateOfChargeMin: 0 <= float <=1
+
+        :param stateOfChargeMax: threshold (percentage) that the state of charge can not exceed
+            |br| * the default value is 1
+        :type stateOfChargeMax: 0 <= float <=1
+
+        :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not.
+            Examples:
+            (a) A battery has a capacity given in GWh_electric -> hasCapacityVariable is True.
+            (b) Theoretical storage requirement analysis (no capacityMax or costs required)
+                -> hasCapacityVariable is False
+            |br| * the default value is True
+        :type hasCapacityVariable: boolean
+
+        :param capacityVariableDomain: the mathematical domain of the capacity variables, if they are specified.
+            By default, the domain is specified as 'continuous' and thus declares the variables as positive
+            (>=0) real values. The second input option that is available for this parameter is 'discrete', which
+            declares the variables as positive (>=0) integer values.
+            |br| * the default value is 'continuous'
+        :type capacityVariableDomain: string ('continuous' or 'discrete')
+
+        :param capacityPerPlantUnit: capacity of one plant of the component (in the specified physicalUnit of
+            the plant). The default is 1, thus the number of plants is equal to the installed capacity.
+            This parameter should be specified when using a 'discrete' capacityVariableDomain.
+            It can be specified when using a 'continuous' variable domain.
+            |br| * the default value is 1
+        :type capacityPerPlantUnit: strictly positive float
+
+        :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for each
+            eligible location of the component, which indicate if the component is built at that location or
+            not. The binary variables can be used to enforce one-time investment cost or capacity-independent
+            annual operation cost. If a minimum capacity is specified and this parameter is set to True,
+            the minimum capacities are only considered if a component is built (i.e. if a component is built
+            at that location, it has to be built with a minimum capacity of XY GW, otherwise it is set to 0 GW).
+            |br| * the default value is False
+        :type hasIsBuiltBinaryVariable: boolean
+
+        :param bigM: the bigM parameter is only required when the hasIsBuiltBinaryVariable parameter is set to
+            True. In that case, it is set as a strictly positive float, otherwise it can remain a None value.
+            If not None and the ifBuiltBinaryVariables parameter is set to True, the parameter enforces an
+            artificial upper bound on the maximum capacities which should, however, never be reached. The value
+            should be chosen as small as possible but as large as necessary so that the optimal values of the
+            designed capacities are well below this value after the optimization.
+            |br| * the default value is None
+        :type bigM: None or strictly positive float
+
+        :param doPreciseTsaModeling: determines whether the state of charge is limited precisely (True) or
+            with a simplified method (False). The error is small if the selfDischarge is small.
+            |br| * the default value is False
+        :type doPreciseTsaModeling: boolean
+
+        :param chargeOpRateMax: if specified indicates a maximum charging rate for each location and each time
+            step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+            of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
+            during one time step.
+            |br| * the default value is None
+        :type chargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model  specified time steps. The column indices have to match the
+            in the energy system model specified locations.
+
+        :param chargeOpRateFix: if specified indicates a fixed charging rate for each location and each time
+            step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+            of the commodity, referring to the charged commodity (before multiplying the charging efficiency)
+            during one time step.
+            |br| * the default value is None
+        :type chargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model specified time steps. The column indices have to match the
+            in the energy system model specified locations.
+
+        :param chargeTsaWeight: weight with which the chargeOpRate (max/fix) time series of the
+            component should be considered when applying time series aggregation.
+            |br| * the default value is 1
+        :type chargeTsaWeight: positive (>= 0) float
+
+        :param dischargeOpRateMax: if specified indicates a maximum discharging rate for each location and each
+            time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+            of the commodityUnit, referring to the discharged commodity (after multiplying the discharging
+            efficiency) during one time step.
+            |br| * the default value is None
+        :type dischargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model  specified time steps. The column indices have to match the
+            in the energy system model specified locations.
+
+        :param dischargeOpRateFix: if specified indicates a fixed discharging rate for each location and each
+            time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+            of the commodityUnit, referring to the charged commodity (after multiplying the discharging
+            efficiency) during one time step.
+            |br| * the default value is None
+        :type dischargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model specified time steps. The column indices have to match the
+            in the energy system model specified locations.
+
+        :param dischargeTsaWeight: weight with which the dischargeOpRate (max/fix) time series of the
+            component should be considered when applying time series aggregation.
+            |br| * the default value is 1
+        :type dischargeTsaWeight: positive (>= 0) float
+
+        :param stateOfChargeOpRateMax: if specified indicates a maximum state of charge for each location and
+            each time step by a positive float. If hasCapacityVariable is set to True, the values are given
+            relative to the installed capacities (i.e. in that case a value of 1 indicates a utilization of
+            100% of the capacity). If hasCapacityVariable is set to False, the values are given as absolute
+            values in form of the commodityUnit, referring to the commodity stored in the component at the
+            beginning of one time step.
+            |br| * the default value is None
+        :type stateOfChargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model  specified time steps. The column indices have to match the
+            in the energy system model specified locations.
+
+        :param stateOfChargeOpRateFix: if specified indicates a fixed state of charge for each location and
+            each time step by a positive float. If hasCapacityVariable is set to True, the values are given
+            relative to the installed capacities (i.e. in that case a value of 1 indicates a utilization of
+            100% of the capacity). If hasCapacityVariable is set to False, the values are given as absolute
+            values in form of the commodityUnit, referring to the commodity stored in the component at the
+            beginning of one time step.
+            |br| * the default value is None
+        :type stateOfChargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model specified time steps. The column indices have to match the
+            in the energy system model specified locations.
+
+        :param stateOfChargeTsaWeight: weight with which the stateOfChargeOpRate (max/fix) time series of the
+            component should be considered when applying time series aggregation.
+            |br| * the default value is 1
+        :type stateOfChargeTsaWeight: positive (>= 0) float
+
+        :param isPeriodicalStorage: indicates if the state of charge of the storage has to be at the same value
+            after the end of each period. This is especially relevant when using daily periods where short term
+            storage can be restrained to daily cycles. Benefits the run time of the model.
+            |br| * the default value is False
+        :type stateOfChargeTsaWeight: boolean
+
+        :param locationalEligibility: Pandas Series that indicates if a component can be built at a location
+            (=1) or not (=0). If not specified and a maximum or fixed capacity or time series is given, the
+            parameter will be set based on these inputs. If the parameter is specified, a consistency check
+            is done to ensure that the parameters indicate the same locational eligibility. If the parameter
+            is not specified and also no other of the parameters is specified it is assumed that the
+            component is eligible in each location and all values are set to 1.
+            This parameter is key for ensuring small built times of the optimization problem by avoiding the
+            declaration of unnecessary variables and constraints.
+            |br| * the default value is None
+        :type locationalEligibility: None or Pandas Series with values equal to 0 and 1. The indices of the
+            series have to equal the in the energy system model specified locations.
+
+        :param capacityMin: if specified, Pandas Series indicating minimum capacities (in the plant's
+            physicalUnit) else None. If binary decision variables are declared, which indicate if a
+            component is built at a location or not, the minimum capacity is only enforced if the component
+            is built (i.e. if a component is built in that location, it has to be built with a minimum
+            capacity of XY GW, otherwise it is set to 0 GW).
+            |br| * the default value is None
+        :type capacityMin: None or Pandas Series with positive (>=0) values. The indices of the series
+            have to equal the in the energy system model specified locations.
+
+        :param capacityMax: if specified, Pandas Series indicating maximum capacities (in the plants
+            physicalUnit) else None.
+            |br| * the default value is None
+        :type capacityMax: None or Pandas Series with positive (>=0) values. The indices of the series
+            have to equal the in the energy system model specified locations.
+
+        :param sharedPotentialID: if specified, indicates that the component has to share its maximum
+            potential capacity with other components (i.e. due to space limitations). The shares of how
+            much of the maximum potential is used have to add up to less then 100%.
+            |br| * the default value is None
+        :type sharedPotentialID: string
+
+        :param capacityFix: if specified, Pandas Series indicating fixed capacities (in the plants
+            physicalUnit) else None.
+            |br| * the default value is None
+        :type capacityFix: None or Pandas Series with positive (>=0) values. The indices of the series
+            have to equal the in the energy system model specified locations.
+
+        :param isBuiltFix: if specified, Pandas Series indicating fixed decisions in which locations the
+            component is built else None (i.e. sets the isBuilt binary variables).
+            |br| * the default value is None
+        :type isBuiltFix: None or Pandas Series with values equal to 0 and 1. The indices of the series
+            have to equal the in the energy system model specified locations.
+
+        :param investPerCapacity: the invest of a component is obtained by multiplying the capacity of the
+            component (in the physicalUnit of the component) at that location with the investPerCapacity
+            factor. The investPerCapacity can either be given as a float or a Pandas Series with location
+            specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
+            |br| * the default value is 0
+        :type investPerCapacity: positive (>=0) float or Pandas Series with positive (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
+
+        :param investIfBuilt: a capacity-independent invest which only arises in a location if a component
+            is built at that location. The investIfBuilt can either be given as a float or a Pandas Series
+            with location specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
+            |br| * the default value is 0
+        :type investIfBuilt: positive (>=0) float or Pandas Series with positive (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
+
+        :param opexPerChargeOperation: cost which is directly proportional to the charge operation of the
+            component is obtained by multiplying the opexPerOperation parameter with the annual sum of the
+            operational time series of the components. The opexPerOperation can either be given as a float
+            or a Pandas Series with location specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
+            |br| * the default value is 0
+        :type opexPerChargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
+
+        :param opexPerDischargeOperation: cost which is directly proportional to the discharge operation
+            of the component is obtained by multiplying the opexPerOperation parameter with the annual sum
+            of the operational time series of the components. The opexPerOperation can either be given as
+            a float or a Pandas Series with location specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
+            |br| * the default value is 0
+        :type opexPerDischargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
+
+        :param opexPerCapacity: annual operational cost which are only a function of the capacity of the
+            component (in the physicalUnit of the component) and not of the specific operation itself are
+            obtained by multiplying the capacity of the component at a location with the opexPerCapacity
+            factor. The opexPerCapacity can either be given as a float or a Pandas Series with location
+            specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
+            |br| * the default value is 0
+        :type opexPerCapacity: positive (>=0) float or Pandas Series with positive (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
+
+        :param opexIfBuilt: a capacity-independent annual operational cost which only arises in a location
+            if a component is built at that location. The opexIfBuilt can either be given as a float or a
+            Pandas Series with location specific values.
+            The cost unit in which the parameter is given has to match the one specified in the energy
+            system model (i.e. Euro, Dollar, 1e6 Euro).
+            |br| * the default value is 0
+        :type opexIfBuilt: positive (>=0) float or Pandas Series with positive (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
+
+        :param interestRate: interest rate which is considered for computing the annuities of the invest
+            of the component (depreciates the invests over the economic lifetime).
+            A value of 0.08 corresponds to an interest rate of 8%.
+            |br| * the default value is 0.08
+        :type interestRate: positive (>=0) float or Pandas Series with positive (>=0) values.
+            The indices of the series have to equal the in the energy system model specified locations.
+
+        :param economicLifetime: economic lifetime of the component which is considered for computing the
+            annuities of the invest of the component (aka depreciation time).
+            |br| * the default value is 10
+        :type economicLifetime: strictly-positive (>0) float or Pandas Series with strictly-positive (>=0)
+            values. The indices of the series have to equal the in the energy system model specified locations.
+        """
         # Set general component data
         utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
         self._name, self._commodity, self._commodityUnit = name, commodity, esM._commoditiyUnitsDict[commodity]
+        # TODO unit and type checks
         self._chargeRate, self._dischargeRate = chargeRate, dischargeRate
         self._chargeEfficiency, self._dischargeEfficiency = chargeEfficiency, dischargeEfficiency
         self._selfDischarge = selfDischarge
@@ -37,7 +350,6 @@ class Storage(Component):
         # Set design variable modeling parameters
         utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
                                                     hasIsBuiltBinaryVariable, bigM)
-        self._hasCapacityVariable = hasCapacityVariable
         self._hasCapacityVariable = hasCapacityVariable
         self._capacityVariableDomain = capacityVariableDomain
         self._capacityPerPlantUnit = capacityPerPlantUnit
