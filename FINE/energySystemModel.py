@@ -273,13 +273,31 @@ class EnergySystemModel:
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
     def createOutputAsNetCDF(self, output='output.nc', initialTime='2050-01-01 00:30:00', freq='H', saveLocationWKT=False, locationSource=None):
+        """
+        Function which creates a netCDF file including operation, capacity and cost variables in the energy system
+
+        :param output: path for output file
+        :type output: string
+
+        :param initialTime: initial date and time of operation in the energy system
+        :type initialTime: string
+
+        :param freq: frequency of the time steps considered in the energy system
+        :type freq: string ('H', '5H' , 'D', 'M')
+
+        :returns: None
+        :rtype: depends on the components in the energy system
+        """
         import netCDF4 as nc
         import numpy as np
 
+        # initiate netCDF file
         ds = nc.Dataset(output, mode='w')
+        # create the dimensions for locations and time at top level
         ds.createDimension('locations', size=len(self._locations))
         ds.createDimension('time', size=len(self._totalTimeSteps))
 
+        # Create the variable for time stamps
         var = ds.createVariable('time', 'u4', dimensions=('time',))
         var.description = 'Time stamps to be used in the operation time series'
         var.units = 'Minutes since 1900-01-01 00:00:00'
@@ -288,12 +306,16 @@ class EnergySystemModel:
         #to create the time stamps back...
         #pd.to_datetime( nc.num2date( var[:], var.units ) )
 
+        # Create the group for operation time series
         ds.createGroup('/operationTimeSeries/')
+
+        # Create the group for each modeling class
         for compMod in self._componentModelingDict.keys():
             tsD = ds.createGroup('/operationTimeSeries/{}'.format(compMod[:-8]))
             if compMod == 'StorageModeling': df = self._componentModelingDict[compMod]._stateOfChargeOperationVariablesOptimum
             else: df = self._componentModelingDict[compMod]._operationVariablesOptimum
 
+            # Create dimension 
             opColDim = '{}_col'.format(compMod[:-8])
             tsD.createDimension(opColDim, size=len(df.index.get_level_values(0)))
 
@@ -306,6 +328,7 @@ class EnergySystemModel:
                 var.description = 'Level_{} index to be used in multiIndex'.format(levelNo)
                 for i in range(len(df.index.get_level_values(levelNo))): var[i]= df.index.get_level_values(levelNo)[i]
 
+        # Create the group for capacity variables
         ds.createGroup('/capacityVariables/')
         for compMod in self._componentModelingDict.keys():
             cvD = ds.createGroup('/capacityVariables/{}'.format(compMod[:-8]))
@@ -336,6 +359,7 @@ class EnergySystemModel:
             var.description = 'List of names to be used in capacity variable columns'
             for i in range(len(dil.index)): var[i]= dil.index[i]
 
+        # Create the group for cost components and binary variables
         ds.createGroup('/costComponents/')
         for compMod in self._componentModelingDict.keys():
             ccD = ds.createGroup('/costComponents/{}'.format(compMod[:-8]))   
