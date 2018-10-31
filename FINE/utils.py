@@ -384,13 +384,14 @@ def checkAndSetCostParameter(esM, name, data, dimension='1dim'):
             if data < 0:
                 raise ValueError('Value error in ' + name + ' detected.\n Economic parameters have to be positive.')
             return pd.Series([float(data) for loc in esM._locations], index=esM._locations)
+        checkRegionalIndex(esM, data)
     else:
         if isinstance(data, int) or isinstance(data, float):
             if data < 0:
                 raise ValueError('Value error in ' + name + ' detected.\n Economic parameters have to be positive.')
             return pd.DataFrame([[float(data) for loc in esM._locations] for loc in esM._locations],
                                 index=esM._locations, columns=esM._locations)
-    checkRegionalColumnTitles(esM, data), checkRegionalIndex(esM, data)
+        checkRegionalColumnTitles(esM, data), checkRegionalIndex(esM, data)
     _data = data.astype(float)
     if _data.isnull().any().any():
         raise ValueError('Value error in ' + name + ' detected.\n' +
