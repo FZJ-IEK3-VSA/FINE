@@ -1,0 +1,65 @@
+"The users's guide to the FINE model on a Windows Platform"
+
+The following instructions are given for installing and using the framework on Windows. The installation for Linux are however quite similar and should be duable to derive from the given ones.
+
+PYTHON
+
+Download some Python 3 platform (i.e. Anaconda)
+
+Choose a development platform (i.e. PyCharm or Spyder; Sypder already comes with Anaconda, PyCharm does better with multiprocessing)
+
+PACKAGES
+
+call windows comand prompt by pressing the windows key and then typing
+###
+cmd
+###
+(windows command prompt opens)
+
+check with
+###
+pip list
+###
+in the command prompt which packages are already installed
+
+you can install packages with
+###
+pip install XYZ
+###
+(make sure you have admin rights (i.e. by right clicking on cmd before opening it and then select runnign it as an admin), sometimes they are required)
+
+Make sure the following packages are installed:
+- pandas
+- tsam
+- numpy
+- pyomo
+- matplotlib
+- jupyter notebook
+
+from https://github.com/FZJ-IEK3-VSA/FINE clone or download the FINE code; Clone it and create a fork if you want to actively develop the code or quickly get new versions of the model otherwise just download it. Install the FINE framework by opening the the windows comand prompt in the directory of the setup.py file (i.e. by right click on the folder where the setup.py file is located in and select the command prompt) and then installing the package by typing
+###
+pip install -e .
+###
+
+OPTIMIZATION SOLVER
+
+in theory many solvers can be used, but for now, just use gurobi;
+install the latest gurobi version (just follow the instructions on the gurobi website)
+
+RUN THE TEST CASE
+
+run the FINE example "Multi-regional Energy System Workflow.ipynb" (a jupyter notebook) located under FINE//example; for running it, put it (and its data folder) in a directory which you can access when calling
+###
+jupyter notebook
+###
+
+if for some reason running you code in a notebook is not an option, just create a .py script and run it on your development platform or directly the windows command prompt (
+###
+python XYZ.py
+###
+)
+
+if your feeling adventurous and you want to understand the code in detail or even contribute to its development, use your development platform and browse through the FINE code; start with the EnergySysteModel class and then component modeling classes
+
+
+

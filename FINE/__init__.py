@@ -4,8 +4,9 @@ Last edited: May 15 2018
 @author: Lara Welder
 """
 from .energySystemModel import EnergySystemModel
-from .sourceSinkModeling import Source, Sink
-from .conversionModeling import Conversion
-from .storageModeling import Storage
-from .transmissionModeling import Transmission
-from .component import Component
+from .sourceSink import Source, Sink
+from .conversion import Conversion
+from .storage import Storage
+from .transmission import Transmission
+from .component import Component, ComponentModel
+from .subclasses import *

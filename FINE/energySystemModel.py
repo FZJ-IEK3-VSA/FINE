@@ -3,8 +3,8 @@ Last edited: July 27 2018
 |br| @author: Lara Welder
 """
 
-import FINE.utils as utils
 from FINE.component import Component
+from FINE import utils
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 import pandas as pd
 import pyomo.environ as pyomo
@@ -536,7 +536,7 @@ class EnergySystemModel:
             for compName, comp in mdl._componentsDict.items():
                 if comp._sharedPotentialID is not None:
                     [potentialDict.setdefault((comp._sharedPotentialID, loc), []).append(compName)
-                     for loc in self._locations if comp._capacityMax[loc] != 0]
+                     for loc in comp._locationalEligibility.index if comp._capacityMax[loc] != 0]
         pyM.sharedPotentialDict = potentialDict
 
         # Define and initialize constraints for each instance and location where components have to share an available
@@ -637,12 +637,14 @@ class EnergySystemModel:
                 # status)
                 if not solver_info.solver.termination_condition == opt.TerminationCondition.optimal:
                     warnings.warn('Output is generated for a non-optimal solution.')
-                print("Processing optimization output...")
+                print("\nProcessing optimization output...")
                 # Declare component specific sets, variables and constraints
+                w = str(len(max(self._componentModelingDict.keys()))+6)
                 for key, mdl in self._componentModelingDict.items():
                     __t = time.time()
                     mdl.setOptimalValues(self, pyM)
-                    print('\tfor', key, '...', "\t(%.4f" % (time.time() - __t), "sec)")
+                    outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
+                    print(outputString)
 
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
 

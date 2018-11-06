@@ -83,6 +83,12 @@ def getData():
 
     data.update({'AC cables, capacityFix': capacityFix})
 
+    reactances = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'ElectricGrid',
+                                            'ACcableReactance.xlsx'),
+                                index_col=0, header=0)
+
+    data.update({'AC cables, reactances': reactances})
+
     # DC cables data
     capacityFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'ElectricGrid',
                                              'DCcableExistingCapacity_GW_el.xlsx'),
