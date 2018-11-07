@@ -32,7 +32,7 @@ class EnergySystemModel:
     * the modeled temporal representation of the energy system (**totalTimeSteps, hoursPerTimeStep,
       years, periods, periodsOrder, periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps,
       isTimeSeriesDataClustered, typicalPeriods, tsaInstance, timeUnit**)
-    * the considered commodities in the energy system (**commodities, commoditiyUnitsDict**)
+    * the considered commodities in the energy system (**commodities, commodityUnitsDict**)
     * the considered components in the energy system (**componentNames, componentModelingDict, costUnit**)
     * optimization related parameters (**pyM, solverSpecs**)
       all parameters are marked as protected (thus they all begin with an underscore) and are set when an class
@@ -56,7 +56,7 @@ class EnergySystemModel:
     |br| @author: Lara Welder
     """
 
-    def __init__(self, locations, commodities, commoditiyUnitsDict, numberOfTimeSteps=8760, hoursPerTimeStep=1,
+    def __init__(self, locations, commodities, commodityUnitsDict, numberOfTimeSteps=8760, hoursPerTimeStep=1,
                  costUnit='1e9 Euro', lengthUnit='km'):
         """
         Constructor for creating an EnergySystemModel class instance
@@ -69,12 +69,12 @@ class EnergySystemModel:
         :param commodities: commodities considered in the energy system
         :type commodities: set of strings
 
-        :param commoditiyUnitsDict: dictionary which assigns each commodity a quantitative unit per time
+        :param commodityUnitsDict: dictionary which assigns each commodity a quantitative unit per time
             (e.g. GW_el, GW_H2, Mio.t_CO2/h). The dictionary is used for results output.
             Note for advanced users: the scale of these units can influence the numerical stability of the
             optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
             coefficients is suggested
-        :type commoditiyUnitsDict: dictionary of strings
+        :type commodityUnitsDict: dictionary of strings
 
         **Default arguments:**
 
@@ -110,7 +110,7 @@ class EnergySystemModel:
         """
 
         # Check correctness of inputs
-        utils.checkEnergySystemModelInput(locations, commodities, commoditiyUnitsDict, numberOfTimeSteps,
+        utils.checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numberOfTimeSteps,
                                           hoursPerTimeStep, costUnit, lengthUnit)
 
         ################################################################################################################
@@ -121,7 +121,7 @@ class EnergySystemModel:
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
         # The length unit refers to length measure referred throughout the model.
-        self._locations, self._lengthUnit = locations, lengthUnit
+        self.locations, self.lengthUnit = locations, lengthUnit
 
         ################################################################################################################
         #                                            Time series parameters                                            #
@@ -130,34 +130,34 @@ class EnergySystemModel:
         # The totalTimeSteps (list, ranging from 0 to the total numberOfTimeSteps-1) refers to the total number of time
         # steps considered when modeling the specified energy system. The parameter is used for validating time series
         # data input and for setting other time series parameters when modeling a full temporal resolution.
-        # The hoursPerTimeStep parameter (float > 0) refers to the temporal length of a time step in the totalTimeSteps
+        # The hoursPerTimeStep parameter (float > 0) refers to the temporal length of a time step in the totalTimeSteps.
         # From the numberOfTimeSteps and the hoursPerTimeStep the numberOfYears parameter is computed.
-        self._totalTimeSteps, self._hoursPerTimeStep = list(range(numberOfTimeSteps)), hoursPerTimeStep
-        self._numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
+        self.totalTimeSteps, self.hoursPerTimeStep = list(range(numberOfTimeSteps)), hoursPerTimeStep
+        self.numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
-        # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents the
+        # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents
         # the periods considered when modeling the energy system. Only one period exists when considering the full
         # temporal resolution. When applying time series aggregation, the full time series are broken down into
         # periods to which a typical period is assigned to.
         # These periods have an order which is stored in the periodsOrder parameter (list, [0] when considering a full
-        # temporal resolution, [typicalPeriod(0), ..., typicalPeriod(totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod)]
-        # when applying time series aggregation).
+        # temporal resolution, [typicalPeriod(0), ... ,
+        # typicalPeriod(totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod-1)] when applying time series aggregation).
         # The occurrences of these periods are stored in the periodsOccurrences parameter (list, [1] when considering a
         # full temporal resolution, [occurrences(0), ..., occurrences(numberOfTypicalPeriods-1)) when applying time
         # series aggregation).
-        self._periods, self._periodsOrder, self._periodOccurrences = [0], [0], [1]
-        self._timeStepsPerPeriod = list(range(numberOfTimeSteps))
-        self._interPeriodTimeSteps = list(range(int(len(self._totalTimeSteps) / len(self._timeStepsPerPeriod)) + 1))
+        self.periods, self.periodsOrder, self.periodOccurrences = [0], [0], [1]
+        self.timeStepsPerPeriod = list(range(numberOfTimeSteps))
+        self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
 
-        # The isTimeSeriesDataClustered is used to check data consistency. It is set to True is the class' cluster
+        # The isTimeSeriesDataClustered is used to check data consistency. It is set to True if the class' cluster
         # function is called. It set to False if a new component is added.
-        # If the cluster function is called, the typicalPeriods parameters is set from None to
+        # If the cluster function is called, the typicalPeriods parameter is set from None to
         # [0, ..., numberOfTypicalPeriods-1] and if specified the resulting TimeSeriesAggregation instance is stored
         # in the tsaInstance parameter (default None)
         # The time unit refers to time measure referred throughout the model. Currently, it has to be an hour 'h'.
-        self._isTimeSeriesDataClustered, self._typicalPeriods, self._tsaInstance = False, None, None
-        self._timeUnit = 'h'
+        self.isTimeSeriesDataClustered, self.typicalPeriods, self.tsaInstance = False, None, None
+        self.timeUnit = 'h'
 
         ################################################################################################################
         #                                        Commodity specific parameters                                         #
@@ -167,9 +167,9 @@ class EnergySystemModel:
         # system and hence which commodity balances need to be considered in the energy system model and its
         # optimization.
         # The commodityUnitsDict is a dictionary which assigns each considered commodity (string) a unit (string)
-        # which is can be used by results output functions.
-        self._commodities = commodities
-        self._commoditiyUnitsDict = commoditiyUnitsDict
+        # which can be used by results output functions.
+        self.commodities = commodities
+        self.commodityUnitsDict = commodityUnitsDict
 
         ################################################################################################################
         #                                        Component specific parameters                                         #
@@ -179,11 +179,11 @@ class EnergySystemModel:
         # components are stored. It is used to check that all components have unique indices.
         # The componentModelingDict is a dictionary (modelingClass name: modelingClass instance) in which the in the
         # energy system considered modeling classes are stored (in which again the components modeled with the
-        # modelingClass as well as the equations to model them with are stored)
-        # The costUnit parameter (string) is the parameter in which all cost input parameter have to be specified
-        self._componentNames = {}
-        self._componentModelingDict = {}
-        self._costUnit = costUnit
+        # modelingClass as well as the equations to model them with are stored).
+        # The costUnit parameter (string) is the parameter in which all cost input parameter have to be specified.
+        self.componentNames = {}
+        self.componentModelingDict = {}
+        self.costUnit = costUnit
 
         ################################################################################################################
         #                                           Optimization parameters                                            #
@@ -193,21 +193,21 @@ class EnergySystemModel:
         # stores parameters, sets, variables, constraints and objective required for the optimization set up and
         # solving)
         # The solverSpecs parameter is a dictionary (string: param) which stores different parameters that were used
-        # when solving the last optimization problem. The parameter are: solver (string, solver which was used to solve
+        # when solving the last optimization problem. The parameters are: solver (string, solver which was used to solve
         # the optimization problem), optimizationSpecs (string representing **kwargs for the solver), hasTSA (boolean,
         # indicating if time series aggregation is used for the optimization), runtime (positive float, runtime of the
         # optimization run in seconds), timeLimit (positive float or None, if specified indicates the maximum allowed
         # runtime of the solver), threads (positive int, number of threads used for optimization, can depend on solver),
         # logFileName (string, name of logfile)
-        self._pyM = None
-        self._solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'runtime': 0, 'timeLimit': None,
+        self.pyM = None
+        self.solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'runtime': 0, 'timeLimit': None,
                              'threads': 0, 'logFileName': ''}
 
     def add(self, component):
         """
         Function for adding a component and, if required its respective modeling class to the EnergySystemModel instance
 
-        :param componen: the component to be added
+        :param component: the component to be added
         :type component: An object which inherits from the FINE Component class
         """
         if not issubclass(type(component), Component):
@@ -224,11 +224,11 @@ class EnergySystemModel:
         :returns: the component which has the name componentName
         :rtype: Component
         """
-        if componentName not in self._componentNames.keys():
+        if componentName not in self.componentNames.keys():
             raise ValueError('The component ' + componentName + ' cannot be found in the energy system model.\n' +
-                             'The components considered in the model are: ' + str(self._componentNames.keys()))
-        modelingClass = self._componentNames[componentName]
-        return self._componentModelingDict[modelingClass]._componentsDict[componentName]
+                             'The components considered in the model are: ' + str(self.componentNames.keys()))
+        modelingClass = self.componentNames[componentName]
+        return self.componentModelingDict[modelingClass].componentsDict[componentName]
 
     def getComponentAttribute(self, componentName, attributeName):
         """
@@ -263,11 +263,11 @@ class EnergySystemModel:
         :rtype: depends on the specified attribute
         """
         if outputLevel == 0:
-            return self._componentModelingDict[modelingClass]._optSummary
+            return self.componentModelingDict[modelingClass].optSummary
         elif outputLevel == 1:
-            return self._componentModelingDict[modelingClass]._optSummary.dropna(how='all')
+            return self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
         else:
-            df = self._componentModelingDict[modelingClass]._optSummary.dropna(how='all')
+            df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
     def cluster(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical',
@@ -319,7 +319,7 @@ class EnergySystemModel:
         """
 
         # Check input arguments which have to fit the temporal representation of the energy system
-        utils.checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self._totalTimeSteps))
+        utils.checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps))
 
         timeStart = time.time()
         print('\nClustering time series data with', numberOfTypicalPeriods, 'typical periods and',
@@ -330,42 +330,42 @@ class EnergySystemModel:
         #     data frame with unique column names
         # (b) thereby collect the weights which should be considered for each time series as well in a dictionary
         timeSeriesData, weightDict = [], {}
-        for mdlName, mdl in self._componentModelingDict.items():
-            for compName, comp in mdl._componentsDict.items():
+        for mdlName, mdl in self.componentModelingDict.items():
+            for compName, comp in mdl.componentsDict.items():
                 compTimeSeriesData, compWeightDict = comp.getDataForTimeSeriesAggregation()
                 if compTimeSeriesData is not None:
                     timeSeriesData.append(compTimeSeriesData), weightDict.update(compWeightDict)
         timeSeriesData = pd.concat(timeSeriesData, axis=1)
-        timeSeriesData.index = pd.date_range('2050-01-01 00:30:00', periods=len(self._totalTimeSteps),
-                                             freq=(str(self._hoursPerTimeStep) + 'H'), tz='Europe/Berlin')
+        timeSeriesData.index = pd.date_range('2050-01-01 00:30:00', periods=len(self.totalTimeSteps),
+                                             freq=(str(self.hoursPerTimeStep) + 'H'), tz='Europe/Berlin')
 
         # Cluster data with tsam package (the reindex_axis call is here for reproducibility of TimeSeriesAggregation
         # call)
         timeSeriesData = timeSeriesData.reindex_axis(sorted(timeSeriesData.columns), axis=1)
         clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
-                                             hoursPerPeriod=numberOfTimeStepsPerPeriod*self._hoursPerTimeStep,
+                                             hoursPerPeriod=numberOfTimeStepsPerPeriod*self.hoursPerTimeStep,
                                              clusterMethod=clusterMethod, sortValues=sortValues, weightDict=weightDict,
                                              **kwargs)
 
         # Convert the clustered data to a pandas DataFrame and store the respective clustered time series data in the
         # associated components
         data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
-        for mdlName, mdl in self._componentModelingDict.items():
-            for compName, comp in mdl._componentsDict.items():
+        for mdlName, mdl in self.componentModelingDict.items():
+            for compName, comp in mdl.componentsDict.items():
                 comp.setAggregatedTimeSeriesData(data)
 
         # Store time series aggregation parameters in class instance
         if storeTSAinstance:
-            self._tsaInstance = clusterClass
-        self._typicalPeriods = clusterClass.clusterPeriodIdx
-        self._timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
-        self._periods = list(range(int(len(self._totalTimeSteps) / len(self._timeStepsPerPeriod))))
-        self._interPeriodTimeSteps = list(range(int(len(self._totalTimeSteps) / len(self._timeStepsPerPeriod)) + 1))
-        self._periodsOrder = clusterClass.clusterOrder
-        self._periodOccurrences = [(self._periodsOrder == p).sum()/self._numberOfYears for p in self._typicalPeriods]
+            self.tsaInstance = clusterClass
+        self.typicalPeriods = clusterClass.clusterPeriodIdx
+        self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
+        self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
+        self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
+        self.periodsOrder = clusterClass.clusterOrder
+        self.periodOccurrences = [(self.periodsOrder == p).sum()/self.numberOfYears for p in self.typicalPeriods]
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
-        self._isTimeSeriesDataClustered = True
+        self.isTimeSeriesDataClustered = True
         print("\t\t(%.4f" % (time.time() - timeStart), "sec)\n")
 
     def optimize(self, timeSeriesAggregation=False, logFileName='job', threads=3, solver='gurobi', timeLimit=None,
@@ -437,13 +437,13 @@ class EnergySystemModel:
 
         # Check correctness of inputs
         # Check input arguments which have to fit the temporal representation of the energy system
-        utils.checkOptimizeInput(timeSeriesAggregation, self._isTimeSeriesDataClustered, logFileName, threads, solver,
+        utils.checkOptimizeInput(timeSeriesAggregation, self.isTimeSeriesDataClustered, logFileName, threads, solver,
                                  timeLimit, optimizationSpecs, warmstart)
 
         # Store keyword arguments in the EnergySystemModel instance
-        self._solverSpecs['logFileName'], self._solverSpecs['threads'] = logFileName, threads
-        self._solverSpecs['solver'], self._solverSpecs['timeLimit'] = solver, timeLimit
-        self._solverSpecs['optimizationSpecs'], self._solverSpecs['hasTSA'] = optimizationSpecs, timeSeriesAggregation
+        self.solverSpecs['logFileName'], self.solverSpecs['threads'] = logFileName, threads
+        self.solverSpecs['solver'], self.solverSpecs['timeLimit'] = solver, timeLimit
+        self.solverSpecs['optimizationSpecs'], self.solverSpecs['hasTSA'] = optimizationSpecs, timeSeriesAggregation
 
         ################################################################################################################
         #                           Initialize mathematical model (ConcreteModel) instance                             #
@@ -453,8 +453,8 @@ class EnergySystemModel:
         # The ConcreteModel instance is stored in the EnergySystemModel instance, which makes it available for
         # post-processing or debugging. A pyomo Suffix with the name dual is declared to make dual values associated
         # to the model's constraints available after optimization.
-        self._pyM = pyomo.ConcreteModel()
-        pyM = self._pyM
+        self.pyM = pyomo.ConcreteModel()
+        pyM = self.pyM
         pyM.dual = pyomo.Suffix(direction=pyomo.Suffix.IMPORT)
 
         ################################################################################################################
@@ -464,8 +464,8 @@ class EnergySystemModel:
         # Store the information if aggregated time series data is considered for modeling the energy system in the pyomo
         # model instance and set the time series which is again considered for modeling in all components accordingly
         pyM.hasTSA = timeSeriesAggregation
-        for mdl in self._componentModelingDict.values():
-            for comp in mdl._componentsDict.values():
+        for mdl in self.componentModelingDict.values():
+            for comp in mdl.componentsDict.values():
                 comp.setTimeSeriesData(pyM.hasTSA)
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
@@ -479,29 +479,29 @@ class EnergySystemModel:
         # (or between two time steps). Hence, the second value reaches values from (0 ... numberOfTimeStepsPerPeriod).
         if not pyM.hasTSA:
             # Reset timeStepsPerPeriod in case it was overwritten by the clustering function
-            self._timeStepsPerPeriod = self._totalTimeSteps
-            self._interPeriodTimeSteps = list(range(int(len(self._totalTimeSteps) /
-                                                        len(self._timeStepsPerPeriod)) + 1))
-            self._periods = [0]
-            self._periodsOrder = [0]
-            self._periodOccurrences = [1]
+            self.timeStepsPerPeriod = self.totalTimeSteps
+            self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) /
+                                                        len(self.timeStepsPerPeriod)) + 1))
+            self.periods = [0]
+            self.periodsOrder = [0]
+            self.periodOccurrences = [1]
 
             # Define sets
             def initTimeSet(pyM):
-                return ((p, t) for p in self._periods for t in self._timeStepsPerPeriod)
+                return ((p, t) for p in self.periods for t in self.timeStepsPerPeriod)
 
             def initInterTimeStepsSet(pyM):
-                return ((p, t) for p in self._periods for t in range(len(self._timeStepsPerPeriod) + 1))
+                return ((p, t) for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1))
         else:
-            print('Time series aggregation specifications:\nNumber of typical periods:', len(self._typicalPeriods),
-                  ', number of time steps per periods:', len(self._timeStepsPerPeriod))
+            print('Time series aggregation specifications:\nNumber of typical periods:', len(self.typicalPeriods),
+                  ', number of time steps per periods:', len(self.timeStepsPerPeriod))
 
             # Define sets
             def initTimeSet(pyM):
-                return ((p, t) for p in self._typicalPeriods for t in self._timeStepsPerPeriod)
+                return ((p, t) for p in self.typicalPeriods for t in self.timeStepsPerPeriod)
 
             def initInterTimeStepsSet(pyM):
-                return ((p, t) for p in self._typicalPeriods for t in range(len(self._timeStepsPerPeriod) + 1))
+                return ((p, t) for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1))
 
         # Initialize sets
         pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
@@ -511,7 +511,7 @@ class EnergySystemModel:
         #                         Declare component specific sets, variables and constraints                           #
         ################################################################################################################
 
-        for key, mdl in self._componentModelingDict.items():
+        for key, mdl in self.componentModelingDict.items():
             _t = time.time()
             print('Declaring sets, variables and constraints for', key)
             print('\tdeclaring sets... '), mdl.declareSets(self, pyM)
@@ -532,11 +532,11 @@ class EnergySystemModel:
         # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
         # potential)
         potentialDict = {}
-        for mdl in self._componentModelingDict.values():
-            for compName, comp in mdl._componentsDict.items():
-                if comp._sharedPotentialID is not None:
-                    [potentialDict.setdefault((comp._sharedPotentialID, loc), []).append(compName)
-                     for loc in comp._locationalEligibility.index if comp._capacityMax[loc] != 0]
+        for mdl in self.componentModelingDict.values():
+            for compName, comp in mdl.componentsDict.items():
+                if comp.sharedPotentialID is not None:
+                    [potentialDict.setdefault((comp.sharedPotentialID, loc), []).append(compName)
+                     for loc in comp.locationalEligibility.index if comp.capacityMax[loc] != 0]
         pyM.sharedPotentialDict = potentialDict
 
         # Define and initialize constraints for each instance and location where components have to share an available
@@ -545,7 +545,7 @@ class EnergySystemModel:
         # location from each modeling class.
         def sharedPotentialConstraint(pyM, ID, loc):
             return sum(mdl.getSharedPotentialContribution(pyM, ID, loc)
-                       for mdl in self._componentModelingDict.values()) <= 1
+                       for mdl in self.componentModelingDict.values()) <= 1
         pyM.ConstraintSharedPotentials = \
             pyomo.Constraint(pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint)
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
@@ -558,9 +558,9 @@ class EnergySystemModel:
         # Declare and initialize a set that states for which location and commodity the commodity balance constraints
         # are non trivial (i.e. not 0 == 0; trivial constraints raise errors in pyomo).
         def initLocationCommoditySet(pyM):
-            return ((loc, commod) for loc in self._locations for commod in self._commodities
+            return ((loc, commod) for loc in self.locations for commod in self.commodities
                     if any([mdl.hasOpVariablesForLocationCommodity(self, loc, commod)
-                            for mdl in self._componentModelingDict.values()]))
+                            for mdl in self.componentModelingDict.values()]))
         pyM.locationCommoditySet = pyomo.Set(dimen=2, initialize=initLocationCommoditySet)
 
         # Declare and initialize commodity balance constraints by checking for each location and commodity in the
@@ -568,7 +568,7 @@ class EnergySystemModel:
         # terms add up to zero. For this, get the contribution to commodity balance from each modeling class
         def commodityBalanceConstraint(pyM, loc, commod, p, t):
             return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, p, t)
-                       for mdl in self._componentModelingDict.values()) == 0
+                       for mdl in self.componentModelingDict.values()) == 0
         pyM.commodityBalanceConstraint = pyomo.Constraint(pyM.locationCommoditySet, pyM.timeSet,
                                                           rule=commodityBalanceConstraint)
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
@@ -585,7 +585,7 @@ class EnergySystemModel:
         # Currently, the only objective function which can be selected is the sum of the total annual cost of all
         # components.
         def objective(pyM):
-            TAC = sum(mdl.getObjectiveFunctionContribution(self, pyM) for mdl in self._componentModelingDict.values())
+            TAC = sum(mdl.getObjectiveFunctionContribution(self, pyM) for mdl in self.componentModelingDict.values())
             return TAC
         pyM.Obj = pyomo.Objective(rule=objective)
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
@@ -600,7 +600,7 @@ class EnergySystemModel:
         optimizer = opt.SolverFactory(solver)
 
         # Set, if specified, the time limit
-        if self._solverSpecs['timeLimit'] is not None:
+        if self.solverSpecs['timeLimit'] is not None:
             optimizer.options['timelimit'] = timeLimit
 
         # Set the specified solver options
@@ -639,8 +639,8 @@ class EnergySystemModel:
                     warnings.warn('Output is generated for a non-optimal solution.')
                 print("\nProcessing optimization output...")
                 # Declare component specific sets, variables and constraints
-                w = str(len(max(self._componentModelingDict.keys()))+6)
-                for key, mdl in self._componentModelingDict.items():
+                w = str(len(max(self.componentModelingDict.keys()))+6)
+                for key, mdl in self.componentModelingDict.items():
                     __t = time.time()
                     mdl.setOptimalValues(self, pyM)
                     outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
@@ -649,4 +649,4 @@ class EnergySystemModel:
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
-        self._solverSpecs['runtime'] = time.time() - timeStart
+        self.solverSpecs['runtime'] = time.time() - timeStart

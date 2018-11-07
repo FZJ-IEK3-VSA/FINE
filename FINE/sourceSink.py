@@ -135,19 +135,19 @@ class Source(Component):
 
         # Set general source/sink data
         utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
-        self._commodity, self._commodityUnit = commodity, esM._commoditiyUnitsDict[commodity]
+        self.commodity, self.commodityUnit = commodity, esM.commodityUnitsDict[commodity]
         # TODO check value and type correctness
-        self._commodityLimitID, self._yearlyLimit = commodityLimitID, yearlyLimit
-        self._sign = 1
-        self._modelingClass = SourceSinkModel
+        self.commodityLimitID, self.yearlyLimit = commodityLimitID, yearlyLimit
+        self.sign = 1
+        self.modelingClass = SourceSinkModel
 
         # Set additional economic data
-        self._opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
-                                                                locationalEligibility)
-        self._commodityCost = utils.checkAndSetCostParameter(esM, name, commodityCost, '1dim',
-                                                                locationalEligibility)
-        self._commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',
-                                                                locationalEligibility)
+        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
+                                                               locationalEligibility)
+        self.commodityCost = utils.checkAndSetCostParameter(esM, name, commodityCost, '1dim',
+                                                            locationalEligibility)
+        self.commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',
+                                                               locationalEligibility)
 
         # Set location-specific operation parameters
         if operationRateMax is not None and operationRateFix is not None:
@@ -157,39 +157,39 @@ class Source(Component):
         utils.checkOperationTimeSeriesInputParameters(esM, operationRateMax, locationalEligibility)
         utils.checkOperationTimeSeriesInputParameters(esM, operationRateFix, locationalEligibility)
 
-        self._fullOperationRateMax = utils.setFormattedTimeSeries(operationRateMax)
-        self._aggregatedOperationRateMax = None
-        self._operationRateMax = utils.setFormattedTimeSeries(operationRateMax)
+        self.fullOperationRateMax = utils.setFormattedTimeSeries(operationRateMax)
+        self.aggregatedOperationRateMax = None
+        self.operationRateMax = utils.setFormattedTimeSeries(operationRateMax)
 
-        self._fullOperationRateFix = utils.setFormattedTimeSeries(operationRateFix)
-        self._aggregatedOperationRateFix = None
-        self._operationRateFix = utils.setFormattedTimeSeries(operationRateFix)
+        self.fullOperationRateFix = utils.setFormattedTimeSeries(operationRateFix)
+        self.aggregatedOperationRateFix = None
+        self.operationRateFix = utils.setFormattedTimeSeries(operationRateFix)
 
         utils.isPositiveNumber(tsaWeight)
-        self._tsaWeight = tsaWeight
+        self.tsaWeight = tsaWeight
 
         # Set locational eligibility
         operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
-        self._locationalEligibility = \
-            utils.setLocationalEligibility(esM, self._locationalEligibility, self._capacityMax, self._capacityFix,
-                                           self._isBuiltFix, self._hasCapacityVariable, operationTimeSeries)
+        self.locationalEligibility = \
+            utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
+                                           self.isBuiltFix, self.hasCapacityVariable, operationTimeSeries)
 
     def addToEnergySystemModel(self, esM):
         super().addToEnergySystemModel(esM)
 
     def setTimeSeriesData(self, hasTSA):
-        self._operationRateMax = self._aggregatedOperationRateMax if hasTSA else self._fullOperationRateMax
-        self._operationRateFix = self._aggregatedOperationRateFix if hasTSA else self._fullOperationRateFix
+        self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
+        self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
 
     def getDataForTimeSeriesAggregation(self):
         weightDict, data = {}, []
-        weightDict, data = self.prepareTSAInput(self._fullOperationRateFix, self._fullOperationRateMax,
-                                                '_operationRate_', self._tsaWeight, weightDict, data)
+        weightDict, data = self.prepareTSAInput(self.fullOperationRateFix, self.fullOperationRateMax,
+                                                '_operationRate_', self.tsaWeight, weightDict, data)
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data):
-        self._aggregatedOperationRateFix = self.getTSAOutput(self._fullOperationRateFix, '_operationRate_', data)
-        self._aggregatedOperationRateMax = self.getTSAOutput(self._fullOperationRateMax, '_operationRate_', data)
+        self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
+        self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
 
 
 class Sink(Source):
@@ -206,7 +206,7 @@ class Sink(Source):
         Constructor for creating an Sink class instance.
 
         The Sink class inherits from the Source class. They coincide with there input parameters
-        (see Source class for the parameter description) and differentiate themselves by the _sign
+        (see Source class for the parameter description) and differentiate themselves by the sign
         parameters, which is equal to -1 for Sink objects and +1 for Source objects.
         """
         Source.__init__(self, esM, name, commodity, hasCapacityVariable, capacityVariableDomain,
@@ -216,18 +216,18 @@ class Sink(Source):
                         investIfBuilt, opexPerOperation, commodityCost, commodityRevenue,
                         opexPerCapacity, opexIfBuilt, interestRate, economicLifetime)
 
-        self._sign = -1
+        self.sign = -1
 
 
 class SourceSinkModel(ComponentModel):
     """ Doc """
     def __init__(self):
-        self._abbrvName = 'srcSnk'
-        self._dimension = '1dim'
-        self._componentsDict = {}
-        self._capacityVariablesOptimum, self._isBuiltVariablesOptimum = None, None
-        self._operationVariablesOptimum = None
-        self._optSummary = None
+        self.abbrvName = 'srcSnk'
+        self.dimension = '1dim'
+        self.componentsDict = {}
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.operationVariablesOptimum = None
+        self.optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -235,13 +235,13 @@ class SourceSinkModel(ComponentModel):
 
     def declareYearlyCommodityLimitationDict(self, pyM):
         yearlyCommodityLimitationDict = {}
-        for compName, comp in self._componentsDict.items():
-            if comp._commodityLimitID is not None:
-                ID, limit = comp._commodityLimitID, comp._yearlyLimit
+        for compName, comp in self.componentsDict.items():
+            if comp.commodityLimitID is not None:
+                ID, limit = comp.commodityLimitID, comp.yearlyLimit
                 if ID in yearlyCommodityLimitationDict and limit != yearlyCommodityLimitationDict[ID][0]:
                     raise ValueError('yearlyLimitationIDs with different upper limits detected.')
                 yearlyCommodityLimitationDict.setdefault(ID, (limit, []))[1].append(compName)
-        setattr(pyM, 'yearlyCommodityLimitationDict_' + self._abbrvName, yearlyCommodityLimitationDict)
+        setattr(pyM, 'yearlyCommodityLimitationDict_' + self.abbrvName, yearlyCommodityLimitationDict)
 
     def declareSets(self, esM, pyM):
         """ Declares sets and dictionaries """
@@ -256,7 +256,7 @@ class SourceSinkModel(ComponentModel):
         self.initOpVarSet(esM, pyM)
 
         # Declare sets for case differentiation of operating modes
-        self.declareOperationModeSets(pyM, 'opConstrSet', '_operationRateMax', '_operationRateFix')
+        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
 
         # Declare commodity limitation dictionary
         self.declareYearlyCommodityLimitationDict(pyM)
@@ -288,13 +288,13 @@ class SourceSinkModel(ComponentModel):
         Limits annual commodity imports/exports over the energySystemModel's boundaries for one or multiple
         Source/Sink components.
         """
-        compDict, abbrvName = self._componentsDict, self._abbrvName
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
         limitDict = getattr(pyM, 'yearlyCommodityLimitationDict_' + abbrvName)
 
         def yearlyLimitationConstraint(pyM, key):
-            sumEx = -sum(opVar[loc, compName, p, t] * compDict[compName]._sign *
-                         esM._periodOccurrences[p]/esM._numberOfYears
+            sumEx = -sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+                         esM.periodOccurrences[p]/esM.numberOfYears
                          for loc, compName, p, t in opVar if compName in limitDict[key][1])
             sign = limitDict[key][0]/abs(limitDict[key][0]) if limitDict[key][0] != 0 else 1
             return sign * sumEx <= sign * limitDict[key][0]
@@ -348,24 +348,24 @@ class SourceSinkModel(ComponentModel):
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        return any([comp._commodity == commod and comp._locationalEligibility[loc] == 1
-                    for comp in self._componentsDict.values()])
+        return any([comp.commodity == commod and comp.locationalEligibility[loc] == 1
+                    for comp in self.componentsDict.values()])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        compDict, abbrvName = self._componentsDict, self._abbrvName
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
-        return sum(opVar[loc, compName, p, t] * compDict[compName]._sign
-                   for compName in opVarDict[loc] if compDict[compName]._commodity == commod)
+        return sum(opVar[loc, compName, p, t] * compDict[compName].sign
+                   for compName in opVarDict[loc] if compDict[compName].commodity == commod)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
 
-        capexCap = self.getEconomicsTI(pyM, ['_investPerCapacity'], 'cap', '_CCF')
-        capexDec = self.getEconomicsTI(pyM, ['_investIfBuilt'], 'designBin', '_CCF')
-        opexCap = self.getEconomicsTI(pyM, ['_opexPerCapacity'], 'cap')
-        opexDec = self.getEconomicsTI(pyM, ['_opexIfBuilt'], 'designBin')
-        opexOp = self.getEconomicsTD(pyM, esM, ['_opexPerOperation'], 'op', 'operationVarDict')
-        commodCost = self.getEconomicsTD(pyM, esM, ['_commodityCost'], 'op', 'operationVarDict')
-        commodRevenue = self.getEconomicsTD(pyM, esM, ['_commodityRevenue'], 'op', 'operationVarDict')
+        capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
+        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
+        opexCap = self.getEconomicsTI(pyM, ['opexPerCapacity'], 'cap')
+        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
+        opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
+        commodCost = self.getEconomicsTD(pyM, esM, ['commodityCost'], 'op', 'operationVarDict')
+        commodRevenue = self.getEconomicsTD(pyM, esM, ['commodityRevenue'], 'op', 'operationVarDict')
 
         return capexCap + capexDec + opexCap + opexDec + opexOp + commodCost - commodRevenue
 
@@ -374,36 +374,36 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def setOptimalValues(self, esM, pyM):
-        compDict, abbrvName = self._componentsDict, self._abbrvName
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
 
         # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(esM, pyM, esM._locations, '_commodityUnit')
+        optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'commodityUnit')
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM._periodsOrder)
-        self._operationVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, '_operationVariablesOptimum', compDict)
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        self.operationVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, 'operationVariablesOptimum', compDict)
 
         props = ['operation', 'opexOp', 'commodCosts']
-        units = ['[-]', '[' + esM._costUnit + '/a]', '[' + esM._costUnit + '/a]']
+        units = ['[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
         tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
-        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]]._commodityUnit + '*h/a]')
+        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].commodityUnit + '*h/a]')
                           if x[1] == 'operation' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
-        optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM._locations)).sort_index()
+        optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
 
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name]._opexPerOperation[op.index], axis=1)
-            cCost = opSum.apply(lambda op: op * compDict[op.name]._commodityCost[op.index], axis=1)
-            cRevenue = opSum.apply(lambda op: op * compDict[op.name]._commodityRevenue[op.index], axis=1)
-            optSummary.loc[[(ix, 'operation', '[' + compDict[ix]._commodityUnit + '*h/a]') for ix in opSum.index],
-                            opSum.columns] = opSum.values/esM._numberOfYears
-            optSummary.loc[[(ix, 'opexOp', '[' + esM._costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                ox.values/esM._numberOfYears
-            optSummary.loc[[(ix, 'commodCosts', '[' + esM._costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                (cCost-cRevenue).values/esM._numberOfYears
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
+            cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[op.index], axis=1)
+            cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[op.index], axis=1)
+            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
+                            opSum.columns] = opSum.values/esM.numberOfYears
+            optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+                ox.values/esM.numberOfYears
+            optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+                (cCost-cRevenue).values/esM.numberOfYears
 
         optSummary = optSummary.append(optSummaryBasic).sort_index()
 
@@ -413,4 +413,4 @@ class SourceSinkModel(ComponentModel):
                            (optSummary.index.get_level_values(1) == 'opexOp') |
                            (optSummary.index.get_level_values(1) == 'commodCosts')].groupby(level=0).sum().values
 
-        self._optSummary = optSummary
+        self.optSummary = optSummary

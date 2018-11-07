@@ -34,10 +34,10 @@ class LinearOptimalPowerFlow(Transmission):
                               investIfBuilt, opexPerOperation, opexPerCapacity, opexIfBuilt, interestRate,
                               economicLifetime)
 
-        self._modelingClass = LOPFModel
+        self.modelingClass = LOPFModel
 
-        self._reactances2dim = reactances
-        self._reactances = pd.Series(self._mapC).apply(lambda loc: self._reactances2dim[loc[0]][loc[1]])
+        self.reactances2dim = reactances
+        self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
 
     def addToEnergySystemModel(self, esM):
         super().addToEnergySystemModel(esM)
@@ -46,12 +46,12 @@ class LinearOptimalPowerFlow(Transmission):
 class LOPFModel(TransmissionModel):
     """ Doc """
     def __init__(self):
-        self._abbrvName = 'lopf'
-        self._dimension = '2dim'
-        self._componentsDict = {}
-        self._capacityVariablesOptimum, self._isBuiltVariablesOptimum = None, None
-        self._operationVariablesOptimum, self._phaseAngleVariablesOptimum = None, None
-        self._optSummary = None
+        self.abbrvName = 'lopf'
+        self.dimension = '2dim'
+        self.componentsDict = {}
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.operationVariablesOptimum, self._phaseAngleVariablesOptimum = None, None
+        self.optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -61,7 +61,7 @@ class LOPFModel(TransmissionModel):
         """
         Declares phase angle variable set in the pyomo object for for each node
         """
-        compDict, abbrvName = self._componentsDict, self._abbrvName
+        compDict, abbrvName = self.componentsDict, self.abbrvName
 
         # Set for operation variables
         def initPhaseAngleVarSet(pyM):
@@ -82,15 +82,15 @@ class LOPFModel(TransmissionModel):
         self.initPhaseAngleVarSet(pyM)
 
         # Declare operation variable set
-        self.declareOperationModeSets(pyM, 'opConstrSet', '_operationRateMax', '_operationRateFix')
+        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
     def declarePhaseAngleVariables(self, pyM):
-        setattr(pyM, 'phaseAngle_' + self._abbrvName,
-                pyomo.Var(getattr(pyM, 'phaseAngleVarSet_' + self._abbrvName), pyM.timeSet, domain=pyomo.Reals))
+        setattr(pyM, 'phaseAngle_' + self.abbrvName,
+                pyomo.Var(getattr(pyM, 'phaseAngleVarSet_' + self.abbrvName), pyM.timeSet, domain=pyomo.Reals))
 
     def declareVariables(self, esM, pyM):
         """ Declares design and operation variables """
@@ -117,21 +117,21 @@ class LOPFModel(TransmissionModel):
         Enforces that the capacity between location_1 and location_2 is the same as the one
         between location_2 and location_1
         """
-        compDict, abbrvName = self._componentsDict, self._abbrvName
-        phaseAngleVar = getattr(pyM, 'phaseAngle_' + self._abbrvName)
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        phaseAngleVar = getattr(pyM, 'phaseAngle_' + self.abbrvName)
         opVar, opVarSet = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def powerFlowDC(pyM, loc, compName, p, t):
             node1, node2 = compDict[compName]._mapC[loc]
             return (opVar[loc, compName, p, t] - opVar[compDict[compName]._mapI[loc], compName, p, t] ==
                     (phaseAngleVar[node1, compName, p, t]-phaseAngleVar[node2, compName, p, t])/
-                    compDict[compName]._reactances[loc])
+                    compDict[compName].reactances[loc])
         setattr(pyM, 'ConstrpowerFlowDC_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=powerFlowDC))
 
     def basePhaseAngle(self, pyM):
         """ Reference phase angle is set to zero for all time steps """
-        compDict, abbrvName = self._componentsDict, self._abbrvName
-        phaseAngleVar = getattr(pyM, 'phaseAngle_' + self._abbrvName)
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        phaseAngleVar = getattr(pyM, 'phaseAngle_' + self.abbrvName)
 
         def basePhaseAngle(pyM, compName, p, t):
             node0 = sorted(compDict[compName]._mapL)[0]
@@ -171,10 +171,10 @@ class LOPFModel(TransmissionModel):
 
         super().setOptimalValues(esM, pyM)
 
-        compDict, abbrvName = self._componentsDict, self._abbrvName
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         phaseAngleVar = getattr(pyM, 'phaseAngle_' + abbrvName)
 
         optVal_ = utils.formatOptimizationOutput(phaseAngleVar.get_values(), 'operationVariables', '1dim',
-                                                 esM._periodsOrder)
-        self._operationVariablesOptimum = optVal_
+                                                 esM.periodsOrder)
+        self.operationVariablesOptimum = optVal_
         utils.setOptimalComponentVariables(optVal_, '_phaseAngleVariablesOptimum', compDict)

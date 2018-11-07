@@ -108,12 +108,12 @@ class Conversion(Component):
 
         # Set general conversion data
         utils.checkCommodities(esM, set(commodityConversionFactors.keys()))
-        self._commodityConversionFactors = commodityConversionFactors
-        self._physicalUnit = physicalUnit
-        self._modelingClass = ConversionModel
+        self.commodityConversionFactors = commodityConversionFactors
+        self.physicalUnit = physicalUnit
+        self.modelingClass = ConversionModel
 
         # Set additional economic data
-        self._opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
+        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
                                                                 locationalEligibility)
 
         # Set location-specific operation parameters
@@ -124,50 +124,50 @@ class Conversion(Component):
         utils.checkOperationTimeSeriesInputParameters(esM, operationRateMax, locationalEligibility)
         utils.checkOperationTimeSeriesInputParameters(esM, operationRateFix, locationalEligibility)
 
-        self._fullOperationRateMax = utils.setFormattedTimeSeries(operationRateMax)
-        self._aggregatedOperationRateMax = None
-        self._operationRateMax = None
+        self.fullOperationRateMax = utils.setFormattedTimeSeries(operationRateMax)
+        self.aggregatedOperationRateMax = None
+        self.operationRateMax = None
 
-        self._fullOperationRateFix = utils.setFormattedTimeSeries(operationRateFix)
-        self._aggregatedOperationRateFix = None
-        self._operationRateFix = None
+        self.fullOperationRateFix = utils.setFormattedTimeSeries(operationRateFix)
+        self.aggregatedOperationRateFix = None
+        self.operationRateFix = None
 
         utils.isPositiveNumber(tsaWeight)
-        self._tsaWeight = tsaWeight
+        self.tsaWeight = tsaWeight
 
         # Set locational eligibility
         operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
-        self._locationalEligibility = \
-            utils.setLocationalEligibility(esM, self._locationalEligibility, self._capacityMax, self._capacityFix,
-                                           self._isBuiltFix, self._hasCapacityVariable, operationTimeSeries)
+        self.locationalEligibility = \
+            utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
+                                           self.isBuiltFix, self.hasCapacityVariable, operationTimeSeries)
 
     def addToEnergySystemModel(self, esM):
         super().addToEnergySystemModel(esM)
 
     def setTimeSeriesData(self, hasTSA):
-        self._operationRateMax = self._aggregatedOperationRateMax if hasTSA else self._fullOperationRateMax
-        self._operationRateFix = self._aggregatedOperationRateFix if hasTSA else self._fullOperationRateFix
+        self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
+        self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
 
     def getDataForTimeSeriesAggregation(self):
         weightDict, data = {}, []
-        weightDict, data = self.prepareTSAInput(self._fullOperationRateFix, self._fullOperationRateMax,
-                                                '_operationRate_', self._tsaWeight, weightDict, data)
+        weightDict, data = self.prepareTSAInput(self.fullOperationRateFix, self.fullOperationRateMax,
+                                                '_operationRate_', self.tsaWeight, weightDict, data)
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data):
-        self._aggregatedOperationRateFix = self.getTSAOutput(self._fullOperationRateFix, '_operationRate_', data)
-        self._aggregatedOperationRateMax = self.getTSAOutput(self._fullOperationRateMax, '_operationRate_', data)
+        self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
+        self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
 
 
 class ConversionModel(ComponentModel):
     """ Doc """
     def __init__(self):
-        self._abbrvName = 'conv'
-        self._dimension = '1dim'
-        self._componentsDict = {}
-        self._capacityVariablesOptimum, self._isBuiltVariablesOptimum = None, None
-        self._operationVariablesOptimum = None
-        self._optSummary = None
+        self.abbrvName = 'conv'
+        self.dimension = '1dim'
+        self.componentsDict = {}
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.operationVariablesOptimum = None
+        self.optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -186,7 +186,7 @@ class ConversionModel(ComponentModel):
         self.initOpVarSet(esM, pyM)
 
         # Declare operation variable set
-        self.declareOperationModeSets(pyM, 'opConstrSet', '_operationRateMax', '_operationRateFix')
+        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -255,22 +255,22 @@ class ConversionModel(ComponentModel):
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        return any([(commod in comp._commodityConversionFactors and comp._commodityConversionFactors[commod] != 0)
-                    and comp._locationalEligibility[loc] == 1 for comp in self._componentsDict.values()])
+        return any([(commod in comp.commodityConversionFactors and comp.commodityConversionFactors[commod] != 0)
+                    and comp.locationalEligibility[loc] == 1 for comp in self.componentsDict.values()])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        compDict, abbrvName = self._componentsDict, self._abbrvName
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
-        return sum(opVar[loc, compName, p, t] * compDict[compName]._commodityConversionFactors[commod]
-                   for compName in opVarDict[loc] if commod in compDict[compName]._commodityConversionFactors)
+        return sum(opVar[loc, compName, p, t] * compDict[compName].commodityConversionFactors[commod]
+                   for compName in opVarDict[loc] if commod in compDict[compName].commodityConversionFactors)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
 
-        capexCap = self.getEconomicsTI(pyM, ['_investPerCapacity'], 'cap', '_CCF')
-        capexDec = self.getEconomicsTI(pyM, ['_investIfBuilt'], 'designBin', '_CCF')
-        opexCap = self.getEconomicsTI(pyM, ['_opexPerCapacity'], 'cap')
-        opexDec = self.getEconomicsTI(pyM, ['_opexIfBuilt'], 'designBin')
-        opexOp = self.getEconomicsTD(pyM, esM, ['_opexPerOperation'], 'op', 'operationVarDict')
+        capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
+        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
+        opexCap = self.getEconomicsTI(pyM, ['opexPerCapacity'], 'cap')
+        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
+        opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
 
         return capexCap + capexDec + opexCap + opexDec + opexOp
 
@@ -279,40 +279,40 @@ class ConversionModel(ComponentModel):
     ####################################################################################################################
 
     def setOptimalValues(self, esM, pyM):
-        compDict, abbrvName = self._componentsDict, self._abbrvName
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
 
         # Set optimal design dimension variables and get basic optimization summary
         # optVal_ = utils.formatOptimizationOutput(capVar.get_values(), 'designVariables', '1dim')
-        # self._capacityVariablesOptimum = optVal_
-        # utils.setOptimalComponentVariables(optVal_, '_capacityVariablesOptimum', compDict)
+        # self.capacityVariablesOptimum = optVal_
+        # utils.setOptimalComponentVariables(optVal_, 'capacityVariablesOptimum', compDict)
         #
         # optVal_ = utils.formatOptimizationOutput(binVar.get_values(), 'designVariables', '1dim')
-        # self._isBuiltVariablesOptimum = optVal_
-        # utils.setOptimalComponentVariables(optVal_, '_isBuiltVariablesOptimum', compDict)
+        # self.isBuiltVariablesOptimum = optVal_
+        # utils.setOptimalComponentVariables(optVal_, 'isBuiltVariablesOptimum', compDict)
 
-        optSummaryBasic = super().setOptimalValues(esM, pyM, esM._locations, '_physicalUnit')
+        optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'physicalUnit')
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM._periodsOrder)
-        self._operationVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, '_operationVariablesOptimum', compDict)
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        self.operationVariablesOptimum = optVal
+        utils.setOptimalComponentVariables(optVal, 'operationVariablesOptimum', compDict)
 
         props = ['operation', 'opexOp']
-        units = ['[-]', '[' + esM._costUnit + '/a]']
+        units = ['[-]', '[' + esM.costUnit + '/a]']
         tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
-        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]]._physicalUnit + '*h/a]')
-                          if x[1] == 'operation' else x, tuples))
+        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].physicalUnit + '*h/a]')
+                      if x[1] == 'operation' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
-        optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM._locations)).sort_index()
+        optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
 
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name]._opexPerOperation[op.index], axis=1)
-            optSummary.loc[[(ix, 'operation', '[' + compDict[ix]._physicalUnit + '*h/a]') for ix in opSum.index],
-                            opSum.columns] = opSum.values/esM._numberOfYears
-            optSummary.loc[[(ix, 'opexOp', '[' + esM._costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                ox.values/esM._numberOfYears
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
+            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h/a]') for ix in opSum.index],
+                           opSum.columns] = opSum.values/esM.numberOfYears
+            optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+                ox.values/esM.numberOfYears
 
         optSummary = optSummary.append(optSummaryBasic).sort_index()
 
@@ -321,4 +321,4 @@ class ConversionModel(ComponentModel):
             optSummary.loc[(optSummary.index.get_level_values(1) == 'TAC') |
                            (optSummary.index.get_level_values(1) == 'opexOp')].groupby(level=0).sum().values
 
-        self._optSummary = optSummary
+        self.optSummary = optSummary
