@@ -703,7 +703,6 @@ class StorageModel(ComponentModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         chargeOp, dischargeOp = getattr(pyM, 'chargeOp_' + abbrvName), getattr(pyM, 'dischargeOp_' + abbrvName)
         SOC = getattr(pyM, 'stateOfCharge_' + abbrvName)
-        SOCinter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
 
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'commodityUnit', '*h')
@@ -722,7 +721,6 @@ class StorageModel(ComponentModel):
         # * charge variables and contributions
         optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
         self.chargeOperationVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, 'chargeOperationVariablesOptimum', compDict)
 
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
@@ -736,7 +734,6 @@ class StorageModel(ComponentModel):
         optVal = utils.formatOptimizationOutput(dischargeOp.get_values(), 'operationVariables', '1dim',
                                                 esM.periodsOrder)
         self.dischargeOperationVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, 'dischargeOperationVariablesOptimum', compDict)
 
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
@@ -752,6 +749,7 @@ class StorageModel(ComponentModel):
             self.stateOfChargeOperationVariablesOptimum = optVal
             utils.setOptimalComponentVariables(optVal, '_stateOfChargeVariablesOptimum', compDict)
         else:
+            SOCinter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
             stateOfChargeIntra = SOC.get_values()
             stateOfChargeInter = SOCinter.get_values()
             if stateOfChargeIntra is not None:
@@ -787,3 +785,14 @@ class StorageModel(ComponentModel):
 
         self.optSummary = optSummary
 
+    def getOptimalValues(self):
+        return {'capacityVariables': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
+                                      'dimension': self.dimension},
+                'isBuiltVariables': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
+                                     'dimension': self.dimension},
+                'chargeOperationVariablesOptimum': {'values': self.chargeOperationVariablesOptimum,
+                                                    'timeDependent': True, 'dimension': self.dimension},
+                'dischargeOperationVariablesOptimum': {'values': self.dischargeOperationVariablesOptimum,
+                                                       'timeDependent': True, 'dimension': self.dimension},
+                'stateOfChargeOperationVariablesOptimum': {'values': self.stateOfChargeOperationVariablesOptimum,
+                                                           'timeDependent': True, 'dimension': self.dimension}}

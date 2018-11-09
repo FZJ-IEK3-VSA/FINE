@@ -3,7 +3,7 @@ Last edited: July 27 2018
 |br| @author: Lara Welder
 """
 
-from FINE.component import Component
+from FINE.component import Component, ComponentModel
 from FINE import utils
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 import pandas as pd
@@ -189,29 +189,34 @@ class EnergySystemModel:
         #                                           Optimization parameters                                            #
         ################################################################################################################
 
-        # The pyM parameter (None when the EnergySystemModel is initialized otherwise a Concrete Pyomo instance which
-        # stores parameters, sets, variables, constraints and objective required for the optimization set up and
-        # solving)
+        # The pyM parameter (None when the EnergySystemModel is initialized. Once the optimize function is called,
+        # a Concrete Pyomo instance which stores parameters, sets, variables, constraints and objective required for
+        # the optimization set up and solving, is stored in this parameter.
         # The solverSpecs parameter is a dictionary (string: param) which stores different parameters that were used
         # when solving the last optimization problem. The parameters are: solver (string, solver which was used to solve
-        # the optimization problem), optimizationSpecs (string representing **kwargs for the solver), hasTSA (boolean,
+        # the optimization problem), optimizationSpecs (string, representing **kwargs for the solver), hasTSA (boolean,
         # indicating if time series aggregation is used for the optimization), runtime (positive float, runtime of the
         # optimization run in seconds), timeLimit (positive float or None, if specified indicates the maximum allowed
         # runtime of the solver), threads (positive int, number of threads used for optimization, can depend on solver),
         # logFileName (string, name of logfile)
         self.pyM = None
         self.solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'runtime': 0, 'timeLimit': None,
-                             'threads': 0, 'logFileName': ''}
+                            'threads': 0, 'logFileName': ''}
 
     def add(self, component):
         """
-        Function for adding a component and, if required its respective modeling class to the EnergySystemModel instance
+        Function for adding a component and, if required, its respective modeling class to the EnergySystemModel
+        instance
 
         :param component: the component to be added
         :type component: An object which inherits from the FINE Component class
         """
         if not issubclass(type(component), Component):
             raise TypeError('The added component has to inherit from the FINE class Component.')
+        # TODO
+        # if not issubclass(type(component.modelingClass), ComponentModel):
+        #     print(component.modelingClass, ComponentModel)
+        #     raise TypeError('The added component has to inherit from the FINE class ComponentModel.')
         component.addToEnergySystemModel(self)
 
     def getComponent(self, componentName):
@@ -247,16 +252,17 @@ class EnergySystemModel:
 
     def getOptimizationSummary(self, modelingClass, outputLevel=0):
         """
-        Function which returns an attribute of a component considered in the energy system
+        Function which returns the optimization summary (design variables, aggregated operation variables,
+        objective contributions) of a modeling class
 
         :param modelingClass: name of the modeling class from which the optimization summary should be obtained
         :type modelingClass: string
 
         :param outputLevel: states the level of detail of the output summary:
-            - if equal to 0 if the full optimization summary is returned
-            - if equal to 1 rows in which all values are NaN (not a number) are dropped
-            - if equal to 2 rows in which all values are NaN (not a number) or 0 are dropped
-            |br| * the default value is True
+            - 0: full optimization summary is returned
+            - 1: full optimization summary is returned but rows in which all values are NaN (not a number) are dropped
+            - 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped
+            |br| * the default value is 0
         :type outputLevel: integer (0, 1 or 2)
 
         :returns: the attribute specified by the attributeName of the component with the name componentName
@@ -267,6 +273,8 @@ class EnergySystemModel:
         elif outputLevel == 1:
             return self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
         else:
+            if outputLevel != 2:
+                warnings.warn('Invalid input. An outputLevel parameter of 2 is assumed.')
             df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
@@ -274,14 +282,16 @@ class EnergySystemModel:
                 sortValues=True, storeTSAinstance=False, **kwargs):
         """
         Clusters the time series data of all components considered in the EnergySystemModel instance and then
-        stores the clustered data in the respective components. For the clustering itself, the tsam package is
-        used (cf. https://github.com/FZJ-IEK3-VSA/tsam).
+        stores the clustered data in the respective components. For this, the time series data is broken down
+        into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
+        days with 24 hours) is assigned. For the clustering itself, the tsam package is used (cf.
+        https://github.com/FZJ-IEK3-VSA/tsam).
 
         **Default arguments:**
 
         :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
-            should be clustered. The number of typical periods multiplied with the number of time steps per
-            period must be an integer divisor of the total number of considered time steps in the energy system.
+            should be clustered. The number of time steps per period must be an integer multiple of the total
+            number of considered time steps in the energy system.
             Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
             information.
             |br| * the default value is 7
@@ -292,18 +302,18 @@ class EnergySystemModel:
         :type numberOfTimeStepsPerPeriod: strictly positive integer
 
         :param clusterMethod: states the method which is used in the tsam package for clustering the time series
-            data. Note: Please refer to the tsam package documentation of the parameter clusterMethod for more
-            information.
+            data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
+            Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.
             |br| * the default value is 'hierarchical'
         :type clusterMethod: string
 
         :param sortValues: states if the algorithm in the tsam package should use
             (a) the sorted duration curves (-> True) or
             (b) the original profiles (-> False)
-            of the time series data within a period for clustering. Note: Please refer to the tsam package
-            documentation of the parameter sortValues for more information.
+            of the time series data within a period for clustering.
+            Note: Please refer to the tsam package documentation of the parameter sortValues for more information.
             |br| * the default value is True
-        :type clusterMethod: boolean
+        :type sortValues: boolean
 
         :param storeTSAinstance: states if the TimeSeriesAggregation instance create during clustering should be
             stored in the EnergySystemModel instance.
@@ -336,6 +346,7 @@ class EnergySystemModel:
                 if compTimeSeriesData is not None:
                     timeSeriesData.append(compTimeSeriesData), weightDict.update(compWeightDict)
         timeSeriesData = pd.concat(timeSeriesData, axis=1)
+        # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
         timeSeriesData.index = pd.date_range('2050-01-01 00:30:00', periods=len(self.totalTimeSteps),
                                              freq=(str(self.hoursPerTimeStep) + 'H'), tz='Europe/Berlin')
 
@@ -362,7 +373,7 @@ class EnergySystemModel:
         self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
         self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
         self.periodsOrder = clusterClass.clusterOrder
-        self.periodOccurrences = [(self.periodsOrder == p).sum()/self.numberOfYears for p in self.typicalPeriods]
+        self.periodOccurrences = [(self.periodsOrder == tp).sum()/self.numberOfYears for tp in self.typicalPeriods]
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
@@ -373,10 +384,10 @@ class EnergySystemModel:
         """
         Optimizes the specified energy system, for which a pyomo discrete model instance is build and filled
         with
-        (0) basic time sets,
-        (1) sets, variables and constraints contributed by the component modeling classes,
-        (2) basic, component overreaching constraints, and
-        (3) an objective function.
+        * basic time sets,
+        * sets, variables and constraints contributed by the component modeling classes,
+        * basic, component overreaching constraints, and
+        * an objective function.
         The pyomo instance is then optimized by the specified solver and the optimization results are further
         processed.
 
@@ -386,9 +397,9 @@ class EnergySystemModel:
             (a) the full time series (False) or
             (b) clustered time series data (True).
             If: the argument is True, the time series data was previously clustered, and no further tsamSpecs
-            are declared, the clustered time series data from the last cluster function call is used. Otherwise
-            the time series data is clustered within the optimize function, using, if specified, the tsamSpecs
-            argument.
+            are declared, the clustered time series data from the last cluster function call is used. Otherwise,
+            the time series data is clustered within the optimize function, using the tsamSpecs argument if
+            specified.
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
@@ -416,12 +427,12 @@ class EnergySystemModel:
             runtime restricted environments (such as clusters with job submission systems). If the runtime
             limitation is triggered before an optimal solution is available, the best solution obtained up
             until then (if available) is processed.
-            |br| * None
+            |br| * the default value is None
         :type timeLimit: strictly positive integer or None
 
         :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver
             documentation for more information)
-            |br| * 'LogToConsole=1 OptimalityTol=1e-6'
+            |br| * the default value is 'LogToConsole=1 OptimalityTol=1e-6'
         :type timeLimit: string
 
         :param warmstart: specifies if a warm start of the optimization should be considered
@@ -470,7 +481,7 @@ class EnergySystemModel:
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
         # entries, the first one indicating an index of a period and the second one indicating a time step inside that
-        # period. If time series aggregation is not considered only one period (period 0) exists and the time steps
+        # period. If time series aggregation is not considered, only one period (period 0) exists and the time steps
         # range from 0 up until the specified number of total time steps - 1. Otherwise the time set is initialized for
         # each typical period (0 ... numberOfTypicalPeriods-1) and the number of time steps per period (0 ...
         # numberOfTimeStepsPerPeriod-1).
@@ -525,7 +536,7 @@ class EnergySystemModel:
 
         _t = time.time()
 
-        # Declare shared potential constraints, i.e. if a maximum potential of salt caverns has to be shared by
+        # Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
         # salt caverns storing methane and salt caverns storing hydrogen.
         print('Declaring shared potential constraint...')
 
@@ -552,11 +563,11 @@ class EnergySystemModel:
 
         _t = time.time()
 
-        # Declare commodity balance constraints (balance constraint for each component, location and time step)
+        # Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
         print('Declaring commodity balances...')
 
         # Declare and initialize a set that states for which location and commodity the commodity balance constraints
-        # are non trivial (i.e. not 0 == 0; trivial constraints raise errors in pyomo).
+        # are non-trivial (i.e. not 0 == 0; trivial constraints raise errors in pyomo).
         def initLocationCommoditySet(pyM):
             return ((loc, commod) for loc in self.locations for commod in self.commodities
                     if any([mdl.hasOpVariablesForLocationCommodity(self, loc, commod)
@@ -620,31 +631,30 @@ class EnergySystemModel:
         _t = time.time()
 
         # Post-process the optimization output by differentiating between different solver statuses and termination
-        # conditions. First, check if the model is infeasible or unbounded. In this case, no output is generated.
+        # conditions. First, check if the status and termination_condition of the optimization are acceptable.
+        # If not, no output is generated.
         status, termCondition = solver_info.solver.status, solver_info.solver.termination_condition
         if status == opt.SolverStatus.error or status == opt.SolverStatus.aborted or status == opt.SolverStatus.unknown:
             print('Solver status:  ' + str(status) + ', termination condition:  ' + str(termCondition) +
                   '. No output is generated.')
-        else:
-            # Otherwise the
-            if solver_info.solver.termination_condition == opt.TerminationCondition.infeasibleOrUnbounded or \
-               solver_info.solver.termination_condition == opt.TerminationCondition.infeasible or \
-               solver_info.solver.termination_condition == opt.TerminationCondition.unbounded:
+        elif solver_info.solver.termination_condition == opt.TerminationCondition.infeasibleOrUnbounded or \
+            solver_info.solver.termination_condition == opt.TerminationCondition.infeasible or \
+                solver_info.solver.termination_condition == opt.TerminationCondition.unbounded:
                 print('Optimization problem is ' +
                       str(solver_info.solver.termination_condition) + '. No output is generated.')
-            else:
-                # if the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
-                # status)
-                if not solver_info.solver.termination_condition == opt.TerminationCondition.optimal:
-                    warnings.warn('Output is generated for a non-optimal solution.')
-                print("\nProcessing optimization output...")
-                # Declare component specific sets, variables and constraints
-                w = str(len(max(self.componentModelingDict.keys()))+6)
-                for key, mdl in self.componentModelingDict.items():
-                    __t = time.time()
-                    mdl.setOptimalValues(self, pyM)
-                    outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
-                    print(outputString)
+        else:
+            # If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
+            # status)
+            if not solver_info.solver.termination_condition == opt.TerminationCondition.optimal:
+                warnings.warn('Output is generated for a non-optimal solution.')
+            print("\nProcessing optimization output...")
+            # Declare component specific sets, variables and constraints
+            w = str(len(max(self.componentModelingDict.keys()))+6)
+            for key, mdl in self.componentModelingDict.items():
+                __t = time.time()
+                mdl.setOptimalValues(self, pyM)
+                outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
+                print(outputString)
 
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
 

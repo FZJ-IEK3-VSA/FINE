@@ -383,7 +383,6 @@ class SourceSinkModel(ComponentModel):
         # Set optimal operation variables and append optimization summary
         optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
         self.operationVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, 'operationVariablesOptimum', compDict)
 
         props = ['operation', 'opexOp', 'commodCosts']
         units = ['[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
@@ -414,3 +413,6 @@ class SourceSinkModel(ComponentModel):
                            (optSummary.index.get_level_values(1) == 'commodCosts')].groupby(level=0).sum().values
 
         self.optSummary = optSummary
+
+    def getOptimalValues(self):
+        return super().getOptimalValues()

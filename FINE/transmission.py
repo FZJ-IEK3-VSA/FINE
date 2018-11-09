@@ -309,8 +309,8 @@ class TransmissionModel(ComponentModel):
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         return any([comp.commodity == commod and
-                    loc + '_' + loc_ in comp.locationalEligibility.index or
-                    loc_ + '_' + loc in comp.locationalEligibility.index
+                    (loc + '_' + loc_ in comp.locationalEligibility.index or
+                     loc_ + '_' + loc in comp.locationalEligibility.index)
                     for comp in self.componentsDict.values() for loc_ in esM.locations])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
@@ -350,7 +350,6 @@ class TransmissionModel(ComponentModel):
         optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', esM.periodsOrder,
                                                  compDict=compDict)
         self.operationVariablesOptimum = optVal_
-        utils.setOptimalComponentVariables(optVal_, 'operationVariablesOptimum', compDict)
 
         props = ['operation', 'opexOp']
         units = ['[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
@@ -385,3 +384,6 @@ class TransmissionModel(ComponentModel):
         optSummary = optSummary.unstack(level=-1)
 
         self.optSummary = optSummary
+
+    def getOptimalValues(self):
+        return super().getOptimalValues()

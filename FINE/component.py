@@ -273,11 +273,11 @@ class Component(metaclass=ABCMeta):
         self.sharedPotentialID = sharedPotentialID
         self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
         self.isBuiltFix = isBuiltFix
-
-        # Variables at optimum (set after optimization)
-        self.capacityVariablesOptimum = None
-        self.isBuiltVariablesOptimum = None
-        self.operationVariablesOptimum = {}
+        #
+        # # Variables at optimum (set after optimization)
+        # self.capacityVariablesOptimum = None
+        # self.isBuiltVariablesOptimum = None
+        # self.operationVariablesOptimum = {}
 
     def addToEnergySystemModel(self, esM):
         esM.isTimeSeriesDataClustered = False
@@ -674,26 +674,6 @@ class ComponentModel(metaclass=ABCMeta):
                        for loc_, compNames in subDict.items()
                        for compName in compNames)
 
-    @abstractmethod
-    def declareVariables(self, esM, pyM):
-        raise NotImplementedError
-
-    @abstractmethod
-    def declareComponentConstraints(self, esM, pyM):
-        raise NotImplementedError
-
-    @abstractmethod
-    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        raise NotImplementedError
-
-    @abstractmethod
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        raise NotImplementedError
-
-    @abstractmethod
-    def getObjectiveFunctionContribution(self, esM, pyM):
-        raise NotImplementedError
-
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp='', costApp=1):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(esM.pyM, 'cap_' + abbrvName)
@@ -714,7 +694,6 @@ class ComponentModel(metaclass=ABCMeta):
         optVal = utils.formatOptimizationOutput(values, 'designVariables', '1dim')
         optVal_ = utils.formatOptimizationOutput(values, 'designVariables', self.dimension, compDict=compDict)
         self.capacityVariablesOptimum = optVal_
-        utils.setOptimalComponentVariables(optVal_, 'capacityVariablesOptimum', compDict)
 
         if optVal is not None:
             i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index], axis=1)
@@ -735,7 +714,6 @@ class ComponentModel(metaclass=ABCMeta):
         optVal = utils.formatOptimizationOutput(values, 'designVariables', '1dim')
         optVal_ = utils.formatOptimizationOutput(values, 'designVariables', self.dimension, compDict=compDict)
         self.isBuiltVariablesOptimum = optVal_
-        utils.setOptimalComponentVariables(optVal_, 'isBuiltVariablesOptimum', compDict)
 
         if optVal is not None:
             i = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt[dec.index], axis=1)
@@ -757,3 +735,31 @@ class ComponentModel(metaclass=ABCMeta):
                            (optSummary.index.get_level_values(1) == 'capexIfBuilt')].groupby(level=0).sum().values
 
         return optSummary
+
+    def getOptimalValues(self):
+        return {'capacityVariables': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
+                                      'dimension': self.dimension},
+                'isBuiltVariables': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
+                                     'dimension': self.dimension},
+                'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
+                                              'dimension': self.dimension}}
+
+    @abstractmethod
+    def declareVariables(self, esM, pyM):
+        raise NotImplementedError
+
+    @abstractmethod
+    def declareComponentConstraints(self, esM, pyM):
+        raise NotImplementedError
+
+    @abstractmethod
+    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
+        raise NotImplementedError
+
+    @abstractmethod
+    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+        raise NotImplementedError
+
+    @abstractmethod
+    def getObjectiveFunctionContribution(self, esM, pyM):
+        raise NotImplementedError

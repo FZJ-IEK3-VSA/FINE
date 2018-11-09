@@ -29,7 +29,7 @@ Or install directly via python as
 	
 ## Examples
 
-A [**first example**](example/Multi-regional%20Energy%20System%20Workflow.ipynb) shows the capabilites of FINE as jupyter notebook
+A [**first example**](examples/Multi-regional%20Energy%20System%20Workflow/Multi-regional%20Energy%20System%20Workflow.ipynb) shows the capabilites of FINE as jupyter notebook
 
 ## License
 

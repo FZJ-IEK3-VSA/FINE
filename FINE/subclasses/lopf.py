@@ -177,4 +177,3 @@ class LOPFModel(TransmissionModel):
         optVal_ = utils.formatOptimizationOutput(phaseAngleVar.get_values(), 'operationVariables', '1dim',
                                                  esM.periodsOrder)
         self.operationVariablesOptimum = optVal_
-        utils.setOptimalComponentVariables(optVal_, '_phaseAngleVariablesOptimum', compDict)

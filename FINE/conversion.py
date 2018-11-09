@@ -283,20 +283,11 @@ class ConversionModel(ComponentModel):
         opVar = getattr(pyM, 'op_' + abbrvName)
 
         # Set optimal design dimension variables and get basic optimization summary
-        # optVal_ = utils.formatOptimizationOutput(capVar.get_values(), 'designVariables', '1dim')
-        # self.capacityVariablesOptimum = optVal_
-        # utils.setOptimalComponentVariables(optVal_, 'capacityVariablesOptimum', compDict)
-        #
-        # optVal_ = utils.formatOptimizationOutput(binVar.get_values(), 'designVariables', '1dim')
-        # self.isBuiltVariablesOptimum = optVal_
-        # utils.setOptimalComponentVariables(optVal_, 'isBuiltVariablesOptimum', compDict)
-
         optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'physicalUnit')
 
         # Set optimal operation variables and append optimization summary
         optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
         self.operationVariablesOptimum = optVal
-        utils.setOptimalComponentVariables(optVal, 'operationVariablesOptimum', compDict)
 
         props = ['operation', 'opexOp']
         units = ['[-]', '[' + esM.costUnit + '/a]']
@@ -322,3 +313,6 @@ class ConversionModel(ComponentModel):
                            (optSummary.index.get_level_values(1) == 'opexOp')].groupby(level=0).sum().values
 
         self.optSummary = optSummary
+
+    def getOptimalValues(self):
+        return super().getOptimalValues()
