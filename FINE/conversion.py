@@ -2,6 +2,7 @@ from FINE.component import Component, ComponentModel
 from FINE import utils
 import warnings
 import pandas as pd
+import pyomo.environ as pyomo
 
 
 class Conversion(Component):
@@ -22,7 +23,7 @@ class Conversion(Component):
     |br| @author: Lara Welder
     """
     def __init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable=True,
-                 capacityVariableDomain='continuous', capacityPerPlantUnit=1,
+                 capacityVariableDomain='continuous', capacityPerPlantUnit=1, linkedConversionCapacityID=None,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
@@ -61,6 +62,11 @@ class Conversion(Component):
             (float)
 
         **Default arguments:**
+
+        :param linkedConversionCapacityID: if specifies, indicates that all conversion components with the
+            this ID have to have the same capacity.
+            |br| * the default value is None
+        :type linkedConversionCapacityID: string
 
         :param operationRateMax: if specified indicates a maximum operation rate for each location and each time
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
@@ -108,9 +114,13 @@ class Conversion(Component):
 
         # Set general conversion data
         utils.checkCommodities(esM, set(commodityConversionFactors.keys()))
+        utils.checkCommodityUnits(esM, physicalUnit)
+        if linkedConversionCapacityID is not None:
+            utils.isString(linkedConversionCapacityID)
         self.commodityConversionFactors = commodityConversionFactors
         self.physicalUnit = physicalUnit
         self.modelingClass = ConversionModel
+        self.linkedConversionCapacityID = linkedConversionCapacityID
 
         # Set additional economic data
         self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
@@ -174,6 +184,26 @@ class ConversionModel(ComponentModel):
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
 
+    def declareLinkedCapacityDict(self, pyM):
+        linkedComponentsDict, linkedComponentsList, compDict = {}, [], self.componentsDict
+        # Collect all conversion components with the same linkedConversionComponentID
+        for comp in compDict.values():
+            if comp.linkedConversionCapacityID is not None:
+                linkedComponentsDict.setdefault(comp.linkedConversionCapacityID, []).append(comp)
+        # Pair the components with the same linkedConversionComponentID with each other and check that
+        # they have the same locational eligibility
+        for key, values in linkedComponentsDict.items():
+            if len(values) > 1:
+                linkedComponentsList.extend([(loc, values[i].name, values[i+1].name) for i in range(len(values)-1)
+                                             for loc, v in values[i].locationalEligibility.items() if v == 1])
+        for comps in linkedComponentsList:
+            index1 = compDict[comps[1]].locationalEligibility.index
+            index2 = compDict[comps[2]].locationalEligibility.index
+            if not index1.equals(index2):
+                raise ValueError('Conversion components ', comps[1], 'and', comps[2],
+                                 'are linked but do not have the same locationalEligibility.')
+        setattr(pyM, 'linkedComponentsList_' + self.abbrvName, linkedComponentsList)
+
     def declareSets(self, esM, pyM):
         """ Declares sets and dictionaries """
 
@@ -188,6 +218,9 @@ class ConversionModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
+
+        # Declare linked components dictionary
+        self.declareLinkedCapacityDict(pyM)
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -211,6 +244,15 @@ class ConversionModel(ComponentModel):
     #                                          Declare component constraints                                           #
     ####################################################################################################################
 
+    def linkedCapacity(self, pyM):
+        """ Enforces all Conversion components with the same linkedConversionCapacityID have the same capacity """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        capVar, linkedList = getattr(pyM, 'cap_' + abbrvName), getattr(pyM, 'linkedComponentsList_' + self.abbrvName)
+
+        def linkedCapacity(pyM, loc, compName1, compName2):
+            return capVar[loc, compName1] == capVar[loc, compName2]
+        setattr(pyM, 'ConstrLinkedCapacity_' + abbrvName,  pyomo.Constraint(linkedList, rule=linkedCapacity))
+
     def declareComponentConstraints(self, esM, pyM):
         """ Declares time independent and dependent constraints"""
 
@@ -230,6 +272,8 @@ class ConversionModel(ComponentModel):
         self.capacityFix(pyM)
         # Sets, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
+        # Links, if applicable, the capacity of components with the same linkedConversionCapacityID
+        self.linkedCapacity(pyM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #

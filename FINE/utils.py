@@ -118,11 +118,18 @@ def checkConnectionIndex(data, locationalEligibility):
                          'Eligible connections: ' + str(set(locationalEligibility.index)))
 
 
-def checkCommodities(esM, commodity):
-    if not commodity.issubset(esM.commodities):
-        raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
-                         'Commodity: ' + str(set(commodity)) + '\n' +
-                         'Energy system model regions: ' + str(esM.commodities))
+def checkCommodities(esM, commodities):
+    if not commodities.issubset(esM.commodities):
+        raise ValueError('Commodity does not match the ones of the specified energy system model.\n' +
+                         'Commodity: ' + str(set(commodities)) + '\n' +
+                         'Energy system model commodities: ' + str(esM.commodities))
+
+
+def checkCommodityUnits(esM, commodityUnit):
+    if not commodityUnit in esM.commodityUnitsDict.values():
+        raise ValueError('Commodity unit does not match the ones of the specified energy system model.\n' +
+                         'Commodity unit: ' + str(commodityUnit) + '\n' +
+                         'Energy system model commodityUnits: ' + str(esM.commodityUnitsDict.values()))
 
 
 def checkAndSetDistances(distances, locationalEligibility, esM):
