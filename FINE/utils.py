@@ -408,8 +408,7 @@ def checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, tot
                          'smaller than the total number of time steps considered in the energy system model.')
 
 
-def checkOptimizeInput(timeSeriesAggregation, isTimeSeriesDataClustered, logFileName, threads, solver,
-                       timeLimit, optimizationSpecs, warmstart):
+def checkDeclareOptimizationProblemInput(timeSeriesAggregation, isTimeSeriesDataClustered):
     if not isinstance(timeSeriesAggregation, bool):
         raise TypeError('The timeSeriesAggregation parameter has to be a boolean.')
 
@@ -417,8 +416,10 @@ def checkOptimizeInput(timeSeriesAggregation, isTimeSeriesDataClustered, logFile
         raise ValueError('The time series flag indicates possible inconsistencies in the aggregated time series '
                          ' data.\n--> Call the cluster function first, then the optimize function.')
 
-    if not isinstance(timeSeriesAggregation, bool):
-        raise ValueError('The timeSeriesAggregation parameter has to be a boolean.')
+
+def checkOptimizeInput(timeSeriesAggregation, isTimeSeriesDataClustered, logFileName, threads, solver,
+                       timeLimit, optimizationSpecs, warmstart):
+    checkDeclareOptimizationProblemInput(timeSeriesAggregation, isTimeSeriesDataClustered)
 
     if not isinstance(logFileName, str):
         raise TypeError('The logFileName parameter has to be a string.')

@@ -57,7 +57,7 @@ class EnergySystemModel:
     """
 
     def __init__(self, locations, commodities, commodityUnitsDict, numberOfTimeSteps=8760, hoursPerTimeStep=1,
-                 costUnit='1e9 Euro', lengthUnit='km'):
+                 costUnit='1e9 Euro', lengthUnit='km', verboseLogLevel=0):
         """
         Constructor for creating an EnergySystemModel class instance
 
@@ -195,13 +195,14 @@ class EnergySystemModel:
         # The solverSpecs parameter is a dictionary (string: param) which stores different parameters that were used
         # when solving the last optimization problem. The parameters are: solver (string, solver which was used to solve
         # the optimization problem), optimizationSpecs (string, representing **kwargs for the solver), hasTSA (boolean,
-        # indicating if time series aggregation is used for the optimization), runtime (positive float, runtime of the
-        # optimization run in seconds), timeLimit (positive float or None, if specified indicates the maximum allowed
-        # runtime of the solver), threads (positive int, number of threads used for optimization, can depend on solver),
-        # logFileName (string, name of logfile)
+        # indicating if time series aggregation is used for the optimization), buildtime (positive float, time needed
+        # to declare the optimization problem seconds), solvetime (positive float, time needed to solve the optimization
+        # problem in seconds), runtime (positive float, runtime of the optimization run in seconds), timeLimit
+        # (positive float or None, if specified indicates the maximum allowed runtime of the solver), threads (positive
+        # int, number of threads used for optimization, can depend on solver), logFileName (string, name of logfile)
         self.pyM = None
-        self.solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'runtime': 0, 'timeLimit': None,
-                            'threads': 0, 'logFileName': ''}
+        self.solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'buildtime': 0, 'solvetime': 0,
+                            'runtime': 0, 'timeLimit': None, 'threads': 0, 'logFileName': ''}
 
     def add(self, component):
         """
@@ -379,82 +380,31 @@ class EnergySystemModel:
         self.isTimeSeriesDataClustered = True
         print("\t\t(%.4f" % (time.time() - timeStart), "sec)\n")
 
-    def optimize(self, timeSeriesAggregation=False, logFileName='job', threads=3, solver='gurobi', timeLimit=None,
-                 optimizationSpecs='LogToConsole=1 OptimalityTol=1e-6', warmstart=False):
+    def declareOptimizationProblem(self, timeSeriesAggregation=False):
         """
-        Optimizes the specified energy system, for which a pyomo discrete model instance is build and filled
-        with
+        Declares the optimization problem belonging to the specified energy system, for which a pyomo discrete model
+        instance is build and filled with
         * basic time sets,
         * sets, variables and constraints contributed by the component modeling classes,
         * basic, component overreaching constraints, and
         * an objective function.
-        The pyomo instance is then optimized by the specified solver and the optimization results are further
-        processed.
 
         **Default arguments:**
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
             (a) the full time series (False) or
             (b) clustered time series data (True).
-            If: the argument is True, the time series data was previously clustered, and no further tsamSpecs
-            are declared, the clustered time series data from the last cluster function call is used. Otherwise,
-            the time series data is clustered within the optimize function, using the tsamSpecs argument if
-            specified.
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
-        :param logFileName: logFileName is used for naming the log file of the optimization solver output.
-            If the logFileName is given as an absolute path (i.e. logFileName = os.path.join(os.getcwd(),
-            'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise
-            it will be by default stored in the directory where the executing python script is called.
-            |br| * the default value is 'job'
-        :type logFileName: string
-
-        :param threads: number of computational threads used for solving the optimization (solver dependent
-            input). If gurobi is selected as the solver: a value of 0 results in using all available threads. If
-            a value larger than the available number of threads are chosen, the value will reset to the maximum
-            number of threads.
-            |br| * the default value is 3
-        :type threads: positive integer
-
-        :param solver: specifies which solver should solve the optimization problem (which of course has to be
-            installed on the machine on which the model is run).
-            |br| * the default value is 'gurobi'
-        :type solver: string
-
-        :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
-            in seconds (solver dependent input). The use of this parameter is suggested when running models in
-            runtime restricted environments (such as clusters with job submission systems). If the runtime
-            limitation is triggered before an optimal solution is available, the best solution obtained up
-            until then (if available) is processed.
-            |br| * the default value is None
-        :type timeLimit: strictly positive integer or None
-
-        :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver
-            documentation for more information)
-            |br| * the default value is 'LogToConsole=1 OptimalityTol=1e-6'
-        :type timeLimit: string
-
-        :param warmstart: specifies if a warm start of the optimization should be considered
-            (not supported by all solvers).
-            |br| * the default value is False
-        :type warmstart: boolean
-
-        Last edited: August 10, 2018
+        Last edited: November 10, 2018
         |br| @author: Lara Welder
         """
         # Get starting time of the optimization to later on obtain the total run time of the optimize function call
         timeStart = time.time()
 
         # Check correctness of inputs
-        # Check input arguments which have to fit the temporal representation of the energy system
-        utils.checkOptimizeInput(timeSeriesAggregation, self.isTimeSeriesDataClustered, logFileName, threads, solver,
-                                 timeLimit, optimizationSpecs, warmstart)
-
-        # Store keyword arguments in the EnergySystemModel instance
-        self.solverSpecs['logFileName'], self.solverSpecs['threads'] = logFileName, threads
-        self.solverSpecs['solver'], self.solverSpecs['timeLimit'] = solver, timeLimit
-        self.solverSpecs['optimizationSpecs'], self.solverSpecs['hasTSA'] = optimizationSpecs, timeSeriesAggregation
+        utils.checkDeclareOptimizationProblemInput(timeSeriesAggregation, self.isTimeSeriesDataClustered)
 
         ################################################################################################################
         #                           Initialize mathematical model (ConcreteModel) instance                             #
@@ -505,7 +455,7 @@ class EnergySystemModel:
                 return ((p, t) for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1))
         else:
             print('Time series aggregation specifications:\nNumber of typical periods:', len(self.typicalPeriods),
-                  ', number of time steps per periods:', len(self.timeStepsPerPeriod))
+                  ', number of time steps per periods:', len(self.timeStepsPerPeriod), '\n')
 
             # Define sets
             def initTimeSet(pyM):
@@ -601,6 +551,89 @@ class EnergySystemModel:
         pyM.Obj = pyomo.Objective(rule=objective)
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
 
+        # Store the buildtime of the optimize function call in the EnergySystemModel instance
+        self.solverSpecs['buildtime'] = time.time() - timeStart
+
+    def optimize(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='job', threads=3,
+                 solver='gurobi', timeLimit=None, optimizationSpecs='OptimalityTol=1e-6', warmstart=False):
+        """
+        Optimizes the specified energy system, for which a pyomo discrete model instance is build or called upon.
+        A pyomo instance is optimized with the specified inputs and the optimization results are further
+        processed.
+
+        **Default arguments:**
+
+        :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
+            (a) If true, the declareOptimizationProblem function is called and concrete pyomo model instance is built.
+            (b) If false a previously declared concrete pyomo model instance is used.
+            |br| * the default value is True
+        :type timeSeriesAggregation: boolean
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+            |br| * the default value is False
+        :type timeSeriesAggregation: boolean
+
+        :param logFileName: logFileName is used for naming the log file of the optimization solver output.
+            If the logFileName is given as an absolute path (i.e. logFileName = os.path.join(os.getcwd(),
+            'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise
+            it will be by default stored in the directory where the executing python script is called.
+            |br| * the default value is 'job'
+        :type logFileName: string
+
+        :param threads: number of computational threads used for solving the optimization (solver dependent
+            input). If gurobi is selected as the solver: a value of 0 results in using all available threads. If
+            a value larger than the available number of threads are chosen, the value will reset to the maximum
+            number of threads.
+            |br| * the default value is 3
+        :type threads: positive integer
+
+        :param solver: specifies which solver should solve the optimization problem (which of course has to be
+            installed on the machine on which the model is run).
+            |br| * the default value is 'gurobi'
+        :type solver: string
+
+        :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
+            in seconds (solver dependent input). The use of this parameter is suggested when running models in
+            runtime restricted environments (such as clusters with job submission systems). If the runtime
+            limitation is triggered before an optimal solution is available, the best solution obtained up
+            until then (if available) is processed.
+            |br| * the default value is None
+        :type timeLimit: strictly positive integer or None
+
+        :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver
+            documentation for more information)
+            |br| * the default value is 'LogToConsole=1 OptimalityTol=1e-6'
+        :type timeLimit: string
+
+        :param warmstart: specifies if a warm start of the optimization should be considered
+            (not supported by all solvers).
+            |br| * the default value is False
+        :type warmstart: boolean
+
+        Last edited: August 10, 2018
+        |br| @author: Lara Welder
+        """
+        if declaresOptimizationProblem:
+            self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation)
+        else:
+            if self.pyM is None:
+                raise TypeError('The optimization problem is not declared yet. Set the argument declaresOptimization'
+                                ' problem to True or call the declareOptimizationProblem function first.')
+
+        # Get starting time of the optimization to later on obtain the total run time of the optimize function call
+        timeStart = time.time()
+
+        # Check correctness of inputs
+        utils.checkOptimizeInput(timeSeriesAggregation, self.isTimeSeriesDataClustered, logFileName, threads, solver,
+                                 timeLimit, optimizationSpecs, warmstart)
+
+        # Store keyword arguments in the EnergySystemModel instance
+        self.solverSpecs['logFileName'], self.solverSpecs['threads'] = logFileName, threads
+        self.solverSpecs['solver'], self.solverSpecs['timeLimit'] = solver, timeLimit
+        self.solverSpecs['optimizationSpecs'], self.solverSpecs['hasTSA'] = optimizationSpecs, timeSeriesAggregation
+
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
@@ -617,9 +650,9 @@ class EnergySystemModel:
         # Set the specified solver options
         optimizer.set_options('Threads=' + str(threads) + ' logfile=' + logFileName + ' ' + optimizationSpecs)
 
-        # Solve optimization problem. The optimization output is stored in the pyM model and the solver information
-        # is printed.
-        solver_info = optimizer.solve(pyM, warmstart=warmstart, tee=True)
+        # Solve optimization problem. The optimization solvetime is stored and the solver information is printed.
+        solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
+        self.solverSpecs['solvetime'] = time.time() - timeStart
         print(solver_info.solver())
         print(solver_info.problem())
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
@@ -633,6 +666,7 @@ class EnergySystemModel:
         # Post-process the optimization output by differentiating between different solver statuses and termination
         # conditions. First, check if the status and termination_condition of the optimization are acceptable.
         # If not, no output is generated.
+        # TODO check if this is still compatible with the latest pyomo version
         status, termCondition = solver_info.solver.status, solver_info.solver.termination_condition
         if status == opt.SolverStatus.error or status == opt.SolverStatus.aborted or status == opt.SolverStatus.unknown:
             print('Solver status:  ' + str(status) + ', termination condition:  ' + str(termCondition) +
@@ -652,11 +686,11 @@ class EnergySystemModel:
             w = str(len(max(self.componentModelingDict.keys()))+6)
             for key, mdl in self.componentModelingDict.items():
                 __t = time.time()
-                mdl.setOptimalValues(self, pyM)
+                mdl.setOptimalValues(self, self.pyM)
                 outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
                 print(outputString)
 
         print("\t\t(%.4f" % (time.time() - _t), "sec)")
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
-        self.solverSpecs['runtime'] = time.time() - timeStart
+        self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
