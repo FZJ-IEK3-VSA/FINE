@@ -94,3 +94,4 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
     esM.optimize(**esMData['optimize'])
 
     writeToExcel(esM, **esMData['output'])
+    return esM
