@@ -1,0 +1,941 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>energySystemModel &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>energySystemModel</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for energySystemModel</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Last edited: July 27 2018</span>
+<span class="sd">|br| @author: Lara Welder</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">FINE.component</span> <span class="k">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">ComponentModel</span>
+<span class="kn">from</span> <span class="nn">FINE</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">tsam.timeseriesaggregation</span> <span class="k">import</span> <span class="n">TimeSeriesAggregation</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pyomo.environ</span> <span class="k">as</span> <span class="nn">pyomo</span>
+<span class="kn">import</span> <span class="nn">pyomo.opt</span> <span class="k">as</span> <span class="nn">opt</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<div class="viewcode-block" id="EnergySystemModel"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel">[docs]</a><span class="k">class</span> <span class="nc">EnergySystemModel</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    EnergySystemModel class</span>
+
+<span class="sd">    The functionality provided by the EnergySystemModel class is fourfold:\n</span>
+<span class="sd">    * With it, the **basic structure** (spatial and temporal resolution, considered commodities) of</span>
+<span class="sd">      the investigated energy system is defined.</span>
+<span class="sd">    * It serves as a **container for all components** investigated in the energy system model. These components,</span>
+<span class="sd">      namely sources and sinks, conversion options, storage options, and transmission options</span>
+<span class="sd">      (in the core module), can be added to an EnergySystemModel instance.</span>
+<span class="sd">    * It provides the core functionality of **modeling and optimizing the energy system** based on the specified</span>
+<span class="sd">      structure and components on the one hand and of specified simulation parameters on the other hand,.</span>
+<span class="sd">    * It **stores optimization results** which can then be post-processed with other modules.</span>
+
+<span class="sd">    The parameter which are stored in an instance of the class refer to:\n</span>
+<span class="sd">    * the modeled spatial representation of the energy system (**locations, lengthUnit**)</span>
+<span class="sd">    * the modeled temporal representation of the energy system (**totalTimeSteps, hoursPerTimeStep,</span>
+<span class="sd">      years, periods, periodsOrder, periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps,</span>
+<span class="sd">      isTimeSeriesDataClustered, typicalPeriods, tsaInstance, timeUnit**)</span>
+<span class="sd">    * the considered commodities in the energy system (**commodities, commodityUnitsDict**)</span>
+<span class="sd">    * the considered components in the energy system (**componentNames, componentModelingDict, costUnit**)</span>
+<span class="sd">    * optimization related parameters (**pyM, solverSpecs**)</span>
+<span class="sd">      all parameters are marked as protected (thus they all begin with an underscore) and are set when an class</span>
+<span class="sd">      instance is initiated, components are added or user accessible functions are called.</span>
+
+<span class="sd">    Instances of this class provide function for\n</span>
+<span class="sd">    * adding components and their respective modeling classes (**add**)</span>
+<span class="sd">    * clustering the time series data of all added components using the time series aggregation package tsam, cf.</span>
+<span class="sd">      https://github.com/FZJ-IEK3-VSA/tsam (**cluster**)</span>
+<span class="sd">    * optimizing the specified energy system (**optimize**), for which a pyomo discrete model instance is build</span>
+<span class="sd">      and filled with</span>
+<span class="sd">      (0) basic time sets,</span>
+<span class="sd">      (1) sets, variables and constraints contributed by the component modeling classes,</span>
+<span class="sd">      (2) basic, component overreaching constraints, and</span>
+<span class="sd">      (3) an objective function.</span>
+<span class="sd">      The pyomo instance is then optimized by a specified solver and the optimization results processed once</span>
+<span class="sd">      available.</span>
+<span class="sd">    * getting components and their attributes (**getComponent, getCompAttr, getOptimizationSummary**)</span>
+
+<span class="sd">    Last edited: July 27, 2018</span>
+<span class="sd">    |br| @author: Lara Welder</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="EnergySystemModel.__init__"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">commodities</span><span class="p">,</span> <span class="n">commodityUnitsDict</span><span class="p">,</span> <span class="n">numberOfTimeSteps</span><span class="o">=</span><span class="mi">8760</span><span class="p">,</span> <span class="n">hoursPerTimeStep</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">costUnit</span><span class="o">=</span><span class="s1">&#39;1e9 Euro&#39;</span><span class="p">,</span> <span class="n">lengthUnit</span><span class="o">=</span><span class="s1">&#39;km&#39;</span><span class="p">,</span> <span class="n">verboseLogLevel</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for creating an EnergySystemModel class instance</span>
+
+<span class="sd">        **Required arguments:**</span>
+
+<span class="sd">        :param locations: locations considered in the energy system</span>
+<span class="sd">        :type locations: set of strings</span>
+
+<span class="sd">        :param commodities: commodities considered in the energy system</span>
+<span class="sd">        :type commodities: set of strings</span>
+
+<span class="sd">        :param commodityUnitsDict: dictionary which assigns each commodity a quantitative unit per time</span>
+<span class="sd">            (e.g. GW_el, GW_H2, Mio.t_CO2/h). The dictionary is used for results output.</span>
+<span class="sd">            Note for advanced users: the scale of these units can influence the numerical stability of the</span>
+<span class="sd">            optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model</span>
+<span class="sd">            coefficients is suggested</span>
+<span class="sd">        :type commodityUnitsDict: dictionary of strings</span>
+
+<span class="sd">        **Default arguments:**</span>
+
+<span class="sd">        :param numberOfTimeSteps: number of time steps considered when modeling the energy system (for each</span>
+<span class="sd">            time step, or each representative time step, variables and constraints are constituted). Together</span>
+<span class="sd">            with the hours per time step, the total number of hours considered can be derived. The total</span>
+<span class="sd">            number of hours is again used for scaling the arising costs to the arising total annual costs (TAC),</span>
+<span class="sd">            which are minimized during optimization.</span>
+<span class="sd">            |br| * the default value is 8760</span>
+<span class="sd">        :type totalNumberOfHours: strictly positive integer</span>
+
+<span class="sd">        :param hoursPerTimeStep: hours per time step</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type totalNumberOfHours: strictly positive float</span>
+
+<span class="sd">        :param costUnit: cost unit of all cost related values in the energy system. This value sets the unit of</span>
+<span class="sd">            all cost parameters which are given as an input to the EnergySystemModel instance (i.e. for the</span>
+<span class="sd">            invest per capacity or the cost per operation).</span>
+<span class="sd">            Note for advanced users: the scale of this unit can influence the numerical stability of the</span>
+<span class="sd">            optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model</span>
+<span class="sd">            coefficients is suggested</span>
+<span class="sd">            |br| * the default value is &#39;10^9 Euro&#39; (billion euros), which can be a suitable scale for national</span>
+<span class="sd">            energy systems.</span>
+<span class="sd">        :type costUnit: string</span>
+
+<span class="sd">        :param lengthUnit: length unit for all length related values in the energy system</span>
+<span class="sd">            Note for advanced users: the scale of this unit can influence the numerical stability of the</span>
+<span class="sd">            optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model</span>
+<span class="sd">            coefficients is suggested.</span>
+<span class="sd">            |br| * the default value is &#39;km&#39; (kilometers)</span>
+<span class="sd">        :type lengthUnit: string</span>
+
+<span class="sd">        :param verboseLogLevel: defines how verbose the console logging is</span>
+<span class="sd">            - 0: general model logging, warnings and optimization solver logging are displayed</span>
+<span class="sd">            - 1: warnings are displayed</span>
+<span class="sd">            - 2: no general model logging or warnings are displayed, the optimization solver logging is set to a minimum</span>
+<span class="sd">            Note: if required, the optimization solver logging can be separately enabled in the optimizationSpecs</span>
+<span class="sd">            of the optimize function.</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type verboseLogLevel: integer (0, 1 or 2)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check correctness of inputs</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkEnergySystemModelInput</span><span class="p">(</span><span class="n">locations</span><span class="p">,</span> <span class="n">commodities</span><span class="p">,</span> <span class="n">commodityUnitsDict</span><span class="p">,</span> <span class="n">numberOfTimeSteps</span><span class="p">,</span>
+                                          <span class="n">hoursPerTimeStep</span><span class="p">,</span> <span class="n">costUnit</span><span class="p">,</span> <span class="n">lengthUnit</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                        Spatial resolution parameters                                         #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># The locations (set of string) name the considered location in an energy system model instance. The parameter</span>
+        <span class="c1"># is used throughout the build of the energy system model to validate inputs and declare relevant sets,</span>
+        <span class="c1"># variables and constraints.</span>
+        <span class="c1"># The length unit refers to length measure referred throughout the model.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengthUnit</span> <span class="o">=</span> <span class="n">locations</span><span class="p">,</span> <span class="n">lengthUnit</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                            Time series parameters                                            #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># The totalTimeSteps (list, ranging from 0 to the total numberOfTimeSteps-1) refers to the total number of time</span>
+        <span class="c1"># steps considered when modeling the specified energy system. The parameter is used for validating time series</span>
+        <span class="c1"># data input and for setting other time series parameters when modeling a full temporal resolution.</span>
+        <span class="c1"># The hoursPerTimeStep parameter (float &gt; 0) refers to the temporal length of a time step in the totalTimeSteps.</span>
+        <span class="c1"># From the numberOfTimeSteps and the hoursPerTimeStep the numberOfYears parameter is computed.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">totalTimeSteps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hoursPerTimeStep</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">numberOfTimeSteps</span><span class="p">)),</span> <span class="n">hoursPerTimeStep</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numberOfYears</span> <span class="o">=</span> <span class="n">numberOfTimeSteps</span> <span class="o">*</span> <span class="n">hoursPerTimeStep</span> <span class="o">/</span> <span class="mf">8760.0</span>
+
+        <span class="c1"># The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,</span>
+        <span class="c1"># totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents</span>
+        <span class="c1"># the periods considered when modeling the energy system. Only one period exists when considering the full</span>
+        <span class="c1"># temporal resolution. When applying time series aggregation, the full time series are broken down into</span>
+        <span class="c1"># periods to which a typical period is assigned to.</span>
+        <span class="c1"># These periods have an order which is stored in the periodsOrder parameter (list, [0] when considering a full</span>
+        <span class="c1"># temporal resolution, [typicalPeriod(0), ... ,</span>
+        <span class="c1"># typicalPeriod(totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod-1)] when applying time series aggregation).</span>
+        <span class="c1"># The occurrences of these periods are stored in the periodsOccurrences parameter (list, [1] when considering a</span>
+        <span class="c1"># full temporal resolution, [occurrences(0), ..., occurrences(numberOfTypicalPeriods-1)) when applying time</span>
+        <span class="c1"># series aggregation).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">periods</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodOccurrences</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">numberOfTimeSteps</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interPeriodTimeSteps</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">totalTimeSteps</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># The isTimeSeriesDataClustered is used to check data consistency. It is set to True if the class&#39; cluster</span>
+        <span class="c1"># function is called. It set to False if a new component is added.</span>
+        <span class="c1"># If the cluster function is called, the typicalPeriods parameter is set from None to</span>
+        <span class="c1"># [0, ..., numberOfTypicalPeriods-1] and if specified the resulting TimeSeriesAggregation instance is stored</span>
+        <span class="c1"># in the tsaInstance parameter (default None)</span>
+        <span class="c1"># The time unit refers to time measure referred throughout the model. Currently, it has to be an hour &#39;h&#39;.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isTimeSeriesDataClustered</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">typicalPeriods</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tsaInstance</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeUnit</span> <span class="o">=</span> <span class="s1">&#39;h&#39;</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                        Commodity specific parameters                                         #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># The commodities parameter is a set of strings which describes what commodities are considered in the energy</span>
+        <span class="c1"># system and hence which commodity balances need to be considered in the energy system model and its</span>
+        <span class="c1"># optimization.</span>
+        <span class="c1"># The commodityUnitsDict is a dictionary which assigns each considered commodity (string) a unit (string)</span>
+        <span class="c1"># which can be used by results output functions.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span> <span class="o">=</span> <span class="n">commodities</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commodityUnitsDict</span> <span class="o">=</span> <span class="n">commodityUnitsDict</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                        Component specific parameters                                         #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># The componentNames parameter is a set of strings in which all in the EnergySystemModel instance considered</span>
+        <span class="c1"># components are stored. It is used to check that all components have unique indices.</span>
+        <span class="c1"># The componentModelingDict is a dictionary (modelingClass name: modelingClass instance) in which the in the</span>
+        <span class="c1"># energy system considered modeling classes are stored (in which again the components modeled with the</span>
+        <span class="c1"># modelingClass as well as the equations to model them with are stored).</span>
+        <span class="c1"># The costUnit parameter (string) is the parameter in which all cost input parameter have to be specified.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">componentNames</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">=</span> <span class="n">costUnit</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                           Optimization parameters                                            #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># The pyM parameter (None when the EnergySystemModel is initialized. Once the optimize function is called,</span>
+        <span class="c1"># a Concrete Pyomo instance which stores parameters, sets, variables, constraints and objective required for</span>
+        <span class="c1"># the optimization set up and solving, is stored in this parameter.</span>
+        <span class="c1"># The solverSpecs parameter is a dictionary (string: param) which stores different parameters that were used</span>
+        <span class="c1"># when solving the last optimization problem. The parameters are: solver (string, solver which was used to solve</span>
+        <span class="c1"># the optimization problem), optimizationSpecs (string, representing **kwargs for the solver), hasTSA (boolean,</span>
+        <span class="c1"># indicating if time series aggregation is used for the optimization), buildtime (positive float, time needed</span>
+        <span class="c1"># to declare the optimization problem seconds), solvetime (positive float, time needed to solve the optimization</span>
+        <span class="c1"># problem in seconds), runtime (positive float, runtime of the optimization run in seconds), timeLimit</span>
+        <span class="c1"># (positive float or None, if specified indicates the maximum allowed runtime of the solver), threads (positive</span>
+        <span class="c1"># int, number of threads used for optimization, can depend on solver), logFileName (string, name of logfile)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pyM</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;solver&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;optimizationSpecs&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;hasTSA&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;buildtime&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;solvetime&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                            <span class="s1">&#39;runtime&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;timeLimit&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;threads&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;logFileName&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                           General model parameters                                           #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># The verbose parameter defines how verbose the console logging is: 0: general model logging, warnings</span>
+        <span class="c1"># and optimization solver logging are displayed, 1: warnings are displayed, 2: no general model logging or</span>
+        <span class="c1"># warnings are displayed, the optimization solver logging is set to a minimum.</span>
+        <span class="c1"># The optimization solver logging can be separately enabled in the optimizationSpecs of the optimize function.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verboseLogLevel</span></div>
+
+<div class="viewcode-block" id="EnergySystemModel.add"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function for adding a component and, if required, its respective modeling class to the EnergySystemModel</span>
+<span class="sd">        instance</span>
+
+<span class="sd">        :param component: the component to be added</span>
+<span class="sd">        :type component: An object which inherits from the FINE Component class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">component</span><span class="p">),</span> <span class="n">Component</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The added component has to inherit from the FINE class Component.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">modelingClass</span><span class="p">,</span> <span class="n">ComponentModel</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">component</span><span class="o">.</span><span class="n">modelingClass</span><span class="p">,</span> <span class="n">ComponentModel</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The added component has to inherit from the FINE class ComponentModel.&#39;</span><span class="p">)</span>
+        <span class="n">component</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EnergySystemModel.getComponent"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.getComponent">[docs]</a>    <span class="k">def</span> <span class="nf">getComponent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">componentName</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function which returns a component of the energy system</span>
+
+<span class="sd">        :param componentName: name of the component that should be returned</span>
+<span class="sd">        :type componentName: string</span>
+
+<span class="sd">        :returns: the component which has the name componentName</span>
+<span class="sd">        :rtype: Component</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">componentName</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentNames</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The component &#39;</span> <span class="o">+</span> <span class="n">componentName</span> <span class="o">+</span> <span class="s1">&#39; cannot be found in the energy system model.</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                             <span class="s1">&#39;The components considered in the model are: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">componentNames</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="n">modelingClass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentNames</span><span class="p">[</span><span class="n">componentName</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="p">[</span><span class="n">modelingClass</span><span class="p">]</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">[</span><span class="n">componentName</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="EnergySystemModel.getComponentAttribute"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.getComponentAttribute">[docs]</a>    <span class="k">def</span> <span class="nf">getComponentAttribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">attributeName</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function which returns an attribute of a component considered in the energy system</span>
+
+<span class="sd">        :param componentName: name of the component from which the attribute should be obtained</span>
+<span class="sd">        :type componentName: string</span>
+
+<span class="sd">        :param attributeName: name of the attributed that should be returned</span>
+<span class="sd">        :type attributeName: string</span>
+
+<span class="sd">        :returns: the attribute specified by the attributeName of the component with the name componentName</span>
+<span class="sd">        :rtype: depends on the specified attribute</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getComponent</span><span class="p">(</span><span class="n">componentName</span><span class="p">),</span> <span class="n">attributeName</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EnergySystemModel.getOptimizationSummary"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.getOptimizationSummary">[docs]</a>    <span class="k">def</span> <span class="nf">getOptimizationSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modelingClass</span><span class="p">,</span> <span class="n">outputLevel</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function which returns the optimization summary (design variables, aggregated operation variables,</span>
+<span class="sd">        objective contributions) of a modeling class</span>
+
+<span class="sd">        :param modelingClass: name of the modeling class from which the optimization summary should be obtained</span>
+<span class="sd">        :type modelingClass: string</span>
+
+<span class="sd">        :param outputLevel: states the level of detail of the output summary:</span>
+<span class="sd">            - 0: full optimization summary is returned</span>
+<span class="sd">            - 1: full optimization summary is returned but rows in which all values are NaN (not a number) are dropped</span>
+<span class="sd">            - 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type outputLevel: integer (0, 1 or 2)</span>
+
+<span class="sd">        :returns: the attribute specified by the attributeName of the component with the name componentName</span>
+<span class="sd">        :rtype: depends on the specified attribute</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">outputLevel</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="p">[</span><span class="n">modelingClass</span><span class="p">]</span><span class="o">.</span><span class="n">optSummary</span>
+        <span class="k">elif</span> <span class="n">outputLevel</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="p">[</span><span class="n">modelingClass</span><span class="p">]</span><span class="o">.</span><span class="n">optSummary</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">how</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">outputLevel</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Invalid input. An outputLevel parameter of 2 is assumed.&#39;</span><span class="p">)</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="p">[</span><span class="n">modelingClass</span><span class="p">]</span><span class="o">.</span><span class="n">optSummary</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">how</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[((</span><span class="n">df</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="o">~</span><span class="n">df</span><span class="o">.</span><span class="n">isnull</span><span class="p">()))</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="EnergySystemModel.cluster"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.cluster">[docs]</a>    <span class="k">def</span> <span class="nf">cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">numberOfTypicalPeriods</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">numberOfTimeStepsPerPeriod</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">clusterMethod</span><span class="o">=</span><span class="s1">&#39;hierarchical&#39;</span><span class="p">,</span>
+                <span class="n">sortValues</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">storeTSAinstance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Clusters the time series data of all components considered in the EnergySystemModel instance and then</span>
+<span class="sd">        stores the clustered data in the respective components. For this, the time series data is broken down</span>
+<span class="sd">        into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical</span>
+<span class="sd">        days with 24 hours) is assigned. For the clustering itself, the tsam package is used (cf.</span>
+<span class="sd">        https://github.com/FZJ-IEK3-VSA/tsam). Additional keyword arguments for the TimeSeriesAggregation instance</span>
+<span class="sd">        can be added (facilitated by kwargs). As an example: it might be useful to add extreme periods to the</span>
+<span class="sd">        clustered typical periods.</span>
+
+<span class="sd">        **Default arguments:**</span>
+
+<span class="sd">        :param numberOfTypicalPeriods: states the number of typical periods into which the time series data</span>
+<span class="sd">            should be clustered. The number of time steps per period must be an integer multiple of the total</span>
+<span class="sd">            number of considered time steps in the energy system.</span>
+<span class="sd">            Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more</span>
+<span class="sd">            information.</span>
+<span class="sd">            |br| * the default value is 7</span>
+<span class="sd">        :type numberOfTypicalPeriods: strictly positive integer</span>
+
+<span class="sd">        :param numberOfTimeStepsPerPeriod: states the number of time steps per period</span>
+<span class="sd">            |br| * the default value is 24</span>
+<span class="sd">        :type numberOfTimeStepsPerPeriod: strictly positive integer</span>
+
+<span class="sd">        :param clusterMethod: states the method which is used in the tsam package for clustering the time series</span>
+<span class="sd">            data. Options are for example &#39;averaging&#39;,&#39;k_means&#39;,&#39;exact k_medoid&#39; or &#39;hierarchical&#39;.</span>
+<span class="sd">            Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.</span>
+<span class="sd">            |br| * the default value is &#39;hierarchical&#39;</span>
+<span class="sd">        :type clusterMethod: string</span>
+
+<span class="sd">        :param sortValues: states if the algorithm in the tsam package should use</span>
+<span class="sd">            (a) the sorted duration curves (-&gt; True) or</span>
+<span class="sd">            (b) the original profiles (-&gt; False)</span>
+<span class="sd">            of the time series data within a period for clustering.</span>
+<span class="sd">            Note: Please refer to the tsam package documentation of the parameter sortValues for more information.</span>
+<span class="sd">            |br| * the default value is True</span>
+<span class="sd">        :type sortValues: boolean</span>
+
+<span class="sd">        :param storeTSAinstance: states if the TimeSeriesAggregation instance create during clustering should be</span>
+<span class="sd">            stored in the EnergySystemModel instance.</span>
+<span class="sd">            |br| * the default value is False</span>
+<span class="sd">        :type storeTSAinstance: boolean</span>
+
+<span class="sd">        Last edited: August 10, 2018</span>
+<span class="sd">        |br| @author: Lara Welder</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check input arguments which have to fit the temporal representation of the energy system</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkClusteringInput</span><span class="p">(</span><span class="n">numberOfTypicalPeriods</span><span class="p">,</span> <span class="n">numberOfTimeStepsPerPeriod</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">totalTimeSteps</span><span class="p">))</span>
+
+        <span class="n">timeStart</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Clustering time series data with &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">numberOfTypicalPeriods</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; typical periods and &#39;</span>
+                     <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">numberOfTimeStepsPerPeriod</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; time steps per period...&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Format data to fit the input requirements of the tsam package:</span>
+        <span class="c1"># (a) append the time series data from all components stored in all initialized modeling classes to a pandas</span>
+        <span class="c1">#     data frame with unique column names</span>
+        <span class="c1"># (b) thereby collect the weights which should be considered for each time series as well in a dictionary</span>
+        <span class="n">timeSeriesData</span><span class="p">,</span> <span class="n">weightDict</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">mdlName</span><span class="p">,</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">compName</span><span class="p">,</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">mdl</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">compTimeSeriesData</span><span class="p">,</span> <span class="n">compWeightDict</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">getDataForTimeSeriesAggregation</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">compTimeSeriesData</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">timeSeriesData</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">compTimeSeriesData</span><span class="p">),</span> <span class="n">weightDict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">compWeightDict</span><span class="p">)</span>
+        <span class="n">timeSeriesData</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">timeSeriesData</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Note: Sets index for the time series data. The index is of no further relevance in the energy system model.</span>
+        <span class="n">timeSeriesData</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s1">&#39;2050-01-01 00:30:00&#39;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">totalTimeSteps</span><span class="p">),</span>
+                                             <span class="n">freq</span><span class="o">=</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hoursPerTimeStep</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;H&#39;</span><span class="p">),</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;Europe/Berlin&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Cluster data with tsam package (the reindex_axis call is here for reproducibility of TimeSeriesAggregation</span>
+        <span class="c1"># call)</span>
+        <span class="n">timeSeriesData</span> <span class="o">=</span> <span class="n">timeSeriesData</span><span class="o">.</span><span class="n">reindex_axis</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">timeSeriesData</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">clusterClass</span> <span class="o">=</span> <span class="n">TimeSeriesAggregation</span><span class="p">(</span><span class="n">timeSeries</span><span class="o">=</span><span class="n">timeSeriesData</span><span class="p">,</span> <span class="n">noTypicalPeriods</span><span class="o">=</span><span class="n">numberOfTypicalPeriods</span><span class="p">,</span>
+                                             <span class="n">hoursPerPeriod</span><span class="o">=</span><span class="n">numberOfTimeStepsPerPeriod</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">hoursPerTimeStep</span><span class="p">,</span>
+                                             <span class="n">clusterMethod</span><span class="o">=</span><span class="n">clusterMethod</span><span class="p">,</span> <span class="n">sortValues</span><span class="o">=</span><span class="n">sortValues</span><span class="p">,</span> <span class="n">weightDict</span><span class="o">=</span><span class="n">weightDict</span><span class="p">,</span>
+                                             <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Convert the clustered data to a pandas DataFrame and store the respective clustered time series data in the</span>
+        <span class="c1"># associated components</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">clusterClass</span><span class="o">.</span><span class="n">clusterPeriodDict</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">mdlName</span><span class="p">,</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">compName</span><span class="p">,</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">mdl</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">comp</span><span class="o">.</span><span class="n">setAggregatedTimeSeriesData</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># Store time series aggregation parameters in class instance</span>
+        <span class="k">if</span> <span class="n">storeTSAinstance</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tsaInstance</span> <span class="o">=</span> <span class="n">clusterClass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">typicalPeriods</span> <span class="o">=</span> <span class="n">clusterClass</span><span class="o">.</span><span class="n">clusterPeriodIdx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">numberOfTimeStepsPerPeriod</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">periods</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">totalTimeSteps</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">))))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interPeriodTimeSteps</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">totalTimeSteps</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">periodsOrder</span> <span class="o">=</span> <span class="n">clusterClass</span><span class="o">.</span><span class="n">clusterOrder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">periodOccurrences</span> <span class="o">=</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">periodsOrder</span> <span class="o">==</span> <span class="n">tp</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">numberOfYears</span> <span class="k">for</span> <span class="n">tp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">typicalPeriods</span><span class="p">]</span>
+
+        <span class="c1"># Set cluster flag to true (used to ensure consistently clustered time series data)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isTimeSeriesDataClustered</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2">(</span><span class="si">%.4f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">timeStart</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; sec)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EnergySystemModel.declareTimeSets"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareTimeSets">[docs]</a>    <span class="k">def</span> <span class="nf">declareTimeSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set and initialize basic time parameters and sets &quot;&quot;&quot;</span>
+
+        <span class="c1"># Store the information if aggregated time series data is considered for modeling the energy system in the pyomo</span>
+        <span class="c1"># model instance and set the time series which is again considered for modeling in all components accordingly</span>
+        <span class="n">pyM</span><span class="o">.</span><span class="n">hasTSA</span> <span class="o">=</span> <span class="n">timeSeriesAggregation</span>
+        <span class="k">for</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">mdl</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="n">comp</span><span class="o">.</span><span class="n">setTimeSeriesData</span><span class="p">(</span><span class="n">pyM</span><span class="o">.</span><span class="n">hasTSA</span><span class="p">)</span>
+
+        <span class="c1"># Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two</span>
+        <span class="c1"># entries, the first one indicating an index of a period and the second one indicating a time step inside that</span>
+        <span class="c1"># period. If time series aggregation is not considered, only one period (period 0) exists and the time steps</span>
+        <span class="c1"># range from 0 up until the specified number of total time steps - 1. Otherwise the time set is initialized for</span>
+        <span class="c1"># each typical period (0 ... numberOfTypicalPeriods-1) and the number of time steps per period (0 ...</span>
+        <span class="c1"># numberOfTimeStepsPerPeriod-1).</span>
+        <span class="c1"># The inter time steps set is a set of tuples as well, which again consist of two values. The first value again</span>
+        <span class="c1"># indicates the period, however the second one now refers to a point in time right before or after a time step</span>
+        <span class="c1"># (or between two time steps). Hence, the second value reaches values from (0 ... numberOfTimeStepsPerPeriod).</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pyM</span><span class="o">.</span><span class="n">hasTSA</span><span class="p">:</span>
+            <span class="c1"># Reset timeStepsPerPeriod in case it was overwritten by the clustering function</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">totalTimeSteps</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interPeriodTimeSteps</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">totalTimeSteps</span><span class="p">)</span> <span class="o">/</span>
+                                                        <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">periods</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">periodsOrder</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">periodOccurrences</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># Define sets</span>
+            <span class="k">def</span> <span class="nf">initTimeSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">((</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">periods</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">initInterTimeStepsSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">((</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">periods</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;Time series aggregation specifications:</span><span class="se">\n</span><span class="s1">&#39;</span>
+                         <span class="s1">&#39;Number of typical periods:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">typicalPeriods</span><span class="p">))</span> <span class="o">+</span>
+                         <span class="s1">&#39;, number of time steps per periods:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># Define sets</span>
+            <span class="k">def</span> <span class="nf">initTimeSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">((</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">typicalPeriods</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">initInterTimeStepsSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">((</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">typicalPeriods</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Initialize sets</span>
+        <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span> <span class="o">=</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initTimeSet</span><span class="p">)</span>
+        <span class="n">pyM</span><span class="o">.</span><span class="n">interTimeStepsSet</span> <span class="o">=</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initInterTimeStepsSet</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">declareSharedPotentialConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="c1"># Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by</span>
+        <span class="c1"># salt caverns storing methane and salt caverns storing hydrogen.</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;Declaring shared potential constraint...&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Create shared potential dictionary (maps a shared potential ID and a location to components who share the</span>
+        <span class="c1"># potential)</span>
+        <span class="n">potentialDict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">compName</span><span class="p">,</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">mdl</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">sharedPotentialID</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="p">[</span><span class="n">potentialDict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">comp</span><span class="o">.</span><span class="n">sharedPotentialID</span><span class="p">,</span> <span class="n">loc</span><span class="p">),</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">compName</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="o">.</span><span class="n">index</span> <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">capacityMax</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">pyM</span><span class="o">.</span><span class="n">sharedPotentialDict</span> <span class="o">=</span> <span class="n">potentialDict</span>
+
+        <span class="c1"># Define and initialize constraints for each instance and location where components have to share an available</span>
+        <span class="c1"># potential. Sum up the relative contributions to the shared potential and ensure that the total share is</span>
+        <span class="c1"># &lt;= 100%. For this, get the contributions to the shared potential for the corresponding ID and</span>
+        <span class="c1"># location from each modeling class.</span>
+        <span class="k">def</span> <span class="nf">sharedPotentialConstraint</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">ID</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">ID</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+        <span class="n">pyM</span><span class="o">.</span><span class="n">ConstraintSharedPotentials</span> <span class="o">=</span> \
+            <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">pyM</span><span class="o">.</span><span class="n">sharedPotentialDict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">rule</span><span class="o">=</span><span class="n">sharedPotentialConstraint</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EnergySystemModel.declareCommodityBalanceConstraints"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareCommodityBalanceConstraints">[docs]</a>    <span class="k">def</span> <span class="nf">declareCommodityBalanceConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Declare commodity balance constraints (one balance constraint for each commodity, location and time step)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;Declaring commodity balances...&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Declare and initialize a set that states for which location and commodity the commodity balance constraints</span>
+        <span class="c1"># are non-trivial (i.e. not 0 == 0; trivial constraints raise errors in pyomo).</span>
+        <span class="k">def</span> <span class="nf">initLocationCommoditySet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">locations</span> <span class="k">for</span> <span class="n">commod</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodities</span>
+                    <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">mdl</span><span class="o">.</span><span class="n">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">values</span><span class="p">()]))</span>
+        <span class="n">pyM</span><span class="o">.</span><span class="n">locationCommoditySet</span> <span class="o">=</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initLocationCommoditySet</span><span class="p">)</span>
+
+        <span class="c1"># Declare and initialize commodity balance constraints by checking for each location and commodity in the</span>
+        <span class="c1"># locationCommoditySet and for each period and time step within the period if the commodity source and sink</span>
+        <span class="c1"># terms add up to zero. For this, get the contribution to commodity balance from each modeling class</span>
+        <span class="k">def</span> <span class="nf">commodityBalanceConstraint</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">getCommodityBalanceContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">pyM</span><span class="o">.</span><span class="n">commodityBalanceConstraint</span> <span class="o">=</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">pyM</span><span class="o">.</span><span class="n">locationCommoditySet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span>
+                                                          <span class="n">rule</span><span class="o">=</span><span class="n">commodityBalanceConstraint</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EnergySystemModel.declareObjective"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareObjective">[docs]</a>    <span class="k">def</span> <span class="nf">declareObjective</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Declare objective function by obtaining the contributions to the objective function from all modeling classes</span>
+<span class="sd">        Currently, the only objective function which can be selected is the sum of the total annual cost of all</span>
+<span class="sd">        components.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;Declaring objective function...&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="n">TAC</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span> <span class="k">for</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">TAC</span>
+        <span class="n">pyM</span><span class="o">.</span><span class="n">Obj</span> <span class="o">=</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Objective</span><span class="p">(</span><span class="n">rule</span><span class="o">=</span><span class="n">objective</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EnergySystemModel.declareOptimizationProblem"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareOptimizationProblem">[docs]</a>    <span class="k">def</span> <span class="nf">declareOptimizationProblem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Declares the optimization problem belonging to the specified energy system, for which a pyomo discrete model</span>
+<span class="sd">        instance is build and filled with</span>
+<span class="sd">        * basic time sets,</span>
+<span class="sd">        * sets, variables and constraints contributed by the component modeling classes,</span>
+<span class="sd">        * basic, component overreaching constraints, and</span>
+<span class="sd">        * an objective function.</span>
+
+<span class="sd">        **Default arguments:**</span>
+
+<span class="sd">        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with</span>
+<span class="sd">            (a) the full time series (False) or</span>
+<span class="sd">            (b) clustered time series data (True).</span>
+<span class="sd">            |br| * the default value is False</span>
+<span class="sd">        :type timeSeriesAggregation: boolean</span>
+
+<span class="sd">        Last edited: November 10, 2018</span>
+<span class="sd">        |br| @author: Lara Welder</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get starting time of the optimization to later on obtain the total run time of the optimize function call</span>
+        <span class="n">timeStart</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="c1"># Check correctness of inputs</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkDeclareOptimizationProblemInput</span><span class="p">(</span><span class="n">timeSeriesAggregation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">isTimeSeriesDataClustered</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                           Initialize mathematical model (ConcreteModel) instance                             #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Initialize a pyomo ConcreteModel which will be used to store the mathematical formulation of the model.</span>
+        <span class="c1"># The ConcreteModel instance is stored in the EnergySystemModel instance, which makes it available for</span>
+        <span class="c1"># post-processing or debugging. A pyomo Suffix with the name dual is declared to make dual values associated</span>
+        <span class="c1"># to the model&#39;s constraints available after optimization.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pyM</span> <span class="o">=</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">ConcreteModel</span><span class="p">()</span>
+        <span class="n">pyM</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pyM</span>
+        <span class="n">pyM</span><span class="o">.</span><span class="n">dual</span> <span class="o">=</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Suffix</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">Suffix</span><span class="o">.</span><span class="n">IMPORT</span><span class="p">)</span>
+
+        <span class="c1"># Set time sets for the model instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareTimeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                         Declare component specific sets, variables and constraints                           #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">_t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;Declaring sets, variables and constraints for &#39;</span> <span class="o">+</span> <span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">declaring sets... &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">mdl</span><span class="o">.</span><span class="n">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">declaring variables... &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">mdl</span><span class="o">.</span><span class="n">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">declaring constraints... &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">mdl</span><span class="o">.</span><span class="n">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1">(</span><span class="si">%.4f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">_t</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; sec)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                              Declare cross-componential sets and constraints                                 #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Declare constraints for enforcing shared capacities</span>
+        <span class="n">_t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareSharedPotentialConstraints</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1">(</span><span class="si">%.4f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">_t</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; sec)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Declare commodity balance constraints (one balance constraint for each commodity, location and time step)</span>
+        <span class="n">_t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareCommodityBalanceConstraints</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1">(</span><span class="si">%.4f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">_t</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; sec)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                         Declare objective function                                           #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Declare objective function by obtaining the contributions to the objective function from all modeling classes</span>
+        <span class="n">_t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareObjective</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1">(</span><span class="si">%.4f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">_t</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; sec)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Store the buildtime of the optimize function call in the EnergySystemModel instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;buildtime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">timeStart</span></div>
+
+<div class="viewcode-block" id="EnergySystemModel.optimize"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.optimize">[docs]</a>    <span class="k">def</span> <span class="nf">optimize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">declaresOptimizationProblem</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">logFileName</span><span class="o">=</span><span class="s1">&#39;job&#39;</span><span class="p">,</span> <span class="n">threads</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                 <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;gurobi&#39;</span><span class="p">,</span> <span class="n">timeLimit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">optimizationSpecs</span><span class="o">=</span><span class="s1">&#39;OptimalityTol=1e-6&#39;</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optimizes the specified energy system, for which a pyomo discrete model instance is build or called upon.</span>
+<span class="sd">        A pyomo instance is optimized with the specified inputs and the optimization results are further</span>
+<span class="sd">        processed.</span>
+
+<span class="sd">        **Default arguments:**</span>
+
+<span class="sd">        :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).</span>
+<span class="sd">            (a) If true, the declareOptimizationProblem function is called and concrete pyomo model instance is built.</span>
+<span class="sd">            (b) If false a previously declared concrete pyomo model instance is used.</span>
+<span class="sd">            |br| * the default value is True</span>
+<span class="sd">        :type timeSeriesAggregation: boolean</span>
+
+<span class="sd">        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with</span>
+<span class="sd">            (a) the full time series (False) or</span>
+<span class="sd">            (b) clustered time series data (True).</span>
+<span class="sd">            |br| * the default value is False</span>
+<span class="sd">        :type timeSeriesAggregation: boolean</span>
+
+<span class="sd">        :param logFileName: logFileName is used for naming the log file of the optimization solver output.</span>
+<span class="sd">            If the logFileName is given as an absolute path (i.e. logFileName = os.path.join(os.getcwd(),</span>
+<span class="sd">            &#39;Results&#39;, &#39;logFileName.txt&#39;)) the log file will be stored in the specified directory. Otherwise</span>
+<span class="sd">            it will be by default stored in the directory where the executing python script is called.</span>
+<span class="sd">            |br| * the default value is &#39;job&#39;</span>
+<span class="sd">        :type logFileName: string</span>
+
+<span class="sd">        :param threads: number of computational threads used for solving the optimization (solver dependent</span>
+<span class="sd">            input). If gurobi is selected as the solver: a value of 0 results in using all available threads. If</span>
+<span class="sd">            a value larger than the available number of threads are chosen, the value will reset to the maximum</span>
+<span class="sd">            number of threads.</span>
+<span class="sd">            |br| * the default value is 3</span>
+<span class="sd">        :type threads: positive integer</span>
+
+<span class="sd">        :param solver: specifies which solver should solve the optimization problem (which of course has to be</span>
+<span class="sd">            installed on the machine on which the model is run).</span>
+<span class="sd">            |br| * the default value is &#39;gurobi&#39;</span>
+<span class="sd">        :type solver: string</span>
+
+<span class="sd">        :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem</span>
+<span class="sd">            in seconds (solver dependent input). The use of this parameter is suggested when running models in</span>
+<span class="sd">            runtime restricted environments (such as clusters with job submission systems). If the runtime</span>
+<span class="sd">            limitation is triggered before an optimal solution is available, the best solution obtained up</span>
+<span class="sd">            until then (if available) is processed.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type timeLimit: strictly positive integer or None</span>
+
+<span class="sd">        :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver</span>
+<span class="sd">            documentation for more information)</span>
+<span class="sd">            |br| * the default value is &#39;LogToConsole=1 OptimalityTol=1e-6&#39;</span>
+<span class="sd">        :type timeLimit: string</span>
+
+<span class="sd">        :param warmstart: specifies if a warm start of the optimization should be considered</span>
+<span class="sd">            (not supported by all solvers).</span>
+<span class="sd">            |br| * the default value is False</span>
+<span class="sd">        :type warmstart: boolean</span>
+
+<span class="sd">        Last edited: August 10, 2018</span>
+<span class="sd">        |br| @author: Lara Welder</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">declaresOptimizationProblem</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">declareOptimizationProblem</span><span class="p">(</span><span class="n">timeSeriesAggregation</span><span class="o">=</span><span class="n">timeSeriesAggregation</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pyM</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The optimization problem is not declared yet. Set the argument declaresOptimization&#39;</span>
+                                <span class="s1">&#39; problem to True or call the declareOptimizationProblem function first.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Get starting time of the optimization to later on obtain the total run time of the optimize function call</span>
+        <span class="n">timeStart</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="c1"># Check correctness of inputs</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkOptimizeInput</span><span class="p">(</span><span class="n">timeSeriesAggregation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">isTimeSeriesDataClustered</span><span class="p">,</span> <span class="n">logFileName</span><span class="p">,</span> <span class="n">threads</span><span class="p">,</span> <span class="n">solver</span><span class="p">,</span>
+                                 <span class="n">timeLimit</span><span class="p">,</span> <span class="n">optimizationSpecs</span><span class="p">,</span> <span class="n">warmstart</span><span class="p">)</span>
+
+        <span class="c1"># Store keyword arguments in the EnergySystemModel instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;logFileName&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;threads&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">logFileName</span><span class="p">,</span> <span class="n">threads</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;solver&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;timeLimit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">solver</span><span class="p">,</span> <span class="n">timeLimit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;optimizationSpecs&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;hasTSA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">optimizationSpecs</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                  Solve the specified optimization problem                                    #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Set which solver should solve the specified optimization problem</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">SolverFactory</span><span class="p">(</span><span class="n">solver</span><span class="p">)</span>
+
+        <span class="c1"># Set, if specified, the time limit</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;timeLimit&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;timelimit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timeLimit</span>
+
+        <span class="c1"># Set the specified solver options</span>
+        <span class="k">if</span> <span class="s1">&#39;LogToConsole=&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">optimizationSpecs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">optimizationSpecs</span> <span class="o">+=</span> <span class="s1">&#39; LogToConsole=0&#39;</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">set_options</span><span class="p">(</span><span class="s1">&#39;Threads=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">threads</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; logfile=&#39;</span> <span class="o">+</span> <span class="n">logFileName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">optimizationSpecs</span><span class="p">)</span>
+
+        <span class="c1"># Solve optimization problem. The optimization solvetime is stored and the solver information is printed.</span>
+        <span class="n">solver_info</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pyM</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="n">warmstart</span><span class="p">,</span> <span class="n">tee</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;solvetime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">timeStart</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">solver_info</span><span class="o">.</span><span class="n">solver</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">solver_info</span><span class="o">.</span><span class="n">problem</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;Solve time: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;solvetime&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39; sec.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                      Post-process optimization output                                        #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="n">_t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="c1"># Post-process the optimization output by differentiating between different solver statuses and termination</span>
+        <span class="c1"># conditions. First, check if the status and termination_condition of the optimization are acceptable.</span>
+        <span class="c1"># If not, no output is generated.</span>
+        <span class="c1"># TODO check if this is still compatible with the latest pyomo version</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">termCondition</span> <span class="o">=</span> <span class="n">solver_info</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">solver_info</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">termination_condition</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="n">opt</span><span class="o">.</span><span class="n">SolverStatus</span><span class="o">.</span><span class="n">error</span> <span class="ow">or</span> <span class="n">status</span> <span class="o">==</span> <span class="n">opt</span><span class="o">.</span><span class="n">SolverStatus</span><span class="o">.</span><span class="n">aborted</span> <span class="ow">or</span> <span class="n">status</span> <span class="o">==</span> <span class="n">opt</span><span class="o">.</span><span class="n">SolverStatus</span><span class="o">.</span><span class="n">unknown</span><span class="p">:</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;Solver status:  &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">status</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;, termination condition:  &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">termCondition</span><span class="p">)</span> <span class="o">+</span>
+                         <span class="s1">&#39;. No output is generated.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">solver_info</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">termination_condition</span> <span class="o">==</span> <span class="n">opt</span><span class="o">.</span><span class="n">TerminationCondition</span><span class="o">.</span><span class="n">infeasibleOrUnbounded</span> <span class="ow">or</span> \
+            <span class="n">solver_info</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">termination_condition</span> <span class="o">==</span> <span class="n">opt</span><span class="o">.</span><span class="n">TerminationCondition</span><span class="o">.</span><span class="n">infeasible</span> <span class="ow">or</span> \
+                <span class="n">solver_info</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">termination_condition</span> <span class="o">==</span> <span class="n">opt</span><span class="o">.</span><span class="n">TerminationCondition</span><span class="o">.</span><span class="n">unbounded</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;Optimization problem is &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">solver_info</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">termination_condition</span><span class="p">)</span> <span class="o">+</span>
+                             <span class="s1">&#39;. No output is generated.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown</span>
+            <span class="c1"># status)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">solver_info</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">termination_condition</span> <span class="o">==</span> <span class="n">opt</span><span class="o">.</span><span class="n">TerminationCondition</span><span class="o">.</span><span class="n">optimal</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Output is generated for a non-optimal solution.&#39;</span><span class="p">)</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing optimization output...&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="c1"># Declare component specific sets, variables and constraints</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span><span class="o">+</span><span class="mi">6</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">mdl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">__t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">mdl</span><span class="o">.</span><span class="n">setOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pyM</span><span class="p">)</span>
+                <span class="n">outputString</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;for {:&#39;</span> <span class="o">+</span> <span class="n">w</span> <span class="o">+</span> <span class="s1">&#39;}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39; ...&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;(</span><span class="si">%.4f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">__t</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;sec)&quot;</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">outputString</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1">(</span><span class="si">%.4f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">_t</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; sec)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Store the runtime of the optimize function call in the EnergySystemModel instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;runtime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;buildtime&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">timeStart</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

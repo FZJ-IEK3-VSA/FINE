@@ -1,0 +1,283 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Extended component classes &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Input Output Management" href="outputManagerDoc.html" />
+    <link rel="prev" title="Core component classes" href="coreComponentsDoc.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="coreComponentsDoc.html">Core component classes</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Extended component classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#linearoptimalpowerflow-class">LinearOptimalPowerFlow class</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="packageDoc.html">Python package description</a> &raquo;</li>
+        
+          <li><a href="componentsDoc.html">Components</a> &raquo;</li>
+        
+      <li>Extended component classes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/subclassComponentsDoc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="extended-component-classes">
+<h1>Extended component classes<a class="headerlink" href="#extended-component-classes" title="Permalink to this headline">¶</a></h1>
+<p>Extended component classes can be declared as subclasses of the core component classes.
+Current subclasses are</p>
+<ul class="simple">
+<li>LinearOptimalPowerFlow class</li>
+</ul>
+<div class="section" id="linearoptimalpowerflow-class">
+<h2>LinearOptimalPowerFlow class<a class="headerlink" href="#linearoptimalpowerflow-class" title="Permalink to this headline">¶</a></h2>
+<p><strong>Class description:</strong></p>
+<span class="target" id="module-lopf"></span><dl class="class">
+<dt id="lopf.LinearOptimalPowerFlow">
+<em class="property">class </em><code class="descclassname">lopf.</code><code class="descname">LinearOptimalPowerFlow</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>reactances</em>, <em>losses=0</em>, <em>distances=None</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LinearOptimalPowerFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LinearOptimalPowerFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Doc</p>
+<dl class="method">
+<dt id="lopf.LinearOptimalPowerFlow.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>reactances</em>, <em>losses=0</em>, <em>distances=None</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LinearOptimalPowerFlow.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LinearOptimalPowerFlow.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an Conversion class instance.
+The Transmission component specific input arguments are described below. The general component
+input arguments are described in the Transmission class.</p>
+<p><strong>Required arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>reactances</strong> (<em>Pandas DataFrame. The row and column indices of the DataFrame have to equal
+the in the energy system model specified locations.</em>) &#8211; reactances for DC power flow modeling.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Inheritance diagram:</strong></p>
+<img src="_images/inheritance-f4286af1fe1005bd498907507404a7fcd0deccf4.png" alt="Inheritance diagram of LinearOptimalPowerFlow" usemap="#inheritancef257b1b58e" class="inheritance"/>
+<map id="inheritancef257b1b58e" name="inheritancef257b1b58e">
+<area shape="poly" id="node1" title="Doc" alt="" coords="139,41,136,30,127,20,112,12,93,7,72,5,52,7,33,12,18,20,9,30,5,41,9,52,18,62,33,70,52,76,72,77,93,76,112,70,127,62,136,52"/>
+<area shape="poly" id="node3" title="Doc" alt="" coords="336,41,333,30,322,20,306,12,285,7,262,5,239,7,218,12,202,20,191,30,187,41,191,52,202,62,218,70,239,76,262,77,285,76,306,70,322,62,333,52"/>
+<area shape="poly" id="node2" href="#lopf.LinearOptimalPowerFlow" target="_top" title="Doc" alt="" coords="642,41,636,30,618,20,589,12,553,7,513,5,473,7,437,12,409,20,391,30,384,41,391,52,409,62,437,70,473,76,513,77,553,76,589,70,618,62,636,52"/>
+</map>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="outputManagerDoc.html" class="btn btn-neutral float-right" title="Input Output Management" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="coreComponentsDoc.html" class="btn btn-neutral" title="Core component classes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

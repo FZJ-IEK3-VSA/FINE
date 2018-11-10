@@ -1,0 +1,382 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>standardIO &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>standardIO</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for standardIO</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">FINE</span> <span class="k">as</span> <span class="nn">fn</span>
+<span class="kn">import</span> <span class="nn">FINE.utils</span> <span class="k">as</span> <span class="nn">utils</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+
+<div class="viewcode-block" id="writeOptimizationOutputToExcel"><a class="viewcode-back" href="../outputManagerDoc.html#standardIO.writeOptimizationOutputToExcel">[docs]</a><span class="k">def</span> <span class="nf">writeOptimizationOutputToExcel</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">outputFileName</span><span class="o">=</span><span class="s1">&#39;scenarioOutput&#39;</span><span class="p">,</span> <span class="n">optSumOutputLevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">optValOutputLevel</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Writes optimization output to an Excel file</span>
+
+<span class="sd">    :param esM: EnergySystemModel instance in which the optimized model is hold</span>
+<span class="sd">    :type esM: EnergySystemModel instance</span>
+
+<span class="sd">    :param outputFileName: name of the Excel output file (without .xlsx ending)</span>
+<span class="sd">        |br| * the default value is &#39;scenarioOutput&#39;</span>
+<span class="sd">    :type outputFileName: string</span>
+
+<span class="sd">    :param optSumOutputLevel: output level of the optimization summary (see EnergySystemModel)</span>
+<span class="sd">        |br| * the default value is 2</span>
+<span class="sd">    :type optSumOutputLevel: int (0,1,2)</span>
+
+<span class="sd">    :param optValOutputLevel: output level of the optimal values. 0: all values are kept. 1: Lines containing only</span>
+<span class="sd">        zeroes are dropped.</span>
+<span class="sd">        |br| * the default value is 1</span>
+<span class="sd">    :type optValOutputLevel: int (0,1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Writing output to Excel... &#39;</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">_t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">ExcelWriter</span><span class="p">(</span><span class="n">outputFileName</span> <span class="o">+</span> <span class="s1">&#39;.xlsx&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">oL</span> <span class="o">=</span> <span class="n">optSumOutputLevel</span>
+        <span class="n">oL_</span> <span class="o">=</span> <span class="n">oL</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">oL</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span> <span class="k">else</span> <span class="n">oL</span>
+        <span class="n">esM</span><span class="o">.</span><span class="n">getOptimizationSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">outputLevel</span><span class="o">=</span><span class="n">oL_</span><span class="p">)</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;OptSummary&#39;</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">esM</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">getOptimalValues</span><span class="p">()</span>
+        <span class="n">oL</span> <span class="o">=</span> <span class="n">optValOutputLevel</span>
+        <span class="n">oL_</span> <span class="o">=</span> <span class="n">oL</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">oL</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span> <span class="k">else</span> <span class="n">oL</span>
+        <span class="n">dataTD</span><span class="p">,</span> <span class="n">indexTD</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="n">dataTI</span><span class="p">,</span> <span class="n">indexTI</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;timeDependent&#39;</span><span class="p">]:</span>
+                <span class="n">dataTD</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;values&#39;</span><span class="p">]),</span> <span class="n">indexTD</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dataTI</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;values&#39;</span><span class="p">]),</span> <span class="n">indexTI</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dataTD</span><span class="p">:</span>
+            <span class="n">dfTD</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">dataTD</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="n">indexTD</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">oL_</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">dfTD</span> <span class="o">=</span> <span class="n">dfTD</span><span class="o">.</span><span class="n">loc</span><span class="p">[((</span><span class="n">dfTD</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="o">~</span><span class="n">dfTD</span><span class="o">.</span><span class="n">isnull</span><span class="p">()))</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="n">dfTD</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;TDoptVar&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dataTI</span><span class="p">:</span>
+            <span class="n">dfTI</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">dataTI</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="n">indexTI</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">oL_</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">dfTD</span> <span class="o">=</span> <span class="n">dfTD</span><span class="o">.</span><span class="n">loc</span><span class="p">[((</span><span class="n">dfTD</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="o">~</span><span class="n">dfTD</span><span class="o">.</span><span class="n">isnull</span><span class="p">()))</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="n">dfTI</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;TIoptVar&#39;</span><span class="p">)</span>
+
+    <span class="n">periodsOrder</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;periodsOrder&#39;</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="n">esM</span><span class="o">.</span><span class="n">periods</span><span class="p">)</span>
+    <span class="n">periodsOrder</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="s1">&#39;Misc&#39;</span><span class="p">)</span>
+
+    <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1">(</span><span class="si">%.4f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">_t</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; sec)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="readEnergySystemModelFromExcel"><a class="viewcode-back" href="../outputManagerDoc.html#standardIO.readEnergySystemModelFromExcel">[docs]</a><span class="k">def</span> <span class="nf">readEnergySystemModelFromExcel</span><span class="p">(</span><span class="n">fileName</span><span class="o">=</span><span class="s1">&#39;scenarioInput.xlsx&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads energy system model from excel file</span>
+
+<span class="sd">    :param fileName: excel file name or path (including .xlsx ending)</span>
+<span class="sd">        |br| * the default value is &#39;scenarioInput.xlsx&#39;</span>
+<span class="sd">    :type fileName: string</span>
+
+<span class="sd">    :return: esM, esMData - an EnergySystemModel class instance and general esMData as a Series</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">ExcelFile</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+
+    <span class="n">esMData</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">sheetname</span><span class="o">=</span><span class="s1">&#39;EnergySystemModel&#39;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">squeeze</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">esMData</span> <span class="o">=</span> <span class="n">esMData</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;{&#39;</span> <span class="k">else</span> <span class="n">v</span><span class="p">)</span>
+
+    <span class="n">kw</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="n">fn</span><span class="o">.</span><span class="n">EnergySystemModel</span><span class="o">.</span><span class="n">__init__</span><span class="p">)</span><span class="o">.</span><span class="n">args</span>
+    <span class="n">esM</span> <span class="o">=</span> <span class="n">fn</span><span class="o">.</span><span class="n">EnergySystemModel</span><span class="p">(</span><span class="o">**</span><span class="n">esMData</span><span class="p">[</span><span class="n">esMData</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">kw</span><span class="p">)])</span>
+
+    <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">esMData</span><span class="p">[</span><span class="s1">&#39;componentClasses&#39;</span><span class="p">]:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">sheetname</span><span class="o">=</span><span class="n">comp</span><span class="p">)</span>
+        <span class="n">dataKeys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;LocSpecs&#39;</span> <span class="ow">in</span> <span class="n">file</span><span class="o">.</span><span class="n">sheet_names</span><span class="p">:</span>
+            <span class="n">dataLoc</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">sheetname</span><span class="o">=</span><span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;LocSpecs&#39;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+            <span class="n">dataLocKeys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">dataLoc</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dataLocKeys</span> <span class="o">&lt;=</span> <span class="n">dataKeys</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid key(s) detected in &#39;</span> <span class="o">+</span> <span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dataLocKeys</span> <span class="o">-</span> <span class="n">dataKeys</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dataLoc</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;NaN values in &#39;</span> <span class="o">+</span> <span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;LocSpecs data detected.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;TimeSeries&#39;</span> <span class="ow">in</span> <span class="n">file</span><span class="o">.</span><span class="n">sheet_names</span><span class="p">:</span>
+            <span class="n">dataTS</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">sheetname</span><span class="o">=</span><span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;TimeSeries&#39;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+            <span class="n">dataTSKeys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">dataTS</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dataTSKeys</span> <span class="o">&lt;=</span> <span class="n">dataKeys</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid key(s) detected in &#39;</span> <span class="o">+</span> <span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dataTSKeys</span> <span class="o">-</span> <span class="n">dataKeys</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dataTS</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;NaN values in &#39;</span> <span class="o">+</span> <span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;TimeSeries data detected.&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">temp</span><span class="p">[</span><span class="n">temp</span> <span class="o">==</span> <span class="s1">&#39;None&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">temp</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;{&#39;</span> <span class="k">else</span> <span class="n">v</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;LocSpecs&#39;</span> <span class="ow">in</span> <span class="n">file</span><span class="o">.</span><span class="n">sheet_names</span><span class="p">:</span>
+                <span class="n">dataLoc_</span> <span class="o">=</span> <span class="n">dataLoc</span><span class="p">[</span><span class="n">dataLoc</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="n">temp</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]]</span>
+                <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">dataLoc_</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+                    <span class="n">temp</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">dataLoc</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">temp</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">ix</span><span class="p">)]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="n">comp</span> <span class="o">+</span> <span class="s1">&#39;TimeSeries&#39;</span> <span class="ow">in</span> <span class="n">file</span><span class="o">.</span><span class="n">sheet_names</span><span class="p">:</span>
+                <span class="n">dataTS_</span> <span class="o">=</span> <span class="n">dataTS</span><span class="p">[</span><span class="n">dataTS</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="n">temp</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]]</span>
+                <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">dataTS_</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+                    <span class="n">temp</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">dataTS_</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">temp</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">ix</span><span class="p">)]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="n">temp</span>
+            <span class="n">esM</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">comp</span><span class="p">)(</span><span class="n">esM</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">esM</span><span class="p">,</span> <span class="n">esMData</span></div>
+
+
+<div class="viewcode-block" id="energySystemModelRunFromExcel"><a class="viewcode-back" href="../outputManagerDoc.html#standardIO.energySystemModelRunFromExcel">[docs]</a><span class="k">def</span> <span class="nf">energySystemModelRunFromExcel</span><span class="p">(</span><span class="n">fileName</span><span class="o">=</span><span class="s1">&#39;scenarioInput.xlsx&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Runs an energy system model from excel file</span>
+<span class="sd">    </span>
+<span class="sd">    :param fileName: excel file name or path (including .xlsx ending)</span>
+<span class="sd">        |br| * the default value is &#39;scenarioInput.xlsx&#39;</span>
+<span class="sd">    :type fileName: string</span>
+
+<span class="sd">    :return: esM - an EnergySystemModel class instance and general esMData as a Series</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">esM</span><span class="p">,</span> <span class="n">esMData</span> <span class="o">=</span> <span class="n">readEnergySystemModelFromExcel</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">esMData</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="p">{}:</span>
+        <span class="n">esM</span><span class="o">.</span><span class="n">cluster</span><span class="p">(</span><span class="o">**</span><span class="n">esMData</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">])</span>
+    <span class="n">esM</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="o">**</span><span class="n">esMData</span><span class="p">[</span><span class="s1">&#39;optimize&#39;</span><span class="p">])</span>
+
+    <span class="n">writeOptimizationOutputToExcel</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="o">**</span><span class="n">esMData</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">esM</span></div>
+
+
+<div class="viewcode-block" id="getDualValues"><a class="viewcode-back" href="../outputManagerDoc.html#standardIO.getDualValues">[docs]</a><span class="k">def</span> <span class="nf">getDualValues</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets dual values of an optimized pyomo instance</span>
+
+<span class="sd">    :param pyM: optimized pyomo instance</span>
+
+<span class="sd">    :return: Pandas Series with dual values</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">pyM</span><span class="o">.</span><span class="n">dual</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">pyM</span><span class="o">.</span><span class="n">dual</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span></div>
+
+
+<div class="viewcode-block" id="getShadowPrices"><a class="viewcode-back" href="../outputManagerDoc.html#standardIO.getShadowPrices">[docs]</a><span class="k">def</span> <span class="nf">getShadowPrices</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constraint</span><span class="p">,</span> <span class="n">dualValues</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets dual values of constraint (&quot;shadow prices&quot;)</span>
+
+<span class="sd">    :param pyM: pyomo model instance with optimized optimization problem</span>
+
+<span class="sd">    :param constraint: constraint from which the dual values should be obtained (e.g. pyM.commodityBalanceConstraint)</span>
+
+<span class="sd">    :param dualValues: dual values of the optimized model instance (if not specified is call using the function#</span>
+<span class="sd">        getDualValues)</span>
+<span class="sd">        |br| * the default value is None</span>
+<span class="sd">    :type dualValues: None or Series</span>
+
+<span class="sd">    :return: Pandas Series with the dual values of the specified constraint</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">dualValues</span><span class="p">:</span>
+        <span class="n">dualValues</span> <span class="o">=</span> <span class="n">getDualValues</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">constraint</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">constraint</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">dualValues</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

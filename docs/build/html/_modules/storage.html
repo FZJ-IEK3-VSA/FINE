@@ -1,0 +1,1010 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>storage &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>storage</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for storage</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">FINE.component</span> <span class="k">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">ComponentModel</span>
+<span class="kn">from</span> <span class="nn">FINE</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">import</span> <span class="nn">pyomo.environ</span> <span class="k">as</span> <span class="nn">pyomo</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+
+<div class="viewcode-block" id="Storage"><a class="viewcode-back" href="../coreComponentsDoc.html#storage.Storage">[docs]</a><span class="k">class</span> <span class="nc">Storage</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Storage.__init__"><a class="viewcode-back" href="../coreComponentsDoc.html#storage.Storage.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">chargeRate</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dischargeRate</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">chargeEfficiency</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dischargeEfficiency</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">selfDischarge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cyclicLifetime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">stateOfChargeMin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stateOfChargeMax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doPreciseTsaModeling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">chargeOpRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">chargeOpRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">chargeTsaWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">dischargeOpRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dischargeOpRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dischargeTsaWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">isPeriodicalStorage</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">locationalEligibility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">capacityFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">investPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerChargeOperation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">opexPerDischargeOperation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">interestRate</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span> <span class="n">economicLifetime</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for creating an Storage class instance.</span>
+<span class="sd">        The Storage component specific input arguments are described below. The general component</span>
+<span class="sd">        input arguments are described in the Component class.</span>
+
+<span class="sd">        **Required arguments:**</span>
+
+<span class="sd">        :param commodity: to the component related commodity.</span>
+<span class="sd">        :type commodity: string</span>
+
+<span class="sd">        **Default arguments:**</span>
+
+<span class="sd">        :param chargeRate: ratio of the maximum storage inflow (in commodityUnit/hour) and the</span>
+<span class="sd">            storage capacity (in commodityUnit). Example:\n</span>
+<span class="sd">            * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be charged 0.45 GWh_H2_LHV during</span>
+<span class="sd">              one hour. The chargeRate thus equals 0.45/133.\n</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type chargeRate: 0 &lt;= float &lt;=1</span>
+
+<span class="sd">        :param dischargeRate: ratio of the maximum storage outflow (in commodityUnit/hour) and</span>
+<span class="sd">            the storage capacity (in commodityUnit). Example:\n</span>
+<span class="sd">            * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be discharged 0.45 GWh_H2_LHV during</span>
+<span class="sd">              one hour. The dischargeRate thus equals 0.45/133.\n</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type dischargeRate: 0 &lt;= float &lt;=1</span>
+
+<span class="sd">        :param chargeEfficiency: defines the efficiency with which the storage can be charged (equals</span>
+<span class="sd">            the percentage of the injected commodity that is transformed into stored commodity).</span>
+<span class="sd">            Enter 0.98 for 98% etc.</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type chargeEfficiency: 0 &lt;= float &lt;=1</span>
+
+<span class="sd">        :param dischargeEfficiency: defines the efficiency with which the storage can be discharged</span>
+<span class="sd">            (equals the percentage of the withdrawn commodity that is transformed into stored commodity).</span>
+<span class="sd">            Enter 0.98 for 98% etc.</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type dischargeEfficiency: 0 &lt;= float &lt;=1</span>
+
+<span class="sd">        :param selfDischarge: percentage of self-discharge from the storage during one hour</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type selfDischarge: 0 &lt;= float &lt;=1</span>
+
+<span class="sd">        :param cyclicLifetime: if specified, the total number of full cycle equivalents that are supported</span>
+<span class="sd">            by the technology.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type cyclicLifetime: positive float</span>
+
+<span class="sd">        :param stateOfChargeMin: threshold (percentage) that the state of charge can not drop under</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type stateOfChargeMin: 0 &lt;= float &lt;=1</span>
+
+<span class="sd">        :param stateOfChargeMax: threshold (percentage) that the state of charge can not exceed</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type stateOfChargeMax: 0 &lt;= float &lt;=1</span>
+
+<span class="sd">        :param doPreciseTsaModeling: determines whether the state of charge is limited precisely (True) or</span>
+<span class="sd">            with a simplified method (False). The error is small if the selfDischarge is small.</span>
+<span class="sd">            |br| * the default value is False</span>
+<span class="sd">        :type doPreciseTsaModeling: boolean</span>
+
+<span class="sd">        :param chargeOpRateMax: if specified indicates a maximum charging rate for each location and each time</span>
+<span class="sd">            step by a positive float. If hasCapacityVariable is set to True, the values are given relative</span>
+<span class="sd">            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the</span>
+<span class="sd">            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form</span>
+<span class="sd">            of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)</span>
+<span class="sd">            during one time step.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type chargeOpRateMax: None or Pandas DataFrame with positive (&gt;= 0) entries. The row indices have</span>
+<span class="sd">            to match the in the energy system model  specified time steps. The column indices have to match the</span>
+<span class="sd">            in the energy system model specified locations.</span>
+
+<span class="sd">        :param chargeOpRateFix: if specified indicates a fixed charging rate for each location and each time</span>
+<span class="sd">            step by a positive float. If hasCapacityVariable is set to True, the values are given relative</span>
+<span class="sd">            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the</span>
+<span class="sd">            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form</span>
+<span class="sd">            of the commodity, referring to the charged commodity (before multiplying the charging efficiency)</span>
+<span class="sd">            during one time step.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type chargeOpRateFix: None or Pandas DataFrame with positive (&gt;= 0) entries. The row indices have</span>
+<span class="sd">            to match the in the energy system model specified time steps. The column indices have to match the</span>
+<span class="sd">            in the energy system model specified locations.</span>
+
+<span class="sd">        :param chargeTsaWeight: weight with which the chargeOpRate (max/fix) time series of the</span>
+<span class="sd">            component should be considered when applying time series aggregation.</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type chargeTsaWeight: positive (&gt;= 0) float</span>
+
+<span class="sd">        :param dischargeOpRateMax: if specified indicates a maximum discharging rate for each location and each</span>
+<span class="sd">            time step by a positive float. If hasCapacityVariable is set to True, the values are given relative</span>
+<span class="sd">            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the</span>
+<span class="sd">            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form</span>
+<span class="sd">            of the commodityUnit, referring to the discharged commodity (after multiplying the discharging</span>
+<span class="sd">            efficiency) during one time step.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type dischargeOpRateMax: None or Pandas DataFrame with positive (&gt;= 0) entries. The row indices have</span>
+<span class="sd">            to match the in the energy system model  specified time steps. The column indices have to match the</span>
+<span class="sd">            in the energy system model specified locations.</span>
+
+<span class="sd">        :param dischargeOpRateFix: if specified indicates a fixed discharging rate for each location and each</span>
+<span class="sd">            time step by a positive float. If hasCapacityVariable is set to True, the values are given relative</span>
+<span class="sd">            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the</span>
+<span class="sd">            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form</span>
+<span class="sd">            of the commodityUnit, referring to the charged commodity (after multiplying the discharging</span>
+<span class="sd">            efficiency) during one time step.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type dischargeOpRateFix: None or Pandas DataFrame with positive (&gt;= 0) entries. The row indices have</span>
+<span class="sd">            to match the in the energy system model specified time steps. The column indices have to match the</span>
+<span class="sd">            in the energy system model specified locations.</span>
+
+<span class="sd">        :param dischargeTsaWeight: weight with which the dischargeOpRate (max/fix) time series of the</span>
+<span class="sd">            component should be considered when applying time series aggregation.</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type dischargeTsaWeight: positive (&gt;= 0) float</span>
+
+<span class="sd">        :param isPeriodicalStorage: indicates if the state of charge of the storage has to be at the same value</span>
+<span class="sd">            after the end of each period. This is especially relevant when using daily periods where short term</span>
+<span class="sd">            storage can be restrained to daily cycles. Benefits the run time of the model.</span>
+<span class="sd">            |br| * the default value is False</span>
+<span class="sd">        :type isPeriodicalStorage: boolean</span>
+
+<span class="sd">        :param opexPerChargeOperation: cost which is directly proportional to the charge operation of the</span>
+<span class="sd">            component is obtained by multiplying the opexPerOperation parameter with the annual sum of the</span>
+<span class="sd">            operational time series of the components. The opexPerOperation can either be given as a float</span>
+<span class="sd">            or a Pandas Series with location specific values.</span>
+<span class="sd">            The cost unit in which the parameter is given has to match the one specified in the energy</span>
+<span class="sd">            system model (i.e. Euro, Dollar, 1e6 Euro).</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type opexPerChargeOperation: positive (&gt;=0) float or Pandas Series with positive (&gt;=0) values.</span>
+<span class="sd">            The indices of the series have to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param opexPerDischargeOperation: cost which is directly proportional to the discharge operation</span>
+<span class="sd">            of the component is obtained by multiplying the opexPerOperation parameter with the annual sum</span>
+<span class="sd">            of the operational time series of the components. The opexPerOperation can either be given as</span>
+<span class="sd">            a float or a Pandas Series with location specific values.</span>
+<span class="sd">            The cost unit in which the parameter is given has to match the one specified in the energy</span>
+<span class="sd">            system model (i.e. Euro, Dollar, 1e6 Euro).</span>
+<span class="sd">            |br| * the default value is 0</span>
+
+<span class="sd">        :type opexPerDischargeOperation: positive (&gt;=0) float or Pandas Series with positive (&gt;=0) values.</span>
+<span class="sd">            The indices of the series have to equal the in the energy system model specified locations.</span>
+<span class="sd">            component (in the physicalUnit of the component) and not of the specific operation itself are</span>
+<span class="sd">            obtained by multiplying the capacity of the component at a location with the opexPerCapacity</span>
+<span class="sd">            factor. The opexPerCapacity can either be given as a float or a Pandas Series with location</span>
+<span class="sd">            specific values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Component</span><span class="o">.</span> <span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="s1">&#39;1dim&#39;</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="n">hasCapacityVariable</span><span class="p">,</span>
+                            <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="n">capacityVariableDomain</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="n">capacityPerPlantUnit</span><span class="p">,</span>
+                            <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="n">hasIsBuiltBinaryVariable</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="n">bigM</span><span class="p">,</span>
+                            <span class="n">locationalEligibility</span><span class="o">=</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="n">capacityMin</span><span class="o">=</span><span class="n">capacityMin</span><span class="p">,</span>
+                            <span class="n">capacityMax</span><span class="o">=</span><span class="n">capacityMax</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="o">=</span><span class="n">sharedPotentialID</span><span class="p">,</span> <span class="n">capacityFix</span><span class="o">=</span><span class="n">capacityFix</span><span class="p">,</span>
+                            <span class="n">isBuiltFix</span><span class="o">=</span><span class="n">isBuiltFix</span><span class="p">,</span> <span class="n">investPerCapacity</span><span class="o">=</span><span class="n">investPerCapacity</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="o">=</span><span class="n">investIfBuilt</span><span class="p">,</span>
+                            <span class="n">opexPerCapacity</span><span class="o">=</span><span class="n">opexPerCapacity</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="o">=</span><span class="n">opexIfBuilt</span><span class="p">,</span> <span class="n">interestRate</span><span class="o">=</span><span class="n">interestRate</span><span class="p">,</span>
+                            <span class="n">economicLifetime</span><span class="o">=</span><span class="n">economicLifetime</span><span class="p">)</span>
+
+        <span class="c1"># Set general storage component data</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkCommodities</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="p">{</span><span class="n">commodity</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commodity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">=</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">commodityUnitsDict</span><span class="p">[</span><span class="n">commodity</span><span class="p">]</span>
+        <span class="c1"># TODO unit and type checks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chargeRate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dischargeRate</span> <span class="o">=</span> <span class="n">chargeRate</span><span class="p">,</span> <span class="n">dischargeRate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chargeEfficiency</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dischargeEfficiency</span> <span class="o">=</span> <span class="n">chargeEfficiency</span><span class="p">,</span> <span class="n">dischargeEfficiency</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selfDischarge</span> <span class="o">=</span> <span class="n">selfDischarge</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cyclicLifetime</span> <span class="o">=</span> <span class="n">cyclicLifetime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stateOfChargeMin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stateOfChargeMax</span> <span class="o">=</span> <span class="n">stateOfChargeMin</span><span class="p">,</span> <span class="n">stateOfChargeMax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isPeriodicalStorage</span> <span class="o">=</span> <span class="n">isPeriodicalStorage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doPreciseTsaModeling</span> <span class="o">=</span> <span class="n">doPreciseTsaModeling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span> <span class="o">=</span> <span class="n">StorageModel</span>
+
+        <span class="c1"># Set additional economic data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opexPerChargeOperation</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">opexPerChargeOperation</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span>
+                                                                     <span class="n">locationalEligibility</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opexPerDischargeOperation</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">opexPerDischargeOperation</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span>
+                                                                        <span class="n">locationalEligibility</span><span class="p">)</span>
+
+        <span class="c1"># Set location-specific operation parameters (Charging rate, discharging rate, state of charge rate)</span>
+        <span class="c1"># and time series aggregation weighting factor</span>
+        <span class="k">if</span> <span class="n">chargeOpRateMax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">chargeOpRateFix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chargeOpRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">esM</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                              <span class="s1">&#39;The chargeOpRateMax time series was set to None.&#39;</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkOperationTimeSeriesInputParameters</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">chargeOpRateMax</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkOperationTimeSeriesInputParameters</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">chargeOpRateFix</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fullChargeOpRateMax</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">chargeOpRateMax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedChargeOpRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chargeOpRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fullChargeOpRateFix</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">chargeOpRateFix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedChargeOpRateFix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chargeOpRateFix</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">utils</span><span class="o">.</span><span class="n">isPositiveNumber</span><span class="p">(</span><span class="n">chargeTsaWeight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chargeTsaWeight</span> <span class="o">=</span> <span class="n">chargeTsaWeight</span>
+
+        <span class="k">if</span> <span class="n">dischargeOpRateMax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dischargeOpRateFix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dischargeOpRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">esM</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;If dischargeOpRateFix is specified, the dischargeOpRateMax parameter is not required.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                              <span class="o">+</span> <span class="s1">&#39;The dischargeOpRateMax time series was set to None.&#39;</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkOperationTimeSeriesInputParameters</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">dischargeOpRateMax</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkOperationTimeSeriesInputParameters</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">dischargeOpRateFix</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fullDischargeOpRateMax</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">dischargeOpRateMax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedDischargeOpRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dischargeOpRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fullDischargeOpRateFix</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">dischargeOpRateFix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedDischargeOpRateFix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dischargeOpRateFix</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">utils</span><span class="o">.</span><span class="n">isPositiveNumber</span><span class="p">(</span><span class="n">dischargeTsaWeight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dischargeTsaWeight</span> <span class="o">=</span> <span class="n">dischargeTsaWeight</span>
+
+        <span class="c1"># Set locational eligibility</span>
+        <span class="n">timeSeriesData</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">tsNb</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="mi">0</span> <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="p">[</span><span class="n">chargeOpRateMax</span><span class="p">,</span> <span class="n">chargeOpRateFix</span><span class="p">,</span> <span class="n">dischargeOpRateMax</span><span class="p">,</span>
+                    <span class="n">dischargeOpRateFix</span><span class="p">,</span> <span class="p">]])</span>
+        <span class="k">if</span> <span class="n">tsNb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">timeSeriesData</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">data</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="p">[</span><span class="n">chargeOpRateMax</span><span class="p">,</span> <span class="n">chargeOpRateFix</span><span class="p">,</span> <span class="n">dischargeOpRateMax</span><span class="p">,</span>
+                                  <span class="n">dischargeOpRateFix</span><span class="p">,</span> <span class="p">]</span> <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span> <span class="o">=</span> \
+            <span class="n">utils</span><span class="o">.</span><span class="n">setLocationalEligibility</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityMax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltFix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasCapacityVariable</span><span class="p">,</span> <span class="n">timeSeriesData</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hasTSA</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chargeOpRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedChargeOpRateMax</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullChargeOpRateMax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chargeOpRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedChargeOpRateFix</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullChargeOpRateFix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dischargeOpRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedChargeOpRateMax</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullDischargeOpRateMax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dischargeOpRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedChargeOpRateFix</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullDischargeOpRateFix</span>
+
+    <span class="k">def</span> <span class="nf">getDataForTimeSeriesAggregation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">[]</span>
+        <span class="n">I</span> <span class="o">=</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullChargeOpRateFix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullChargeOpRateMax</span><span class="p">,</span> <span class="s1">&#39;chargeRate_&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chargeTsaWeight</span><span class="p">),</span>
+             <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullDischargeOpRateFix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullDischargeOpRateMax</span><span class="p">,</span> <span class="s1">&#39;dischargeRate_&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dischargeTsaWeight</span><span class="p">)]</span>
+
+        <span class="k">for</span> <span class="n">rateFix</span><span class="p">,</span> <span class="n">rateMax</span><span class="p">,</span> <span class="n">rateName</span><span class="p">,</span> <span class="n">rateWeight</span> <span class="ow">in</span> <span class="n">I</span><span class="p">:</span>
+            <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepareTSAInput</span><span class="p">(</span><span class="n">rateFix</span><span class="p">,</span> <span class="n">rateMax</span><span class="p">,</span> <span class="n">rateName</span><span class="p">,</span> <span class="n">rateWeight</span><span class="p">,</span> <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">weightDict</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">{})</span>
+
+    <span class="k">def</span> <span class="nf">setAggregatedTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedChargeOpRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullChargeOpRateFix</span><span class="p">,</span> <span class="s1">&#39;chargeRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedChargeOpRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullChargeOpRateMax</span><span class="p">,</span> <span class="s1">&#39;chargeRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedDischargeOpRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullDischargeOpRateFix</span><span class="p">,</span> <span class="s1">&#39;dischargeRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedDischargeOpRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullDischargeOpRateMax</span><span class="p">,</span> <span class="s1">&#39;dischargeRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">StorageModel</span><span class="p">(</span><span class="n">ComponentModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Doc &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span> <span class="o">=</span> <span class="s1">&#39;stor&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">=</span> <span class="s1">&#39;1dim&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chargeOperationVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dischargeOperationVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stateOfChargeOperationVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                            Declare sparse index sets                                             #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares sets and dictionaries &quot;&quot;&quot;</span>
+        <span class="n">compDict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span>
+
+        <span class="c1"># Declare design variable sets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initContinuousDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDiscreteDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignDecisionVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pyM</span><span class="o">.</span><span class="n">hasTSA</span><span class="p">:</span>
+            <span class="n">varSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">initDesignVarSimpleTSASet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">varSet</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">doPreciseTsaModeling</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSetSimple_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span>
+                    <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initDesignVarSimpleTSASet</span><span class="p">))</span>
+
+            <span class="k">def</span> <span class="nf">initDesignVarPreciseTSASet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">varSet</span> <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">doPreciseTsaModeling</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSetPrecise_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span>
+                    <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initDesignVarPreciseTSASet</span><span class="p">))</span>
+
+        <span class="c1"># Declare operation variable set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initOpVarSet</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1"># Declare sets for case differentiation of operating modes</span>
+        <span class="c1"># * Charge operation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;chargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOpRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOpRateFix&#39;</span><span class="p">)</span>
+        <span class="c1"># * Discharge operation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;dischargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOpRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOpRateFix&#39;</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                                Declare variables                                                 #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares design and operation variables &quot;&quot;&quot;</span>
+
+        <span class="c1"># Capacity variables in [commodityUnit*hour]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareCapacityVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># (Continuous) numbers of installed components in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareRealNumbersVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># (Discrete/integer) numbers of installed components in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareIntNumbersVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Binary variables [-] indicating if a component is considered at a location or not in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareBinaryDesignDecisionVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Energy amount injected into a storage (before injection efficiency losses) between two time steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;chargeOp&#39;</span><span class="p">)</span>
+        <span class="c1"># Energy amount delivered from a storage (after delivery efficiency losses) between two time steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;dischargeOp&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Inventory of storage components [commodityUnit*hour]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pyM</span><span class="o">.</span><span class="n">hasTSA</span><span class="p">:</span>
+            <span class="c1"># Energy amount stored at the beginning of a time step during the (one) period (the i-th state of charge</span>
+            <span class="c1"># refers to the state of charge at the beginning of the i-th time step, the last index is the state of</span>
+            <span class="c1"># charge after the last time step)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">),</span> <span class="n">pyM</span><span class="o">.</span><span class="n">interTimeStepsSet</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">NonNegativeReals</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># (Virtual) energy amount stored during a period (the i-th state of charge refers to the state of charge at</span>
+            <span class="c1"># the beginning of the i-th time step, the last index is the state of charge after the last time step)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">),</span> <span class="n">pyM</span><span class="o">.</span><span class="n">interTimeStepsSet</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">Reals</span><span class="p">))</span>
+            <span class="c1"># (Virtual) minimum amount of energy stored within a period</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeMin_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">),</span> <span class="n">esM</span><span class="o">.</span><span class="n">typicalPeriods</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">Reals</span><span class="p">))</span>
+            <span class="c1"># (Virtual) maximum amount of energy stored within a period</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeMax_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">),</span> <span class="n">esM</span><span class="o">.</span><span class="n">typicalPeriods</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">Reals</span><span class="p">))</span>
+            <span class="c1"># (Real) energy amount stored at the beginning of a period between periods(the i-th state of charge refers</span>
+            <span class="c1"># to the state of charge at the beginning of the i-th period, the last index is the state of charge after</span>
+            <span class="c1"># the last period)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeInterPeriods_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span>
+                    <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">),</span> <span class="n">esM</span><span class="o">.</span><span class="n">interPeriodTimeSteps</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">NonNegativeReals</span><span class="p">))</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                          Declare component constraints                                           #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">connectSOCs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Constraint for connecting the state of charge with the charge and discharge operation &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">SOC</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">chargeOp</span><span class="p">,</span> <span class="n">dischargeOp</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;chargeOp_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;dischargeOp_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">opVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">connectSOCs</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span>
+                    <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">selfDischarge</span><span class="p">)</span> <span class="o">**</span> <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span> <span class="o">==</span>
+                    <span class="n">chargeOp</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">chargeEfficiency</span> <span class="o">-</span>
+                    <span class="n">dischargeOp</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">/</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">dischargeEfficiency</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrConnectSOC_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">opVarSet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">connectSOCs</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">cyclicState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Constraint for connecting the state of charge with the charge and discharge operation &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOC</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pyM</span><span class="o">.</span><span class="n">hasTSA</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">cyclicState</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">SOCInter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeInterPeriods_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">cyclicState</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">SOCInter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">SOCInter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">interPeriodTimeSteps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrCyclicState_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">opVarSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">cyclicState</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">cyclicLifetime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">chargeOp</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;chargeOp_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">capVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">cyclicLifetime</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">chargeOp</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodOccurrences</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">)</span> <span class="o">/</span>
+                    <span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span> <span class="o">&lt;=</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span>
+                    <span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">stateOfChargeMax</span> <span class="o">-</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">stateOfChargeMin</span><span class="p">)</span> <span class="o">*</span>
+                    <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">cyclicLifetime</span> <span class="o">/</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">economicLifetime</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">cyclicLifetime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="o">.</span><span class="n">Skip</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrCyclicLifetime_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">capVarSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">cyclicLifetime</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">connectInterPeriodSOC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The state of charge at the end of each period is equivalent to the state of charge of the period</span>
+<span class="sd">        before it (minus its self discharge) plus the change in the state of charge which happened during</span>
+<span class="sd">        the typical period which was assigned to that period</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOC</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOCInter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeInterPeriods_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">connectInterSOC</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">SOCInter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> \
+                   <span class="n">SOCInter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">selfDischarge</span><span class="p">)</span> <span class="o">**</span> \
+                   <span class="p">((</span><span class="n">esM</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span><span class="p">)</span> <span class="o">+</span> \
+                   <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">[</span><span class="n">pInter</span><span class="p">],</span> <span class="n">esM</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrInterSOC_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">opVarSet</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periods</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">connectInterSOC</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">intraSOCstart</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; The (virtual) state of charge at the beginning of a typical period is zero &quot;&quot;&quot;</span>
+        <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOC</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">intraSOCstart</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrSOCPeriodStart_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">opVarSet</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">typicalPeriods</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">intraSOCstart</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">equalInterSOC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; If periodic storage is selected, the states of charge between periods have the same value &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOCInter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeInterPeriods_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">equalInterSOC</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">SOCInter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">]</span> <span class="o">==</span> <span class="n">SOCInter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">isPeriodicalStorage</span> <span class="k">else</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="o">.</span><span class="n">Skip</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrEqualInterSOC_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">opVarSet</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periods</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">equalInterSOC</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">minSOC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The state of charge [energyUnit] has to be larger than the installed capacity [energyUnit] multiplied</span>
+<span class="sd">        with the relative minimum state of charge</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">capVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOC</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">SOCMin</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">stateOfChargeMin</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrSOCMin_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">capVarSet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">SOCMin</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">limitSOCwithSimpleTsa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simplified version of the state of charge limitation control.</span>
+<span class="sd">        The error compared to the precise version is small in cases of small selfDischarge.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">capVarSimpleSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSetSimple_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOC</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOCmax</span><span class="p">,</span> <span class="n">SOCmin</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeMax_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeMin_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOCInter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeInterPeriods_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="c1"># The maximum (virtual) state of charge during a typical period is larger than all occurring (virtual)</span>
+        <span class="c1"># states of charge in that period (the last time step is considered in the subsequent period for t=0)</span>
+        <span class="k">def</span> <span class="nf">SOCintraPeriodMax</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">SOCmax</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstSOCintraPeriodMax_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">capVarSimpleSet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">SOCintraPeriodMax</span><span class="p">))</span>
+
+        <span class="c1"># The minimum (virtual) state of charge during a typical period is smaller than all occurring (virtual)</span>
+        <span class="c1"># states of charge in that period (the last time step is considered in the subsequent period for t=0)</span>
+        <span class="k">def</span> <span class="nf">SOCintraPeriodMin</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">SOCmin</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstSOCintraPeriodMin_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">capVarSimpleSet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">SOCintraPeriodMin</span><span class="p">))</span>
+
+        <span class="c1"># The state of charge at the beginning of one period plus the maximum (virtual) state of charge</span>
+        <span class="c1"># during that period has to be smaller than the installed capacities multiplied with the relative maximum</span>
+        <span class="c1"># state of charge</span>
+        <span class="k">def</span> <span class="nf">SOCMaxSimple</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">SOCInter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">]</span> <span class="o">+</span> <span class="n">SOCmax</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">[</span><span class="n">pInter</span><span class="p">]]</span>
+                    <span class="o">&lt;=</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">stateOfChargeMax</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrSOCMaxSimple_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">capVarSimpleSet</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periods</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">SOCMaxSimple</span><span class="p">))</span>
+
+        <span class="c1"># The state of charge at the beginning of one period plus the minimum (virtual) state of charge</span>
+        <span class="c1"># during that period has to be larger than the installed capacities multiplied with the relative minimum</span>
+        <span class="c1"># state of charge</span>
+        <span class="k">def</span> <span class="nf">SOCMinSimple</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">SOCInter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">selfDischarge</span><span class="p">)</span> <span class="o">**</span>
+                    <span class="p">((</span><span class="n">esM</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">SOCmin</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">[</span><span class="n">pInter</span><span class="p">]]</span>
+                    <span class="o">&gt;=</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">stateOfChargeMin</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrSOCMinSimple_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">capVarSimpleSet</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periods</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">SOCMinSimple</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">operationModeSOC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        State of charge [energyUnit] limited by the installed capacity [powerUnit] and the relative maximum</span>
+<span class="sd">        state of charge</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">constrSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="c1"># Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by the hours per time step</span>
+        <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">&lt;=</span>
+                    <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">stateOfChargeMax</span> <span class="o">*</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">])</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrSOCMaxPrecise_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">constrSet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">op</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">operationModeSOCwithTSA</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        State of charge [energyUnit] limited by the installed capacity [powerUnit] and the relative maximum</span>
+<span class="sd">        state of charge</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">SOCinter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeInterPeriods_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOC</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">constrSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">SOCMaxPrecise</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">doPreciseTsaModeling</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">SOCinter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">]</span> <span class="o">*</span>
+                        <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">selfDischarge</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span><span class="p">))</span> <span class="o">+</span>
+                        <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">[</span><span class="n">pInter</span><span class="p">],</span> <span class="n">t</span><span class="p">]</span>
+                        <span class="o">&lt;=</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">stateOfChargeMax</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="o">.</span><span class="n">Skip</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrSOCMaxPrecise_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">constrSet</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periods</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">SOCMaxPrecise</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">minSOCwithTSAprecise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The state of charge at each time step cannot be smaller than the installed capacity multiplied with the</span>
+<span class="sd">        relative minimum state of charge</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">SOCinter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeInterPeriods_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOC</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">capVarPreciseSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSetPrecise_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">SOCMinPrecise</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">SOCinter</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">pInter</span><span class="p">]</span> <span class="o">*</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">selfDischarge</span><span class="p">)</span> <span class="o">**</span>
+                    <span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span><span class="p">))</span> <span class="o">+</span> <span class="n">SOC</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">[</span><span class="n">pInter</span><span class="p">],</span> <span class="n">t</span><span class="p">]</span>
+                    <span class="o">&gt;=</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">stateOfChargeMin</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrSOCMinPrecise_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">capVarPreciseSet</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periods</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">SOCMinPrecise</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares time independent and dependent constraints&quot;&quot;&quot;</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                    Declare time independent constraints                                      #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Determine the components&#39; capacities from the number of installed units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capToNbReal</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Determine the components&#39; capacities from the number of installed units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capToNbInt</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Enforce the consideration of the binary design variables of a component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bigM</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Enforce the consideration of minimum capacities for components with design decision variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityMinDec</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Sets, if applicable, the installed capacities of a component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Sets, if applicable, the binary design variables of a component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">designBinFix</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                      Declare time dependent constraints                                      #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Constraint for connecting the state of charge with the charge and discharge operation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connectSOCs</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+
+        <span class="c1">#                              Constraints for enforcing charging operation modes                              #</span>
+
+        <span class="c1"># Charging of storage [energyUnit] limited by the installed capacity [energyUnit] multiplied by the hours per</span>
+        <span class="c1"># time step [h] and the charging rate factor [powerUnit/energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode1</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOp&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeRate&#39;</span><span class="p">)</span>
+        <span class="c1"># Charging of storage [energyUnit] limited by the installed capacity [energyUnit] multiplied by the hours per</span>
+        <span class="c1"># time step [h] and the charging operation time series [powerUnit/energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode2</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOp&#39;</span><span class="p">)</span>
+        <span class="c1"># Charging of storage [energyUnit] equal to the installed capacity [energyUnit] multiplied by the hours per</span>
+        <span class="c1"># time step [h] and the charging operation time series [powerUnit/energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode3</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOp&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] limited by the operation time series [energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode4</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOp&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] equal to the operation time series [energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode5</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;chargeOp&#39;</span><span class="p">)</span>
+
+        <span class="c1">#                             Constraints for enforcing discharging operation modes                            #</span>
+
+        <span class="c1"># Discharging of storage [energyUnit] limited by the installed capacity [energyUnit] multiplied by the hours per</span>
+        <span class="c1"># time step [h] and the discharging rate factor [powerUnit/energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode1</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrDischarge&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOp&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeRate&#39;</span><span class="p">)</span>
+        <span class="c1"># Discharging of storage [energyUnit] limited by the installed capacity [energyUnit] multiplied by the hours per</span>
+        <span class="c1"># time step [h] and the charging operation time series [powerUnit/energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode2</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrDischarge&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOp&#39;</span><span class="p">)</span>
+        <span class="c1"># Discharging of storage [energyUnit] equal to the installed capacity [energyUnit] multiplied by the hours per</span>
+        <span class="c1"># time step [h] and the charging operation time series [powerUnit/energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode3</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrDischarge&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOp&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] limited by the operation time series [energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode4</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrDischarge&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOp&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] equal to the operation time series [energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode5</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrDischarge&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOpConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;dischargeOp&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Cyclic constraint enforcing that all storages have the same state of charge at the the beginning of the first</span>
+        <span class="c1"># and the end of the last time step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cyclicState</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+
+        <span class="c1"># Constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cyclicLifetime</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pyM</span><span class="o">.</span><span class="n">hasTSA</span><span class="p">:</span>
+            <span class="c1"># The state of charge at the end of each period is equivalent to the state of charge of the period before it</span>
+            <span class="c1"># (minus its self discharge) plus the change in the state of charge which happened during the typical</span>
+            <span class="c1"># # period which was assigned to that period</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connectInterPeriodSOC</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+            <span class="c1"># The (virtual) state of charge at the beginning of a typical period is zero</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">intraSOCstart</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+            <span class="c1"># If periodic storage is selected, the states of charge between periods have the same value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">equalInterSOC</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+
+        <span class="c1"># Ensure that the state of charge is within the operating limits of the installed capacities</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pyM</span><span class="o">.</span><span class="n">hasTSA</span><span class="p">:</span>
+            <span class="c1">#              Constraints for enforcing a state of charge operation mode within given limits              #</span>
+
+            <span class="c1"># State of charge [energyUnit] limited by the installed capacity [energyUnit] and the relative maximum</span>
+            <span class="c1"># state of charge</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">operationModeSOC</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+
+            <span class="c1"># The state of charge [energyUnit] has to be larger than the installed capacity [energyUnit] multiplied</span>
+            <span class="c1"># with the relative minimum state of charge</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minSOC</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1">#                       Simplified version of the state of charge limitation control                       #</span>
+            <span class="c1">#           (The error compared to the precise version is small in cases of small selfDischarge)           #</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">limitSOCwithSimpleTsa</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+
+            <span class="c1">#                        Precise version of the state of charge limitation control                         #</span>
+
+            <span class="c1"># Constraints for enforcing a state of charge operation within given limits</span>
+
+            <span class="c1"># State of charge [energyUnit] limited by the installed capacity [energyUnit] and the relative maximum</span>
+            <span class="c1"># state of charge</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">operationModeSOCwithTSA</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+
+            <span class="c1"># The state of charge at each time step cannot be smaller than the installed capacity multiplied with the</span>
+            <span class="c1"># relative minimum state of charge</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minSOCwithTSAprecise</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#        Declare component contributions to basic EnergySystemModel constraints and its objective function         #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">comp</span><span class="o">.</span><span class="n">commodity</span> <span class="o">==</span> <span class="n">commod</span> <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+                    <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+
+    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">chargeOp</span><span class="p">,</span> <span class="n">dischargeOp</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;chargeOp_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;dischargeOp_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">opVarDict</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarDict_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">dischargeOp</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">-</span> <span class="n">chargeOp</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span>
+                   <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">opVarDict</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="k">if</span> <span class="n">commod</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">commodity</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+
+        <span class="n">capexCap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investPerCapacity&#39;</span><span class="p">],</span> <span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span>
+        <span class="n">capexDec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investIfBuilt&#39;</span><span class="p">],</span> <span class="s1">&#39;designBin&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span>
+        <span class="n">opexCap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexPerCapacity&#39;</span><span class="p">],</span> <span class="s1">&#39;cap&#39;</span><span class="p">)</span>
+        <span class="n">opexDec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexIfBuilt&#39;</span><span class="p">],</span> <span class="s1">&#39;designBin&#39;</span><span class="p">)</span>
+        <span class="n">opexOp1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexPerChargeOperation&#39;</span><span class="p">],</span> <span class="s1">&#39;chargeOp&#39;</span><span class="p">,</span> <span class="s1">&#39;operationVarDict&#39;</span><span class="p">)</span>
+        <span class="n">opexOp2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexPerDischargeOperation&#39;</span><span class="p">],</span> <span class="s1">&#39;dischargeOp&#39;</span><span class="p">,</span> <span class="s1">&#39;operationVarDict&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">capexCap</span> <span class="o">+</span> <span class="n">capexDec</span> <span class="o">+</span> <span class="n">opexCap</span> <span class="o">+</span> <span class="n">opexDec</span> <span class="o">+</span> <span class="n">opexOp1</span> <span class="o">+</span> <span class="n">opexOp2</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                  Return optimal values of the component class                                    #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">setOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">chargeOp</span><span class="p">,</span> <span class="n">dischargeOp</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;chargeOp_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;dischargeOp_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">SOC</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfCharge_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="c1"># Set optimal design dimension variables and get basic optimization summary</span>
+        <span class="n">optSummaryBasic</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">setOptimalValues</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">,</span> <span class="s1">&#39;commodityUnit&#39;</span><span class="p">,</span> <span class="s1">&#39;*h&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Set optimal operation variables and append optimization summary</span>
+        <span class="n">props</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;operationCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;operationDischarge&#39;</span><span class="p">,</span> <span class="s1">&#39;opexCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;opexDischarge&#39;</span><span class="p">]</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;[-]&#39;</span><span class="p">,</span> <span class="s1">&#39;[-]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">]</span>
+        <span class="n">tuples</span> <span class="o">=</span> <span class="p">[(</span><span class="n">compName</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">unit</span><span class="p">)</span> <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compDict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">for</span> <span class="n">prop</span><span class="p">,</span> <span class="n">unit</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">props</span><span class="p">,</span> <span class="n">units</span><span class="p">)]</span>
+        <span class="n">tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">compDict</span><span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">+</span> <span class="s1">&#39;*h/a]&#39;</span><span class="p">)</span>
+                          <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;operationCharge&#39;</span> <span class="k">else</span> <span class="n">x</span><span class="p">,</span> <span class="n">tuples</span><span class="p">))</span>
+        <span class="n">tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">compDict</span><span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">+</span> <span class="s1">&#39;*h/a]&#39;</span><span class="p">)</span>
+                          <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;operationDischarge&#39;</span> <span class="k">else</span> <span class="n">x</span><span class="p">,</span> <span class="n">tuples</span><span class="p">))</span>
+        <span class="n">mIndex</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span><span class="n">tuples</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Component&#39;</span><span class="p">,</span> <span class="s1">&#39;Property&#39;</span><span class="p">,</span> <span class="s1">&#39;Unit&#39;</span><span class="p">])</span>
+        <span class="n">optSummary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">mIndex</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">))</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+        <span class="c1"># * charge variables and contributions</span>
+        <span class="n">optVal</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">chargeOp</span><span class="o">.</span><span class="n">get_values</span><span class="p">(),</span> <span class="s1">&#39;operationVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chargeOperationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal</span>
+
+        <span class="k">if</span> <span class="n">optVal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">opSum</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ox</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">opexPerChargeOperation</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;operationCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">compDict</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">+</span> <span class="s1">&#39;*h/a]&#39;</span><span class="p">)</span>
+                             <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">opSum</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">opSum</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">values</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;opexCharge&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">ox</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
+                            <span class="n">ox</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">ox</span><span class="o">.</span><span class="n">values</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span>
+
+        <span class="c1"># * discharge variables and contributions</span>
+        <span class="n">optVal</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">dischargeOp</span><span class="o">.</span><span class="n">get_values</span><span class="p">(),</span> <span class="s1">&#39;operationVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span>
+                                                <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dischargeOperationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal</span>
+
+        <span class="k">if</span> <span class="n">optVal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">opSum</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ox</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">opexPerDischargeOperation</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;operationDischarge&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">compDict</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">+</span> <span class="s1">&#39;*h/a]&#39;</span><span class="p">)</span>
+                             <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">opSum</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">opSum</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">values</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;opexDischarge&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">ox</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
+                            <span class="n">ox</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">ox</span><span class="o">.</span><span class="n">values</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span>
+
+        <span class="c1"># * set state of charge variables</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pyM</span><span class="o">.</span><span class="n">hasTSA</span><span class="p">:</span>
+            <span class="n">optVal</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">SOC</span><span class="o">.</span><span class="n">get_values</span><span class="p">(),</span> <span class="s1">&#39;operationVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stateOfChargeOperationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">setOptimalComponentVariables</span><span class="p">(</span><span class="n">optVal</span><span class="p">,</span> <span class="s1">&#39;_stateOfChargeVariablesOptimum&#39;</span><span class="p">,</span> <span class="n">compDict</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">SOCinter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;stateOfChargeInterPeriods_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+            <span class="n">stateOfChargeIntra</span> <span class="o">=</span> <span class="n">SOC</span><span class="o">.</span><span class="n">get_values</span><span class="p">()</span>
+            <span class="n">stateOfChargeInter</span> <span class="o">=</span> <span class="n">SOCinter</span><span class="o">.</span><span class="n">get_values</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">stateOfChargeIntra</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Convert dictionary to DataFrame, transpose, put the period column first and sort the index</span>
+                <span class="c1"># Results in a one dimensional DataFrame</span>
+                <span class="n">stateOfChargeIntra</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">stateOfChargeIntra</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">swaplevel</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+                <span class="n">stateOfChargeInter</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">stateOfChargeInter</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">swaplevel</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+                <span class="c1"># Unstack time steps (convert to a two dimensional DataFrame with the time indices being the columns)</span>
+                <span class="n">stateOfChargeIntra</span> <span class="o">=</span> <span class="n">stateOfChargeIntra</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">level</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">stateOfChargeInter</span> <span class="o">=</span> <span class="n">stateOfChargeInter</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">level</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="c1"># Get rid of the unnecessary 0 level</span>
+                <span class="n">stateOfChargeIntra</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">stateOfChargeIntra</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">droplevel</span><span class="p">()</span>
+                <span class="n">stateOfChargeInter</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">stateOfChargeInter</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">droplevel</span><span class="p">()</span>
+                <span class="c1"># Concat data</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">):</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">stateOfChargeInter</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">count</span><span class="p">]</span> <span class="o">+</span>
+                                 <span class="n">stateOfChargeIntra</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">:</span><span class="n">esM</span><span class="o">.</span><span class="n">timeStepsPerPeriod</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                <span class="n">optVal</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">optVal</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stateOfChargeOperationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">setOptimalComponentVariables</span><span class="p">(</span><span class="n">optVal</span><span class="p">,</span> <span class="s1">&#39;_stateOfChargeVariablesOptimum&#39;</span><span class="p">,</span> <span class="n">compDict</span><span class="p">)</span>
+
+        <span class="c1"># Append optimization summaries</span>
+        <span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optSummaryBasic</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+        <span class="c1"># Summarize all contributions to the total annual cost</span>
+        <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;TAC&#39;</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;TAC&#39;</span><span class="p">)</span> <span class="o">|</span>
+                           <span class="p">(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;opexCharge&#39;</span><span class="p">)</span> <span class="o">|</span>
+                           <span class="p">(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;opexDischarge&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span>
+
+    <span class="k">def</span> <span class="nf">getOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;capacityVariables&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">},</span>
+                <span class="s1">&#39;isBuiltVariables&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                     <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">},</span>
+                <span class="s1">&#39;chargeOperationVariablesOptimum&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">chargeOperationVariablesOptimum</span><span class="p">,</span>
+                                                    <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">},</span>
+                <span class="s1">&#39;dischargeOperationVariablesOptimum&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dischargeOperationVariablesOptimum</span><span class="p">,</span>
+                                                       <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">},</span>
+                <span class="s1">&#39;stateOfChargeOperationVariablesOptimum&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">stateOfChargeOperationVariablesOptimum</span><span class="p">,</span>
+                                                           <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">}}</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

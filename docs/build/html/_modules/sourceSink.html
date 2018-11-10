@@ -1,0 +1,629 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sourceSink &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>sourceSink</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for sourceSink</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">FINE.component</span> <span class="k">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">ComponentModel</span>
+<span class="kn">from</span> <span class="nn">FINE</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pyomo.environ</span> <span class="k">as</span> <span class="nn">pyomo</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<div class="viewcode-block" id="Source"><a class="viewcode-back" href="../coreComponentsDoc.html#sourceSink.Source">[docs]</a><span class="k">class</span> <span class="nc">Source</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+    <span class="c1"># TODO</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Source.__init__"><a class="viewcode-back" href="../coreComponentsDoc.html#sourceSink.Source.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span>
+                 <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">operationRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tsaWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">commodityLimitID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">yearlyLimit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">sharedPotentialID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">investPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerOperation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">commodityCost</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">commodityRevenue</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">interestRate</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span> <span class="n">economicLifetime</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="c1"># TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for</span>
+        <span class="c1"># TODO: eligible locations</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for creating an Source class instance.</span>
+<span class="sd">        The Source component specific input arguments are described below. The general component</span>
+<span class="sd">        input arguments are described in the Component class.</span>
+<span class="sd">        Note: the Sink class inherits from the Source class and is initialized with the same parameter set</span>
+
+<span class="sd">        **Required arguments:**</span>
+
+<span class="sd">        :param commodity: to the component related commodity.</span>
+<span class="sd">        :type commodity: string</span>
+
+<span class="sd">        :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not.</span>
+<span class="sd">            Examples:\n</span>
+<span class="sd">            * A wind turbine has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</span>
+<span class="sd">            * Emitting CO2 into the environment is not per se limited by a capacity -&gt;</span>
+<span class="sd">              hasCapaityVariable is False.\n</span>
+<span class="sd">        :type hasCapacityVariable: boolean</span>
+
+<span class="sd">        **Default arguments:**</span>
+
+<span class="sd">        :param operationRateMax: if specified indicates a maximum operation rate for each location and each time</span>
+<span class="sd">            step by a positive float. If hasCapacityVariable is set to True, the values are given relative</span>
+<span class="sd">            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the</span>
+<span class="sd">            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form</span>
+<span class="sd">            of the commodityUnit for each time step.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type operationRateMax: None or Pandas DataFrame with positive (&gt;= 0) entries. The row indices have</span>
+<span class="sd">            to match the in the energy system model specified time steps. The column indices have to match the</span>
+<span class="sd">            in the energy system model specified locations.</span>
+
+<span class="sd">        :param operationRateFix: if specified indicates a fixed operation rate for each location and each time</span>
+<span class="sd">            step by a positive float. If hasCapacityVariable is set to True, the values are given relative</span>
+<span class="sd">            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the</span>
+<span class="sd">            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form</span>
+<span class="sd">            of the commodityUnit for each time step.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type operationRateFix: None or Pandas DataFrame with positive (&gt;= 0) entries. The row indices have</span>
+<span class="sd">            to match the in the energy system model specified time steps. The column indices have to match the</span>
+<span class="sd">            in the energy system model specified locations.</span>
+
+<span class="sd">        :param tsaWeight: weight with which the time series of the component should be considered when applying</span>
+<span class="sd">            time series aggregation.</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type tsaWeight: positive (&gt;= 0) float</span>
+
+<span class="sd">        :param commodityLimitID: can be specified to limit an annual commodity import/export over the</span>
+<span class="sd">            energySystemModel&#39;s boundaries for one or multiple Source/Sink components. If the same ID</span>
+<span class="sd">            is used in multiple components, the sum of all imports and exports is considered. If a</span>
+<span class="sd">            commoditiyLimitID is specified, the yearlyLimit parameters has to be set as well.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type commodityLimitID: string</span>
+
+<span class="sd">        :param yearlyLimit: if specified, yearly import/export commodity limit for all components with</span>
+<span class="sd">            the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is</span>
+<span class="sd">            limited. If negative, the commodity flow entering the energySystemModel is limited. If a</span>
+<span class="sd">            yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well. Examples:\n</span>
+<span class="sd">            * CO2 can be emitted in power plants by burning natural gas or coal. The CO2 which goes into</span>
+<span class="sd">              the atmosphere over the energy system&#39;s boundaries is modelled as a Sink. CO2 can also be a</span>
+<span class="sd">              Source, taken directly from the atmosphere (over the energy system&#39;s boundaries) for a</span>
+<span class="sd">              methanation process. The commodityUnit for CO2 is tonnes_CO2. Overall, +XY tonnes_CO2 are</span>
+<span class="sd">              allowed to be emitted during the year. All Sources/Sinks producing or consuming CO2 over the</span>
+<span class="sd">              energy system&#39;s boundaries have the same commodityLimitID and the same yearlyLimit of +XY.</span>
+<span class="sd">            * The maximum annual import of a certain chemical (commodityUnit tonnes_chem) is limited to</span>
+<span class="sd">              XY tonnes_chem. The Source component modeling this import has a commodityLimitID</span>
+<span class="sd">              &quot;chemicalComponentLimitID&quot; and a yearlyLimit of -XY.\n</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type yearlyLimit: float</span>
+
+<span class="sd">        :param opexPerOperation: cost which is directly proportional to the operation of the component</span>
+<span class="sd">            is obtained by multiplying the opexPerOperation parameter with the annual sum of the</span>
+<span class="sd">            operational time series of the components. The opexPerOperation can either be given as a</span>
+<span class="sd">            float or a Pandas Series with location specific values.</span>
+<span class="sd">            The cost unit in which the parameter is given has to match the one specified in the energy</span>
+<span class="sd">            system model (i.e. Euro, Dollar, 1e6 Euro).</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type opexPerOperation: positive (&gt;=0) float or Pandas Series with positive (&gt;=0) values.</span>
+<span class="sd">            The indices of the series have to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param commodityCost: cost which is directly proportional to the operation of the component</span>
+<span class="sd">            is obtained by multiplying the commodityCost parameter with the annual sum of the</span>
+<span class="sd">            time series of the components. The commodityCost can either be given as a</span>
+<span class="sd">            float or a Pandas Series with location specific values.</span>
+<span class="sd">            The cost unit in which the parameter is given has to match the one specified in the energy</span>
+<span class="sd">            system model (i.e. Euro, Dollar, 1e6 Euro).</span>
+<span class="sd">            Example:\n</span>
+<span class="sd">            * In a national energy system, natural gas could be purchased from another country with a</span>
+<span class="sd">              certain cost.\n</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type commodityCost: positive (&gt;=0) float or Pandas Series with positive (&gt;=0) values.</span>
+<span class="sd">            The indices of the series have to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param commodityRevenue: revenue which is directly proportional to the operation of the component</span>
+<span class="sd">            is obtained by multiplying the commodityRevenue parameter with the annual sum of the</span>
+<span class="sd">            time series of the components. The commodityRevenue can either be given as a</span>
+<span class="sd">            float or a Pandas Series with location specific values.</span>
+<span class="sd">            The cost unit in which the parameter is given has to match the one specified in the energy</span>
+<span class="sd">            system model (i.e. Euro, Dollar, 1e6 Euro). Example:\n</span>
+<span class="sd">            * Modeling a PV electricity feed-in tariff for a household\n</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type commodityRevenue: positive (&gt;=0) float or Pandas Series with positive (&gt;=0) values.</span>
+<span class="sd">            The indices of the series have to equal the in the energy system model specified locations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Component</span><span class="o">.</span> <span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="s1">&#39;1dim&#39;</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="n">hasCapacityVariable</span><span class="p">,</span>
+                            <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="n">capacityVariableDomain</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="n">capacityPerPlantUnit</span><span class="p">,</span>
+                            <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="n">hasIsBuiltBinaryVariable</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="n">bigM</span><span class="p">,</span>
+                            <span class="n">locationalEligibility</span><span class="o">=</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="n">capacityMin</span><span class="o">=</span><span class="n">capacityMin</span><span class="p">,</span>
+                            <span class="n">capacityMax</span><span class="o">=</span><span class="n">capacityMax</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="o">=</span><span class="n">sharedPotentialID</span><span class="p">,</span> <span class="n">capacityFix</span><span class="o">=</span><span class="n">capacityFix</span><span class="p">,</span>
+                            <span class="n">isBuiltFix</span><span class="o">=</span><span class="n">isBuiltFix</span><span class="p">,</span> <span class="n">investPerCapacity</span><span class="o">=</span><span class="n">investPerCapacity</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="o">=</span><span class="n">investIfBuilt</span><span class="p">,</span>
+                            <span class="n">opexPerCapacity</span><span class="o">=</span><span class="n">opexPerCapacity</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="o">=</span><span class="n">opexIfBuilt</span><span class="p">,</span> <span class="n">interestRate</span><span class="o">=</span><span class="n">interestRate</span><span class="p">,</span>
+                            <span class="n">economicLifetime</span><span class="o">=</span><span class="n">economicLifetime</span><span class="p">)</span>
+
+        <span class="c1"># Set general source/sink data</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">isEnergySystemModelInstance</span><span class="p">(</span><span class="n">esM</span><span class="p">),</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkCommodities</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="p">{</span><span class="n">commodity</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commodity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">=</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">commodityUnitsDict</span><span class="p">[</span><span class="n">commodity</span><span class="p">]</span>
+        <span class="c1"># TODO check value and type correctness</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commodityLimitID</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yearlyLimit</span> <span class="o">=</span> <span class="n">commodityLimitID</span><span class="p">,</span> <span class="n">yearlyLimit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sign</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span> <span class="o">=</span> <span class="n">SourceSinkModel</span>
+
+        <span class="c1"># Set additional economic data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opexPerOperation</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">opexPerOperation</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span>
+                                                               <span class="n">locationalEligibility</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commodityCost</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodityCost</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span>
+                                                            <span class="n">locationalEligibility</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commodityRevenue</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodityRevenue</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span>
+                                                               <span class="n">locationalEligibility</span><span class="p">)</span>
+
+        <span class="c1"># Set location-specific operation parameters</span>
+        <span class="k">if</span> <span class="n">operationRateMax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">operationRateFix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">operationRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">esM</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;If operationRateFix is specified, the operationRateMax parameter is not required.</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                              <span class="s1">&#39;The operationRateMax time series was set to None.&#39;</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkOperationTimeSeriesInputParameters</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">operationRateMax</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkOperationTimeSeriesInputParameters</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">operationRateMax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateMax</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">operationRateMax</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">operationRateFix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateFix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateFix</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">operationRateFix</span><span class="p">)</span>
+
+        <span class="n">utils</span><span class="o">.</span><span class="n">isPositiveNumber</span><span class="p">(</span><span class="n">tsaWeight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tsaWeight</span> <span class="o">=</span> <span class="n">tsaWeight</span>
+
+        <span class="c1"># Set locational eligibility</span>
+        <span class="n">operationTimeSeries</span> <span class="o">=</span> <span class="n">operationRateFix</span> <span class="k">if</span> <span class="n">operationRateFix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">operationRateMax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span> <span class="o">=</span> \
+            <span class="n">utils</span><span class="o">.</span><span class="n">setLocationalEligibility</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityMax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltFix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasCapacityVariable</span><span class="p">,</span> <span class="n">operationTimeSeries</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hasTSA</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateFix</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span>
+
+    <span class="k">def</span> <span class="nf">getDataForTimeSeriesAggregation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">[]</span>
+        <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepareTSAInput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span><span class="p">,</span>
+                                                <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tsaWeight</span><span class="p">,</span> <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">weightDict</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">{})</span>
+
+    <span class="k">def</span> <span class="nf">setAggregatedTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span><span class="p">,</span> <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span><span class="p">,</span> <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Sink"><a class="viewcode-back" href="../coreComponentsDoc.html#sourceSink.Sink">[docs]</a><span class="k">class</span> <span class="nc">Sink</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
+<div class="viewcode-block" id="Sink.__init__"><a class="viewcode-back" href="../coreComponentsDoc.html#sourceSink.Sink.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span>
+                 <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">operationRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tsamWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">commodityLimitID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">yearlyLimit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">sharedPotentialID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">investPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerOperation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">commodityCost</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">commodityRevenue</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">interestRate</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span>
+                 <span class="n">economicLifetime</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for creating an Sink class instance.</span>
+
+<span class="sd">        The Sink class inherits from the Source class. They coincide with there input parameters</span>
+<span class="sd">        (see Source class for the parameter description) and differentiate themselves by the sign</span>
+<span class="sd">        parameters, which is equal to -1 for Sink objects and +1 for Source objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Source</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span> <span class="n">capacityVariableDomain</span><span class="p">,</span>
+                        <span class="n">capacityPerPlantUnit</span><span class="p">,</span> <span class="n">hasIsBuiltBinaryVariable</span><span class="p">,</span> <span class="n">bigM</span><span class="p">,</span> <span class="n">operationRateMax</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="p">,</span>
+                        <span class="n">tsamWeight</span><span class="p">,</span> <span class="n">commodityLimitID</span><span class="p">,</span> <span class="n">yearlyLimit</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="p">,</span> <span class="n">capacityMin</span><span class="p">,</span>
+                        <span class="n">capacityMax</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="p">,</span> <span class="n">capacityFix</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="p">,</span> <span class="n">investPerCapacity</span><span class="p">,</span>
+                        <span class="n">investIfBuilt</span><span class="p">,</span> <span class="n">opexPerOperation</span><span class="p">,</span> <span class="n">commodityCost</span><span class="p">,</span> <span class="n">commodityRevenue</span><span class="p">,</span>
+                        <span class="n">opexPerCapacity</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="p">,</span> <span class="n">interestRate</span><span class="p">,</span> <span class="n">economicLifetime</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sign</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">SourceSinkModel</span><span class="p">(</span><span class="n">ComponentModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Doc &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span> <span class="o">=</span> <span class="s1">&#39;srcSnk&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">=</span> <span class="s1">&#39;1dim&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                            Declare sparse index sets                                             #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">declareYearlyCommodityLimitationDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="n">yearlyCommodityLimitationDict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">compName</span><span class="p">,</span> <span class="n">comp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">commodityLimitID</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ID</span><span class="p">,</span> <span class="n">limit</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">commodityLimitID</span><span class="p">,</span> <span class="n">comp</span><span class="o">.</span><span class="n">yearlyLimit</span>
+                <span class="k">if</span> <span class="n">ID</span> <span class="ow">in</span> <span class="n">yearlyCommodityLimitationDict</span> <span class="ow">and</span> <span class="n">limit</span> <span class="o">!=</span> <span class="n">yearlyCommodityLimitationDict</span><span class="p">[</span><span class="n">ID</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;yearlyLimitationIDs with different upper limits detected.&#39;</span><span class="p">)</span>
+                <span class="n">yearlyCommodityLimitationDict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">ID</span><span class="p">,</span> <span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="p">[]))[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">compName</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;yearlyCommodityLimitationDict_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="n">yearlyCommodityLimitationDict</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares sets and dictionaries &quot;&quot;&quot;</span>
+
+        <span class="c1"># Declare design variable sets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initContinuousDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDiscreteDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignDecisionVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1"># Declare operation variable set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initOpVarSet</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1"># Declare sets for case differentiation of operating modes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateFix&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Declare commodity limitation dictionary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareYearlyCommodityLimitationDict</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                                Declare variables                                                 #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares design and operation variables &quot;&quot;&quot;</span>
+
+        <span class="c1"># Capacity variables in [commodityUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareCapacityVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># (Continuous) numbers of installed components in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareRealNumbersVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># (Discrete/integer) numbers of installed components in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareIntNumbersVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Binary variables [-] indicating if a component is considered at a location or not in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareBinaryDesignDecisionVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Operation of component [commodityUnit*hour]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                          Declare component constraints                                           #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">yearlyLimitationConstraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Limits annual commodity imports/exports over the energySystemModel&#39;s boundaries for one or multiple</span>
+<span class="sd">        Source/Sink components.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">limitDict</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;yearlyCommodityLimitationDict_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">yearlyLimitationConstraint</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+            <span class="n">sumEx</span> <span class="o">=</span> <span class="o">-</span><span class="nb">sum</span><span class="p">(</span><span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">sign</span> <span class="o">*</span>
+                         <span class="n">esM</span><span class="o">.</span><span class="n">periodOccurrences</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span>
+                         <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">opVar</span> <span class="k">if</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">limitDict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">sign</span> <span class="o">=</span> <span class="n">limitDict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="nb">abs</span><span class="p">(</span><span class="n">limitDict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">limitDict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">sumEx</span> <span class="o">&lt;=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">limitDict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrYearlyLimitation_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">limitDict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">rule</span><span class="o">=</span><span class="n">yearlyLimitationConstraint</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares time independent and dependent constraints&quot;&quot;&quot;</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                    Declare time independent constraints                                      #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Determine the components&#39; capacities from the number of installed units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capToNbReal</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Determine the components&#39; capacities from the number of installed units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capToNbInt</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Enforce the consideration of the binary design variables of a component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bigM</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Enforce the consideration of minimum capacities for components with design decision variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityMinDec</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Sets, if applicable, the installed capacities of a component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Sets, if applicable, the binary design variables of a component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">designBinFix</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                      Declare time dependent constraints                                      #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by the hours per time step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode1</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] equal to the installed capacity [powerUnit] multiplied by operation time series</span>
+        <span class="c1"># [powerUnit/powerUnit] and the hours per time step [h])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode2</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by operation time series</span>
+        <span class="c1"># [powerUnit/powerUnit] and the hours per time step [h])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode3</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] equal to the operation time series [energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode4</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] limited by the operation time series [energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode5</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">yearlyLimitationConstraint</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#        Declare component contributions to basic EnergySystemModel constraints and its objective function         #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">comp</span><span class="o">.</span><span class="n">commodity</span> <span class="o">==</span> <span class="n">commod</span> <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+                    <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+
+    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">opVarDict</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarDict_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">sign</span>
+                   <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">opVarDict</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">commodity</span> <span class="o">==</span> <span class="n">commod</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+
+        <span class="n">capexCap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investPerCapacity&#39;</span><span class="p">],</span> <span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span>
+        <span class="n">capexDec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investIfBuilt&#39;</span><span class="p">],</span> <span class="s1">&#39;designBin&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span>
+        <span class="n">opexCap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexPerCapacity&#39;</span><span class="p">],</span> <span class="s1">&#39;cap&#39;</span><span class="p">)</span>
+        <span class="n">opexDec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexIfBuilt&#39;</span><span class="p">],</span> <span class="s1">&#39;designBin&#39;</span><span class="p">)</span>
+        <span class="n">opexOp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexPerOperation&#39;</span><span class="p">],</span> <span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;operationVarDict&#39;</span><span class="p">)</span>
+        <span class="n">commodCost</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;commodityCost&#39;</span><span class="p">],</span> <span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;operationVarDict&#39;</span><span class="p">)</span>
+        <span class="n">commodRevenue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;commodityRevenue&#39;</span><span class="p">],</span> <span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;operationVarDict&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">capexCap</span> <span class="o">+</span> <span class="n">capexDec</span> <span class="o">+</span> <span class="n">opexCap</span> <span class="o">+</span> <span class="n">opexDec</span> <span class="o">+</span> <span class="n">opexOp</span> <span class="o">+</span> <span class="n">commodCost</span> <span class="o">-</span> <span class="n">commodRevenue</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                  Return optimal values of the component class                                    #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">setOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="c1"># Set optimal design dimension variables and get basic optimization summary</span>
+        <span class="n">optSummaryBasic</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">setOptimalValues</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">,</span> <span class="s1">&#39;commodityUnit&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Set optimal operation variables and append optimization summary</span>
+        <span class="n">optVal</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">opVar</span><span class="o">.</span><span class="n">get_values</span><span class="p">(),</span> <span class="s1">&#39;operationVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal</span>
+
+        <span class="n">props</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;operation&#39;</span><span class="p">,</span> <span class="s1">&#39;opexOp&#39;</span><span class="p">,</span> <span class="s1">&#39;commodCosts&#39;</span><span class="p">]</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;[-]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">]</span>
+        <span class="n">tuples</span> <span class="o">=</span> <span class="p">[(</span><span class="n">compName</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">unit</span><span class="p">)</span> <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compDict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">for</span> <span class="n">prop</span><span class="p">,</span> <span class="n">unit</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">props</span><span class="p">,</span> <span class="n">units</span><span class="p">)]</span>
+        <span class="n">tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">compDict</span><span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">+</span> <span class="s1">&#39;*h/a]&#39;</span><span class="p">)</span>
+                          <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;operation&#39;</span> <span class="k">else</span> <span class="n">x</span><span class="p">,</span> <span class="n">tuples</span><span class="p">))</span>
+        <span class="n">mIndex</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span><span class="n">tuples</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Component&#39;</span><span class="p">,</span> <span class="s1">&#39;Property&#39;</span><span class="p">,</span> <span class="s1">&#39;Unit&#39;</span><span class="p">])</span>
+        <span class="n">optSummary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">mIndex</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">))</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">optVal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">opSum</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ox</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">opexPerOperation</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">cCost</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">commodityCost</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">cRevenue</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">commodityRevenue</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;operation&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">compDict</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">+</span> <span class="s1">&#39;*h/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">opSum</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
+                            <span class="n">opSum</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">values</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;opexOp&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">ox</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">ox</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">ox</span><span class="o">.</span><span class="n">values</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;commodCosts&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">ox</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">ox</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="p">(</span><span class="n">cCost</span><span class="o">-</span><span class="n">cRevenue</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span>
+
+        <span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optSummaryBasic</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+        <span class="c1"># Summarize all contributions to the total annual cost</span>
+        <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;TAC&#39;</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;TAC&#39;</span><span class="p">)</span> <span class="o">|</span>
+                           <span class="p">(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;opexOp&#39;</span><span class="p">)</span> <span class="o">|</span>
+                           <span class="p">(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;commodCosts&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span>
+
+    <span class="k">def</span> <span class="nf">getOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getOptimalValues</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

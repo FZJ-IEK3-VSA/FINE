@@ -22,6 +22,7 @@ class Conversion(Component):
     Last edited: July 27, 2018
     |br| @author: Lara Welder
     """
+
     def __init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable=True,
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1, linkedConversionCapacityID=None,
                  hasIsBuiltBinaryVariable=False, bigM=None,
@@ -48,16 +49,15 @@ class Conversion(Component):
             other with one unit of operation (dictionary). Each commodity which is converted in this component
             is indicated by a string in this dictionary. The conversion factor related to this commodity is
             given as a float. A negative value indicates that the commodity is consumed. A positive value
-            indicates that the commodity is produced. Check unit consistency when specifying this parameter!
-            Examples:
-            (a) An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
-                of 70%. The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is
-                given in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
-                -> the commodityConversionFactors are defined as {'electricity':-1,'hydrogen':0.7}.
-            (b) An fuel cell converts, simply put, hydrogen into electricity with an efficiency of 60%.
-                The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is given in
-                GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue -> the
-                commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.
+            indicates that the commodity is produced. Check unit consistency when specifying this parameter! Examples:\n
+            * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
+              of 70%. The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is
+              given in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
+              -> the commodityConversionFactors are defined as {'electricity':-1,'hydrogen':0.7}.
+            * A fuel cell converts, simply put, hydrogen into electricity with an efficiency of 60%.\n
+            The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is given in
+            GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue -> the
+            commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.\n
         :type commodityConversionFactors: dictionary, assigns commodities (string) to a conversion factors
             (float)
 

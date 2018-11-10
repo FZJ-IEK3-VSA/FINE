@@ -34,20 +34,18 @@ class Storage(Component):
         **Default arguments:**
 
         :param chargeRate: ratio of the maximum storage inflow (in commodityUnit/hour) and the
-            storage capacity (in commodityUnit).
-            Example:
+            storage capacity (in commodityUnit). Example:\n
             * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be charged 0.45 GWh_H2_LHV during
-              one hour. The chargeRate thus equals 0.45/133.
+              one hour. The chargeRate thus equals 0.45/133.\n
             |br| * the default value is 1
         :type chargeRate: 0 <= float <=1
 
         :param dischargeRate: ratio of the maximum storage outflow (in commodityUnit/hour) and
-            the storage capacity (in commodityUnit).
-            Example:
+            the storage capacity (in commodityUnit). Example:\n
             * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be discharged 0.45 GWh_H2_LHV during
-              one hour. The dischargeRate thus equals 0.45/133.
+              one hour. The dischargeRate thus equals 0.45/133.\n
             |br| * the default value is 1
-        :type chargeRate: 0 <= float <=1
+        :type dischargeRate: 0 <= float <=1
 
         :param chargeEfficiency: defines the efficiency with which the storage can be charged (equals
             the percentage of the injected commodity that is transformed into stored commodity).

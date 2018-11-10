@@ -1,0 +1,354 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Input Output Management &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Extended component classes" href="subclassComponentsDoc.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="componentsDoc.html">Components</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Input Output Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#standard-inputs-and-outputs">Standard inputs and outputs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="packageDoc.html">Python package description</a> &raquo;</li>
+        
+      <li>Input Output Management</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/outputManagerDoc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="input-output-management">
+<h1>Input Output Management<a class="headerlink" href="#input-output-management" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="standard-inputs-and-outputs">
+<h2>Standard inputs and outputs<a class="headerlink" href="#standard-inputs-and-outputs" title="Permalink to this headline">¶</a></h2>
+<p>Descriptions of the basic functions are given below.</p>
+<p><strong>Function descriptions:</strong></p>
+<span class="target" id="module-standardIO"></span><dl class="function">
+<dt id="standardIO.readEnergySystemModelFromExcel">
+<code class="descclassname">standardIO.</code><code class="descname">readEnergySystemModelFromExcel</code><span class="sig-paren">(</span><em>fileName='scenarioInput.xlsx'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#readEnergySystemModelFromExcel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.readEnergySystemModelFromExcel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads energy system model from excel file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fileName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; excel file name or path (including .xlsx ending)
+<br /> * the default value is &#8216;scenarioInput.xlsx&#8217;</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">esM, esMData - an EnergySystemModel class instance and general esMData as a Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">standardIO.</code><code class="descname">readEnergySystemModelFromExcel</code><span class="sig-paren">(</span><em>fileName='scenarioInput.xlsx'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#readEnergySystemModelFromExcel"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Reads energy system model from excel file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fileName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; excel file name or path (including .xlsx ending)
+<br /> * the default value is &#8216;scenarioInput.xlsx&#8217;</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">esM, esMData - an EnergySystemModel class instance and general esMData as a Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.writeOptimizationOutputToExcel">
+<code class="descclassname">standardIO.</code><code class="descname">writeOptimizationOutputToExcel</code><span class="sig-paren">(</span><em>esM</em>, <em>outputFileName='scenarioOutput'</em>, <em>optSumOutputLevel=2</em>, <em>optValOutputLevel=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#writeOptimizationOutputToExcel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.writeOptimizationOutputToExcel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes optimization output to an Excel file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>esM</strong> (<em>EnergySystemModel instance</em>) &#8211; EnergySystemModel instance in which the optimized model is hold</li>
+<li><strong>outputFileName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the Excel output file (without .xlsx ending)
+<br /> * the default value is &#8216;scenarioOutput&#8217;</li>
+<li><strong>optSumOutputLevel</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em> (</em><em>0</em><em>,</em><em>1</em><em>,</em><em>2</em><em>)</em><em></em>) &#8211; output level of the optimization summary (see EnergySystemModel)
+<br /> * the default value is 2</li>
+<li><strong>optValOutputLevel</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em> (</em><em>0</em><em>,</em><em>1</em><em>)</em><em></em>) &#8211; output level of the optimal values. 0: all values are kept. 1: Lines containing only
+zeroes are dropped.
+<br /> * the default value is 1</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.energySystemModelRunFromExcel">
+<code class="descclassname">standardIO.</code><code class="descname">energySystemModelRunFromExcel</code><span class="sig-paren">(</span><em>fileName='scenarioInput.xlsx'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#energySystemModelRunFromExcel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.energySystemModelRunFromExcel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs an energy system model from excel file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fileName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; excel file name or path (including .xlsx ending)
+<br /> * the default value is &#8216;scenarioInput.xlsx&#8217;</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">esM - an EnergySystemModel class instance and general esMData as a Series</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.getDualValues">
+<code class="descclassname">standardIO.</code><code class="descname">getDualValues</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#getDualValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.getDualValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets dual values of an optimized pyomo instance</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pyM</strong> &#8211; optimized pyomo instance</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Pandas Series with dual values</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.getShadowPrices">
+<code class="descclassname">standardIO.</code><code class="descname">getShadowPrices</code><span class="sig-paren">(</span><em>pyM</em>, <em>constraint</em>, <em>dualValues=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#getShadowPrices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.getShadowPrices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets dual values of constraint (&#8220;shadow prices&#8221;)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pyM</strong> &#8211; pyomo model instance with optimized optimization problem</li>
+<li><strong>constraint</strong> &#8211; constraint from which the dual values should be obtained (e.g. pyM.commodityBalanceConstraint)</li>
+<li><strong>dualValues</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Series</em>) &#8211; dual values of the optimized model instance (if not specified is call using the function#
+getDualValues)
+<br /> * the default value is None</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Pandas Series with the dual values of the specified constraint</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="subclassComponentsDoc.html" class="btn btn-neutral" title="Extended component classes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

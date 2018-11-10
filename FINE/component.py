@@ -24,22 +24,21 @@ class Component(metaclass=ABCMeta):
         :type esM: EnergySystemModel instance from the FINE package
 
         :param name: name of the component. Has to be unique (i.e. no other components with that name can
-        already exist in the EnergySystemModel instance to which the component is added).
+            already exist in the EnergySystemModel instance to which the component is added).
         :type name: string
 
-        :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not.
-            Examples:
-            (a) An electrolyzer has a capacity given in GW_electric -> hasCapacityVariable is True.
-            (b) In the energy system, biogas can, from a model perspective, be converted into methane (and then
-                used in conventional power plants which emit CO2) by getting CO2 from the environment. Thus,
-                using biogas in conventional power plants is, from a balance perspective, CO2 free. This
-                conversion is purely theoretical and does not require a capacity -> hasCapacityVariable
-                is False.
-            (c) A electricity cable has a capacity given in GW_electric -> hasCapacityVariable is True.
-            (d) If the transmission capacity of a component is unlimited hasCapacityVariable is False.
-            (e) A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
-            (f) Emitting CO2 into the environment is not per se limited by a capacity ->
-                hasCapacityVariable is False.
+        :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not. Examples:\n
+            * An electrolyzer has a capacity given in GW_electric -> hasCapacityVariable is True.
+            * In the energy system, biogas can, from a model perspective, be converted into methane (and then
+              used in conventional power plants which emit CO2) by getting CO2 from the environment. Thus,
+              using biogas in conventional power plants is, from a balance perspective, CO2 free. This
+              conversion is purely theoretical and does not require a capacity -> hasCapacityVariable
+              is False.
+            * A electricity cable has a capacity given in GW_electric -> hasCapacityVariable is True.
+            * If the transmission capacity of a component is unlimited hasCapacityVariable is False.
+            * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
+            * Emitting CO2 into the environment is not per se limited by a capacity ->
+              hasCapacityVariable is False.\n
         :type hasCapacityVariable: boolean
 
         **Default arguments:**
@@ -58,11 +57,11 @@ class Component(metaclass=ABCMeta):
             |br| * the default value is 1
         :type capacityPerPlantUnit: strictly positive float
 
-        :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for
+        :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for\n
             * each eligible location of the component, which indicate if the component is built at that location or
               not (dimension=1dim).
             * each eligible connection of the transmission component, which indicate if the component is built
-              between two locations or not (dimension=2dim).
+              between two locations or not (dimension=2dim).\n
             The binary variables can be used to enforce one-time investment cost or capacity-independent
             annual operation cost. If a minimum capacity is specified and this parameter is set to True,
             the minimum capacities are only considered if a component is built (i.e. if a component is built
@@ -79,11 +78,11 @@ class Component(metaclass=ABCMeta):
             |br| * the default value is None
         :type bigM: None or strictly positive float
 
-        :param locationalEligibility: Pandas
+        :param locationalEligibility: Pandas\n
             * Series that indicates if a component can be built at a location (=1) or not (=0)
               (dimension=1dim) or
             * Pandas DataFrame that indicates if a component can be built between two locations
-              (=1) or not (=0) (dimension=2dim).
+              (=1) or not (=0) (dimension=2dim).\n
             If not specified and a maximum or fixed capacity or time series is given, the parameter will be
             set based on these inputs. If the parameter is specified, a consistency check is done to ensure
             that the parameters indicate the same locational eligibility. If the parameter is not specified
@@ -92,7 +91,7 @@ class Component(metaclass=ABCMeta):
             This parameter is key for ensuring small built times of the optimization problem by avoiding the
             declaration of unnecessary variables and constraints.
             |br| * the default value is None
-        :type locationalEligibility:
+        :type locationalEligibility:\n
             * None or
             * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the
               energy system model specified locations or
@@ -149,13 +148,13 @@ class Component(metaclass=ABCMeta):
 
         :param investPerCapacity: the invest of a component is obtained by multiplying the built capacities
             of the component (in the physicalUnit of the component) with the investPerCapacity factor.
-            The investPerCapacity can either be given as
+            The investPerCapacity can either be given as\n
             * a float or a Pandas Series with location specific values. The cost unit in which the parameter
               is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
               1e6 Euro) (dimension=1dim) or
             * a float or a Pandas DataFrame with location specific values. The cost unit in which the
               parameter is given has to match the one specified in the energy system model divided by
-              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)
+              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n
             |br| * the default value is 0
         :type investPerCapacity:
             * None or
@@ -165,13 +164,13 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations.
 
         :param investIfBuilt: a capacity-independent invest which only arises in a location if a component
-            is built at that location. The investIfBuilt can either be given as
+            is built at that location. The investIfBuilt can either be given as\n
             * a float or a Pandas Series with location specific values. The cost unit in which the parameter
               is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
               1e6 Euro) (dimension=1dim) or
             * a float or a Pandas DataFrame with location specific values. The cost unit in which the
               parameter is given has to match the one specified in the energy system model divided by
-              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)
+              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n
             |br| * the default value is 0
         :type investIfBuilt:
             * None or
@@ -183,13 +182,13 @@ class Component(metaclass=ABCMeta):
         :param opexPerCapacity: annual operational cost which are only a function of the capacity of the
             component (in the physicalUnit of the component) and not of the specific operation itself are
             obtained by multiplying the capacity of the component at a location with the opexPerCapacity
-            factor. The opexPerCapacity can either be given as
+            factor. The opexPerCapacity can either be given as\n
             * a float or a Pandas Series with location specific values. The cost unit in which the parameter
               is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
               1e6 Euro) (dimension=1dim) or
             * a float or a Pandas DataFrame with location specific values. The cost unit in which the
               parameter is given has to match the one specified in the energy system model divided by
-              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)
+              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n
             |br| * the default value is 0
         :type opexPerCapacity:
             * None or
@@ -199,13 +198,13 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations.
 
         :param opexIfBuilt: a capacity-independent annual operational cost which only arises in a location
-            if a component is built at that location. The opexIfBuilt can either be given as
+            if a component is built at that location. The opexIfBuilt can either be given as\n
             * a float or a Pandas Series with location specific values. The cost unit in which the parameter
               is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
               1e6 Euro) (dimension=1dim) or
             * a float or a Pandas DataFrame with location specific values. The cost unit in which the
               parameter is given has to match the one specified in the energy system model divided by
-              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)
+              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n
             |br| * the default value is 0
         :type opexIfBuilt:
             * None or

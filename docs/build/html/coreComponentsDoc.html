@@ -1,0 +1,936 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Core component classes &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Extended component classes" href="subclassComponentsDoc.html" />
+    <link rel="prev" title="Components" href="componentsDoc.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Core component classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#component-class">Component class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#source-and-sink-class">Source and Sink class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#conversion-class">Conversion class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#transmission-class">Transmission class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#storage-class">Storage class</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="subclassComponentsDoc.html">Extended component classes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="packageDoc.html">Python package description</a> &raquo;</li>
+        
+          <li><a href="componentsDoc.html">Components</a> &raquo;</li>
+        
+      <li>Core component classes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/coreComponentsDoc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="core-component-classes">
+<h1>Core component classes<a class="headerlink" href="#core-component-classes" title="Permalink to this headline">¶</a></h1>
+<p>The core component classes of this framework are the</p>
+<ul class="simple">
+<li>Source and Sink (inherits from Source) classes</li>
+<li>Conversion class</li>
+<li>Transmission class</li>
+<li>Storage class</li>
+</ul>
+<p>Each of these classes inherits from the Component class. Instances (with concrete values) of these classes can be added
+to an EnergySystemModel class to specify a concrete energy system.</p>
+<div class="section" id="component-class">
+<h2>Component class<a class="headerlink" href="#component-class" title="Permalink to this headline">¶</a></h2>
+<p><strong>Class description:</strong></p>
+<span class="target" id="module-component"></span><dl class="class">
+<dt id="component.Component">
+<em class="property">class </em><code class="descclassname">component.</code><code class="descname">Component</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>dimension</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#Component"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.Component" title="Permalink to this definition">¶</a></dt>
+<dd><p>Doc</p>
+<dl class="method">
+<dt id="component.Component.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>dimension</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#Component.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.Component.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an Conversion class instance.</p>
+<p><strong>Required arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>esM</strong> (<em>EnergySystemModel instance from the FINE package</em>) &#8211; energy system model to which the component should be added. Used for unit checks.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the component. Has to be unique (i.e. no other components with that name can
+already exist in the EnergySystemModel instance to which the component is added).</li>
+<li><strong>hasCapacityVariable</strong> (<em>boolean</em>) &#8211; <p>specifies if the component should be modeled with a capacity or not. Examples:</p>
+<ul>
+<li>An electrolyzer has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</li>
+<li>In the energy system, biogas can, from a model perspective, be converted into methane (and then
+used in conventional power plants which emit CO2) by getting CO2 from the environment. Thus,
+using biogas in conventional power plants is, from a balance perspective, CO2 free. This
+conversion is purely theoretical and does not require a capacity -&gt; hasCapacityVariable
+is False.</li>
+<li>A electricity cable has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</li>
+<li>If the transmission capacity of a component is unlimited hasCapacityVariable is False.</li>
+<li>A wind turbine has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</li>
+<li>Emitting CO2 into the environment is not per se limited by a capacity -&gt;
+hasCapacityVariable is False.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>capacityVariableDomain</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a><em> (</em><em>'continuous'</em><em> or </em><em>'discrete'</em><em>)</em><em></em>) &#8211; the mathematical domain of the capacity variables, if they are specified.
+By default, the domain is specified as &#8216;continuous&#8217; and thus declares the variables as positive
+(&gt;=0) real values. The second input option that is available for this parameter is &#8216;discrete&#8217;, which
+declares the variables as positive (&gt;=0) integer values.
+<br /> * the default value is &#8216;continuous&#8217;</li>
+<li><strong>capacityPerPlantUnit</strong> (<em>strictly positive float</em>) &#8211; capacity of one plant of the component (in the specified physicalUnit of
+the plant). The default is 1, thus the number of plants is equal to the installed capacity.
+This parameter should be specified when using a &#8216;discrete&#8217; capacityVariableDomain.
+It can be specified when using a &#8216;continuous&#8217; variable domain.
+<br /> * the default value is 1</li>
+<li><strong>hasIsBuiltBinaryVariable</strong> (<em>boolean</em>) &#8211; <p>specifies if binary decision variables should be declared for</p>
+<ul>
+<li>each eligible location of the component, which indicate if the component is built at that location or
+not (dimension=1dim).</li>
+<li>each eligible connection of the transmission component, which indicate if the component is built
+between two locations or not (dimension=2dim).</li>
+</ul>
+<p>The binary variables can be used to enforce one-time investment cost or capacity-independent
+annual operation cost. If a minimum capacity is specified and this parameter is set to True,
+the minimum capacities are only considered if a component is built (i.e. if a component is built
+at that location, it has to be built with a minimum capacity of XY GW, otherwise it is set to 0 GW).
+<br /> * the default value is False</p>
+</li>
+<li><strong>bigM</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>strictly positive float</em>) &#8211; the bigM parameter is only required when the hasIsBuiltBinaryVariable parameter is set to
+True. In that case, it is set as a strictly positive float, otherwise it can remain a None value.
+If not None and the ifBuiltBinaryVariables parameter is set to True, the parameter enforces an
+artificial upper bound on the maximum capacities which should, however, never be reached. The value
+should be chosen as small as possible but as large as necessary so that the optimal values of the
+designed capacities are well below this value after the optimization.
+<br /> * the default value is None</li>
+<li><strong>locationalEligibility</strong> &#8211; <p>Pandas</p>
+<ul>
+<li>Series that indicates if a component can be built at a location (=1) or not (=0)
+(dimension=1dim) or</li>
+<li>Pandas DataFrame that indicates if a component can be built between two locations
+(=1) or not (=0) (dimension=2dim).</li>
+</ul>
+<p>If not specified and a maximum or fixed capacity or time series is given, the parameter will be
+set based on these inputs. If the parameter is specified, a consistency check is done to ensure
+that the parameters indicate the same locational eligibility. If the parameter is not specified
+and also no other of the parameters is specified it is assumed that the component is eligible in
+each location and all values are set to 1.
+This parameter is key for ensuring small built times of the optimization problem by avoiding the
+declaration of unnecessary variables and constraints.
+<br /> * the default value is None</p>
+</li>
+<li><strong>capacityMin</strong> &#8211; if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
+indicating minimum capacities else None. If binary decision variables are declared the minimum
+capacity is only enforced if the component is built .
+<br /> * the default value is None</li>
+<li><strong>capacityMax</strong> &#8211; if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
+indicating maximum capacities else None.
+<br /> * the default value is None</li>
+<li><strong>sharedPotentialID</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; if specified, indicates that the component has to share its maximum
+potential capacity with other components (i.e. due to space limitations). The shares of how
+much of the maximum potential is used have to add up to less then 100%.
+<br /> * the default value is None</li>
+<li><strong>capacityFix</strong> &#8211; if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
+indicating fixed capacities else None.
+<br /> * the default value is None</li>
+<li><strong>isBuiltFix</strong> &#8211; if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
+indicating fixed decisions in which or between which locations the component is built (i.e. sets
+the isBuilt binary variables) else None.
+<br /> * the default value is None</li>
+<li><strong>investPerCapacity</strong> &#8211; <p>the invest of a component is obtained by multiplying the built capacities
+of the component (in the physicalUnit of the component) with the investPerCapacity factor.
+The investPerCapacity can either be given as</p>
+<ul>
+<li>a float or a Pandas Series with location specific values. The cost unit in which the parameter
+is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
+1e6 Euro) (dimension=1dim) or</li>
+<li>a float or a Pandas DataFrame with location specific values. The cost unit in which the
+parameter is given has to match the one specified in the energy system model divided by
+the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)</li>
+</ul>
+<p><br /> * the default value is 0</p>
+</li>
+<li><strong>investIfBuilt</strong> &#8211; <p>a capacity-independent invest which only arises in a location if a component
+is built at that location. The investIfBuilt can either be given as</p>
+<ul>
+<li>a float or a Pandas Series with location specific values. The cost unit in which the parameter
+is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
+1e6 Euro) (dimension=1dim) or</li>
+<li>a float or a Pandas DataFrame with location specific values. The cost unit in which the
+parameter is given has to match the one specified in the energy system model divided by
+the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)</li>
+</ul>
+<p><br /> * the default value is 0</p>
+</li>
+<li><strong>opexPerCapacity</strong> &#8211; <p>annual operational cost which are only a function of the capacity of the
+component (in the physicalUnit of the component) and not of the specific operation itself are
+obtained by multiplying the capacity of the component at a location with the opexPerCapacity
+factor. The opexPerCapacity can either be given as</p>
+<ul>
+<li>a float or a Pandas Series with location specific values. The cost unit in which the parameter
+is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
+1e6 Euro) (dimension=1dim) or</li>
+<li>a float or a Pandas DataFrame with location specific values. The cost unit in which the
+parameter is given has to match the one specified in the energy system model divided by
+the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)</li>
+</ul>
+<p><br /> * the default value is 0</p>
+</li>
+<li><strong>opexIfBuilt</strong> &#8211; <p>a capacity-independent annual operational cost which only arises in a location
+if a component is built at that location. The opexIfBuilt can either be given as</p>
+<ul>
+<li>a float or a Pandas Series with location specific values. The cost unit in which the parameter
+is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
+1e6 Euro) (dimension=1dim) or</li>
+<li>a float or a Pandas DataFrame with location specific values. The cost unit in which the
+parameter is given has to match the one specified in the energy system model divided by
+the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)</li>
+</ul>
+<p><br /> * the default value is 0</p>
+</li>
+<li><strong>interestRate</strong> &#8211; interest rate which is considered for computing the annuities of the invest
+of the component (depreciates the invests over the economic lifetime).
+A value of 0.08 corresponds to an interest rate of 8%.
+<br /> * the default value is 0.08</li>
+<li><strong>economicLifetime</strong> &#8211; economic lifetime of the component which is considered for computing the
+annuities of the invest of the component (aka depreciation time).
+<br /> * the default value is 10</li>
+<li><strong>modelingClass</strong> (<em>a class inherting from ComponentModeling</em>) &#8211; to the Component connected modeling class.
+<br /> * the default value is ModelingClass</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Inheritance diagram:</strong></p>
+<img src="_images/inheritance-f7f11ef86413b6fa78cf064ac9ef5d6bb0f09615.png" alt="Inheritance diagram of Component" usemap="#inheritance6e993f4efa" class="inheritance"/>
+<map id="inheritance6e993f4efa" name="inheritance6e993f4efa">
+<area shape="poly" id="node1" href="#component.Component" target="_top" title="Doc" alt="" coords="139,41,136,30,127,20,112,12,93,7,72,5,52,7,33,12,18,20,9,30,5,41,9,52,18,62,33,70,52,76,72,77,93,76,112,70,127,62,136,52"/>
+</map>
+</div>
+<div class="section" id="source-and-sink-class">
+<h2>Source and Sink class<a class="headerlink" href="#source-and-sink-class" title="Permalink to this headline">¶</a></h2>
+<p><strong>Class description:</strong></p>
+<span class="target" id="module-sourceSink"></span><dl class="class">
+<dt id="sourceSink.Source">
+<em class="property">class </em><code class="descclassname">sourceSink.</code><code class="descname">Source</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>commodityLimitID=None</em>, <em>yearlyLimit=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>commodityCost=0</em>, <em>commodityRevenue=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Doc</p>
+<dl class="method">
+<dt id="sourceSink.Source.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>commodityLimitID=None</em>, <em>yearlyLimit=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>commodityCost=0</em>, <em>commodityRevenue=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Source.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Source.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an Source class instance.
+The Source component specific input arguments are described below. The general component
+input arguments are described in the Component class.
+Note: the Sink class inherits from the Source class and is initialized with the same parameter set</p>
+<p><strong>Required arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>commodity</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; to the component related commodity.</li>
+<li><strong>hasCapacityVariable</strong> (<em>boolean</em>) &#8211; <p>specifies if the component should be modeled with a capacity or not.
+Examples:</p>
+<ul>
+<li>A wind turbine has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</li>
+<li>Emitting CO2 into the environment is not per se limited by a capacity -&gt;
+hasCapaityVariable is False.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>operationRateMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) &#8211; if specified indicates a maximum operation rate for each location and each time
+step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodityUnit for each time step.
+<br /> * the default value is None</li>
+<li><strong>operationRateFix</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) &#8211; if specified indicates a fixed operation rate for each location and each time
+step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodityUnit for each time step.
+<br /> * the default value is None</li>
+<li><strong>tsaWeight</strong> (<em>positive</em><em> (</em><em>&gt;= 0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) &#8211; weight with which the time series of the component should be considered when applying
+time series aggregation.
+<br /> * the default value is 1</li>
+<li><strong>commodityLimitID</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; can be specified to limit an annual commodity import/export over the
+energySystemModel&#8217;s boundaries for one or multiple Source/Sink components. If the same ID
+is used in multiple components, the sum of all imports and exports is considered. If a
+commoditiyLimitID is specified, the yearlyLimit parameters has to be set as well.
+<br /> * the default value is None</li>
+<li><strong>yearlyLimit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) &#8211; <p>if specified, yearly import/export commodity limit for all components with
+the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is
+limited. If negative, the commodity flow entering the energySystemModel is limited. If a
+yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well. Examples:</p>
+<ul>
+<li>CO2 can be emitted in power plants by burning natural gas or coal. The CO2 which goes into
+the atmosphere over the energy system&#8217;s boundaries is modelled as a Sink. CO2 can also be a
+Source, taken directly from the atmosphere (over the energy system&#8217;s boundaries) for a
+methanation process. The commodityUnit for CO2 is tonnes_CO2. Overall, +XY tonnes_CO2 are
+allowed to be emitted during the year. All Sources/Sinks producing or consuming CO2 over the
+energy system&#8217;s boundaries have the same commodityLimitID and the same yearlyLimit of +XY.</li>
+<li>The maximum annual import of a certain chemical (commodityUnit tonnes_chem) is limited to
+XY tonnes_chem. The Source component modeling this import has a commodityLimitID
+&#8220;chemicalComponentLimitID&#8221; and a yearlyLimit of -XY.</li>
+</ul>
+<p><br /> * the default value is None</p>
+</li>
+<li><strong>opexPerOperation</strong> (<em>positive</em><em> (</em><em>&gt;=0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><em>Pandas Series with positive</em><em> (</em><em>&gt;=0</em><em>) </em><em>values.
+The indices of the series have to equal the in the energy system model specified locations.</em>) &#8211; cost which is directly proportional to the operation of the component
+is obtained by multiplying the opexPerOperation parameter with the annual sum of the
+operational time series of the components. The opexPerOperation can either be given as a
+float or a Pandas Series with location specific values.
+The cost unit in which the parameter is given has to match the one specified in the energy
+system model (i.e. Euro, Dollar, 1e6 Euro).
+<br /> * the default value is 0</li>
+<li><strong>commodityCost</strong> (<em>positive</em><em> (</em><em>&gt;=0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><em>Pandas Series with positive</em><em> (</em><em>&gt;=0</em><em>) </em><em>values.
+The indices of the series have to equal the in the energy system model specified locations.</em>) &#8211; <p>cost which is directly proportional to the operation of the component
+is obtained by multiplying the commodityCost parameter with the annual sum of the
+time series of the components. The commodityCost can either be given as a
+float or a Pandas Series with location specific values.
+The cost unit in which the parameter is given has to match the one specified in the energy
+system model (i.e. Euro, Dollar, 1e6 Euro).
+Example:</p>
+<ul>
+<li>In a national energy system, natural gas could be purchased from another country with a
+certain cost.</li>
+</ul>
+<p><br /> * the default value is 0</p>
+</li>
+<li><strong>commodityRevenue</strong> (<em>positive</em><em> (</em><em>&gt;=0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><em>Pandas Series with positive</em><em> (</em><em>&gt;=0</em><em>) </em><em>values.
+The indices of the series have to equal the in the energy system model specified locations.</em>) &#8211; <p>revenue which is directly proportional to the operation of the component
+is obtained by multiplying the commodityRevenue parameter with the annual sum of the
+time series of the components. The commodityRevenue can either be given as a
+float or a Pandas Series with location specific values.
+The cost unit in which the parameter is given has to match the one specified in the energy
+system model (i.e. Euro, Dollar, 1e6 Euro). Example:</p>
+<ul>
+<li>Modeling a PV electricity feed-in tariff for a household</li>
+</ul>
+<p><br /> * the default value is 0</p>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Inheritance diagram:</strong></p>
+<img src="_images/inheritance-46c56003f1e1ef102b8bdde6c2008cc1047d8fb2.png" alt="Inheritance diagram of Source" usemap="#inheritance7ae8be122d" class="inheritance"/>
+<map id="inheritance7ae8be122d" name="inheritance7ae8be122d">
+<area shape="poly" id="node1" title="Doc" alt="" coords="139,41,136,30,127,20,112,12,93,7,72,5,52,7,33,12,18,20,9,30,5,41,9,52,18,62,33,70,52,76,72,77,93,76,112,70,127,62,136,52"/>
+<area shape="poly" id="node2" href="#sourceSink.Source" target="_top" title="Doc" alt="" coords="279,41,277,30,270,20,260,12,247,7,233,5,219,7,206,12,196,20,190,30,187,41,190,52,196,62,206,70,219,76,233,77,247,76,260,70,270,62,277,52"/>
+</map>
+<p><strong>Class description:</strong></p>
+<dl class="class">
+<dt id="sourceSink.Sink">
+<em class="property">class </em><code class="descclassname">sourceSink.</code><code class="descname">Sink</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsamWeight=1</em>, <em>commodityLimitID=None</em>, <em>yearlyLimit=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>commodityCost=0</em>, <em>commodityRevenue=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Sink"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Sink" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="sourceSink.Sink.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsamWeight=1</em>, <em>commodityLimitID=None</em>, <em>yearlyLimit=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>commodityCost=0</em>, <em>commodityRevenue=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Sink.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Sink.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an Sink class instance.</p>
+<p>The Sink class inherits from the Source class. They coincide with there input parameters
+(see Source class for the parameter description) and differentiate themselves by the sign
+parameters, which is equal to -1 for Sink objects and +1 for Source objects.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Inheritance diagram:</strong></p>
+<img src="_images/inheritance-0ccdd2f3670c5c49f946b2416e05663e7a6df616.png" alt="Inheritance diagram of Sink" usemap="#inheritance278df974a1" class="inheritance"/>
+<map id="inheritance278df974a1" name="inheritance278df974a1">
+<area shape="poly" id="node1" title="Doc" alt="" coords="139,41,136,30,127,20,112,12,93,7,72,5,52,7,33,12,18,20,9,30,5,41,9,52,18,62,33,70,52,76,72,77,93,76,112,70,127,62,136,52"/>
+<area shape="poly" id="node3" href="#sourceSink.Source" target="_top" title="Doc" alt="" coords="279,41,277,30,270,20,260,12,247,7,233,5,219,7,206,12,196,20,190,30,187,41,190,52,196,62,206,70,219,76,233,77,247,76,260,70,270,62,277,52"/>
+<area shape="poly" id="node2" href="#sourceSink.Sink" target="_top" title="Sink" alt="" coords="399,41,397,30,392,20,384,12,374,7,363,5,352,7,342,12,334,20,329,30,327,41,329,52,334,62,342,70,352,76,363,77,374,76,384,70,392,62,397,52"/>
+</map>
+</div>
+<div class="section" id="conversion-class">
+<h2>Conversion class<a class="headerlink" href="#conversion-class" title="Permalink to this headline">¶</a></h2>
+<p><strong>Class description:</strong></p>
+<span class="target" id="module-conversion"></span><dl class="class">
+<dt id="conversion.Conversion">
+<em class="property">class </em><code class="descclassname">conversion.</code><code class="descname">Conversion</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>physicalUnit</em>, <em>commodityConversionFactors</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>linkedConversionCapacityID=None</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/conversion.html#Conversion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#conversion.Conversion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Conversion class</p>
+<p>The functionality of the the Conversion class is fourfold:
+* ...</p>
+<p>The parameter which are stored in an instance of the class refer to:
+* ...</p>
+<p>Instances of this class provide function for
+* ...</p>
+<p>Last edited: July 27, 2018
+<br /> &#64;author: Lara Welder</p>
+<dl class="method">
+<dt id="conversion.Conversion.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>physicalUnit</em>, <em>commodityConversionFactors</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>linkedConversionCapacityID=None</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/conversion.html#Conversion.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#conversion.Conversion.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an Conversion class instance. Capacities are given in the plants
+physicalUnit.
+The Conversion component specific input arguments are described below. The general component
+input arguments are described in the Component class.</p>
+<p><strong>Required arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>physicalUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; reference physical unit of the plants to which maximum capacity limitations,
+cost parameters and the operation time series refer to.</li>
+<li><strong>commodityConversionFactors</strong> (<em>dictionary</em><em>, </em><em>assigns commodities</em><em> (</em><a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a><em>) </em><em>to a conversion factors</em><em>
+(</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>)</em><em></em>) &#8211; <p>conversion factors with which commodities are converted into each
+other with one unit of operation (dictionary). Each commodity which is converted in this component
+is indicated by a string in this dictionary. The conversion factor related to this commodity is
+given as a float. A negative value indicates that the commodity is consumed. A positive value
+indicates that the commodity is produced. Check unit consistency when specifying this parameter! Examples:</p>
+<ul>
+<li>An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
+of 70%. The physicalUnit is given as GW_electric, the unit for the &#8216;electricity&#8217; commodity is
+given in GW_electric and the &#8216;hydrogen&#8217; commodity is given in GW_hydrogen_lowerHeatingValue
+-&gt; the commodityConversionFactors are defined as {&#8216;electricity&#8217;:-1,&#8217;hydrogen&#8217;:0.7}.</li>
+<li>A fuel cell converts, simply put, hydrogen into electricity with an efficiency of 60%.</li>
+</ul>
+<p>The physicalUnit is given as GW_electric, the unit for the &#8216;electricity&#8217; commodity is given in
+GW_electric and the &#8216;hydrogen&#8217; commodity is given in GW_hydrogen_lowerHeatingValue -&gt; the
+commodityConversionFactors are defined as {&#8216;electricity&#8217;:1,&#8217;hydrogen&#8217;:-1/0.6}.</p>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>linkedConversionCapacityID</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; if specifies, indicates that all conversion components with the
+this ID have to have the same capacity.
+<br /> * the default value is None</li>
+<li><strong>operationRateMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) &#8211; if specified indicates a maximum operation rate for each location and each time
+step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the physicalUnit of the plant for each time step.
+<br /> * the default value is None</li>
+<li><strong>operationRateFix</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) &#8211; if specified indicates a fixed operation rate for each location and each time
+step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the physicalUnit of the plant for each time step.
+<br /> * the default value is None</li>
+<li><strong>tsaWeight</strong> (<em>positive</em><em> (</em><em>&gt;= 0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) &#8211; weight with which the time series of the component should be considered when applying
+time series aggregation.
+<br /> * the default value is 1</li>
+<li><strong>opexPerOperation</strong> (<em>positive</em><em> (</em><em>&gt;=0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><em>Pandas Series with positive</em><em> (</em><em>&gt;=0</em><em>) </em><em>values.
+The indices of the series have to equal the in the energy system model specified locations.</em>) &#8211; cost which is directly proportional to the operation of the component
+is obtained by multiplying the opexPerOperation parameter with the annual sum of the
+operational time series of the components. The opexPerOperation can either be given as a
+float or a Pandas Series with location specific values.
+The cost unit in which the parameter is given has to match the one specified in the energy
+system model (i.e. Euro, Dollar, 1e6 Euro).
+<br /> * the default value is 0</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Inheritance diagram:</strong></p>
+<img src="_images/inheritance-75b3263fc475a4eb3ee67e873667736a5e457f0f.png" alt="Inheritance diagram of Conversion" usemap="#inheritance4d8c898629" class="inheritance"/>
+<map id="inheritance4d8c898629" name="inheritance4d8c898629">
+<area shape="poly" id="node1" title="Doc" alt="" coords="139,41,136,30,127,20,112,12,93,7,72,5,52,7,33,12,18,20,9,30,5,41,9,52,18,62,33,70,52,76,72,77,93,76,112,70,127,62,136,52"/>
+<area shape="poly" id="node2" href="#conversion.Conversion" target="_top" title="Conversion class" alt="" coords="319,41,315,30,306,20,292,12,273,7,253,5,233,7,214,12,200,20,191,30,187,41,191,52,200,62,214,70,233,76,253,77,273,76,292,70,306,62,315,52"/>
+</map>
+</div>
+<div class="section" id="transmission-class">
+<h2>Transmission class<a class="headerlink" href="#transmission-class" title="Permalink to this headline">¶</a></h2>
+<p><strong>Class description:</strong></p>
+<span class="target" id="module-transmission"></span><dl class="class">
+<dt id="transmission.Transmission">
+<em class="property">class </em><code class="descclassname">transmission.</code><code class="descname">Transmission</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>losses=0</em>, <em>distances=None</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#Transmission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.Transmission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Doc</p>
+<dl class="method">
+<dt id="transmission.Transmission.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>losses=0</em>, <em>distances=None</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#Transmission.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.Transmission.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an Conversion class instance.
+The Transmission component specific input arguments are described below. The general component
+input arguments are described in the Component class.</p>
+<p><strong>Required arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>commodity</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; to the component related commodity.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>losses</strong> (<em>positive float</em><em> (</em><em>0 &lt;= float &lt;= 1</em><em>) or </em><em>Pandas DataFrame with positive values</em><em>
+(</em><em>0 &lt;= float &lt;= 1</em><em>)</em><em> The row and column indices of the DataFrame have to equal the in the energy
+system model specified locations.</em>) &#8211; losses per lengthUnit (lengthUnit as specified in the energy system model). This loss
+factor can capture simple linear losses trans_in_ij=(1-losses*distance)*trans_out_ij (with trans
+being the commodity flow at a certain point in time and i and j being locations in the energy
+system). The losses can either be given as a float or a Pandas DataFrame with location specific
+values.
+<br /> * the default value is 0</li>
+<li><strong>distances</strong> (<em>positive float</em><em> (</em><em>&gt;= 0</em><em>) or </em><em>Pandas DataFrame with positive values</em><em> (</em><em>&gt;= 0</em><em>)</em><em> The row and
+column indices of the DataFrame have to equal the in the energy system model specified locations.</em>) &#8211; distances between locations, given in the lengthUnit (lengthUnit as specified in
+the energy system model).
+<br /> * the default value is None</li>
+<li><strong>operationRateMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices are combinations
+of locations</em><em> (</em><em>as defined in the energy system model</em><em>)</em><em></em><em>, </em><em>separated by a underscore</em><em> (</em><em>i.e.
+&quot;location1_location2&quot;</em><em>)</em><em> The first location indicates where the commodity is coming from. The second
+one location indicates where the commodity is going too. If a flow is specified from location i to
+location j</em><em>, </em><em>it also has to be specified from j to i.</em>) &#8211; if specified, indicates a maximum operation rate for all possible connections
+(both directions) of the transmission component at each time step by a positive float. If
+hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.
+in that case a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
+is set to False, the values are given as absolute values in form of the commodityUnit,
+referring to the transmitted commodity (before considering losses) during one time step.
+<br /> * the default value is None</li>
+<li><strong>operationRateFix</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices are combinations
+of locations</em><em> (</em><em>as defined in the energy system model</em><em>)</em><em></em><em>, </em><em>separated by a underscore</em><em> (</em><em>i.e.
+&quot;location1_location2&quot;</em><em>)</em><em> The first location indicates where the commodity is coming from. The second
+one location indicates where the commodity is going too. If a flow is specified from location i to
+location j</em><em>, </em><em>it also has to be specified from j to i.</em>) &#8211; if specified, indicates a fixed operation rate for all possible connections
+(both directions) of the transmission component at each time step by a positive float. If
+hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.
+in that case a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
+is set to False, the values are given as absolute values in form of the commodityUnit,
+referring to the transmitted commodity (before considering losses) during one time step.
+<br /> * the default value is None</li>
+<li><strong>tsaWeight</strong> (<em>positive</em><em> (</em><em>&gt;= 0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) &#8211; weight with which the time series of the component should be considered when applying
+time series aggregation.
+<br /> * the default value is 1</li>
+<li><strong>opexPerOperation</strong> (<em>positive</em><em> (</em><em>&gt;=0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;=0</em><em>) </em><em>values.
+The row and column indices of the DataFrame have to equal the in the energy system model
+specified locations.</em>) &#8211; cost which is directly proportional to the operation of the component
+is obtained by multiplying the opexPerOperation parameter with the annual sum of the
+operational time series of the components. The opexPerOperation can either be given as a
+float or a Pandas DataFrame with location specific values.
+The cost unit in which the parameter is given has to match the one specified in the energy
+system model (i.e. Euro, Dollar, 1e6 Euro).
+<br /> * the default value is 0</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Inheritance diagram:</strong></p>
+<img src="_images/inheritance-cee69fb600a2ecd07bf55d4cc88edf8bbd51067e.png" alt="Inheritance diagram of Transmission" usemap="#inheritanced379698dc7" class="inheritance"/>
+<map id="inheritanced379698dc7" name="inheritanced379698dc7">
+<area shape="poly" id="node1" title="Doc" alt="" coords="139,41,136,30,127,20,112,12,93,7,72,5,52,7,33,12,18,20,9,30,5,41,9,52,18,62,33,70,52,76,72,77,93,76,112,70,127,62,136,52"/>
+<area shape="poly" id="node2" href="#transmission.Transmission" target="_top" title="Doc" alt="" coords="336,41,333,30,322,20,306,12,285,7,262,5,239,7,218,12,202,20,191,30,187,41,191,52,202,62,218,70,239,76,262,77,285,76,306,70,322,62,333,52"/>
+</map>
+</div>
+<div class="section" id="storage-class">
+<h2>Storage class<a class="headerlink" href="#storage-class" title="Permalink to this headline">¶</a></h2>
+<p><strong>Class description:</strong></p>
+<span class="target" id="module-storage"></span><dl class="class">
+<dt id="storage.Storage">
+<em class="property">class </em><code class="descclassname">storage.</code><code class="descname">Storage</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>chargeRate=1</em>, <em>dischargeRate=1</em>, <em>chargeEfficiency=1</em>, <em>dischargeEfficiency=1</em>, <em>selfDischarge=0</em>, <em>cyclicLifetime=None</em>, <em>stateOfChargeMin=0</em>, <em>stateOfChargeMax=1</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>doPreciseTsaModeling=False</em>, <em>chargeOpRateMax=None</em>, <em>chargeOpRateFix=None</em>, <em>chargeTsaWeight=1</em>, <em>dischargeOpRateMax=None</em>, <em>dischargeOpRateFix=None</em>, <em>dischargeTsaWeight=1</em>, <em>isPeriodicalStorage=False</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerChargeOperation=0</em>, <em>opexPerDischargeOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Doc</p>
+<dl class="method">
+<dt id="storage.Storage.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>chargeRate=1</em>, <em>dischargeRate=1</em>, <em>chargeEfficiency=1</em>, <em>dischargeEfficiency=1</em>, <em>selfDischarge=0</em>, <em>cyclicLifetime=None</em>, <em>stateOfChargeMin=0</em>, <em>stateOfChargeMax=1</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>doPreciseTsaModeling=False</em>, <em>chargeOpRateMax=None</em>, <em>chargeOpRateFix=None</em>, <em>chargeTsaWeight=1</em>, <em>dischargeOpRateMax=None</em>, <em>dischargeOpRateFix=None</em>, <em>dischargeTsaWeight=1</em>, <em>isPeriodicalStorage=False</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerChargeOperation=0</em>, <em>opexPerDischargeOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an Storage class instance.
+The Storage component specific input arguments are described below. The general component
+input arguments are described in the Component class.</p>
+<p><strong>Required arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>commodity</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; to the component related commodity.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>chargeRate</strong> (<em>0 &lt;= float &lt;=1</em>) &#8211; <p>ratio of the maximum storage inflow (in commodityUnit/hour) and the
+storage capacity (in commodityUnit). Example:</p>
+<ul>
+<li>A hydrogen salt cavern which can store 133 GWh_H2_LHV can be charged 0.45 GWh_H2_LHV during
+one hour. The chargeRate thus equals 0.45/133.</li>
+</ul>
+<p><br /> * the default value is 1</p>
+</li>
+<li><strong>dischargeRate</strong> (<em>0 &lt;= float &lt;=1</em>) &#8211; <p>ratio of the maximum storage outflow (in commodityUnit/hour) and
+the storage capacity (in commodityUnit). Example:</p>
+<ul>
+<li>A hydrogen salt cavern which can store 133 GWh_H2_LHV can be discharged 0.45 GWh_H2_LHV during
+one hour. The dischargeRate thus equals 0.45/133.</li>
+</ul>
+<p><br /> * the default value is 1</p>
+</li>
+<li><strong>chargeEfficiency</strong> (<em>0 &lt;= float &lt;=1</em>) &#8211; defines the efficiency with which the storage can be charged (equals
+the percentage of the injected commodity that is transformed into stored commodity).
+Enter 0.98 for 98% etc.
+<br /> * the default value is 1</li>
+<li><strong>dischargeEfficiency</strong> (<em>0 &lt;= float &lt;=1</em>) &#8211; defines the efficiency with which the storage can be discharged
+(equals the percentage of the withdrawn commodity that is transformed into stored commodity).
+Enter 0.98 for 98% etc.
+<br /> * the default value is 1</li>
+<li><strong>selfDischarge</strong> (<em>0 &lt;= float &lt;=1</em>) &#8211; percentage of self-discharge from the storage during one hour
+<br /> * the default value is 0</li>
+<li><strong>cyclicLifetime</strong> (<em>positive float</em>) &#8211; if specified, the total number of full cycle equivalents that are supported
+by the technology.
+<br /> * the default value is None</li>
+<li><strong>stateOfChargeMin</strong> (<em>0 &lt;= float &lt;=1</em>) &#8211; threshold (percentage) that the state of charge can not drop under
+<br /> * the default value is 0</li>
+<li><strong>stateOfChargeMax</strong> (<em>0 &lt;= float &lt;=1</em>) &#8211; threshold (percentage) that the state of charge can not exceed
+<br /> * the default value is 1</li>
+<li><strong>doPreciseTsaModeling</strong> (<em>boolean</em>) &#8211; determines whether the state of charge is limited precisely (True) or
+with a simplified method (False). The error is small if the selfDischarge is small.
+<br /> * the default value is False</li>
+<li><strong>chargeOpRateMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model  specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) &#8211; if specified indicates a maximum charging rate for each location and each time
+step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
+during one time step.
+<br /> * the default value is None</li>
+<li><strong>chargeOpRateFix</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) &#8211; if specified indicates a fixed charging rate for each location and each time
+step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodity, referring to the charged commodity (before multiplying the charging efficiency)
+during one time step.
+<br /> * the default value is None</li>
+<li><strong>chargeTsaWeight</strong> (<em>positive</em><em> (</em><em>&gt;= 0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) &#8211; weight with which the chargeOpRate (max/fix) time series of the
+component should be considered when applying time series aggregation.
+<br /> * the default value is 1</li>
+<li><strong>dischargeOpRateMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model  specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) &#8211; if specified indicates a maximum discharging rate for each location and each
+time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodityUnit, referring to the discharged commodity (after multiplying the discharging
+efficiency) during one time step.
+<br /> * the default value is None</li>
+<li><strong>dischargeOpRateFix</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) &#8211; if specified indicates a fixed discharging rate for each location and each
+time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodityUnit, referring to the charged commodity (after multiplying the discharging
+efficiency) during one time step.
+<br /> * the default value is None</li>
+<li><strong>dischargeTsaWeight</strong> (<em>positive</em><em> (</em><em>&gt;= 0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) &#8211; weight with which the dischargeOpRate (max/fix) time series of the
+component should be considered when applying time series aggregation.
+<br /> * the default value is 1</li>
+<li><strong>isPeriodicalStorage</strong> (<em>boolean</em>) &#8211; indicates if the state of charge of the storage has to be at the same value
+after the end of each period. This is especially relevant when using daily periods where short term
+storage can be restrained to daily cycles. Benefits the run time of the model.
+<br /> * the default value is False</li>
+<li><strong>opexPerChargeOperation</strong> (<em>positive</em><em> (</em><em>&gt;=0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><em>Pandas Series with positive</em><em> (</em><em>&gt;=0</em><em>) </em><em>values.
+The indices of the series have to equal the in the energy system model specified locations.</em>) &#8211; cost which is directly proportional to the charge operation of the
+component is obtained by multiplying the opexPerOperation parameter with the annual sum of the
+operational time series of the components. The opexPerOperation can either be given as a float
+or a Pandas Series with location specific values.
+The cost unit in which the parameter is given has to match the one specified in the energy
+system model (i.e. Euro, Dollar, 1e6 Euro).
+<br /> * the default value is 0</li>
+<li><strong>opexPerDischargeOperation</strong> (<em>positive</em><em> (</em><em>&gt;=0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><em>Pandas Series with positive</em><em> (</em><em>&gt;=0</em><em>) </em><em>values.
+The indices of the series have to equal the in the energy system model specified locations.
+component</em><em> (</em><em>in the physicalUnit of the component</em><em>) </em><em>and not of the specific operation itself are
+obtained by multiplying the capacity of the component at a location with the opexPerCapacity
+factor. The opexPerCapacity can either be given as a float</em><em> or </em><em>a Pandas Series with location
+specific values.</em>) &#8211; cost which is directly proportional to the discharge operation
+of the component is obtained by multiplying the opexPerOperation parameter with the annual sum
+of the operational time series of the components. The opexPerOperation can either be given as
+a float or a Pandas Series with location specific values.
+The cost unit in which the parameter is given has to match the one specified in the energy
+system model (i.e. Euro, Dollar, 1e6 Euro).
+<br /> * the default value is 0</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Inheritance diagram:</strong></p>
+<img src="_images/inheritance-e4032cac4258c845bdde0345df0ead23405a16dd.png" alt="Inheritance diagram of Storage" usemap="#inheritance2cafd0ade4" class="inheritance"/>
+<map id="inheritance2cafd0ade4" name="inheritance2cafd0ade4">
+<area shape="poly" id="node1" title="Doc" alt="" coords="139,41,136,30,127,20,112,12,93,7,72,5,52,7,33,12,18,20,9,30,5,41,9,52,18,62,33,70,52,76,72,77,93,76,112,70,127,62,136,52"/>
+<area shape="poly" id="node2" href="#storage.Storage" target="_top" title="Doc" alt="" coords="286,41,284,30,277,20,266,12,252,7,237,5,222,7,208,12,197,20,190,30,187,41,190,52,197,62,208,70,222,76,237,77,252,76,266,70,277,62,284,52"/>
+</map>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="subclassComponentsDoc.html" class="btn btn-neutral float-right" title="Extended component classes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="componentsDoc.html" class="btn btn-neutral" title="Components" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

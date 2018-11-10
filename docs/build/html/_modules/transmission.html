@@ -1,0 +1,601 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>transmission &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>transmission</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for transmission</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">FINE.component</span> <span class="k">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">ComponentModel</span>
+<span class="kn">from</span> <span class="nn">FINE</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">pyomo.environ</span> <span class="k">as</span> <span class="nn">pyomo</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+
+<div class="viewcode-block" id="Transmission"><a class="viewcode-back" href="../coreComponentsDoc.html#transmission.Transmission">[docs]</a><span class="k">class</span> <span class="nc">Transmission</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Transmission.__init__"><a class="viewcode-back" href="../coreComponentsDoc.html#transmission.Transmission.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">losses</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">distances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">operationRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tsaWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">locationalEligibility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">capacityFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">investPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerOperation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">opexIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">interestRate</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span> <span class="n">economicLifetime</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for creating an Conversion class instance.</span>
+<span class="sd">        The Transmission component specific input arguments are described below. The general component</span>
+<span class="sd">        input arguments are described in the Component class.</span>
+
+<span class="sd">        **Required arguments:**</span>
+
+<span class="sd">        :param commodity: to the component related commodity.</span>
+<span class="sd">        :type commodity: string</span>
+
+<span class="sd">        **Default arguments:**</span>
+
+<span class="sd">        :param losses: losses per lengthUnit (lengthUnit as specified in the energy system model). This loss</span>
+<span class="sd">            factor can capture simple linear losses trans_in_ij=(1-losses*distance)*trans_out_ij (with trans</span>
+<span class="sd">            being the commodity flow at a certain point in time and i and j being locations in the energy</span>
+<span class="sd">            system). The losses can either be given as a float or a Pandas DataFrame with location specific</span>
+<span class="sd">            values.</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type losses: positive float (0 &lt;= float &lt;= 1) or Pandas DataFrame with positive values</span>
+<span class="sd">            (0 &lt;= float &lt;= 1). The row and column indices of the DataFrame have to equal the in the energy</span>
+<span class="sd">            system model specified locations.</span>
+
+<span class="sd">        :param distances: distances between locations, given in the lengthUnit (lengthUnit as specified in</span>
+<span class="sd">            the energy system model).</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type distances: positive float (&gt;= 0) or Pandas DataFrame with positive values (&gt;= 0). The row and</span>
+<span class="sd">            column indices of the DataFrame have to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param operationRateMax: if specified, indicates a maximum operation rate for all possible connections</span>
+<span class="sd">            (both directions) of the transmission component at each time step by a positive float. If</span>
+<span class="sd">            hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.</span>
+<span class="sd">            in that case a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable</span>
+<span class="sd">            is set to False, the values are given as absolute values in form of the commodityUnit,</span>
+<span class="sd">            referring to the transmitted commodity (before considering losses) during one time step.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type operationRateMax: None or Pandas DataFrame with positive (&gt;= 0) entries. The row indices have</span>
+<span class="sd">            to match the in the energy system model specified time steps. The column indices are combinations</span>
+<span class="sd">            of locations (as defined in the energy system model), separated by a underscore (i.e.</span>
+<span class="sd">            &quot;location1_location2&quot;). The first location indicates where the commodity is coming from. The second</span>
+<span class="sd">            one location indicates where the commodity is going too. If a flow is specified from location i to</span>
+<span class="sd">            location j, it also has to be specified from j to i.</span>
+
+<span class="sd">        :param operationRateFix: if specified, indicates a fixed operation rate for all possible connections</span>
+<span class="sd">            (both directions) of the transmission component at each time step by a positive float. If</span>
+<span class="sd">            hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.</span>
+<span class="sd">            in that case a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable</span>
+<span class="sd">            is set to False, the values are given as absolute values in form of the commodityUnit,</span>
+<span class="sd">            referring to the transmitted commodity (before considering losses) during one time step.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type operationRateFix: None or Pandas DataFrame with positive (&gt;= 0) entries. The row indices have</span>
+<span class="sd">            to match the in the energy system model specified time steps. The column indices are combinations</span>
+<span class="sd">            of locations (as defined in the energy system model), separated by a underscore (i.e.</span>
+<span class="sd">            &quot;location1_location2&quot;). The first location indicates where the commodity is coming from. The second</span>
+<span class="sd">            one location indicates where the commodity is going too. If a flow is specified from location i to</span>
+<span class="sd">            location j, it also has to be specified from j to i.</span>
+
+<span class="sd">        :param tsaWeight: weight with which the time series of the component should be considered when applying</span>
+<span class="sd">            time series aggregation.</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type tsaWeight: positive (&gt;= 0) float</span>
+
+<span class="sd">        :param opexPerOperation: cost which is directly proportional to the operation of the component</span>
+<span class="sd">            is obtained by multiplying the opexPerOperation parameter with the annual sum of the</span>
+<span class="sd">            operational time series of the components. The opexPerOperation can either be given as a</span>
+<span class="sd">            float or a Pandas DataFrame with location specific values.</span>
+<span class="sd">            The cost unit in which the parameter is given has to match the one specified in the energy</span>
+<span class="sd">            system model (i.e. Euro, Dollar, 1e6 Euro).</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type opexPerOperation: positive (&gt;=0) float or Pandas DataFrame with positive (&gt;=0) values.</span>
+<span class="sd">            The row and column indices of the DataFrame have to equal the in the energy system model</span>
+<span class="sd">            specified locations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO add unit checks</span>
+        <span class="c1"># Preprocess two-dimensional data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">locationalEligibility</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityMax</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">capacityMax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">capacityFix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltFix</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">isBuiltFix</span><span class="p">)</span>
+
+        <span class="c1"># Set locational eligibility</span>
+        <span class="n">operationTimeSeries</span> <span class="o">=</span> <span class="n">operationRateFix</span> <span class="k">if</span> <span class="n">operationRateFix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">operationRateMax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span> <span class="o">=</span> \
+            <span class="n">utils</span><span class="o">.</span><span class="n">setLocationalEligibility</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityMax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltFix</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span> <span class="n">operationTimeSeries</span><span class="p">,</span> <span class="s1">&#39;2dim&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapL</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapI</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">loc1</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">loc2</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">loc1</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">[</span><span class="n">loc1</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">[</span><span class="n">loc1</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc2</span><span class="p">]</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">loc1</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc2</span><span class="p">:</span> <span class="p">(</span><span class="n">loc1</span><span class="p">,</span> <span class="n">loc2</span><span class="p">)})</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_mapL</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">loc1</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">loc2</span><span class="p">:</span> <span class="n">loc1</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc2</span><span class="p">})</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_mapI</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">loc1</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc2</span><span class="p">:</span> <span class="n">loc2</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc1</span><span class="p">})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityMin</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">capacityMin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">investPerCapacity</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">investPerCapacity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">investIfBuilt</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">investIfBuilt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opexPerCapacity</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">opexPerCapacity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opexIfBuilt</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">opexIfBuilt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interestRate</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">interestRate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">economicLifetime</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">economicLifetime</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span>
+
+        <span class="n">Component</span><span class="o">.</span> <span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="s1">&#39;2dim&#39;</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="n">hasCapacityVariable</span><span class="p">,</span>
+                            <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="n">capacityVariableDomain</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="n">capacityPerPlantUnit</span><span class="p">,</span>
+                            <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="n">hasIsBuiltBinaryVariable</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="n">bigM</span><span class="p">,</span>
+                            <span class="n">locationalEligibility</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="n">capacityMin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">capacityMin</span><span class="p">,</span>
+                            <span class="n">capacityMax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">capacityMax</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="o">=</span><span class="n">sharedPotentialID</span><span class="p">,</span>
+                            <span class="n">capacityFix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">isBuiltFix</span><span class="p">,</span>
+                            <span class="n">investPerCapacity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">investPerCapacity</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">investIfBuilt</span><span class="p">,</span>
+                            <span class="n">opexPerCapacity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opexPerCapacity</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opexIfBuilt</span><span class="p">,</span>
+                            <span class="n">interestRate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">interestRate</span><span class="p">,</span> <span class="n">economicLifetime</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">economicLifetime</span><span class="p">)</span>
+
+        <span class="c1"># Set general component data</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkCommodities</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="p">{</span><span class="n">commodity</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commodity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">=</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">commodityUnitsDict</span><span class="p">[</span><span class="n">commodity</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distances</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">losses</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">preprocess2dimData</span><span class="p">(</span><span class="n">losses</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distances</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetDistances</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">losses</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetTransmissionLosses</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span> <span class="o">=</span> <span class="n">TransmissionModel</span>
+
+        <span class="c1"># Set additional economic data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opexPerOperation</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">opexPerOperation</span><span class="p">,</span> <span class="s1">&#39;2dim&#39;</span><span class="p">,</span>
+                                                                <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">)</span>
+
+        <span class="c1"># Set location-specific operation parameters</span>
+        <span class="k">if</span> <span class="n">operationRateMax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">operationRateFix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">operationRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">esM</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;If operationRateFix is specified, the operationRateMax parameter is not required.</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                              <span class="s1">&#39;The operationRateMax time series was set to None.&#39;</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkOperationTimeSeriesInputParameters</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">operationRateMax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="s1">&#39;2dim&#39;</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkOperationTimeSeriesInputParameters</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="s1">&#39;2dim&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">operationRateMax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateMax</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">operationRateMax</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">operationRateFix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateFix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateFix</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">setFormattedTimeSeries</span><span class="p">(</span><span class="n">operationRateFix</span><span class="p">)</span>
+
+        <span class="n">utils</span><span class="o">.</span><span class="n">isPositiveNumber</span><span class="p">(</span><span class="n">tsaWeight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tsaWeight</span> <span class="o">=</span> <span class="n">tsaWeight</span></div>
+
+    <span class="k">def</span> <span class="nf">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hasTSA</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateFix</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span>
+
+    <span class="k">def</span> <span class="nf">getDataForTimeSeriesAggregation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">[]</span>
+        <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepareTSAInput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span><span class="p">,</span>
+                                                <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tsaWeight</span><span class="p">,</span> <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">weightDict</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">{})</span>
+
+    <span class="k">def</span> <span class="nf">setAggregatedTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span><span class="p">,</span> <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span><span class="p">,</span> <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">TransmissionModel</span><span class="p">(</span><span class="n">ComponentModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Doc &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span> <span class="o">=</span> <span class="s1">&#39;trans&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">=</span> <span class="s1">&#39;2dim&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                            Declare sparse index sets                                             #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares sets and dictionaries &quot;&quot;&quot;</span>
+
+        <span class="c1"># # Declare design variable sets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initContinuousDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDiscreteDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignDecisionVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1"># Declare operation variable set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initOpVarSet</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1"># Declare operation variable set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateFix&#39;</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                                Declare variables                                                 #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares design and operation variables &quot;&quot;&quot;</span>
+
+        <span class="c1"># Capacity variables in [commodityUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareCapacityVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># (Continuous) numbers of installed components in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareRealNumbersVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># (Discrete/integer) numbers of installed components in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareIntNumbersVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Binary variables [-] indicating if a component is considered at a location or not in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareBinaryDesignDecisionVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Operation of component [commodityUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                          Declare component constraints                                           #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">symmetricalCapacity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Enforces that the capacity between location_1 and location_2 is the same as the one</span>
+<span class="sd">        between location_2 and location_1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">capVar</span><span class="p">,</span> <span class="n">capVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">symmetricalCapacity</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">==</span> <span class="n">capVar</span><span class="p">[</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">_mapI</span><span class="p">[</span><span class="n">loc</span><span class="p">],</span> <span class="n">compName</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrSymmetricalCapacity_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>  <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">capVarSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">symmetricalCapacity</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">operationMode1_2dim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">constrName</span><span class="p">,</span> <span class="n">constrSetName</span><span class="p">,</span> <span class="n">opVarName</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Operation [commodityUnit*hour] limited by the installed capacity [commodityUnit] multiplied by the hours</span>
+<span class="sd">        per time step.</span>
+<span class="sd">        Since the flow should either go in one direction or the other, the limitation can be enforced on the sum</span>
+<span class="sd">        of the forward and backward flow over the line. This leads to one of the flow variables being set to zero</span>
+<span class="sd">        if a basic solution is obtained during optimization.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">opVarName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">constrSet1</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;1_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">op1</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="n">opVar</span><span class="p">[</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">_mapI</span><span class="p">[</span><span class="n">loc</span><span class="p">],</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">&lt;=</span> \
+                   <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">constrSet1</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">op1</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares time independent and dependent constraints&quot;&quot;&quot;</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                    Declare time independent constraints                                      #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Determine the components&#39; capacities from the number of installed units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capToNbReal</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Determine the components&#39; capacities from the number of installed units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capToNbInt</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Enforce the consideration of the binary design variables of a component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bigM</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Enforce the consideration of minimum capacities for components with design decision variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityMinDec</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Sets, if applicable, the installed capacities of a component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Sets, if applicable, the binary design variables of a component</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">designBinFix</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Enforce that the capacity cap_loc1_loc2 is the same as cap_loc2_loc1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symmetricalCapacity</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                      Declare time dependent constraints                                      #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="c1"># Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by the hours per time step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode1_2dim</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] equal to the installed capacity [powerUnit] multiplied by operation time series</span>
+        <span class="c1"># [powerUnit/powerUnit] and the hours per time step [h])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode2</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by operation time series</span>
+        <span class="c1"># [powerUnit/powerUnit] and the hours per time step [h])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode3</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] equal to the operation time series [energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode4</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation [energyUnit] limited by the operation time series [energyUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode5</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#        Declare component contributions to basic EnergySystemModel constraints and its objective function         #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">comp</span><span class="o">.</span><span class="n">commodity</span> <span class="o">==</span> <span class="n">commod</span> <span class="ow">and</span>
+                    <span class="p">(</span><span class="n">loc</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc_</span> <span class="ow">in</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="o">.</span><span class="n">index</span> <span class="ow">or</span>
+                     <span class="n">loc_</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">loc_</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">opVarDictIn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarDictIn_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">opVarDictOut</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarDictOut_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">opVar</span><span class="p">[</span><span class="n">loc_</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span>
+                   <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">losses</span><span class="p">[</span><span class="n">loc_</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">distances</span><span class="p">[</span><span class="n">loc_</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc</span><span class="p">])</span>
+                   <span class="k">for</span> <span class="n">loc_</span> <span class="ow">in</span> <span class="n">opVarDictIn</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                   <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">opVarDictIn</span><span class="p">[</span><span class="n">loc</span><span class="p">][</span><span class="n">loc_</span><span class="p">]</span>
+                   <span class="k">if</span> <span class="n">commod</span> <span class="ow">in</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">commodity</span><span class="p">)</span> <span class="o">-</span> \
+               <span class="nb">sum</span><span class="p">(</span><span class="n">opVar</span><span class="p">[</span><span class="n">loc</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc_</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span>
+                   <span class="k">for</span> <span class="n">loc_</span> <span class="ow">in</span> <span class="n">opVarDictOut</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                   <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">opVarDictOut</span><span class="p">[</span><span class="n">loc</span><span class="p">][</span><span class="n">loc_</span><span class="p">]</span>
+                   <span class="k">if</span> <span class="n">commod</span> <span class="ow">in</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">commodity</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+
+        <span class="n">capexCap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investPerCapacity&#39;</span><span class="p">,</span> <span class="s1">&#39;distances&#39;</span><span class="p">],</span> <span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+        <span class="n">capexDec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investIfBuilt&#39;</span><span class="p">,</span> <span class="s1">&#39;distances&#39;</span><span class="p">],</span> <span class="s1">&#39;designBin&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+        <span class="n">opexCap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexPerCapacity&#39;</span><span class="p">,</span> <span class="s1">&#39;distances&#39;</span><span class="p">],</span> <span class="s1">&#39;cap&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+        <span class="n">opexDec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexIfBuilt&#39;</span><span class="p">,</span> <span class="s1">&#39;distances&#39;</span><span class="p">],</span> <span class="s1">&#39;designBin&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+        <span class="n">opexOp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexPerOperation&#39;</span><span class="p">],</span> <span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;operationVarDictOut&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">capexCap</span> <span class="o">+</span> <span class="n">capexDec</span> <span class="o">+</span> <span class="n">opexCap</span> <span class="o">+</span> <span class="n">opexDec</span> <span class="o">+</span> <span class="n">opexOp</span>
+
+    <span class="k">def</span> <span class="nf">setOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">mapC</span> <span class="o">=</span> <span class="p">{</span><span class="n">loc1</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc2</span><span class="p">:</span> <span class="p">(</span><span class="n">loc1</span><span class="p">,</span> <span class="n">loc2</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc1</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span> <span class="k">for</span> <span class="n">loc2</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">}</span>
+
+        <span class="c1"># Set optimal design dimension variables and get basic optimization summary</span>
+        <span class="n">optSummaryBasic</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">setOptimalValues</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">mapC</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s1">&#39;commodityUnit&#39;</span><span class="p">,</span> <span class="n">costApp</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+        <span class="c1"># Set optimal operation variables and append optimization summary</span>
+        <span class="n">optVal</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">opVar</span><span class="o">.</span><span class="n">get_values</span><span class="p">(),</span> <span class="s1">&#39;operationVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">)</span>
+        <span class="n">optVal_</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">opVar</span><span class="o">.</span><span class="n">get_values</span><span class="p">(),</span> <span class="s1">&#39;operationVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;2dim&#39;</span><span class="p">,</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">,</span>
+                                                 <span class="n">compDict</span><span class="o">=</span><span class="n">compDict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal_</span>
+
+        <span class="n">props</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;operation&#39;</span><span class="p">,</span> <span class="s1">&#39;opexOp&#39;</span><span class="p">]</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;[-]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">]</span>
+        <span class="n">tuples</span> <span class="o">=</span> <span class="p">[(</span><span class="n">compName</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">unit</span><span class="p">)</span> <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compDict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">for</span> <span class="n">prop</span><span class="p">,</span> <span class="n">unit</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">props</span><span class="p">,</span> <span class="n">units</span><span class="p">)]</span>
+        <span class="n">tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">compDict</span><span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">+</span> <span class="s1">&#39;*h/a]&#39;</span><span class="p">)</span>
+                          <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;operation&#39;</span> <span class="k">else</span> <span class="n">x</span><span class="p">,</span> <span class="n">tuples</span><span class="p">))</span>
+        <span class="n">mIndex</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span><span class="n">tuples</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Component&#39;</span><span class="p">,</span> <span class="s1">&#39;Property&#39;</span><span class="p">,</span> <span class="s1">&#39;Unit&#39;</span><span class="p">])</span>
+        <span class="n">optSummary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">mIndex</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">mapC</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">optVal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">opSum</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ox</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">opexPerOperation</span><span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;operation&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">compDict</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span><span class="o">.</span><span class="n">commodityUnit</span> <span class="o">+</span> <span class="s1">&#39;*h/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">opSum</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
+                            <span class="n">opSum</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">opSum</span><span class="o">.</span><span class="n">values</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;opexOp&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">ox</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">ox</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">ox</span><span class="o">.</span><span class="n">values</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span> <span class="o">*</span> <span class="mf">0.5</span>
+
+        <span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optSummaryBasic</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+        <span class="c1"># Summarize all contributions to the total annual cost</span>
+        <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;TAC&#39;</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;TAC&#39;</span><span class="p">)</span> <span class="o">|</span>
+                           <span class="p">(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;opexOp&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="c1"># Split connection indices to two location indices</span>
+        <span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span>
+        <span class="n">indexNew</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">():</span>
+            <span class="n">loc1</span><span class="p">,</span> <span class="n">loc2</span> <span class="o">=</span> <span class="n">mapC</span><span class="p">[</span><span class="n">tup</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span>
+            <span class="n">indexNew</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">tup</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tup</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tup</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">loc1</span><span class="p">,</span> <span class="n">loc2</span><span class="p">))</span>
+        <span class="n">optSummary</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span><span class="n">indexNew</span><span class="p">)</span>
+        <span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">level</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span>
+
+    <span class="k">def</span> <span class="nf">getOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getOptimalValues</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

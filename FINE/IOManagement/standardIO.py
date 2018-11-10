@@ -6,7 +6,26 @@ import inspect
 import time
 
 
-def writeToExcel(esM, outputFileName='scenarioOutput', optSumOutputLevel=2, optValOutputLevel=2):
+def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumOutputLevel=2, optValOutputLevel=2):
+    """
+    Writes optimization output to an Excel file
+
+    :param esM: EnergySystemModel instance in which the optimized model is hold
+    :type esM: EnergySystemModel instance
+
+    :param outputFileName: name of the Excel output file (without .xlsx ending)
+        |br| * the default value is 'scenarioOutput'
+    :type outputFileName: string
+
+    :param optSumOutputLevel: output level of the optimization summary (see EnergySystemModel)
+        |br| * the default value is 2
+    :type optSumOutputLevel: int (0,1,2)
+
+    :param optValOutputLevel: output level of the optimal values. 0: all values are kept. 1: Lines containing only
+        zeroes are dropped.
+        |br| * the default value is 1
+    :type optValOutputLevel: int (0,1)
+    """
     utils.output('\nWriting output to Excel... ', esM.verbose, 0)
     _t = time.time()
     writer = pd.ExcelWriter(outputFileName + '.xlsx')
@@ -44,6 +63,15 @@ def writeToExcel(esM, outputFileName='scenarioOutput', optSumOutputLevel=2, optV
 
 
 def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
+    """
+    Reads energy system model from excel file
+
+    :param fileName: excel file name or path (including .xlsx ending)
+        |br| * the default value is 'scenarioInput.xlsx'
+    :type fileName: string
+
+    :return: esM, esMData - an EnergySystemModel class instance and general esMData as a Series
+    """
     file = pd.ExcelFile(fileName)
 
     esMData = pd.read_excel(file, sheetname='EnergySystemModel', index_col=0, squeeze=True)
@@ -92,11 +120,51 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
 
 
 def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
+    """
+    Runs an energy system model from excel file
+
+    :param fileName: excel file name or path (including .xlsx ending)
+        |br| * the default value is 'scenarioInput.xlsx'
+    :type fileName: string
+
+    :return: esM - an EnergySystemModel class instance and general esMData as a Series
+    """
     esM, esMData = readEnergySystemModelFromExcel(fileName)
 
     if esMData['cluster'] != {}:
         esM.cluster(**esMData['cluster'])
     esM.optimize(**esMData['optimize'])
 
-    writeToExcel(esM, **esMData['output'])
+    writeOptimizationOutputToExcel(esM, **esMData['output'])
     return esM
+
+
+def getDualValues(pyM):
+    """
+    Gets dual values of an optimized pyomo instance
+
+    :param pyM: optimized pyomo instance
+
+    :return: Pandas Series with dual values
+    """
+    return pd.Series(list(pyM.dual.values()), index=pd.Index(list(pyM.dual.keys())))
+
+
+def getShadowPrices(pyM, constraint, dualValues=None):
+    """
+    Gets dual values of constraint ("shadow prices")
+
+    :param pyM: pyomo model instance with optimized optimization problem
+
+    :param constraint: constraint from which the dual values should be obtained (e.g. pyM.commodityBalanceConstraint)
+
+    :param dualValues: dual values of the optimized model instance (if not specified is call using the function#
+        getDualValues)
+        |br| * the default value is None
+    :type dualValues: None or Series
+
+    :return: Pandas Series with the dual values of the specified constraint
+    """
+    if not dualValues:
+        dualValues = getDualValues(pyM)
+    return pd.Series(list(constraint.values()), index=pd.Index(list(constraint.keys()))).map(dualValues)

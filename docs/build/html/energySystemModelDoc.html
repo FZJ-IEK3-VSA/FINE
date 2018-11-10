@@ -1,0 +1,578 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>EnergySystemModel class &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Components" href="componentsDoc.html" />
+    <link rel="prev" title="Python package description" href="packageDoc.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">EnergySystemModel class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="componentsDoc.html">Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="packageDoc.html">Python package description</a> &raquo;</li>
+        
+      <li>EnergySystemModel class</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/energySystemModelDoc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="energysystemmodel-class">
+<h1>EnergySystemModel class<a class="headerlink" href="#energysystemmodel-class" title="Permalink to this headline">¶</a></h1>
+<p>A description of the class is given below.</p>
+<p><strong>Class description:</strong></p>
+<span class="target" id="module-energySystemModel"></span><p>Last edited: July 27 2018
+<br /> &#64;author: Lara Welder</p>
+<dl class="class">
+<dt id="energySystemModel.EnergySystemModel">
+<em class="property">class </em><code class="descclassname">energySystemModel.</code><code class="descname">EnergySystemModel</code><span class="sig-paren">(</span><em>locations</em>, <em>commodities</em>, <em>commodityUnitsDict</em>, <em>numberOfTimeSteps=8760</em>, <em>hoursPerTimeStep=1</em>, <em>costUnit='1e9 Euro'</em>, <em>lengthUnit='km'</em>, <em>verboseLogLevel=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>EnergySystemModel class</p>
+<p>The functionality provided by the EnergySystemModel class is fourfold:</p>
+<ul class="simple">
+<li>With it, the <strong>basic structure</strong> (spatial and temporal resolution, considered commodities) of
+the investigated energy system is defined.</li>
+<li>It serves as a <strong>container for all components</strong> investigated in the energy system model. These components,
+namely sources and sinks, conversion options, storage options, and transmission options
+(in the core module), can be added to an EnergySystemModel instance.</li>
+<li>It provides the core functionality of <strong>modeling and optimizing the energy system</strong> based on the specified
+structure and components on the one hand and of specified simulation parameters on the other hand,.</li>
+<li>It <strong>stores optimization results</strong> which can then be post-processed with other modules.</li>
+</ul>
+<p>The parameter which are stored in an instance of the class refer to:</p>
+<ul class="simple">
+<li>the modeled spatial representation of the energy system (<strong>locations, lengthUnit</strong>)</li>
+<li>the modeled temporal representation of the energy system (<strong>totalTimeSteps, hoursPerTimeStep,
+years, periods, periodsOrder, periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps,
+isTimeSeriesDataClustered, typicalPeriods, tsaInstance, timeUnit</strong>)</li>
+<li>the considered commodities in the energy system (<strong>commodities, commodityUnitsDict</strong>)</li>
+<li>the considered components in the energy system (<strong>componentNames, componentModelingDict, costUnit</strong>)</li>
+<li>optimization related parameters (<strong>pyM, solverSpecs</strong>)
+all parameters are marked as protected (thus they all begin with an underscore) and are set when an class
+instance is initiated, components are added or user accessible functions are called.</li>
+</ul>
+<p>Instances of this class provide function for</p>
+<ul class="simple">
+<li>adding components and their respective modeling classes (<strong>add</strong>)</li>
+<li>clustering the time series data of all added components using the time series aggregation package tsam, cf.
+<a class="reference external" href="https://github.com/FZJ-IEK3-VSA/tsam">https://github.com/FZJ-IEK3-VSA/tsam</a> (<strong>cluster</strong>)</li>
+<li>optimizing the specified energy system (<strong>optimize</strong>), for which a pyomo discrete model instance is build
+and filled with
+(0) basic time sets,
+(1) sets, variables and constraints contributed by the component modeling classes,
+(2) basic, component overreaching constraints, and
+(3) an objective function.
+The pyomo instance is then optimized by a specified solver and the optimization results processed once
+available.</li>
+<li>getting components and their attributes (<strong>getComponent, getCompAttr, getOptimizationSummary</strong>)</li>
+</ul>
+<p>Last edited: July 27, 2018
+<br /> &#64;author: Lara Welder</p>
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>locations</em>, <em>commodities</em>, <em>commodityUnitsDict</em>, <em>numberOfTimeSteps=8760</em>, <em>hoursPerTimeStep=1</em>, <em>costUnit='1e9 Euro'</em>, <em>lengthUnit='km'</em>, <em>verboseLogLevel=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an EnergySystemModel class instance</p>
+<p><strong>Required arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>locations</strong> (<em>set of strings</em>) &#8211; locations considered in the energy system</li>
+<li><strong>commodities</strong> (<em>set of strings</em>) &#8211; commodities considered in the energy system</li>
+<li><strong>commodityUnitsDict</strong> (<em>dictionary of strings</em>) &#8211; dictionary which assigns each commodity a quantitative unit per time
+(e.g. GW_el, GW_H2, Mio.t_CO2/h). The dictionary is used for results output.
+Note for advanced users: the scale of these units can influence the numerical stability of the
+optimization solver, cf. <a class="reference external" href="http://files.gurobi.com/Numerics.pdf">http://files.gurobi.com/Numerics.pdf</a> where a reasonable range of model
+coefficients is suggested</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>numberOfTimeSteps</strong> &#8211; number of time steps considered when modeling the energy system (for each
+time step, or each representative time step, variables and constraints are constituted). Together
+with the hours per time step, the total number of hours considered can be derived. The total
+number of hours is again used for scaling the arising costs to the arising total annual costs (TAC),
+which are minimized during optimization.
+<br /> * the default value is 8760</li>
+<li><strong>hoursPerTimeStep</strong> &#8211; hours per time step
+<br /> * the default value is 1</li>
+<li><strong>costUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; cost unit of all cost related values in the energy system. This value sets the unit of
+all cost parameters which are given as an input to the EnergySystemModel instance (i.e. for the
+invest per capacity or the cost per operation).
+Note for advanced users: the scale of this unit can influence the numerical stability of the
+optimization solver, cf. <a class="reference external" href="http://files.gurobi.com/Numerics.pdf">http://files.gurobi.com/Numerics.pdf</a> where a reasonable range of model
+coefficients is suggested
+<br /> * the default value is &#8216;10^9 Euro&#8217; (billion euros), which can be a suitable scale for national
+energy systems.</li>
+<li><strong>lengthUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; length unit for all length related values in the energy system
+Note for advanced users: the scale of this unit can influence the numerical stability of the
+optimization solver, cf. <a class="reference external" href="http://files.gurobi.com/Numerics.pdf">http://files.gurobi.com/Numerics.pdf</a> where a reasonable range of model
+coefficients is suggested.
+<br /> * the default value is &#8216;km&#8217; (kilometers)</li>
+<li><strong>verboseLogLevel</strong> (<em>integer</em><em> (</em><em>0</em><em>, </em><em>1</em><em> or </em><em>2</em><em>)</em><em></em>) &#8211; defines how verbose the console logging is
+- 0: general model logging, warnings and optimization solver logging are displayed
+- 1: warnings are displayed
+- 2: no general model logging or warnings are displayed, the optimization solver logging is set to a minimum
+Note: if required, the optimization solver logging can be separately enabled in the optimizationSpecs
+of the optimize function.
+<br /> * the default value is 0</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>component</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for adding a component and, if required, its respective modeling class to the EnergySystemModel
+instance</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>component</strong> (<em>An object which inherits from the FINE Component class</em>) &#8211; the component to be added</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.getComponent">
+<code class="descname">getComponent</code><span class="sig-paren">(</span><em>componentName</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.getComponent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.getComponent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function which returns a component of the energy system</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>componentName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the component that should be returned</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the component which has the name componentName</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="coreComponentsDoc.html#component.Component" title="component.Component">Component</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.getComponentAttribute">
+<code class="descname">getComponentAttribute</code><span class="sig-paren">(</span><em>componentName</em>, <em>attributeName</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.getComponentAttribute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.getComponentAttribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function which returns an attribute of a component considered in the energy system</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>componentName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the component from which the attribute should be obtained</li>
+<li><strong>attributeName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the attributed that should be returned</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">the attribute specified by the attributeName of the component with the name componentName</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">depends on the specified attribute</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.getOptimizationSummary">
+<code class="descname">getOptimizationSummary</code><span class="sig-paren">(</span><em>modelingClass</em>, <em>outputLevel=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.getOptimizationSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.getOptimizationSummary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function which returns the optimization summary (design variables, aggregated operation variables,
+objective contributions) of a modeling class</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>modelingClass</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the modeling class from which the optimization summary should be obtained</li>
+<li><strong>outputLevel</strong> (<em>integer</em><em> (</em><em>0</em><em>, </em><em>1</em><em> or </em><em>2</em><em>)</em><em></em>) &#8211; states the level of detail of the output summary:
+- 0: full optimization summary is returned
+- 1: full optimization summary is returned but rows in which all values are NaN (not a number) are dropped
+- 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped
+<br /> * the default value is 0</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">the attribute specified by the attributeName of the component with the name componentName</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">depends on the specified attribute</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.cluster">
+<code class="descname">cluster</code><span class="sig-paren">(</span><em>numberOfTypicalPeriods=7</em>, <em>numberOfTimeStepsPerPeriod=24</em>, <em>clusterMethod='hierarchical'</em>, <em>sortValues=True</em>, <em>storeTSAinstance=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.cluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.cluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clusters the time series data of all components considered in the EnergySystemModel instance and then
+stores the clustered data in the respective components. For this, the time series data is broken down
+into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
+days with 24 hours) is assigned. For the clustering itself, the tsam package is used (cf.
+<a class="reference external" href="https://github.com/FZJ-IEK3-VSA/tsam">https://github.com/FZJ-IEK3-VSA/tsam</a>). Additional keyword arguments for the TimeSeriesAggregation instance
+can be added (facilitated by kwargs). As an example: it might be useful to add extreme periods to the
+clustered typical periods.</p>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>numberOfTypicalPeriods</strong> (<em>strictly positive integer</em>) &#8211; states the number of typical periods into which the time series data
+should be clustered. The number of time steps per period must be an integer multiple of the total
+number of considered time steps in the energy system.
+Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
+information.
+<br /> * the default value is 7</li>
+<li><strong>numberOfTimeStepsPerPeriod</strong> (<em>strictly positive integer</em>) &#8211; states the number of time steps per period
+<br /> * the default value is 24</li>
+<li><strong>clusterMethod</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; states the method which is used in the tsam package for clustering the time series
+data. Options are for example &#8216;averaging&#8217;,&#8217;k_means&#8217;,&#8217;exact k_medoid&#8217; or &#8216;hierarchical&#8217;.
+Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+<br /> * the default value is &#8216;hierarchical&#8217;</li>
+<li><strong>sortValues</strong> (<em>boolean</em>) &#8211; states if the algorithm in the tsam package should use
+(a) the sorted duration curves (-&gt; True) or
+(b) the original profiles (-&gt; False)
+of the time series data within a period for clustering.
+Note: Please refer to the tsam package documentation of the parameter sortValues for more information.
+<br /> * the default value is True</li>
+<li><strong>storeTSAinstance</strong> (<em>boolean</em>) &#8211; states if the TimeSeriesAggregation instance create during clustering should be
+stored in the EnergySystemModel instance.
+<br /> * the default value is False</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Last edited: August 10, 2018
+<br /> &#64;author: Lara Welder</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.declareTimeSets">
+<code class="descname">declareTimeSets</code><span class="sig-paren">(</span><em>pyM</em>, <em>timeSeriesAggregation</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.declareTimeSets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.declareTimeSets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set and initialize basic time parameters and sets</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.declareCommodityBalanceConstraints">
+<code class="descname">declareCommodityBalanceConstraints</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.declareCommodityBalanceConstraints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.declareCommodityBalanceConstraints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare commodity balance constraints (one balance constraint for each commodity, location and time step)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.declareObjective">
+<code class="descname">declareObjective</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.declareObjective"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.declareObjective" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare objective function by obtaining the contributions to the objective function from all modeling classes
+Currently, the only objective function which can be selected is the sum of the total annual cost of all
+components.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.declareOptimizationProblem">
+<code class="descname">declareOptimizationProblem</code><span class="sig-paren">(</span><em>timeSeriesAggregation=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.declareOptimizationProblem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.declareOptimizationProblem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declares the optimization problem belonging to the specified energy system, for which a pyomo discrete model
+instance is build and filled with
+* basic time sets,
+* sets, variables and constraints contributed by the component modeling classes,
+* basic, component overreaching constraints, and
+* an objective function.</p>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timeSeriesAggregation</strong> (<em>boolean</em>) &#8211; states if the optimization of the energy system model should be done with
+(a) the full time series (False) or
+(b) clustered time series data (True).
+<br /> * the default value is False</td>
+</tr>
+</tbody>
+</table>
+<p>Last edited: November 10, 2018
+<br /> &#64;author: Lara Welder</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="energySystemModel.EnergySystemModel.optimize">
+<code class="descname">optimize</code><span class="sig-paren">(</span><em>declaresOptimizationProblem=True</em>, <em>timeSeriesAggregation=False</em>, <em>logFileName='job'</em>, <em>threads=3</em>, <em>solver='gurobi'</em>, <em>timeLimit=None</em>, <em>optimizationSpecs='OptimalityTol=1e-6'</em>, <em>warmstart=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/energySystemModel.html#EnergySystemModel.optimize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#energySystemModel.EnergySystemModel.optimize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimizes the specified energy system, for which a pyomo discrete model instance is build or called upon.
+A pyomo instance is optimized with the specified inputs and the optimization results are further
+processed.</p>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>declaresOptimizationProblem</strong> &#8211; states if the optimization problem should be declared (True) or not (False).
+(a) If true, the declareOptimizationProblem function is called and concrete pyomo model instance is built.
+(b) If false a previously declared concrete pyomo model instance is used.
+<br /> * the default value is True</li>
+<li><strong>timeSeriesAggregation</strong> (<em>boolean</em>) &#8211; states if the optimization of the energy system model should be done with
+(a) the full time series (False) or
+(b) clustered time series data (True).
+<br /> * the default value is False</li>
+<li><strong>logFileName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; logFileName is used for naming the log file of the optimization solver output.
+If the logFileName is given as an absolute path (i.e. logFileName = os.path.join(os.getcwd(),
+&#8216;Results&#8217;, &#8216;logFileName.txt&#8217;)) the log file will be stored in the specified directory. Otherwise
+it will be by default stored in the directory where the executing python script is called.
+<br /> * the default value is &#8216;job&#8217;</li>
+<li><strong>threads</strong> (<em>positive integer</em>) &#8211; number of computational threads used for solving the optimization (solver dependent
+input). If gurobi is selected as the solver: a value of 0 results in using all available threads. If
+a value larger than the available number of threads are chosen, the value will reset to the maximum
+number of threads.
+<br /> * the default value is 3</li>
+<li><strong>solver</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; specifies which solver should solve the optimization problem (which of course has to be
+installed on the machine on which the model is run).
+<br /> * the default value is &#8216;gurobi&#8217;</li>
+<li><strong>timeLimit</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; if not specified as None, indicates the maximum solve time of the optimization problem
+in seconds (solver dependent input). The use of this parameter is suggested when running models in
+runtime restricted environments (such as clusters with job submission systems). If the runtime
+limitation is triggered before an optimal solution is available, the best solution obtained up
+until then (if available) is processed.
+<br /> * the default value is None</li>
+<li><strong>optimizationSpecs</strong> &#8211; specifies parameters for the optimization solver (see the respective solver
+documentation for more information)
+<br /> * the default value is &#8216;LogToConsole=1 OptimalityTol=1e-6&#8217;</li>
+<li><strong>warmstart</strong> (<em>boolean</em>) &#8211; specifies if a warm start of the optimization should be considered
+(not supported by all solvers).
+<br /> * the default value is False</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Last edited: August 10, 2018
+<br /> &#64;author: Lara Welder</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="componentsDoc.html" class="btn btn-neutral float-right" title="Components" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="packageDoc.html" class="btn btn-neutral" title="Python package description" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

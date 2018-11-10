@@ -32,10 +32,10 @@ class Source(Component):
         :type commodity: string
 
         :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not.
-            Examples:
-            (a) A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
-            (b) Emitting CO2 into the environment is not per se limited by a capacity ->
-                hasCapacityVariable is False.
+            Examples:\n
+            * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
+            * Emitting CO2 into the environment is not per se limited by a capacity ->
+              hasCapaityVariable is False.\n
         :type hasCapacityVariable: boolean
 
         **Default arguments:**
@@ -75,8 +75,7 @@ class Source(Component):
         :param yearlyLimit: if specified, yearly import/export commodity limit for all components with
             the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is
             limited. If negative, the commodity flow entering the energySystemModel is limited. If a
-            yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well.
-            Examples:
+            yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well. Examples:\n
             * CO2 can be emitted in power plants by burning natural gas or coal. The CO2 which goes into
               the atmosphere over the energy system's boundaries is modelled as a Sink. CO2 can also be a
               Source, taken directly from the atmosphere (over the energy system's boundaries) for a
@@ -85,9 +84,9 @@ class Source(Component):
               energy system's boundaries have the same commodityLimitID and the same yearlyLimit of +XY.
             * The maximum annual import of a certain chemical (commodityUnit tonnes_chem) is limited to
               XY tonnes_chem. The Source component modeling this import has a commodityLimitID
-              "chemicalComponentLimitID" and a yearlyLimit of -XY.
+              "chemicalComponentLimitID" and a yearlyLimit of -XY.\n
             |br| * the default value is None
-        :type yearlyLimit:
+        :type yearlyLimit: float
 
         :param opexPerOperation: cost which is directly proportional to the operation of the component
             is obtained by multiplying the opexPerOperation parameter with the annual sum of the
@@ -105,9 +104,9 @@ class Source(Component):
             float or a Pandas Series with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (i.e. Euro, Dollar, 1e6 Euro).
-            Example:
+            Example:\n
             * In a national energy system, natural gas could be purchased from another country with a
-              certain cost.
+              certain cost.\n
             |br| * the default value is 0
         :type commodityCost: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
@@ -117,9 +116,8 @@ class Source(Component):
             time series of the components. The commodityRevenue can either be given as a
             float or a Pandas Series with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
-            system model (i.e. Euro, Dollar, 1e6 Euro).
-            Example:
-            * Modeling a PV electricity feed-in tariff for a household
+            system model (i.e. Euro, Dollar, 1e6 Euro). Example:\n
+            * Modeling a PV electricity feed-in tariff for a household\n
             |br| * the default value is 0
         :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.

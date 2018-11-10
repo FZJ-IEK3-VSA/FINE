@@ -1,0 +1,391 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lopf &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>lopf</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lopf</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">FINE.transmission</span> <span class="k">import</span> <span class="n">Transmission</span><span class="p">,</span> <span class="n">TransmissionModel</span>
+<span class="kn">from</span> <span class="nn">FINE</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">import</span> <span class="nn">pyomo.environ</span> <span class="k">as</span> <span class="nn">pyomo</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+
+<div class="viewcode-block" id="LinearOptimalPowerFlow"><a class="viewcode-back" href="../subclassComponentsDoc.html#lopf.LinearOptimalPowerFlow">[docs]</a><span class="k">class</span> <span class="nc">LinearOptimalPowerFlow</span><span class="p">(</span><span class="n">Transmission</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="LinearOptimalPowerFlow.__init__"><a class="viewcode-back" href="../subclassComponentsDoc.html#lopf.LinearOptimalPowerFlow.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">reactances</span><span class="p">,</span> <span class="n">losses</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">distances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">operationRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tsaWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">locationalEligibility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">capacityFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">investPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerOperation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">opexIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">interestRate</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span> <span class="n">economicLifetime</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for creating an Conversion class instance.</span>
+<span class="sd">        The Transmission component specific input arguments are described below. The general component</span>
+<span class="sd">        input arguments are described in the Transmission class.</span>
+
+<span class="sd">        **Required arguments:**</span>
+
+<span class="sd">        :param reactances: reactances for DC power flow modeling.</span>
+<span class="sd">        :type reactances: Pandas DataFrame. The row and column indices of the DataFrame have to equal</span>
+<span class="sd">            the in the energy system model specified locations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Transmission</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">losses</span><span class="p">,</span> <span class="n">distances</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span>
+                              <span class="n">capacityVariableDomain</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="p">,</span> <span class="n">hasIsBuiltBinaryVariable</span><span class="p">,</span> <span class="n">bigM</span><span class="p">,</span>
+                              <span class="n">operationRateMax</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="p">,</span> <span class="n">tsaWeight</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="p">,</span> <span class="n">capacityMin</span><span class="p">,</span>
+                              <span class="n">capacityMax</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="p">,</span> <span class="n">capacityFix</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="p">,</span> <span class="n">investPerCapacity</span><span class="p">,</span>
+                              <span class="n">investIfBuilt</span><span class="p">,</span> <span class="n">opexPerOperation</span><span class="p">,</span> <span class="n">opexPerCapacity</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="p">,</span> <span class="n">interestRate</span><span class="p">,</span>
+                              <span class="n">economicLifetime</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span> <span class="o">=</span> <span class="n">LOPFModel</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactances2dim</span> <span class="o">=</span> <span class="n">reactances</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactances</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">loc</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactances2dim</span><span class="p">[</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="n">loc</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span></div>
+
+    <span class="k">def</span> <span class="nf">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">LOPFModel</span><span class="p">(</span><span class="n">TransmissionModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Doc &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span> <span class="o">=</span> <span class="s1">&#39;lopf&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">=</span> <span class="s1">&#39;2dim&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_phaseAngleVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                            Declare sparse index sets                                             #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">initPhaseAngleVarSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Declares phase angle variable set in the pyomo object for for each node</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+
+        <span class="c1"># Set for operation variables</span>
+        <span class="k">def</span> <span class="nf">initPhaseAngleVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">compName</span><span class="p">,</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">compDict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">_mapL</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngleVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initPhaseAngleVarSet</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares sets and dictionaries &quot;&quot;&quot;</span>
+
+        <span class="c1"># # Declare design variable sets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initContinuousDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDiscreteDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignDecisionVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1"># Declare operation variable set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initOpVarSet</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initPhaseAngleVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1"># Declare operation variable set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateFix&#39;</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                                Declare variables                                                 #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">declarePhaseAngleVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngle_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngleVarSet_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">),</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">Reals</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares design and operation variables &quot;&quot;&quot;</span>
+
+        <span class="c1"># Capacity variables in [commodityUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareCapacityVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># (Continuous) numbers of installed components in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareRealNumbersVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># (Discrete/integer) numbers of installed components in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareIntNumbersVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Binary variables [-] indicating if a component is considered at a location or not in [-]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareBinaryDesignDecisionVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="c1"># Flow over the edges of the components [commodityUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="c1"># Operation of component [commodityUnit]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declarePhaseAngleVariables</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                          Declare component constraints                                           #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">powerFlowDC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Enforces that the capacity between location_1 and location_2 is the same as the one</span>
+<span class="sd">        between location_2 and location_1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">phaseAngleVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngle_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">opVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">powerFlowDC</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="n">node1</span><span class="p">,</span> <span class="n">node2</span> <span class="o">=</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">_mapC</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">-</span> <span class="n">opVar</span><span class="p">[</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">_mapI</span><span class="p">[</span><span class="n">loc</span><span class="p">],</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">==</span>
+                    <span class="p">(</span><span class="n">phaseAngleVar</span><span class="p">[</span><span class="n">node1</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span><span class="o">-</span><span class="n">phaseAngleVar</span><span class="p">[</span><span class="n">node2</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span><span class="o">/</span>
+                    <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">reactances</span><span class="p">[</span><span class="n">loc</span><span class="p">])</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrpowerFlowDC_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>  <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">opVarSet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">powerFlowDC</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">basePhaseAngle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Reference phase angle is set to zero for all time steps &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">phaseAngleVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngle_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">basePhaseAngle</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="n">node0</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">_mapL</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">phaseAngleVar</span><span class="p">[</span><span class="n">node0</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrBasePhaseAngle_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">compDict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">basePhaseAngle</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares time independent and dependent constraints&quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">declareComponentConstraints</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+
+        <span class="c1">################################################################################################################</span>
+        <span class="c1">#                                         Add DC power flow constraints                                        #</span>
+        <span class="c1">################################################################################################################</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">powerFlowDC</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">basePhaseAngle</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#        Declare component contributions to basic EnergySystemModel constraints and its objective function         #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getCommodityBalanceContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getObjectiveFunctionContribution</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">setOptimalValues</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">phaseAngleVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngle_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="n">optVal_</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">phaseAngleVar</span><span class="o">.</span><span class="n">get_values</span><span class="p">(),</span> <span class="s1">&#39;operationVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span>
+                                                 <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal_</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

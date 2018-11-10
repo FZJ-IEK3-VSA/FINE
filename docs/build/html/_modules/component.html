@@ -1,0 +1,983 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>component &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>component</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for component</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">FINE</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">pyomo.environ</span> <span class="k">as</span> <span class="nn">pyomo</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+
+<div class="viewcode-block" id="Component"><a class="viewcode-back" href="../coreComponentsDoc.html#component.Component">[docs]</a><span class="k">class</span> <span class="nc">Component</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Component.__init__"><a class="viewcode-back" href="../coreComponentsDoc.html#component.Component.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span>
+                 <span class="n">hasCapacityVariable</span><span class="p">,</span> <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">locationalEligibility</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">capacityMin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">capacityFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">investPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexPerCapacity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">interestRate</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span> <span class="n">economicLifetime</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for creating an Conversion class instance.</span>
+
+<span class="sd">        **Required arguments:**</span>
+
+<span class="sd">        :param esM: energy system model to which the component should be added. Used for unit checks.</span>
+<span class="sd">        :type esM: EnergySystemModel instance from the FINE package</span>
+
+<span class="sd">        :param name: name of the component. Has to be unique (i.e. no other components with that name can</span>
+<span class="sd">            already exist in the EnergySystemModel instance to which the component is added).</span>
+<span class="sd">        :type name: string</span>
+
+<span class="sd">        :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not. Examples:\n</span>
+<span class="sd">            * An electrolyzer has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</span>
+<span class="sd">            * In the energy system, biogas can, from a model perspective, be converted into methane (and then</span>
+<span class="sd">              used in conventional power plants which emit CO2) by getting CO2 from the environment. Thus,</span>
+<span class="sd">              using biogas in conventional power plants is, from a balance perspective, CO2 free. This</span>
+<span class="sd">              conversion is purely theoretical and does not require a capacity -&gt; hasCapacityVariable</span>
+<span class="sd">              is False.</span>
+<span class="sd">            * A electricity cable has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</span>
+<span class="sd">            * If the transmission capacity of a component is unlimited hasCapacityVariable is False.</span>
+<span class="sd">            * A wind turbine has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</span>
+<span class="sd">            * Emitting CO2 into the environment is not per se limited by a capacity -&gt;</span>
+<span class="sd">              hasCapacityVariable is False.\n</span>
+<span class="sd">        :type hasCapacityVariable: boolean</span>
+
+<span class="sd">        **Default arguments:**</span>
+
+<span class="sd">        :param capacityVariableDomain: the mathematical domain of the capacity variables, if they are specified.</span>
+<span class="sd">            By default, the domain is specified as &#39;continuous&#39; and thus declares the variables as positive</span>
+<span class="sd">            (&gt;=0) real values. The second input option that is available for this parameter is &#39;discrete&#39;, which</span>
+<span class="sd">            declares the variables as positive (&gt;=0) integer values.</span>
+<span class="sd">            |br| * the default value is &#39;continuous&#39;</span>
+<span class="sd">        :type capacityVariableDomain: string (&#39;continuous&#39; or &#39;discrete&#39;)</span>
+
+<span class="sd">        :param capacityPerPlantUnit: capacity of one plant of the component (in the specified physicalUnit of</span>
+<span class="sd">            the plant). The default is 1, thus the number of plants is equal to the installed capacity.</span>
+<span class="sd">            This parameter should be specified when using a &#39;discrete&#39; capacityVariableDomain.</span>
+<span class="sd">            It can be specified when using a &#39;continuous&#39; variable domain.</span>
+<span class="sd">            |br| * the default value is 1</span>
+<span class="sd">        :type capacityPerPlantUnit: strictly positive float</span>
+
+<span class="sd">        :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for\n</span>
+<span class="sd">            * each eligible location of the component, which indicate if the component is built at that location or</span>
+<span class="sd">              not (dimension=1dim).</span>
+<span class="sd">            * each eligible connection of the transmission component, which indicate if the component is built</span>
+<span class="sd">              between two locations or not (dimension=2dim).\n</span>
+<span class="sd">            The binary variables can be used to enforce one-time investment cost or capacity-independent</span>
+<span class="sd">            annual operation cost. If a minimum capacity is specified and this parameter is set to True,</span>
+<span class="sd">            the minimum capacities are only considered if a component is built (i.e. if a component is built</span>
+<span class="sd">            at that location, it has to be built with a minimum capacity of XY GW, otherwise it is set to 0 GW).</span>
+<span class="sd">            |br| * the default value is False</span>
+<span class="sd">        :type hasIsBuiltBinaryVariable: boolean</span>
+
+<span class="sd">        :param bigM: the bigM parameter is only required when the hasIsBuiltBinaryVariable parameter is set to</span>
+<span class="sd">            True. In that case, it is set as a strictly positive float, otherwise it can remain a None value.</span>
+<span class="sd">            If not None and the ifBuiltBinaryVariables parameter is set to True, the parameter enforces an</span>
+<span class="sd">            artificial upper bound on the maximum capacities which should, however, never be reached. The value</span>
+<span class="sd">            should be chosen as small as possible but as large as necessary so that the optimal values of the</span>
+<span class="sd">            designed capacities are well below this value after the optimization.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type bigM: None or strictly positive float</span>
+
+<span class="sd">        :param locationalEligibility: Pandas\n</span>
+<span class="sd">            * Series that indicates if a component can be built at a location (=1) or not (=0)</span>
+<span class="sd">              (dimension=1dim) or</span>
+<span class="sd">            * Pandas DataFrame that indicates if a component can be built between two locations</span>
+<span class="sd">              (=1) or not (=0) (dimension=2dim).\n</span>
+<span class="sd">            If not specified and a maximum or fixed capacity or time series is given, the parameter will be</span>
+<span class="sd">            set based on these inputs. If the parameter is specified, a consistency check is done to ensure</span>
+<span class="sd">            that the parameters indicate the same locational eligibility. If the parameter is not specified</span>
+<span class="sd">            and also no other of the parameters is specified it is assumed that the component is eligible in</span>
+<span class="sd">            each location and all values are set to 1.</span>
+<span class="sd">            This parameter is key for ensuring small built times of the optimization problem by avoiding the</span>
+<span class="sd">            declaration of unnecessary variables and constraints.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type locationalEligibility:\n</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with values equal to 0 and 1. The column and row indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param capacityMin: if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)</span>
+<span class="sd">            indicating minimum capacities else None. If binary decision variables are declared the minimum</span>
+<span class="sd">            capacity is only enforced if the component is built .</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type capacityMin:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with positive (&gt;=0) values. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with positive (&gt;=0) values. The row and column indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param capacityMax: if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)</span>
+<span class="sd">            indicating maximum capacities else None.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type capacityMax:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with positive (&gt;=0) values. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with positive (&gt;=0) values. The row and column indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param sharedPotentialID: if specified, indicates that the component has to share its maximum</span>
+<span class="sd">            potential capacity with other components (i.e. due to space limitations). The shares of how</span>
+<span class="sd">            much of the maximum potential is used have to add up to less then 100%.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type sharedPotentialID: string</span>
+
+<span class="sd">        :param capacityFix: if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)</span>
+<span class="sd">            indicating fixed capacities else None.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type capacityFix:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with positive (&gt;=0) values. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with positive (&gt;=0) values. The row and column indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param isBuiltFix: if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)</span>
+<span class="sd">            indicating fixed decisions in which or between which locations the component is built (i.e. sets</span>
+<span class="sd">            the isBuilt binary variables) else None.</span>
+<span class="sd">            |br| * the default value is None</span>
+<span class="sd">        :type isBuiltFix:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with with values equal to 0 and 1. The indices of the series have to equal the</span>
+<span class="sd">              in the energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with values equal to 0 and 1. The row and column indices of the DataFrame</span>
+<span class="sd">              have to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param investPerCapacity: the invest of a component is obtained by multiplying the built capacities</span>
+<span class="sd">            of the component (in the physicalUnit of the component) with the investPerCapacity factor.</span>
+<span class="sd">            The investPerCapacity can either be given as\n</span>
+<span class="sd">            * a float or a Pandas Series with location specific values. The cost unit in which the parameter</span>
+<span class="sd">              is given has to match the one specified in the energy system model (i.e. Euro, Dollar,</span>
+<span class="sd">              1e6 Euro) (dimension=1dim) or</span>
+<span class="sd">            * a float or a Pandas DataFrame with location specific values. The cost unit in which the</span>
+<span class="sd">              parameter is given has to match the one specified in the energy system model divided by</span>
+<span class="sd">              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type investPerCapacity:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with positive (&gt;=0) values. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with positive (&gt;=0) values. The row and column indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param investIfBuilt: a capacity-independent invest which only arises in a location if a component</span>
+<span class="sd">            is built at that location. The investIfBuilt can either be given as\n</span>
+<span class="sd">            * a float or a Pandas Series with location specific values. The cost unit in which the parameter</span>
+<span class="sd">              is given has to match the one specified in the energy system model (i.e. Euro, Dollar,</span>
+<span class="sd">              1e6 Euro) (dimension=1dim) or</span>
+<span class="sd">            * a float or a Pandas DataFrame with location specific values. The cost unit in which the</span>
+<span class="sd">              parameter is given has to match the one specified in the energy system model divided by</span>
+<span class="sd">              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type investIfBuilt:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with positive (&gt;=0) values. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with positive (&gt;=0) values. The row and column indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param opexPerCapacity: annual operational cost which are only a function of the capacity of the</span>
+<span class="sd">            component (in the physicalUnit of the component) and not of the specific operation itself are</span>
+<span class="sd">            obtained by multiplying the capacity of the component at a location with the opexPerCapacity</span>
+<span class="sd">            factor. The opexPerCapacity can either be given as\n</span>
+<span class="sd">            * a float or a Pandas Series with location specific values. The cost unit in which the parameter</span>
+<span class="sd">              is given has to match the one specified in the energy system model (i.e. Euro, Dollar,</span>
+<span class="sd">              1e6 Euro) (dimension=1dim) or</span>
+<span class="sd">            * a float or a Pandas DataFrame with location specific values. The cost unit in which the</span>
+<span class="sd">              parameter is given has to match the one specified in the energy system model divided by</span>
+<span class="sd">              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type opexPerCapacity:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with positive (&gt;=0) values. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with positive (&gt;=0) values. The row and column indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param opexIfBuilt: a capacity-independent annual operational cost which only arises in a location</span>
+<span class="sd">            if a component is built at that location. The opexIfBuilt can either be given as\n</span>
+<span class="sd">            * a float or a Pandas Series with location specific values. The cost unit in which the parameter</span>
+<span class="sd">              is given has to match the one specified in the energy system model (i.e. Euro, Dollar,</span>
+<span class="sd">              1e6 Euro) (dimension=1dim) or</span>
+<span class="sd">            * a float or a Pandas DataFrame with location specific values. The cost unit in which the</span>
+<span class="sd">              parameter is given has to match the one specified in the energy system model divided by</span>
+<span class="sd">              the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n</span>
+<span class="sd">            |br| * the default value is 0</span>
+<span class="sd">        :type opexIfBuilt:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with positive (&gt;=0) values. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with positive (&gt;=0) values. The row and column indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param interestRate: interest rate which is considered for computing the annuities of the invest</span>
+<span class="sd">            of the component (depreciates the invests over the economic lifetime).</span>
+<span class="sd">            A value of 0.08 corresponds to an interest rate of 8%.</span>
+<span class="sd">            |br| * the default value is 0.08</span>
+<span class="sd">        :type interestRate:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with positive (&gt;=0) values. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with positive (&gt;=0) values. The row and column indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param economicLifetime: economic lifetime of the component which is considered for computing the</span>
+<span class="sd">            annuities of the invest of the component (aka depreciation time).</span>
+<span class="sd">            |br| * the default value is 10</span>
+<span class="sd">        :type economicLifetime:</span>
+<span class="sd">            * None or</span>
+<span class="sd">            * Pandas Series with positive (&gt;=0) values. The indices of the series have to equal the in the</span>
+<span class="sd">              energy system model specified locations or</span>
+<span class="sd">            * Pandas DataFrame with positive (&gt;=0) values. The row and column indices of the DataFrame have</span>
+<span class="sd">              to equal the in the energy system model specified locations.</span>
+
+<span class="sd">        :param modelingClass: to the Component connected modeling class.</span>
+<span class="sd">            |br| * the default value is ModelingClass</span>
+<span class="sd">        :type modelingClass: a class inherting from ComponentModeling</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Set general component data</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">isEnergySystemModelInstance</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">=</span> <span class="n">dimension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span> <span class="o">=</span> <span class="n">ComponentModel</span>
+
+        <span class="c1"># Set design variable modeling parameters</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkDesignVariableModelingParameters</span><span class="p">(</span><span class="n">capacityVariableDomain</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="p">,</span>
+                                                    <span class="n">hasIsBuiltBinaryVariable</span><span class="p">,</span> <span class="n">bigM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hasCapacityVariable</span> <span class="o">=</span> <span class="n">hasCapacityVariable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariableDomain</span> <span class="o">=</span> <span class="n">capacityVariableDomain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityPerPlantUnit</span> <span class="o">=</span> <span class="n">capacityPerPlantUnit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hasIsBuiltBinaryVariable</span> <span class="o">=</span> <span class="n">hasIsBuiltBinaryVariable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bigM</span> <span class="o">=</span> <span class="n">bigM</span>
+
+        <span class="c1"># Set economic data</span>
+        <span class="n">elig</span> <span class="o">=</span> <span class="n">locationalEligibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">investPerCapacity</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">investPerCapacity</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">elig</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">investIfBuilt</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">investIfBuilt</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">elig</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opexPerCapacity</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">opexPerCapacity</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">elig</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opexIfBuilt</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">opexIfBuilt</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">elig</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interestRate</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">interestRate</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">elig</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">economicLifetime</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">checkAndSetCostParameter</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">economicLifetime</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">elig</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CCF</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">getCapitalChargeFactor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interestRate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">economicLifetime</span><span class="p">)</span>
+
+        <span class="c1"># Set location-specific design parameters</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">checkLocationSpecficDesignInputParams</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span> <span class="n">hasIsBuiltBinaryVariable</span><span class="p">,</span>
+                                                    <span class="n">capacityMin</span><span class="p">,</span> <span class="n">capacityMax</span><span class="p">,</span> <span class="n">capacityFix</span><span class="p">,</span>
+                                                    <span class="n">locationalEligibility</span><span class="p">,</span> <span class="n">isBuiltFix</span><span class="p">,</span> <span class="n">sharedPotentialID</span><span class="p">,</span>
+                                                    <span class="n">dimension</span><span class="o">=</span><span class="n">dimension</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span> <span class="o">=</span> <span class="n">locationalEligibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sharedPotentialID</span> <span class="o">=</span> <span class="n">sharedPotentialID</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityMin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityMax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span> <span class="o">=</span> <span class="n">capacityMin</span><span class="p">,</span> <span class="n">capacityMax</span><span class="p">,</span> <span class="n">capacityFix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltFix</span> <span class="o">=</span> <span class="n">isBuiltFix</span></div>
+        <span class="c1">#</span>
+        <span class="c1"># # Variables at optimum (set after optimization)</span>
+        <span class="c1"># self.capacityVariablesOptimum = None</span>
+        <span class="c1"># self.isBuiltVariablesOptimum = None</span>
+        <span class="c1"># self.operationVariablesOptimum = {}</span>
+
+    <span class="k">def</span> <span class="nf">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="n">esM</span><span class="o">.</span><span class="n">isTimeSeriesDataClustered</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">componentNames</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">esM</span><span class="o">.</span><span class="n">componentNames</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span><span class="o">.</span><span class="n">__name__</span> <span class="ow">and</span> <span class="n">esM</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Component identifier &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; already exists. Data will be overwritten.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">esM</span><span class="o">.</span><span class="n">componentNames</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span><span class="o">.</span><span class="n">__name__</span> <span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Component name &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; is not unique.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">esM</span><span class="o">.</span><span class="n">componentNames</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span><span class="o">.</span><span class="n">__name__</span><span class="p">})</span>
+        <span class="n">mdl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span><span class="o">.</span><span class="n">__name__</span>
+        <span class="k">if</span> <span class="n">mdl</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="p">:</span>
+            <span class="n">esM</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">mdl</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">modelingClass</span><span class="p">()})</span>
+        <span class="n">esM</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="p">[</span><span class="n">mdl</span><span class="p">]</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">prepareTSAInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rateFix</span><span class="p">,</span> <span class="n">rateMax</span><span class="p">,</span> <span class="n">rateName</span><span class="p">,</span> <span class="n">rateWeight</span><span class="p">,</span> <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="n">data_</span> <span class="o">=</span> <span class="n">rateFix</span> <span class="k">if</span> <span class="n">rateFix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">rateMax</span>
+        <span class="k">if</span> <span class="n">data_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_</span> <span class="o">=</span> <span class="n">data_</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">uniqueIdentifiers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="n">rateName</span> <span class="o">+</span> <span class="n">loc</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">data_</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+            <span class="n">data_</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="n">loc</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="n">rateName</span> <span class="o">+</span> <span class="n">loc</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">data_</span><span class="o">.</span><span class="n">columns</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">weightDict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="nb">id</span><span class="p">:</span> <span class="n">rateWeight</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">uniqueIdentifiers</span><span class="p">}),</span> <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">rateName</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">rate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">uniqueIdentifiers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="n">rateName</span> <span class="o">+</span> <span class="n">loc</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">rate</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+            <span class="n">data_</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">uniqueIdentifiers</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">data_</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="n">rateName</span> <span class="o">+</span> <span class="n">loc</span><span class="p">:</span> <span class="n">loc</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">rate</span><span class="o">.</span><span class="n">columns</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">data_</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">setTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hasTSA</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">getDataForTimeSeriesAggregation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">setAggregatedTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<span class="k">class</span> <span class="nc">ComponentModel</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Doc</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                           Functions for declaring design and operation variables sets                            #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">initDesignVarSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares set for capacity variables in the pyomo object for a modeling class &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+
+        <span class="k">def</span> <span class="nf">initDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">compName</span><span class="p">,</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">compDict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="o">.</span><span class="n">index</span>
+                    <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">hasCapacityVariable</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initDesignVarSet</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">initContinuousDesignVarSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares set for continuous number of installed components in the pyomo object for a modeling class &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+
+        <span class="k">def</span> <span class="nf">initContinuousDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">capacityVariableDomain</span> <span class="o">==</span> <span class="s1">&#39;continuous&#39;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;continuousDesignDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initContinuousDesignVarSet</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">initDiscreteDesignVarSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares set for discrete number of installed components in the pyomo object for a modeling class &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+
+        <span class="k">def</span> <span class="nf">initDiscreteDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">capacityVariableDomain</span> <span class="o">==</span> <span class="s1">&#39;discrete&#39;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;discreteDesignDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initDiscreteDesignVarSet</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">initDesignDecisionVarSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares set for design decision variables in the pyomo object for a modeling class &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="k">def</span> <span class="nf">initDesignDecisionVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">hasIsBuiltBinaryVariable</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDecisionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initDesignDecisionVarSet</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">initOpVarSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Declares operation related sets (operation variables and mapping sets) in the pyomo object for a</span>
+<span class="sd">        modeling class</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+
+        <span class="c1"># Set for operation variables</span>
+        <span class="k">def</span> <span class="nf">initOpVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">compName</span><span class="p">,</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">compDict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="o">.</span><span class="n">index</span> <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initOpVarSet</span><span class="p">))</span>
+
+        <span class="c1"># TODO more generic formulation?</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">==</span> <span class="s1">&#39;1dim&#39;</span><span class="p">:</span>
+            <span class="c1"># Dictionary which lists all components of the modeling class at one location</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarDict_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                    <span class="p">{</span><span class="n">loc</span><span class="p">:</span> <span class="p">{</span><span class="n">compName</span> <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compDict</span>
+                           <span class="k">if</span> <span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)}</span>
+                     <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">})</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">==</span> <span class="s1">&#39;2dim&#39;</span><span class="p">:</span>
+            <span class="c1"># Dictionaries which list all outgoing and incoming components at a location</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarDictOut_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                    <span class="p">{</span><span class="n">loc</span><span class="p">:</span> <span class="p">{</span><span class="n">loc_</span><span class="p">:</span> <span class="p">{</span><span class="n">compName</span> <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compDict</span>
+                                  <span class="k">if</span> <span class="p">(</span><span class="n">loc</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc_</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)}</span>
+                           <span class="k">for</span> <span class="n">loc_</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">}</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">})</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarDictIn_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                    <span class="p">{</span><span class="n">loc</span><span class="p">:</span> <span class="p">{</span><span class="n">loc_</span><span class="p">:</span> <span class="p">{</span><span class="n">compName</span> <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compDict</span>
+                                  <span class="k">if</span> <span class="p">(</span><span class="n">loc_</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)}</span>
+                           <span class="k">for</span> <span class="n">loc_</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">}</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">esM</span><span class="o">.</span><span class="n">locations</span><span class="p">})</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                   Functions for declaring operation mode sets                                    #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">declareOperationModeSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span><span class="p">,</span> <span class="n">rateMax</span><span class="p">,</span> <span class="n">rateFix</span><span class="p">):</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">varSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">initOpConstrSet1</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">varSet</span> <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">hasCapacityVariable</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">rateMax</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">rateFix</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;1_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initOpConstrSet1</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">initOpConstrSet2</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">varSet</span> <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">hasCapacityVariable</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">rateFix</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;2_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initOpConstrSet2</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">initOpConstrSet3</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">varSet</span> <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">hasCapacityVariable</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">rateMax</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;3_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initOpConstrSet3</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">initOpConstrSet4</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">varSet</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">hasCapacityVariable</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">rateFix</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;4_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initOpConstrSet4</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">initOpConstrSet5</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">varSet</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">hasCapacityVariable</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">rateMax</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;5_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initOpConstrSet5</span><span class="p">))</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                                         Functions for declaring variables                                        #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">declareCapacityVars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares capacity variables &quot;&quot;&quot;</span>
+        <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+
+        <span class="k">def</span> <span class="nf">capBounds</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; Function for setting lower and upper capacity bounds &quot;&quot;&quot;</span>
+            <span class="n">comp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">comp</span><span class="o">.</span><span class="n">capacityMin</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="k">if</span> <span class="p">(</span><span class="n">comp</span><span class="o">.</span><span class="n">capacityMin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">comp</span><span class="o">.</span><span class="n">hasIsBuiltBinaryVariable</span><span class="p">)</span>
+                    <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="n">comp</span><span class="o">.</span><span class="n">capacityMax</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">capacityMax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span>
+                <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">NonNegativeReals</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">capBounds</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareRealNumbersVars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares variables representing the (continuous) number of installed components [-] &quot;&quot;&quot;</span>
+        <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;nbReal_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;continuousDesignDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span>
+                <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">NonNegativeReals</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareIntNumbersVars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares variables representing the (discrete/integer) number of installed components [-] &quot;&quot;&quot;</span>
+        <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;nbInt_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;discreteDesignDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span>
+                <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">NonNegativeIntegers</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareBinaryDesignDecisionVars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares binary variables [-] indicating if a component is considered at a location or not [-] &quot;&quot;&quot;</span>
+        <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designBin_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDecisionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span>
+                <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">Binary</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">declareOperationVars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">opVarName</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Declares operation variables &quot;&quot;&quot;</span>
+        <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">opVarName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">NonNegativeReals</span><span class="p">))</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                              Functions for declaring time independent constraints                                #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">capToNbReal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Determine the components&#39; capacities from the number of installed units &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">capVar</span><span class="p">,</span> <span class="n">nbRealVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;nbReal_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">nbRealVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;continuousDesignDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">capToNbReal</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">==</span> <span class="n">nbRealVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">capacityPerPlantUnit</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrCapToNbReal_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">nbRealVarSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">capToNbReal</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">capToNbInt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Determine the components&#39; capacities from the number of installed units &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">capVar</span><span class="p">,</span> <span class="n">nbIntVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;nbInt_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">nbIntVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;discreteDesignDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">capToNbInt</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">==</span> <span class="n">nbIntVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">capacityPerPlantUnit</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrCapToNbInt_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">nbIntVarSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">capToNbInt</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">bigM</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Enforce the consideration of the binary design variables of a component &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">capVar</span><span class="p">,</span> <span class="n">designBinVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designBin_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">designBinVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDecisionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">bigM</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">designBinVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">bigM</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrBigM_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">designBinVarSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">bigM</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">capacityMinDec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Enforce the consideration of minimum capacities for components with design decision variables &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span>
+        <span class="n">capVar</span><span class="p">,</span> <span class="n">designBinVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designBin_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">designBinVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDecisionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">capacityMinDec</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">capacityMin</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">*</span> <span class="n">designBinVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">capacityMin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="o">.</span><span class="n">Skip</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrCapacityMinDec_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">designBinVarSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">capacityMinDec</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">capacityFix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sets, if applicable, the installed capacities of a component &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span>
+        <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">capVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">capacityFix</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">==</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">capacityFix</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">capacityFix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="o">.</span><span class="n">Skip</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrCapacityFix_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">capVarSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">capacityFix</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">designBinFix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sets, if applicable, the installed capacities of a component &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span>
+        <span class="n">designBinVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designBin_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">designBinVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDecisionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">designBinFix</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">designBinVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">==</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">isBuiltFix</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">isBuiltFix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="o">.</span><span class="n">Skip</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrDesignBinFix_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">designBinVarSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">designBinFix</span><span class="p">))</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#                               Functions for declaring time dependent constraints                                 #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">operationMode1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">constrName</span><span class="p">,</span> <span class="n">constrSetName</span><span class="p">,</span> <span class="n">opVarName</span><span class="p">,</span> <span class="n">factorName</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">isStateOfCharge</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Defines operation modes &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">opVarName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">constrSet1</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;1_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">factor1</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">isStateOfCharge</span> <span class="k">else</span> <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span>
+
+        <span class="c1"># Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by the hours per time step</span>
+        <span class="k">def</span> <span class="nf">op1</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="n">factor2</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">factorName</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">factorName</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">factor1</span> <span class="o">*</span> <span class="n">factor2</span> <span class="o">*</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrName</span> <span class="o">+</span> <span class="s1">&#39;1_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">constrSet1</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">op1</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">operationMode2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">constrName</span><span class="p">,</span> <span class="n">constrSetName</span><span class="p">,</span> <span class="n">opVarName</span><span class="p">,</span> <span class="n">isStateOfCharge</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Defines operation modes &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">opVarName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">constrSet2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;2_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">isStateOfCharge</span> <span class="k">else</span> <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span>
+
+        <span class="c1"># Operation [energyUnit] equal to the installed capacity [powerUnit] multiplied by operation time series</span>
+        <span class="c1"># [powerUnit/powerUnit] and the hours per time step [h])</span>
+        <span class="k">def</span> <span class="nf">op2</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">==</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> \
+                   <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">operationRateFix</span><span class="p">[</span><span class="n">loc</span><span class="p">][</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">factor</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrName</span> <span class="o">+</span> <span class="s1">&#39;2_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">constrSet2</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">op2</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">operationMode3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">constrName</span><span class="p">,</span> <span class="n">constrSetName</span><span class="p">,</span> <span class="n">opVarName</span><span class="p">,</span> <span class="n">isStateOfCharge</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Defines operation modes &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">opVarName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">constrSet3</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;3_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">isStateOfCharge</span> <span class="k">else</span> <span class="n">esM</span><span class="o">.</span><span class="n">hoursPerTimeStep</span>
+
+        <span class="c1"># Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by operation time series</span>
+        <span class="c1"># [powerUnit/powerUnit] and the hours per time step [h])</span>
+        <span class="k">def</span> <span class="nf">op3</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">*</span> \
+                   <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">operationRateMax</span><span class="p">[</span><span class="n">loc</span><span class="p">][</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">factor</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrName</span> <span class="o">+</span> <span class="s1">&#39;3_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">constrSet3</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">op3</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">operationMode4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">constrName</span><span class="p">,</span> <span class="n">constrSetName</span><span class="p">,</span> <span class="n">opVarName</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Defines operation modes &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">opVarName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">constrSet4</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;4_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="c1"># Operation [energyUnit] equal to the operation time series [energyUnit]</span>
+        <span class="k">def</span> <span class="nf">op4</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">==</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">operationRateFix</span><span class="p">[</span><span class="n">loc</span><span class="p">][</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrName</span> <span class="o">+</span> <span class="s1">&#39;4_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">constrSet4</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">op4</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">operationMode5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">constrName</span><span class="p">,</span> <span class="n">constrSetName</span><span class="p">,</span> <span class="n">opVarName</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Defines operation modes &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">opVar</span><span class="p">,</span> <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">opVarName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">constrSet5</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrSetName</span> <span class="o">+</span> <span class="s1">&#39;5_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="c1"># Operation [energyUnit] limited by the operation time series [energyUnit]</span>
+        <span class="k">def</span> <span class="nf">op5</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">operationRateMax</span><span class="p">[</span><span class="n">loc</span><span class="p">][</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">constrName</span> <span class="o">+</span> <span class="s1">&#39;5_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">constrSet5</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">op5</span><span class="p">))</span>
+
+    <span class="c1">####################################################################################################################</span>
+    <span class="c1">#  Functions for declaring component contributions to basic energy system constraints and the objective function   #</span>
+    <span class="c1">####################################################################################################################</span>
+
+    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the share which the components of the modeling class have on a shared maximum potential at a location</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">capVarSet</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designDimensionVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span> <span class="o">/</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">capacityMax</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compDict</span>
+                   <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">sharedPotentialID</span> <span class="o">==</span> <span class="n">key</span> <span class="ow">and</span> <span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="ow">in</span> <span class="n">capVarSet</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getLocEconomicsTD</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">factorNames</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">getOptValue</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">varName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">factors</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">factorName</span><span class="p">)[</span><span class="n">loc</span><span class="p">]</span> <span class="k">for</span> <span class="n">factorName</span> <span class="ow">in</span> <span class="n">factorNames</span><span class="p">]</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="k">for</span> <span class="n">factor_</span> <span class="ow">in</span> <span class="n">factors</span><span class="p">:</span>
+            <span class="n">factor</span> <span class="o">*=</span> <span class="n">factor_</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">getOptValue</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">factor</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodOccurrences</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+                                 <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">)</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">factor</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">var</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">*</span> <span class="n">esM</span><span class="o">.</span><span class="n">periodOccurrences</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+                                 <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">)</span><span class="o">/</span><span class="n">esM</span><span class="o">.</span><span class="n">numberOfYears</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getLocEconomicsTI</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">factorNames</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">divisorName</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">getOptValue</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">varName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">factors</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">factorName</span><span class="p">)[</span><span class="n">loc</span><span class="p">]</span> <span class="k">for</span> <span class="n">factorName</span> <span class="ow">in</span> <span class="n">factorNames</span><span class="p">]</span>
+        <span class="n">divisor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">[</span><span class="n">compName</span><span class="p">],</span> <span class="n">divisorName</span><span class="p">)[</span><span class="n">loc</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">divisorName</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">divisor</span>
+        <span class="k">for</span> <span class="n">factor_</span> <span class="ow">in</span> <span class="n">factors</span><span class="p">:</span>
+            <span class="n">factor</span> <span class="o">*=</span> <span class="n">factor_</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">getOptValue</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">var</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">var</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">getEconomicsTI</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">factorNames</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">divisorName</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">getOptValue</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">varName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getLocEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">factorNames</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">divisorName</span><span class="p">,</span> <span class="n">getOptValue</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">var</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getEconomicsTD</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">factorNames</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">dictName</span><span class="p">,</span> <span class="n">getOptValue</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">dictName</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">==</span> <span class="s1">&#39;1dim&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getLocEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">factorNames</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">getOptValue</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compNames</span> <span class="ow">in</span> <span class="n">indices</span> <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compNames</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getLocEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">factorNames</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">loc</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">loc_</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">getOptValue</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">subDict</span> <span class="ow">in</span> <span class="n">indices</span>
+                       <span class="k">for</span> <span class="n">loc_</span><span class="p">,</span> <span class="n">compNames</span> <span class="ow">in</span> <span class="n">subDict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                       <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compNames</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">indexColumns</span><span class="p">,</span> <span class="n">plantUnit</span><span class="p">,</span> <span class="n">unitApp</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">costApp</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
+        <span class="n">capVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">esM</span><span class="o">.</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+        <span class="n">binVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">esM</span><span class="o">.</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;designBin_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
+
+        <span class="n">props</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;capacity&#39;</span><span class="p">,</span> <span class="s1">&#39;isBuilt&#39;</span><span class="p">,</span> <span class="s1">&#39;capexCap&#39;</span><span class="p">,</span> <span class="s1">&#39;capexIfBuilt&#39;</span><span class="p">,</span> <span class="s1">&#39;opexCap&#39;</span><span class="p">,</span> <span class="s1">&#39;opexIfBuilt&#39;</span><span class="p">,</span> <span class="s1">&#39;TAC&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;invest&#39;</span><span class="p">]</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;[-]&#39;</span><span class="p">,</span> <span class="s1">&#39;[-]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span><span class="p">]</span>
+        <span class="n">tuples</span> <span class="o">=</span> <span class="p">[(</span><span class="n">compName</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">unit</span><span class="p">)</span> <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">compDict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">for</span> <span class="n">prop</span><span class="p">,</span> <span class="n">unit</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">props</span><span class="p">,</span> <span class="n">units</span><span class="p">)]</span>
+        <span class="n">tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">plantUnit</span><span class="p">)</span> <span class="o">+</span> <span class="n">unitApp</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span><span class="p">)</span>
+                          <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;capacity&#39;</span> <span class="k">else</span> <span class="n">x</span><span class="p">,</span> <span class="n">tuples</span><span class="p">))</span>
+        <span class="n">mIndex</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span><span class="n">tuples</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Component&#39;</span><span class="p">,</span> <span class="s1">&#39;Property&#39;</span><span class="p">,</span> <span class="s1">&#39;Unit&#39;</span><span class="p">])</span>
+        <span class="n">optSummary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">mIndex</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">indexColumns</span><span class="p">))</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+        <span class="c1"># Get and set optimal variable values and contributions to the total annual cost and invest</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">capVar</span><span class="o">.</span><span class="n">get_values</span><span class="p">()</span>
+        <span class="n">optVal</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="s1">&#39;designVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">)</span>
+        <span class="n">optVal_</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="s1">&#39;designVariables&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">,</span> <span class="n">compDict</span><span class="o">=</span><span class="n">compDict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal_</span>
+
+        <span class="c1"># Check if the installed capacities are close to a bigM value for components with design decision variables</span>
+        <span class="k">for</span> <span class="n">compName</span><span class="p">,</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">compDict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">hasIsBuiltBinaryVariable</span> <span class="ow">and</span> <span class="n">optVal</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">comp</span><span class="o">.</span><span class="n">bigM</span> <span class="o">*</span> <span class="mf">0.9</span> \
+               <span class="ow">and</span> <span class="n">esM</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;the capacity of component &#39;</span> <span class="o">+</span> <span class="n">compName</span> <span class="o">+</span> <span class="s1">&#39; is in one or more locations close or equal &#39;</span>
+                              <span class="s1">&#39;to the chosen Big M. Consider rerunning the simulation with a higher Big M.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">optVal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">cap</span><span class="p">:</span> <span class="n">cap</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">cap</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">investPerCapacity</span><span class="p">[</span><span class="n">cap</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">cx</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">cap</span><span class="p">:</span> <span class="n">cap</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">cap</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">investPerCapacity</span><span class="p">[</span><span class="n">cap</span><span class="o">.</span><span class="n">index</span><span class="p">]</span> <span class="o">/</span>
+                                          <span class="n">compDict</span><span class="p">[</span><span class="n">cap</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">CCF</span><span class="p">[</span><span class="n">cap</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ox</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">cap</span><span class="p">:</span> <span class="n">cap</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">cap</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">opexPerCapacity</span><span class="p">[</span><span class="n">cap</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+                <span class="p">[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;capacity&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">ix</span><span class="p">],</span> <span class="n">plantUnit</span><span class="p">)</span> <span class="o">+</span> <span class="n">unitApp</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">optVal</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
+                <span class="n">optVal</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">values</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;invest&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">i</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">i</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">i</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">costApp</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;capexCap&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">cx</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">cx</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">cx</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">costApp</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;opexCap&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">ox</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">ox</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">ox</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">costApp</span>
+
+        <span class="n">values</span> <span class="o">=</span> <span class="n">binVar</span><span class="o">.</span><span class="n">get_values</span><span class="p">()</span>
+        <span class="n">optVal</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="s1">&#39;designVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">)</span>
+        <span class="n">optVal_</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="s1">&#39;designVariables&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">,</span> <span class="n">compDict</span><span class="o">=</span><span class="n">compDict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal_</span>
+
+        <span class="k">if</span> <span class="n">optVal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">dec</span><span class="p">:</span> <span class="n">dec</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">dec</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">investIfBuilt</span><span class="p">[</span><span class="n">dec</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">cx</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">dec</span><span class="p">:</span> <span class="n">dec</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">dec</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">investIfBuilt</span><span class="p">[</span><span class="n">dec</span><span class="o">.</span><span class="n">index</span><span class="p">]</span> <span class="o">/</span>
+                              <span class="n">compDict</span><span class="p">[</span><span class="n">dec</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">CCF</span><span class="p">[</span><span class="n">dec</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ox</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">dec</span><span class="p">:</span> <span class="n">dec</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">dec</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">opexIfBuilt</span><span class="p">[</span><span class="n">dec</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;isBuilt&#39;</span><span class="p">,</span> <span class="s1">&#39;[-]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">optVal</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">optVal</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">optVal</span><span class="o">.</span><span class="n">values</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;invest&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">cx</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">cx</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">+=</span> \
+                <span class="n">i</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">costApp</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;capexIfBuilt&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">cx</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
+                           <span class="n">cx</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">cx</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">costApp</span>
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[[(</span><span class="n">ix</span><span class="p">,</span> <span class="s1">&#39;opexIfBuilt&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">esM</span><span class="o">.</span><span class="n">costUnit</span> <span class="o">+</span> <span class="s1">&#39;/a]&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">ox</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
+                           <span class="n">ox</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">ox</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">costApp</span>
+
+        <span class="c1"># Summarize all contributions to the total annual cost</span>
+        <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;TAC&#39;</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="n">optSummary</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;capexCap&#39;</span><span class="p">)</span> <span class="o">|</span>
+                           <span class="p">(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;opexCap&#39;</span><span class="p">)</span> <span class="o">|</span>
+                           <span class="p">(</span><span class="n">optSummary</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;capexIfBuilt&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="k">return</span> <span class="n">optSummary</span>
+
+    <span class="k">def</span> <span class="nf">getOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;capacityVariables&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">},</span>
+                <span class="s1">&#39;isBuiltVariables&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                     <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">},</span>
+                <span class="s1">&#39;operationVariablesOptimum&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                                              <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">}}</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.0.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

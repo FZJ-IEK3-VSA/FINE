@@ -17,7 +17,7 @@ class EnergySystemModel:
     """
     EnergySystemModel class
 
-    The functionality provided by the EnergySystemModel class is fourfold:
+    The functionality provided by the EnergySystemModel class is fourfold:\n
     * With it, the **basic structure** (spatial and temporal resolution, considered commodities) of
       the investigated energy system is defined.
     * It serves as a **container for all components** investigated in the energy system model. These components,
@@ -27,7 +27,7 @@ class EnergySystemModel:
       structure and components on the one hand and of specified simulation parameters on the other hand,.
     * It **stores optimization results** which can then be post-processed with other modules.
 
-    The parameter which are stored in an instance of the class refer to:
+    The parameter which are stored in an instance of the class refer to:\n
     * the modeled spatial representation of the energy system (**locations, lengthUnit**)
     * the modeled temporal representation of the energy system (**totalTimeSteps, hoursPerTimeStep,
       years, periods, periodsOrder, periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps,
@@ -38,7 +38,7 @@ class EnergySystemModel:
       all parameters are marked as protected (thus they all begin with an underscore) and are set when an class
       instance is initiated, components are added or user accessible functions are called.
 
-    Instances of this class provide function for
+    Instances of this class provide function for\n
     * adding components and their respective modeling classes (**add**)
     * clustering the time series data of all added components using the time series aggregation package tsam, cf.
       https://github.com/FZJ-IEK3-VSA/tsam (**cluster**)
@@ -97,7 +97,7 @@ class EnergySystemModel:
             optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
             coefficients is suggested
             |br| * the default value is '10^9 Euro' (billion euros), which can be a suitable scale for national
-                energy systems.
+            energy systems.
         :type costUnit: string
 
         :param lengthUnit: length unit for all length related values in the energy system
@@ -304,7 +304,9 @@ class EnergySystemModel:
         stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
         days with 24 hours) is assigned. For the clustering itself, the tsam package is used (cf.
-        https://github.com/FZJ-IEK3-VSA/tsam).
+        https://github.com/FZJ-IEK3-VSA/tsam). Additional keyword arguments for the TimeSeriesAggregation instance
+        can be added (facilitated by kwargs). As an example: it might be useful to add extreme periods to the
+        clustered typical periods.
 
         **Default arguments:**
 
@@ -338,10 +340,6 @@ class EnergySystemModel:
             stored in the EnergySystemModel instance.
             |br| * the default value is False
         :type storeTSAinstance: boolean
-
-        Moreover, additional keyword arguments for the TimeSeriesAggregation instance can be added (facilitated
-        by **kwargs). As an example: it might be useful to add extreme periods to the clustered typical periods
-        (cf. https://github.com/FZJ-IEK3-VSA/tsam).
 
         Last edited: August 10, 2018
         |br| @author: Lara Welder
