@@ -1,4 +1,5 @@
 import FINE as fn
+import FINE.utils as utils
 import pandas as pd
 import ast
 import inspect
@@ -6,7 +7,7 @@ import time
 
 
 def writeToExcel(esM, outputFileName='scenarioOutput', optSumOutputLevel=2, optValOutputLevel=2):
-    print('\nWriting output to Excel... ', end='')
+    utils.output('\nWriting output to Excel... ', esM.verbose, 0)
     _t = time.time()
     writer = pd.ExcelWriter(outputFileName + '.xlsx')
 
@@ -39,10 +40,10 @@ def writeToExcel(esM, outputFileName='scenarioOutput', optSumOutputLevel=2, optV
     periodsOrder = pd.DataFrame([esM.periodsOrder], index=['periodsOrder'], columns=esM.periods)
     periodsOrder.to_excel(writer, 'Misc')
 
-    print("(%.4f" % (time.time() - _t), "sec)")
+    utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', esM.verbose, 0)
 
 
-def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
+def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
     file = pd.ExcelFile(fileName)
 
     esMData = pd.read_excel(file, sheetname='EnergySystemModel', index_col=0, squeeze=True)
@@ -60,16 +61,14 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
             if not dataLocKeys <= dataKeys:
                 raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataLocKeys - dataKeys)
             if dataLoc.isnull().any().any():
-                print(comp)
-                break
+                raise ValueError('NaN values in ' + comp + 'LocSpecs data detected.')
         if comp + 'TimeSeries' in file.sheet_names:
             dataTS = pd.read_excel(file, sheetname=comp + 'TimeSeries', index_col=[0, 1, 2]).sort_index()
             dataTSKeys = set(dataTS.index.get_level_values(0).unique())
             if not dataTSKeys <= dataKeys:
                 raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataTSKeys - dataKeys)
             if dataTS.isnull().any().any():
-                print(comp)
-                break
+                raise ValueError('NaN values in ' + comp + 'TimeSeries data detected.')
 
         for key, row in data.iterrows():
             temp = row.dropna()
@@ -88,6 +87,12 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
 
             kwargs = temp
             esM.add(getattr(fn, comp)(esM, **kwargs))
+
+    return esM, esMData
+
+
+def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
+    esM, esMData = readEnergySystemModelFromExcel(fileName)
 
     if esMData['cluster'] != {}:
         esM.cluster(**esMData['cluster'])
