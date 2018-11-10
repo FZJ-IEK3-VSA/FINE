@@ -398,6 +398,118 @@ class EnergySystemModel:
         self.isTimeSeriesDataClustered = True
         utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", self.verbose, 0)
 
+    def declareTimeSets(self, pyM, timeSeriesAggregation):
+        """ Set and initialize basic time parameters and sets """
+
+        # Store the information if aggregated time series data is considered for modeling the energy system in the pyomo
+        # model instance and set the time series which is again considered for modeling in all components accordingly
+        pyM.hasTSA = timeSeriesAggregation
+        for mdl in self.componentModelingDict.values():
+            for comp in mdl.componentsDict.values():
+                comp.setTimeSeriesData(pyM.hasTSA)
+
+        # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
+        # entries, the first one indicating an index of a period and the second one indicating a time step inside that
+        # period. If time series aggregation is not considered, only one period (period 0) exists and the time steps
+        # range from 0 up until the specified number of total time steps - 1. Otherwise the time set is initialized for
+        # each typical period (0 ... numberOfTypicalPeriods-1) and the number of time steps per period (0 ...
+        # numberOfTimeStepsPerPeriod-1).
+        # The inter time steps set is a set of tuples as well, which again consist of two values. The first value again
+        # indicates the period, however the second one now refers to a point in time right before or after a time step
+        # (or between two time steps). Hence, the second value reaches values from (0 ... numberOfTimeStepsPerPeriod).
+        if not pyM.hasTSA:
+            # Reset timeStepsPerPeriod in case it was overwritten by the clustering function
+            self.timeStepsPerPeriod = self.totalTimeSteps
+            self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) /
+                                                        len(self.timeStepsPerPeriod)) + 1))
+            self.periods = [0]
+            self.periodsOrder = [0]
+            self.periodOccurrences = [1]
+
+            # Define sets
+            def initTimeSet(pyM):
+                return ((p, t) for p in self.periods for t in self.timeStepsPerPeriod)
+
+            def initInterTimeStepsSet(pyM):
+                return ((p, t) for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1))
+        else:
+            utils.output('Time series aggregation specifications:\n'
+                         'Number of typical periods:' + str(len(self.typicalPeriods)) +
+                         ', number of time steps per periods:' + str(len(self.timeStepsPerPeriod)) + '\n',
+                         self.verbose, 0)
+
+            # Define sets
+            def initTimeSet(pyM):
+                return ((p, t) for p in self.typicalPeriods for t in self.timeStepsPerPeriod)
+
+            def initInterTimeStepsSet(pyM):
+                return ((p, t) for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1))
+
+        # Initialize sets
+        pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
+        pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
+
+    def declareSharedPotentialConstraints(self, pyM):
+        # Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
+        # salt caverns storing methane and salt caverns storing hydrogen.
+        utils.output('Declaring shared potential constraint...', self.verbose, 0)
+
+        # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
+        # potential)
+        potentialDict = {}
+        for mdl in self.componentModelingDict.values():
+            for compName, comp in mdl.componentsDict.items():
+                if comp.sharedPotentialID is not None:
+                    [potentialDict.setdefault((comp.sharedPotentialID, loc), []).append(compName)
+                     for loc in comp.locationalEligibility.index if comp.capacityMax[loc] != 0]
+        pyM.sharedPotentialDict = potentialDict
+
+        # Define and initialize constraints for each instance and location where components have to share an available
+        # potential. Sum up the relative contributions to the shared potential and ensure that the total share is
+        # <= 100%. For this, get the contributions to the shared potential for the corresponding ID and
+        # location from each modeling class.
+        def sharedPotentialConstraint(pyM, ID, loc):
+            return sum(mdl.getSharedPotentialContribution(pyM, ID, loc)
+                       for mdl in self.componentModelingDict.values()) <= 1
+        pyM.ConstraintSharedPotentials = \
+            pyomo.Constraint(pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint)
+
+    def declareCommodityBalanceConstraints(self, pyM):
+        """
+        Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
+        """
+        utils.output('Declaring commodity balances...', self.verbose, 0)
+
+        # Declare and initialize a set that states for which location and commodity the commodity balance constraints
+        # are non-trivial (i.e. not 0 == 0; trivial constraints raise errors in pyomo).
+        def initLocationCommoditySet(pyM):
+            return ((loc, commod) for loc in self.locations for commod in self.commodities
+                    if any([mdl.hasOpVariablesForLocationCommodity(self, loc, commod)
+                            for mdl in self.componentModelingDict.values()]))
+        pyM.locationCommoditySet = pyomo.Set(dimen=2, initialize=initLocationCommoditySet)
+
+        # Declare and initialize commodity balance constraints by checking for each location and commodity in the
+        # locationCommoditySet and for each period and time step within the period if the commodity source and sink
+        # terms add up to zero. For this, get the contribution to commodity balance from each modeling class
+        def commodityBalanceConstraint(pyM, loc, commod, p, t):
+            return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, p, t)
+                       for mdl in self.componentModelingDict.values()) == 0
+        pyM.commodityBalanceConstraint = pyomo.Constraint(pyM.locationCommoditySet, pyM.timeSet,
+                                                          rule=commodityBalanceConstraint)
+
+    def declareObjective(self, pyM):
+        """
+        Declare objective function by obtaining the contributions to the objective function from all modeling classes
+        Currently, the only objective function which can be selected is the sum of the total annual cost of all
+        components.
+        """
+        utils.output('Declaring objective function...', self.verbose, 0)
+
+        def objective(pyM):
+            TAC = sum(mdl.getObjectiveFunctionContribution(self, pyM) for mdl in self.componentModelingDict.values())
+            return TAC
+        pyM.Obj = pyomo.Objective(rule=objective)
+
     def declareOptimizationProblem(self, timeSeriesAggregation=False):
         """
         Declares the optimization problem belonging to the specified energy system, for which a pyomo discrete model
@@ -436,55 +548,8 @@ class EnergySystemModel:
         pyM = self.pyM
         pyM.dual = pyomo.Suffix(direction=pyomo.Suffix.IMPORT)
 
-        ################################################################################################################
-        #                              Set and initialize basic time parameters and sets                               #
-        ################################################################################################################
-
-        # Store the information if aggregated time series data is considered for modeling the energy system in the pyomo
-        # model instance and set the time series which is again considered for modeling in all components accordingly
-        pyM.hasTSA = timeSeriesAggregation
-        for mdl in self.componentModelingDict.values():
-            for comp in mdl.componentsDict.values():
-                comp.setTimeSeriesData(pyM.hasTSA)
-
-        # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
-        # entries, the first one indicating an index of a period and the second one indicating a time step inside that
-        # period. If time series aggregation is not considered, only one period (period 0) exists and the time steps
-        # range from 0 up until the specified number of total time steps - 1. Otherwise the time set is initialized for
-        # each typical period (0 ... numberOfTypicalPeriods-1) and the number of time steps per period (0 ...
-        # numberOfTimeStepsPerPeriod-1).
-        # The inter time steps set is a set of tuples as well, which again consist of two values. The first value again
-        # indicates the period, however the second one now refers to a point in time right before or after a time step
-        # (or between two time steps). Hence, the second value reaches values from (0 ... numberOfTimeStepsPerPeriod).
-        if not pyM.hasTSA:
-            # Reset timeStepsPerPeriod in case it was overwritten by the clustering function
-            self.timeStepsPerPeriod = self.totalTimeSteps
-            self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) /
-                                                        len(self.timeStepsPerPeriod)) + 1))
-            self.periods = [0]
-            self.periodsOrder = [0]
-            self.periodOccurrences = [1]
-
-            # Define sets
-            def initTimeSet(pyM):
-                return ((p, t) for p in self.periods for t in self.timeStepsPerPeriod)
-
-            def initInterTimeStepsSet(pyM):
-                return ((p, t) for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1))
-        elif self.verbose == 0:
-            print('Time series aggregation specifications:\nNumber of typical periods:', len(self.typicalPeriods),
-                  ', number of time steps per periods:', len(self.timeStepsPerPeriod), '\n')
-
-        # Define sets
-        def initTimeSet(pyM):
-            return ((p, t) for p in self.typicalPeriods for t in self.timeStepsPerPeriod)
-
-        def initInterTimeStepsSet(pyM):
-            return ((p, t) for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1))
-
-        # Initialize sets
-        pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
-        pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
+        # Set time sets for the model instance
+        self.declareTimeSets(pyM, timeSeriesAggregation)
 
         ################################################################################################################
         #                         Declare component specific sets, variables and constraints                           #
@@ -502,71 +567,23 @@ class EnergySystemModel:
         #                              Declare cross-componential sets and constraints                                 #
         ################################################################################################################
 
+        # Declare constraints for enforcing shared capacities
         _t = time.time()
-
-        # Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
-        # salt caverns storing methane and salt caverns storing hydrogen.
-        utils.output('Declaring shared potential constraint...', self.verbose, 0)
-
-        # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
-        # potential)
-        potentialDict = {}
-        for mdl in self.componentModelingDict.values():
-            for compName, comp in mdl.componentsDict.items():
-                if comp.sharedPotentialID is not None:
-                    [potentialDict.setdefault((comp.sharedPotentialID, loc), []).append(compName)
-                     for loc in comp.locationalEligibility.index if comp.capacityMax[loc] != 0]
-        pyM.sharedPotentialDict = potentialDict
-
-        # Define and initialize constraints for each instance and location where components have to share an available
-        # potential. Sum up the relative contributions to the shared potential and ensure that the total share is
-        # <= 100%. For this, get the contributions to the shared potential for the corresponding ID and
-        # location from each modeling class.
-        def sharedPotentialConstraint(pyM, ID, loc):
-            return sum(mdl.getSharedPotentialContribution(pyM, ID, loc)
-                       for mdl in self.componentModelingDict.values()) <= 1
-        pyM.ConstraintSharedPotentials = \
-            pyomo.Constraint(pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint)
+        self.declareSharedPotentialConstraints(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
-        _t = time.time()
-
         # Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
-        utils.output('Declaring commodity balances...', self.verbose, 0)
-
-        # Declare and initialize a set that states for which location and commodity the commodity balance constraints
-        # are non-trivial (i.e. not 0 == 0; trivial constraints raise errors in pyomo).
-        def initLocationCommoditySet(pyM):
-            return ((loc, commod) for loc in self.locations for commod in self.commodities
-                    if any([mdl.hasOpVariablesForLocationCommodity(self, loc, commod)
-                            for mdl in self.componentModelingDict.values()]))
-        pyM.locationCommoditySet = pyomo.Set(dimen=2, initialize=initLocationCommoditySet)
-
-        # Declare and initialize commodity balance constraints by checking for each location and commodity in the
-        # locationCommoditySet and for each period and time step within the period if the commodity source and sink
-        # terms add up to zero. For this, get the contribution to commodity balance from each modeling class
-        def commodityBalanceConstraint(pyM, loc, commod, p, t):
-            return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, p, t)
-                       for mdl in self.componentModelingDict.values()) == 0
-        pyM.commodityBalanceConstraint = pyomo.Constraint(pyM.locationCommoditySet, pyM.timeSet,
-                                                          rule=commodityBalanceConstraint)
+        _t = time.time()
+        self.declareCommodityBalanceConstraints(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
         ################################################################################################################
         #                                         Declare objective function                                           #
         ################################################################################################################
 
-        _t = time.time()
-
-        utils.output('Declaring objective function...', self.verbose, 0)
-
         # Declare objective function by obtaining the contributions to the objective function from all modeling classes
-        # Currently, the only objective function which can be selected is the sum of the total annual cost of all
-        # components.
-        def objective(pyM):
-            TAC = sum(mdl.getObjectiveFunctionContribution(self, pyM) for mdl in self.componentModelingDict.values())
-            return TAC
-        pyM.Obj = pyomo.Objective(rule=objective)
+        _t = time.time()
+        self.declareObjective(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
         # Store the buildtime of the optimize function call in the EnergySystemModel instance
@@ -655,8 +672,6 @@ class EnergySystemModel:
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
-
-        _t = time.time()
 
         # Set which solver should solve the specified optimization problem
         optimizer = opt.SolverFactory(solver)
