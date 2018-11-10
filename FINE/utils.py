@@ -125,9 +125,9 @@ def checkCommodities(esM, commodity):
                          'Energy system model regions: ' + str(esM.commodities))
 
 
-def checkAndSetDistances(distances, locationalEligibility):
+def checkAndSetDistances(distances, locationalEligibility, esM):
     if distances is None:
-        print('The distances of a component are set to a normalized values of 1.')
+        output('The distances of a component are set to a normalized values of 1.', esM.verbose, 0)
         distances = pd.Series([1 for loc in locationalEligibility.index], index=locationalEligibility.index)
     else:
         if not isinstance(distances, pd.Series):
@@ -255,7 +255,8 @@ def checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBi
             data = capacityMax.copy()
             data[data > 0] = 1
             if (data > isBuiltFix).any():
-                warnings.warn('The isBuiltFix and capacityMax parameters indicate different design options.')
+                if esM.verbose < 2:
+                    warnings.warn('The isBuiltFix and capacityMax parameters indicate different design options.')
         if capacityMin is not None:
             data = capacityMin.copy()
             data[data > 0] = 1
@@ -551,3 +552,8 @@ def map2dimData(data, mapC):
         return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
     else:
         return data
+
+
+def output(output, verbose, val):
+    if verbose == val:
+        print(output)

@@ -152,8 +152,9 @@ class Source(Component):
         # Set location-specific operation parameters
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
-            warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
-                          'The operationRateMax time series was set to None.')
+            if esM.verbose < 2:
+                warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
+                              'The operationRateMax time series was set to None.')
         utils.checkOperationTimeSeriesInputParameters(esM, operationRateMax, locationalEligibility)
         utils.checkOperationTimeSeriesInputParameters(esM, operationRateFix, locationalEligibility)
 

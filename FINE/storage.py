@@ -200,8 +200,9 @@ class Storage(Component):
         # and time series aggregation weighting factor
         if chargeOpRateMax is not None and chargeOpRateFix is not None:
             chargeOpRateMax = None
-            warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
-                          'The chargeOpRateMax time series was set to None.')
+            if esM.verbose < 2:
+                warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
+                              'The chargeOpRateMax time series was set to None.')
         utils.checkOperationTimeSeriesInputParameters(esM, chargeOpRateMax, locationalEligibility)
         utils.checkOperationTimeSeriesInputParameters(esM, chargeOpRateFix, locationalEligibility)
 
@@ -218,8 +219,9 @@ class Storage(Component):
 
         if dischargeOpRateMax is not None and dischargeOpRateFix is not None:
             dischargeOpRateMax = None
-            warnings.warn('If dischargeOpRateFix is specified, the dischargeOpRateMax parameter is not required.\n' +
-                          'The dischargeOpRateMax time series was set to None.')
+            if esM.verbose < 2:
+                warnings.warn('If dischargeOpRateFix is specified, the dischargeOpRateMax parameter is not required.\n'
+                              + 'The dischargeOpRateMax time series was set to None.')
         utils.checkOperationTimeSeriesInputParameters(esM, dischargeOpRateMax, locationalEligibility)
         utils.checkOperationTimeSeriesInputParameters(esM, dischargeOpRateFix, locationalEligibility)
 

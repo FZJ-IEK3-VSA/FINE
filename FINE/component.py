@@ -282,9 +282,9 @@ class Component(metaclass=ABCMeta):
     def addToEnergySystemModel(self, esM):
         esM.isTimeSeriesDataClustered = False
         if self.name in esM.componentNames:
-            if esM.componentNames[self.name] == self.modelingClass.__name__:
+            if esM.componentNames[self.name] == self.modelingClass.__name__ and esM.verbose < 2:
                 warnings.warn('Component identifier ' + self.name + ' already exists. Data will be overwritten.')
-            else:
+            elif esM.componentNames[self.name] != self.modelingClass.__name__ :
                 raise ValueError('Component name ' + self.name + ' is not unique.')
         else:
             esM.componentNames.update({self.name: self.modelingClass.__name__})

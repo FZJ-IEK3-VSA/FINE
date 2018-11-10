@@ -72,22 +72,26 @@ class StorageExt(Storage):
         # The i-th state of charge (SOC) refers to the SOC before the i-th time step
         if stateOfChargeOpRateMax is not None and stateOfChargeOpRateFix is not None:
             stateOfChargeOpRateMax = None
-            warnings.warn('If stateOfChargeOpRateFix is specified, the stateOfChargeOpRateMax parameter is not +'
-                          'required.\nThe stateOfChargeOpRateMax time series was set to None.')
+            if esM.verbose < 2:
+                warnings.warn('If stateOfChargeOpRateFix is specified, the stateOfChargeOpRateMax parameter is not +'
+                              'required.\nThe stateOfChargeOpRateMax time series was set to None.')
         if (stateOfChargeOpRateMax is not None or stateOfChargeOpRateFix is not None) and not doPreciseTsaModeling:
             self.doPreciseTsaModeling = True
-            warnings.warn('Warning only relevant when time series aggregation is used in optimization:\n' +
-                          'If stateOfChargeOpRateFix or the stateOfChargeOpRateMax parameter are specified,\n' +
-                          'the modeling is set to precise.')
+            if esM.verbose < 2:
+                warnings.warn('Warning only relevant when time series aggregation is used in optimization:\n' +
+                              'If stateOfChargeOpRateFix or the stateOfChargeOpRateMax parameter are specified,\n' +
+                              'the modeling is set to precise.')
         if stateOfChargeOpRateMax is not None:
-            warnings.warn('Warning only relevant when time series aggregation is used in optimization:\n' +
-                          'Setting the stateOfChargeOpRateMax parameter might lead to unwanted modeling behavior\n' +
-                          'and should be handled with caution.')
+            if esM.verbose < 2:
+                warnings.warn('Warning only relevant when time series aggregation is used in optimization:\n' +
+                              'Setting the stateOfChargeOpRateMax parameter might lead to unwanted modeling behavior\n'
+                              + 'and should be handled with caution.')
         if stateOfChargeOpRateFix is not None and not isPeriodicalStorage:
             self.isPeriodicalStorage = True
-            warnings.warn('Warning only relevant when time series aggregation is used in optimization:\n' +
-                          'If the stateOfChargeOpRateFix parameter is specified, the storage\n' +
-                          'is set to isPeriodicalStorage).')
+            if esM.verbose < 2:
+                warnings.warn('Warning only relevant when time series aggregation is used in optimization:\n' +
+                              'If the stateOfChargeOpRateFix parameter is specified, the storage\n' +
+                              'is set to isPeriodicalStorage).')
         utils.checkOperationTimeSeriesInputParameters(esM, stateOfChargeOpRateMax, locationalEligibility)
         utils.checkOperationTimeSeriesInputParameters(esM, stateOfChargeOpRateFix, locationalEligibility)
 

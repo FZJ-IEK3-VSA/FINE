@@ -133,10 +133,9 @@ class Transmission(Component):
         # Set general component data
         utils.checkCommodities(esM, {commodity})
         self.commodity, self.commodityUnit = commodity, esM.commodityUnitsDict[commodity]
-        # TODO flatten distances, losses with respect to elig
         self.distances = utils.preprocess2dimData(distances, self._mapC)
         self.losses = utils.preprocess2dimData(losses, self._mapC)
-        self.distances = utils.checkAndSetDistances(self.distances, self.locationalEligibility)
+        self.distances = utils.checkAndSetDistances(self.distances, self.locationalEligibility, esM)
         self.losses = utils.checkAndSetTransmissionLosses(self.losses, self.distances, self.locationalEligibility)
         self.modelingClass = TransmissionModel
 
@@ -147,8 +146,9 @@ class Transmission(Component):
         # Set location-specific operation parameters
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
-            warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
-                          'The operationRateMax time series was set to None.')
+            if esM.verbose < 2:
+                warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
+                              'The operationRateMax time series was set to None.')
         utils.checkOperationTimeSeriesInputParameters(esM, operationRateMax, self.locationalEligibility, '2dim')
         utils.checkOperationTimeSeriesInputParameters(esM, operationRateFix, self.locationalEligibility, '2dim')
 
