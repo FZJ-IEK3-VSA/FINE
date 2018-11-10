@@ -695,6 +695,13 @@ class ComponentModel(metaclass=ABCMeta):
         optVal_ = utils.formatOptimizationOutput(values, 'designVariables', self.dimension, compDict=compDict)
         self.capacityVariablesOptimum = optVal_
 
+        # Check if the installed capacities are close to a bigM value for components with design decision variables
+        for compName, comp in compDict.items():
+            if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max().max() >= comp.bigM * 0.9 \
+               and esM.verbose < 2:
+                warnings.warn('the capacity of component ' + compName + ' is in one or more locations close or equal '
+                              'to the chosen Big M. Consider rerunning the simulation with a higher Big M.')
+
         if optVal is not None:
             i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index], axis=1)
             cx = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index] /
