@@ -344,6 +344,7 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
+        """ Gets contributions to shared location potential """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -351,12 +352,14 @@ class SourceSinkModel(ComponentModel):
                     for comp in self.componentsDict.values()])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+        """ Gets contribution to a commodity balance """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
         return sum(opVar[loc, compName, p, t] * compDict[compName].sign
                    for compName in opVarDict[loc] if compDict[compName].commodity == commod)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
+        """ Gets contribution to the objective function """
 
         capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
         capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')

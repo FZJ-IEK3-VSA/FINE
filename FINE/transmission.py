@@ -305,6 +305,7 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
+        """ Gets contributions to shared location potential """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -314,6 +315,7 @@ class TransmissionModel(ComponentModel):
                     for comp in self.componentsDict.values() for loc_ in esM.locations])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+        """ Gets contribution to a commodity balance """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
         opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
@@ -328,6 +330,7 @@ class TransmissionModel(ComponentModel):
                    if commod in compDict[compName].commodity)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
+        """ Gets contribution to the objective function """
 
         capexCap = self.getEconomicsTI(pyM, ['investPerCapacity', 'distances'], 'cap', 'CCF') * 0.5
         capexDec = self.getEconomicsTI(pyM, ['investIfBuilt', 'distances'], 'designBin', 'CCF') * 0.5
@@ -343,7 +346,11 @@ class TransmissionModel(ComponentModel):
         mapC = {loc1 + '_' + loc2: (loc1, loc2) for loc1 in esM.locations for loc2 in esM.locations}
 
         # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(esM, pyM, mapC.keys(), 'commodityUnit', costApp=0.5)
+        optSummaryBasic = super().setOptimalValues(esM, pyM, mapC.keys(), 'commodityUnit')
+        for compName, comp in compDict.items():
+            for cost in ['invest', 'capexCap', 'capexIfBuilt', 'opexCap', 'opexIfBuilt']:
+                data = optSummaryBasic.loc[compName, cost]
+                optSummaryBasic.loc[compName, cost] = (0.5 * data * comp.distances).values
 
         # Set optimal operation variables and append optimization summary
         optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)

@@ -671,6 +671,7 @@ class StorageModel(ComponentModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
+        """ Gets contributions to shared location potential """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -678,6 +679,7 @@ class StorageModel(ComponentModel):
                     for comp in self.componentsDict.values()])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+        """ Gets contribution to a commodity balance """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         chargeOp, dischargeOp = getattr(pyM, 'chargeOp_' + abbrvName), getattr(pyM, 'dischargeOp_' + abbrvName)
         opVarDict = getattr(pyM, 'operationVarDict_' + abbrvName)
@@ -685,6 +687,7 @@ class StorageModel(ComponentModel):
                    for compName in opVarDict[loc] if commod == self.componentsDict[compName].commodity)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
+        """ Gets contribution to the objective function """
 
         capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
         capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')

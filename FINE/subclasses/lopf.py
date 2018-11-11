@@ -156,15 +156,18 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
+        """ Gets contributions to shared location potential """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+        """ Gets contribution to a commodity balance """
         return super().getCommodityBalanceContribution(pyM, commod, loc, p, t)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
+        """ Gets contribution to the objective function """
         return super().getObjectiveFunctionContribution(esM, pyM)
 
     def setOptimalValues(self, esM, pyM):

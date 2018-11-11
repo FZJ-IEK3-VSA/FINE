@@ -279,6 +279,13 @@ class Component(metaclass=ABCMeta):
         # self.operationVariablesOptimum = {}
 
     def addToEnergySystemModel(self, esM):
+        """
+        Adds component to an EnergySystemModel instance (esM). If the respective component class is not already in the
+        esM, it is added as well.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+        """
         esM.isTimeSeriesDataClustered = False
         if self.name in esM.componentNames:
             if esM.componentNames[self.name] == self.modelingClass.__name__ and esM.verbose < 2:
@@ -293,6 +300,30 @@ class Component(metaclass=ABCMeta):
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
     def prepareTSAInput(self, rateFix, rateMax, rateName, rateWeight, weightDict, data):
+        """
+        Formats the time series data of a component to fit the requirements of the time series aggregation package and
+        returns a list of formatted data.
+
+        :param rateFix: a fixed operation time series or None
+        :type rateFix: Pandas DataFrame or None
+
+        :param rateMax: a maximum operation time series or None
+        :type rateMax: Pandas DataFrame of None
+
+        :param rateName: name of the time series (to ensure uniqueness if a component has multiple relevant time series)
+        :type rateName: string
+
+        :param rateWeight: weight of the time series in the clustering process
+        :type rateWeight: positive float (>=0)
+
+        :param weightDict: dictionary to which the weight is added
+        :type weightDict: dict
+
+        :param data: list to which the formatted data is added
+        :type data: list of Pandas DataFrames
+
+        :return: data
+        """
         data_ = rateFix if rateFix is not None else rateMax
         if data_ is not None:
             data_ = data_.copy()
@@ -302,6 +333,21 @@ class Component(metaclass=ABCMeta):
         return weightDict, data
 
     def getTSAOutput(self, rate, rateName, data):
+        """
+        Returns a reformatted time series data after applying time series aggregation, if the original time series
+        data is not None.
+
+        :param rate: Full (unclustered) time series data or None
+        :type rate: Pandas DataFrame or None
+
+        :param rateName: name of the time series (to ensure uniqueness if a component has multiple relevant time series)
+        :type rateName: string
+
+        :param data: Pandas DataFrame with the clustered time series data of all components in the energy system
+        :type data: Pandas DataFrames
+
+        :return: reformatted data or None
+        """
         if rate is not None:
             uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
             data_ = data[uniqueIdentifiers].copy()
@@ -312,14 +358,33 @@ class Component(metaclass=ABCMeta):
 
     @abstractmethod
     def setTimeSeriesData(self, hasTSA):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+        the time series data of a component (either the full time series when hasTSA is false or the aggreated
+        time series if hasTSA is True).
+
+        :param hasTSA: indicates if time series aggregation should be considered for modeling
+        :tpye hasTSA: boolean
+        """
         raise NotImplementedError
 
     @abstractmethod
     def getDataForTimeSeriesAggregation(self):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Gets
+        all time series data of a component for time series aggregation.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def setAggregatedTimeSeriesData(self, data):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+        aggregated time series data after applying time series aggregation.
+
+        :param data: time series data
+        :type data: Pandas DataFrame
+        """
         raise NotImplementedError
 
 
@@ -555,64 +620,76 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def operationMode1(self, pyM, esM, constrName, constrSetName, opVarName, factorName=None, isStateOfCharge=False):
-        """ Defines operation modes """
+        """
+        Defines operation mode 1. The operation [commodityUnit*h] is limited by the installed capacity in:\n
+        * [commodityUnit*h] (for storages) or in
+        * [commodityUnit] multiplied by the hours per time step (else).\n
+        An additional factor can limited the operation further.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet1 = getattr(pyM, constrSetName + '1_' + abbrvName)
         factor1 = 1 if isStateOfCharge else esM.hoursPerTimeStep
 
-        # Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by the hours per time step
         def op1(pyM, loc, compName, p, t):
             factor2 = 1 if factorName is None else getattr(compDict[compName], factorName)
             return opVar[loc, compName, p, t] <= factor1 * factor2 * capVar[loc, compName]
         setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
     def operationMode2(self, pyM, esM, constrName, constrSetName, opVarName, isStateOfCharge=False):
-        """ Defines operation modes """
+        """
+        Defines operation mode 2. The operation [commodityUnit*h] is equal to the installed capacity multiplied
+        with a time series in:\n
+        * [commodityUnit*h] (for storages) or in
+        * [commodityUnit] multiplied by the hours per time step (else).\n
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet2 = getattr(pyM, constrSetName + '2_' + abbrvName)
         factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
 
-        # Operation [energyUnit] equal to the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h])
         def op2(pyM, loc, compName, p, t):
             return opVar[loc, compName, p, t] == capVar[loc, compName] * \
                    compDict[compName].operationRateFix[loc][p, t] * factor
         setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
 
     def operationMode3(self, pyM, esM, constrName, constrSetName, opVarName, isStateOfCharge=False):
-        """ Defines operation modes """
+        """
+        Defines operation mode 3. The operation [commodityUnit*h] is limited by an installed capacity multiplied
+        with a time series in:\n
+        * [commodityUnit*h] (for storages) or in
+        * [commodityUnit] multiplied by the hours per time step (else).\n
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet3 = getattr(pyM, constrSetName + '3_' + abbrvName)
         factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
 
-        # Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h])
         def op3(pyM, loc, compName, p, t):
             return opVar[loc, compName, p, t] <= capVar[loc, compName] * \
                    compDict[compName].operationRateMax[loc][p, t] * factor
         setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
 
     def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName):
-        """ Defines operation modes """
+        """
+        Defines operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet4 = getattr(pyM, constrSetName + '4_' + abbrvName)
 
-        # Operation [energyUnit] equal to the operation time series [energyUnit]
         def op4(pyM, loc, compName, p, t):
             return opVar[loc, compName, p, t] == compDict[compName].operationRateFix[loc][p, t]
         setattr(pyM, constrName + '4_' + abbrvName, pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4))
 
     def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName):
-        """ Defines operation modes """
+        """
+        Defines operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet5 = getattr(pyM, constrSetName + '5_' + abbrvName)
 
-        # Operation [energyUnit] limited by the operation time series [energyUnit]
         def op5(pyM, loc, compName, p, t):
             return opVar[loc, compName, p, t] <= compDict[compName].operationRateMax[loc][p, t]
         setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
@@ -673,7 +750,7 @@ class ComponentModel(metaclass=ABCMeta):
                        for loc_, compNames in subDict.items()
                        for compName in compNames)
 
-    def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp='', costApp=1):
+    def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=''):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(esM.pyM, 'cap_' + abbrvName)
         binVar = getattr(esM.pyM, 'designBin_' + abbrvName)
@@ -710,11 +787,11 @@ class ComponentModel(metaclass=ABCMeta):
                 [(ix, 'capacity', '[' + getattr(compDict[ix], plantUnit) + unitApp + ']') for ix in optVal.index],
                 optVal.columns] = optVal.values
             optSummary.loc[[(ix, 'invest', '[' + esM.costUnit + ']') for ix in i.index], i.columns] = \
-                i.values * costApp
+                i.values
             optSummary.loc[[(ix, 'capexCap', '[' + esM.costUnit + '/a]') for ix in cx.index], cx.columns] = \
-                cx.values * costApp
+                cx.values
             optSummary.loc[[(ix, 'opexCap', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                ox.values * costApp
+                ox.values
 
         values = binVar.get_values()
         optVal = utils.formatOptimizationOutput(values, 'designVariables', '1dim')
@@ -728,11 +805,11 @@ class ComponentModel(metaclass=ABCMeta):
             ox = optVal.apply(lambda dec: dec * compDict[dec.name].opexIfBuilt[dec.index], axis=1)
             optSummary.loc[[(ix, 'isBuilt', '[-]') for ix in optVal.index], optVal.columns] = optVal.values
             optSummary.loc[[(ix, 'invest', '[' + esM.costUnit + ']') for ix in cx.index], cx.columns] += \
-                i.values * costApp
+                i.values
             optSummary.loc[[(ix, 'capexIfBuilt', '[' + esM.costUnit + '/a]') for ix in cx.index],
-                           cx.columns] = cx.values * costApp
+                           cx.columns] = cx.values
             optSummary.loc[[(ix, 'opexIfBuilt', '[' + esM.costUnit + '/a]') for ix in ox.index],
-                           ox.columns] = ox.values * costApp
+                           ox.columns] = ox.values
 
         # Summarize all contributions to the total annual cost
         optSummary.loc[optSummary.index.get_level_values(1) == 'TAC'] = \
@@ -751,11 +828,27 @@ class ComponentModel(metaclass=ABCMeta):
                                               'dimension': self.dimension}}
 
     @abstractmethod
+    def declareSets(self, esM, pyM):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Declares sets of components and constraints in the componentModel class.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def declareVariables(self, esM, pyM):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Declares variables of components in the componentModel class.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def declareComponentConstraints(self, esM, pyM):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Declares constraints of components in the componentModel class.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -764,8 +857,16 @@ class ComponentModel(metaclass=ABCMeta):
 
     @abstractmethod
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Gets contribution to a commodity balance
+        """
         raise NotImplementedError
 
     @abstractmethod
     def getObjectiveFunctionContribution(self, esM, pyM):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Gets contribution to the objective function
+        """
         raise NotImplementedError
