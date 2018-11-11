@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2018 Lara Welder (FZJ IEK-3), Jochen Linﬂen(FZJ IEK-3), Martin Robinius (FZJ IEK-3), Detlef Stolten (FZJ IEK-3)
+Copyright (c) 2018 Lara Welder (FZJ IEK-3), Jochen Linssen(FZJ IEK-3), Martin Robinius (FZJ IEK-3), Detlef Stolten (FZJ IEK-3)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
