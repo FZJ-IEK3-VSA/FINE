@@ -24,9 +24,9 @@
 
   
 
-  
-    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Components" href="componentsDoc.html" />
@@ -217,9 +217,9 @@ available.</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>locations</strong> (<em>set of strings</em>) &#8211; locations considered in the energy system</li>
-<li><strong>commodities</strong> (<em>set of strings</em>) &#8211; commodities considered in the energy system</li>
-<li><strong>commodityUnitsDict</strong> (<em>dictionary of strings</em>) &#8211; dictionary which assigns each commodity a quantitative unit per time
+<li><strong>locations</strong> (<em>set of strings</em>) – locations considered in the energy system</li>
+<li><strong>commodities</strong> (<em>set of strings</em>) – commodities considered in the energy system</li>
+<li><strong>commodityUnitsDict</strong> (<em>dictionary of strings</em>) – dictionary which assigns each commodity a quantitative unit per time
 (e.g. GW_el, GW_H2, Mio.t_CO2/h). The dictionary is used for results output.
 Note for advanced users: the scale of these units can influence the numerical stability of the
 optimization solver, cf. <a class="reference external" href="http://files.gurobi.com/Numerics.pdf">http://files.gurobi.com/Numerics.pdf</a> where a reasonable range of model
@@ -235,28 +235,28 @@ coefficients is suggested</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>numberOfTimeSteps</strong> &#8211; number of time steps considered when modeling the energy system (for each
+<li><strong>numberOfTimeSteps</strong> – number of time steps considered when modeling the energy system (for each
 time step, or each representative time step, variables and constraints are constituted). Together
 with the hours per time step, the total number of hours considered can be derived. The total
 number of hours is again used for scaling the arising costs to the arising total annual costs (TAC),
 which are minimized during optimization.
 <br /> * the default value is 8760</li>
-<li><strong>hoursPerTimeStep</strong> &#8211; hours per time step
+<li><strong>hoursPerTimeStep</strong> – hours per time step
 <br /> * the default value is 1</li>
-<li><strong>costUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; cost unit of all cost related values in the energy system. This value sets the unit of
+<li><strong>costUnit</strong> (<em>string</em>) – cost unit of all cost related values in the energy system. This value sets the unit of
 all cost parameters which are given as an input to the EnergySystemModel instance (i.e. for the
 invest per capacity or the cost per operation).
 Note for advanced users: the scale of this unit can influence the numerical stability of the
 optimization solver, cf. <a class="reference external" href="http://files.gurobi.com/Numerics.pdf">http://files.gurobi.com/Numerics.pdf</a> where a reasonable range of model
 coefficients is suggested
-<br /> * the default value is &#8216;10^9 Euro&#8217; (billion euros), which can be a suitable scale for national
+<br /> * the default value is ‘10^9 Euro’ (billion euros), which can be a suitable scale for national
 energy systems.</li>
-<li><strong>lengthUnit</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; length unit for all length related values in the energy system
+<li><strong>lengthUnit</strong> (<em>string</em>) – length unit for all length related values in the energy system
 Note for advanced users: the scale of this unit can influence the numerical stability of the
 optimization solver, cf. <a class="reference external" href="http://files.gurobi.com/Numerics.pdf">http://files.gurobi.com/Numerics.pdf</a> where a reasonable range of model
 coefficients is suggested.
-<br /> * the default value is &#8216;km&#8217; (kilometers)</li>
-<li><strong>verboseLogLevel</strong> (<em>integer</em><em> (</em><em>0</em><em>, </em><em>1</em><em> or </em><em>2</em><em>)</em><em></em>) &#8211; defines how verbose the console logging is
+<br /> * the default value is ‘km’ (kilometers)</li>
+<li><strong>verboseLogLevel</strong> (<em>integer</em><em> (</em><em>0</em><em>, </em><em>1</em><em> or </em><em>2</em><em>)</em>) – defines how verbose the console logging is
 - 0: general model logging, warnings and optimization solver logging are displayed
 - 1: warnings are displayed
 - 2: no general model logging or warnings are displayed, the optimization solver logging is set to a minimum
@@ -279,7 +279,7 @@ instance</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>component</strong> (<em>An object which inherits from the FINE Component class</em>) &#8211; the component to be added</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>component</strong> (<em>An object which inherits from the FINE Component class</em>) – the component to be added</td>
 </tr>
 </tbody>
 </table>
@@ -293,7 +293,7 @@ instance</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>componentName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the component that should be returned</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>componentName</strong> (<em>string</em>) – name of the component that should be returned</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the component which has the name componentName</td>
 </tr>
@@ -312,8 +312,8 @@ instance</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>componentName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the component from which the attribute should be obtained</li>
-<li><strong>attributeName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the attributed that should be returned</li>
+<li><strong>componentName</strong> (<em>string</em>) – name of the component from which the attribute should be obtained</li>
+<li><strong>attributeName</strong> (<em>string</em>) – name of the attributed that should be returned</li>
 </ul>
 </td>
 </tr>
@@ -337,8 +337,8 @@ objective contributions) of a modeling class</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>modelingClass</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; name of the modeling class from which the optimization summary should be obtained</li>
-<li><strong>outputLevel</strong> (<em>integer</em><em> (</em><em>0</em><em>, </em><em>1</em><em> or </em><em>2</em><em>)</em><em></em>) &#8211; states the level of detail of the output summary:
+<li><strong>modelingClass</strong> (<em>string</em>) – name of the modeling class from which the optimization summary should be obtained</li>
+<li><strong>outputLevel</strong> (<em>integer</em><em> (</em><em>0</em><em>, </em><em>1</em><em> or </em><em>2</em><em>)</em>) – states the level of detail of the output summary:
 - 0: full optimization summary is returned
 - 1: full optimization summary is returned but rows in which all values are NaN (not a number) are dropped
 - 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped
@@ -372,25 +372,25 @@ clustered typical periods.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>numberOfTypicalPeriods</strong> (<em>strictly positive integer</em>) &#8211; states the number of typical periods into which the time series data
+<li><strong>numberOfTypicalPeriods</strong> (<em>strictly positive integer</em>) – states the number of typical periods into which the time series data
 should be clustered. The number of time steps per period must be an integer multiple of the total
 number of considered time steps in the energy system.
 Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
 information.
 <br /> * the default value is 7</li>
-<li><strong>numberOfTimeStepsPerPeriod</strong> (<em>strictly positive integer</em>) &#8211; states the number of time steps per period
+<li><strong>numberOfTimeStepsPerPeriod</strong> (<em>strictly positive integer</em>) – states the number of time steps per period
 <br /> * the default value is 24</li>
-<li><strong>clusterMethod</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; states the method which is used in the tsam package for clustering the time series
-data. Options are for example &#8216;averaging&#8217;,&#8217;k_means&#8217;,&#8217;exact k_medoid&#8217; or &#8216;hierarchical&#8217;.
+<li><strong>clusterMethod</strong> (<em>string</em>) – states the method which is used in the tsam package for clustering the time series
+data. Options are for example ‘averaging’,’k_means’,’exact k_medoid’ or ‘hierarchical’.
 Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.
-<br /> * the default value is &#8216;hierarchical&#8217;</li>
-<li><strong>sortValues</strong> (<em>boolean</em>) &#8211; states if the algorithm in the tsam package should use
+<br /> * the default value is ‘hierarchical’</li>
+<li><strong>sortValues</strong> (<em>boolean</em>) – states if the algorithm in the tsam package should use
 (a) the sorted duration curves (-&gt; True) or
 (b) the original profiles (-&gt; False)
 of the time series data within a period for clustering.
 Note: Please refer to the tsam package documentation of the parameter sortValues for more information.
 <br /> * the default value is True</li>
-<li><strong>storeTSAinstance</strong> (<em>boolean</em>) &#8211; states if the TimeSeriesAggregation instance create during clustering should be
+<li><strong>storeTSAinstance</strong> (<em>boolean</em>) – states if the TimeSeriesAggregation instance create during clustering should be
 stored in the EnergySystemModel instance.
 <br /> * the default value is False</li>
 </ul>
@@ -436,7 +436,7 @@ instance is build and filled with
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timeSeriesAggregation</strong> (<em>boolean</em>) &#8211; states if the optimization of the energy system model should be done with
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>timeSeriesAggregation</strong> (<em>boolean</em>) – states if the optimization of the energy system model should be done with
 (a) the full time series (False) or
 (b) clustered time series data (True).
 <br /> * the default value is False</td>
@@ -459,37 +459,37 @@ processed.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>declaresOptimizationProblem</strong> &#8211; states if the optimization problem should be declared (True) or not (False).
+<li><strong>declaresOptimizationProblem</strong> – states if the optimization problem should be declared (True) or not (False).
 (a) If true, the declareOptimizationProblem function is called and concrete pyomo model instance is built.
 (b) If false a previously declared concrete pyomo model instance is used.
 <br /> * the default value is True</li>
-<li><strong>timeSeriesAggregation</strong> (<em>boolean</em>) &#8211; states if the optimization of the energy system model should be done with
+<li><strong>timeSeriesAggregation</strong> (<em>boolean</em>) – states if the optimization of the energy system model should be done with
 (a) the full time series (False) or
 (b) clustered time series data (True).
 <br /> * the default value is False</li>
-<li><strong>logFileName</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; logFileName is used for naming the log file of the optimization solver output.
+<li><strong>logFileName</strong> (<em>string</em>) – logFileName is used for naming the log file of the optimization solver output.
 If the logFileName is given as an absolute path (i.e. logFileName = os.path.join(os.getcwd(),
-&#8216;Results&#8217;, &#8216;logFileName.txt&#8217;)) the log file will be stored in the specified directory. Otherwise
+‘Results’, ‘logFileName.txt’)) the log file will be stored in the specified directory. Otherwise
 it will be by default stored in the directory where the executing python script is called.
-<br /> * the default value is &#8216;job&#8217;</li>
-<li><strong>threads</strong> (<em>positive integer</em>) &#8211; number of computational threads used for solving the optimization (solver dependent
+<br /> * the default value is ‘job’</li>
+<li><strong>threads</strong> (<em>positive integer</em>) – number of computational threads used for solving the optimization (solver dependent
 input). If gurobi is selected as the solver: a value of 0 results in using all available threads. If
 a value larger than the available number of threads are chosen, the value will reset to the maximum
 number of threads.
 <br /> * the default value is 3</li>
-<li><strong>solver</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; specifies which solver should solve the optimization problem (which of course has to be
+<li><strong>solver</strong> (<em>string</em>) – specifies which solver should solve the optimization problem (which of course has to be
 installed on the machine on which the model is run).
-<br /> * the default value is &#8216;gurobi&#8217;</li>
-<li><strong>timeLimit</strong> (<a class="reference external" href="https://docs.python.org/3/library/string.html#module-string" title="(in Python v3.7)"><em>string</em></a>) &#8211; if not specified as None, indicates the maximum solve time of the optimization problem
+<br /> * the default value is ‘gurobi’</li>
+<li><strong>timeLimit</strong> (<em>string</em>) – if not specified as None, indicates the maximum solve time of the optimization problem
 in seconds (solver dependent input). The use of this parameter is suggested when running models in
 runtime restricted environments (such as clusters with job submission systems). If the runtime
 limitation is triggered before an optimal solution is available, the best solution obtained up
 until then (if available) is processed.
 <br /> * the default value is None</li>
-<li><strong>optimizationSpecs</strong> &#8211; specifies parameters for the optimization solver (see the respective solver
+<li><strong>optimizationSpecs</strong> – specifies parameters for the optimization solver (see the respective solver
 documentation for more information)
-<br /> * the default value is &#8216;LogToConsole=1 OptimalityTol=1e-6&#8217;</li>
-<li><strong>warmstart</strong> (<em>boolean</em>) &#8211; specifies if a warm start of the optimization should be considered
+<br /> * the default value is ‘LogToConsole=1 OptimalityTol=1e-6’</li>
+<li><strong>warmstart</strong> (<em>boolean</em>) – specifies if a warm start of the optimization should be considered
 (not supported by all solvers).
 <br /> * the default value is False</li>
 </ul>
@@ -525,7 +525,7 @@ documentation for more information)
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018, Lara Welder.
+        &copy; Copyright 2018, Lara Welder
 
     </p>
   </div>
@@ -544,33 +544,21 @@ documentation for more information)
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'1.0.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
 
   
 
-  
-  
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-  
+  <script type="text/javascript" src="_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
-          
-          SphinxRtdTheme.Navigation.enableSticky();
-          
+          SphinxRtdTheme.Navigation.enable(true);
       });
   </script> 
 
