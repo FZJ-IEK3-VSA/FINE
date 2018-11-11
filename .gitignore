@@ -6,6 +6,8 @@ example/.ipynb_checkpoints/
 local/
 *.eggs/
 *.testing/
+*.build/
+*.dist/
 
 # file types to ignore
 *.pyc
