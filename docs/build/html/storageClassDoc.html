@@ -1,0 +1,497 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Storage class &mdash; FINE 1.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="LinearOptimalPowerFlow classes" href="lopfClassDoc.html" />
+    <link rel="prev" title="Transmission class" href="transmissionClassDoc.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="componentClassDoc.html">Component class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sourceSinkClassDoc.html">Source and Sink class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="conversionClassDoc.html">Conversion class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transmissionClassDoc.html">Transmission class</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Storage class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lopfClassDoc.html">LinearOptimalPowerFlow classes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="packageDoc.html">Python package description</a> &raquo;</li>
+        
+          <li><a href="componentsDoc.html">Components</a> &raquo;</li>
+        
+      <li>Storage class</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/storageClassDoc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="storage-class">
+<h1>Storage class<a class="headerlink" href="#storage-class" title="Permalink to this headline">¶</a></h1>
+<p>Storage components store commodities and thus transfer commodities between time steps.</p>
+<p><strong>Storage class description:</strong></p>
+<span class="target" id="module-storage"></span><dl class="class">
+<dt id="storage.Storage">
+<em class="property">class </em><code class="descclassname">storage.</code><code class="descname">Storage</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>chargeRate=1</em>, <em>dischargeRate=1</em>, <em>chargeEfficiency=1</em>, <em>dischargeEfficiency=1</em>, <em>selfDischarge=0</em>, <em>cyclicLifetime=None</em>, <em>stateOfChargeMin=0</em>, <em>stateOfChargeMax=1</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>doPreciseTsaModeling=False</em>, <em>chargeOpRateMax=None</em>, <em>chargeOpRateFix=None</em>, <em>chargeTsaWeight=1</em>, <em>dischargeOpRateMax=None</em>, <em>dischargeOpRateFix=None</em>, <em>dischargeTsaWeight=1</em>, <em>isPeriodicalStorage=False</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerChargeOperation=0</em>, <em>opexPerDischargeOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Doc</p>
+<dl class="method">
+<dt id="storage.Storage.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>chargeRate=1</em>, <em>dischargeRate=1</em>, <em>chargeEfficiency=1</em>, <em>dischargeEfficiency=1</em>, <em>selfDischarge=0</em>, <em>cyclicLifetime=None</em>, <em>stateOfChargeMin=0</em>, <em>stateOfChargeMax=1</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>doPreciseTsaModeling=False</em>, <em>chargeOpRateMax=None</em>, <em>chargeOpRateFix=None</em>, <em>chargeTsaWeight=1</em>, <em>dischargeOpRateMax=None</em>, <em>dischargeOpRateFix=None</em>, <em>dischargeTsaWeight=1</em>, <em>isPeriodicalStorage=False</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerChargeOperation=0</em>, <em>opexPerDischargeOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an Storage class instance.
+The Storage component specific input arguments are described below. The general component
+input arguments are described in the Component class.</p>
+<p><strong>Required arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>commodity</strong> (<em>string</em>) – to the component related commodity.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default arguments:</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>chargeRate</strong> (<em>0 &lt;= float &lt;=1</em>) – <p>ratio of the maximum storage inflow (in commodityUnit/hour) and the
+storage capacity (in commodityUnit). Example:</p>
+<ul>
+<li>A hydrogen salt cavern which can store 133 GWh_H2_LHV can be charged 0.45 GWh_H2_LHV during
+one hour. The chargeRate thus equals 0.45/133.</li>
+</ul>
+<p><br /> * the default value is 1</p>
+</li>
+<li><strong>dischargeRate</strong> (<em>0 &lt;= float &lt;=1</em>) – <p>ratio of the maximum storage outflow (in commodityUnit/hour) and
+the storage capacity (in commodityUnit). Example:</p>
+<ul>
+<li>A hydrogen salt cavern which can store 133 GWh_H2_LHV can be discharged 0.45 GWh_H2_LHV during
+one hour. The dischargeRate thus equals 0.45/133.</li>
+</ul>
+<p><br /> * the default value is 1</p>
+</li>
+<li><strong>chargeEfficiency</strong> (<em>0 &lt;= float &lt;=1</em>) – defines the efficiency with which the storage can be charged (equals
+the percentage of the injected commodity that is transformed into stored commodity).
+Enter 0.98 for 98% etc.
+<br /> * the default value is 1</li>
+<li><strong>dischargeEfficiency</strong> (<em>0 &lt;= float &lt;=1</em>) – defines the efficiency with which the storage can be discharged
+(equals the percentage of the withdrawn commodity that is transformed into stored commodity).
+Enter 0.98 for 98% etc.
+<br /> * the default value is 1</li>
+<li><strong>selfDischarge</strong> (<em>0 &lt;= float &lt;=1</em>) – percentage of self-discharge from the storage during one hour
+<br /> * the default value is 0</li>
+<li><strong>cyclicLifetime</strong> (<em>positive float</em>) – if specified, the total number of full cycle equivalents that are supported
+by the technology.
+<br /> * the default value is None</li>
+<li><strong>stateOfChargeMin</strong> (<em>0 &lt;= float &lt;=1</em>) – threshold (percentage) that the state of charge can not drop under
+<br /> * the default value is 0</li>
+<li><strong>stateOfChargeMax</strong> (<em>0 &lt;= float &lt;=1</em>) – threshold (percentage) that the state of charge can not exceed
+<br /> * the default value is 1</li>
+<li><strong>doPreciseTsaModeling</strong> (<em>boolean</em>) – determines whether the state of charge is limited precisely (True) or
+with a simplified method (False). The error is small if the selfDischarge is small.
+<br /> * the default value is False</li>
+<li><strong>chargeOpRateMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model  specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) – if specified indicates a maximum charging rate for each location and each time
+step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
+during one time step.
+<br /> * the default value is None</li>
+<li><strong>chargeOpRateFix</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) – if specified indicates a fixed charging rate for each location and each time
+step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodity, referring to the charged commodity (before multiplying the charging efficiency)
+during one time step.
+<br /> * the default value is None</li>
+<li><strong>chargeTsaWeight</strong> (<em>positive</em><em> (</em><em>&gt;= 0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – weight with which the chargeOpRate (max/fix) time series of the
+component should be considered when applying time series aggregation.
+<br /> * the default value is 1</li>
+<li><strong>dischargeOpRateMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model  specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) – if specified indicates a maximum discharging rate for each location and each
+time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodityUnit, referring to the discharged commodity (after multiplying the discharging
+efficiency) during one time step.
+<br /> * the default value is None</li>
+<li><strong>dischargeOpRateFix</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Pandas DataFrame with positive</em><em> (</em><em>&gt;= 0</em><em>) </em><em>entries. The row indices have
+to match the in the energy system model specified time steps. The column indices have to match the
+in the energy system model specified locations.</em>) – if specified indicates a fixed discharging rate for each location and each
+time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+of the commodityUnit, referring to the charged commodity (after multiplying the discharging
+efficiency) during one time step.
+<br /> * the default value is None</li>
+<li><strong>dischargeTsaWeight</strong> (<em>positive</em><em> (</em><em>&gt;= 0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – weight with which the dischargeOpRate (max/fix) time series of the
+component should be considered when applying time series aggregation.
+<br /> * the default value is 1</li>
+<li><strong>isPeriodicalStorage</strong> (<em>boolean</em>) – indicates if the state of charge of the storage has to be at the same value
+after the end of each period. This is especially relevant when using daily periods where short term
+storage can be restrained to daily cycles. Benefits the run time of the model.
+<br /> * the default value is False</li>
+<li><strong>opexPerChargeOperation</strong> (<em>positive</em><em> (</em><em>&gt;=0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><em>Pandas Series with positive</em><em> (</em><em>&gt;=0</em><em>) </em><em>values.
+The indices of the series have to equal the in the energy system model specified locations.</em>) – cost which is directly proportional to the charge operation of the
+component is obtained by multiplying the opexPerOperation parameter with the annual sum of the
+operational time series of the components. The opexPerOperation can either be given as a float
+or a Pandas Series with location specific values.
+The cost unit in which the parameter is given has to match the one specified in the energy
+system model (i.e. Euro, Dollar, 1e6 Euro).
+<br /> * the default value is 0</li>
+<li><strong>opexPerDischargeOperation</strong> (<em>positive</em><em> (</em><em>&gt;=0</em><em>) </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><em>Pandas Series with positive</em><em> (</em><em>&gt;=0</em><em>) </em><em>values.
+The indices of the series have to equal the in the energy system model specified locations.
+component</em><em> (</em><em>in the physicalUnit of the component</em><em>) </em><em>and not of the specific operation itself are
+obtained by multiplying the capacity of the component at a location with the opexPerCapacity
+factor. The opexPerCapacity can either be given as a float</em><em> or </em><em>a Pandas Series with location
+specific values.</em>) – cost which is directly proportional to the discharge operation
+of the component is obtained by multiplying the opexPerOperation parameter with the annual sum
+of the operational time series of the components. The opexPerOperation can either be given as
+a float or a Pandas Series with location specific values.
+The cost unit in which the parameter is given has to match the one specified in the energy
+system model (i.e. Euro, Dollar, 1e6 Euro).
+<br /> * the default value is 0</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<p><em>Inheritance diagram:</em></p>
+<div class="graphviz"><img src="_images/inheritance-e4032cac4258c845bdde0345df0ead23405a16dd.png" alt="Inheritance diagram of Storage" usemap="#inheritance2cafd0ade4" class="inheritance graphviz" /></div>
+<map id="inheritance2cafd0ade4" name="inheritance2cafd0ade4">
+<area shape="poly" id="node2" href="#storage.Storage" target="_top" title="Doc" alt="" coords="286,41,284,30,277,20,266,12,252,7,237,5,222,7,208,12,197,20,190,30,187,41,190,52,197,62,208,70,222,76,237,77,252,76,266,70,277,62,284,52"/>
+</map><div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><strong>StorageModel class description:</strong></p>
+<dl class="class">
+<dt id="storage.StorageModel">
+<em class="property">class </em><code class="descclassname">storage.</code><code class="descname">StorageModel</code><a class="reference internal" href="_modules/storage.html#StorageModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Doc</p>
+<dl class="method">
+<dt id="storage.StorageModel.declareSets">
+<code class="descname">declareSets</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.declareSets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.declareSets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declares sets and dictionaries</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.declareVariables">
+<code class="descname">declareVariables</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.declareVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.declareVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declares design and operation variables</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.connectSOCs">
+<code class="descname">connectSOCs</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.connectSOCs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.connectSOCs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraint for connecting the state of charge with the charge and discharge operation</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.cyclicState">
+<code class="descname">cyclicState</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.cyclicState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.cyclicState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraint for connecting the state of charge with the charge and discharge operation</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.cyclicLifetime">
+<code class="descname">cyclicLifetime</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.cyclicLifetime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.cyclicLifetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.connectInterPeriodSOC">
+<code class="descname">connectInterPeriodSOC</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.connectInterPeriodSOC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.connectInterPeriodSOC" title="Permalink to this definition">¶</a></dt>
+<dd><p>The state of charge at the end of each period is equivalent to the state of charge of the period
+before it (minus its self discharge) plus the change in the state of charge which happened during
+the typical period which was assigned to that period</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.intraSOCstart">
+<code class="descname">intraSOCstart</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.intraSOCstart"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.intraSOCstart" title="Permalink to this definition">¶</a></dt>
+<dd><p>The (virtual) state of charge at the beginning of a typical period is zero</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.equalInterSOC">
+<code class="descname">equalInterSOC</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.equalInterSOC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.equalInterSOC" title="Permalink to this definition">¶</a></dt>
+<dd><p>If periodic storage is selected, the states of charge between periods have the same value</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.minSOC">
+<code class="descname">minSOC</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.minSOC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.minSOC" title="Permalink to this definition">¶</a></dt>
+<dd><p>The state of charge [energyUnit] has to be larger than the installed capacity [energyUnit] multiplied
+with the relative minimum state of charge</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.limitSOCwithSimpleTsa">
+<code class="descname">limitSOCwithSimpleTsa</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.limitSOCwithSimpleTsa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.limitSOCwithSimpleTsa" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simplified version of the state of charge limitation control.
+The error compared to the precise version is small in cases of small selfDischarge.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.operationModeSOC">
+<code class="descname">operationModeSOC</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.operationModeSOC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.operationModeSOC" title="Permalink to this definition">¶</a></dt>
+<dd><p>State of charge [energyUnit] limited by the installed capacity [powerUnit] and the relative maximum
+state of charge</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.operationModeSOCwithTSA">
+<code class="descname">operationModeSOCwithTSA</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.operationModeSOCwithTSA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.operationModeSOCwithTSA" title="Permalink to this definition">¶</a></dt>
+<dd><p>State of charge [energyUnit] limited by the installed capacity [powerUnit] and the relative maximum
+state of charge</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.minSOCwithTSAprecise">
+<code class="descname">minSOCwithTSAprecise</code><span class="sig-paren">(</span><em>pyM</em>, <em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.minSOCwithTSAprecise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.minSOCwithTSAprecise" title="Permalink to this definition">¶</a></dt>
+<dd><p>The state of charge at each time step cannot be smaller than the installed capacity multiplied with the
+relative minimum state of charge</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.declareComponentConstraints">
+<code class="descname">declareComponentConstraints</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.declareComponentConstraints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.declareComponentConstraints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declares time independent and dependent constraints</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.getSharedPotentialContribution">
+<code class="descname">getSharedPotentialContribution</code><span class="sig-paren">(</span><em>pyM</em>, <em>key</em>, <em>loc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.getSharedPotentialContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.getSharedPotentialContribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets contributions to shared location potential</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.getCommodityBalanceContribution">
+<code class="descname">getCommodityBalanceContribution</code><span class="sig-paren">(</span><em>pyM</em>, <em>commod</em>, <em>loc</em>, <em>p</em>, <em>t</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.getCommodityBalanceContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.getCommodityBalanceContribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets contribution to a commodity balance</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.getObjectiveFunctionContribution">
+<code class="descname">getObjectiveFunctionContribution</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.getObjectiveFunctionContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.getObjectiveFunctionContribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets contribution to the objective function</p>
+</dd></dl>
+
+</dd></dl>
+
+<p><em>Inheritance diagram:</em></p>
+<div class="graphviz"><img src="_images/inheritance-be0532b576bcf317ad7f8dea2a0cb9ce1c5fb95d.png" alt="Inheritance diagram of StorageModel" usemap="#inheritancec3426b0984" class="inheritance graphviz" /></div>
+<map id="inheritancec3426b0984" name="inheritancec3426b0984">
+<area shape="poly" id="node2" href="#storage.StorageModel" target="_top" title="Doc" alt="" coords="401,41,397,30,386,20,369,12,347,7,323,5,299,7,277,12,260,20,249,30,245,41,249,52,260,62,277,70,299,76,323,77,347,76,369,70,386,62,397,52"/>
+</map></div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lopfClassDoc.html" class="btn btn-neutral float-right" title="LinearOptimalPowerFlow classes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="transmissionClassDoc.html" class="btn btn-neutral" title="Transmission class" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

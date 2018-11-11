@@ -83,7 +83,12 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -162,7 +167,7 @@
 <span class="kn">import</span> <span class="nn">warnings</span>
 
 
-<div class="viewcode-block" id="EnergySystemModel"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel">[docs]</a><span class="k">class</span> <span class="nc">EnergySystemModel</span><span class="p">:</span>
+<div class="viewcode-block" id="EnergySystemModel"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel">[docs]</a><span class="k">class</span> <span class="nc">EnergySystemModel</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    EnergySystemModel class</span>
 
@@ -205,7 +210,7 @@
 <span class="sd">    |br| @author: Lara Welder</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="EnergySystemModel.__init__"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">commodities</span><span class="p">,</span> <span class="n">commodityUnitsDict</span><span class="p">,</span> <span class="n">numberOfTimeSteps</span><span class="o">=</span><span class="mi">8760</span><span class="p">,</span> <span class="n">hoursPerTimeStep</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<div class="viewcode-block" id="EnergySystemModel.__init__"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">commodities</span><span class="p">,</span> <span class="n">commodityUnitsDict</span><span class="p">,</span> <span class="n">numberOfTimeSteps</span><span class="o">=</span><span class="mi">8760</span><span class="p">,</span> <span class="n">hoursPerTimeStep</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                  <span class="n">costUnit</span><span class="o">=</span><span class="s1">&#39;1e9 Euro&#39;</span><span class="p">,</span> <span class="n">lengthUnit</span><span class="o">=</span><span class="s1">&#39;km&#39;</span><span class="p">,</span> <span class="n">verboseLogLevel</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Constructor for creating an EnergySystemModel class instance</span>
@@ -372,7 +377,7 @@
         <span class="c1"># The optimization solver logging can be separately enabled in the optimizationSpecs of the optimize function.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verboseLogLevel</span></div>
 
-<div class="viewcode-block" id="EnergySystemModel.add"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergySystemModel.add"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Function for adding a component and, if required, its respective modeling class to the EnergySystemModel</span>
 <span class="sd">        instance</span>
@@ -387,7 +392,7 @@
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;The added component has to inherit from the FINE class ComponentModel.&#39;</span><span class="p">)</span>
         <span class="n">component</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EnergySystemModel.getComponent"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.getComponent">[docs]</a>    <span class="k">def</span> <span class="nf">getComponent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">componentName</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergySystemModel.getComponent"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.getComponent">[docs]</a>    <span class="k">def</span> <span class="nf">getComponent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">componentName</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Function which returns a component of the energy system</span>
 
@@ -403,7 +408,7 @@
         <span class="n">modelingClass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentNames</span><span class="p">[</span><span class="n">componentName</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="p">[</span><span class="n">modelingClass</span><span class="p">]</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">[</span><span class="n">componentName</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="EnergySystemModel.getComponentAttribute"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.getComponentAttribute">[docs]</a>    <span class="k">def</span> <span class="nf">getComponentAttribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">attributeName</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergySystemModel.getComponentAttribute"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.getComponentAttribute">[docs]</a>    <span class="k">def</span> <span class="nf">getComponentAttribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">componentName</span><span class="p">,</span> <span class="n">attributeName</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Function which returns an attribute of a component considered in the energy system</span>
 
@@ -418,7 +423,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getComponent</span><span class="p">(</span><span class="n">componentName</span><span class="p">),</span> <span class="n">attributeName</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EnergySystemModel.getOptimizationSummary"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.getOptimizationSummary">[docs]</a>    <span class="k">def</span> <span class="nf">getOptimizationSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modelingClass</span><span class="p">,</span> <span class="n">outputLevel</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergySystemModel.getOptimizationSummary"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.getOptimizationSummary">[docs]</a>    <span class="k">def</span> <span class="nf">getOptimizationSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modelingClass</span><span class="p">,</span> <span class="n">outputLevel</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Function which returns the optimization summary (design variables, aggregated operation variables,</span>
 <span class="sd">        objective contributions) of a modeling class</span>
@@ -446,7 +451,7 @@
             <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentModelingDict</span><span class="p">[</span><span class="n">modelingClass</span><span class="p">]</span><span class="o">.</span><span class="n">optSummary</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">how</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[((</span><span class="n">df</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="o">~</span><span class="n">df</span><span class="o">.</span><span class="n">isnull</span><span class="p">()))</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span></div>
 
-<div class="viewcode-block" id="EnergySystemModel.cluster"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.cluster">[docs]</a>    <span class="k">def</span> <span class="nf">cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">numberOfTypicalPeriods</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">numberOfTimeStepsPerPeriod</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">clusterMethod</span><span class="o">=</span><span class="s1">&#39;hierarchical&#39;</span><span class="p">,</span>
+<div class="viewcode-block" id="EnergySystemModel.cluster"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.cluster">[docs]</a>    <span class="k">def</span> <span class="nf">cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">numberOfTypicalPeriods</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">numberOfTimeStepsPerPeriod</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">clusterMethod</span><span class="o">=</span><span class="s1">&#39;hierarchical&#39;</span><span class="p">,</span>
                 <span class="n">sortValues</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">storeTSAinstance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Clusters the time series data of all components considered in the EnergySystemModel instance and then</span>
@@ -545,7 +550,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">isTimeSeriesDataClustered</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">utils</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2">(</span><span class="si">%.4f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">timeStart</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; sec)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EnergySystemModel.declareTimeSets"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareTimeSets">[docs]</a>    <span class="k">def</span> <span class="nf">declareTimeSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergySystemModel.declareTimeSets"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.declareTimeSets">[docs]</a>    <span class="k">def</span> <span class="nf">declareTimeSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Set and initialize basic time parameters and sets &quot;&quot;&quot;</span>
 
         <span class="c1"># Store the information if aggregated time series data is considered for modeling the energy system in the pyomo</span>
@@ -621,7 +626,7 @@
         <span class="n">pyM</span><span class="o">.</span><span class="n">ConstraintSharedPotentials</span> <span class="o">=</span> \
             <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">pyM</span><span class="o">.</span><span class="n">sharedPotentialDict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">rule</span><span class="o">=</span><span class="n">sharedPotentialConstraint</span><span class="p">)</span>
 
-<div class="viewcode-block" id="EnergySystemModel.declareCommodityBalanceConstraints"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareCommodityBalanceConstraints">[docs]</a>    <span class="k">def</span> <span class="nf">declareCommodityBalanceConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergySystemModel.declareCommodityBalanceConstraints"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.declareCommodityBalanceConstraints">[docs]</a>    <span class="k">def</span> <span class="nf">declareCommodityBalanceConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Declare commodity balance constraints (one balance constraint for each commodity, location and time step)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -644,7 +649,7 @@
         <span class="n">pyM</span><span class="o">.</span><span class="n">commodityBalanceConstraint</span> <span class="o">=</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">pyM</span><span class="o">.</span><span class="n">locationCommoditySet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span>
                                                           <span class="n">rule</span><span class="o">=</span><span class="n">commodityBalanceConstraint</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EnergySystemModel.declareObjective"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareObjective">[docs]</a>    <span class="k">def</span> <span class="nf">declareObjective</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergySystemModel.declareObjective"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.declareObjective">[docs]</a>    <span class="k">def</span> <span class="nf">declareObjective</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Declare objective function by obtaining the contributions to the objective function from all modeling classes</span>
 <span class="sd">        Currently, the only objective function which can be selected is the sum of the total annual cost of all</span>
@@ -657,7 +662,7 @@
             <span class="k">return</span> <span class="n">TAC</span>
         <span class="n">pyM</span><span class="o">.</span><span class="n">Obj</span> <span class="o">=</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Objective</span><span class="p">(</span><span class="n">rule</span><span class="o">=</span><span class="n">objective</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EnergySystemModel.declareOptimizationProblem"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareOptimizationProblem">[docs]</a>    <span class="k">def</span> <span class="nf">declareOptimizationProblem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergySystemModel.declareOptimizationProblem"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.declareOptimizationProblem">[docs]</a>    <span class="k">def</span> <span class="nf">declareOptimizationProblem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Declares the optimization problem belonging to the specified energy system, for which a pyomo discrete model</span>
 <span class="sd">        instance is build and filled with</span>
@@ -736,7 +741,7 @@
         <span class="c1"># Store the buildtime of the optimize function call in the EnergySystemModel instance</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">solverSpecs</span><span class="p">[</span><span class="s1">&#39;buildtime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">timeStart</span></div>
 
-<div class="viewcode-block" id="EnergySystemModel.optimize"><a class="viewcode-back" href="../energySystemModelDoc.html#energySystemModel.EnergySystemModel.optimize">[docs]</a>    <span class="k">def</span> <span class="nf">optimize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">declaresOptimizationProblem</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">logFileName</span><span class="o">=</span><span class="s1">&#39;job&#39;</span><span class="p">,</span> <span class="n">threads</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<div class="viewcode-block" id="EnergySystemModel.optimize"><a class="viewcode-back" href="../coreComponentsDoc.html#energySystemModel.EnergySystemModel.optimize">[docs]</a>    <span class="k">def</span> <span class="nf">optimize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">declaresOptimizationProblem</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeSeriesAggregation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">logFileName</span><span class="o">=</span><span class="s1">&#39;job&#39;</span><span class="p">,</span> <span class="n">threads</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
                  <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;gurobi&#39;</span><span class="p">,</span> <span class="n">timeLimit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">optimizationSpecs</span><span class="o">=</span><span class="s1">&#39;OptimalityTol=1e-6&#39;</span><span class="p">,</span> <span class="n">warmstart</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Optimizes the specified energy system, for which a pyomo discrete model instance is build or called upon.</span>

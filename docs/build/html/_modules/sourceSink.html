@@ -83,7 +83,12 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -154,12 +159,12 @@
 <span class="kn">import</span> <span class="nn">warnings</span>
 
 
-<div class="viewcode-block" id="Source"><a class="viewcode-back" href="../coreComponentsDoc.html#sourceSink.Source">[docs]</a><span class="k">class</span> <span class="nc">Source</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<div class="viewcode-block" id="Source"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Source">[docs]</a><span class="k">class</span> <span class="nc">Source</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
     <span class="c1"># TODO</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Doc</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-<div class="viewcode-block" id="Source.__init__"><a class="viewcode-back" href="../coreComponentsDoc.html#sourceSink.Source.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span>
+<div class="viewcode-block" id="Source.__init__"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Source.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span>
                  <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                  <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">operationRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tsaWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">commodityLimitID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -340,8 +345,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span><span class="p">,</span> <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="Sink"><a class="viewcode-back" href="../coreComponentsDoc.html#sourceSink.Sink">[docs]</a><span class="k">class</span> <span class="nc">Sink</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
-<div class="viewcode-block" id="Sink.__init__"><a class="viewcode-back" href="../coreComponentsDoc.html#sourceSink.Sink.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span>
+<div class="viewcode-block" id="Sink"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Sink">[docs]</a><span class="k">class</span> <span class="nc">Sink</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
+<div class="viewcode-block" id="Sink.__init__"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Sink.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span>
                  <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                  <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">operationRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tsamWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">commodityLimitID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -367,7 +372,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sign</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">SourceSinkModel</span><span class="p">(</span><span class="n">ComponentModel</span><span class="p">):</span>
+<div class="viewcode-block" id="SourceSinkModel"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.SourceSinkModel">[docs]</a><span class="k">class</span> <span class="nc">SourceSinkModel</span><span class="p">(</span><span class="n">ComponentModel</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Doc &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span> <span class="o">=</span> <span class="s1">&#39;srcSnk&#39;</span>
@@ -391,7 +396,7 @@
                 <span class="n">yearlyCommodityLimitationDict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">ID</span><span class="p">,</span> <span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="p">[]))[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">compName</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;yearlyCommodityLimitationDict_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="n">yearlyCommodityLimitationDict</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="SourceSinkModel.declareSets"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.SourceSinkModel.declareSets">[docs]</a>    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares sets and dictionaries &quot;&quot;&quot;</span>
 
         <span class="c1"># Declare design variable sets</span>
@@ -407,13 +412,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateFix&#39;</span><span class="p">)</span>
 
         <span class="c1"># Declare commodity limitation dictionary</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">declareYearlyCommodityLimitationDict</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareYearlyCommodityLimitationDict</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#                                                Declare variables                                                 #</span>
     <span class="c1">####################################################################################################################</span>
 
-    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="SourceSinkModel.declareVariables"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.SourceSinkModel.declareVariables">[docs]</a>    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares design and operation variables &quot;&quot;&quot;</span>
 
         <span class="c1"># Capacity variables in [commodityUnit]</span>
@@ -425,13 +430,13 @@
         <span class="c1"># Binary variables [-] indicating if a component is considered at a location or not in [-]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">declareBinaryDesignDecisionVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
         <span class="c1"># Operation of component [commodityUnit*hour]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#                                          Declare component constraints                                           #</span>
     <span class="c1">####################################################################################################################</span>
 
-    <span class="k">def</span> <span class="nf">yearlyLimitationConstraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+<div class="viewcode-block" id="SourceSinkModel.yearlyLimitationConstraint"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.SourceSinkModel.yearlyLimitationConstraint">[docs]</a>    <span class="k">def</span> <span class="nf">yearlyLimitationConstraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Limits annual commodity imports/exports over the energySystemModel&#39;s boundaries for one or multiple</span>
 <span class="sd">        Source/Sink components.</span>
@@ -447,9 +452,9 @@
             <span class="n">sign</span> <span class="o">=</span> <span class="n">limitDict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="nb">abs</span><span class="p">(</span><span class="n">limitDict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">limitDict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span>
             <span class="k">return</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">sumEx</span> <span class="o">&lt;=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">limitDict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrYearlyLimitation_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
-                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">limitDict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">rule</span><span class="o">=</span><span class="n">yearlyLimitationConstraint</span><span class="p">))</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">limitDict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">rule</span><span class="o">=</span><span class="n">yearlyLimitationConstraint</span><span class="p">))</span></div>
 
-    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="SourceSinkModel.declareComponentConstraints"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.SourceSinkModel.declareComponentConstraints">[docs]</a>    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares time independent and dependent constraints&quot;&quot;&quot;</span>
 
         <span class="c1">################################################################################################################</span>
@@ -486,26 +491,29 @@
         <span class="c1"># Operation [energyUnit] limited by the operation time series [energyUnit]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">operationMode5</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">yearlyLimitationConstraint</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yearlyLimitationConstraint</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">)</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#        Declare component contributions to basic EnergySystemModel constraints and its objective function         #</span>
     <span class="c1">####################################################################################################################</span>
 
-    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
+<div class="viewcode-block" id="SourceSinkModel.getSharedPotentialContribution"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.SourceSinkModel.getSharedPotentialContribution">[docs]</a>    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets contributions to shared location potential &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">comp</span><span class="o">.</span><span class="n">commodity</span> <span class="o">==</span> <span class="n">commod</span> <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
                     <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
 
-    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+<div class="viewcode-block" id="SourceSinkModel.getCommodityBalanceContribution"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.SourceSinkModel.getCommodityBalanceContribution">[docs]</a>    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets contribution to a commodity balance &quot;&quot;&quot;</span>
         <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
         <span class="n">opVar</span><span class="p">,</span> <span class="n">opVarDict</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarDict_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">sign</span>
-                   <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">opVarDict</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">commodity</span> <span class="o">==</span> <span class="n">commod</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">opVarDict</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="k">if</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">commodity</span> <span class="o">==</span> <span class="n">commod</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="SourceSinkModel.getObjectiveFunctionContribution"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.SourceSinkModel.getObjectiveFunctionContribution">[docs]</a>    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets contribution to the objective function &quot;&quot;&quot;</span>
 
         <span class="n">capexCap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investPerCapacity&#39;</span><span class="p">],</span> <span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span>
         <span class="n">capexDec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investIfBuilt&#39;</span><span class="p">],</span> <span class="s1">&#39;designBin&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span>
@@ -515,7 +523,7 @@
         <span class="n">commodCost</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;commodityCost&#39;</span><span class="p">],</span> <span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;operationVarDict&#39;</span><span class="p">)</span>
         <span class="n">commodRevenue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;commodityRevenue&#39;</span><span class="p">],</span> <span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;operationVarDict&#39;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">capexCap</span> <span class="o">+</span> <span class="n">capexDec</span> <span class="o">+</span> <span class="n">opexCap</span> <span class="o">+</span> <span class="n">opexDec</span> <span class="o">+</span> <span class="n">opexOp</span> <span class="o">+</span> <span class="n">commodCost</span> <span class="o">-</span> <span class="n">commodRevenue</span>
+        <span class="k">return</span> <span class="n">capexCap</span> <span class="o">+</span> <span class="n">capexDec</span> <span class="o">+</span> <span class="n">opexCap</span> <span class="o">+</span> <span class="n">opexDec</span> <span class="o">+</span> <span class="n">opexOp</span> <span class="o">+</span> <span class="n">commodCost</span> <span class="o">-</span> <span class="n">commodRevenue</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#                                  Return optimal values of the component class                                    #</span>
@@ -563,7 +571,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span>
 
     <span class="k">def</span> <span class="nf">getOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getOptimalValues</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getOptimalValues</span><span class="p">()</span></div>
 </pre></div>
 
            </div>

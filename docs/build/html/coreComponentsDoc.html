@@ -28,9 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
   <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Extended component classes" href="subclassComponentsDoc.html" />
-    <link rel="prev" title="Components" href="componentsDoc.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -84,24 +82,8 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
-<li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">Core component classes</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#component-class">Component class</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#source-and-sink-class">Source and Sink class</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#conversion-class">Conversion class</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#transmission-class">Transmission class</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#storage-class">Storage class</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="subclassComponentsDoc.html">Extended component classes</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
-</ul>
-</li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="packageDoc.html">Python package description</a></li>
 </ul>
 
             
@@ -147,10 +129,6 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-          <li><a href="packageDoc.html">Python package description</a> &raquo;</li>
-        
-          <li><a href="componentsDoc.html">Components</a> &raquo;</li>
-        
       <li>Core component classes</li>
     
     
@@ -181,190 +159,6 @@
 </ul>
 <p>Each of these classes inherits from the Component class. Instances (with concrete values) of these classes can be added
 to an EnergySystemModel class to specify a concrete energy system.</p>
-<div class="section" id="component-class">
-<h2>Component class<a class="headerlink" href="#component-class" title="Permalink to this headline">¶</a></h2>
-<p><strong>Class description:</strong></p>
-<span class="target" id="module-component"></span><dl class="class">
-<dt id="component.Component">
-<em class="property">class </em><code class="descclassname">component.</code><code class="descname">Component</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>dimension</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#Component"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.Component" title="Permalink to this definition">¶</a></dt>
-<dd><p>Doc</p>
-<dl class="method">
-<dt id="component.Component.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>dimension</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#Component.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.Component.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Constructor for creating an Conversion class instance.</p>
-<p><strong>Required arguments:</strong></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>esM</strong> (<em>EnergySystemModel instance from the FINE package</em>) – energy system model to which the component should be added. Used for unit checks.</li>
-<li><strong>name</strong> (<em>string</em>) – name of the component. Has to be unique (i.e. no other components with that name can
-already exist in the EnergySystemModel instance to which the component is added).</li>
-<li><strong>hasCapacityVariable</strong> (<em>boolean</em>) – <p>specifies if the component should be modeled with a capacity or not. Examples:</p>
-<ul>
-<li>An electrolyzer has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</li>
-<li>In the energy system, biogas can, from a model perspective, be converted into methane (and then
-used in conventional power plants which emit CO2) by getting CO2 from the environment. Thus,
-using biogas in conventional power plants is, from a balance perspective, CO2 free. This
-conversion is purely theoretical and does not require a capacity -&gt; hasCapacityVariable
-is False.</li>
-<li>A electricity cable has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</li>
-<li>If the transmission capacity of a component is unlimited hasCapacityVariable is False.</li>
-<li>A wind turbine has a capacity given in GW_electric -&gt; hasCapacityVariable is True.</li>
-<li>Emitting CO2 into the environment is not per se limited by a capacity -&gt;
-hasCapacityVariable is False.</li>
-</ul>
-</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Default arguments:</strong></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>capacityVariableDomain</strong> (<em>string</em><em> (</em><em>'continuous'</em><em> or </em><em>'discrete'</em><em>)</em>) – the mathematical domain of the capacity variables, if they are specified.
-By default, the domain is specified as ‘continuous’ and thus declares the variables as positive
-(&gt;=0) real values. The second input option that is available for this parameter is ‘discrete’, which
-declares the variables as positive (&gt;=0) integer values.
-<br /> * the default value is ‘continuous’</li>
-<li><strong>capacityPerPlantUnit</strong> (<em>strictly positive float</em>) – capacity of one plant of the component (in the specified physicalUnit of
-the plant). The default is 1, thus the number of plants is equal to the installed capacity.
-This parameter should be specified when using a ‘discrete’ capacityVariableDomain.
-It can be specified when using a ‘continuous’ variable domain.
-<br /> * the default value is 1</li>
-<li><strong>hasIsBuiltBinaryVariable</strong> (<em>boolean</em>) – <p>specifies if binary decision variables should be declared for</p>
-<ul>
-<li>each eligible location of the component, which indicate if the component is built at that location or
-not (dimension=1dim).</li>
-<li>each eligible connection of the transmission component, which indicate if the component is built
-between two locations or not (dimension=2dim).</li>
-</ul>
-<p>The binary variables can be used to enforce one-time investment cost or capacity-independent
-annual operation cost. If a minimum capacity is specified and this parameter is set to True,
-the minimum capacities are only considered if a component is built (i.e. if a component is built
-at that location, it has to be built with a minimum capacity of XY GW, otherwise it is set to 0 GW).
-<br /> * the default value is False</p>
-</li>
-<li><strong>bigM</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>strictly positive float</em>) – the bigM parameter is only required when the hasIsBuiltBinaryVariable parameter is set to
-True. In that case, it is set as a strictly positive float, otherwise it can remain a None value.
-If not None and the ifBuiltBinaryVariables parameter is set to True, the parameter enforces an
-artificial upper bound on the maximum capacities which should, however, never be reached. The value
-should be chosen as small as possible but as large as necessary so that the optimal values of the
-designed capacities are well below this value after the optimization.
-<br /> * the default value is None</li>
-<li><strong>locationalEligibility</strong> – <p>Pandas</p>
-<ul>
-<li>Series that indicates if a component can be built at a location (=1) or not (=0)
-(dimension=1dim) or</li>
-<li>Pandas DataFrame that indicates if a component can be built between two locations
-(=1) or not (=0) (dimension=2dim).</li>
-</ul>
-<p>If not specified and a maximum or fixed capacity or time series is given, the parameter will be
-set based on these inputs. If the parameter is specified, a consistency check is done to ensure
-that the parameters indicate the same locational eligibility. If the parameter is not specified
-and also no other of the parameters is specified it is assumed that the component is eligible in
-each location and all values are set to 1.
-This parameter is key for ensuring small built times of the optimization problem by avoiding the
-declaration of unnecessary variables and constraints.
-<br /> * the default value is None</p>
-</li>
-<li><strong>capacityMin</strong> – if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
-indicating minimum capacities else None. If binary decision variables are declared the minimum
-capacity is only enforced if the component is built .
-<br /> * the default value is None</li>
-<li><strong>capacityMax</strong> – if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
-indicating maximum capacities else None.
-<br /> * the default value is None</li>
-<li><strong>sharedPotentialID</strong> (<em>string</em>) – if specified, indicates that the component has to share its maximum
-potential capacity with other components (i.e. due to space limitations). The shares of how
-much of the maximum potential is used have to add up to less then 100%.
-<br /> * the default value is None</li>
-<li><strong>capacityFix</strong> – if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
-indicating fixed capacities else None.
-<br /> * the default value is None</li>
-<li><strong>isBuiltFix</strong> – if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
-indicating fixed decisions in which or between which locations the component is built (i.e. sets
-the isBuilt binary variables) else None.
-<br /> * the default value is None</li>
-<li><strong>investPerCapacity</strong> – <p>the invest of a component is obtained by multiplying the built capacities
-of the component (in the physicalUnit of the component) with the investPerCapacity factor.
-The investPerCapacity can either be given as</p>
-<ul>
-<li>a float or a Pandas Series with location specific values. The cost unit in which the parameter
-is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
-1e6 Euro) (dimension=1dim) or</li>
-<li>a float or a Pandas DataFrame with location specific values. The cost unit in which the
-parameter is given has to match the one specified in the energy system model divided by
-the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)</li>
-</ul>
-<p><br /> * the default value is 0</p>
-</li>
-<li><strong>investIfBuilt</strong> – <p>a capacity-independent invest which only arises in a location if a component
-is built at that location. The investIfBuilt can either be given as</p>
-<ul>
-<li>a float or a Pandas Series with location specific values. The cost unit in which the parameter
-is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
-1e6 Euro) (dimension=1dim) or</li>
-<li>a float or a Pandas DataFrame with location specific values. The cost unit in which the
-parameter is given has to match the one specified in the energy system model divided by
-the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)</li>
-</ul>
-<p><br /> * the default value is 0</p>
-</li>
-<li><strong>opexPerCapacity</strong> – <p>annual operational cost which are only a function of the capacity of the
-component (in the physicalUnit of the component) and not of the specific operation itself are
-obtained by multiplying the capacity of the component at a location with the opexPerCapacity
-factor. The opexPerCapacity can either be given as</p>
-<ul>
-<li>a float or a Pandas Series with location specific values. The cost unit in which the parameter
-is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
-1e6 Euro) (dimension=1dim) or</li>
-<li>a float or a Pandas DataFrame with location specific values. The cost unit in which the
-parameter is given has to match the one specified in the energy system model divided by
-the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)</li>
-</ul>
-<p><br /> * the default value is 0</p>
-</li>
-<li><strong>opexIfBuilt</strong> – <p>a capacity-independent annual operational cost which only arises in a location
-if a component is built at that location. The opexIfBuilt can either be given as</p>
-<ul>
-<li>a float or a Pandas Series with location specific values. The cost unit in which the parameter
-is given has to match the one specified in the energy system model (i.e. Euro, Dollar,
-1e6 Euro) (dimension=1dim) or</li>
-<li>a float or a Pandas DataFrame with location specific values. The cost unit in which the
-parameter is given has to match the one specified in the energy system model divided by
-the there specified lengthUnit (i.e. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)</li>
-</ul>
-<p><br /> * the default value is 0</p>
-</li>
-<li><strong>interestRate</strong> – interest rate which is considered for computing the annuities of the invest
-of the component (depreciates the invests over the economic lifetime).
-A value of 0.08 corresponds to an interest rate of 8%.
-<br /> * the default value is 0.08</li>
-<li><strong>economicLifetime</strong> – economic lifetime of the component which is considered for computing the
-annuities of the invest of the component (aka depreciation time).
-<br /> * the default value is 10</li>
-<li><strong>modelingClass</strong> (<em>a class inherting from ComponentModeling</em>) – to the Component connected modeling class.
-<br /> * the default value is ModelingClass</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-</dd></dl>
-
-<p><strong>Inheritance diagram:</strong></p>
-<div class="graphviz"><img src="_images/inheritance-f7f11ef86413b6fa78cf064ac9ef5d6bb0f09615.png" alt="Inheritance diagram of Component" usemap="#inheritance6e993f4efa" class="inheritance graphviz" /></div>
-<map id="inheritance6e993f4efa" name="inheritance6e993f4efa">
-<area shape="poly" id="node1" href="#component.Component" target="_top" title="Doc" alt="" coords="139,41,136,30,127,20,112,12,93,7,72,5,52,7,33,12,18,20,9,30,5,41,9,52,18,62,33,70,52,76,72,77,93,76,112,70,127,62,136,52"/>
-</map></div>
 <div class="section" id="source-and-sink-class">
 <h2>Source and Sink class<a class="headerlink" href="#source-and-sink-class" title="Permalink to this headline">¶</a></h2>
 <p><strong>Class description:</strong></p>
@@ -857,15 +651,6 @@ system model (i.e. Euro, Dollar, 1e6 Euro).
            
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="subclassComponentsDoc.html" class="btn btn-neutral float-right" title="Extended component classes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="componentsDoc.html" class="btn btn-neutral" title="Components" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>

@@ -2,14 +2,40 @@
 Components
 ##########
 
-Components can be added to an EnergySystemModel class to model the behavior of the energy system.
-The components which can be modeled in FINE can be categorized into
+Components can be added to an EnergySystemModel class to model the behavior of the energy system. The data of these
+components are stored in so called component classes. All components have to inherit from the "Component" class.
+The behavior of the components in the energy system is modeled in respective component modeling classes. All component
+modeling classes have to inherit from the "ComponentModel" class. There are five basic component and component modeling
+classes in FINE. These are
 
-* core component classes and
-* subclasses which inherit from these core component classes.
+* Source and Sink (inherits from Source) classes + the SourceSinkModel class,
+* Conversion class + ConversionModel class,
+* Transmission class + TransmissionModel class, and
+* Storage class + StorageModel class.
+
+Form these basic component and component modeling classes, further subclasses can be defined. For example, a
+LinearOptimalPowerFlow + LOPFModel class inherit from the Transmission and TransmissionModel class.
+
+**Component and ComponentModeling class**
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   coreComponentsDoc
-   subclassComponentsDoc
+   componentClassDoc
+
+**Basic component and component modeling classes**
+
+.. toctree::
+   :maxdepth: 1
+
+   sourceSinkClassDoc
+   conversionClassDoc
+   transmissionClassDoc
+   storageClassDoc
+
+**Extended subclasses**
+
+.. toctree::
+   :maxdepth: 1
+
+   lopfClassDoc

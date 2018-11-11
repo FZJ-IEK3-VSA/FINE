@@ -83,7 +83,12 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -153,11 +158,11 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
 
-<div class="viewcode-block" id="LinearOptimalPowerFlow"><a class="viewcode-back" href="../subclassComponentsDoc.html#lopf.LinearOptimalPowerFlow">[docs]</a><span class="k">class</span> <span class="nc">LinearOptimalPowerFlow</span><span class="p">(</span><span class="n">Transmission</span><span class="p">):</span>
+<div class="viewcode-block" id="LinearOptimalPowerFlow"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LinearOptimalPowerFlow">[docs]</a><span class="k">class</span> <span class="nc">LinearOptimalPowerFlow</span><span class="p">(</span><span class="n">Transmission</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Doc</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-<div class="viewcode-block" id="LinearOptimalPowerFlow.__init__"><a class="viewcode-back" href="../subclassComponentsDoc.html#lopf.LinearOptimalPowerFlow.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">reactances</span><span class="p">,</span> <span class="n">losses</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">distances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="LinearOptimalPowerFlow.__init__"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LinearOptimalPowerFlow.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">reactances</span><span class="p">,</span> <span class="n">losses</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">distances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                  <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">operationRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tsaWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -192,7 +197,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span></div>
 
 
-<span class="k">class</span> <span class="nc">LOPFModel</span><span class="p">(</span><span class="n">TransmissionModel</span><span class="p">):</span>
+<div class="viewcode-block" id="LOPFModel"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel">[docs]</a><span class="k">class</span> <span class="nc">LOPFModel</span><span class="p">(</span><span class="n">TransmissionModel</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Doc &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span> <span class="o">=</span> <span class="s1">&#39;lopf&#39;</span>
@@ -206,7 +211,7 @@
     <span class="c1">#                                            Declare sparse index sets                                             #</span>
     <span class="c1">####################################################################################################################</span>
 
-    <span class="k">def</span> <span class="nf">initPhaseAngleVarSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="LOPFModel.initPhaseAngleVarSet"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.initPhaseAngleVarSet">[docs]</a>    <span class="k">def</span> <span class="nf">initPhaseAngleVarSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Declares phase angle variable set in the pyomo object for for each node</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -215,9 +220,9 @@
         <span class="c1"># Set for operation variables</span>
         <span class="k">def</span> <span class="nf">initPhaseAngleVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">):</span>
             <span class="k">return</span> <span class="p">((</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">)</span> <span class="k">for</span> <span class="n">compName</span><span class="p">,</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">compDict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">_mapL</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngleVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initPhaseAngleVarSet</span><span class="p">))</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngleVarSet_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span> <span class="n">pyomo</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dimen</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">initialize</span><span class="o">=</span><span class="n">initPhaseAngleVarSet</span><span class="p">))</span></div>
 
-    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="LOPFModel.declareSets"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.declareSets">[docs]</a>    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares sets and dictionaries &quot;&quot;&quot;</span>
 
         <span class="c1"># # Declare design variable sets</span>
@@ -231,7 +236,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">initPhaseAngleVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
 
         <span class="c1"># Declare operation variable set</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateFix&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateFix&#39;</span><span class="p">)</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#                                                Declare variables                                                 #</span>
@@ -241,7 +246,7 @@
         <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngle_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span>
                 <span class="n">pyomo</span><span class="o">.</span><span class="n">Var</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngleVarSet_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">),</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">pyomo</span><span class="o">.</span><span class="n">Reals</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="LOPFModel.declareVariables"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.declareVariables">[docs]</a>    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares design and operation variables &quot;&quot;&quot;</span>
 
         <span class="c1"># Capacity variables in [commodityUnit]</span>
@@ -255,13 +260,13 @@
         <span class="c1"># Flow over the edges of the components [commodityUnit]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
         <span class="c1"># Operation of component [commodityUnit]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">declarePhaseAngleVariables</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declarePhaseAngleVariables</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#                                          Declare component constraints                                           #</span>
     <span class="c1">####################################################################################################################</span>
 
-    <span class="k">def</span> <span class="nf">powerFlowDC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="LOPFModel.powerFlowDC"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.powerFlowDC">[docs]</a>    <span class="k">def</span> <span class="nf">powerFlowDC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Enforces that the capacity between location_1 and location_2 is the same as the one</span>
 <span class="sd">        between location_2 and location_1</span>
@@ -275,9 +280,9 @@
             <span class="k">return</span> <span class="p">(</span><span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">-</span> <span class="n">opVar</span><span class="p">[</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">_mapI</span><span class="p">[</span><span class="n">loc</span><span class="p">],</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">==</span>
                     <span class="p">(</span><span class="n">phaseAngleVar</span><span class="p">[</span><span class="n">node1</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span><span class="o">-</span><span class="n">phaseAngleVar</span><span class="p">[</span><span class="n">node2</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span><span class="o">/</span>
                     <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">reactances</span><span class="p">[</span><span class="n">loc</span><span class="p">])</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrpowerFlowDC_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>  <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">opVarSet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">powerFlowDC</span><span class="p">))</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrpowerFlowDC_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>  <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">opVarSet</span><span class="p">,</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">powerFlowDC</span><span class="p">))</span></div>
 
-    <span class="k">def</span> <span class="nf">basePhaseAngle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="LOPFModel.basePhaseAngle"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.basePhaseAngle">[docs]</a>    <span class="k">def</span> <span class="nf">basePhaseAngle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Reference phase angle is set to zero for all time steps &quot;&quot;&quot;</span>
         <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
         <span class="n">phaseAngleVar</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;phaseAngle_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">)</span>
@@ -286,9 +291,9 @@
             <span class="n">node0</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">_mapL</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">return</span> <span class="n">phaseAngleVar</span><span class="p">[</span><span class="n">node0</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrBasePhaseAngle_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>
-                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">compDict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">basePhaseAngle</span><span class="p">))</span>
+                <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">compDict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">pyM</span><span class="o">.</span><span class="n">timeSet</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">basePhaseAngle</span><span class="p">))</span></div>
 
-    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="LOPFModel.declareComponentConstraints"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.declareComponentConstraints">[docs]</a>    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares time independent and dependent constraints&quot;&quot;&quot;</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">declareComponentConstraints</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
@@ -298,23 +303,26 @@
         <span class="c1">################################################################################################################</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">powerFlowDC</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">basePhaseAngle</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">basePhaseAngle</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#        Declare component contributions to basic EnergySystemModel constraints and its objective function         #</span>
     <span class="c1">####################################################################################################################</span>
 
-    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
+<div class="viewcode-block" id="LOPFModel.getSharedPotentialContribution"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.getSharedPotentialContribution">[docs]</a>    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets contributions to shared location potential &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getCommodityBalanceContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+<div class="viewcode-block" id="LOPFModel.getCommodityBalanceContribution"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.getCommodityBalanceContribution">[docs]</a>    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets contribution to a commodity balance &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getCommodityBalanceContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getObjectiveFunctionContribution</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+<div class="viewcode-block" id="LOPFModel.getObjectiveFunctionContribution"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.getObjectiveFunctionContribution">[docs]</a>    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets contribution to the objective function &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getObjectiveFunctionContribution</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">setOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
 
@@ -325,7 +333,7 @@
 
         <span class="n">optVal_</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">phaseAngleVar</span><span class="o">.</span><span class="n">get_values</span><span class="p">(),</span> <span class="s1">&#39;operationVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span>
                                                  <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal_</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal_</span></div>
 </pre></div>
 
            </div>

@@ -83,7 +83,12 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../packageDoc.html">Python package description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -154,7 +159,7 @@
 <span class="kn">import</span> <span class="nn">pyomo.environ</span> <span class="k">as</span> <span class="nn">pyomo</span>
 
 
-<div class="viewcode-block" id="Conversion"><a class="viewcode-back" href="../coreComponentsDoc.html#conversion.Conversion">[docs]</a><span class="k">class</span> <span class="nc">Conversion</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<div class="viewcode-block" id="Conversion"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.Conversion">[docs]</a><span class="k">class</span> <span class="nc">Conversion</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
     <span class="c1">#TODO</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Conversion class</span>
@@ -172,7 +177,7 @@
 <span class="sd">    |br| @author: Lara Welder</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Conversion.__init__"><a class="viewcode-back" href="../coreComponentsDoc.html#conversion.Conversion.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">physicalUnit</span><span class="p">,</span> <span class="n">commodityConversionFactors</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<div class="viewcode-block" id="Conversion.__init__"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.Conversion.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">physicalUnit</span><span class="p">,</span> <span class="n">commodityConversionFactors</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                  <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linkedConversionCapacityID</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">operationRateMax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">operationRateFix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tsaWeight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -319,7 +324,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span><span class="p">,</span> <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
 
 
-<span class="k">class</span> <span class="nc">ConversionModel</span><span class="p">(</span><span class="n">ComponentModel</span><span class="p">):</span>
+<div class="viewcode-block" id="ConversionModel"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.ConversionModel">[docs]</a><span class="k">class</span> <span class="nc">ConversionModel</span><span class="p">(</span><span class="n">ComponentModel</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Doc &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span> <span class="o">=</span> <span class="s1">&#39;conv&#39;</span>
@@ -353,7 +358,7 @@
                                  <span class="s1">&#39;are linked but do not have the same locationalEligibility.&#39;</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;linkedComponentsList_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">,</span> <span class="n">linkedComponentsList</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="ConversionModel.declareSets"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.ConversionModel.declareSets">[docs]</a>    <span class="k">def</span> <span class="nf">declareSets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares sets and dictionaries &quot;&quot;&quot;</span>
 
         <span class="c1"># Declare design variable sets</span>
@@ -369,13 +374,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateFix&#39;</span><span class="p">)</span>
 
         <span class="c1"># Declare linked components dictionary</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">declareLinkedCapacityDict</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareLinkedCapacityDict</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#                                                Declare variables                                                 #</span>
     <span class="c1">####################################################################################################################</span>
 
-    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="ConversionModel.declareVariables"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.ConversionModel.declareVariables">[docs]</a>    <span class="k">def</span> <span class="nf">declareVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares design and operation variables &quot;&quot;&quot;</span>
 
         <span class="c1"># Capacity variables in [physicalUnit]</span>
@@ -387,22 +392,22 @@
         <span class="c1"># Binary variables [-] indicating if a component is considered at a location or not in [-]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">declareBinaryDesignDecisionVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
         <span class="c1"># Operation of component [physicalUnit*hour]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationVars</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#                                          Declare component constraints                                           #</span>
     <span class="c1">####################################################################################################################</span>
 
-    <span class="k">def</span> <span class="nf">linkedCapacity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="ConversionModel.linkedCapacity"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.ConversionModel.linkedCapacity">[docs]</a>    <span class="k">def</span> <span class="nf">linkedCapacity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Enforces all Conversion components with the same linkedConversionCapacityID have the same capacity &quot;&quot;&quot;</span>
         <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
         <span class="n">capVar</span><span class="p">,</span> <span class="n">linkedList</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;cap_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;linkedComponentsList_&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">linkedCapacity</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">compName1</span><span class="p">,</span> <span class="n">compName2</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName1</span><span class="p">]</span> <span class="o">==</span> <span class="n">capVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName2</span><span class="p">]</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrLinkedCapacity_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>  <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">linkedList</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">linkedCapacity</span><span class="p">))</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;ConstrLinkedCapacity_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">,</span>  <span class="n">pyomo</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">linkedList</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">linkedCapacity</span><span class="p">))</span></div>
 
-    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="ConversionModel.declareComponentConstraints"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.ConversionModel.declareComponentConstraints">[docs]</a>    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares time independent and dependent constraints&quot;&quot;&quot;</span>
 
         <span class="c1">################################################################################################################</span>
@@ -439,26 +444,29 @@
         <span class="c1"># Operation [energyUnit] equal to the operation time series [energyUnit]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">operationMode4</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
         <span class="c1"># Operation [energyUnit] limited by the operation time series [energyUnit]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode5</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationMode5</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="s1">&#39;ConstrOperation&#39;</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;op&#39;</span><span class="p">)</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#        Declare component contributions to basic EnergySystemModel constraints and its objective function         #</span>
     <span class="c1">####################################################################################################################</span>
 
-    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
+<div class="viewcode-block" id="ConversionModel.getSharedPotentialContribution"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.ConversionModel.getSharedPotentialContribution">[docs]</a>    <span class="k">def</span> <span class="nf">getSharedPotentialContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets contributions to shared location potential &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getSharedPotentialContribution</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">hasOpVariablesForLocationCommodity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">commod</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">any</span><span class="p">([(</span><span class="n">commod</span> <span class="ow">in</span> <span class="n">comp</span><span class="o">.</span><span class="n">commodityConversionFactors</span> <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">commodityConversionFactors</span><span class="p">[</span><span class="n">commod</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
                     <span class="ow">and</span> <span class="n">comp</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
 
-    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+<div class="viewcode-block" id="ConversionModel.getCommodityBalanceContribution"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.ConversionModel.getCommodityBalanceContribution">[docs]</a>    <span class="k">def</span> <span class="nf">getCommodityBalanceContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pyM</span><span class="p">,</span> <span class="n">commod</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets contribution to a commodity balance &quot;&quot;&quot;</span>
         <span class="n">compDict</span><span class="p">,</span> <span class="n">abbrvName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">abbrvName</span>
         <span class="n">opVar</span><span class="p">,</span> <span class="n">opVarDict</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;op_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;operationVarDict_&#39;</span> <span class="o">+</span> <span class="n">abbrvName</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">opVar</span><span class="p">[</span><span class="n">loc</span><span class="p">,</span> <span class="n">compName</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">commodityConversionFactors</span><span class="p">[</span><span class="n">commod</span><span class="p">]</span>
-                   <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">opVarDict</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="k">if</span> <span class="n">commod</span> <span class="ow">in</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">commodityConversionFactors</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">compName</span> <span class="ow">in</span> <span class="n">opVarDict</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="k">if</span> <span class="n">commod</span> <span class="ow">in</span> <span class="n">compDict</span><span class="p">[</span><span class="n">compName</span><span class="p">]</span><span class="o">.</span><span class="n">commodityConversionFactors</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+<div class="viewcode-block" id="ConversionModel.getObjectiveFunctionContribution"><a class="viewcode-back" href="../conversionClassDoc.html#conversion.ConversionModel.getObjectiveFunctionContribution">[docs]</a>    <span class="k">def</span> <span class="nf">getObjectiveFunctionContribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gets contribution to the objective function &quot;&quot;&quot;</span>
 
         <span class="n">capexCap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investPerCapacity&#39;</span><span class="p">],</span> <span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span>
         <span class="n">capexDec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;investIfBuilt&#39;</span><span class="p">],</span> <span class="s1">&#39;designBin&#39;</span><span class="p">,</span> <span class="s1">&#39;CCF&#39;</span><span class="p">)</span>
@@ -466,7 +474,7 @@
         <span class="n">opexDec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTI</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexIfBuilt&#39;</span><span class="p">],</span> <span class="s1">&#39;designBin&#39;</span><span class="p">)</span>
         <span class="n">opexOp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getEconomicsTD</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;opexPerOperation&#39;</span><span class="p">],</span> <span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;operationVarDict&#39;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">capexCap</span> <span class="o">+</span> <span class="n">capexDec</span> <span class="o">+</span> <span class="n">opexCap</span> <span class="o">+</span> <span class="n">opexDec</span> <span class="o">+</span> <span class="n">opexOp</span>
+        <span class="k">return</span> <span class="n">capexCap</span> <span class="o">+</span> <span class="n">capexDec</span> <span class="o">+</span> <span class="n">opexCap</span> <span class="o">+</span> <span class="n">opexDec</span> <span class="o">+</span> <span class="n">opexOp</span></div>
 
     <span class="c1">####################################################################################################################</span>
     <span class="c1">#                                  Return optimal values of the component class                                    #</span>
@@ -509,7 +517,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span>
 
     <span class="k">def</span> <span class="nf">getOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getOptimalValues</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getOptimalValues</span><span class="p">()</span></div>
 </pre></div>
 
            </div>

@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Core component classes" href="coreComponentsDoc.html" />
+    <link rel="next" title="Component class" href="componentClassDoc.html" />
     <link rel="prev" title="EnergySystemModel class" href="energySystemModelDoc.html" /> 
 
   
@@ -88,8 +88,12 @@
 <li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Components</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="coreComponentsDoc.html">Core component classes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="subclassComponentsDoc.html">Extended component classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="componentClassDoc.html">Component class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sourceSinkClassDoc.html">Source and Sink class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="conversionClassDoc.html">Conversion class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="transmissionClassDoc.html">Transmission class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="storageClassDoc.html">Storage class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lopfClassDoc.html">LinearOptimalPowerFlow classes</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
@@ -163,26 +167,38 @@
             
   <div class="section" id="components">
 <h1>Components<a class="headerlink" href="#components" title="Permalink to this headline">¶</a></h1>
-<p>Components can be added to an EnergySystemModel class to model the behavior of the energy system.
-The components which can be modeled in FINE can be categorized into</p>
+<p>Components can be added to an EnergySystemModel class to model the behavior of the energy system. The data of these
+components are stored in so called component classes. All components have to inherit from the “Component” class.
+The behavior of the components in the energy system is modeled in respective component modeling classes. All component
+modeling classes have to inherit from the “ComponentModel” class. There are five basic component and component modeling
+classes in FINE. These are</p>
 <ul class="simple">
-<li>core component classes and</li>
-<li>subclasses which inherit from these core component classes.</li>
+<li>Source and Sink (inherits from Source) classes + the SourceSinkModel class,</li>
+<li>Conversion class + ConversionModel class,</li>
+<li>Transmission class + TransmissionModel class, and</li>
+<li>Storage class + StorageModel class.</li>
 </ul>
+<p>Form these basic component and component modeling classes, further subclasses can be defined. For example, a
+LinearOptimalPowerFlow + LOPFModel class inherit from the Transmission and TransmissionModel class.</p>
+<p><strong>Component and ComponentModeling class</strong></p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="coreComponentsDoc.html">Core component classes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="coreComponentsDoc.html#component-class">Component class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="coreComponentsDoc.html#source-and-sink-class">Source and Sink class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="coreComponentsDoc.html#conversion-class">Conversion class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="coreComponentsDoc.html#transmission-class">Transmission class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="coreComponentsDoc.html#storage-class">Storage class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="componentClassDoc.html">Component class</a></li>
 </ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="subclassComponentsDoc.html">Extended component classes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="subclassComponentsDoc.html#linearoptimalpowerflow-class">LinearOptimalPowerFlow class</a></li>
+</div>
+<p><strong>Basic component and component modeling classes</strong></p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sourceSinkClassDoc.html">Source and Sink class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conversionClassDoc.html">Conversion class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transmissionClassDoc.html">Transmission class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="storageClassDoc.html">Storage class</a></li>
 </ul>
-</li>
+</div>
+<p><strong>Extended subclasses</strong></p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="lopfClassDoc.html">LinearOptimalPowerFlow classes</a></li>
 </ul>
 </div>
 </div>
@@ -195,7 +211,7 @@ The components which can be modeled in FINE can be categorized into</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="coreComponentsDoc.html" class="btn btn-neutral float-right" title="Core component classes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="componentClassDoc.html" class="btn btn-neutral float-right" title="Component class" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="energySystemModelDoc.html" class="btn btn-neutral" title="EnergySystemModel class" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

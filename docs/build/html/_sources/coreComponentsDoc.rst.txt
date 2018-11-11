@@ -16,24 +16,6 @@ The core component classes of this framework are the
 Each of these classes inherits from the Component class. Instances (with concrete values) of these classes can be added
 to an EnergySystemModel class to specify a concrete energy system.
 
-Component class
-###############
-
-**Class description:**
-
-
-.. automodule:: component
-.. autoclass:: Component
-   :members:
-   :member-order: bysource
-
-   .. automethod:: __init__
-
-**Inheritance diagram:**
-
-.. inheritance-diagram:: Component
-   :parts: 1
-
 Source and Sink class
 #####################
 
