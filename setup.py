@@ -1,4 +1,4 @@
-import os,setuptools
+import os, setuptools
 dir_path = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(dir_path, 'requirements.txt')) as f:
     required_packages = f.read().splitlines()
@@ -7,7 +7,7 @@ with open(os.path.join(dir_path, 'README.md'), "r") as fh:
 
 setuptools.setup(
     name='FINE',
-    version='0.0.1',
+    version='0.9.0',
     author='Lara Welder',
     author_email='l.welder@fz-juelich.de',
     description='Framework for integrated energy systems assessment',
@@ -19,7 +19,7 @@ setuptools.setup(
     install_requires=required_packages,
     setup_requires=['setuptools-git'],
     classifiers=[
-        'Development Status :: 0 - Beta',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: End Users/Desktop',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: MIT License',
