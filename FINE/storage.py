@@ -749,6 +749,9 @@ class StorageModel(ComponentModel):
         # * set state of charge variables
         if not pyM.hasTSA:
             optVal = utils.formatOptimizationOutput(SOC.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+            # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
+            # other)
+            optVal = optVal.loc[:, :len(optVal.columns) - 2]
             self.stateOfChargeOperationVariablesOptimum = optVal
             utils.setOptimalComponentVariables(optVal, '_stateOfChargeVariablesOptimum', compDict)
         else:
