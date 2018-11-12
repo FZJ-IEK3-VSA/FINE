@@ -2,5 +2,5 @@
 Examples and Tutorials
 ######################
 
-`Examples on the GitHub page <https://github.com/FZJ-IEK3-VSA/FINE/tree/master/example>`_ of the framework show the
+`Examples on the GitHub page <https://github.com/FZJ-IEK3-VSA/FINE>`_ of the framework show the
 capabilities of FINE.

@@ -85,6 +85,8 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
@@ -99,6 +101,9 @@
 <li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -466,32 +471,32 @@ aggregated time series data after applying time series aggregation.</p>
 <em class="property">class </em><code class="descclassname">component.</code><code class="descname">ComponentModel</code><a class="reference internal" href="_modules/component.html#ComponentModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Doc</p>
 <dl class="method">
-<dt id="component.ComponentModel.initDesignVarSet">
-<code class="descname">initDesignVarSet</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.initDesignVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.initDesignVarSet" title="Permalink to this definition">¶</a></dt>
+<dt id="component.ComponentModel.declareDesignVarSet">
+<code class="descname">declareDesignVarSet</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.declareDesignVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.declareDesignVarSet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declares set for capacity variables in the pyomo object for a modeling class</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="component.ComponentModel.initContinuousDesignVarSet">
-<code class="descname">initContinuousDesignVarSet</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.initContinuousDesignVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.initContinuousDesignVarSet" title="Permalink to this definition">¶</a></dt>
+<dt id="component.ComponentModel.declareContinuousDesignVarSet">
+<code class="descname">declareContinuousDesignVarSet</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.declareContinuousDesignVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.declareContinuousDesignVarSet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declares set for continuous number of installed components in the pyomo object for a modeling class</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="component.ComponentModel.initDiscreteDesignVarSet">
-<code class="descname">initDiscreteDesignVarSet</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.initDiscreteDesignVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.initDiscreteDesignVarSet" title="Permalink to this definition">¶</a></dt>
+<dt id="component.ComponentModel.declareDiscreteDesignVarSet">
+<code class="descname">declareDiscreteDesignVarSet</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.declareDiscreteDesignVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.declareDiscreteDesignVarSet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declares set for discrete number of installed components in the pyomo object for a modeling class</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="component.ComponentModel.initDesignDecisionVarSet">
-<code class="descname">initDesignDecisionVarSet</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.initDesignDecisionVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.initDesignDecisionVarSet" title="Permalink to this definition">¶</a></dt>
+<dt id="component.ComponentModel.declareDesignDecisionVarSet">
+<code class="descname">declareDesignDecisionVarSet</code><span class="sig-paren">(</span><em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.declareDesignDecisionVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.declareDesignDecisionVarSet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declares set for design decision variables in the pyomo object for a modeling class</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="component.ComponentModel.initOpVarSet">
-<code class="descname">initOpVarSet</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.initOpVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.initOpVarSet" title="Permalink to this definition">¶</a></dt>
+<dt id="component.ComponentModel.declareOpVarSet">
+<code class="descname">declareOpVarSet</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.declareOpVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.declareOpVarSet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declares operation related sets (operation variables and mapping sets) in the pyomo object for a
 modeling class</p>
 </dd></dl>
@@ -608,12 +613,6 @@ with a time series in:</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="component.ComponentModel.getSharedPotentialContribution">
-<code class="descname">getSharedPotentialContribution</code><span class="sig-paren">(</span><em>pyM</em>, <em>key</em>, <em>loc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.getSharedPotentialContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.getSharedPotentialContribution" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gets the share which the components of the modeling class have on a shared maximum potential at a location</p>
-</dd></dl>
-
-<dl class="method">
 <dt id="component.ComponentModel.declareSets">
 <code class="descname">declareSets</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.declareSets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.declareSets" title="Permalink to this definition">¶</a></dt>
 <dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
@@ -646,6 +645,38 @@ Gets contribution to a commodity balance</p>
 <code class="descname">getObjectiveFunctionContribution</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.getObjectiveFunctionContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.getObjectiveFunctionContribution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
 Gets contribution to the objective function</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component.ComponentModel.getSharedPotentialContribution">
+<code class="descname">getSharedPotentialContribution</code><span class="sig-paren">(</span><em>pyM</em>, <em>key</em>, <em>loc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.getSharedPotentialContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.getSharedPotentialContribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the share which the components of the modeling class have on a shared maximum potential at a location</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component.ComponentModel.getOptimalValues">
+<code class="descname">getOptimalValues</code><span class="sig-paren">(</span><em>name='all'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/component.html#ComponentModel.getOptimalValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component.ComponentModel.getOptimalValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns optimal values of the components</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – name of the variables of which the optimal values should be returned:</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li>‘capacityVariables’,</li>
+<li>‘isBuiltVariables’,</li>
+<li>‘operationVariablesOptimum’,</li>
+<li>‘all’ or another input: all variables are returned.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>

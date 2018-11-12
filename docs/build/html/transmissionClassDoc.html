@@ -85,6 +85,8 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
@@ -99,6 +101,9 @@
 <li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -174,7 +179,7 @@
 <span class="target" id="module-transmission"></span><dl class="class">
 <dt id="transmission.Transmission">
 <em class="property">class </em><code class="descclassname">transmission.</code><code class="descname">Transmission</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>losses=0</em>, <em>distances=None</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#Transmission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.Transmission" title="Permalink to this definition">¶</a></dt>
-<dd><p>Doc</p>
+<dd><p>A Transmission component can transmit a commodity between locations of the energy system.</p>
 <dl class="method">
 <dt id="transmission.Transmission.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>losses=0</em>, <em>distances=None</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#Transmission.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.Transmission.__init__" title="Permalink to this definition">¶</a></dt>
@@ -251,12 +256,67 @@ system model (i.e. Euro, Dollar, 1e6 Euro).
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="transmission.Transmission.addToEnergySystemModel">
+<code class="descname">addToEnergySystemModel</code><span class="sig-paren">(</span><em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#Transmission.addToEnergySystemModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.Transmission.addToEnergySystemModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds component to an EnergySystemModel instance (esM). If the respective component class is not already in the
+esM, it is added as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>esM</strong> (<em>EnergySystemModel instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="transmission.Transmission.setTimeSeriesData">
+<code class="descname">setTimeSeriesData</code><span class="sig-paren">(</span><em>hasTSA</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#Transmission.setTimeSeriesData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.Transmission.setTimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+the time series data of a component (either the full time series when hasTSA is false or the aggreated
+time series if hasTSA is True).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>hasTSA</strong> – indicates if time series aggregation should be considered for modeling</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Tpye hasTSA:</th><td class="field-body">boolean</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="transmission.Transmission.getDataForTimeSeriesAggregation">
+<code class="descname">getDataForTimeSeriesAggregation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#Transmission.getDataForTimeSeriesAggregation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.Transmission.getDataForTimeSeriesAggregation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Gets
+all time series data of a component for time series aggregation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="transmission.Transmission.setAggregatedTimeSeriesData">
+<code class="descname">setAggregatedTimeSeriesData</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#Transmission.setAggregatedTimeSeriesData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.Transmission.setAggregatedTimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+aggregated time series data after applying time series aggregation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>Pandas DataFrame</em>) – time series data</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <p><em>Inheritance diagram:</em></p>
-<div class="graphviz"><img src="_images/inheritance-cee69fb600a2ecd07bf55d4cc88edf8bbd51067e.png" alt="Inheritance diagram of Transmission" usemap="#inheritanced379698dc7" class="inheritance graphviz" /></div>
+<div class="graphviz"><img src="_images/inheritance-ff3610f8038e56b4cd5ee7c2b95affd8f1896088.png" alt="Inheritance diagram of Transmission" usemap="#inheritanced379698dc7" class="inheritance graphviz" /></div>
 <map id="inheritanced379698dc7" name="inheritanced379698dc7">
-<area shape="poly" id="node2" href="#transmission.Transmission" target="_top" title="Doc" alt="" coords="336,41,333,30,322,20,306,12,285,7,262,5,239,7,218,12,202,20,191,30,187,41,191,52,202,62,218,70,239,76,262,77,285,76,306,70,322,62,333,52"/>
+<area shape="poly" id="node2" href="#transmission.Transmission" target="_top" title="A Transmission component can transmit a commodity between locations of the energy system." alt="" coords="336,41,333,30,322,20,306,12,285,7,262,5,239,7,218,12,202,20,191,30,187,41,191,52,202,62,218,70,239,76,262,77,285,76,306,70,322,62,333,52"/>
 </map><div class="line-block">
 <div class="line"><br /></div>
 </div>
@@ -316,6 +376,32 @@ if a basic solution is obtained during optimization.</p>
 <dt id="transmission.TransmissionModel.getObjectiveFunctionContribution">
 <code class="descname">getObjectiveFunctionContribution</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#TransmissionModel.getObjectiveFunctionContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.TransmissionModel.getObjectiveFunctionContribution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets contribution to the objective function</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="transmission.TransmissionModel.getOptimalValues">
+<code class="descname">getOptimalValues</code><span class="sig-paren">(</span><em>name='all'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/transmission.html#TransmissionModel.getOptimalValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#transmission.TransmissionModel.getOptimalValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns optimal values of the components</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – name of the variables of which the optimal values should be returned:</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li>‘capacityVariables’,</li>
+<li>‘isBuiltVariables’,</li>
+<li>‘operationVariablesOptimum’,</li>
+<li>‘all’ or another input: all variables are returned.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>

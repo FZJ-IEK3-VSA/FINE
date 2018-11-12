@@ -85,6 +85,8 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
@@ -99,6 +101,9 @@
 <li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -174,13 +179,7 @@
 <span class="target" id="module-conversion"></span><dl class="class">
 <dt id="conversion.Conversion">
 <em class="property">class </em><code class="descclassname">conversion.</code><code class="descname">Conversion</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>physicalUnit</em>, <em>commodityConversionFactors</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>linkedConversionCapacityID=None</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/conversion.html#Conversion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#conversion.Conversion" title="Permalink to this definition">¶</a></dt>
-<dd><p>Conversion class</p>
-<p>The functionality of the the Conversion class is fourfold:
-* …</p>
-<p>The parameter which are stored in an instance of the class refer to:
-* …</p>
-<p>Instances of this class provide function for
-* …</p>
+<dd><p>A Conversion component converts commodities into each other.</p>
 <p>Last edited: July 27, 2018
 <br /> &#64;author: Lara Welder</p>
 <dl class="method">
@@ -263,12 +262,67 @@ system model (i.e. Euro, Dollar, 1e6 Euro).
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="conversion.Conversion.addToEnergySystemModel">
+<code class="descname">addToEnergySystemModel</code><span class="sig-paren">(</span><em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/conversion.html#Conversion.addToEnergySystemModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#conversion.Conversion.addToEnergySystemModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds component to an EnergySystemModel instance (esM). If the respective component class is not already in the
+esM, it is added as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>esM</strong> (<em>EnergySystemModel instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="conversion.Conversion.setTimeSeriesData">
+<code class="descname">setTimeSeriesData</code><span class="sig-paren">(</span><em>hasTSA</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/conversion.html#Conversion.setTimeSeriesData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#conversion.Conversion.setTimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+the time series data of a component (either the full time series when hasTSA is false or the aggreated
+time series if hasTSA is True).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>hasTSA</strong> – indicates if time series aggregation should be considered for modeling</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Tpye hasTSA:</th><td class="field-body">boolean</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="conversion.Conversion.getDataForTimeSeriesAggregation">
+<code class="descname">getDataForTimeSeriesAggregation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/conversion.html#Conversion.getDataForTimeSeriesAggregation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#conversion.Conversion.getDataForTimeSeriesAggregation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Gets
+all time series data of a component for time series aggregation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="conversion.Conversion.setAggregatedTimeSeriesData">
+<code class="descname">setAggregatedTimeSeriesData</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/conversion.html#Conversion.setAggregatedTimeSeriesData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#conversion.Conversion.setAggregatedTimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+aggregated time series data after applying time series aggregation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>Pandas DataFrame</em>) – time series data</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <p><em>Inheritance diagram:</em></p>
-<div class="graphviz"><img src="_images/inheritance-75b3263fc475a4eb3ee67e873667736a5e457f0f.png" alt="Inheritance diagram of Conversion" usemap="#inheritance4d8c898629" class="inheritance graphviz" /></div>
+<div class="graphviz"><img src="_images/inheritance-a574f956d66530cff465117d1f6c731b94f3318c.png" alt="Inheritance diagram of Conversion" usemap="#inheritance4d8c898629" class="inheritance graphviz" /></div>
 <map id="inheritance4d8c898629" name="inheritance4d8c898629">
-<area shape="poly" id="node2" href="#conversion.Conversion" target="_top" title="Conversion class" alt="" coords="319,41,315,30,306,20,292,12,273,7,253,5,233,7,214,12,200,20,191,30,187,41,191,52,200,62,214,70,233,76,253,77,273,76,292,70,306,62,315,52"/>
+<area shape="poly" id="node2" href="#conversion.Conversion" target="_top" title="A Conversion component converts commodities into each other." alt="" coords="319,41,315,30,306,20,292,12,273,7,253,5,233,7,214,12,200,20,191,30,187,41,191,52,200,62,214,70,233,76,253,77,273,76,292,70,306,62,315,52"/>
 </map><div class="line-block">
 <div class="line"><br /></div>
 </div>
@@ -317,6 +371,32 @@ system model (i.e. Euro, Dollar, 1e6 Euro).
 <dt id="conversion.ConversionModel.getObjectiveFunctionContribution">
 <code class="descname">getObjectiveFunctionContribution</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/conversion.html#ConversionModel.getObjectiveFunctionContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#conversion.ConversionModel.getObjectiveFunctionContribution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets contribution to the objective function</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="conversion.ConversionModel.getOptimalValues">
+<code class="descname">getOptimalValues</code><span class="sig-paren">(</span><em>name='all'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/conversion.html#ConversionModel.getOptimalValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#conversion.ConversionModel.getOptimalValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns optimal values of the components</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – name of the variables of which the optimal values should be returned:</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li>‘capacityVariables’,</li>
+<li>‘isBuiltVariables’,</li>
+<li>‘operationVariablesOptimum’,</li>
+<li>‘all’ or another input: all variables are returned.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>

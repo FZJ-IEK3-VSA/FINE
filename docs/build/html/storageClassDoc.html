@@ -85,6 +85,8 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
@@ -99,6 +101,9 @@
 <li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -174,7 +179,7 @@
 <span class="target" id="module-storage"></span><dl class="class">
 <dt id="storage.Storage">
 <em class="property">class </em><code class="descclassname">storage.</code><code class="descname">Storage</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>chargeRate=1</em>, <em>dischargeRate=1</em>, <em>chargeEfficiency=1</em>, <em>dischargeEfficiency=1</em>, <em>selfDischarge=0</em>, <em>cyclicLifetime=None</em>, <em>stateOfChargeMin=0</em>, <em>stateOfChargeMax=1</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>doPreciseTsaModeling=False</em>, <em>chargeOpRateMax=None</em>, <em>chargeOpRateFix=None</em>, <em>chargeTsaWeight=1</em>, <em>dischargeOpRateMax=None</em>, <em>dischargeOpRateFix=None</em>, <em>dischargeTsaWeight=1</em>, <em>isPeriodicalStorage=False</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerChargeOperation=0</em>, <em>opexPerDischargeOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage" title="Permalink to this definition">¶</a></dt>
-<dd><p>Doc</p>
+<dd><p>A Storage component can store a commodity and thus transfers it between time steps.</p>
 <dl class="method">
 <dt id="storage.Storage.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>chargeRate=1</em>, <em>dischargeRate=1</em>, <em>chargeEfficiency=1</em>, <em>dischargeEfficiency=1</em>, <em>selfDischarge=0</em>, <em>cyclicLifetime=None</em>, <em>stateOfChargeMin=0</em>, <em>stateOfChargeMax=1</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>doPreciseTsaModeling=False</em>, <em>chargeOpRateMax=None</em>, <em>chargeOpRateFix=None</em>, <em>chargeTsaWeight=1</em>, <em>dischargeOpRateMax=None</em>, <em>dischargeOpRateFix=None</em>, <em>dischargeTsaWeight=1</em>, <em>isPeriodicalStorage=False</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerChargeOperation=0</em>, <em>opexPerDischargeOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage.__init__" title="Permalink to this definition">¶</a></dt>
@@ -305,12 +310,67 @@ system model (i.e. Euro, Dollar, 1e6 Euro).
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="storage.Storage.addToEnergySystemModel">
+<code class="descname">addToEnergySystemModel</code><span class="sig-paren">(</span><em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage.addToEnergySystemModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage.addToEnergySystemModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds component to an EnergySystemModel instance (esM). If the respective component class is not already in the
+esM, it is added as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>esM</strong> (<em>EnergySystemModel instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.Storage.setTimeSeriesData">
+<code class="descname">setTimeSeriesData</code><span class="sig-paren">(</span><em>hasTSA</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage.setTimeSeriesData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage.setTimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+the time series data of a component (either the full time series when hasTSA is false or the aggreated
+time series if hasTSA is True).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>hasTSA</strong> – indicates if time series aggregation should be considered for modeling</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Tpye hasTSA:</th><td class="field-body">boolean</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.Storage.getDataForTimeSeriesAggregation">
+<code class="descname">getDataForTimeSeriesAggregation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage.getDataForTimeSeriesAggregation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage.getDataForTimeSeriesAggregation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Gets
+all time series data of a component for time series aggregation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.Storage.setAggregatedTimeSeriesData">
+<code class="descname">setAggregatedTimeSeriesData</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#Storage.setAggregatedTimeSeriesData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.Storage.setAggregatedTimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+aggregated time series data after applying time series aggregation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>Pandas DataFrame</em>) – time series data</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <p><em>Inheritance diagram:</em></p>
-<div class="graphviz"><img src="_images/inheritance-e4032cac4258c845bdde0345df0ead23405a16dd.png" alt="Inheritance diagram of Storage" usemap="#inheritance2cafd0ade4" class="inheritance graphviz" /></div>
+<div class="graphviz"><img src="_images/inheritance-de779a97d23c3744563abd1ef7de26962e1eff18.png" alt="Inheritance diagram of Storage" usemap="#inheritance2cafd0ade4" class="inheritance graphviz" /></div>
 <map id="inheritance2cafd0ade4" name="inheritance2cafd0ade4">
-<area shape="poly" id="node2" href="#storage.Storage" target="_top" title="Doc" alt="" coords="286,41,284,30,277,20,266,12,252,7,237,5,222,7,208,12,197,20,190,30,187,41,190,52,197,62,208,70,222,76,237,77,252,76,266,70,277,62,284,52"/>
+<area shape="poly" id="node2" href="#storage.Storage" target="_top" title="A Storage component can store a commodity and thus transfers it between time steps." alt="" coords="286,41,284,30,277,20,266,12,252,7,237,5,222,7,208,12,197,20,190,30,187,41,190,52,197,62,208,70,222,76,237,77,252,76,266,70,277,62,284,52"/>
 </map><div class="line-block">
 <div class="line"><br /></div>
 </div>
@@ -426,6 +486,34 @@ relative minimum state of charge</p>
 <dt id="storage.StorageModel.getObjectiveFunctionContribution">
 <code class="descname">getObjectiveFunctionContribution</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.getObjectiveFunctionContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.getObjectiveFunctionContribution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets contribution to the objective function</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="storage.StorageModel.getOptimalValues">
+<code class="descname">getOptimalValues</code><span class="sig-paren">(</span><em>name='all'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/storage.html#StorageModel.getOptimalValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#storage.StorageModel.getOptimalValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns optimal values of the components</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – name of the variables of which the optimal values should be returned:</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li>‘capacityVariables’,</li>
+<li>‘isBuiltVariables’,</li>
+<li>‘chargeOperationVariablesOptimum’,</li>
+<li>‘dischargeOperationVariablesOptimum’,</li>
+<li>‘stateOfChargeOperationVariablesOptimum’,</li>
+<li>‘all’ or another input: all variables are returned.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>

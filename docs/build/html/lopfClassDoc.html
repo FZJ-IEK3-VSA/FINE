@@ -85,6 +85,8 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
@@ -99,6 +101,9 @@
 <li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -175,7 +180,8 @@ flow equations.</p>
 <span class="target" id="module-lopf"></span><dl class="class">
 <dt id="lopf.LinearOptimalPowerFlow">
 <em class="property">class </em><code class="descclassname">lopf.</code><code class="descname">LinearOptimalPowerFlow</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>reactances</em>, <em>losses=0</em>, <em>distances=None</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LinearOptimalPowerFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LinearOptimalPowerFlow" title="Permalink to this definition">¶</a></dt>
-<dd><p>Doc</p>
+<dd><p>A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a
+linearized power flow.</p>
 <dl class="method">
 <dt id="lopf.LinearOptimalPowerFlow.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>reactances</em>, <em>losses=0</em>, <em>distances=None</em>, <em>hasCapacityVariable=True</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LinearOptimalPowerFlow.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LinearOptimalPowerFlow.__init__" title="Permalink to this definition">¶</a></dt>
@@ -194,12 +200,27 @@ the in the energy system model specified locations.</em>) – reactances for DC 
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="lopf.LinearOptimalPowerFlow.addToEnergySystemModel">
+<code class="descname">addToEnergySystemModel</code><span class="sig-paren">(</span><em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LinearOptimalPowerFlow.addToEnergySystemModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LinearOptimalPowerFlow.addToEnergySystemModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds component to an EnergySystemModel instance (esM). If the respective component class is not already in the
+esM, it is added as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>esM</strong> (<em>EnergySystemModel instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <p><em>Inheritance diagram:</em></p>
-<div class="graphviz"><img src="_images/inheritance-f4286af1fe1005bd498907507404a7fcd0deccf4.png" alt="Inheritance diagram of LinearOptimalPowerFlow" usemap="#inheritancef257b1b58e" class="inheritance graphviz" /></div>
+<div class="graphviz"><img src="_images/inheritance-74b85982d38de1b075642b9329feb21b1678fc0d.png" alt="Inheritance diagram of LinearOptimalPowerFlow" usemap="#inheritancef257b1b58e" class="inheritance graphviz" /></div>
 <map id="inheritancef257b1b58e" name="inheritancef257b1b58e">
-<area shape="poly" id="node2" href="#lopf.LinearOptimalPowerFlow" target="_top" title="Doc" alt="" coords="642,41,636,30,618,20,589,12,553,7,513,5,473,7,437,12,409,20,391,30,384,41,391,52,409,62,437,70,473,76,513,77,553,76,589,70,618,62,636,52"/>
+<area shape="poly" id="node2" href="#lopf.LinearOptimalPowerFlow" target="_top" title="A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a" alt="" coords="642,41,636,30,618,20,589,12,553,7,513,5,473,7,437,12,409,20,391,30,384,41,391,52,409,62,437,70,473,76,513,77,553,76,589,70,618,62,636,52"/>
 </map><div class="line-block">
 <div class="line"><br /></div>
 </div>
@@ -261,6 +282,33 @@ between location_2 and location_1</p>
 <dt id="lopf.LOPFModel.getObjectiveFunctionContribution">
 <code class="descname">getObjectiveFunctionContribution</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.getObjectiveFunctionContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.getObjectiveFunctionContribution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets contribution to the objective function</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.getOptimalValues">
+<code class="descname">getOptimalValues</code><span class="sig-paren">(</span><em>name='all'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.getOptimalValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.getOptimalValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns optimal values of the components</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – name of the variables of which the optimal values should be returned:</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li>‘capacityVariables’,</li>
+<li>‘isBuiltVariables’,</li>
+<li>‘operationVariablesOptimum’,</li>
+<li>‘phaseAngleVariablesOptimum’,</li>
+<li>‘all’ or another input: all variables are returned.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>

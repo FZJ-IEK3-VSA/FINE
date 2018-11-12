@@ -204,10 +204,20 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="energySystemModelDoc.html#energySystemModel.EnergySystemModel.add">add() (energySystemModel.EnergySystemModel method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="componentClassDoc.html#component.Component.addToEnergySystemModel">addToEnergySystemModel() (component.Component method)</a>
+
+      <ul>
+        <li><a href="conversionClassDoc.html#conversion.Conversion.addToEnergySystemModel">(conversion.Conversion method)</a>
 </li>
+        <li><a href="lopfClassDoc.html#lopf.LinearOptimalPowerFlow.addToEnergySystemModel">(lopf.LinearOptimalPowerFlow method)</a>
+</li>
+        <li><a href="sourceSinkClassDoc.html#sourceSink.Source.addToEnergySystemModel">(sourceSink.Source method)</a>
+</li>
+        <li><a href="storageClassDoc.html#storage.Storage.addToEnergySystemModel">(storage.Storage method)</a>
+</li>
+        <li><a href="transmissionClassDoc.html#transmission.Transmission.addToEnergySystemModel">(transmission.Transmission method)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -284,18 +294,28 @@
         <li><a href="transmissionClassDoc.html#transmission.TransmissionModel.declareComponentConstraints">(transmission.TransmissionModel method)</a>
 </li>
       </ul></li>
+      <li><a href="componentClassDoc.html#component.ComponentModel.declareContinuousDesignVarSet">declareContinuousDesignVarSet() (component.ComponentModel method)</a>
+</li>
+      <li><a href="componentClassDoc.html#component.ComponentModel.declareDesignDecisionVarSet">declareDesignDecisionVarSet() (component.ComponentModel method)</a>
+</li>
+      <li><a href="componentClassDoc.html#component.ComponentModel.declareDesignVarSet">declareDesignVarSet() (component.ComponentModel method)</a>
+</li>
+      <li><a href="componentClassDoc.html#component.ComponentModel.declareDiscreteDesignVarSet">declareDiscreteDesignVarSet() (component.ComponentModel method)</a>
+</li>
       <li><a href="componentClassDoc.html#component.ComponentModel.declareIntNumbersVars">declareIntNumbersVars() (component.ComponentModel method)</a>
 </li>
       <li><a href="energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareObjective">declareObjective() (energySystemModel.EnergySystemModel method)</a>
 </li>
       <li><a href="componentClassDoc.html#component.ComponentModel.declareOperationVars">declareOperationVars() (component.ComponentModel method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="energySystemModelDoc.html#energySystemModel.EnergySystemModel.declareOptimizationProblem">declareOptimizationProblem() (energySystemModel.EnergySystemModel method)</a>
+</li>
+      <li><a href="componentClassDoc.html#component.ComponentModel.declareOpVarSet">declareOpVarSet() (component.ComponentModel method)</a>
 </li>
       <li><a href="componentClassDoc.html#component.ComponentModel.declareRealNumbersVars">declareRealNumbersVars() (component.ComponentModel method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="componentClassDoc.html#component.ComponentModel.declareSets">declareSets() (component.ComponentModel method)</a>
 
       <ul>
@@ -369,7 +389,17 @@
       <li><a href="energySystemModelDoc.html#energySystemModel.EnergySystemModel.getComponentAttribute">getComponentAttribute() (energySystemModel.EnergySystemModel method)</a>
 </li>
       <li><a href="componentClassDoc.html#component.Component.getDataForTimeSeriesAggregation">getDataForTimeSeriesAggregation() (component.Component method)</a>
+
+      <ul>
+        <li><a href="conversionClassDoc.html#conversion.Conversion.getDataForTimeSeriesAggregation">(conversion.Conversion method)</a>
 </li>
+        <li><a href="sourceSinkClassDoc.html#sourceSink.Source.getDataForTimeSeriesAggregation">(sourceSink.Source method)</a>
+</li>
+        <li><a href="storageClassDoc.html#storage.Storage.getDataForTimeSeriesAggregation">(storage.Storage method)</a>
+</li>
+        <li><a href="transmissionClassDoc.html#transmission.Transmission.getDataForTimeSeriesAggregation">(transmission.Transmission method)</a>
+</li>
+      </ul></li>
       <li><a href="outputManagerDoc.html#standardIO.getDualValues">getDualValues() (in module standardIO)</a>
 </li>
       <li><a href="componentClassDoc.html#component.ComponentModel.getObjectiveFunctionContribution">getObjectiveFunctionContribution() (component.ComponentModel method)</a>
@@ -388,6 +418,20 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="componentClassDoc.html#component.ComponentModel.getOptimalValues">getOptimalValues() (component.ComponentModel method)</a>
+
+      <ul>
+        <li><a href="conversionClassDoc.html#conversion.ConversionModel.getOptimalValues">(conversion.ConversionModel method)</a>
+</li>
+        <li><a href="lopfClassDoc.html#lopf.LOPFModel.getOptimalValues">(lopf.LOPFModel method)</a>
+</li>
+        <li><a href="sourceSinkClassDoc.html#sourceSink.SourceSinkModel.getOptimalValues">(sourceSink.SourceSinkModel method)</a>
+</li>
+        <li><a href="storageClassDoc.html#storage.StorageModel.getOptimalValues">(storage.StorageModel method)</a>
+</li>
+        <li><a href="transmissionClassDoc.html#transmission.TransmissionModel.getOptimalValues">(transmission.TransmissionModel method)</a>
+</li>
+      </ul></li>
       <li><a href="energySystemModelDoc.html#energySystemModel.EnergySystemModel.getOptimizationSummary">getOptimizationSummary() (energySystemModel.EnergySystemModel method)</a>
 </li>
       <li><a href="outputManagerDoc.html#standardIO.getShadowPrices">getShadowPrices() (in module standardIO)</a>
@@ -414,20 +458,10 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="componentClassDoc.html#component.ComponentModel.initContinuousDesignVarSet">initContinuousDesignVarSet() (component.ComponentModel method)</a>
-</li>
-      <li><a href="componentClassDoc.html#component.ComponentModel.initDesignDecisionVarSet">initDesignDecisionVarSet() (component.ComponentModel method)</a>
-</li>
-      <li><a href="componentClassDoc.html#component.ComponentModel.initDesignVarSet">initDesignVarSet() (component.ComponentModel method)</a>
+      <li><a href="lopfClassDoc.html#lopf.LOPFModel.initPhaseAngleVarSet">initPhaseAngleVarSet() (lopf.LOPFModel method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="componentClassDoc.html#component.ComponentModel.initDiscreteDesignVarSet">initDiscreteDesignVarSet() (component.ComponentModel method)</a>
-</li>
-      <li><a href="componentClassDoc.html#component.ComponentModel.initOpVarSet">initOpVarSet() (component.ComponentModel method)</a>
-</li>
-      <li><a href="lopfClassDoc.html#lopf.LOPFModel.initPhaseAngleVarSet">initPhaseAngleVarSet() (lopf.LOPFModel method)</a>
-</li>
       <li><a href="storageClassDoc.html#storage.StorageModel.intraSOCstart">intraSOCstart() (storage.StorageModel method)</a>
 </li>
   </ul></td>
@@ -492,10 +526,20 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="lopfClassDoc.html#lopf.LOPFModel.powerFlowDC">powerFlowDC() (lopf.LOPFModel method)</a>
+      <li><a href="outputManagerDoc.html#standardIO.plotLocationalColorMap">plotLocationalColorMap() (in module standardIO)</a>
+</li>
+      <li><a href="outputManagerDoc.html#standardIO.plotLocations">plotLocations() (in module standardIO)</a>
+</li>
+      <li><a href="outputManagerDoc.html#standardIO.plotOperation">plotOperation() (in module standardIO)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="outputManagerDoc.html#standardIO.plotOperationColorMap">plotOperationColorMap() (in module standardIO)</a>
+</li>
+      <li><a href="outputManagerDoc.html#standardIO.plotTransmission">plotTransmission() (in module standardIO)</a>
+</li>
+      <li><a href="lopfClassDoc.html#lopf.LOPFModel.powerFlowDC">powerFlowDC() (lopf.LOPFModel method)</a>
+</li>
       <li><a href="componentClassDoc.html#component.Component.prepareTSAInput">prepareTSAInput() (component.Component method)</a>
 </li>
   </ul></td>
@@ -504,7 +548,7 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="outputManagerDoc.html#standardIO.readEnergySystemModelFromExcel">readEnergySystemModelFromExcel() (in module standardIO)</a>, <a href="outputManagerDoc.html#standardIO.readEnergySystemModelFromExcel">[1]</a>
+      <li><a href="outputManagerDoc.html#standardIO.readEnergySystemModelFromExcel">readEnergySystemModelFromExcel() (in module standardIO)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -513,17 +557,37 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="componentClassDoc.html#component.Component.setAggregatedTimeSeriesData">setAggregatedTimeSeriesData() (component.Component method)</a>
+
+      <ul>
+        <li><a href="conversionClassDoc.html#conversion.Conversion.setAggregatedTimeSeriesData">(conversion.Conversion method)</a>
 </li>
+        <li><a href="sourceSinkClassDoc.html#sourceSink.Source.setAggregatedTimeSeriesData">(sourceSink.Source method)</a>
+</li>
+        <li><a href="storageClassDoc.html#storage.Storage.setAggregatedTimeSeriesData">(storage.Storage method)</a>
+</li>
+        <li><a href="transmissionClassDoc.html#transmission.Transmission.setAggregatedTimeSeriesData">(transmission.Transmission method)</a>
+</li>
+      </ul></li>
       <li><a href="componentClassDoc.html#component.Component.setTimeSeriesData">setTimeSeriesData() (component.Component method)</a>
+
+      <ul>
+        <li><a href="conversionClassDoc.html#conversion.Conversion.setTimeSeriesData">(conversion.Conversion method)</a>
 </li>
+        <li><a href="sourceSinkClassDoc.html#sourceSink.Source.setTimeSeriesData">(sourceSink.Source method)</a>
+</li>
+        <li><a href="storageClassDoc.html#storage.Storage.setTimeSeriesData">(storage.Storage method)</a>
+</li>
+        <li><a href="transmissionClassDoc.html#transmission.Transmission.setTimeSeriesData">(transmission.Transmission method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sourceSinkClassDoc.html#sourceSink.Sink">Sink (class in sourceSink)</a>
 </li>
       <li><a href="sourceSinkClassDoc.html#sourceSink.Source">Source (class in sourceSink)</a>
 </li>
       <li><a href="sourceSinkClassDoc.html#module-sourceSink">sourceSink (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="sourceSinkClassDoc.html#sourceSink.SourceSinkModel">SourceSinkModel (class in sourceSink)</a>
 </li>
       <li><a href="outputManagerDoc.html#module-standardIO">standardIO (module)</a>

@@ -17,9 +17,5 @@ Descriptions of the basic functions are given below.
 **Function descriptions:**
 
 .. automodule:: standardIO
-.. autofunction:: readEnergySystemModelFromExcel
-.. autofunction:: readEnergySystemModelFromExcel
-.. autofunction:: writeOptimizationOutputToExcel
-.. autofunction:: energySystemModelRunFromExcel
-.. autofunction:: getDualValues
-.. autofunction:: getShadowPrices
+   :members:
+   :member-order: bysource

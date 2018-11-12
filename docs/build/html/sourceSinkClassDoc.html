@@ -85,6 +85,8 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installationDoc.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examplesDoc.html">Examples and Tutorials</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="packageDoc.html">Python package description</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
@@ -99,6 +101,9 @@
 <li class="toctree-l2"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="licenseDoc.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aboutUsDoc.html">About Us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgementDoc.html">Acknowledgement</a></li>
 </ul>
 
             
@@ -174,7 +179,7 @@
 <span class="target" id="module-sourceSink"></span><dl class="class">
 <dt id="sourceSink.Source">
 <em class="property">class </em><code class="descclassname">sourceSink.</code><code class="descname">Source</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>commodityLimitID=None</em>, <em>yearlyLimit=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>commodityCost=0</em>, <em>commodityRevenue=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Source" title="Permalink to this definition">¶</a></dt>
-<dd><p>Doc</p>
+<dd><p>A Source component can transfer a commodity over the energy system boundary into the system.</p>
 <dl class="method">
 <dt id="sourceSink.Source.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsaWeight=1</em>, <em>commodityLimitID=None</em>, <em>yearlyLimit=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>commodityCost=0</em>, <em>commodityRevenue=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Source.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Source.__init__" title="Permalink to this definition">¶</a></dt>
@@ -290,12 +295,67 @@ system model (i.e. Euro, Dollar, 1e6 Euro). Example:</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="sourceSink.Source.addToEnergySystemModel">
+<code class="descname">addToEnergySystemModel</code><span class="sig-paren">(</span><em>esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Source.addToEnergySystemModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Source.addToEnergySystemModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds component to an EnergySystemModel instance (esM). If the respective component class is not already in the
+esM, it is added as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>esM</strong> (<em>EnergySystemModel instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="sourceSink.Source.setTimeSeriesData">
+<code class="descname">setTimeSeriesData</code><span class="sig-paren">(</span><em>hasTSA</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Source.setTimeSeriesData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Source.setTimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+the time series data of a component (either the full time series when hasTSA is false or the aggreated
+time series if hasTSA is True).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>hasTSA</strong> – indicates if time series aggregation should be considered for modeling</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Tpye hasTSA:</th><td class="field-body">boolean</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="sourceSink.Source.getDataForTimeSeriesAggregation">
+<code class="descname">getDataForTimeSeriesAggregation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Source.getDataForTimeSeriesAggregation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Source.getDataForTimeSeriesAggregation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Gets
+all time series data of a component for time series aggregation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="sourceSink.Source.setAggregatedTimeSeriesData">
+<code class="descname">setAggregatedTimeSeriesData</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Source.setAggregatedTimeSeriesData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Source.setAggregatedTimeSeriesData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+aggregated time series data after applying time series aggregation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>Pandas DataFrame</em>) – time series data</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <p><em>Inheritance diagram:</em></p>
-<div class="graphviz"><img src="_images/inheritance-46c56003f1e1ef102b8bdde6c2008cc1047d8fb2.png" alt="Inheritance diagram of Source" usemap="#inheritance7ae8be122d" class="inheritance graphviz" /></div>
+<div class="graphviz"><img src="_images/inheritance-0c148ffe5e9339b065400a13f326f27ed4b5b555.png" alt="Inheritance diagram of Source" usemap="#inheritance7ae8be122d" class="inheritance graphviz" /></div>
 <map id="inheritance7ae8be122d" name="inheritance7ae8be122d">
-<area shape="poly" id="node2" href="#sourceSink.Source" target="_top" title="Doc" alt="" coords="279,41,277,30,270,20,260,12,247,7,233,5,219,7,206,12,196,20,190,30,187,41,190,52,196,62,206,70,219,76,233,77,247,76,260,70,270,62,277,52"/>
+<area shape="poly" id="node2" href="#sourceSink.Source" target="_top" title="A Source component can transfer a commodity over the energy system boundary into the system." alt="" coords="279,41,277,30,270,20,260,12,247,7,233,5,219,7,206,12,196,20,190,30,187,41,190,52,196,62,206,70,219,76,233,77,247,76,260,70,270,62,277,52"/>
 </map><div class="line-block">
 <div class="line"><br /></div>
 </div>
@@ -303,7 +363,8 @@ system model (i.e. Euro, Dollar, 1e6 Euro). Example:</p>
 <dl class="class">
 <dt id="sourceSink.Sink">
 <em class="property">class </em><code class="descclassname">sourceSink.</code><code class="descname">Sink</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsamWeight=1</em>, <em>commodityLimitID=None</em>, <em>yearlyLimit=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>commodityCost=0</em>, <em>commodityRevenue=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Sink"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Sink" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>A Sink component can transfer a commodity over the energy system boundary out of the system.</p>
+<dl class="method">
 <dt id="sourceSink.Sink.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>esM</em>, <em>name</em>, <em>commodity</em>, <em>hasCapacityVariable</em>, <em>capacityVariableDomain='continuous'</em>, <em>capacityPerPlantUnit=1</em>, <em>hasIsBuiltBinaryVariable=False</em>, <em>bigM=None</em>, <em>operationRateMax=None</em>, <em>operationRateFix=None</em>, <em>tsamWeight=1</em>, <em>commodityLimitID=None</em>, <em>yearlyLimit=None</em>, <em>locationalEligibility=None</em>, <em>capacityMin=None</em>, <em>capacityMax=None</em>, <em>sharedPotentialID=None</em>, <em>capacityFix=None</em>, <em>isBuiltFix=None</em>, <em>investPerCapacity=0</em>, <em>investIfBuilt=0</em>, <em>opexPerOperation=0</em>, <em>commodityCost=0</em>, <em>commodityRevenue=0</em>, <em>opexPerCapacity=0</em>, <em>opexIfBuilt=0</em>, <em>interestRate=0.08</em>, <em>economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#Sink.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.Sink.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructor for creating an Sink class instance.</p>
@@ -315,10 +376,10 @@ parameters, which is equal to -1 for Sink objects and +1 for Source objects.</p>
 </dd></dl>
 
 <p><em>Inheritance diagram:</em></p>
-<div class="graphviz"><img src="_images/inheritance-0ccdd2f3670c5c49f946b2416e05663e7a6df616.png" alt="Inheritance diagram of Sink" usemap="#inheritance278df974a1" class="inheritance graphviz" /></div>
+<div class="graphviz"><img src="_images/inheritance-ac72b1b5abe5338676094191e281f01a78ff2199.png" alt="Inheritance diagram of Sink" usemap="#inheritance278df974a1" class="inheritance graphviz" /></div>
 <map id="inheritance278df974a1" name="inheritance278df974a1">
-<area shape="poly" id="node3" href="#sourceSink.Source" target="_top" title="Doc" alt="" coords="279,41,277,30,270,20,260,12,247,7,233,5,219,7,206,12,196,20,190,30,187,41,190,52,196,62,206,70,219,76,233,77,247,76,260,70,270,62,277,52"/>
-<area shape="poly" id="node2" href="#sourceSink.Sink" target="_top" title="Sink" alt="" coords="399,41,397,30,392,20,384,12,374,7,363,5,352,7,342,12,334,20,329,30,327,41,329,52,334,62,342,70,352,76,363,77,374,76,384,70,392,62,397,52"/>
+<area shape="poly" id="node3" href="#sourceSink.Source" target="_top" title="A Source component can transfer a commodity over the energy system boundary into the system." alt="" coords="279,41,277,30,270,20,260,12,247,7,233,5,219,7,206,12,196,20,190,30,187,41,190,52,196,62,206,70,219,76,233,77,247,76,260,70,270,62,277,52"/>
+<area shape="poly" id="node2" href="#sourceSink.Sink" target="_top" title="A Sink component can transfer a commodity over the energy system boundary out of the system." alt="" coords="399,41,397,30,392,20,384,12,374,7,363,5,352,7,342,12,334,20,329,30,327,41,329,52,334,62,342,70,352,76,363,77,374,76,384,70,392,62,397,52"/>
 </map><div class="line-block">
 <div class="line"><br /></div>
 </div>
@@ -368,6 +429,32 @@ Source/Sink components.</p>
 <dt id="sourceSink.SourceSinkModel.getObjectiveFunctionContribution">
 <code class="descname">getObjectiveFunctionContribution</code><span class="sig-paren">(</span><em>esM</em>, <em>pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#SourceSinkModel.getObjectiveFunctionContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.SourceSinkModel.getObjectiveFunctionContribution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets contribution to the objective function</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="sourceSink.SourceSinkModel.getOptimalValues">
+<code class="descname">getOptimalValues</code><span class="sig-paren">(</span><em>name='all'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sourceSink.html#SourceSinkModel.getOptimalValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sourceSink.SourceSinkModel.getOptimalValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns optimal values of the components</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – name of the variables of which the optimal values should be returned:</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li>‘capacityVariables’,</li>
+<li>‘isBuiltVariables’,</li>
+<li>‘operationVariablesOptimum’,</li>
+<li>‘all’ or another input: all variables are returned.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>

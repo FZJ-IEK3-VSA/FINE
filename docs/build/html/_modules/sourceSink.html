@@ -160,9 +160,8 @@
 
 
 <div class="viewcode-block" id="Source"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Source">[docs]</a><span class="k">class</span> <span class="nc">Source</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
-    <span class="c1"># TODO</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Doc</span>
+<span class="sd">    A Source component can transfer a commodity over the energy system boundary into the system.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="Source.__init__"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Source.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span>
                  <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -327,25 +326,28 @@
             <span class="n">utils</span><span class="o">.</span><span class="n">setLocationalEligibility</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">locationalEligibility</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityMax</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityFix</span><span class="p">,</span>
                                            <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltFix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasCapacityVariable</span><span class="p">,</span> <span class="n">operationTimeSeries</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span>
+<div class="viewcode-block" id="Source.addToEnergySystemModel"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Source.addToEnergySystemModel">[docs]</a>    <span class="k">def</span> <span class="nf">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">setTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hasTSA</span><span class="p">):</span>
+<div class="viewcode-block" id="Source.setTimeSeriesData"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Source.setTimeSeriesData">[docs]</a>    <span class="k">def</span> <span class="nf">setTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hasTSA</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">operationRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateFix</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateFix</span> <span class="k">if</span> <span class="n">hasTSA</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span></div>
 
-    <span class="k">def</span> <span class="nf">getDataForTimeSeriesAggregation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Source.getDataForTimeSeriesAggregation"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Source.getDataForTimeSeriesAggregation">[docs]</a>    <span class="k">def</span> <span class="nf">getDataForTimeSeriesAggregation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">[]</span>
         <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepareTSAInput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span><span class="p">,</span>
                                                 <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tsaWeight</span><span class="p">,</span> <span class="n">weightDict</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">weightDict</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">weightDict</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">{})</span></div>
 
-    <span class="k">def</span> <span class="nf">setAggregatedTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="Source.setAggregatedTimeSeriesData"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Source.setAggregatedTimeSeriesData">[docs]</a>    <span class="k">def</span> <span class="nf">setAggregatedTimeSeriesData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateFix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateFix</span><span class="p">,</span> <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span><span class="p">,</span> <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregatedOperationRateMax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTSAOutput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullOperationRateMax</span><span class="p">,</span> <span class="s1">&#39;_operationRate_&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Sink"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Sink">[docs]</a><span class="k">class</span> <span class="nc">Sink</span><span class="p">(</span><span class="n">Source</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Sink component can transfer a commodity over the energy system boundary out of the system.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="Sink.__init__"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.Sink.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">hasCapacityVariable</span><span class="p">,</span>
                  <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                  <span class="n">hasIsBuiltBinaryVariable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bigM</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -400,13 +402,13 @@
         <span class="sd">&quot;&quot;&quot; Declares sets and dictionaries &quot;&quot;&quot;</span>
 
         <span class="c1"># Declare design variable sets</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initContinuousDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initDiscreteDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignDecisionVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareContinuousDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareDiscreteDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareDesignDecisionVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
 
         <span class="c1"># Declare operation variable set</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initOpVarSet</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOpVarSet</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
 
         <span class="c1"># Declare sets for case differentiation of operating modes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">declareOperationModeSets</span><span class="p">(</span><span class="n">pyM</span><span class="p">,</span> <span class="s1">&#39;opConstrSet&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateMax&#39;</span><span class="p">,</span> <span class="s1">&#39;operationRateFix&#39;</span><span class="p">)</span>
@@ -570,8 +572,8 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="n">optSummary</span>
 
-    <span class="k">def</span> <span class="nf">getOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getOptimalValues</span><span class="p">()</span></div>
+<div class="viewcode-block" id="SourceSinkModel.getOptimalValues"><a class="viewcode-back" href="../sourceSinkClassDoc.html#sourceSink.SourceSinkModel.getOptimalValues">[docs]</a>    <span class="k">def</span> <span class="nf">getOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">getOptimalValues</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

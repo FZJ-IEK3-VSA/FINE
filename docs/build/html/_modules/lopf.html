@@ -160,7 +160,8 @@
 
 <div class="viewcode-block" id="LinearOptimalPowerFlow"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LinearOptimalPowerFlow">[docs]</a><span class="k">class</span> <span class="nc">LinearOptimalPowerFlow</span><span class="p">(</span><span class="n">Transmission</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Doc</span>
+<span class="sd">    A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a</span>
+<span class="sd">    linearized power flow.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="LinearOptimalPowerFlow.__init__"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LinearOptimalPowerFlow.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">commodity</span><span class="p">,</span> <span class="n">reactances</span><span class="p">,</span> <span class="n">losses</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">distances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">hasCapacityVariable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capacityVariableDomain</span><span class="o">=</span><span class="s1">&#39;continuous&#39;</span><span class="p">,</span> <span class="n">capacityPerPlantUnit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -193,8 +194,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">reactances2dim</span> <span class="o">=</span> <span class="n">reactances</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reactances</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mapC</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">loc</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactances2dim</span><span class="p">[</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="n">loc</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span></div>
 
-    <span class="k">def</span> <span class="nf">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span></div>
+<div class="viewcode-block" id="LinearOptimalPowerFlow.addToEnergySystemModel"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LinearOptimalPowerFlow.addToEnergySystemModel">[docs]</a>    <span class="k">def</span> <span class="nf">addToEnergySystemModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">addToEnergySystemModel</span><span class="p">(</span><span class="n">esM</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LOPFModel"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel">[docs]</a><span class="k">class</span> <span class="nc">LOPFModel</span><span class="p">(</span><span class="n">TransmissionModel</span><span class="p">):</span>
@@ -204,7 +205,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">=</span> <span class="s1">&#39;2dim&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">componentsDict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_phaseAngleVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">phaseAngleVariablesOptimum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optSummary</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1">####################################################################################################################</span>
@@ -226,13 +227,13 @@
         <span class="sd">&quot;&quot;&quot; Declares sets and dictionaries &quot;&quot;&quot;</span>
 
         <span class="c1"># # Declare design variable sets</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initContinuousDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initDiscreteDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initDesignDecisionVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareContinuousDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareDiscreteDesignVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareDesignDecisionVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
 
         <span class="c1"># Declare operation variable set</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initOpVarSet</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">declareOpVarSet</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initPhaseAngleVarSet</span><span class="p">(</span><span class="n">pyM</span><span class="p">)</span>
 
         <span class="c1"># Declare operation variable set</span>
@@ -295,7 +296,6 @@
 
 <div class="viewcode-block" id="LOPFModel.declareComponentConstraints"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.declareComponentConstraints">[docs]</a>    <span class="k">def</span> <span class="nf">declareComponentConstraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Declares time independent and dependent constraints&quot;&quot;&quot;</span>
-
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">declareComponentConstraints</span><span class="p">(</span><span class="n">esM</span><span class="p">,</span> <span class="n">pyM</span><span class="p">)</span>
 
         <span class="c1">################################################################################################################</span>
@@ -333,7 +333,37 @@
 
         <span class="n">optVal_</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">formatOptimizationOutput</span><span class="p">(</span><span class="n">phaseAngleVar</span><span class="o">.</span><span class="n">get_values</span><span class="p">(),</span> <span class="s1">&#39;operationVariables&#39;</span><span class="p">,</span> <span class="s1">&#39;1dim&#39;</span><span class="p">,</span>
                                                  <span class="n">esM</span><span class="o">.</span><span class="n">periodsOrder</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal_</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span> <span class="o">=</span> <span class="n">optVal_</span>
+
+<div class="viewcode-block" id="LOPFModel.getOptimalValues"><a class="viewcode-back" href="../lopfClassDoc.html#lopf.LOPFModel.getOptimalValues">[docs]</a>    <span class="k">def</span> <span class="nf">getOptimalValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns optimal values of the components</span>
+
+<span class="sd">        :param name: name of the variables of which the optimal values should be returned:\n</span>
+<span class="sd">        * &#39;capacityVariables&#39;,</span>
+<span class="sd">        * &#39;isBuiltVariables&#39;,</span>
+<span class="sd">        * &#39;operationVariablesOptimum&#39;,</span>
+<span class="sd">        * &#39;phaseAngleVariablesOptimum&#39;,</span>
+<span class="sd">        * &#39;all&#39; or another input: all variables are returned.\n</span>
+<span class="sd">        :type name: string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;capacityVariablesOptimum&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;isBuiltVariablesOptimum&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;operationVariablesOptimum&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;phaseAngleVariablesOptimum&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">phaseAngleVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;capacityVariablesOptimum&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacityVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                                 <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">},</span>
+                    <span class="s1">&#39;isBuiltVariablesOptimum&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBuiltVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                                <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">},</span>
+                    <span class="s1">&#39;operationVariablesOptimum&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">operationVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                                                  <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">},</span>
+                    <span class="s1">&#39;phaseAngleVariablesOptimum&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">phaseAngleVariablesOptimum</span><span class="p">,</span> <span class="s1">&#39;timeDependent&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                                                   <span class="s1">&#39;dimension&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">}}</span></div></div>
 </pre></div>
 
            </div>
