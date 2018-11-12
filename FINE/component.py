@@ -404,45 +404,45 @@ class ComponentModel(metaclass=ABCMeta):
     #                           Functions for declaring design and operation variables sets                            #
     ####################################################################################################################
 
-    def initDesignVarSet(self, pyM):
+    def declareDesignVarSet(self, pyM):
         """ Declares set for capacity variables in the pyomo object for a modeling class """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        def initDesignVarSet(pyM):
+        def declareDesignVarSet(pyM):
             return ((loc, compName) for compName, comp in compDict.items()
                     for loc in comp.locationalEligibility.index
                     if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable)
-        setattr(pyM, 'designDimensionVarSet_' + abbrvName, pyomo.Set(dimen=2, initialize=initDesignVarSet))
+        setattr(pyM, 'designDimensionVarSet_' + abbrvName, pyomo.Set(dimen=2, initialize=declareDesignVarSet))
 
-    def initContinuousDesignVarSet(self, pyM):
+    def declareContinuousDesignVarSet(self, pyM):
         """ Declares set for continuous number of installed components in the pyomo object for a modeling class """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        def initContinuousDesignVarSet(pyM):
+        def declareContinuousDesignVarSet(pyM):
             return ((loc, compName) for loc, compName in getattr(pyM, 'designDimensionVarSet_' + abbrvName)
                     if compDict[compName].capacityVariableDomain == 'continuous')
         setattr(pyM, 'continuousDesignDimensionVarSet_' + abbrvName,
-                pyomo.Set(dimen=2, initialize=initContinuousDesignVarSet))
+                pyomo.Set(dimen=2, initialize=declareContinuousDesignVarSet))
 
-    def initDiscreteDesignVarSet(self, pyM):
+    def declareDiscreteDesignVarSet(self, pyM):
         """ Declares set for discrete number of installed components in the pyomo object for a modeling class """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        def initDiscreteDesignVarSet(pyM):
+        def declareDiscreteDesignVarSet(pyM):
             return ((loc, compName) for loc, compName in getattr(pyM, 'designDimensionVarSet_' + abbrvName)
                     if compDict[compName].capacityVariableDomain == 'discrete')
         setattr(pyM, 'discreteDesignDimensionVarSet_' + abbrvName,
-                pyomo.Set(dimen=2, initialize=initDiscreteDesignVarSet))
+                pyomo.Set(dimen=2, initialize=declareDiscreteDesignVarSet))
 
-    def initDesignDecisionVarSet(self, pyM):
+    def declareDesignDecisionVarSet(self, pyM):
         """ Declares set for design decision variables in the pyomo object for a modeling class """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        def initDesignDecisionVarSet(pyM):
+        def declareDesignDecisionVarSet(pyM):
             return ((loc, compName) for loc, compName in getattr(pyM, 'designDimensionVarSet_' + abbrvName)
                     if compDict[compName].hasIsBuiltBinaryVariable)
-        setattr(pyM, 'designDecisionVarSet_' + abbrvName, pyomo.Set(dimen=2, initialize=initDesignDecisionVarSet))
+        setattr(pyM, 'designDecisionVarSet_' + abbrvName, pyomo.Set(dimen=2, initialize=declareDesignDecisionVarSet))
 
-    def initOpVarSet(self, esM, pyM):
+    def declareOpVarSet(self, esM, pyM):
         """
         Declares operation related sets (operation variables and mapping sets) in the pyomo object for a
         modeling class
@@ -450,12 +450,11 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         # Set for operation variables
-        def initOpVarSet(pyM):
+        def declareOpVarSet(pyM):
             return ((loc, compName) for compName, comp in compDict.items()
                     for loc in comp.locationalEligibility.index if comp.locationalEligibility[loc] == 1)
-        setattr(pyM, 'operationVarSet_' + abbrvName, pyomo.Set(dimen=2, initialize=initOpVarSet))
+        setattr(pyM, 'operationVarSet_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpVarSet))
 
-        # TODO more generic formulation?
         if self.dimension == '1dim':
             # Dictionary which lists all components of the modeling class at one location
             setattr(pyM, 'operationVarDict_' + abbrvName,
@@ -481,31 +480,31 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
-        def initOpConstrSet1(pyM):
+        def declareOpConstrSet1(pyM):
             return ((loc, compName) for loc, compName in varSet if compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateMax) is None
                     and getattr(compDict[compName], rateFix) is None)
-        setattr(pyM, constrSetName + '1_' + abbrvName, pyomo.Set(dimen=2, initialize=initOpConstrSet1))
+        setattr(pyM, constrSetName + '1_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet1))
 
-        def initOpConstrSet2(pyM):
+        def declareOpConstrSet2(pyM):
             return ((loc, compName) for loc, compName in varSet if compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateFix) is not None)
-        setattr(pyM, constrSetName + '2_' + abbrvName, pyomo.Set(dimen=2, initialize=initOpConstrSet2))
+        setattr(pyM, constrSetName + '2_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet2))
 
-        def initOpConstrSet3(pyM):
+        def declareOpConstrSet3(pyM):
             return ((loc, compName) for loc, compName in varSet if compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateMax) is not None)
-        setattr(pyM, constrSetName + '3_' + abbrvName, pyomo.Set(dimen=2, initialize=initOpConstrSet3))
+        setattr(pyM, constrSetName + '3_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet3))
 
-        def initOpConstrSet4(pyM):
+        def declareOpConstrSet4(pyM):
             return ((loc, compName) for loc, compName in varSet if not compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateFix) is not None)
-        setattr(pyM, constrSetName + '4_' + abbrvName, pyomo.Set(dimen=2, initialize=initOpConstrSet4))
+        setattr(pyM, constrSetName + '4_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet4))
 
-        def initOpConstrSet5(pyM):
+        def declareOpConstrSet5(pyM):
             return ((loc, compName) for loc, compName in varSet if not compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateMax) is not None)
-        setattr(pyM, constrSetName + '5_' + abbrvName, pyomo.Set(dimen=2, initialize=initOpConstrSet5))
+        setattr(pyM, constrSetName + '5_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet5))
 
     ####################################################################################################################
     #                                         Functions for declaring variables                                        #
@@ -698,6 +697,50 @@ class ComponentModel(metaclass=ABCMeta):
     #  Functions for declaring component contributions to basic energy system constraints and the objective function   #
     ####################################################################################################################
 
+    @abstractmethod
+    def declareSets(self, esM, pyM):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Declares sets of components and constraints in the componentModel class.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def declareVariables(self, esM, pyM):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Declares variables of components in the componentModel class.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def declareComponentConstraints(self, esM, pyM):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Declares constraints of components in the componentModel class.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
+        raise NotImplementedError
+
+    @abstractmethod
+    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Gets contribution to a commodity balance
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def getObjectiveFunctionContribution(self, esM, pyM):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Gets contribution to the objective function
+        """
+        raise NotImplementedError
+
     def getSharedPotentialContribution(self, pyM, key, loc):
         """
         Gets the share which the components of the modeling class have on a shared maximum potential at a location
@@ -819,54 +862,27 @@ class ComponentModel(metaclass=ABCMeta):
 
         return optSummary
 
-    def getOptimalValues(self):
-        return {'capacityVariables': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
-                                      'dimension': self.dimension},
-                'isBuiltVariables': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
-                                     'dimension': self.dimension},
-                'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
-                                              'dimension': self.dimension}}
+    def getOptimalValues(self, name='all'):
+        """
+        Returns optimal values of the components
 
-    @abstractmethod
-    def declareSets(self, esM, pyM):
+        :param name: name of the variables of which the optimal values should be returned:\n
+        * 'capacityVariables',
+        * 'isBuiltVariables',
+        * 'operationVariablesOptimum',
+        * 'all' or another input: all variables are returned.\n
+        :type name: string
         """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Declares sets of components and constraints in the componentModel class.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def declareVariables(self, esM, pyM):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Declares variables of components in the componentModel class.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def declareComponentConstraints(self, esM, pyM):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Declares constraints of components in the componentModel class.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        raise NotImplementedError
-
-    @abstractmethod
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Gets contribution to a commodity balance
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Gets contribution to the objective function
-        """
-        raise NotImplementedError
+        if name == 'capacityVariablesOptimum':
+            return {'values': self.capacityVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
+        elif name == 'isBuiltVariablesOptimum':
+            return {'values': self.isBuiltVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
+        elif name == 'operationVariablesOptimum':
+            return {'values': self.operationVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
+        else:
+            return {'capacityVariablesOptimum': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
+                                                 'dimension': self.dimension},
+                    'isBuiltVariablesOptimum': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
+                                                'dimension': self.dimension},
+                    'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
+                                                  'dimension': self.dimension}}

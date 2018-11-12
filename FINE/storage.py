@@ -7,7 +7,7 @@ import pandas as pd
 
 class Storage(Component):
     """
-    Doc
+    A Storage component can store a commodity and thus transfers it between time steps.
     """
     def __init__(self, esM, name, commodity, chargeRate=1, dischargeRate=1,
                  chargeEfficiency=1, dischargeEfficiency=1, selfDischarge=0, cyclicLifetime=None,
@@ -293,10 +293,10 @@ class StorageModel(ComponentModel):
         compDict = self.componentsDict
 
         # Declare design variable sets
-        self.initDesignVarSet(pyM)
-        self.initContinuousDesignVarSet(pyM)
-        self.initDiscreteDesignVarSet(pyM)
-        self.initDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         if pyM.hasTSA:
             varSet = getattr(pyM, 'designDimensionVarSet_' + self.abbrvName)
@@ -312,7 +312,7 @@ class StorageModel(ComponentModel):
                     pyomo.Set(dimen=2, initialize=initDesignVarPreciseTSASet))
 
         # Declare operation variable set
-        self.initOpVarSet(esM, pyM)
+        self.declareOpVarSet(esM, pyM)
 
         # Declare sets for case differentiation of operating modes
         # * Charge operation
@@ -788,14 +788,39 @@ class StorageModel(ComponentModel):
 
         self.optSummary = optSummary
 
-    def getOptimalValues(self):
-        return {'capacityVariables': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
-                                      'dimension': self.dimension},
-                'isBuiltVariables': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
-                                     'dimension': self.dimension},
-                'chargeOperationVariablesOptimum': {'values': self.chargeOperationVariablesOptimum,
-                                                    'timeDependent': True, 'dimension': self.dimension},
-                'dischargeOperationVariablesOptimum': {'values': self.dischargeOperationVariablesOptimum,
-                                                       'timeDependent': True, 'dimension': self.dimension},
-                'stateOfChargeOperationVariablesOptimum': {'values': self.stateOfChargeOperationVariablesOptimum,
-                                                           'timeDependent': True, 'dimension': self.dimension}}
+    def getOptimalValues(self, name='all'):
+        """
+        Returns optimal values of the components
+
+        :param name: name of the variables of which the optimal values should be returned:\n
+        * 'capacityVariables',
+        * 'isBuiltVariables',
+        * 'chargeOperationVariablesOptimum',
+        * 'dischargeOperationVariablesOptimum',
+        * 'stateOfChargeOperationVariablesOptimum',
+        * 'all' or another input: all variables are returned.\n
+        :type name: string
+        """
+        if name == 'capacityVariablesOptimum':
+            return {'values': self.capacityVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
+        elif name == 'isBuiltVariablesOptimum':
+            return {'values': self.isBuiltVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
+        elif name == 'chargeOperationVariablesOptimum':
+            return {'values': self.chargeOperationVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
+        elif name == 'dischargeOperationVariablesOptimum':
+            return {'values': self.dischargeOperationVariablesOptimum, 'timeDependent': True, 'dimension':
+                    self.dimension}
+        elif name == 'stateOfChargeOperationVariablesOptimum':
+            return {'values': self.stateOfChargeOperationVariablesOptimum, 'timeDependent': True, 'dimension':
+                    self.dimension}
+        else:
+            return {'capacityVariablesOptimum': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
+                                                 'dimension': self.dimension},
+                    'isBuiltVariablesOptimum': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
+                                                'dimension': self.dimension},
+                    'chargeOperationVariablesOptimum': {'values': self.chargeOperationVariablesOptimum,
+                                                        'timeDependent': True, 'dimension': self.dimension},
+                    'dischargeOperationVariablesOptimum': {'values': self.dischargeOperationVariablesOptimum,
+                                                           'timeDependent': True, 'dimension': self.dimension},
+                    'stateOfChargeOperationVariablesOptimum': {'values': self.stateOfChargeOperationVariablesOptimum,
+                                                               'timeDependent': True, 'dimension': self.dimension}}

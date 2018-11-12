@@ -6,7 +6,8 @@ import pandas as pd
 
 class LinearOptimalPowerFlow(Transmission):
     """
-    Doc
+    A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a
+    linearized power flow.
     """
     def __init__(self, esM, name, commodity, reactances, losses=0, distances=None,
                  hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
@@ -50,7 +51,7 @@ class LOPFModel(TransmissionModel):
         self.dimension = '2dim'
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum, self._phaseAngleVariablesOptimum = None, None
+        self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
         self.optSummary = None
 
     ####################################################################################################################
@@ -72,13 +73,13 @@ class LOPFModel(TransmissionModel):
         """ Declares sets and dictionaries """
 
         # # Declare design variable sets
-        self.initDesignVarSet(pyM)
-        self.initContinuousDesignVarSet(pyM)
-        self.initDiscreteDesignVarSet(pyM)
-        self.initDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         # Declare operation variable set
-        self.initOpVarSet(esM, pyM)
+        self.declareOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
 
         # Declare operation variable set
@@ -141,7 +142,6 @@ class LOPFModel(TransmissionModel):
 
     def declareComponentConstraints(self, esM, pyM):
         """ Declares time independent and dependent constraints"""
-
         super().declareComponentConstraints(esM, pyM)
 
         ################################################################################################################
@@ -180,3 +180,33 @@ class LOPFModel(TransmissionModel):
         optVal_ = utils.formatOptimizationOutput(phaseAngleVar.get_values(), 'operationVariables', '1dim',
                                                  esM.periodsOrder)
         self.operationVariablesOptimum = optVal_
+
+    def getOptimalValues(self, name='all'):
+        """
+        Returns optimal values of the components
+
+        :param name: name of the variables of which the optimal values should be returned:\n
+        * 'capacityVariables',
+        * 'isBuiltVariables',
+        * 'operationVariablesOptimum',
+        * 'phaseAngleVariablesOptimum',
+        * 'all' or another input: all variables are returned.\n
+        :type name: string
+        """
+        if name == 'capacityVariablesOptimum':
+            return {'values': self.capacityVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
+        elif name == 'isBuiltVariablesOptimum':
+            return {'values': self.isBuiltVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
+        elif name == 'operationVariablesOptimum':
+            return {'values': self.operationVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
+        elif name == 'phaseAngleVariablesOptimum':
+            return {'values': self.phaseAngleVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
+        else:
+            return {'capacityVariablesOptimum': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
+                                                 'dimension': self.dimension},
+                    'isBuiltVariablesOptimum': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
+                                                'dimension': self.dimension},
+                    'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
+                                                  'dimension': self.dimension},
+                    'phaseAngleVariablesOptimum': {'values': self.phaseAngleVariablesOptimum, 'timeDependent': True,
+                                                   'dimension': self.dimension}}

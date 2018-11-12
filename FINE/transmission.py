@@ -7,7 +7,7 @@ import pandas as pd
 
 class Transmission(Component):
     """
-    Doc
+    A Transmission component can transmit a commodity between locations of the energy system.
     """
     def __init__(self, esM, name, commodity, losses=0, distances=None,
                  hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
@@ -199,13 +199,13 @@ class TransmissionModel(ComponentModel):
         """ Declares sets and dictionaries """
 
         # # Declare design variable sets
-        self.initDesignVarSet(pyM)
-        self.initContinuousDesignVarSet(pyM)
-        self.initDiscreteDesignVarSet(pyM)
-        self.initDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         # Declare operation variable set
-        self.initOpVarSet(esM, pyM)
+        self.declareOpVarSet(esM, pyM)
 
         # Declare operation variable set
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -392,5 +392,5 @@ class TransmissionModel(ComponentModel):
 
         self.optSummary = optSummary
 
-    def getOptimalValues(self):
-        return super().getOptimalValues()
+    def getOptimalValues(self, name='all'):
+        return super().getOptimalValues(name)

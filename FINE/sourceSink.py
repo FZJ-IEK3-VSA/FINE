@@ -6,9 +6,8 @@ import warnings
 
 
 class Source(Component):
-    # TODO
     """
-    Doc
+    A Source component can transfer a commodity over the energy system boundary into the system.
     """
     def __init__(self, esM, name, commodity, hasCapacityVariable,
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1,
@@ -192,6 +191,9 @@ class Source(Component):
 
 
 class Sink(Source):
+    """
+    A Sink component can transfer a commodity over the energy system boundary out of the system.
+    """
     def __init__(self, esM, name, commodity, hasCapacityVariable,
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
@@ -246,13 +248,13 @@ class SourceSinkModel(ComponentModel):
         """ Declares sets and dictionaries """
 
         # Declare design variable sets
-        self.initDesignVarSet(pyM)
-        self.initContinuousDesignVarSet(pyM)
-        self.initDiscreteDesignVarSet(pyM)
-        self.initDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         # Declare operation variable set
-        self.initOpVarSet(esM, pyM)
+        self.declareOpVarSet(esM, pyM)
 
         # Declare sets for case differentiation of operating modes
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -416,5 +418,5 @@ class SourceSinkModel(ComponentModel):
 
         self.optSummary = optSummary
 
-    def getOptimalValues(self):
-        return super().getOptimalValues()
+    def getOptimalValues(self, name='all'):
+        return super().getOptimalValues(name)

@@ -6,18 +6,8 @@ import pyomo.environ as pyomo
 
 
 class Conversion(Component):
-    #TODO
     """
-    Conversion class
-
-    The functionality of the the Conversion class is fourfold:
-    * ...
-
-    The parameter which are stored in an instance of the class refer to:
-    * ...
-
-    Instances of this class provide function for
-    * ...
+    A Conversion component converts commodities into each other.
 
     Last edited: July 27, 2018
     |br| @author: Lara Welder
@@ -208,13 +198,13 @@ class ConversionModel(ComponentModel):
         """ Declares sets and dictionaries """
 
         # Declare design variable sets
-        self.initDesignVarSet(pyM)
-        self.initContinuousDesignVarSet(pyM)
-        self.initDiscreteDesignVarSet(pyM)
-        self.initDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         # Declare operation variable set
-        self.initOpVarSet(esM, pyM)
+        self.declareOpVarSet(esM, pyM)
 
         # Declare operation variable set
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -362,5 +352,5 @@ class ConversionModel(ComponentModel):
 
         self.optSummary = optSummary
 
-    def getOptimalValues(self):
-        return super().getOptimalValues()
+    def getOptimalValues(self, name='all'):
+        return super().getOptimalValues(name)

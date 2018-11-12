@@ -8,7 +8,8 @@ import pandas as pd
 
 class StorageExt(Storage):
     """
-    Doc
+    A StorageExt component shows the behavior of a Storage component but it is additionally possible to set a
+    state of charge time series.
     """
     def __init__(self, esM, name, commodity, chargeRate=1, dischargeRate=1,
                  chargeEfficiency=1, dischargeEfficiency=1, selfDischarge=0, cyclicLifetime=None,
@@ -445,3 +446,6 @@ class StorageExtModel(StorageModel):
 
     def setOptimalValues(self, esM, pyM):
         return super().setOptimalValues(esM, pyM)
+
+    def getOptimalValues(self, name='all'):
+        return super().getOptimalValues(name)
