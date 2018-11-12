@@ -2,7 +2,7 @@
 FINE.egg-info
 .idea/
 __pycache__/
-ipynb_checkpoints/
+.ipynb_checkpoints/
 *.local/
 *.eggs/
 *.testing/
