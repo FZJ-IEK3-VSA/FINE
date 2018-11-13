@@ -17,8 +17,6 @@ class Source(Component):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
-        # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
-        # TODO: eligible locations
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -41,23 +39,23 @@ class Source(Component):
 
         :param operationRateMax: if specified indicates a maximum operation rate for each location and each time
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
-            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            to the installed capacities (in that case a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit for each time step.
             |br| * the default value is None
         :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+            to match the in the energy system model specified time steps. The column indices have to equal the
+            in the energy system model specified locations. The data in ineligible locations are set to zero.
 
         :param operationRateFix: if specified indicates a fixed operation rate for each location and each time
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
-            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            to the installed capacities (in that case a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit for each time step.
             |br| * the default value is None
         :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+            to match the in the energy system model specified time steps. The column indices have to equal the
+            in the energy system model specified locations. The data in ineligible locations are set to zero.
 
         :param tsaWeight: weight with which the time series of the component should be considered when applying
             time series aggregation.
