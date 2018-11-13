@@ -10,13 +10,20 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 * representation of an energy system by multiple locations, commodities and time steps
 * complexity reducing storage formulation based on typical periods
 
+## Documentation
+
+A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
+
 ## Installation
-Install via pip by cloning a local copy of the repository to your computer
+You can directly install FINE via pip as follows
+
+	pip install FINE
+
+However in this case, the connection to this GitHub repository is not preserved. If you want to preserve it,
+you can clone a local copy of the repository to your computer
 
 	git clone https://github.com/FZJ-IEK3-VSA/FINE.git
 
-Alternatively, you can download it as ZIP file.
-	
 Then install FINE via pip as follow
 	
 	cd FINE
