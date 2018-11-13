@@ -36,7 +36,7 @@ Or install directly via python as
 	
 ## Examples
 
-A number of [**Examples**](examples/) shows the capabilities of FINE.
+A number of [**examples**](examples/) shows the capabilities of FINE.
 
 ## License
 
