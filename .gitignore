@@ -6,8 +6,10 @@ __pycache__/
 *.local/
 *.eggs/
 *.testing/
+*.examples/
 *.build/
 *.dist/
+*.docs/build/
 
 # file types to ignore
 *.pyc
