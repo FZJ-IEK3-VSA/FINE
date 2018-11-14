@@ -65,6 +65,7 @@ def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumO
 
     periodsOrder = pd.DataFrame([esM.periodsOrder], index=['periodsOrder'], columns=esM.periods)
     periodsOrder.to_excel(writer, 'Misc')
+    writer.save()
 
     utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', esM.verbose, 0)
 
