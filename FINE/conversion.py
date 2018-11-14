@@ -122,22 +122,19 @@ class Conversion(Component):
             if esM.verbose < 2:
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
-        utils.checkOperationTimeSeriesInputParameters(esM, operationRateMax, locationalEligibility)
-        utils.checkOperationTimeSeriesInputParameters(esM, operationRateFix, locationalEligibility)
 
-        self.fullOperationRateMax = utils.setFormattedTimeSeries(operationRateMax)
-        self.aggregatedOperationRateMax = None
-        self.operationRateMax = None
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, locationalEligibility)
+        self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.setFormattedTimeSeries(operationRateFix)
-        self.aggregatedOperationRateFix = None
-        self.operationRateFix = None
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, locationalEligibility)
+        self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
         # Set locational eligibility
-        operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
+        operationTimeSeries = self.fullOperationRateFix if self.fullOperationRateFix is not None \
+            else self.fullOperationRateMax
         self.locationalEligibility = \
             utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
                                            self.isBuiltFix, self.hasCapacityVariable, operationTimeSeries)

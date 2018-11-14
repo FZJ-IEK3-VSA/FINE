@@ -141,7 +141,7 @@ class Transmission(Component):
 
         # Set additional economic data
         self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',
-                                                                self.locationalEligibility)
+                                                               self.locationalEligibility)
 
         # Set location-specific operation parameters
         if operationRateMax is not None and operationRateFix is not None:
@@ -149,16 +149,12 @@ class Transmission(Component):
             if esM.verbose < 2:
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
-        utils.checkOperationTimeSeriesInputParameters(esM, operationRateMax, self.locationalEligibility, '2dim')
-        utils.checkOperationTimeSeriesInputParameters(esM, operationRateFix, self.locationalEligibility, '2dim')
 
-        self.fullOperationRateMax = utils.setFormattedTimeSeries(operationRateMax)
-        self.aggregatedOperationRateMax = None
-        self.operationRateMax = utils.setFormattedTimeSeries(operationRateMax)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, self.locationalEligibility)
+        self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.setFormattedTimeSeries(operationRateFix)
-        self.aggregatedOperationRateFix = None
-        self.operationRateFix = utils.setFormattedTimeSeries(operationRateFix)
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, self.locationalEligibility)
+        self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
