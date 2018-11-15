@@ -93,16 +93,14 @@ class StorageExt(Storage):
                 warnings.warn('Warning only relevant when time series aggregation is used in optimization:\n' +
                               'If the stateOfChargeOpRateFix parameter is specified, the storage\n' +
                               'is set to isPeriodicalStorage).')
-        utils.checkOperationTimeSeriesInputParameters(esM, stateOfChargeOpRateMax, locationalEligibility)
-        utils.checkOperationTimeSeriesInputParameters(esM, stateOfChargeOpRateFix, locationalEligibility)
 
-        self.fullStateOfChargeOpRateMax = utils.setFormattedTimeSeries(stateOfChargeOpRateMax)
-        self.aggregatedStateOfChargeOpRateMax = None
-        self.stateOfChargeOpRateMax = None
+        self.fullStateOfChargeOpRateMax = utils.checkAndSetTimeSeries(esM, stateOfChargeOpRateMax,
+                                                                      locationalEligibility)
+        self.aggregatedStateOfChargeOpRateMax, self.stateOfChargeOpRateMax = None, None
 
-        self.fullStateOfChargeOpRateFix = utils.setFormattedTimeSeries(stateOfChargeOpRateFix)
-        self.aggregatedStateOfChargeOpRateFix = None
-        self.stateOfChargeOpRateFix = None
+        self.fullStateOfChargeOpRateFix = utils.checkAndSetTimeSeries(esM, stateOfChargeOpRateFix,
+                                                                      locationalEligibility)
+        self.aggregatedStateOfChargeOpRateFix, self.stateOfChargeOpRateFix = None, None
 
         utils.isPositiveNumber(stateOfChargeTsaWeight)
         self.stateOfChargeTsaWeight = stateOfChargeTsaWeight

@@ -264,14 +264,11 @@ class Component(metaclass=ABCMeta):
         self.CCF = utils.getCapitalChargeFactor(self.interestRate, self.economicLifetime)
 
         # Set location-specific design parameters
-        utils.checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBinaryVariable,
-                                                    capacityMin, capacityMax, capacityFix,
-                                                    locationalEligibility, isBuiltFix, sharedPotentialID,
-                                                    dimension=dimension)
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
         self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
         self.isBuiltFix = isBuiltFix
+        utils.checkLocationSpecficDesignInputParams(self, esM)
         #
         # # Variables at optimum (set after optimization)
         # self.capacityVariablesOptimum = None
@@ -476,7 +473,7 @@ class ComponentModel(metaclass=ABCMeta):
     #                                   Functions for declaring operation mode sets                                    #
     ####################################################################################################################
 
-    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix):
+    def declareOpConstrSet1(self, pyM, constrSetName, rateMax, rateFix):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -484,27 +481,55 @@ class ComponentModel(metaclass=ABCMeta):
             return ((loc, compName) for loc, compName in varSet if compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateMax) is None
                     and getattr(compDict[compName], rateFix) is None)
+
         setattr(pyM, constrSetName + '1_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet1))
+
+    def declareOpConstrSet2(self, pyM, constrSetName, rateFix):
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def declareOpConstrSet2(pyM):
             return ((loc, compName) for loc, compName in varSet if compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateFix) is not None)
+
         setattr(pyM, constrSetName + '2_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet2))
+
+    def declareOpConstrSet3(self, pyM, constrSetName, rateMax):
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def declareOpConstrSet3(pyM):
             return ((loc, compName) for loc, compName in varSet if compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateMax) is not None)
+
         setattr(pyM, constrSetName + '3_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet3))
+
+    def declareOpConstrSet4(self, pyM, constrSetName, rateFix):
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def declareOpConstrSet4(pyM):
             return ((loc, compName) for loc, compName in varSet if not compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateFix) is not None)
+
         setattr(pyM, constrSetName + '4_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet4))
+
+    def declareOpConstrSet5(self, pyM, constrSetName, rateMax):
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def declareOpConstrSet5(pyM):
             return ((loc, compName) for loc, compName in varSet if not compDict[compName].hasCapacityVariable
                     and getattr(compDict[compName], rateMax) is not None)
+
         setattr(pyM, constrSetName + '5_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet5))
+
+    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix):
+        self.declareOpConstrSet1(pyM, constrSetName, rateMax, rateFix)
+        self.declareOpConstrSet2(pyM, constrSetName, rateFix)
+        self.declareOpConstrSet3(pyM, constrSetName, rateMax)
+        self.declareOpConstrSet4(pyM, constrSetName, rateFix)
+        self.declareOpConstrSet5(pyM, constrSetName, rateMax)
 
     ####################################################################################################################
     #                                         Functions for declaring variables                                        #
@@ -674,7 +699,7 @@ class ComponentModel(metaclass=ABCMeta):
         Defines operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
+        opVar = getattr(pyM, opVarName + '_' + abbrvName)
         constrSet4 = getattr(pyM, constrSetName + '4_' + abbrvName)
 
         def op4(pyM, loc, compName, p, t):
@@ -686,7 +711,7 @@ class ComponentModel(metaclass=ABCMeta):
         Defines operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
+        opVar = getattr(pyM, opVarName + '_' + abbrvName)
         constrSet5 = getattr(pyM, constrSetName + '5_' + abbrvName)
 
         def op5(pyM, loc, compName, p, t):
