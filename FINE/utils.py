@@ -32,7 +32,7 @@ def isStrictlyPositiveInt(value):
 
 def isStrictlyPositiveNumber(value):
     """ Checks if the input argument is a strictly positive number """
-    if not (type(value) == float or type(value) == int):
+    if not (isinstance(value, float) or isinstance(value, int)):
         raise TypeError("The input argument has to be an number")
     if not value > 0:
         raise ValueError("The input argument has to be strictly positive")
@@ -40,7 +40,7 @@ def isStrictlyPositiveNumber(value):
 
 def isPositiveNumber(value):
     """ Checks if the input argument is a positive number """
-    if not (type(value) == float or type(value) == int):
+    if not (isinstance(value, float) or isinstance(value, int)):
         raise TypeError("The input argument has to be an number")
     if not value >= 0:
         raise ValueError("The input argument has to be positive")
@@ -174,19 +174,38 @@ def getCapitalChargeFactor(interestRate, economicLifetime):
     return CCF
 
 
-def checkLocationSpecficDesignInputParams(esM, hasCapacityVariable, hasIsBuiltBinaryVariable,
-                                          capacityMin, capacityMax, capacityFix,
-                                          locationalEligibility, isBuiltFix, sharedPotentialID, dimension):
+def castToSeries(data, esM):
+    if data is None:
+        return None
+    elif isinstance(data, pd.Series):
+        return data
+    isPositiveNumber(data)
+    return pd.Series([data], index=list(esM.locations))
+
+
+def checkLocationSpecficDesignInputParams(comp, esM):
+    if len(esM.locations) == 1:
+        comp.capacityMin = castToSeries(comp.capacityMin, esM)
+        comp.capacityFix = castToSeries(comp.capacityFix, esM)
+        comp.capacityMax = castToSeries(comp.capacityMax, esM)
+        comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
+        comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
+
+    capacityMin, capacityFix, capacityMax = comp.capacityMin, comp.capacityFix, comp.capacityMax
+    locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
+    hasCapacityVariable, hasIsBuiltBinaryVariable = comp.hasCapacityVariable, comp.hasIsBuiltBinaryVariable
+    sharedPotentialID = comp.sharedPotentialID
+
     for data in [capacityMin, capacityFix, capacityMax, locationalEligibility, isBuiltFix]:
         if data is not None:
-            if dimension == '1dim':
+            if comp.dimension == '1dim':
                 if not isinstance(data, pd.Series):
                     raise TypeError('Input data has to be a pandas Series')
                 checkRegionalIndex(esM, data)
-            elif dimension == '2dim':
+            elif comp.dimension == '2dim':
                 if not isinstance(data, pd.Series):
                     raise TypeError('Input data has to be a pandas DataFrame')
-                checkConnectionIndex(data, locationalEligibility)
+                checkConnectionIndex(data, comp.locationalEligibility)
             else:
                 raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
 
@@ -308,10 +327,17 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
             return data
 
 
-def checkOperationTimeSeriesInputParameters(esM, operationTimeSeries, locationalEligibility, dimension='1dim'):
+def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimension='1dim'):
     if operationTimeSeries is not None:
         if not isinstance(operationTimeSeries, pd.DataFrame):
-            raise TypeError('The operation time series data type has to be a pandas DataFrame')
+            if len(esM.locations) == 1:
+                if isinstance(operationTimeSeries, pd.Series):
+                    operationTimeSeries = pd.DataFrame(operationTimeSeries.values, index=operationTimeSeries.index,
+                                                       columns=list(esM.locations))
+                else:
+                    raise TypeError('The operation time series data type has to be a pandas DataFrame or Series')
+            else:
+                raise TypeError('The operation time series data type has to be a pandas DataFrame')
         checkTimeSeriesIndex(esM, operationTimeSeries)
 
         if dimension == '1dim':
@@ -346,8 +372,14 @@ def checkOperationTimeSeriesInputParameters(esM, operationTimeSeries, locational
                     raise ValueError('The locationEligibility and operationTimeSeries parameters indicate different' +
                                      ' eligibilities.')
 
-    if operationTimeSeries is not None and (operationTimeSeries < 0).any().any():
-        raise ValueError('operationTimeSeries values smaller than 0 were detected.')
+        if (operationTimeSeries < 0).any().any():
+            raise ValueError('operationTimeSeries values smaller than 0 were detected.')
+
+        operationTimeSeries = operationTimeSeries.copy()
+        operationTimeSeries["Period"], operationTimeSeries["TimeStep"] = 0, operationTimeSeries.index
+        return operationTimeSeries.set_index(['Period', 'TimeStep'])
+    else:
+        return None
 
 
 def checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,

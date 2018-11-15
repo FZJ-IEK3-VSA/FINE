@@ -201,16 +201,12 @@ class Storage(Component):
             if esM.verbose < 2:
                 warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
                               'The chargeOpRateMax time series was set to None.')
-        utils.checkOperationTimeSeriesInputParameters(esM, chargeOpRateMax, locationalEligibility)
-        utils.checkOperationTimeSeriesInputParameters(esM, chargeOpRateFix, locationalEligibility)
 
-        self.fullChargeOpRateMax = utils.setFormattedTimeSeries(chargeOpRateMax)
-        self.aggregatedChargeOpRateMax = None
-        self.chargeOpRateMax = None
+        self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, chargeOpRateMax, locationalEligibility)
+        self.aggregatedChargeOpRateMax, self.chargeOpRateMax = None, None
 
-        self.fullChargeOpRateFix = utils.setFormattedTimeSeries(chargeOpRateFix)
-        self.aggregatedChargeOpRateFix = None
-        self.chargeOpRateFix = None
+        self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, chargeOpRateFix, locationalEligibility)
+        self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, None
 
         utils.isPositiveNumber(chargeTsaWeight)
         self.chargeTsaWeight = chargeTsaWeight
@@ -220,27 +216,23 @@ class Storage(Component):
             if esM.verbose < 2:
                 warnings.warn('If dischargeOpRateFix is specified, the dischargeOpRateMax parameter is not required.\n'
                               + 'The dischargeOpRateMax time series was set to None.')
-        utils.checkOperationTimeSeriesInputParameters(esM, dischargeOpRateMax, locationalEligibility)
-        utils.checkOperationTimeSeriesInputParameters(esM, dischargeOpRateFix, locationalEligibility)
 
-        self.fullDischargeOpRateMax = utils.setFormattedTimeSeries(dischargeOpRateMax)
-        self.aggregatedDischargeOpRateMax = None
-        self.dischargeOpRateMax = None
+        self.fullDischargeOpRateMax = utils.checkAndSetTimeSeries(esM, dischargeOpRateMax, locationalEligibility)
+        self.aggregatedDischargeOpRateMax, self.dischargeOpRateMax = None, None
 
-        self.fullDischargeOpRateFix = utils.setFormattedTimeSeries(dischargeOpRateFix)
-        self.aggregatedDischargeOpRateFix = None
-        self.dischargeOpRateFix = None
+        self.fullDischargeOpRateFix = utils.checkAndSetTimeSeries(esM, dischargeOpRateFix, locationalEligibility)
+        self.aggregatedDischargeOpRateFix, self.dischargeOpRateFix = None, None
 
         utils.isPositiveNumber(dischargeTsaWeight)
         self.dischargeTsaWeight = dischargeTsaWeight
 
         # Set locational eligibility
         timeSeriesData = None
-        tsNb = sum([0 if data is None else 1 for data in [chargeOpRateMax, chargeOpRateFix, dischargeOpRateMax,
-                    dischargeOpRateFix, ]])
+        tsNb = sum([0 if data is None else 1 for data in [self.fullChargeOpRateMax, self.fullChargeOpRateFix,
+                                                          self.fullDischargeOpRateMax, self.fullDischargeOpRateFix]])
         if tsNb > 0:
-            timeSeriesData = sum([data for data in [chargeOpRateMax, chargeOpRateFix, dischargeOpRateMax,
-                                  dischargeOpRateFix, ] if data is not None])
+            timeSeriesData = sum([data for data in [self.fullChargeOpRateMax, self.fullChargeOpRateFix,
+                                 self.fullDischargeOpRateMax, self.fullDischargeOpRateFix] if data is not None])
         self.locationalEligibility = \
             utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
                                            self.isBuiltFix, self.hasCapacityVariable, timeSeriesData)
