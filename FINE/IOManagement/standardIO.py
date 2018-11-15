@@ -65,6 +65,7 @@ def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumO
 
     periodsOrder = pd.DataFrame([esM.periodsOrder], index=['periodsOrder'], columns=esM.periods)
     periodsOrder.to_excel(writer, 'Misc')
+    writer.save()
 
     utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', esM.verbose, 0)
 
@@ -125,7 +126,6 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
 
     return esM, esMData
 
-
 def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
     """
     Runs an energy system model from excel file
@@ -144,6 +144,23 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
 
     writeOptimizationOutputToExcel(esM, **esMData['output'])
     return esM
+
+
+def readOptimizationOutputFromExcel(inputFile='scenarioInput.xlsx', fileName='scenarioResults.xlsx'):
+    """
+    :param fileName: excel file name oder path (including .xlsx ending)
+        |br| * the default value is 'scenarioResults.xlsx'
+    :type fileName: string
+
+    :return:
+    """
+
+    # Read inputdata
+    # TODO check if esM is already read
+    esM, esMData = readEnergySystemModelFromExcel(inputFile)
+    file = pd.read_excel(fileName, sheet_name=None)
+
+
 
 
 def getDualValues(pyM):
@@ -265,7 +282,7 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
 
 
 def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTimeStepsPerPeriod=24,
-                          variableName='operationVariablesOptimum', cmap='binary', vmin=0, vmax=-1,
+                          variableName='operationVariablesOptimum', cmap='viridis', vmin=0, vmax=-1,
                           xlabel='day', ylabel='hour', zlabel='operation', figsize=(12, 4),
                           fontsize=12, save=False, fileName='', dpi=200, **kwargs):
     """
@@ -569,7 +586,7 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
 
 
 def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, perArea=True, areaFactor=1e3,
-                           crs='epsg:3035', variableName='capacityVariablesOptimum', doSum=False, cmap='binary', vmin=0,
+                           crs='epsg:3035', variableName='capacityVariablesOptimum', doSum=False, cmap='viridis', vmin=0,
                            vmax=-1, zlabel='Installed capacity\nper kilometer\n', figsize=(6, 6), fontsize=12, save=False,
                            fileName='', dpi=200, **kwargs):
     """
@@ -610,7 +627,7 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     :type doSum: boolean
 
     :param cmap: heat map (color map) (see matplotlib options)
-        |br| * the default value is 'binary'
+        |br| * the default value is 'viridis'
     :type cmap: string
 
     :param vmin: minimum value in heat map
