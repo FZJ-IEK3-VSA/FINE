@@ -6,6 +6,7 @@ import ast
 import inspect
 import time
 import warnings
+import re
 
 try:
     import geopandas as gpd
