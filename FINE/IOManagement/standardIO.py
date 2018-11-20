@@ -145,22 +145,52 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
     writeOptimizationOutputToExcel(esM, **esMData['output'])
     return esM
 
-
-def readOptimizationOutputFromExcel(inputFile='scenarioInput.xlsx', fileName='scenarioResults.xlsx'):
+def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
     """
-    :param fileName: excel file name oder path (including .xlsx ending)
+    Reads optimization output from an excel file
+
+    :param esM: EnergySystemModel instance in which the setting of the optimized model is hold
+    :type esM: EnergySystemModel instance
+
+    :param fileName: excel file name oder path (including .xlsx ending) to an execl file written by
+        writeOptimizationOutputToExcel()
         |br| * the default value is 'scenarioResults.xlsx'
     :type fileName: string
 
-    :return:
+    :return: esM - an EnergySystemModel class instance
     """
 
-    # Read inputdata
-    # TODO check if esM is already read
-    esM, esMData = readEnergySystemModelFromExcel(inputFile)
-    file = pd.read_excel(fileName, sheet_name=None)
+    # Read excel file with optimization output
 
+    file = pd.ExcelFile(fileName)
 
+    # Check if optimization output matches the given energy system model (sufficient condition)
+    utils.checkModelclassEquality(esM,file)
+    utils.checkComponentsEquality(esM, file)
+
+    # set attributes of esM
+    for mdl in esM.componentModelingDict.keys():
+        dim = esM.componentModelingDict[mdl].dimension
+        if '1' in dim:
+            id_c = [0, 1, 2]
+        elif '2' in dim:
+            id_c = [0, 1, 2, 3]
+        # cut off 'model' from string
+        comp = mdl[0:len(mdl) - 5]
+        # filter sheets
+        r = re.compile(comp)
+        sheets = list(filter(r.match, file.sheet_names))
+        # read all filtered sheets
+        optVal = pd.read_excel(file, sheet_name=sheets, index_col=id_c)
+        # set optSummary
+        setattr(esM.componentModelingDict[mdl], 'optSummary', optVal[sheets[0]])
+        # set attributes
+        if len(sheets) > 1:
+            for t in sheets[1:]:
+                for var in optVal[t].index.levels[0]:
+                    setattr(esM.componentModelingDict[mdl], var, optVal[t].loc[var])
+
+    return esM
 
 
 def getDualValues(pyM):
