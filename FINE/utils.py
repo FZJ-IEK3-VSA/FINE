@@ -611,7 +611,7 @@ def checkComponentsEquality(esM, file):
     components = []
     complist = list(esM.componentNames.keys())
     for mdl in esM.componentModelingDict.keys():
-        readSheet = pd.read_excel(file, sheet_name=mdl[0:-5] + 'OptSummary', index_col=[0, 1, 2, 3])
+        readSheet = pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary', index_col=[0, 1, 2, 3])
         components += list(readSheet.index.levels[0])
     for item in components:
         if components.count(item) != complist.count(item):
