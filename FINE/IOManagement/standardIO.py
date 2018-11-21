@@ -174,7 +174,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
         sheets += (sheet for sheet in file.sheet_names if mdl[0:-5] in sheet and 'optVar' in sheet)
         if len(sheets) > 0:
             for sheet in sheets:
-                optVal = pd.read_excel(file,sheetname=sheet, index_col=id_c if 'TDoptVar' in sheet else id_c[0:-1])
+                optVal = pd.read_excel(file,sheetname=sheet, index_col=id_c[0:-1] if 'TIoptVar' in sheet else id_c)
                 for var in optVal.index.levels[0]: setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
     return esM
 
