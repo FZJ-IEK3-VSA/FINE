@@ -33,14 +33,14 @@ class Storage(Component):
 
         **Default arguments:**
 
-        :param chargeRate: ratio of the maximum storage inflow (in commodityUnit/hour) and the
+        :param chargeRate: ratio of the maximum storage inflow (in commodityUnit/hour) to the
             storage capacity (in commodityUnit). Example:\n
             * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be charged 0.45 GWh_H2_LHV during
               one hour. The chargeRate thus equals 0.45/133.\n
             |br| * the default value is 1
         :type chargeRate: 0 <= float <=1
 
-        :param dischargeRate: ratio of the maximum storage outflow (in commodityUnit/hour) and
+        :param dischargeRate: ratio of the maximum storage outflow (in commodityUnit/hour) to
             the storage capacity (in commodityUnit). Example:\n
             * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be discharged 0.45 GWh_H2_LHV during
               one hour. The dischargeRate thus equals 0.45/133.\n
@@ -66,7 +66,7 @@ class Storage(Component):
         :param cyclicLifetime: if specified, the total number of full cycle equivalents that are supported
             by the technology.
             |br| * the default value is None
-        :type cyclicLifetime: positive float
+        :type cyclicLifetime: None or positive float
 
         :param stateOfChargeMin: threshold (percentage) that the state of charge can not drop under
             |br| * the default value is 0
@@ -83,7 +83,7 @@ class Storage(Component):
 
         :param chargeOpRateMax: if specified indicates a maximum charging rate for each location and each time
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
-            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            to the installed capacities (in that case a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
             during one time step.
@@ -94,7 +94,7 @@ class Storage(Component):
 
         :param chargeOpRateFix: if specified indicates a fixed charging rate for each location and each time
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
-            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            to the installed capacities (in that case a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodity, referring to the charged commodity (before multiplying the charging efficiency)
             during one time step.
@@ -110,7 +110,7 @@ class Storage(Component):
 
         :param dischargeOpRateMax: if specified indicates a maximum discharging rate for each location and each
             time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
-            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            to the installed capacities (in that case a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit, referring to the discharged commodity (after multiplying the discharging
             efficiency) during one time step.
@@ -121,7 +121,7 @@ class Storage(Component):
 
         :param dischargeOpRateFix: if specified indicates a fixed discharging rate for each location and each
             time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
-            to the installed capacities (i.e. in that case a value of 1 indicates a utilization of 100% of the
+            to the installed capacities (in that case a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit, referring to the charged commodity (after multiplying the discharging
             efficiency) during one time step.
@@ -146,7 +146,7 @@ class Storage(Component):
             operational time series of the components. The opexPerOperation can either be given as a float
             or a Pandas Series with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
-            system model (i.e. Euro, Dollar, 1e6 Euro).
+            system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
         :type opexPerChargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
@@ -156,7 +156,7 @@ class Storage(Component):
             of the operational time series of the components. The opexPerOperation can either be given as
             a float or a Pandas Series with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
-            system model (i.e. Euro, Dollar, 1e6 Euro).
+            system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
 
         :type opexPerDischargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values.

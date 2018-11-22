@@ -90,7 +90,7 @@ class Source(Component):
             operational time series of the components. The opexPerOperation can either be given as a
             float or a Pandas Series with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
-            system model (i.e. Euro, Dollar, 1e6 Euro).
+            system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
         :type opexPerOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
@@ -100,7 +100,7 @@ class Source(Component):
             time series of the components. The commodityCost can either be given as a
             float or a Pandas Series with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
-            system model (i.e. Euro, Dollar, 1e6 Euro).
+            system model (e.g. Euro, Dollar, 1e6 Euro).
             Example:\n
             * In a national energy system, natural gas could be purchased from another country with a
               certain cost.\n
@@ -113,7 +113,7 @@ class Source(Component):
             time series of the components. The commodityRevenue can either be given as a
             float or a Pandas Series with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
-            system model (i.e. Euro, Dollar, 1e6 Euro). Example:\n
+            system model (e.g. Euro, Dollar, 1e6 Euro). Example:\n
             * Modeling a PV electricity feed-in tariff for a household\n
             |br| * the default value is 0
         :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.

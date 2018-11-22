@@ -126,7 +126,6 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
 
     return esM, esMData
 
-
 def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
     """
     Runs an energy system model from excel file
@@ -144,6 +143,39 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
     esM.optimize(**esMData['optimize'])
 
     writeOptimizationOutputToExcel(esM, **esMData['output'])
+    return esM
+
+def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
+    """
+    Reads optimization output from an excel file
+
+    :param esM: EnergySystemModel instance in which the setting of the optimized model is hold
+    :type esM: EnergySystemModel instance
+
+    :param fileName: excel file name oder path (including .xlsx ending) to an execl file written by
+        writeOptimizationOutputToExcel()
+        |br| * the default value is 'scenarioResults.xlsx'
+    :type fileName: string
+
+    :return: esM - an EnergySystemModel class instance
+    """
+
+    # Read excel file with optimization output
+    file = pd.ExcelFile(fileName)
+    # Check if optimization output matches the given energy system model (sufficient condition)
+    utils.checkModelclassEquality(esM,file)
+    utils.checkComponentsEquality(esM, file)
+    # set attributes of esM
+    for mdl in esM.componentModelingDict.keys():
+        id_c = [0, 1, 2] if '1' in esM.componentModelingDict[mdl].dimension else [0, 1, 2, 3]
+        setattr(esM.componentModelingDict[mdl], 'optSummary',
+                pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary', index_col=id_c))
+        sheets = []
+        sheets += (sheet for sheet in file.sheet_names if mdl[0:-5] in sheet and 'optVar' in sheet)
+        if len(sheets) > 0:
+            for sheet in sheets:
+                optVal = pd.read_excel(file,sheetname=sheet, index_col=id_c[0:-1] if 'TIoptVar' in sheet else id_c)
+                for var in optVal.index.levels[0]: setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
     return esM
 
 
@@ -266,7 +298,7 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
 
 
 def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTimeStepsPerPeriod=24,
-                          variableName='operationVariablesOptimum', cmap='binary', vmin=0, vmax=-1,
+                          variableName='operationVariablesOptimum', cmap='viridis', vmin=0, vmax=-1,
                           xlabel='day', ylabel='hour', zlabel='operation', figsize=(12, 4),
                           fontsize=12, save=False, fileName='', dpi=200, **kwargs):
     """
@@ -570,7 +602,7 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
 
 
 def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, perArea=True, areaFactor=1e3,
-                           crs='epsg:3035', variableName='capacityVariablesOptimum', doSum=False, cmap='binary', vmin=0,
+                           crs='epsg:3035', variableName='capacityVariablesOptimum', doSum=False, cmap='viridis', vmin=0,
                            vmax=-1, zlabel='Installed capacity\nper kilometer\n', figsize=(6, 6), fontsize=12, save=False,
                            fileName='', dpi=200, **kwargs):
     """
@@ -611,7 +643,7 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     :type doSum: boolean
 
     :param cmap: heat map (color map) (see matplotlib options)
-        |br| * the default value is 'binary'
+        |br| * the default value is 'viridis'
     :type cmap: string
 
     :param vmin: minimum value in heat map

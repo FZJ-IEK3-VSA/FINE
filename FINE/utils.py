@@ -7,7 +7,6 @@ import warnings
 import pandas as pd
 import FINE as fn
 
-
 def isString(string):
     """ Checks if the input argument is a string """
     if not type(string) == str:
@@ -596,3 +595,20 @@ def map2dimData(data, mapC):
 def output(output, verbose, val):
     if verbose == val:
         print(output)
+
+def checkModelClassEquality(esM, file):
+    mdlListFromModel = list(esM.componentModelingDict.keys())
+    mdlListFromExcel = []
+    for sheet in file.sheet_names:
+        mdlListFromExcel += [cl for cl in mdlListFromModel if (cl[0:-5] in sheet and cl not in mdlListFromExcel)]
+    if set(mdlListFromModel) != set(mdlListFromExcel):
+        raise ValueError('Loaded Output does not match the given energy system model.')
+
+def checkComponentsEquality(esM, file):
+    compListFromExcel = []
+    compListFromModel = list(esM.componentNames.keys())
+    for mdl in esM.componentModelingDict.keys():
+        readSheet = pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary', index_col=[0, 1, 2, 3])
+        compListFromExcel += list(readSheet.index.levels[0])
+    if not set(compListFromExcel) <= set(compListFromModel):
+            raise ValueError('Loaded Output does not match the given energy system model.')
