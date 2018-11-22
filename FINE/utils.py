@@ -6,8 +6,6 @@ Last edited: May 13 2018
 import warnings
 import pandas as pd
 import FINE as fn
-import re
-
 
 def isString(string):
     """ Checks if the input argument is a string """
@@ -598,59 +596,19 @@ def output(output, verbose, val):
     if verbose == val:
         print(output)
 
-
-def checkModelclassEquality(esM, file):
-
-    def compareLists(list1,list2):
-        # Check if two given lists have the same items.
-        if len(list1) != len(list2):
-            return False
-        for item in list1:
-            if list1.count(item) != list2.count(item):
-                break
-        else: # else clause of the for-loop
-            return True
-        return False
-
-    mdlList = list(esM.componentModelingDict.keys())
-    compList = []
-
-    for cl in mdlList:
-        x = cl[0:len(cl)-5]
-        r = re.compile(x)
-        test = list(filter(r.match, file.sheet_names))
-        if len(test)>0:
-            compList.append(cl)
-
-    if not compareLists(mdlList, compList):
+def checkModelClassEquality(esM, file):
+    mdlListFromModel = list(esM.componentModelingDict.keys())
+    mdlListFromExcel = []
+    for sheet in file.sheet_names:
+        mdlListFromExcel += [cl for cl in mdlListFromModel if (cl[0:-5] in sheet and cl not in mdlListFromExcel)]
+    if set(mdlListFromModel) != set(mdlListFromExcel):
         raise ValueError('Loaded Output does not match the given energy system model.')
-
 
 def checkComponentsEquality(esM, file):
-
-    def checkItemLists(list1, list2):
-        # Check if a list contains the items of another list.
-        # It´s true if the longer list contains all items of the shorter list.
-        if len(list1) <= len(list2):
-            l1 = list1
-            l2 = list2
-        else:
-            l1 = list2
-            l2 = list1
-
-        for item in l1:
-            if l1.count(item) != l2.count(item):
-                break
-        else:
-            return True
-        return False
-
-    components = []
-    complist = list(esM.componentNames.keys())
+    compListFromExcel = []
+    compListFromModel = list(esM.componentNames.keys())
     for mdl in esM.componentModelingDict.keys():
-        sheet = str(mdl[0:len(mdl) - 5] + 'OptSummary')
-        readSheet = pd.read_excel(file, sheet_name=sheet, index_col=[0, 1, 2, 3])
-        components = components + list(readSheet.index.levels[0])
-
-    if not checkItemLists(components, complist):
-        raise ValueError('Loaded Output does not match the given energy system model.')
+        readSheet = pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary', index_col=[0, 1, 2, 3])
+        compListFromExcel += list(readSheet.index.levels[0])
+    if not set(compListFromExcel) <= set(compListFromModel):
+            raise ValueError('Loaded Output does not match the given energy system model.')

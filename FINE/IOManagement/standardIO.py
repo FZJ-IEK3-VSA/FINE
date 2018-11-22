@@ -6,7 +6,6 @@ import ast
 import inspect
 import time
 import warnings
-import re
 
 try:
     import geopandas as gpd
@@ -162,35 +161,21 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
     """
 
     # Read excel file with optimization output
-
     file = pd.ExcelFile(fileName)
-
     # Check if optimization output matches the given energy system model (sufficient condition)
     utils.checkModelclassEquality(esM,file)
     utils.checkComponentsEquality(esM, file)
-
     # set attributes of esM
     for mdl in esM.componentModelingDict.keys():
-        dim = esM.componentModelingDict[mdl].dimension
-        if '1' in dim:
-            id_c = [0, 1, 2]
-        elif '2' in dim:
-            id_c = [0, 1, 2, 3]
-        # cut off 'model' from string
-        comp = mdl[0:len(mdl) - 5]
-        # filter sheets
-        r = re.compile(comp)
-        sheets = list(filter(r.match, file.sheet_names))
-        # read all filtered sheets
-        optVal = pd.read_excel(file, sheet_name=sheets, index_col=id_c)
-        # set optSummary
-        setattr(esM.componentModelingDict[mdl], 'optSummary', optVal[sheets[0]])
-        # set attributes
-        if len(sheets) > 1:
-            for t in sheets[1:]:
-                for var in optVal[t].index.levels[0]:
-                    setattr(esM.componentModelingDict[mdl], var, optVal[t].loc[var])
-
+        id_c = [0, 1, 2] if '1' in esM.componentModelingDict[mdl].dimension else [0, 1, 2, 3]
+        setattr(esM.componentModelingDict[mdl], 'optSummary',
+                pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary', index_col=id_c))
+        sheets = []
+        sheets += (sheet for sheet in file.sheet_names if mdl[0:-5] in sheet and 'optVar' in sheet)
+        if len(sheets) > 0:
+            for sheet in sheets:
+                optVal = pd.read_excel(file,sheetname=sheet, index_col=id_c[0:-1] if 'TIoptVar' in sheet else id_c)
+                for var in optVal.index.levels[0]: setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
     return esM
 
 
