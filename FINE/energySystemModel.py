@@ -11,6 +11,8 @@ import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
 import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class EnergySystemModel:
@@ -587,7 +589,7 @@ class EnergySystemModel:
         # Store the buildtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
-    def optimize(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='job', threads=3,
+    def optimize(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='', threads=3,
                  solver='gurobi', timeLimit=None, optimizationSpecs='OptimalityTol=1e-6', warmstart=False):
         """
         Optimizes the specified energy system, for which a pyomo discrete model instance is build or called upon.
@@ -608,7 +610,8 @@ class EnergySystemModel:
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
-        :param logFileName: logFileName is used for naming the log file of the optimization solver output.
+        :param logFileName: logFileName is used for naming the log file of the optimization solver output
+            when gurobi is used as the optimization solver.
             If the logFileName is given as an absolute path (i.e. logFileName = os.path.join(os.getcwd(),
             'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise
             it will be by default stored in the directory where the executing python script is called.
@@ -616,7 +619,7 @@ class EnergySystemModel:
         :type logFileName: string
 
         :param threads: number of computational threads used for solving the optimization (solver dependent
-            input). If gurobi is selected as the solver: a value of 0 results in using all available threads. If
+            input) when gurobi is used as a solver. A value of 0 results in using all available threads. If
             a value larger than the available number of threads are chosen, the value will reset to the maximum
             number of threads.
             |br| * the default value is 3
@@ -682,10 +685,13 @@ class EnergySystemModel:
         if 'LogToConsole=' not in optimizationSpecs:
             if self.verbose == 2:
                 optimizationSpecs += ' LogToConsole=0'
-        optimizer.set_options('Threads=' + str(threads) + ' logfile=' + logFileName + ' ' + optimizationSpecs)
 
         # Solve optimization problem. The optimization solvetime is stored and the solver information is printed.
-        solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
+        if solver=='gurobi':
+            optimizer.set_options('Threads=' + str(threads) + ' logfile=' + logFileName + ' ' + optimizationSpecs)
+            solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
+        else:
+            solver_info = optimizer.solve(self.pyM, tee=True)
         self.solverSpecs['solvetime'] = time.time() - timeStart
         utils.output(solver_info.solver(), self.verbose, 0), utils.output(solver_info.problem(), self.verbose, 0)
         utils.output('Solve time: ' + str(self.solverSpecs['solvetime']) + ' sec.', self.verbose, 0)
