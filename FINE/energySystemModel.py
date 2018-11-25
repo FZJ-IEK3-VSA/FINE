@@ -590,7 +590,7 @@ class EnergySystemModel:
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
     def optimize(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='', threads=3,
-                 solver='gurobi', timeLimit=None, optimizationSpecs='OptimalityTol=1e-6', warmstart=False):
+                 solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
         """
         Optimizes the specified energy system, for which a pyomo discrete model instance is build or called upon.
         A pyomo instance is optimized with the specified inputs and the optimization results are further
@@ -678,7 +678,7 @@ class EnergySystemModel:
         optimizer = opt.SolverFactory(solver)
 
         # Set, if specified, the time limit
-        if self.solverSpecs['timeLimit'] is not None:
+        if self.solverSpecs['timeLimit'] is not None and solver == 'gurobi':
             optimizer.options['timelimit'] = timeLimit
 
         # Set the specified solver options
