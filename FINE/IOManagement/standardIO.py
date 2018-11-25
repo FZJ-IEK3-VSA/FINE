@@ -163,7 +163,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
     # Read excel file with optimization output
     file = pd.ExcelFile(fileName)
     # Check if optimization output matches the given energy system model (sufficient condition)
-    utils.checkModelclassEquality(esM,file)
+    utils.checkModelClassEquality(esM, file)
     utils.checkComponentsEquality(esM, file)
     # set attributes of esM
     for mdl in esM.componentModelingDict.keys():
