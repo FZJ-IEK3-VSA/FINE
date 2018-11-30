@@ -9,7 +9,7 @@ import pandas as pd
 class StorageExt(Storage):
     """
     A StorageExt component shows the behavior of a Storage component but it is additionally possible to set a
-    state of charge time series.
+    state of charge time series. The StorageExt class inherits from the Storage class.
     """
     def __init__(self, esM, name, commodity, chargeRate=1, dischargeRate=1,
                  chargeEfficiency=1, dischargeEfficiency=1, selfDischarge=0, cyclicLifetime=None,
@@ -25,15 +25,16 @@ class StorageExt(Storage):
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
                  opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         """
-        Constructor for creating an Storage class instance.
-        The Storage component specific input arguments are described below. The general component
-        input arguments are described in the Component class.
+        Constructor for creating an StorageExt class instance.
+        The StorageExt component specific input arguments are described below. The Storage component specific
+        input arguments are described in the Storage class and the general component input arguments are described in
+        the Component class.
 
         **Default arguments:**
 
-        :param stateOfChargeOpRateMax: if specified indicates a maximum state of charge for each location and
+        :param stateOfChargeOpRateMax: if specified, indicates a maximum state of charge for each location and
             each time step by a positive float. If hasCapacityVariable is set to True, the values are given
-            relative to the installed capacities (i.e. in that case a value of 1 indicates a utilization of
+            relative to the installed capacities (i.e. a value of 1 indicates a utilization of
             100% of the capacity). If hasCapacityVariable is set to False, the values are given as absolute
             values in form of the commodityUnit, referring to the commodity stored in the component at the
             beginning of one time step.
@@ -42,9 +43,9 @@ class StorageExt(Storage):
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
 
-        :param stateOfChargeOpRateFix: if specified indicates a fixed state of charge for each location and
+        :param stateOfChargeOpRateFix: if specified, indicates a fixed state of charge for each location and
             each time step by a positive float. If hasCapacityVariable is set to True, the values are given
-            relative to the installed capacities (i.e. in that case a value of 1 indicates a utilization of
+            relative to the installed capacities (i.e. a value of 1 indicates a utilization of
             100% of the capacity). If hasCapacityVariable is set to False, the values are given as absolute
             values in form of the commodityUnit, referring to the commodity stored in the component at the
             beginning of one time step.
@@ -67,7 +68,7 @@ class StorageExt(Storage):
                          investIfBuilt, opexPerChargeOperation, opexPerDischargeOperation, opexPerCapacity,
                          opexIfBuilt, interestRate, economicLifetime)
 
-        # Set location-specific operation parameters (Charging rate, discharging rate, state of charge rate)
+        # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
         # and time series aggregation weighting factor
 
         # The i-th state of charge (SOC) refers to the SOC before the i-th time step
@@ -118,9 +119,22 @@ class StorageExt(Storage):
                                            self.isBuiltFix, self.hasCapacityVariable, timeSeriesData)
 
     def addToEnergySystemModel(self, esM):
+        """
+        Function for adding a StorageExt component to the given energy system model
+
+        :param esM: energy system model to which the StorageExt component should be added.
+        :type esM: EnergySystemModel class instance
+        """
         super().addToEnergySystemModel(esM)
 
     def setTimeSeriesData(self, hasTSA):
+        """
+        Function for setting the maximum operation rate and fixed operation rate for charging and discharging
+        depending on whether a time series analysis is requested or not.
+
+        :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
+        :type hasTSA: boolean
+        """
         self.chargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullChargeOpRateMax
         self.chargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullChargeOpRateFix
         self.dischargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
@@ -131,6 +145,7 @@ class StorageExt(Storage):
             else self.fullStateOfChargeOpRateFix
 
     def getDataForTimeSeriesAggregation(self):
+        """ Function for getting the required data if a time series aggregation is requested. """
         weightDict, data = {}, []
         I = [(self.fullChargeOpRateFix, self.fullChargeOpRateMax, 'chargeRate_', self.chargeTsaWeight),
              (self.fullDischargeOpRateFix, self.fullDischargeOpRateMax, 'dischargeRate_', self.dischargeTsaWeight),
@@ -141,7 +156,12 @@ class StorageExt(Storage):
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data):
+        """
+        Function for determining the aggregated maximum and fixed state of charge.
 
+        :param data: Pandas DataFrame with the clustered time series data of the source component
+        :type data: Pandas DataFrame
+        """
         self.aggregatedChargeOpRateFix = self.getTSAOutput(self.fullChargeOpRateFix, 'chargeRate_', data)
         self.aggregatedChargeOpRateMax = self.getTSAOutput(self.fullChargeOpRateMax, 'chargeRate_', data)
 
@@ -153,9 +173,12 @@ class StorageExt(Storage):
 
 
 class StorageExtModel(StorageModel):
-    """ Doc """
+    """
+    The StorageExtModel class inherits from the StorageModel class.
+    """
 
     def __init__(self):
+        """ Constructor for creating a StorageExtModel class instance """
         self.abbrvName = 'stor'
         self.dimension = '1dim'
         self.componentsDict = {}
@@ -169,8 +192,15 @@ class StorageExtModel(StorageModel):
     ####################################################################################################################
 
     def declareSets(self, esM, pyM):
-        """ Declares sets and dictionaries """
+        """
+        Declares sets and dictionaries
 
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
         super().declareSets(esM, pyM)
 
         # * State of charge operation TODO check if also applied for simple SOC modeling
@@ -182,7 +212,15 @@ class StorageExtModel(StorageModel):
     ####################################################################################################################
 
     def declareVariables(self, esM, pyM):
-        """ Declares design and operation variables """
+        """
+        Declares design and operation variables
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
 
         super().declareVariables(esM, pyM)
 
@@ -194,6 +232,12 @@ class StorageExtModel(StorageModel):
         """
         State of charge [energyUnit] limited by the installed capacity [powerUnit] and the relative maximum
         state of charge
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
@@ -215,6 +259,12 @@ class StorageExtModel(StorageModel):
         """
         State of charge [energyUnit] equal to the installed capacity [energyUnit] multiplied by state of charge
         time series [energyUnit/energyUnit]
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
@@ -237,6 +287,12 @@ class StorageExtModel(StorageModel):
         """
         State of charge [energyUnit] limited by the installed capacity [energyUnit] multiplied by state of charge
         time series [energyUnit/energyUnit]
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
@@ -256,7 +312,15 @@ class StorageExtModel(StorageModel):
                 pyomo.Constraint(constrSet3, esM.periods, esM.timeStepsPerPeriod, rule=SOCMaxPrecise3))
 
     def operationModeSOCwithTSA4(self, pyM, esM):
-        """ Operation [energyUnit] equal to the operation time series [energyUnit] """
+        """
+        Operation [energyUnit] equal to the operation time series [energyUnit]
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
         SOC = getattr(pyM, 'stateOfCharge_' + abbrvName)
@@ -274,7 +338,15 @@ class StorageExtModel(StorageModel):
                 pyomo.Constraint(constrSet4, esM.periods, esM.timeStepsPerPeriod, rule=SOCMaxPrecise4))
 
     def operationModeSOCwithTSA5(self, pyM, esM):
-        """ Operation [energyUnit] limited by the operation time series [energyUnit] """
+        """
+        Operation [energyUnit] limited by the operation time series [energyUnit]
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
         SOC = getattr(pyM, 'stateOfCharge_' + abbrvName)
@@ -292,7 +364,15 @@ class StorageExtModel(StorageModel):
                 pyomo.Constraint(constrSet5, esM.periods, esM.timeStepsPerPeriod, rule=SOCMaxPrecise5))
 
     def declareComponentConstraints(self, esM, pyM):
-        """ Declares time independent and dependent constraints"""
+        """
+        Declares time independent and dependent constraints
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
 
         ################################################################################################################
         #                                    Declare time independent constraints                                      #
@@ -428,6 +508,18 @@ class StorageExtModel(StorageModel):
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
+        """
+        Checks if the storage of a commodity is eligible in a certain location.
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+
+        :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
+        :param commod: string
+        """
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
@@ -435,7 +527,15 @@ class StorageExtModel(StorageModel):
         return super().getCommodityBalanceContribution(pyM, commod, loc, p, t)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
-        """ Gets contribution to the objective function """
+        """
+        Gets contribution to the objective function
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
         return super().getObjectiveFunctionContribution(esM, pyM)
 
     ####################################################################################################################
@@ -443,7 +543,32 @@ class StorageExtModel(StorageModel):
     ####################################################################################################################
 
     def setOptimalValues(self, esM, pyM):
+        """
+        Sets the optimal values of the components
+
+        :param esM: EnergySystemModel in which the StorageExt components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
         return super().setOptimalValues(esM, pyM)
 
     def getOptimalValues(self, name='all'):
+        """
+        Returns optimal values of the components
+
+        :param name: name of the variables of which the optimal values should be returned:\n
+        * 'capacityVariables',
+        * 'isBuiltVariables',
+        * 'chargeOperationVariablesOptimum',
+        * 'dischargeOperationVariablesOptimum',
+        * 'stateOfChargeOperationVariablesOptimum',
+        * 'all' or another input: all variables are returned.\n
+        |br| * the default value is 'all'
+        :type name: string
+
+        :returns: a dictionary with the optimal values of the components
+        :rtype: dict
+        """
         return super().getOptimalValues(name)

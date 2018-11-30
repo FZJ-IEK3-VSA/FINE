@@ -28,8 +28,9 @@ def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumO
         |br| * the default value is 2
     :type optSumOutputLevel: int (0,1,2)
 
-    :param optValOutputLevel: output level of the optimal values. 0: all values are kept. 1: Lines containing only
-        zeroes are dropped.
+    :param optValOutputLevel: output level of the optimal values.
+        - 0: all values are kept.
+        - 1: Lines containing only zeroes are dropped.
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1)
     """
@@ -149,12 +150,12 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
     """
     Reads optimization output from an excel file
 
-    :param esM: EnergySystemModel instance in which the setting of the optimized model is hold
+    :param esM: EnergySystemModel instance which includes the setting of the optimized model
     :type esM: EnergySystemModel instance
 
     :param fileName: excel file name oder path (including .xlsx ending) to an execl file written by
         writeOptimizationOutputToExcel()
-        |br| * the default value is 'scenarioResults.xlsx'
+        |br| * the default value is 'scenarioOutput.xlsx'
     :type fileName: string
 
     :return: esM - an EnergySystemModel class instance
@@ -184,6 +185,7 @@ def getDualValues(pyM):
     Gets dual values of an optimized pyomo instance
 
     :param pyM: optimized pyomo instance
+    :type pyM: pyomo Concrete Model
 
     :return: Pandas Series with dual values
     """
@@ -195,11 +197,13 @@ def getShadowPrices(pyM, constraint, dualValues=None):
     Gets dual values of constraint ("shadow prices")
 
     :param pyM: pyomo model instance with optimized optimization problem
+    :type pyM: pyomo Concrete Model
 
     :param constraint: constraint from which the dual values should be obtained (e.g. pyM.commodityBalanceConstraint)
+    :type constraint: pyomo.core.base.constraint.SimpleConstraint
 
-    :param dualValues: dual values of the optimized model instance (if not specified is call using the function#
-        getDualValues)
+    :param dualValues: dual values of the optimized model instance. If it is not specified, it is set by using the
+        function getDualValues().
         |br| * the default value is None
     :type dualValues: None or Series
 
@@ -215,14 +219,19 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
                   color="k", fontsize=12, save=False, fileName='operation.png', dpi=200, **kwargs):
     """
     Plot operation time series of a component at a location
+
+    **Required arguments:**
+
     :param esM: considered energy system model
-    :type esM: EnergySystemModel instance
+    :type esM: EnergySystemModel class instance
 
     :param compName: component name
     :type compName: string
 
     :param loc: location
     :type loc: string
+
+    **Default arguments:**
 
     :param locTrans: second location, required when Transmission components are plotted
     :type locTrans: string
@@ -250,13 +259,13 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
 
     :param figsize: figure size in inches
         |br| * the default value is (12,4)
-    :type figsize: tuply of positive floats
+    :type figsize: tuple of positive floats
 
     :param color: color of the operation line
         |br| * the default value is 'k'
     :type color: string
 
-    :param fontsize: fontsize of the axis
+    :param fontsize: font size of the axis
         |br| * the default value is 12
     :type fontsize: positive float
 
@@ -304,14 +313,18 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
     """
     Plot operation time series of a component at a location
 
+    **Required arguments:**
+
     :param esM: considered energy system model
-    :type esM: EnergySystemModel instance
+    :type esM: EnergySystemModel class instance
 
     :param compName: component name
     :type compName: string
 
     :param loc: location
     :type loc: string
+
+    **Default arguments:**
 
     :param locTrans: second location, required when Transmission components are plotted
     :type locTrans: string
@@ -331,13 +344,14 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
     :type variableName: string
 
     :param cmap: heat map (color map) (see matplotlib options)
+        |br| * the default value is 'viridis'
     :type cmap: string
 
     :param vmin: minimum value in heat map
         |br| * the default value is 0
     :type vmin: integer
 
-    :param vmax: maximum value in heat map. If -1 vmax is set to the maximum value of the operation time series.
+    :param vmax: maximum value in heat map. If -1, vmax is set to the maximum value of the operation time series.
         |br| * the default value is -1
     :type vmax: integer
 
@@ -355,9 +369,9 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
 
     :param figsize: figure size in inches
         |br| * the default value is (12,4)
-    :type figsize: tuply of positive floats
+    :type figsize: tuple of positive floats
 
-    :param fontsize: fontsize of the axis
+    :param fontsize: font size of the axis
         |br| * the default value is 12
     :type fontsize: positive float
 
@@ -411,11 +425,15 @@ def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='
     """
     Plots locations from a shape file
 
+    **Required arguments:**
+
     :param locationsShapeFileName: file name or path to a shape file
     :type locationsShapeFileName: string
 
     :param indexColumn: name of the column in which the location indices are stored
     :type indexColumn: string
+
+    **Default arguments:**
 
     :param plotLocNames: indicates if the names of the locations should be plotted
         |br| * the default value is False
@@ -449,7 +467,7 @@ def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='
         |br| * the default value is (6,6)
     :type figsize: tuple of positive floats
 
-    :param fontsize: fontsize of the axis
+    :param fontsize: font size of the axis
         |br| * the default value is 12
     :type fontsize: positive float
 
@@ -494,8 +512,10 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
     """
     Plots build transmission lines from a shape file
 
+    **Required arguments:**
+
     :param esM: considered energy system model
-    :type esM: EnergySystemModel instance
+    :type esM: EnergySystemModel class instance
 
     :param compName: component name
     :type compName: string
@@ -508,6 +528,8 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
 
     :param loc1: name of the column in which the location indices are stored (e.g. end/start of line)
     :type loc1: string
+
+    **Default arguments:**
 
     :param crs: coordinate reference system
         |br| * the default value is 'epsg:3035'
@@ -538,7 +560,7 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
         |br| * the default value is None
     :type ax: matplotlib Axis
 
-    :param linewidth: linewidth of the plot
+    :param linewidth: line width of the plot
         |br| * the default value is 0.5
     :type linewidth: positive float
 
@@ -546,7 +568,7 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
         |br| * the default value is (6,6)
     :type figsize: tuple of positive floats
 
-    :param fontsize: fontsize of the axis
+    :param fontsize: font size of the axis
         |br| * the default value is 12
     :type fontsize: positive float
 
@@ -608,8 +630,10 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     """
     Plots the data of a component for each location
 
+    **Required arguments:**
+
     :param esM: considered energy system model
-    :type esM: EnergySystemModel instance
+    :type esM: EnergySystemModel class instance
 
     :param compName: component name
     :type compName: string
@@ -620,7 +644,9 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     :param indexColumn: name of the column in which the location indices are stored
     :type indexColumn: string
 
-    :param perArea: boolean indicating if the capacity should be given per area
+    **Default arguments:**
+
+    :param perArea: indicates if the capacity should be given per area
         |br| * the default value is False
     :type perArea: boolean
 
@@ -637,7 +663,7 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
         |br| * the default value is 'operationVariablesOptimum'
     :type variableName: string
 
-    :param doSum: boolean indicating if the variable has to be summarized for the location (e.g. for operation
+    :param doSum: indicates if the variable has to be summarized for the location (e.g. for operation
         variables)
         |br| * the default value is False
     :type doSum: boolean
@@ -650,7 +676,7 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
         |br| * the default value is 0
     :type vmin: integer
 
-    :param vmax: maximum value in heat map. If -1 vmax is set to the maximum value of the operation time series.
+    :param vmax: maximum value in heat map. If -1, vmax is set to the maximum value of the operation time series.
         |br| * the default value is -1
     :type vmax: integer
 
@@ -660,9 +686,9 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
 
     :param figsize: figure size in inches
         |br| * the default value is (12,4)
-    :type figsize: tuply of positive floats
+    :type figsize: tuple of positive floats
 
-    :param fontsize: fontsize of the axis
+    :param fontsize: font size of the axis
         |br| * the default value is 12
     :type fontsize: positive float
 

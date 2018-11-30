@@ -8,6 +8,9 @@ import pandas as pd
 class Transmission(Component):
     """
     A Transmission component can transmit a commodity between locations of the energy system.
+
+    Last edited: November 28, 2018
+    |br| @author: Lara Welder
     """
     def __init__(self, esM, name, commodity, losses=0, distances=None,
                  hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
@@ -18,7 +21,7 @@ class Transmission(Component):
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         """
-        Constructor for creating an Conversion class instance.
+        Constructor for creating an Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
         input arguments are described in the Component class.
 
@@ -28,18 +31,18 @@ class Transmission(Component):
         :type commodity: string
 
         **Default arguments:**
-
-        :param losses: losses per lengthUnit (lengthUnit as specified in the energy system model). This loss
-            factor can capture simple linear losses trans_in_ij=(1-losses*distance)*trans_out_ij (with trans
-            being the commodity flow at a certain point in time and i and j being locations in the energy
-            system). The losses can either be given as a float or a Pandas DataFrame with location specific
-            values.
+# TODO: description of losses seems to be wrong -> what is the unit of losses?
+        :param losses: losses per lengthUnit (lengthUnit as specified in the energy system model) in percentage
+            of the commodity flow. This loss factor can capture simple linear losses
+            trans_in_ij=(1-losses*distance)*trans_out_ij (with trans being the commodity flow at a certain point in
+            time and i and j being locations in the energy system). The losses can either be given as a float or a
+            Pandas DataFrame with location specific values.
             |br| * the default value is 0
         :type losses: positive float (0 <= float <= 1) or Pandas DataFrame with positive values
             (0 <= float <= 1). The row and column indices of the DataFrame have to equal the in the energy
             system model specified locations.
 
-        :param distances: distances between locations, given in the lengthUnit (lengthUnit as specified in
+        :param distances: distances between locations given in the lengthUnit (lengthUnit as specified in
             the energy system model).
             |br| * the default value is None
         :type distances: positive float (>= 0) or Pandas DataFrame with positive values (>= 0). The row and
@@ -48,13 +51,13 @@ class Transmission(Component):
         :param operationRateMax: if specified, indicates a maximum operation rate for all possible connections
             (both directions) of the transmission component at each time step by a positive float. If
             hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.
-            in that case a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
+            a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
         :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
-            of locations (as defined in the energy system model), separated by a underscore (i.e.
+            of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
             one location indicates where the commodity is going too. If a flow is specified from location i to
             location j, it also has to be specified from j to i.
@@ -62,13 +65,13 @@ class Transmission(Component):
         :param operationRateFix: if specified, indicates a fixed operation rate for all possible connections
             (both directions) of the transmission component at each time step by a positive float. If
             hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.
-            in that case a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
+            a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
         :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
-            of locations (as defined in the energy system model), separated by a underscore (i.e.
+            of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
             one location indicates where the commodity is going too. If a flow is specified from location i to
             location j, it also has to be specified from j to i.
@@ -78,12 +81,12 @@ class Transmission(Component):
             |br| * the default value is 1
         :type tsaWeight: positive (>= 0) float
 
-        :param opexPerOperation: cost which is directly proportional to the operation of the component
-            is obtained by multiplying the opexPerOperation parameter with the annual sum of the
-            operational time series of the components. The opexPerOperation can either be given as a
-            float or a Pandas DataFrame with location specific values.
+        :param opexPerOperation: describes the cost for one unit of the operation.
+            The cost which is directly proportional to the operation of the component is obtained by multiplying
+            the opexPerOperation parameter with the annual sum of the operational time series of the components.
+            The opexPerOperation can either be given as a float or a Pandas DataFrame with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
-            system model (i.e. Euro, Dollar, 1e6 Euro).
+            system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
         :type opexPerOperation: positive (>=0) float or Pandas DataFrame with positive (>=0) values.
             The row and column indices of the DataFrame have to equal the in the energy system model
@@ -160,26 +163,53 @@ class Transmission(Component):
         self.tsaWeight = tsaWeight
 
     def addToEnergySystemModel(self, esM):
+        """
+        Function for adding a transmission component to the given energy system model
+
+        :param esM: energy system model to which the transmission component should be added.
+        :type esM: EnergySystemModel class instance
+        """
         super().addToEnergySystemModel(esM)
 
     def setTimeSeriesData(self, hasTSA):
+        """
+        Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
+        analysis is requested or not.
+
+        :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
+        :type hasTSA: boolean
+        """
         self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
         self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
 
     def getDataForTimeSeriesAggregation(self):
+        """ Function for getting the required data if a time series aggregation is requested. """
         weightDict, data = {}, []
         weightDict, data = self.prepareTSAInput(self.fullOperationRateFix, self.fullOperationRateMax,
                                                 '_operationRate_', self.tsaWeight, weightDict, data)
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data):
+        """
+        Function for determining the aggregated maximum rate and the aggregated fixed operation rate
+
+        :param data: Pandas DataFrame with the clustered time series data of the conversion component
+        :type data: Pandas DataFrame
+        """
         self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
         self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
 
 
 class TransmissionModel(ComponentModel):
-    """ Doc """
+    """
+    A TransmissionModel class instance will be instantly created if a Transmission class instance is declared.
+    It is used for the declaration of the sets, variables and constraints which are valid for the Transmission class
+    instance. These declarations are necessary for the modeling and optimization of the energy system model.
+    The TransmissionModel class inherits from the ComponentModel class.
+    """
+
     def __init__(self):
+        """" Constructor for creating a TransmissionModel class instance """
         self.abbrvName = 'trans'
         self.dimension = '2dim'
         self.componentsDict = {}
@@ -192,7 +222,15 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
 
     def declareSets(self, esM, pyM):
-        """ Declares sets and dictionaries """
+        """
+        Declares sets: design variable sets, operation variable set and operation mode set.
+
+        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
 
         # # Declare design variable sets
         self.declareDesignVarSet(pyM)
@@ -203,7 +241,7 @@ class TransmissionModel(ComponentModel):
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
 
-        # Declare operation variable set
+        # Declare operation mode set
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
 
     ####################################################################################################################
@@ -211,15 +249,23 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
 
     def declareVariables(self, esM, pyM):
-        """ Declares design and operation variables """
+        """
+        Declares design and operation variables
 
-        # Capacity variables in [commodityUnit]
+        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
+
+        # Capacity variables [commodityUnit]
         self.declareCapacityVars(pyM)
-        # (Continuous) numbers of installed components in [-]
+        # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
-        # (Discrete/integer) numbers of installed components in [-]
+        # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
-        # Binary variables [-] indicating if a component is considered at a location or not in [-]
+        # Binary variables [-] indicating if a component is considered at a location or not
         self.declareBinaryDesignDecisionVars(pyM)
         # Operation of component [commodityUnit]
         self.declareOperationVars(pyM, 'op')
@@ -230,8 +276,11 @@ class TransmissionModel(ComponentModel):
 
     def symmetricalCapacity(self, pyM):
         """
-        Enforces that the capacity between location_1 and location_2 is the same as the one
-        between location_2 and location_1
+        Ensures that the capacity between location_1 and location_2 is the same as the one
+        between location_2 and location_1.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar, capVarSet = getattr(pyM, 'cap_' + abbrvName), getattr(pyM, 'designDimensionVarSet_' + abbrvName)
@@ -242,11 +291,17 @@ class TransmissionModel(ComponentModel):
 
     def operationMode1_2dim(self, pyM, esM, constrName, constrSetName, opVarName):
         """
-        Operation [commodityUnit*hour] limited by the installed capacity [commodityUnit] multiplied by the hours
-        per time step.
+        Declares the constraint that the operation [commodityUnit*hour] is limited by the installed
+        capacity [commodityUnit] multiplied by the hours per time step.
         Since the flow should either go in one direction or the other, the limitation can be enforced on the sum
         of the forward and backward flow over the line. This leads to one of the flow variables being set to zero
         if a basic solution is obtained during optimization.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+
+        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
@@ -258,7 +313,15 @@ class TransmissionModel(ComponentModel):
         setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
     def declareComponentConstraints(self, esM, pyM):
-        """ Declares time independent and dependent constraints"""
+        """
+        Declares time independent and dependent constraints
+
+        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
 
         ################################################################################################################
         #                                    Declare time independent constraints                                      #
@@ -276,24 +339,24 @@ class TransmissionModel(ComponentModel):
         self.capacityFix(pyM)
         # Sets, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
-        # Enforce that the capacity cap_loc1_loc2 is the same as cap_loc2_loc1
+        # Enforce the equality of the capacities cap_loc1_loc2 and cap_loc2_loc1
         self.symmetricalCapacity(pyM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################
 
-        # Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by the hours per time step
+        # Operation [energyUnit] is limited by the installed capacity [powerUnit] multiplied by the hours per time step
         self.operationMode1_2dim(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] equal to the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h])
+        # Operation [energyUnit] is equal to the installed capacity [powerUnit] multiplied by operation time series
+        # [powerUnit/powerUnit] and the hours per time step [h]
         self.operationMode2(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h])
+        # Operation [energyUnit] is limited by the installed capacity [powerUnit] multiplied by operation time series
+        # [powerUnit/powerUnit] and the hours per time step [h]
         self.operationMode3(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] equal to the operation time series [energyUnit]
+        # Operation [energyUnit] is equal to the operation time series [energyUnit]
         self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] limited by the operation time series [energyUnit]
+        # Operation [energyUnit] is limited by the operation time series [energyUnit]
         self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
 
     ####################################################################################################################
@@ -305,6 +368,20 @@ class TransmissionModel(ComponentModel):
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
+        """
+        Checks if the commodity´s transfer between a given location and the other locations of the energy system model
+        is eligible.
+
+        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+
+        :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
+        :param commod: string
+        """
+
         return any([comp.commodity == commod and
                     (loc + '_' + loc_ in comp.locationalEligibility.index or
                      loc_ + '_' + loc in comp.locationalEligibility.index)
@@ -326,7 +403,15 @@ class TransmissionModel(ComponentModel):
                    if commod in compDict[compName].commodity)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
-        """ Gets contribution to the objective function """
+        """
+        Gets contribution to the objective function
+
+        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
 
         capexCap = self.getEconomicsTI(pyM, ['investPerCapacity', 'distances'], 'cap', 'CCF') * 0.5
         capexDec = self.getEconomicsTI(pyM, ['investIfBuilt', 'distances'], 'designBin', 'CCF') * 0.5
@@ -337,6 +422,15 @@ class TransmissionModel(ComponentModel):
         return capexCap + capexDec + opexCap + opexDec + opexOp
 
     def setOptimalValues(self, esM, pyM):
+        """
+        Sets the optimal values of the components
+
+        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
         mapC = {loc1 + '_' + loc2: (loc1, loc2) for loc1 in esM.locations for loc2 in esM.locations}
@@ -389,4 +483,18 @@ class TransmissionModel(ComponentModel):
         self.optSummary = optSummary
 
     def getOptimalValues(self, name='all'):
+        """
+        Returns optimal values of the components
+
+        :param name: name of the variables of which the optimal values should be returned:\n
+        * 'capacityVariables',
+        * 'isBuiltVariables',
+        * 'operationVariablesOptimum',
+        * 'all' or another input: all variables are returned.\n
+        |br| * the default value is 'all'
+        :type name: string
+
+        :returns: a dictionary with the optimal values of the components
+        :rtype: dict
+        """
         return super().getOptimalValues(name)

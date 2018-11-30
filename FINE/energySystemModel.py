@@ -512,7 +512,7 @@ class EnergySystemModel:
 
     def declareOptimizationProblem(self, timeSeriesAggregation=False):
         """
-        Declares the optimization problem belonging to the specified energy system, for which a pyomo discrete model
+        Declares the optimization problem belonging to the specified energy system, for which a pyomo concrete model
         instance is build and filled with
         * basic time sets,
         * sets, variables and constraints contributed by the component modeling classes,
