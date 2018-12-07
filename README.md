@@ -10,6 +10,12 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 * representation of an energy system by multiple locations, commodities and time steps
 * complexity reducing storage formulation based on typical periods
 
+## Contributions and Users
+
+Within the BMWi funded project [**METIS**](https://www.metis-platform.net) we develop together with the RWTH-Aachen ([**Prof. Aaron Praktiknjo**](http://www.wiwi.rwth-aachen.de/cms/Wirtschaftswissenschaften/Die-Fakultaet/Institute-und-Lehrstuehle/Professoren/~jgfr/Praktiknjo-Aaron/?allou=1&lidx=1)), the EDOM Team at FAU ([**PD Lars Schewe**](http://www.mso.math.fau.de/de/edom/team/schewe-lars/dr-lars-schewe/)) and the [**Jülich Supercomputing Centre**](http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html) new methods and models within FINE.
+
+Dr. Martin Robinius is teaching a [**course**](https://www.campus-elgouna.tu-berlin.de/energy/v_menu/msc_business_engineering_energy/modules_and_curricula/project_market_coupling/) at TU Berlin in which he is introducing FINE to students
+
 ## Documentation
 
 A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
