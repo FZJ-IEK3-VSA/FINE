@@ -43,16 +43,22 @@ class LinearOptimalPowerFlow(Transmission):
 
     def addToEnergySystemModel(self, esM):
         """
-        Function for adding a LinearOptimalPowerFlow component to the given energy system model
+        Function for adding a LinearOptimalPowerFlow component to the given energy system model.
 
-        :param esM: energy system model to which the LinearOptimalPowerFlow component should be added.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
         """
         super().addToEnergySystemModel(esM)
 
 
 class LOPFModel(TransmissionModel):
-    """ Doc """
+
+    """
+    A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
+    It is used for the declaration of the sets, variables and constraints which are valid for the LinearOptimalPowerFlow
+    class instance. These declarations are necessary for the modeling and optimization of the energy system model.
+    The LOPFModel class inherits from the TransmissionModel class. """
+
     def __init__(self):
         self.abbrvName = 'lopf'
         self.dimension = '2dim'
@@ -67,7 +73,7 @@ class LOPFModel(TransmissionModel):
 
     def initPhaseAngleVarSet(self, pyM):
         """
-        Declares phase angle variable set in the pyomo object for for each node
+        Declare phase angle variable set in the pyomo object for for each node.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -81,9 +87,9 @@ class LOPFModel(TransmissionModel):
 
     def declareSets(self, esM, pyM):
         """
-        Declares sets and dictionaries
+        Declare sets and dictionaries.
 
-        :param esM: energy system model to which the LinearOptimalPowerFlow components have been added.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -109,7 +115,7 @@ class LOPFModel(TransmissionModel):
 
     def declarePhaseAngleVariables(self, pyM):
         """
-        Declares phase angle variables
+        Declare phase angle variables.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -119,9 +125,9 @@ class LOPFModel(TransmissionModel):
 
     def declareVariables(self, esM, pyM):
         """
-        Declares design and operation variables
+        Declare design and operation variables.
 
-        :param esM: energy system model to which the LinearOptimalPowerFlow components have been added.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -147,8 +153,8 @@ class LOPFModel(TransmissionModel):
 
     def powerFlowDC(self, pyM):
         """
-        Ensures that the capacity between location_1 and location_2 is the same as the one
-        between location_2 and location_1
+        Ensure that the capacity between location_1 and location_2 is the same as the one
+        between location_2 and location_1.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -166,7 +172,7 @@ class LOPFModel(TransmissionModel):
 
     def basePhaseAngle(self, pyM):
         """
-        Reference phase angle is set to zero for all time steps
+        Declare the constraint that the reference phase angle is set to zero for all time steps.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -182,9 +188,9 @@ class LOPFModel(TransmissionModel):
 
     def declareComponentConstraints(self, esM, pyM):
         """
-        Declares time independent and dependent constraints
+        Declare time independent and dependent constraints.
 
-        :param esM: energy system model to which the LinearOptimalPowerFlow components have been added.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -204,12 +210,12 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Gets contributions to shared location potential """
+        """ Get contributions to shared location potential. """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
-        Checks if the commodity´s transfer between a given location and the other locations of the energy system model
+        Check if the commodity´s transfer between a given location and the other locations of the energy system model
         is eligible.
 
         :param esM: EnergySystemModel in which the LinearOptimalPowerFlow components have been added to.
@@ -224,14 +230,14 @@ class LOPFModel(TransmissionModel):
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Gets contribution to a commodity balance """
+        """ Get contribution to a commodity balance. """
         return super().getCommodityBalanceContribution(pyM, commod, loc, p, t)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
-        Gets contribution to the objective function
+        Get contribution to the objective function.
 
-        :param esM: energy system model to which the LinearOptimalPowerFlow components have been added.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -241,9 +247,9 @@ class LOPFModel(TransmissionModel):
 
     def setOptimalValues(self, esM, pyM):
         """
-        Sets the optimal values of the components
+        Set the optimal values of the components.
 
-        :param esM: energy system model to which the LinearOptimalPowerFlow components have been added.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -261,7 +267,7 @@ class LOPFModel(TransmissionModel):
 
     def getOptimalValues(self, name='all'):
         """
-        Returns optimal values of the components
+        Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:\n
         * 'capacityVariables',

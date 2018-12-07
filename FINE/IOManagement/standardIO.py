@@ -15,7 +15,7 @@ except ImportError:
 
 def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumOutputLevel=2, optValOutputLevel=2):
     """
-    Writes optimization output to an Excel file
+    Write optimization output to an Excel file.
 
     :param esM: EnergySystemModel instance in which the optimized model is hold
     :type esM: EnergySystemModel instance
@@ -73,7 +73,7 @@ def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumO
 
 def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
     """
-    Reads energy system model from excel file
+    Read energy system model from excel file.
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
@@ -129,7 +129,7 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
 
 def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
     """
-    Runs an energy system model from excel file
+    Run an energy system model from excel file.
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
@@ -148,7 +148,7 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
 
 def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
     """
-    Reads optimization output from an excel file
+    Read optimization output from an excel file.
 
     :param esM: EnergySystemModel instance which includes the setting of the optimized model
     :type esM: EnergySystemModel instance
@@ -182,7 +182,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
 
 def getDualValues(pyM):
     """
-    Gets dual values of an optimized pyomo instance
+    Get dual values of an optimized pyomo instance.
 
     :param pyM: optimized pyomo instance
     :type pyM: pyomo Concrete Model
@@ -194,7 +194,7 @@ def getDualValues(pyM):
 
 def getShadowPrices(pyM, constraint, dualValues=None):
     """
-    Gets dual values of constraint ("shadow prices")
+    Get dual values of constraint ("shadow prices").
 
     :param pyM: pyomo model instance with optimized optimization problem
     :type pyM: pyomo Concrete Model
@@ -218,7 +218,7 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
                   xlabel='time step', ylabel='operation time series', figsize=(12, 4),
                   color="k", fontsize=12, save=False, fileName='operation.png', dpi=200, **kwargs):
     """
-    Plot operation time series of a component at a location
+    Plot operation time series of a component at a location.
 
     **Required arguments:**
 
@@ -311,7 +311,7 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
                           xlabel='day', ylabel='hour', zlabel='operation', figsize=(12, 4),
                           fontsize=12, save=False, fileName='', dpi=200, **kwargs):
     """
-    Plot operation time series of a component at a location
+    Plot operation time series of a component at a location.
 
     **Required arguments:**
 
@@ -423,7 +423,7 @@ def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='
                   save=False, fileName='', dpi=200, **kwargs):
 
     """
-    Plots locations from a shape file
+    Plot locations from a shape file.
 
     **Required arguments:**
 
@@ -510,7 +510,7 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
                      variableName='capacityVariablesOptimum', color='k', loc=7, alpha=0.5, ax=None, fig=None, linewidth=10,
                      figsize=(6, 6), fontsize=12, save=False, fileName='', dpi=200, **kwargs):
     """
-    Plots build transmission lines from a shape file
+    Plot build transmission lines from a shape file.
 
     **Required arguments:**
 
@@ -628,7 +628,7 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
                            vmax=-1, zlabel='Installed capacity\nper kilometer\n', figsize=(6, 6), fontsize=12, save=False,
                            fileName='', dpi=200, **kwargs):
     """
-    Plots the data of a component for each location
+    Plot the data of a component for each location.
 
     **Required arguments:**
 

@@ -164,9 +164,9 @@ class Transmission(Component):
 
     def addToEnergySystemModel(self, esM):
         """
-        Function for adding a transmission component to the given energy system model
+        Function for adding a transmission component to the given energy system model.
 
-        :param esM: energy system model to which the transmission component should be added.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
         """
         super().addToEnergySystemModel(esM)
@@ -191,7 +191,7 @@ class Transmission(Component):
 
     def setAggregatedTimeSeriesData(self, data):
         """
-        Function for determining the aggregated maximum rate and the aggregated fixed operation rate
+        Function for determining the aggregated maximum rate and the aggregated fixed operation rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the conversion component
         :type data: Pandas DataFrame
@@ -202,7 +202,7 @@ class Transmission(Component):
 
 class TransmissionModel(ComponentModel):
     """
-    A TransmissionModel class instance will be instantly created if a Transmission class instance is declared.
+    A TransmissionModel class instance will be instantly created if a Transmission class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the Transmission class
     instance. These declarations are necessary for the modeling and optimization of the energy system model.
     The TransmissionModel class inherits from the ComponentModel class.
@@ -223,13 +223,13 @@ class TransmissionModel(ComponentModel):
 
     def declareSets(self, esM, pyM):
         """
-        Declares sets: design variable sets, operation variable set and operation mode set.
+        Declare sets: design variable sets, operation variable set and operation mode set.
 
-        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         # # Declare design variable sets
@@ -250,13 +250,13 @@ class TransmissionModel(ComponentModel):
 
     def declareVariables(self, esM, pyM):
         """
-        Declares design and operation variables
+        Declare design and operation variables
 
-        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         # Capacity variables [commodityUnit]
@@ -276,11 +276,11 @@ class TransmissionModel(ComponentModel):
 
     def symmetricalCapacity(self, pyM):
         """
-        Ensures that the capacity between location_1 and location_2 is the same as the one
+        Ensure that the capacity between location_1 and location_2 is the same as the one
         between location_2 and location_1.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar, capVarSet = getattr(pyM, 'cap_' + abbrvName), getattr(pyM, 'designDimensionVarSet_' + abbrvName)
@@ -291,16 +291,16 @@ class TransmissionModel(ComponentModel):
 
     def operationMode1_2dim(self, pyM, esM, constrName, constrSetName, opVarName):
         """
-        Declares the constraint that the operation [commodityUnit*hour] is limited by the installed
+        Declare the constraint that the operation [commodityUnit*hour] is limited by the installed
         capacity [commodityUnit] multiplied by the hours per time step.
         Since the flow should either go in one direction or the other, the limitation can be enforced on the sum
         of the forward and backward flow over the line. This leads to one of the flow variables being set to zero
         if a basic solution is obtained during optimization.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -314,13 +314,13 @@ class TransmissionModel(ComponentModel):
 
     def declareComponentConstraints(self, esM, pyM):
         """
-        Declares time independent and dependent constraints
+        Declare time independent and dependent constraints
 
-        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         ################################################################################################################
@@ -335,9 +335,9 @@ class TransmissionModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
-        # Sets, if applicable, the installed capacities of a component
+        # Set, if applicable, the installed capacities of a component
         self.capacityFix(pyM)
-        # Sets, if applicable, the binary design variables of a component
+        # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Enforce the equality of the capacities cap_loc1_loc2 and cap_loc2_loc1
         self.symmetricalCapacity(pyM)
@@ -364,15 +364,15 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Gets contributions to shared location potential """
+        """ Get contributions to shared location potential. """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
-        Checks if the commodity´s transfer between a given location and the other locations of the energy system model
+        Check if the commodity´s transfer between a given location and the other locations of the energy system model
         is eligible.
 
-        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
@@ -388,7 +388,7 @@ class TransmissionModel(ComponentModel):
                     for comp in self.componentsDict.values() for loc_ in esM.locations])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Gets contribution to a commodity balance """
+        """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
         opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
@@ -404,13 +404,13 @@ class TransmissionModel(ComponentModel):
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
-        Gets contribution to the objective function
+        Get contribution to the objective function.
 
-        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         capexCap = self.getEconomicsTI(pyM, ['investPerCapacity', 'distances'], 'cap', 'CCF') * 0.5
@@ -423,13 +423,13 @@ class TransmissionModel(ComponentModel):
 
     def setOptimalValues(self, esM, pyM):
         """
-        Sets the optimal values of the components
+        Set the optimal values of the components.
 
-        :param esM: EnergySystemModel in which the transmission components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
@@ -484,7 +484,7 @@ class TransmissionModel(ComponentModel):
 
     def getOptimalValues(self, name='all'):
         """
-        Returns optimal values of the components
+        Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:\n
         * 'capacityVariables',

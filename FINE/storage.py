@@ -239,7 +239,7 @@ class Storage(Component):
 
     def addToEnergySystemModel(self, esM):
         """
-        Function for adding a storage component to the given energy system model
+        Function for adding a storage component to the given energy system model.
 
         :param esM: energy system model to which the storage component should be added.
         :type esM: EnergySystemModel class instance
@@ -272,7 +272,7 @@ class Storage(Component):
     def setAggregatedTimeSeriesData(self, data):
         """
         Function for determining the aggregated maximum rate and the aggregated fixed operation rate for charging
-        and discharging
+        and discharging.
 
         :param data: Pandas DataFrame with the clustered time series data of the source component
         :type data: Pandas DataFrame
@@ -286,7 +286,7 @@ class Storage(Component):
 
 class StorageModel(ComponentModel):
     """
-    A StorageModel class instance will be instantly created if a Storage class instance is declared.
+    A StorageModel class instance will be instantly created if a Storage class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the Storage class
     instance. These declarations are necessary for the modeling and optimization of the energy system model.
     The StorageModel class inherits from the ComponentModel class.
@@ -308,13 +308,13 @@ class StorageModel(ComponentModel):
 
     def declareSets(self, esM, pyM):
         """
-        Declares sets: design variable sets, operation variable set, operation mode set
+        Declare sets: design variable sets, operation variable set, operation mode set.
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         compDict = self.componentsDict
@@ -353,13 +353,13 @@ class StorageModel(ComponentModel):
 
     def declareVariables(self, esM, pyM):
         """
-        Declares design and operation variables
+        Declare design and operation variables.
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         # Capacity variables [commodityUnit*hour]
@@ -405,14 +405,14 @@ class StorageModel(ComponentModel):
 
     def connectSOCs(self, pyM, esM):
         """
-        Constraint for connecting the state of charge with the charge and discharge operation: the change in the
-        the state of charge between two points in time have to match the values of charging and discharging
-        (considering the efficiencies of these processes) within the time step in between.
+        Declare the constraint for connecting the state of charge with the charge and discharge operation:
+        the change in the state of charge between two points in time have to match the values of charging and
+        discharging(considering the efficiencies of these processes) within the time step in between.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -429,13 +429,13 @@ class StorageModel(ComponentModel):
 
     def cyclicState(self, pyM, esM):
         """
-        Constraint for connecting the states of charge: the state of charge at the beginning of a period has to be
-        the same as the state of charge in the end of that period.
+        Declare the constraint for connecting the states of charge: the state of charge at the beginning of a period
+        has to be the same as the state of charge in the end of that period.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -452,12 +452,12 @@ class StorageModel(ComponentModel):
 
     def cyclicLifetime(self, pyM, esM):
         """
-        Constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime
+        Declare the constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -474,14 +474,14 @@ class StorageModel(ComponentModel):
 
     def connectInterPeriodSOC(self, pyM, esM):
         """
-        Declares the constraint that the state of charge at the end of each period has to be equivalent to the state of
+        Declare the constraint that the state of charge at the end of each period has to be equivalent to the state of
         charge of the period before it (minus its self discharge) plus the change in the state of charge which
         happened during the typical period which was assigned to that period.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -498,12 +498,12 @@ class StorageModel(ComponentModel):
 
     def intraSOCstart(self, pyM, esM):
         """
-        Declares the constraint that the (virtual) state of charge at the beginning of a typical period is zero.
+        Declare the constraint that the (virtual) state of charge at the beginning of a typical period is zero.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         abbrvName = self.abbrvName
@@ -517,13 +517,13 @@ class StorageModel(ComponentModel):
 
     def equalInterSOC(self, pyM, esM):
         """
-        Declares the constraint that, if periodic storage is selected, the states of charge between periods
+        Declare the constraint that, if periodic storage is selected, the states of charge between periods
         have the same value.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -537,11 +537,11 @@ class StorageModel(ComponentModel):
 
     def minSOC(self, pyM):
         """
-        Declares the constraint that the state of charge [energyUnit] has to be larger than the
+        Declare the constraint that the state of charge [energyUnit] has to be larger than the
         installed capacity [energyUnit] multiplied with the relative minimum state of charge.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVarSet = getattr(pyM, 'designDimensionVarSet_' + abbrvName)
@@ -557,9 +557,9 @@ class StorageModel(ComponentModel):
         The error compared to the precise version is small in cases of small selfDischarge.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -604,13 +604,13 @@ class StorageModel(ComponentModel):
 
     def operationModeSOC(self, pyM, esM):
         """
-        Declares the constraint that the state of charge [energyUnit] is limited by the installed capacity [powerUnit]
+        Declare the constraint that the state of charge [energyUnit] is limited by the installed capacity [powerUnit]
         and the relative maximum state of charge.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -625,13 +625,13 @@ class StorageModel(ComponentModel):
 
     def operationModeSOCwithTSA(self, pyM, esM):
         """
-        Declares the constraint that the state of charge [energyUnit] is limited by the installed capacity [powerUnit]
+        Declare the constraint that the state of charge [energyUnit] is limited by the installed capacity [powerUnit]
         and the relative maximum state of charge.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -652,13 +652,13 @@ class StorageModel(ComponentModel):
 
     def minSOCwithTSAprecise(self, pyM, esM):
         """
-        Declares the constraint that the state of charge at each time step cannot be smaller than the installed
+        Declare the constraint that the state of charge at each time step cannot be smaller than the installed
         capacity multiplied with the relative minimum state of charge.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -675,13 +675,13 @@ class StorageModel(ComponentModel):
 
     def declareComponentConstraints(self, esM, pyM):
         """
-        Declares time independent and dependent constraints.
+        Declare time independent and dependent constraints.
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         ################################################################################################################
@@ -791,14 +791,14 @@ class StorageModel(ComponentModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Gets contributions to shared location potential """
+        """ Get contributions to shared location potential. """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
-        Checks if the storage of a commodity is eligible in a certain location.
+        Check if the storage of a commodity is eligible in a certain location.
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
@@ -811,7 +811,7 @@ class StorageModel(ComponentModel):
                     for comp in self.componentsDict.values()])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Gets contribution to a commodity balance """
+        """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         chargeOp, dischargeOp = getattr(pyM, 'chargeOp_' + abbrvName), getattr(pyM, 'dischargeOp_' + abbrvName)
         opVarDict = getattr(pyM, 'operationVarDict_' + abbrvName)
@@ -820,13 +820,13 @@ class StorageModel(ComponentModel):
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
-        Gets contribution to the objective function
+        Get contribution to the objective function.
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
@@ -844,13 +844,13 @@ class StorageModel(ComponentModel):
 
     def setOptimalValues(self, esM, pyM):
         """
-        Sets the optimal values of the components
+        Set the optimal values of the components.
 
-        :param esM: EnergySystemModel in which the storage components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         chargeOp, dischargeOp = getattr(pyM, 'chargeOp_' + abbrvName), getattr(pyM, 'dischargeOp_' + abbrvName)
@@ -942,7 +942,7 @@ class StorageModel(ComponentModel):
 
     def getOptimalValues(self, name='all'):
         """
-        Returns optimal values of the components
+        Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:\n
         * 'capacityVariables',

@@ -144,7 +144,7 @@ class Conversion(Component):
         """
         Function for adding a conversion component to the given energy system model
 
-        :param esM: energy system model to which the conversion component should be added.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
         """
         super().addToEnergySystemModel(esM)
@@ -169,7 +169,7 @@ class Conversion(Component):
 
     def setAggregatedTimeSeriesData(self, data):
         """
-        Function for determining the aggregated maximum rate and the aggregated fixed operation rate
+        Function for determining the aggregated maximum rate and the aggregated fixed operation rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the conversion component
         :type data: Pandas DataFrame
@@ -180,7 +180,7 @@ class Conversion(Component):
 
 class ConversionModel(ComponentModel):
     """
-    A ConversionModel class instance will be instantly created if a Conversion class instance is declared.
+    A ConversionModel class instance will be instantly created if a Conversion class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the Conversion class
     instance. These declarations are necessary for the modeling and optimization of the energy system model.
     The ConversionModel class inherits from the ComponentModel class.
@@ -201,11 +201,11 @@ class ConversionModel(ComponentModel):
 
     def declareLinkedCapacityDict(self, pyM):
         """
-        Declares conversion components with linked capacities and check if the linked components have the same
+        Declare conversion components with linked capacities and check if the linked components have the same
         locational eligibility.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
         linkedComponentsDict, linkedComponentsList, compDict = {}, [], self.componentsDict
         # Collect all conversion components with the same linkedConversionComponentID
@@ -228,14 +228,14 @@ class ConversionModel(ComponentModel):
 
     def declareSets(self, esM, pyM):
         """
-        Declares sets and dictionaries: design variable sets, operation variable set, operation mode set and
+        Declare sets and dictionaries: design variable sets, operation variable set, operation mode set and
         linked components dictionary.
 
-        :param esM: EnergySystemModel in which the conversion components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         # Declare design variable sets
@@ -259,13 +259,13 @@ class ConversionModel(ComponentModel):
 
     def declareVariables(self, esM, pyM):
         """
-        Declares design and operation variables
+        Declare design and operation variables
 
-        :param esM: EnergySystemModel in which the conversion components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         # Capacity variables [physicalUnit]
@@ -285,10 +285,10 @@ class ConversionModel(ComponentModel):
 
     def linkedCapacity(self, pyM):
         """
-        Ensures that all Conversion components with the same linkedConversionCapacityID have the same capacity
+        Ensure that all Conversion components with the same linkedConversionCapacityID have the same capacity
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar, linkedList = getattr(pyM, 'cap_' + abbrvName), getattr(pyM, 'linkedComponentsList_' + self.abbrvName)
@@ -299,13 +299,13 @@ class ConversionModel(ComponentModel):
 
     def declareComponentConstraints(self, esM, pyM):
         """
-        Declares time independent and dependent constraints
+        Declare time independent and dependent constraints
 
-        :param esM: EnergySystemModel in which the conversion components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
         ################################################################################################################
@@ -320,11 +320,11 @@ class ConversionModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
-        # Sets, if applicable, the installed capacities of a component
+        # Set, if applicable, the installed capacities of a component
         self.capacityFix(pyM)
-        # Sets, if applicable, the binary design variables of a component
+        # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
-        # Links, if applicable, the capacity of components with the same linkedConversionCapacityID
+        # Link, if applicable, the capacity of components with the same linkedConversionCapacityID
         self.linkedCapacity(pyM)
 
         ################################################################################################################
@@ -349,14 +349,14 @@ class ConversionModel(ComponentModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Gets contributions to shared location potential """
+        """ Get contributions to shared location potential. """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
-        Checks if a commodity is eligible for the conversion components in a certain location.
+        Check if a commodity is eligible for the conversion components in a certain location.
 
-        :param esM: EnergySystemModel in which the conversion components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
@@ -369,7 +369,7 @@ class ConversionModel(ComponentModel):
                     and comp.locationalEligibility[loc] == 1 for comp in self.componentsDict.values()])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Gets contribution to a commodity balance """
+        """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
         return sum(opVar[loc, compName, p, t] * compDict[compName].commodityConversionFactors[commod]
@@ -377,12 +377,12 @@ class ConversionModel(ComponentModel):
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
-        Gets contribution to the objective function
-            :param esM: EnergySystemModel in which the conversion components have been added to.
-            :type esM: esM - EnergySystemModel class instance
+        Get contribution to the objective function.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
 
-            :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-            :type pyM: pyomo Concrete Model
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
         """
         capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
         capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
@@ -398,13 +398,13 @@ class ConversionModel(ComponentModel):
 
     def setOptimalValues(self, esM, pyM):
         """
-        Sets the optimal values of the components
+        Set the optimal values of the components.
 
-        :param esM: EnergySystemModel in which the conversion components have been added to.
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
@@ -443,7 +443,7 @@ class ConversionModel(ComponentModel):
 
     def getOptimalValues(self, name='all'):
         """
-        Returns optimal values of the components
+        Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:\n
         * 'capacityVariables',
