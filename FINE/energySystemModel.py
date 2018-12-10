@@ -37,8 +37,8 @@ class EnergySystemModel:
     * the considered commodities in the energy system (**commodities, commodityUnitsDict**)
     * the considered components in the energy system (**componentNames, componentModelingDict, costUnit**)
     * optimization related parameters (**pyM, solverSpecs**)
-    The parameters are first set when a class instance is initiated. The parameters which concerns the components
-    (e.g. componentNames) are complemented by adding the components to the class instance.
+    The parameters are first set when a class instance is initiated. The parameters which are related to the
+    components (e.g. componentNames) are complemented by adding the components to the class instance.
 
     Instances of this class provide functions for\n
     * adding components and their respective modeling classes (**add**)
