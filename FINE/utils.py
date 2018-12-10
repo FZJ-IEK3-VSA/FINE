@@ -123,8 +123,8 @@ def checkRegionalIndex(esM, data):
 
 def checkConnectionIndex(data, locationalEligibility):
     """
-     Necessary for transmission components:
-     Check if the indices of the connection data match the eligible connections.
+    Necessary for transmission components:
+    Check if the indices of the connection data match the eligible connections.
     """
     if not set(data.index) == set(locationalEligibility.index):
         raise ValueError('Indices do not match the eligible connections of the component.\n' +
