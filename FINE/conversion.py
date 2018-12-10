@@ -228,7 +228,7 @@ class ConversionModel(ComponentModel):
 
     def declareSets(self, esM, pyM):
         """
-        Declare sets and dictionaries: design variable sets, operation variable set, operation mode set and
+        Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
         linked components dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -247,7 +247,7 @@ class ConversionModel(ComponentModel):
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
 
-        # Declare operation mode set
+        # Declare operation mode sets
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
 
         # Declare linked components dictionary
@@ -331,17 +331,18 @@ class ConversionModel(ComponentModel):
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################
 
-        # Operation [energyUnit] is limited by the installed capacity [powerUnit] multiplied by the hours per time step
+        # Operation [physicalUnit*h] is limited by the installed capacity [physicalUnit] multiplied by the hours per
+        # time step
         self.operationMode1(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] is equal to the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h]
+        # Operation [physicalUnit*h] is equal to the installed capacity [physicalUnit] multiplied by operation time
+        # series [physicalUnit*h/physicalUnit] and the hours per time step [h/h]
         self.operationMode2(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] is limited by the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h]
+        # Operation [physicalUnit*h] is limited by the installed capacity [physicalUnit] multiplied by operation time
+        # series [physicalUnit*h/physicalUnit] and the hours per time step [h/h]
         self.operationMode3(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] is equal to the operation time series [energyUnit]
+        # Operation [physicalUnit*h] is equal to the operation time series [physicalUnit]
         self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] is limited by the operation time series [energyUnit]
+        # Operation [physicalUnit*h] is limited by the operation time series [physicalUnit]
         self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
 
     ####################################################################################################################
@@ -354,7 +355,7 @@ class ConversionModel(ComponentModel):
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
-        Check if a commodity is eligible for the conversion components in a certain location.
+        Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
