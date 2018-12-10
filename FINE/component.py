@@ -7,7 +7,10 @@ import pandas as pd
 
 class Component(metaclass=ABCMeta):
     """
-    Doc
+    The Component class includes the general methods and arguments for the components which are add-able to
+    the energy system model (e.g. storage component, source component, transmission component). Every of these
+    components inherits from the Component class. 
+
     """
     def __init__(self, esM, name, dimension,
                  hasCapacityVariable, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
@@ -43,8 +46,8 @@ class Component(metaclass=ABCMeta):
 
         **Default arguments:**
 
-        :param capacityVariableDomain: the mathematical domain of the capacity variables, if they are specified.
-            By default, the domain is specified as 'continuous' and thus declares the variables as positive
+        :param capacityVariableDomain: describes the mathematical domain of the capacity variables, if they are
+            specified. By default, the domain is specified as 'continuous' and thus declares the variables as positive
             (>=0) real values. The second input option that is available for this parameter is 'discrete', which
             declares the variables as positive (>=0) integer values.
             |br| * the default value is 'continuous'
@@ -58,9 +61,9 @@ class Component(metaclass=ABCMeta):
         :type capacityPerPlantUnit: strictly positive float
 
         :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for\n
-            * each eligible location of the component, which indicate if the component is built at that location or
+            * each eligible location of the component, which indicates if the component is built at that location or
               not (dimension=1dim).
-            * each eligible connection of the transmission component, which indicate if the component is built
+            * each eligible connection of the transmission component, which indicates if the component is built
               between two locations or not (dimension=2dim).\n
             The binary variables can be used to enforce one-time investment cost or capacity-independent
             annual operation cost. If a minimum capacity is specified and this parameter is set to True,
@@ -81,41 +84,46 @@ class Component(metaclass=ABCMeta):
         :param locationalEligibility:\n
             * Pandas Series that indicates if a component can be built at a location (=1) or not (=0)
               (dimension=1dim) or
-            * Pandas DataFrame that indicates if a component can be built between two locations
-              (=1) or not (=0) (dimension=2dim).\n
+            * Pandas Series or DataFrame that indicates if a component can be built between two
+              locations (=1) or not (=0) (dimension=2dim).\n
             If not specified and a maximum or fixed capacity or time series is given, the parameter will be
             set based on these inputs. If the parameter is specified, a consistency check is done to ensure
-            that the parameters indicate the same locational eligibility. If the parameter is not specified
-            and also no other of the parameters is specified it is assumed that the component is eligible in
+            that the parameters indicate the same locational eligibility. If the parameter is not specified,
+            and also no other of the parameters is specified, it is assumed that the component is eligible in
             each location and all values are set to 1.
-            This parameter is key for ensuring small built times of the optimization problem by avoiding the
+            This parameter is the key part for ensuring small built times of the optimization problem by avoiding the
             declaration of unnecessary variables and constraints.
             |br| * the default value is None
         :type locationalEligibility:\n
             * None or
             * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with values equal to 0 and 1. The column and row indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
-        :param capacityMin: if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
-            indicating minimum capacities else None. If binary decision variables are declared, the minimum
-            capacity is only enforced if the component is built .
+        :param capacityMin: if specified, indicates the minimum capacities. The type of this parameter depends on the
+            dimension of the component: If dimension=1dim, it has to be a Pandas Series. If dimension=2dim, it has to
+            to be a Pandas Series or DataFrame. If binary decision variables are declared, capacityMin is only used
+            if the component is built.
             |br| * the default value is None
         :type capacityMin:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
-        :param capacityMax: if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
-            indicating maximum capacities else None.
+        :param capacityMax: if specified, indicates the maximum capacities. The type of this parameter depends on the
+            dimension of the component: If dimension=1dim, it has to be a Pandas Series. If dimension=2dim, it has to
+            to be a Pandas Series or DataFrame.
             |br| * the default value is None
         :type capacityMax:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -125,91 +133,100 @@ class Component(metaclass=ABCMeta):
             |br| * the default value is None
         :type sharedPotentialID: string
 
-        :param capacityFix: if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
-            indicating fixed capacities else None.
+        :param capacityFix: if specified, indicates the fixed capacities. The type of this parameter
+            depends on the dimension of the component: If dimension=1dim, it has to be a Pandas Series.
+            If dimension=2dim, it has to be a Pandas Series or DataFrame.
             |br| * the default value is None
         :type capacityFix:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
-        :param isBuiltFix: if specified, Pandas Series (dimension=1dim) or Pandas DataFrame (dimension=2dim)
-            indicating fixed decisions in which or between which locations the component is built (i.e. sets
-            the isBuilt binary variables) else None.
+        :param isBuiltFix: if specified, indicates fixed decisions in which or between which locations the component is
+            built (i.e. sets the isBuilt binary variables). The type of this parameter
+            depends on the dimension of the component: If dimension=1dim, it has to be a Pandas Series.
+            If dimension=2dim, it has to be a Pandas Series or DataFrame.
             |br| * the default value is None
         :type isBuiltFix:
             * None or
-            * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the
-              in the energy system model specified locations or
+            * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with values equal to 0 and 1. The row and column indices of the DataFrame
               have to equal the in the energy system model specified locations.
 
-        :param investPerCapacity: the invest of a component is obtained by multiplying the built capacities
+        :param investPerCapacity: describes the investment costs for one unit of the capacity. The
+            invest of a component is obtained by multiplying the built capacities
             of the component (in the physicalUnit of the component) with the investPerCapacity factor.
             The investPerCapacity can either be given as\n
-            * a float or a Pandas Series with location specific values. The cost unit in which the parameter
-              is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro) (dimension=1dim) or
-            * a float or a Pandas DataFrame with location specific values. The cost unit in which the
-              parameter is given has to match the one specified in the energy system model divided by
-              the there specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n
+            * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
+              parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
+              1e6 Euro) or
+            * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
+              in which the parameter is given has to match the one specified in the energy system model divided by
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km).\n
             |br| * the default value is 0
         :type investPerCapacity:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
         :param investIfBuilt: a capacity-independent invest which only arises in a location if a component
             is built at that location. The investIfBuilt can either be given as\n
-            * a float or a Pandas Series with location specific values. The cost unit in which the parameter
-              is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro) (dimension=1dim) or
-            * a float or a Pandas DataFrame with location specific values. The cost unit in which the
-              parameter is given has to match the one specified in the energy system model divided by
-              the there specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n
+            * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which
+              the parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
+              1e6 Euro) or
+            * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
+              in which the parameter is given has to match the one specified in the energy system model divided by
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
             |br| * the default value is 0
         :type investIfBuilt:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
-        :param opexPerCapacity: annual operational cost which are only a function of the capacity of the
-            component (in the physicalUnit of the component) and not of the specific operation itself are
-            obtained by multiplying the capacity of the component at a location with the opexPerCapacity
-            factor. The opexPerCapacity can either be given as\n
-            * a float or a Pandas Series with location specific values. The cost unit in which the parameter
-              is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro) (dimension=1dim) or
-            * a float or a Pandas DataFrame with location specific values. The cost unit in which the
-              parameter is given has to match the one specified in the energy system model divided by
-              the there specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n
+        :param opexPerCapacity: describes the operational cost for one unit of capacity. The annual operational cost,
+            which are only a function of the capacity of the component (in the physicalUnit of the component) and not
+            of the specific operation itself, are obtained by multiplying the capacity of the component at a location
+            with the opexPerCapacity factor. The opexPerCapacity factor can either be given as\n
+            * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
+              parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
+              1e6 Euro) or
+            * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
+              in which the parameter is given has to match the one specified in the energy system model divided by
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
             |br| * the default value is 0
         :type opexPerCapacity:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
         :param opexIfBuilt: a capacity-independent annual operational cost which only arises in a location
             if a component is built at that location. The opexIfBuilt can either be given as\n
-            * a float or a Pandas Series with location specific values. The cost unit in which the parameter
-              is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro) (dimension=1dim) or
-            * a float or a Pandas DataFrame with location specific values. The cost unit in which the
-              parameter is given has to match the one specified in the energy system model divided by
-              the there specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km) (dimension=2dim)\n
+            * a float or a Pandas Series with location specific values (dimension=1dim) . The cost unit in which
+              the parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
+              1e6 Euro)or
+            * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
+              in which the parameter is given has to match the one specified in the energy system model divided by
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
             |br| * the default value is 0
         :type opexIfBuilt:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -220,7 +237,8 @@ class Component(metaclass=ABCMeta):
         :type interestRate:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -230,7 +248,8 @@ class Component(metaclass=ABCMeta):
         :type economicLifetime:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -277,8 +296,8 @@ class Component(metaclass=ABCMeta):
 
     def addToEnergySystemModel(self, esM):
         """
-        Adds component to an EnergySystemModel instance (esM). If the respective component class is not already in the
-        esM, it is added as well.
+        Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
+        the esM, it is added as well.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel instance
@@ -298,8 +317,8 @@ class Component(metaclass=ABCMeta):
 
     def prepareTSAInput(self, rateFix, rateMax, rateName, rateWeight, weightDict, data):
         """
-        Formats the time series data of a component to fit the requirements of the time series aggregation package and
-        returns a list of formatted data.
+        Format the time series data of a component to fit the requirements of the time series aggregation package and
+        return a list of formatted data.
 
         :param rateFix: a fixed operation time series or None
         :type rateFix: Pandas DataFrame or None
@@ -320,6 +339,7 @@ class Component(metaclass=ABCMeta):
         :type data: list of Pandas DataFrames
 
         :return: data
+        :rtype: Pandas DataFrame
         """
         data_ = rateFix if rateFix is not None else rateMax
         if data_ is not None:
@@ -331,7 +351,7 @@ class Component(metaclass=ABCMeta):
 
     def getTSAOutput(self, rate, rateName, data):
         """
-        Returns a reformatted time series data after applying time series aggregation, if the original time series
+        Return a reformatted time series data after applying time series aggregation, if the original time series
         data is not None.
 
         :param rate: Full (unclustered) time series data or None
@@ -341,9 +361,10 @@ class Component(metaclass=ABCMeta):
         :type rateName: string
 
         :param data: Pandas DataFrame with the clustered time series data of all components in the energy system
-        :type data: Pandas DataFrames
+        :type data: Pandas DataFrame
 
         :return: reformatted data or None
+        :rtype: Pandas DataFrame
         """
         if rate is not None:
             uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
@@ -357,18 +378,18 @@ class Component(metaclass=ABCMeta):
     def setTimeSeriesData(self, hasTSA):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
-        the time series data of a component (either the full time series when hasTSA is false or the aggreated
+        the time series data of a component (either the full time series if hasTSA is false or the aggregated
         time series if hasTSA is True).
 
         :param hasTSA: indicates if time series aggregation should be considered for modeling
-        :tpye hasTSA: boolean
+        :type hasTSA: boolean
         """
         raise NotImplementedError
 
     @abstractmethod
     def getDataForTimeSeriesAggregation(self):
         """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Gets
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Get
         all time series data of a component for time series aggregation.
         """
         raise NotImplementedError
@@ -376,7 +397,7 @@ class Component(metaclass=ABCMeta):
     @abstractmethod
     def setAggregatedTimeSeriesData(self, data):
         """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Set
         aggregated time series data after applying time series aggregation.
 
         :param data: time series data
@@ -387,9 +408,12 @@ class Component(metaclass=ABCMeta):
 
 class ComponentModel(metaclass=ABCMeta):
     """
-    Doc
+    The ComponentModel class provides the general methods used for modeling the components.
+    Every model class of the several component technologies inherits from the ComponentModel class.
+    Within the ComponentModel class, general valid sets, variables and constraints are declared.
     """
     def __init__(self):
+        """ Constructor for creating a ComponentModel class instance. """
         self.abbrvName = ''
         self.dimension = ''
         self.componentsDict = {}
@@ -402,7 +426,13 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def declareDesignVarSet(self, pyM):
-        """ Declares set for capacity variables in the pyomo object for a modeling class """
+        """
+        Declare set for capacity variables in the pyomo object for a modeling class.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareDesignVarSet(pyM):
@@ -412,7 +442,12 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'designDimensionVarSet_' + abbrvName, pyomo.Set(dimen=2, initialize=declareDesignVarSet))
 
     def declareContinuousDesignVarSet(self, pyM):
-        """ Declares set for continuous number of installed components in the pyomo object for a modeling class """
+        """
+        Declare set for continuous number of installed components in the pyomo object for a modeling class.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareContinuousDesignVarSet(pyM):
@@ -422,7 +457,12 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Set(dimen=2, initialize=declareContinuousDesignVarSet))
 
     def declareDiscreteDesignVarSet(self, pyM):
-        """ Declares set for discrete number of installed components in the pyomo object for a modeling class """
+        """ 
+        Declare set for discrete number of installed components in the pyomo object for a modeling class. 
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel        
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareDiscreteDesignVarSet(pyM):
@@ -432,7 +472,12 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Set(dimen=2, initialize=declareDiscreteDesignVarSet))
 
     def declareDesignDecisionVarSet(self, pyM):
-        """ Declares set for design decision variables in the pyomo object for a modeling class """
+        """ 
+        Declare set for design decision variables in the pyomo object for a modeling class.
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel   
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         def declareDesignDecisionVarSet(pyM):
             return ((loc, compName) for loc, compName in getattr(pyM, 'designDimensionVarSet_' + abbrvName)
@@ -441,8 +486,14 @@ class ComponentModel(metaclass=ABCMeta):
 
     def declareOpVarSet(self, esM, pyM):
         """
-        Declares operation related sets (operation variables and mapping sets) in the pyomo object for a
-        modeling class
+        Declare operation related sets (operation variables and mapping sets) in the pyomo object for a
+        modeling class.
+        
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+                
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel  
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -474,6 +525,10 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def declareOpConstrSet1(self, pyM, constrSetName, rateMax, rateFix):
+        """
+        Declare set of locations and components for which hasCapacityVariable is set to True and neither the
+        maximum nor the fixed operation rate is given.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -485,6 +540,10 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrSetName + '1_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet1))
 
     def declareOpConstrSet2(self, pyM, constrSetName, rateFix):
+        """
+        Declare set of locations and components for which hasCapacityVariable is set to True and a fixed
+        operation rate is given.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -495,6 +554,10 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrSetName + '2_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet2))
 
     def declareOpConstrSet3(self, pyM, constrSetName, rateMax):
+        """
+        Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
+        operation rate is given.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -505,6 +568,10 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrSetName + '3_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet3))
 
     def declareOpConstrSet4(self, pyM, constrSetName, rateFix):
+        """
+        Declare set of locations and components for which hasCapacityVariable is set to False and a fixed
+        operation rate is given.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -515,6 +582,10 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrSetName + '4_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet4))
 
     def declareOpConstrSet5(self, pyM, constrSetName, rateMax):
+        """
+        Declare set of locations and components for which hasCapacityVariable is set to False and a maximum
+        operation rate is given.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -525,6 +596,21 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrSetName + '5_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet5))
 
     def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix):
+        """
+        Declare operating mode sets.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param constrSetName: name of the constraint set.
+        :type constrSetName: string
+
+        :param rateMax: attribute of the considered component which stores the maximum operation rate data.
+        :type rateMax: string
+
+        :param rateFix: attribute of the considered component which stores the fixed operation rate data.
+        :type rateFix: string
+        """
         self.declareOpConstrSet1(pyM, constrSetName, rateMax, rateFix)
         self.declareOpConstrSet2(pyM, constrSetName, rateFix)
         self.declareOpConstrSet3(pyM, constrSetName, rateMax)
@@ -536,11 +622,16 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def declareCapacityVars(self, pyM):
-        """ Declares capacity variables """
+        """ 
+        Declare capacity variables.
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel 
+        """
         abbrvName = self.abbrvName
 
         def capBounds(pyM, loc, compName):
-            """ Function for setting lower and upper capacity bounds """
+            """ Function for setting lower and upper capacity bounds. """
             comp = self.componentsDict[compName]
             return (comp.capacityMin[loc] if (comp.capacityMin is not None and not comp.hasIsBuiltBinaryVariable)
                     else 0,
@@ -549,25 +640,45 @@ class ComponentModel(metaclass=ABCMeta):
                 domain=pyomo.NonNegativeReals, bounds=capBounds))
 
     def declareRealNumbersVars(self, pyM):
-        """ Declares variables representing the (continuous) number of installed components [-] """
+        """ 
+        Declare variables representing the (continuous) number of installed components [-]. 
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         abbrvName = self.abbrvName
         setattr(pyM, 'nbReal_' + abbrvName, pyomo.Var(getattr(pyM, 'continuousDesignDimensionVarSet_' + abbrvName),
                 domain=pyomo.NonNegativeReals))
 
     def declareIntNumbersVars(self, pyM):
-        """ Declares variables representing the (discrete/integer) number of installed components [-] """
+        """ 
+        Declare variables representing the (discrete/integer) number of installed components [-]. 
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         abbrvName = self.abbrvName
         setattr(pyM, 'nbInt_' + abbrvName, pyomo.Var(getattr(pyM, 'discreteDesignDimensionVarSet_' + abbrvName),
                 domain=pyomo.NonNegativeIntegers))
 
     def declareBinaryDesignDecisionVars(self, pyM):
-        """ Declares binary variables [-] indicating if a component is considered at a location or not [-] """
+        """ 
+        Declare binary variables [-] indicating if a component is considered at a location or not [-]. 
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         abbrvName = self.abbrvName
         setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
                 domain=pyomo.Binary))
 
     def declareOperationVars(self, pyM, opVarName):
-        """ Declares operation variables """
+        """ 
+        Declare operation variables.
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         abbrvName = self.abbrvName
         setattr(pyM, opVarName + '_' + abbrvName,
                 pyomo.Var(getattr(pyM, 'operationVarSet_' + abbrvName), pyM.timeSet, domain=pyomo.NonNegativeReals))
@@ -577,7 +688,12 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def capToNbReal(self, pyM):
-        """ Determine the components' capacities from the number of installed units """
+        """ 
+        Determine the components' capacities from the number of installed units.
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel 
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar, nbRealVar = getattr(pyM, 'cap_' + abbrvName), getattr(pyM, 'nbReal_' + abbrvName)
         nbRealVarSet = getattr(pyM, 'continuousDesignDimensionVarSet_' + abbrvName)
@@ -587,7 +703,12 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'ConstrCapToNbReal_' + abbrvName, pyomo.Constraint(nbRealVarSet, rule=capToNbReal))
 
     def capToNbInt(self, pyM):
-        """ Determine the components' capacities from the number of installed units """
+        """ 
+        Determine the components' capacities from the number of installed units. 
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar, nbIntVar = getattr(pyM, 'cap_' + abbrvName), getattr(pyM, 'nbInt_' + abbrvName)
         nbIntVarSet = getattr(pyM, 'discreteDesignDimensionVarSet_' + abbrvName)
@@ -597,7 +718,12 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'ConstrCapToNbInt_' + abbrvName, pyomo.Constraint(nbIntVarSet, rule=capToNbInt))
 
     def bigM(self, pyM):
-        """ Enforce the consideration of the binary design variables of a component """
+        """ 
+        Enforce the consideration of the binary design variables of a component. 
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar, designBinVar = getattr(pyM, 'cap_' + abbrvName), getattr(pyM, 'designBin_' + abbrvName)
         designBinVarSet = getattr(pyM, 'designDecisionVarSet_' + abbrvName)
@@ -607,7 +733,12 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'ConstrBigM_' + abbrvName, pyomo.Constraint(designBinVarSet, rule=bigM))
 
     def capacityMinDec(self, pyM):
-        """ Enforce the consideration of minimum capacities for components with design decision variables """
+        """ 
+        Enforce the consideration of minimum capacities for components with design decision variables. 
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
         capVar, designBinVar = getattr(pyM, 'cap_' + abbrvName), getattr(pyM, 'designBin_' + abbrvName)
         designBinVarSet = getattr(pyM, 'designDecisionVarSet_' + abbrvName)
@@ -618,7 +749,12 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'ConstrCapacityMinDec_' + abbrvName, pyomo.Constraint(designBinVarSet, rule=capacityMinDec))
 
     def capacityFix(self, pyM):
-        """ Sets, if applicable, the installed capacities of a component """
+        """ 
+        Set, if applicable, the installed capacities of a component. 
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
         capVar = getattr(pyM, 'cap_' + abbrvName)
         capVarSet = getattr(pyM, 'designDimensionVarSet_' + abbrvName)
@@ -629,7 +765,12 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'ConstrCapacityFix_' + abbrvName, pyomo.Constraint(capVarSet, rule=capacityFix))
 
     def designBinFix(self, pyM):
-        """ Sets, if applicable, the installed capacities of a component """
+        """ 
+        Set, if applicable, the installed capacities of a component. 
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
         designBinVar = getattr(pyM, 'designBin_' + abbrvName)
         designBinVarSet = getattr(pyM, 'designDecisionVarSet_' + abbrvName)
@@ -645,7 +786,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     def operationMode1(self, pyM, esM, constrName, constrSetName, opVarName, factorName=None, isStateOfCharge=False):
         """
-        Defines operation mode 1. The operation [commodityUnit*h] is limited by the installed capacity in:\n
+        Define operation mode 1. The operation [commodityUnit*h] is limited by the installed capacity in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
         An additional factor can limited the operation further.
@@ -662,7 +803,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     def operationMode2(self, pyM, esM, constrName, constrSetName, opVarName, isStateOfCharge=False):
         """
-        Defines operation mode 2. The operation [commodityUnit*h] is equal to the installed capacity multiplied
+        Define operation mode 2. The operation [commodityUnit*h] is equal to the installed capacity multiplied
         with a time series in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
@@ -679,7 +820,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     def operationMode3(self, pyM, esM, constrName, constrSetName, opVarName, isStateOfCharge=False):
         """
-        Defines operation mode 3. The operation [commodityUnit*h] is limited by an installed capacity multiplied
+        Define operation mode 3. The operation [commodityUnit*h] is limited by an installed capacity multiplied
         with a time series in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
@@ -696,7 +837,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName):
         """
-        Defines operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
+        Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + '_' + abbrvName)
@@ -708,7 +849,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName):
         """
-        Defines operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
+        Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + '_' + abbrvName)
@@ -726,7 +867,13 @@ class ComponentModel(metaclass=ABCMeta):
     def declareSets(self, esM, pyM):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Declares sets of components and constraints in the componentModel class.
+        Declare sets of components and constraints in the componentModel class.
+        
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
         """
         raise NotImplementedError
 
@@ -734,7 +881,13 @@ class ComponentModel(metaclass=ABCMeta):
     def declareVariables(self, esM, pyM):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Declares variables of components in the componentModel class.
+        Declare variables of components in the componentModel class.
+        
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
         """
         raise NotImplementedError
 
@@ -742,19 +895,38 @@ class ComponentModel(metaclass=ABCMeta):
     def declareComponentConstraints(self, esM, pyM):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Declares constraints of components in the componentModel class.
+        Declare constraints of components in the componentModel class.
+        
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
         """
         raise NotImplementedError
 
     @abstractmethod
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
+        """
+        Check if operation variables exist in the modeling class at a location which are connected to a commodity.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param loc: name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+
+        :param commod: name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
+        :param commod: string
+        """
+        
         raise NotImplementedError
 
     @abstractmethod
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Gets contribution to a commodity balance
+        Get contribution to a commodity balance.
         """
         raise NotImplementedError
 
@@ -762,13 +934,19 @@ class ComponentModel(metaclass=ABCMeta):
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Gets contribution to the objective function
+        Get contribution to the objective function.
+        
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
         """
         raise NotImplementedError
 
     def getSharedPotentialContribution(self, pyM, key, loc):
         """
-        Gets the share which the components of the modeling class have on a shared maximum potential at a location
+        Get the share which the components of the modeling class have on a shared maximum potential at a location.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(pyM, 'cap_' + abbrvName)
@@ -819,6 +997,36 @@ class ComponentModel(metaclass=ABCMeta):
                        for compName in compNames)
 
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=''):
+        """
+        Set the optimal values for the considered components and return a summary of them.
+
+        **Required arguments**
+        :param esM: EnergySystemModel instance representing the energy system in which the components are modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param indexColumns: set of strings with the columns indices of the summary. The indices represent the locations
+            or connections between the locations are used to call the optimal values of the variables of the components
+            in the model class.
+        :type indexColumns: set
+
+        :param plantUnit: attribut of the component that describes the unit of the plants to which maximum capacity
+            limitations, cost parameters and the operation time series refer to. Depending on the considered component,
+            possible inputs are "commodityUnit" (e.g. for transmission components) or "physicalUnit" (e.g. for
+            conversion components).
+        :type plantUnit: string
+
+        **Default arguments**
+        :param unitApp: string which appends the capacity unit in the optimization summary.
+            For example, for the StorageModel class, the parameter is set to '*h'.
+            |br| * the default value is ''.
+        :type unitApp: string
+
+        :return: summary of the optimized values.
+        :rtype: pandas DataFrame
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(esM.pyM, 'cap_' + abbrvName)
         binVar = getattr(esM.pyM, 'designBin_' + abbrvName)
@@ -889,7 +1097,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     def getOptimalValues(self, name='all'):
         """
-        Returns optimal values of the components
+        Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:\n
         * 'capacityVariables',
