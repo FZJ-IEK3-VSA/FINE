@@ -31,6 +31,7 @@ class Transmission(Component):
         :type commodity: string
 
         **Default arguments:**
+
         :param losses: relative losses per lengthUnit (lengthUnit as specified in the energy system model) in
             percentage of the commodity flow. This loss factor can capture simple linear losses
             trans_in_ij=(1-losses*distance)*trans_out_ij (with trans being the commodity flow at a certain point in

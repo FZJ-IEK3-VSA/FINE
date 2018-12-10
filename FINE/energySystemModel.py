@@ -36,7 +36,7 @@ class EnergySystemModel:
       isTimeSeriesDataClustered, typicalPeriods, tsaInstance, timeUnit**)
     * the considered commodities in the energy system (**commodities, commodityUnitsDict**)
     * the considered components in the energy system (**componentNames, componentModelingDict, costUnit**)
-    * optimization related parameters (**pyM, solverSpecs**)
+    * optimization related parameters (**pyM, solverSpecs**)\n
     The parameters are first set when a class instance is initiated. The parameters which are related to the
     components (e.g. componentNames) are complemented by adding the components to the class instance.
 
@@ -109,11 +109,11 @@ class EnergySystemModel:
             |br| * the default value is 'km' (kilometers).
         :type lengthUnit: string
 
-        :param verboseLogLevel: defines how verbose the console logging is: \n
+        :param verboseLogLevel: defines how verbose the console logging is:\n
             - 0: general model logging, warnings and optimization solver logging are displayed.
             - 1: warnings are displayed.
             - 2: no general model logging or warnings are displayed, the optimization solver logging is set to a
-            minimum.
+              minimum.\n
             Note: if required, the optimization solver logging can be separately enabled in the optimizationSpecs
             of the optimize function.
             |br| * the default value is 0

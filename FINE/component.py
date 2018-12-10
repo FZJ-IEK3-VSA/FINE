@@ -1001,6 +1001,7 @@ class ComponentModel(metaclass=ABCMeta):
         Set the optimal values for the considered components and return a summary of them.
 
         **Required arguments**
+
         :param esM: EnergySystemModel instance representing the energy system in which the components are modeled.
         :type esM: EnergySystemModel instance
 
@@ -1012,13 +1013,14 @@ class ComponentModel(metaclass=ABCMeta):
             in the model class.
         :type indexColumns: set
 
-        :param plantUnit: attribut of the component that describes the unit of the plants to which maximum capacity
+        :param plantUnit: attribute of the component that describes the unit of the plants to which maximum capacity
             limitations, cost parameters and the operation time series refer to. Depending on the considered component,
             possible inputs are "commodityUnit" (e.g. for transmission components) or "physicalUnit" (e.g. for
             conversion components).
         :type plantUnit: string
 
         **Default arguments**
+
         :param unitApp: string which appends the capacity unit in the optimization summary.
             For example, for the StorageModel class, the parameter is set to '*h'.
             |br| * the default value is ''.
