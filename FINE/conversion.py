@@ -332,13 +332,13 @@ class ConversionModel(ComponentModel):
         ################################################################################################################
 
         # Operation [physicalUnit*h] is limited by the installed capacity [physicalUnit] multiplied by the hours per
-        # time step
+        # time step [h]
         self.operationMode1(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
         # Operation [physicalUnit*h] is equal to the installed capacity [physicalUnit] multiplied by operation time
-        # series [physicalUnit*h/physicalUnit] and the hours per time step [h/h]
+        # series [-] and the hours per time step [h]
         self.operationMode2(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
         # Operation [physicalUnit*h] is limited by the installed capacity [physicalUnit] multiplied by operation time
-        # series [physicalUnit*h/physicalUnit] and the hours per time step [h/h]
+        # series [-] and the hours per time step [h]
         self.operationMode3(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
         # Operation [physicalUnit*h] is equal to the operation time series [physicalUnit*h]
         self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
