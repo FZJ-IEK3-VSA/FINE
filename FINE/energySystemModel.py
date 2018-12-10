@@ -11,6 +11,8 @@ import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
 import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class EnergySystemModel:
@@ -24,31 +26,31 @@ class EnergySystemModel:
       namely sources and sinks, conversion options, storage options, and transmission options
       (in the core module), can be added to an EnergySystemModel instance.
     * It provides the core functionality of **modeling and optimizing the energy system** based on the specified
-      structure and components on the one hand and of specified simulation parameters on the other hand,.
+      structure and components on the one hand and of specified simulation parameters on the other hand.
     * It **stores optimization results** which can then be post-processed with other modules.
 
-    The parameter which are stored in an instance of the class refer to:\n
+    The parameters which are stored in an instance of the class refer to:\n
     * the modeled spatial representation of the energy system (**locations, lengthUnit**)
     * the modeled temporal representation of the energy system (**totalTimeSteps, hoursPerTimeStep,
       years, periods, periodsOrder, periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps,
       isTimeSeriesDataClustered, typicalPeriods, tsaInstance, timeUnit**)
     * the considered commodities in the energy system (**commodities, commodityUnitsDict**)
     * the considered components in the energy system (**componentNames, componentModelingDict, costUnit**)
-    * optimization related parameters (**pyM, solverSpecs**)
-      all parameters are marked as protected (thus they all begin with an underscore) and are set when an class
-      instance is initiated, components are added or user accessible functions are called.
+    * optimization related parameters (**pyM, solverSpecs**)\n
+    The parameters are first set when a class instance is initiated. The parameters which are related to the
+    components (e.g. componentNames) are complemented by adding the components to the class instance.
 
-    Instances of this class provide function for\n
+    Instances of this class provide functions for\n
     * adding components and their respective modeling classes (**add**)
     * clustering the time series data of all added components using the time series aggregation package tsam, cf.
       https://github.com/FZJ-IEK3-VSA/tsam (**cluster**)
-    * optimizing the specified energy system (**optimize**), for which a pyomo discrete model instance is build
-      and filled with
-      (0) basic time sets,
-      (1) sets, variables and constraints contributed by the component modeling classes,
-      (2) basic, component overreaching constraints, and
-      (3) an objective function.
-      The pyomo instance is then optimized by a specified solver and the optimization results processed once
+    * optimizing the specified energy system (**optimize**), for which a pyomo concrete model instance is built
+      and filled with \n
+      (0) basic time sets, \n
+      (1) sets, variables and constraints contributed by the component modeling classes, \n
+      (2) basic, component overreaching constraints, and \n
+      (3) an objective function. \n
+      The pyomo instance is then optimized by a specified solver. The optimization results are processed once
       available.
     * getting components and their attributes (**getComponent, getCompAttr, getOptimizationSummary**)
 
@@ -73,44 +75,45 @@ class EnergySystemModel:
             (e.g. GW_el, GW_H2, Mio.t_CO2/h). The dictionary is used for results output.
             Note for advanced users: the scale of these units can influence the numerical stability of the
             optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
-            coefficients is suggested
+            coefficients is suggested.
         :type commodityUnitsDict: dictionary of strings
 
         **Default arguments:**
 
         :param numberOfTimeSteps: number of time steps considered when modeling the energy system (for each
             time step, or each representative time step, variables and constraints are constituted). Together
-            with the hours per time step, the total number of hours considered can be derived. The total
-            number of hours is again used for scaling the arising costs to the arising total annual costs (TAC),
+            with the hoursPerTimeStep, the total number of hours considered can be derived. The total
+            number of hours is again used for scaling the arising costs to the arising total annual costs (TAC)
             which are minimized during optimization.
-            |br| * the default value is 8760
+            |br| * the default value is 8760.
         :type totalNumberOfHours: strictly positive integer
 
         :param hoursPerTimeStep: hours per time step
             |br| * the default value is 1
-        :type totalNumberOfHours: strictly positive float
+        :type hoursPerTimeStep: strictly positive float
 
-        :param costUnit: cost unit of all cost related values in the energy system. This value sets the unit of
-            all cost parameters which are given as an input to the EnergySystemModel instance (i.e. for the
+        :param costUnit: cost unit of all cost related values in the energy system. This argument sets the unit of
+            all cost parameters which are given as an input to the EnergySystemModel instance (e.g. for the
             invest per capacity or the cost per operation).
             Note for advanced users: the scale of this unit can influence the numerical stability of the
             optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
-            coefficients is suggested
+            coefficients is suggested.
             |br| * the default value is '10^9 Euro' (billion euros), which can be a suitable scale for national
             energy systems.
         :type costUnit: string
 
-        :param lengthUnit: length unit for all length related values in the energy system
+        :param lengthUnit: length unit for all length-related values in the energy system.
             Note for advanced users: the scale of this unit can influence the numerical stability of the
             optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
             coefficients is suggested.
-            |br| * the default value is 'km' (kilometers)
+            |br| * the default value is 'km' (kilometers).
         :type lengthUnit: string
 
-        :param verboseLogLevel: defines how verbose the console logging is
-            - 0: general model logging, warnings and optimization solver logging are displayed
-            - 1: warnings are displayed
-            - 2: no general model logging or warnings are displayed, the optimization solver logging is set to a minimum
+        :param verboseLogLevel: defines how verbose the console logging is:\n
+            - 0: general model logging, warnings and optimization solver logging are displayed.
+            - 1: warnings are displayed.
+            - 2: no general model logging or warnings are displayed, the optimization solver logging is set to a
+              minimum.\n
             Note: if required, the optimization solver logging can be separately enabled in the optimizationSpecs
             of the optimize function.
             |br| * the default value is 0
@@ -126,21 +129,21 @@ class EnergySystemModel:
         #                                        Spatial resolution parameters                                         #
         ################################################################################################################
 
-        # The locations (set of string) name the considered location in an energy system model instance. The parameter
+        # The locations (set of string) name the considered locations in an energy system model instance. The parameter
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
-        # The length unit refers to length measure referred throughout the model.
+        # The length unit refers to the measure of length referred throughout the model.
         self.locations, self.lengthUnit = locations, lengthUnit
 
         ################################################################################################################
         #                                            Time series parameters                                            #
         ################################################################################################################
 
-        # The totalTimeSteps (list, ranging from 0 to the total numberOfTimeSteps-1) refers to the total number of time
-        # steps considered when modeling the specified energy system. The parameter is used for validating time series
-        # data input and for setting other time series parameters when modeling a full temporal resolution.
-        # The hoursPerTimeStep parameter (float > 0) refers to the temporal length of a time step in the totalTimeSteps.
-        # From the numberOfTimeSteps and the hoursPerTimeStep the numberOfYears parameter is computed.
+        # The totalTimeSteps parameter (list, ranging from 0 to the total numberOfTimeSteps-1) refers to the total
+        # number of time steps considered when modeling the specified energy system. The parameter is used for
+        # validating time series data input and for setting other time series parameters when modeling a full temporal
+        # resolution. The hoursPerTimeStep parameter (float > 0) refers to the temporal length of a time step in the
+        # totalTimeSteps. From the numberOfTimeSteps and the hoursPerTimeStep the numberOfYears parameter is computed.
         self.totalTimeSteps, self.hoursPerTimeStep = list(range(numberOfTimeSteps)), hoursPerTimeStep
         self.numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
 
@@ -153,17 +156,17 @@ class EnergySystemModel:
         # temporal resolution, [typicalPeriod(0), ... ,
         # typicalPeriod(totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod-1)] when applying time series aggregation).
         # The occurrences of these periods are stored in the periodsOccurrences parameter (list, [1] when considering a
-        # full temporal resolution, [occurrences(0), ..., occurrences(numberOfTypicalPeriods-1)) when applying time
+        # full temporal resolution, [occurrences(0), ..., occurrences(numberOfTypicalPeriods-1)] when applying time
         # series aggregation).
         self.periods, self.periodsOrder, self.periodOccurrences = [0], [0], [1]
         self.timeStepsPerPeriod = list(range(numberOfTimeSteps))
         self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
 
-        # The isTimeSeriesDataClustered is used to check data consistency. It is set to True if the class' cluster
-        # function is called. It set to False if a new component is added.
+        # The isTimeSeriesDataClustered parameter is used to check data consistency.
+        # It is set to True if the class' cluster function is called. It is set to False if a new component is added.
         # If the cluster function is called, the typicalPeriods parameter is set from None to
-        # [0, ..., numberOfTypicalPeriods-1] and if specified the resulting TimeSeriesAggregation instance is stored
-        # in the tsaInstance parameter (default None)
+        # [0, ..., numberOfTypicalPeriods-1] and, if specified, the resulting TimeSeriesAggregation instance is stored
+        # in the tsaInstance parameter (default None).
         # The time unit refers to time measure referred throughout the model. Currently, it has to be an hour 'h'.
         self.isTimeSeriesDataClustered, self.typicalPeriods, self.tsaInstance = False, None, None
         self.timeUnit = 'h'
@@ -173,10 +176,10 @@ class EnergySystemModel:
         ################################################################################################################
 
         # The commodities parameter is a set of strings which describes what commodities are considered in the energy
-        # system and hence which commodity balances need to be considered in the energy system model and its
+        # system, and hence, which commodity balances need to be considered in the energy system model and its
         # optimization.
-        # The commodityUnitsDict is a dictionary which assigns each considered commodity (string) a unit (string)
-        # which can be used by results output functions.
+        # The commodityUnitsDict parameter is a dictionary which assigns each considered commodity (string) a
+        # unit (string) which can be used by results output functions.
         self.commodities = commodities
         self.commodityUnitsDict = commodityUnitsDict
 
@@ -198,17 +201,18 @@ class EnergySystemModel:
         #                                           Optimization parameters                                            #
         ################################################################################################################
 
-        # The pyM parameter (None when the EnergySystemModel is initialized. Once the optimize function is called,
-        # a Concrete Pyomo instance which stores parameters, sets, variables, constraints and objective required for
-        # the optimization set up and solving, is stored in this parameter.
-        # The solverSpecs parameter is a dictionary (string: param) which stores different parameters that were used
-        # when solving the last optimization problem. The parameters are: solver (string, solver which was used to solve
+        # The pyM parameter is None when the EnergySystemModel is initialized. After calling the optimize function,
+        # the pyM parameter stores a Concrete Pyomo Model instance which contains parameters, sets, variables,
+        # constraints and objective required for the optimization set up and solving.
+        # The solverSpecs parameter is a dictionary (string: param) which stores different parameters that are used
+        # for solving the optimization problem. The parameters are: solver (string, solver which is used to solve
         # the optimization problem), optimizationSpecs (string, representing **kwargs for the solver), hasTSA (boolean,
         # indicating if time series aggregation is used for the optimization), buildtime (positive float, time needed
-        # to declare the optimization problem seconds), solvetime (positive float, time needed to solve the optimization
-        # problem in seconds), runtime (positive float, runtime of the optimization run in seconds), timeLimit
-        # (positive float or None, if specified indicates the maximum allowed runtime of the solver), threads (positive
-        # int, number of threads used for optimization, can depend on solver), logFileName (string, name of logfile)
+        # to declare the optimization problem in seconds), solvetime (positive float, time needed to solve the
+        # optimization problem in seconds), runtime (positive float, runtime of the optimization run in seconds),
+        # timeLimit (positive float or None, if specified, indicates the maximum allowed runtime of the solver),
+        # threads (positive int, number of threads used for optimization, can depend on solver), logFileName
+        # (string, name of logfile).
         self.pyM = None
         self.solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'buildtime': 0, 'solvetime': 0,
                             'runtime': 0, 'timeLimit': None, 'threads': 0, 'logFileName': ''}
@@ -226,7 +230,7 @@ class EnergySystemModel:
     def add(self, component):
         """
         Function for adding a component and, if required, its respective modeling class to the EnergySystemModel
-        instance
+        instance. The added component has to inherit from the FINE class Component.
 
         :param component: the component to be added
         :type component: An object which inherits from the FINE Component class
@@ -240,7 +244,7 @@ class EnergySystemModel:
 
     def getComponent(self, componentName):
         """
-        Function which returns a component of the energy system
+        Function which returns a component of the energy system.
 
         :param componentName: name of the component that should be returned
         :type componentName: string
@@ -256,12 +260,12 @@ class EnergySystemModel:
 
     def getComponentAttribute(self, componentName, attributeName):
         """
-        Function which returns an attribute of a component considered in the energy system
+        Function which returns an attribute of a component considered in the energy system.
 
         :param componentName: name of the component from which the attribute should be obtained
         :type componentName: string
 
-        :param attributeName: name of the attributed that should be returned
+        :param attributeName: name of the attribute that should be returned
         :type attributeName: string
 
         :returns: the attribute specified by the attributeName of the component with the name componentName
@@ -272,20 +276,20 @@ class EnergySystemModel:
     def getOptimizationSummary(self, modelingClass, outputLevel=0):
         """
         Function which returns the optimization summary (design variables, aggregated operation variables,
-        objective contributions) of a modeling class
+        objective contributions) of a modeling class.
 
         :param modelingClass: name of the modeling class from which the optimization summary should be obtained
         :type modelingClass: string
 
-        :param outputLevel: states the level of detail of the output summary:
-            - 0: full optimization summary is returned
-            - 1: full optimization summary is returned but rows in which all values are NaN (not a number) are dropped
-            - 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped
+        :param outputLevel: states the level of detail of the output summary: \n
+            - 0: full optimization summary is returned \n
+            - 1: full optimization summary is returned but rows in which all values are NaN (not a number) are dropped\n
+            - 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped \n
             |br| * the default value is 0
         :type outputLevel: integer (0, 1 or 2)
 
-        :returns: the attribute specified by the attributeName of the component with the name componentName
-        :rtype: depends on the specified attribute
+        :returns: the optimization summary of the requested modeling class
+        :rtype: pandas DataFrame
         """
         if outputLevel == 0:
             return self.componentModelingDict[modelingClass].optSummary
@@ -300,7 +304,7 @@ class EnergySystemModel:
     def cluster(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical',
                 sortValues=True, storeTSAinstance=False, **kwargs):
         """
-        Clusters the time series data of all components considered in the EnergySystemModel instance and then
+        Cluster the time series data of all components considered in the EnergySystemModel instance and then
         stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
         days with 24 hours) is assigned. For the clustering itself, the tsam package is used (cf.
@@ -336,7 +340,7 @@ class EnergySystemModel:
             |br| * the default value is True
         :type sortValues: boolean
 
-        :param storeTSAinstance: states if the TimeSeriesAggregation instance create during clustering should be
+        :param storeTSAinstance: states if the TimeSeriesAggregation instance created during clustering should be
             stored in the EnergySystemModel instance.
             |br| * the default value is False
         :type storeTSAinstance: boolean
@@ -354,7 +358,7 @@ class EnergySystemModel:
 
         # Format data to fit the input requirements of the tsam package:
         # (a) append the time series data from all components stored in all initialized modeling classes to a pandas
-        #     data frame with unique column names
+        #     DataFrame with unique column names
         # (b) thereby collect the weights which should be considered for each time series as well in a dictionary
         timeSeriesData, weightDict = [], {}
         for mdlName, mdl in self.componentModelingDict.items():
@@ -397,7 +401,19 @@ class EnergySystemModel:
         utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", self.verbose, 0)
 
     def declareTimeSets(self, pyM, timeSeriesAggregation):
-        """ Set and initialize basic time parameters and sets """
+        """
+        Set and initialize basic time parameters and sets.
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+            |br| * the default value is False
+        :type timeSeriesAggregation: boolean
+        """
 
         # Store the information if aggregated time series data is considered for modeling the energy system in the pyomo
         # model instance and set the time series which is again considered for modeling in all components accordingly
@@ -407,13 +423,13 @@ class EnergySystemModel:
                 comp.setTimeSeriesData(pyM.hasTSA)
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
-        # entries, the first one indicating an index of a period and the second one indicating a time step inside that
+        # entries, the first one indicates an index of a period and the second one indicates a time step inside that
         # period. If time series aggregation is not considered, only one period (period 0) exists and the time steps
-        # range from 0 up until the specified number of total time steps - 1. Otherwise the time set is initialized for
+        # range from 0 up until the specified number of total time steps - 1. Otherwise, the time set is initialized for
         # each typical period (0 ... numberOfTypicalPeriods-1) and the number of time steps per period (0 ...
         # numberOfTimeStepsPerPeriod-1).
         # The inter time steps set is a set of tuples as well, which again consist of two values. The first value again
-        # indicates the period, however the second one now refers to a point in time right before or after a time step
+        # indicates the period, however, the second one now refers to a point in time right before or after a time step
         # (or between two time steps). Hence, the second value reaches values from (0 ... numberOfTimeStepsPerPeriod).
         if not pyM.hasTSA:
             # Reset timeStepsPerPeriod in case it was overwritten by the clustering function
@@ -448,8 +464,14 @@ class EnergySystemModel:
         pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
 
     def declareSharedPotentialConstraints(self, pyM):
-        # Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
-        # salt caverns storing methane and salt caverns storing hydrogen.
+        """
+        Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
+        salt cavern storing methane and salt caverns storing hydrogen.
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
+        """
         utils.output('Declaring shared potential constraint...', self.verbose, 0)
 
         # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
@@ -475,6 +497,10 @@ class EnergySystemModel:
     def declareCommodityBalanceConstraints(self, pyM):
         """
         Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
         """
         utils.output('Declaring commodity balances...', self.verbose, 0)
 
@@ -488,7 +514,7 @@ class EnergySystemModel:
 
         # Declare and initialize commodity balance constraints by checking for each location and commodity in the
         # locationCommoditySet and for each period and time step within the period if the commodity source and sink
-        # terms add up to zero. For this, get the contribution to commodity balance from each modeling class
+        # terms add up to zero. For this, get the contribution to commodity balance from each modeling class.
         def commodityBalanceConstraint(pyM, loc, commod, p, t):
             return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, p, t)
                        for mdl in self.componentModelingDict.values()) == 0
@@ -497,9 +523,13 @@ class EnergySystemModel:
 
     def declareObjective(self, pyM):
         """
-        Declare objective function by obtaining the contributions to the objective function from all modeling classes
-        Currently, the only objective function which can be selected is the sum of the total annual cost of all
+        Declare the objective function by obtaining the contributions to the objective function from all modeling
+        classes. Currently, the only objective function which can be selected is the sum of the total annual cost of all
         components.
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
         """
         utils.output('Declaring objective function...', self.verbose, 0)
 
@@ -510,8 +540,8 @@ class EnergySystemModel:
 
     def declareOptimizationProblem(self, timeSeriesAggregation=False):
         """
-        Declares the optimization problem belonging to the specified energy system, for which a pyomo discrete model
-        instance is build and filled with
+        Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
+        instance is built and filled with
         * basic time sets,
         * sets, variables and constraints contributed by the component modeling classes,
         * basic, component overreaching constraints, and
@@ -528,7 +558,7 @@ class EnergySystemModel:
         Last edited: November 10, 2018
         |br| @author: Lara Welder
         """
-        # Get starting time of the optimization to later on obtain the total run time of the optimize function call
+        # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
 
         # Check correctness of inputs
@@ -584,23 +614,23 @@ class EnergySystemModel:
         self.declareObjective(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
-        # Store the buildtime of the optimize function call in the EnergySystemModel instance
+        # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
-    def optimize(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='job', threads=3,
-                 solver='gurobi', timeLimit=None, optimizationSpecs='OptimalityTol=1e-6', warmstart=False):
+    def optimize(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='', threads=3,
+                 solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
         """
-        Optimizes the specified energy system, for which a pyomo discrete model instance is build or called upon.
-        A pyomo instance is optimized with the specified inputs and the optimization results are further
+        Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
+        A pyomo instance is optimized with the specified inputs, and the optimization results are further
         processed.
 
         **Default arguments:**
 
         :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
-            (a) If true, the declareOptimizationProblem function is called and concrete pyomo model instance is built.
-            (b) If false a previously declared concrete pyomo model instance is used.
+            (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
+            (b) If false a previously declared pyomo ConcreteModel instance is used.
             |br| * the default value is True
-        :type timeSeriesAggregation: boolean
+        :type declaresOptimizationProblem: boolean
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
             (a) the full time series (False) or
@@ -608,15 +638,16 @@ class EnergySystemModel:
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
-        :param logFileName: logFileName is used for naming the log file of the optimization solver output.
-            If the logFileName is given as an absolute path (i.e. logFileName = os.path.join(os.getcwd(),
-            'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise
-            it will be by default stored in the directory where the executing python script is called.
+        :param logFileName: logFileName is used for naming the log file of the optimization solver output
+            if gurobi is used as the optimization solver.
+            If the logFileName is given as an absolute path (e.g. logFileName = os.path.join(os.getcwd(),
+            'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise,
+            it will be stored by default in the directory where the executing python script is called.
             |br| * the default value is 'job'
         :type logFileName: string
 
         :param threads: number of computational threads used for solving the optimization (solver dependent
-            input). If gurobi is selected as the solver: a value of 0 results in using all available threads. If
+            input) if gurobi is used as the solver. A value of 0 results in using all available threads. If
             a value larger than the available number of threads are chosen, the value will reset to the maximum
             number of threads.
             |br| * the default value is 3
@@ -641,7 +672,7 @@ class EnergySystemModel:
         :type timeLimit: string
 
         :param warmstart: specifies if a warm start of the optimization should be considered
-            (not supported by all solvers).
+            (not always supported by the solvers).
             |br| * the default value is False
         :type warmstart: boolean
 
@@ -655,7 +686,7 @@ class EnergySystemModel:
                 raise TypeError('The optimization problem is not declared yet. Set the argument declaresOptimization'
                                 ' problem to True or call the declareOptimizationProblem function first.')
 
-        # Get starting time of the optimization to later on obtain the total run time of the optimize function call
+        # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
 
         # Check correctness of inputs
@@ -675,17 +706,20 @@ class EnergySystemModel:
         optimizer = opt.SolverFactory(solver)
 
         # Set, if specified, the time limit
-        if self.solverSpecs['timeLimit'] is not None:
+        if self.solverSpecs['timeLimit'] is not None and solver == 'gurobi':
             optimizer.options['timelimit'] = timeLimit
 
         # Set the specified solver options
         if 'LogToConsole=' not in optimizationSpecs:
             if self.verbose == 2:
                 optimizationSpecs += ' LogToConsole=0'
-        optimizer.set_options('Threads=' + str(threads) + ' logfile=' + logFileName + ' ' + optimizationSpecs)
 
-        # Solve optimization problem. The optimization solvetime is stored and the solver information is printed.
-        solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
+        # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
+        if solver=='gurobi':
+            optimizer.set_options('Threads=' + str(threads) + ' logfile=' + logFileName + ' ' + optimizationSpecs)
+            solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
+        else:
+            solver_info = optimizer.solve(self.pyM, tee=True)
         self.solverSpecs['solvetime'] = time.time() - timeStart
         utils.output(solver_info.solver(), self.verbose, 0), utils.output(solver_info.problem(), self.verbose, 0)
         utils.output('Solve time: ' + str(self.solverSpecs['solvetime']) + ' sec.', self.verbose, 0)
@@ -711,7 +745,7 @@ class EnergySystemModel:
                              '. No output is generated.', self.verbose, 0)
         else:
             # If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
-            # status)
+            # status), show a warning message.
             if not solver_info.solver.termination_condition == opt.TerminationCondition.optimal and self.verbose < 2:
                 warnings.warn('Output is generated for a non-optimal solution.')
             utils.output("\nProcessing optimization output...", self.verbose, 0)

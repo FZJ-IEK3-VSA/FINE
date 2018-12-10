@@ -7,7 +7,7 @@ with open(os.path.join(dir_path, 'README.md'), "r") as fh:
 
 setuptools.setup(
     name='FINE',
-    version='1.0.0',
+    version='1.0.2',
     author='Lara Welder',
     author_email='l.welder@fz-juelich.de',
     description='Framework for integrated energy systems assessment',

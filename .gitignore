@@ -16,3 +16,5 @@ __pycache__/
 *.egg-info
 *.log
 *.lp
+*.glp
+*.mps
