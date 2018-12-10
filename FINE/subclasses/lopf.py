@@ -87,7 +87,8 @@ class LOPFModel(TransmissionModel):
 
     def declareSets(self, esM, pyM):
         """
-        Declare sets and dictionaries.
+        Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
+        linked components dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -102,7 +103,7 @@ class LOPFModel(TransmissionModel):
         self.declareDiscreteDesignVarSet(pyM)
         self.declareDesignDecisionVarSet(pyM)
 
-        # Declare operation variable set
+        # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
 
@@ -153,8 +154,8 @@ class LOPFModel(TransmissionModel):
 
     def powerFlowDC(self, pyM):
         """
-        Ensure that the capacity between location_1 and location_2 is the same as the one
-        between location_2 and location_1.
+        Ensure that the flow between two locations is equal to the difference between the phase angle variables at
+        these locations divided by the reactance of the line between these locations.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
