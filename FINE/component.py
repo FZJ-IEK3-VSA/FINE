@@ -7,8 +7,10 @@ import pandas as pd
 
 class Component(metaclass=ABCMeta):
     """
-    The Component class includes the general methods and arguments for the technologies add-able to the energy system
-    model. Every technology inherits from the Component class.
+    The Component class includes the general methods and arguments for the components which are add-able to
+    the energy system model (e.g. storage component, source component, transmission component). Every of these
+    components inherits from the Component class. 
+
     """
     def __init__(self, esM, name, dimension,
                  hasCapacityVariable, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
@@ -82,8 +84,8 @@ class Component(metaclass=ABCMeta):
         :param locationalEligibility:\n
             * Pandas Series that indicates if a component can be built at a location (=1) or not (=0)
               (dimension=1dim) or
-            * Pandas DataFrame that indicates if a component can be built between two locations
-              (=1) or not (=0) (dimension=2dim).\n
+            * Pandas Series or DataFrame that indicates if a component can be built between two
+              locations (=1) or not (=0) (dimension=2dim).\n
             If not specified and a maximum or fixed capacity or time series is given, the parameter will be
             set based on these inputs. If the parameter is specified, a consistency check is done to ensure
             that the parameters indicate the same locational eligibility. If the parameter is not specified,
@@ -95,30 +97,33 @@ class Component(metaclass=ABCMeta):
         :type locationalEligibility:\n
             * None or
             * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with values equal to 0 and 1. The column and row indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
         :param capacityMin: if specified, indicates the minimum capacities. The type of this parameter depends on the
             dimension of the component: If dimension=1dim, it has to be a Pandas Series. If dimension=2dim, it has to
-            to be a Pandas DataFrame. If binary decision variables are declared, capacityMin is only used if the
-            component is built.
+            to be a Pandas Series or DataFrame. If binary decision variables are declared, capacityMin is only used
+            if the component is built.
             |br| * the default value is None
         :type capacityMin:
             * None or
-            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+            * Pandas Series with positive (>=0) values. TThe indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
         :param capacityMax: if specified, indicates the maximum capacities. The type of this parameter depends on the
             dimension of the component: If dimension=1dim, it has to be a Pandas Series. If dimension=2dim, it has to
-            to be a Pandas DataFrame.
+            to be a Pandas Series or DataFrame.
             |br| * the default value is None
         :type capacityMax:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -130,24 +135,26 @@ class Component(metaclass=ABCMeta):
 
         :param capacityFix: if specified, indicates the fixed capacities. The type of this parameter
             depends on the dimension of the component: If dimension=1dim, it has to be a Pandas Series.
-            If dimension=2dim, it has to be a Pandas DataFrame.
+            If dimension=2dim, it has to be a Pandas Series or DataFrame.
             |br| * the default value is None
         :type capacityFix:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
         :param isBuiltFix: if specified, indicates fixed decisions in which or between which locations the component is
             built (i.e. sets the isBuilt binary variables). The type of this parameter
             depends on the dimension of the component: If dimension=1dim, it has to be a Pandas Series.
-            If dimension=2dim, it has to be a Pandas DataFrame.
+            If dimension=2dim, it has to be a Pandas Series or DataFrame.
             |br| * the default value is None
         :type isBuiltFix:
             * None or
-            * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the
-              in the energy system model specified locations or
+            * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with values equal to 0 and 1. The row and column indices of the DataFrame
               have to equal the in the energy system model specified locations.
 
@@ -158,14 +165,15 @@ class Component(metaclass=ABCMeta):
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
               parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
               1e6 Euro) or
-            * a float or a Pandas DataFrame with location specific values (dimension=2dim). The cost unit in which the
-              parameter is given has to match the one specified in the energy system model divided by
+            * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
+              in which the parameter is given has to match the one specified in the energy system model divided by
               the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km).\n
             |br| * the default value is 0
         :type investPerCapacity:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -174,14 +182,15 @@ class Component(metaclass=ABCMeta):
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which
               the parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
               1e6 Euro) or
-            * a float or a Pandas DataFrame with location specific values (dimension=2dim). The cost unit in which the
-              parameter is given has to match the one specified in the energy system model divided by
+            * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
+              in which the parameter is given has to match the one specified in the energy system model divided by
               the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
             |br| * the default value is 0
         :type investIfBuilt:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -192,14 +201,15 @@ class Component(metaclass=ABCMeta):
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
               parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
               1e6 Euro) or
-            * a float or a Pandas DataFrame with location specific values (dimension=2dim). The cost unit in which the
-              parameter is given has to match the one specified in the energy system model divided by
+            * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
+              in which the parameter is given has to match the one specified in the energy system model divided by
               the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
             |br| * the default value is 0
         :type opexPerCapacity:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -208,14 +218,15 @@ class Component(metaclass=ABCMeta):
             * a float or a Pandas Series with location specific values (dimension=1dim) . The cost unit in which
               the parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
               1e6 Euro)or
-            * a float or a Pandas DataFrame with location specific values (dimension=2dim). The cost unit in which the
-              parameter is given has to match the one specified in the energy system model divided by
+            * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
+              in which the parameter is given has to match the one specified in the energy system model divided by
               the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
             |br| * the default value is 0
         :type opexIfBuilt:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -226,7 +237,8 @@ class Component(metaclass=ABCMeta):
         :type interestRate:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -236,7 +248,8 @@ class Component(metaclass=ABCMeta):
         :type economicLifetime:
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations or
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
@@ -513,8 +526,8 @@ class ComponentModel(metaclass=ABCMeta):
 
     def declareOpConstrSet1(self, pyM, constrSetName, rateMax, rateFix):
         """
-        Declare this constraint if hasCapacityVariable is set to True and a neither the maximum nor the fixed
-        operation rate is given.
+        Declare set of locations and components for which hasCapacityVariable is set to True and neither the
+        maximum nor the fixed operation rate is given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
@@ -527,7 +540,10 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrSetName + '1_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet1))
 
     def declareOpConstrSet2(self, pyM, constrSetName, rateFix):
-        """ Declare this constraint if hasCapacityVariable is set to True and a fixed operation rate is given."""
+        """
+        Declare set of locations and components for which hasCapacityVariable is set to True and a fixed
+        operation rate is given.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -538,7 +554,10 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrSetName + '2_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet2))
 
     def declareOpConstrSet3(self, pyM, constrSetName, rateMax):
-        """ Declare this constraint if hasCapacityVariable is set to True and a maximum operation rate is given."""
+        """
+        Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
+        operation rate is given.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -549,7 +568,10 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrSetName + '3_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet3))
 
     def declareOpConstrSet4(self, pyM, constrSetName, rateFix):
-        """ Declare this constraint if hasCapacityVariable is set to False and a fixed operation rate is given."""
+        """
+        Declare set of locations and components for which hasCapacityVariable is set to False and a fixed
+        operation rate is given.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -560,7 +582,10 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrSetName + '4_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet4))
 
     def declareOpConstrSet5(self, pyM, constrSetName, rateMax):
-        """ Declare this constraint if hasCapacityVariable is set to False and a maximum operation rate is given."""
+        """
+        Declare set of locations and components for which hasCapacityVariable is set to False and a maximum
+        operation rate is given.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
@@ -883,15 +908,15 @@ class ComponentModel(metaclass=ABCMeta):
     @abstractmethod
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
-        Check if a commodity is eligible for the component in a certain location.
+        Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :param loc: name of the regarded location (locations are defined in the EnergySystemModel instance)
         :type loc: string
 
-        :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
+        :param commod: name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
         :param commod: string
         """
         
@@ -973,16 +998,18 @@ class ComponentModel(metaclass=ABCMeta):
 
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=''):
         """
-        Set the optimal values for the considered component and return a summary of them.
+        Set the optimal values for the considered components and return a summary of them.
 
         **Required arguments**
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :param esM: EnergySystemModel instance representing the energy system in which the components are be modeled.
         :type esM: EnergySystemModel instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
-        :param indexColumns: set of strings which  the columns indices.
+        :param indexColumns: set of strings with the columns indices of the summary. The indices represent the locations
+            or connections between the locations are used to call the optimal values of the variables of the components
+            in the model class.
         :type indexColumns: set
 
         :param plantUnit: attribut of the component that describes the unit of the plants to which maximum capacity
@@ -992,8 +1019,9 @@ class ComponentModel(metaclass=ABCMeta):
         :type plantUnit: string
 
         **Default arguments**
-        :param unitApp: auxiliary variable for formatting.
-             |br| * the default value is ''.
+        :param unitApp: string which appends the capacity unit in the optimization summary.
+            For example, for the StorageModel class, the parameter is set to '*h'.
+            |br| * the default value is ''.
         :type unitApp: string
 
         :return: summary of the optimized values.
