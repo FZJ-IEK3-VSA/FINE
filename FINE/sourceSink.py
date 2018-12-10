@@ -248,7 +248,7 @@ class SourceSinkModel(ComponentModel):
     """
 
     def __init__(self):
-        """" Constructor for creating a SourceSinkModel class instance. """
+        """ Constructor for creating a SourceSinkModel class instance. """
         self.abbrvName = 'srcSnk'
         self.dimension = '1dim'
         self.componentsDict = {}
@@ -280,7 +280,7 @@ class SourceSinkModel(ComponentModel):
 
     def declareSets(self, esM, pyM):
         """
-        Declare sets and dictionaries: design variable sets, operation variable set, operation mode set and
+        Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
         linked commodity limitation dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -391,17 +391,18 @@ class SourceSinkModel(ComponentModel):
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################
 
-        # Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by the hours per time step
+        # Operation [commodityUnit*h] limited by the installed capacity [commodityUnit] multiplied by the hours per
+        # time step [h]
         self.operationMode1(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] equal to the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h])
+        # Operation [commodityUnit*h] equal to the installed capacity [commodityUnit] multiplied by operation time
+        # series [-] and the hours per time step [h])
         self.operationMode2(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] limited by the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h])
+        # Operation [commodityUnit*h] limited by the installed capacity [commodityUnit] multiplied by operation time
+        # series [-] and the hours per time step [h])
         self.operationMode3(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] equal to the operation time series [energyUnit]
+        # Operation [commodityUnit*h] equal to the operation time series [commodityUnit*h]
         self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] limited by the operation time series [energyUnit]
+        # Operation [commodityUnit*h] limited by the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
 
         self.yearlyLimitationConstraint(pyM, esM)
@@ -416,7 +417,7 @@ class SourceSinkModel(ComponentModel):
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
-        Check if a commodity is eligible for the source and sink components in a certain location.
+        Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
