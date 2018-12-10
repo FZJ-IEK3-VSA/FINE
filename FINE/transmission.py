@@ -31,9 +31,8 @@ class Transmission(Component):
         :type commodity: string
 
         **Default arguments:**
-# TODO: description of losses seems to be wrong -> what is the unit of losses?
-        :param losses: losses per lengthUnit (lengthUnit as specified in the energy system model) in percentage
-            of the commodity flow. This loss factor can capture simple linear losses
+        :param losses: relative losses per lengthUnit (lengthUnit as specified in the energy system model) in
+            percentage of the commodity flow. This loss factor can capture simple linear losses
             trans_in_ij=(1-losses*distance)*trans_out_ij (with trans being the commodity flow at a certain point in
             time and i and j being locations in the energy system). The losses can either be given as a float or a
             Pandas DataFrame with location specific values.
@@ -223,7 +222,7 @@ class TransmissionModel(ComponentModel):
 
     def declareSets(self, esM, pyM):
         """
-        Declare sets: design variable sets, operation variable set and operation mode set.
+        Declare sets: design variable sets, operation variable set and operation mode sets.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -241,7 +240,7 @@ class TransmissionModel(ComponentModel):
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
 
-        # Declare operation mode set
+        # Declare operation mode sets
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
 
     ####################################################################################################################
@@ -346,17 +345,18 @@ class TransmissionModel(ComponentModel):
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################
 
-        # Operation [energyUnit] is limited by the installed capacity [powerUnit] multiplied by the hours per time step
+        # Operation [commodityUnit*h] is limited by the installed capacity [commodityUnit] multiplied by the hours per
+        # time step [h]
         self.operationMode1_2dim(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] is equal to the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h]
+        # Operation [commodityUnit*h] is equal to the installed capacity [commodityUnit] multiplied by operation time
+        # series [-] and the hours per time step [h]
         self.operationMode2(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] is limited by the installed capacity [powerUnit] multiplied by operation time series
-        # [powerUnit/powerUnit] and the hours per time step [h]
+        # Operation [commodityUnit*h] is limited by the installed capacity [commodityUnit] multiplied by operation time
+        # series [-] and the hours per time step [h]
         self.operationMode3(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] is equal to the operation time series [energyUnit]
+        # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
         self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
-        # Operation [energyUnit] is limited by the operation time series [energyUnit]
+        # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
 
     ####################################################################################################################
