@@ -129,8 +129,8 @@ class StorageExt(Storage):
 
     def setTimeSeriesData(self, hasTSA):
         """
-        Function for setting the maximum operation rate and fixed operation rate for charging and discharging
-        depending on whether a time series analysis is requested or not.
+        Function for setting the maximum operation rate and fixed operation rate for the state of charge, charging and
+        discharging depending on whether a time series analysis is requested or not.
 
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
@@ -157,7 +157,7 @@ class StorageExt(Storage):
 
     def setAggregatedTimeSeriesData(self, data):
         """
-        Function for determining the aggregated maximum and fixed state of charge.
+        Function for determining the aggregated maximum and fixed state of charge/ discharge rate/ charge rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the source component
         :type data: Pandas DataFrame
@@ -233,8 +233,8 @@ class StorageExtModel(StorageModel):
 
     def operationModeSOCwithTSA1(self, pyM, esM):
         """
-        Declare the constraint that the state of charge [energyUnit] is limited by the installed capacity [powerUnit]
-        and the relative maximum state of charge.
+        Declare the constraint that the state of charge [commodityUnit*h] is limited by the installed capacity
+        [commodityUnit*h] and the relative maximum state of charge [-].
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -260,8 +260,8 @@ class StorageExtModel(StorageModel):
 
     def operationModeSOCwithTSA2(self, pyM, esM):
         """
-        Declare the constraint that the state of charge [energyUnit] is equal to the installed capacity [energyUnit]
-        multiplied by state of charge time series [energyUnit/energyUnit].
+        Declare the constraint that the state of charge [commodityUnit*h] is equal to the installed capacity
+        [commodityUnit*h] multiplied by state of charge time series [-].
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -288,8 +288,8 @@ class StorageExtModel(StorageModel):
 
     def operationModeSOCwithTSA3(self, pyM, esM):
         """
-        Declare the constraint that the state of charge [energyUnit] is limited by the installed capacity [energyUnit]
-        multiplied by state of charge time series [energyUnit/energyUnit].
+        Declare the constraint that the state of charge [commodityUnit*h] is limited by the installed capacity
+        [commodityUnit*h] multiplied by state of charge time series [-].
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -316,7 +316,8 @@ class StorageExtModel(StorageModel):
 
     def operationModeSOCwithTSA4(self, pyM, esM):
         """
-        Declare the constraint that the operation [energyUnit] is equal to the operation time series [energyUnit].
+        Declare the constraint that the operation [commodityUnit*h] is equal to the operation time series
+        [commodityUnit*h].
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -342,7 +343,8 @@ class StorageExtModel(StorageModel):
 
     def operationModeSOCwithTSA5(self, pyM, esM):
         """
-        Declare the constraint that the operation [energyUnit] is limited by the operation time series [energyUnit].
+        Declare the constraint that the operation [commodityUnit*h] is limited by the operation time series
+        [commodityUnit*h].
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -403,34 +405,34 @@ class StorageExtModel(StorageModel):
 
         #                              Constraints for enforcing charging operation modes                              #
 
-        # Charging of storage [energyUnit] limited by the installed capacity [energyUnit] multiplied by the hours per
-        # time step [h] and the charging rate factor [powerUnit/energyUnit]
+        # Charging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied by
+        # the hours per time step [h] and the charging rate factor [1/h]
         self.operationMode1(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeRate')
-        # Charging of storage [energyUnit] limited by the installed capacity [energyUnit] multiplied by the hours per
-        # time step [h] and the charging operation time series [powerUnit/energyUnit]
+        # Charging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied by
+        # the hours per time step [h] and the charging operation time series [1/h]
         self.operationMode2(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp')
-        # Charging of storage [energyUnit] equal to the installed capacity [energyUnit] multiplied by the hours per
-        # time step [h] and the charging operation time series [powerUnit/energyUnit]
+        # Charging of storage [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] multiplied by
+        # the hours per time step [h] and the charging operation time series [1/h]
         self.operationMode3(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp')
-        # Operation [energyUnit] limited by the operation time series [energyUnit]
+        # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
         self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp')
-        # Operation [energyUnit] equal to the operation time series [energyUnit]
+        # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp')
 
         #                             Constraints for enforcing discharging operation modes                            #
 
-        # Discharging of storage [energyUnit] limited by the installed capacity [energyUnit] multiplied by the hours per
-        # time step [h] and the discharging rate factor [powerUnit/energyUnit]
+        # Discharging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied
+        # by the hours per time step [h] and the discharging rate factor [1/h]
         self.operationMode1(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeRate')
-        # Discharging of storage [energyUnit] limited by the installed capacity [energyUnit] multiplied by the hours per
-        # time step [h] and the charging operation time series [powerUnit/energyUnit]
+        # Discharging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied
+        # by the hours per time step [h] and the discharging operation time series [1/h]
         self.operationMode2(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp')
-        # Discharging of storage [energyUnit] equal to the installed capacity [energyUnit] multiplied by the hours per
-        # time step [h] and the charging operation time series [powerUnit/energyUnit]
+        # Discharging of storage [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] multiplied
+        # by the hours per time step [h] and the discharging operation time series [1/h]
         self.operationMode3(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp')
-        # Operation [energyUnit] limited by the operation time series [energyUnit]
+        # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
         self.operationMode4(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp')
-        # Operation [energyUnit] equal to the operation time series [energyUnit]
+        # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp')
 
         # Cyclic constraint enforcing that all storages have the same state of charge at the the beginning of the first
@@ -454,25 +456,25 @@ class StorageExtModel(StorageModel):
         if not pyM.hasTSA:
             #              Constraints for enforcing a state of charge operation mode within given limits              #
 
-            # State of charge [energyUnit] limited by the installed capacity [energyUnit] and the relative maximum
-            # state of charge
+            # State of charge [commodityUnit*h] limited by the installed capacity [commodityUnit*h] and the
+            # relative maximum state of charge
             self.operationMode1(pyM, esM, 'ConstrSOCMax', 'stateOfChargeOpConstrSet', 'stateOfCharge',
                                 'stateOfChargeMax', isStateOfCharge=True)
-            # State of charge [energyUnit] equal to the installed capacity [energyUnit] multiplied by state of charge
-            # time series [energyUnit/energyUnit]
+            # State of charge [commodityUnit*h] equal to the installed capacity [commodityUnit*h] multiplied
+            # by state of charge time series [-]
             self.operationMode2(pyM, esM, 'ConstrSOCMax', 'stateOfChargeOpConstrSet', 'stateOfCharge',
                                 isStateOfCharge=True)
-            # State of charge [energyUnit] limited by the installed capacity [energyUnit] multiplied by state of charge
-            # time series [energyUnit/energyUnit]
+            # State of charge [commodityUnit*h] limited by the installed capacity [commodityUnit*h] multiplied
+            # by state of charge time series [-]
             self.operationMode3(pyM, esM, 'ConstrSOCMax', 'stateOfChargeOpConstrSet', 'stateOfCharge',
                                 isStateOfCharge=True)
-            # Operation [energyUnit] equal to the operation time series [energyUnit]
+            # Operation [commodityUnit*h] equal to the operation time series [commodityUnit*h]
             self.operationMode4(pyM, esM, 'ConstrSOCMax', 'stateOfChargeOpConstrSet', 'stateOfCharge')
-            # Operation [energyUnit] limited by the operation time series [energyUnit]
+            # Operation [commodityUnit*h] limited by the operation time series [commodityUnit*h]
             self.operationMode5(pyM, esM, 'ConstrSOCMax', 'stateOfChargeOpConstrSet', 'stateOfCharge')
 
-            # The state of charge [energyUnit] has to be larger than the installed capacity [energyUnit] multiplied
-            # with the relative minimum state of charge
+            # The state of charge [commodityUnit*h] has to be larger than the installed capacity [commodityUnit*h]
+            # multiplied with the relative minimum state of charge
             self.minSOC(pyM)
 
         else:
@@ -484,18 +486,18 @@ class StorageExtModel(StorageModel):
 
             # Constraints for enforcing a state of charge operation within given limits
 
-            # State of charge [energyUnit] limited by the installed capacity [energyUnit] and the relative maximum
-            # state of charge
+            # State of charge [commodityUnit*h] limited by the installed capacity [commodityUnit*h] and the relative
+            # maximum state of charge
             self.operationModeSOCwithTSA1(pyM, esM)
-            # State of charge [energyUnit] equal to the installed capacity [energyUnit] multiplied by state of charge
-            # time series [energyUnit/energyUnit]
+            # State of charge [commodityUnit*h] equal to the installed capacity [commodityUnit*h] multiplied by state
+            # of charge time series [-]
             self.operationModeSOCwithTSA2(pyM, esM)
-            # State of charge [energyUnit] limited by the installed capacity [energyUnit] multiplied by state of charge
-            # time series [energyUnit/energyUnit]
+            # State of charge [commodityUnit*h] limited by the installed capacity [commodityUnit*h] multiplied by state
+            # of charge time series [-]
             self.operationModeSOCwithTSA3(pyM, esM)
-            # Operation [energyUnit] equal to the operation time series [energyUnit]
+            # Operation [commodityUnit*h] equal to the operation time series [commodityUnit*h]
             self.operationModeSOCwithTSA4(pyM, esM)
-            # Operation [energyUnit] limited by the operation time series [energyUnit]
+            # Operation [commodityUnit*h] limited by the operation time series [commodityUnit*h]
             self.operationModeSOCwithTSA5(pyM, esM)
 
             # The state of charge at each time step cannot be smaller than the installed capacity multiplied with the
