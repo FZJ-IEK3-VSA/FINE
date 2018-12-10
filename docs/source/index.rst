@@ -17,7 +17,7 @@ FINE - A Framework for Integrated Energy System Assessment
 
 The FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided
 framework, systems with multiple regions, commodities and time steps can be modeled. Target of the optimization is the
-minimization of the total annual cost while considering technical and enviromental constraints. Besides using the full
+minimization of the total annual cost while considering technical and environmental constraints. Besides using the full
 temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity
 and computational time of the model.
 
@@ -32,9 +32,7 @@ and computational time of the model.
 If you want to use FINE in a published work, please kindly cite following publication:
 https://www.sciencedirect.com/science/article/pii/S036054421830879X which gives
 a description of the first stages of the framework. The python package which provides the time series aggregation module
-and its corresponding literatur can be found here https://github.com/FZJ-IEK3-VSA/tsam.
-
-Contents:
+and its corresponding literatur can be found `here <https://github.com/FZJ-IEK3-VSA/tsam>`_.
 
 .. toctree::
     :maxdepth: 1
