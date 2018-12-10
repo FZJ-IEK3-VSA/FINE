@@ -109,7 +109,7 @@ class Component(metaclass=ABCMeta):
             |br| * the default value is None
         :type capacityMin:
             * None or
-            * Pandas Series with positive (>=0) values. TThe indices of the series have to equal the in the
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
@@ -1001,7 +1001,7 @@ class ComponentModel(metaclass=ABCMeta):
         Set the optimal values for the considered components and return a summary of them.
 
         **Required arguments**
-        :param esM: EnergySystemModel instance representing the energy system in which the components are be modeled.
+        :param esM: EnergySystemModel instance representing the energy system in which the components are modeled.
         :type esM: EnergySystemModel instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
