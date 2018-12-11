@@ -1,6 +1,6 @@
-##############################
-LinearOptimalPowerFlow classes
-##############################
+############################
+LinearOptimalPowerFlow class
+############################
 
 .. |br| raw:: html
 
