@@ -13,7 +13,7 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 
 ## Documentation
 
-A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
+A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/).
 
 ## Installation
 You can directly install FINE via pip as follows
