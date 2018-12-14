@@ -37,14 +37,14 @@ def createOutputAsNetCDF(esM, output='output.nc', initialTime='2050-01-01 00:30:
     # initiate netCDF file
     ds = nc.Dataset(output, mode='w')
     # create the dimensions for locations and time at top level
-    ds.createDimension('locations', size=len(esM._locations))
-    ds.createDimension('time', size=len(esM._totalTimeSteps))
+    ds.createDimension('locations', size=len(esM.locations))
+    ds.createDimension('time', size=len(esM.totalTimeSteps))
 
     # Create the variable for time stamps
     var = ds.createVariable('time', 'u4', dimensions=('time',))
     var.description = 'Time stamps to be used in the operation time series'
     var.units = 'Minutes since 1900-01-01 00:00:00'
-    datetimes = pd.date_range(initialTime, periods=len(esM._totalTimeSteps), freq=freq)
+    datetimes = pd.date_range(initialTime, periods=len(esM.totalTimeSteps), freq=freq)
     var[:]= nc.date2num( datetimes.to_pydatetime(), var.units )
     #to create the time stamps back...
     #pd.to_datetime( nc.num2date( var[:], var.units ) )
@@ -53,10 +53,10 @@ def createOutputAsNetCDF(esM, output='output.nc', initialTime='2050-01-01 00:30:
     ds.createGroup('/operationTimeSeries/')
 
     # Create the group for each modeling class
-    for compMod in esM._componentModelingDict.keys():
+    for compMod in esM.componentModelingDict.keys():
         tsD = ds.createGroup('/operationTimeSeries/{}'.format(compMod[:-8]))
-        if compMod == 'StorageModeling': df = esM._componentModelingDict[compMod]._stateOfChargeOperationVariablesOptimum
-        else: df = esM._componentModelingDict[compMod]._operationVariablesOptimum
+        if compMod == 'StorageModel': df = esM.componentModelingDict[compMod].stateOfChargeOperationVariablesOptimum
+        else: df = esM.componentModelingDict[compMod].operationVariablesOptimum
 
         # Create dimension 
         opColDim = '{}_col'.format(compMod[:-8])
@@ -73,12 +73,12 @@ def createOutputAsNetCDF(esM, output='output.nc', initialTime='2050-01-01 00:30:
 
     # Create the group for capacity variables
     ds.createGroup('/capacityVariables/')
-    for compMod in esM._componentModelingDict.keys():
+    for compMod in esM.componentModelingDict.keys():
         cvD = ds.createGroup('/capacityVariables/{}'.format(compMod[:-8]))
-        df = esM._componentModelingDict[compMod]._capacityVariablesOptimum
+        df = esM.componentModelingDict[compMod].capacityVariablesOptimum
 
         dil = pd.Series()
-        if compMod =='TransmissionModeling':
+        if compMod =='TransmissionModel':
             for loc1 in df.columns: 
                 for tech in df.index.get_level_values(0):
                     for loc2 in df.loc[tech].index:
@@ -104,10 +104,10 @@ def createOutputAsNetCDF(esM, output='output.nc', initialTime='2050-01-01 00:30:
 
     # Create the group for cost components and binary variables
     ds.createGroup('/costComponents/')
-    for compMod in esM._componentModelingDict.keys():
+    for compMod in esM.componentModelingDict.keys():
         ccD = ds.createGroup('/costComponents/{}'.format(compMod[:-8]))   
 
-        data = esM._componentModelingDict[compMod]._optSummary
+        data = esM.componentModelingDict[compMod].optSummary
         s = data.index.get_level_values(1) == 'TAC'
         df = data.loc[s].sum(level=0)
         df.sort_index(inplace=True) 
@@ -124,7 +124,7 @@ def createOutputAsNetCDF(esM, output='output.nc', initialTime='2050-01-01 00:30:
 
         var = ccD.createVariable('{}_TAC'.format(compMod[:-8]), 'f', dimensions=(TACindexDim, TACcolDim,), zlib=True)
         var.description = 'Table illustrating the contribution of each technology and region to the TAC of system'
-        var.unit = '{}/a'.format(esM._costUnit)
+        var.unit = '{}/a'.format(esM.costUnit)
         var[:]= df.values
 
         var = ccD .createVariable('{}_TAC_col'.format(compMod[:-8]), str, dimensions=(TACcolDim,))
