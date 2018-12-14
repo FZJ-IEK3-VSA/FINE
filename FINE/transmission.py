@@ -478,7 +478,9 @@ class TransmissionModel(ComponentModel):
         for tup in optSummary.index.tolist():
             loc1, loc2 = mapC[tup[3]]
             indexNew.append((tup[0], tup[1], tup[2], loc1, loc2))
-        optSummary.index = pd.MultiIndex.from_tuples(indexNew)
+        names = list(optSummary.index.names)[:3]
+        names.extend(['LocationIn', 'LocationOut'])
+        optSummary.index = pd.MultiIndex.from_tuples(indexNew, names=names)
         optSummary = optSummary.unstack(level=-1)
 
         self.optSummary = optSummary
