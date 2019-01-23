@@ -1,0 +1,9 @@
+name: FINE
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - pandas
+  - numpy
+  - pyomo
+  - glpk
