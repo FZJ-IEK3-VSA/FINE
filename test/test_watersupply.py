@@ -34,7 +34,7 @@ def test_watersupply():
     np.random.seed(42)
     riverFlow.loc[:,'Water treatment'] = np.random.uniform(0,4,(8760))+8*np.sin(np.pi*np.arange(8760)/8760)
     esM.add(fn.Source(esM=esM, name='River', commodity='river water', hasCapacityVariable=False,
-                      operationRateMax=riverFlow))
+                      operationRateMax=riverFlow, opexPerOperation = 0.05))
 
     # Conversion
     eligibility = pd.Series([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0], index=locations)
@@ -50,18 +50,18 @@ def test_watersupply():
                        investPerCapacity=0.10, opexPerCapacity=0.02*0.1, interestRate=0.08, economicLifetime=20))
 
     # Transmission
-    distances = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 40, 40, 0, 100, 0, 0, 0, 0],
-                          [0, 0, 40, 40, 0, 0, 100, 0, 100, 0, 0, 0],
-                          [40, 40, 0, 0, 0, 0, 0, 100, 0, 30, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 30, 0, 20, 50],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0]])
+    distances = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 38, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 38, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 38, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 40, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 38, 40, 0, 105, 0, 0, 0, 0],
+                        [0, 0, 38, 40, 0, 0, 105, 0, 100, 0, 0, 0],
+                        [38, 40, 0, 0, 0, 0, 0, 100, 0, 30, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0, 30, 0, 20, 50],
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0]])
 
     distances = pd.DataFrame(distances, index=locations, columns=locations)
 
@@ -86,6 +86,7 @@ def test_watersupply():
     isBuiltFix[isBuiltFix>0]=1
 
     esM.add(fn.Transmission(esM=esM, name='Old water pipes', commodity='clean water',
+                            losses = 0.1e-2,
                             distances=distances, hasCapacityVariable=True, hasIsBuiltBinaryVariable=True, bigM=100,
                             capacityFix=capacityFix, isBuiltFix=isBuiltFix))
 
@@ -108,6 +109,7 @@ def test_watersupply():
 
 
     esM.add(fn.Transmission(esM=esM, name='New water pipes', commodity='clean water',
+                            losses = 0.05e-2,
                             distances=distances, hasCapacityVariable=True, hasIsBuiltBinaryVariable=True, bigM=100,
                             locationalEligibility=eligibility,
                             investPerCapacity=0.1, investIfBuilt=0.5, interestRate=0.08, economicLifetime=50))
@@ -131,7 +133,7 @@ def test_watersupply():
 
     # # Optimize the system
     esM.cluster(numberOfTypicalPeriods=7)
-    esM.optimize(timeSeriesAggregation=True, optimizationSpecs='LogToConsole=1 OptimalityTol=1e-6 crossover=1')
+    esM.optimize(timeSeriesAggregation=True, solver = 'glpk', optimizationSpecs='LogToConsole=1 OptimalityTol=1e-6 crossover=1')
 
 
     # # Selected results output
@@ -148,8 +150,6 @@ def test_watersupply():
 
     #
     testresults = esM.componentModelingDict["TransmissionModel"].operationVariablesOptimum.sum(axis=1)
-
-
 
     print('Optimization took ' + str(time.time() - starttime))
 
