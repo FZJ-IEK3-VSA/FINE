@@ -43,7 +43,7 @@ A number of [**examples**](examples/) shows the capabilities of FINE.
 
 MIT License
 
-Copyright (C) 2016-2018 Lara Welder (FZJ IEK-3), Jochen Linßen (FZJ IEK-3), Martin Robinius (FZJ IEK-3), Detlef Stolten (FZJ IEK-3)
+Copyright (C) 2016-2019 Lara Welder, Dilara Caglayan, Theresa Groß, Heidi Heinrichs, Leander Kotzur, Jochen Linßen, Martin Robinius, Detlef Stolten
 
 You should have received a copy of the MIT License along with this program.
 If not, see https://opensource.org/licenses/MIT
