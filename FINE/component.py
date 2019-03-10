@@ -996,6 +996,31 @@ class ComponentModel(metaclass=ABCMeta):
                        for loc_, compNames in subDict.items()
                        for compName in compNames)
 
+    def getLocEconomicsTimeSeries(self, pyM, esM, factorNames, varName, loc, compName, getOptValue=False):
+        var = getattr(pyM, varName + '_' + self.abbrvName)
+        if self.componentsDict[compName].commodityCostTimeSeries is not None:
+              multipleFactorSeries = [getattr(self.componentsDict[compName], factorName)[loc] for factorName in factorNames]
+              factorSeries = pd.Series().reindex_like(multipleFactorSeries[0])
+              factorSeries[:] = 1.0
+              for series_ in multipleFactorSeries:
+                  factorSeries = pd.Series(factorSeries.values*series_.values)
+              if not getOptValue:
+                  return sum(factorSeries[t] * var[loc, compName, p, t] * esM.periodOccurrences[p]
+                                       for p, t in pyM.timeSet)/esM.numberOfYears
+              else:
+                  return sum(factorSeries[t] * var[loc, compName, p, t].value * esM.periodOccurrences[p]
+                                       for p, t in pyM.timeSet)/esM.numberOfYears
+        else:
+              return 0
+      
+    def getEconomicsTimeSeries(self, pyM, esM, factorNames, varName, dictName, getOptValue=False):
+        indices = getattr(pyM, dictName + '_' + self.abbrvName).items()
+        if self.dimension == '1dim':
+            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorNames, varName, loc, compName, getOptValue)
+                       for loc, compNames in indices for compName in compNames)
+        else:
+            raise ValueError('Something went wrong') 
+
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=''):
         """
         Set the optimal values for the considered components and return a summary of them.

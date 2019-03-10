@@ -9,6 +9,7 @@ class Source(Component):
     """
     A Source component can transfer a commodity over the energy system boundary into the system.
     """
+
     def __init__(self, esM, name, commodity, hasCapacityVariable,
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
@@ -16,7 +17,8 @@ class Source(Component):
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
-                 commodityRevenue=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 commodityCostTimeSeries=None, commodityRevenue=0, opexPerCapacity=0, opexIfBuilt=0, 
+                 interestRate=0.08, economicLifetime=10):
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -123,6 +125,7 @@ class Source(Component):
         :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
         """
+
         Component. __init__(self, esM, name, dimension='1dim', hasCapacityVariable=hasCapacityVariable,
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
                             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
@@ -145,6 +148,10 @@ class Source(Component):
                                                                locationalEligibility)
         self.commodityCost = utils.checkAndSetCostParameter(esM, name, commodityCost, '1dim',
                                                             locationalEligibility)
+
+        self.commodityCostTimeSeries = utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries,
+                                                            locationalEligibility)
+
         self.commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',
                                                                locationalEligibility)
 
@@ -213,6 +220,7 @@ class Sink(Source):
     """
     A Sink component can transfer a commodity over the energy system boundary out of the system.
     """
+
     def __init__(self, esM, name, commodity, hasCapacityVariable,
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
@@ -220,8 +228,8 @@ class Sink(Source):
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
-                 commodityRevenue=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08,
-                 economicLifetime=10):
+                 commodityCostTimeSeries=None, commodityRevenue=0, opexPerCapacity=0, opexIfBuilt=0, 
+                 interestRate=0.08, economicLifetime=10):
         """
         Constructor for creating an Sink class instance.
 
@@ -233,7 +241,7 @@ class Sink(Source):
                         capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix,
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
                         capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
-                        investIfBuilt, opexPerOperation, commodityCost, commodityRevenue,
+                        investIfBuilt, opexPerOperation, commodityCost, commodityCostTimeSeries, commodityRevenue,
                         opexPerCapacity, opexIfBuilt, interestRate, economicLifetime)
 
         self.sign = -1
@@ -455,8 +463,9 @@ class SourceSinkModel(ComponentModel):
         opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
         commodCost = self.getEconomicsTD(pyM, esM, ['commodityCost'], 'op', 'operationVarDict')
         commodRevenue = self.getEconomicsTD(pyM, esM, ['commodityRevenue'], 'op', 'operationVarDict')
+        commodCostTimeSeries = self.getEconomicsTimeSeries(pyM, esM, ['commodityCostTimeSeries'], 'op', 'operationVarDict')
 
-        return capexCap + capexDec + opexCap + opexDec + opexOp + commodCost - commodRevenue
+        return capexCap + capexDec + opexCap + opexDec + opexOp + commodCost + commodCostTimeSeries - commodRevenue
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #

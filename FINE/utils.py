@@ -462,6 +462,27 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationEligibility):
     return _data
 
 
+def checkAndSetTimeSeriesCostParameter(esM, name, data, locationEligibility):
+    if data is not None:
+
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError('Type error in ' + name + ' detected.\n' +
+                            'Economic time series parameters have to be a pandas DataFrame.')
+        checkRegionalColumnTitles(esM, data)
+
+        _data = data.astype(float)
+        # if _data.isnull().any():
+        #     raise ValueError('Value error in ' + name + ' detected.\n' +
+        #                      'An economic parameter contains values which are not numbers.')
+        # if (_data < 0).any():
+        #     raise ValueError('Value error in ' + name + ' detected.\n' +
+        #                      'All entries in economic parameter series have to be positive.')
+        return _data
+
+    else:
+        return None
+
+
 def checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps):
     isStrictlyPositiveInt(numberOfTypicalPeriods), isStrictlyPositiveInt(numberOfTimeStepsPerPeriod)
     if not totalNumberOfTimeSteps % numberOfTimeStepsPerPeriod == 0:
