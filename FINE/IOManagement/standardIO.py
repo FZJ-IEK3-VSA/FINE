@@ -1,6 +1,5 @@
 import FINE as fn
 import FINE.utils as utils
-import matplotlib.pyplot as plt
 import pandas as pd
 import ast
 import inspect
@@ -12,8 +11,13 @@ try:
 except ImportError:
     warnings.warn('The GeoPandas python package could not be imported.')
 
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    warnings.warn('Matplotlib.pyplot could not be imported.')
 
-def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumOutputLevel=2, optValOutputLevel=2):
+
+def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumOutputLevel=2, optValOutputLevel=1):
     """
     Write optimization output to an Excel file.
 
@@ -24,51 +28,77 @@ def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumO
         |br| * the default value is 'scenarioOutput'
     :type outputFileName: string
 
-    :param optSumOutputLevel: output level of the optimization summary (see EnergySystemModel)
+    :param optSumOutputLevel: output level of the optimization summary (see EnergySystemModel). Either an integer
+        (0,1,2) which holds for all model classes or a dictionary with model class names as keys and an integer
+        (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
         |br| * the default value is 2
-    :type optSumOutputLevel: int (0,1,2)
+    :type optSumOutputLevel: int (0,1,2) or dict
 
-    :param optValOutputLevel: output level of the optimal values.
+    :param optValOutputLevel: output level of the optimal values. Either an integer (0,1) which holds for all
+        model classes or a dictionary with model class names as keys and an integer (0,1) for each key
+        (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
         - 0: all values are kept.
         - 1: Lines containing only zeroes are dropped.
         |br| * the default value is 1
-    :type optValOutputLevel: int (0,1)
+    :type optValOutputLevel: int (0,1) or dict
     """
     utils.output('\nWriting output to Excel... ', esM.verbose, 0)
     _t = time.time()
     writer = pd.ExcelWriter(outputFileName + '.xlsx')
 
     for name in esM.componentModelingDict.keys():
+        utils.output('\tProcessing ' + name + ' ...', esM.verbose, 0)
         oL = optSumOutputLevel
         oL_ = oL[name] if type(oL) == dict else oL
-        esM.getOptimizationSummary(name, outputLevel=oL_).to_excel(writer, name[:-5] + 'OptSummary')
+        optSum = esM.getOptimizationSummary(name, outputLevel=oL_)
+        if not optSum.empty:
+            optSum.to_excel(writer, name[:-5] + 'OptSummary_' + esM.componentModelingDict[name].dimension)
 
         data = esM.componentModelingDict[name].getOptimalValues()
         oL = optValOutputLevel
         oL_ = oL[name] if type(oL) == dict else oL
-        dataTD, indexTD = [], []
+        dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
         dataTI, indexTI = [], []
         for key, d in data.items():
+            if d['values'] is None:
+                continue
             if d['timeDependent']:
-                dataTD.append(d['values']), indexTD.append(key)
+                if d['dimension'] == '1dim':
+                    dataTD1dim.append(d['values']), indexTD1dim.append(key)
+                elif d['dimension'] == '2dim':
+                    dataTD2dim.append(d['values']), indexTD2dim.append(key)
             else:
                 dataTI.append(d['values']), indexTI.append(key)
-        if dataTD:
-            dfTD = pd.concat(dataTD, keys=indexTD)
+        if dataTD1dim:
+            names = ['Variable', 'Component', 'Location']
+            dfTD1dim = pd.concat(dataTD1dim, keys=indexTD1dim, names=names)
             if oL_ == 1:
-                dfTD = dfTD.loc[((dfTD != 0) & (~dfTD.isnull())).any(axis=1)]
-            dfTD.to_excel(writer, name[:-5] + 'TDoptVar')
+                dfTD1dim = dfTD1dim.loc[((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)]
+            if not dfTD1dim.empty:
+                dfTD1dim.to_excel(writer, name[:-5] + '_TDoptVar_1dim')
+        if dataTD2dim:
+            names = ['Variable', 'Component', 'LocationIn', 'LocationOut']
+            dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
+            if oL_ == 1:
+                dfTD2dim = dfTD2dim.loc[((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)]
+            if not dfTD2dim.empty:
+                dfTD2dim.to_excel(writer, name[:-5] + '_TDoptVar_2dim')
         if dataTI:
-            dfTI = pd.concat(dataTI, keys=indexTI)
+            if esM.componentModelingDict[name].dimension == '1dim':
+                names = ['Variable type', 'Component']
+            elif esM.componentModelingDict[name].dimension == '2dim':
+                names = ['Variable type', 'Component', 'Location']
+            dfTI = pd.concat(dataTI, keys=indexTI, names=names)
             if oL_ == 1:
-                dfTD = dfTD.loc[((dfTD != 0) & (~dfTD.isnull())).any(axis=1)]
-            dfTI.to_excel(writer, name[:-5] + 'TIoptVar')
+                dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
+            if not dfTI.empty:
+                dfTI.to_excel(writer, name[:-5] + '_TIoptVar_' + esM.componentModelingDict[name].dimension)
 
     periodsOrder = pd.DataFrame([esM.periodsOrder], index=['periodsOrder'], columns=esM.periods)
     periodsOrder.to_excel(writer, 'Misc')
+    utils.output('\tSaving file...', esM.verbose, 0)
     writer.save()
-
-    utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', esM.verbose, 0)
+    utils.output('Done. (%.4f' % (time.time() - _t) + ' sec)', esM.verbose, 0)
 
 
 def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
@@ -127,6 +157,7 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
 
     return esM, esMData
 
+
 def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
     """
     Run an energy system model from excel file.
@@ -145,6 +176,7 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
 
     writeOptimizationOutputToExcel(esM, **esMData['output'])
     return esM
+
 
 def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
     """
@@ -168,14 +200,27 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
     utils.checkComponentsEquality(esM, file)
     # set attributes of esM
     for mdl in esM.componentModelingDict.keys():
-        id_c = [0, 1, 2] if '1' in esM.componentModelingDict[mdl].dimension else [0, 1, 2, 3]
+        dim = esM.componentModelingDict[mdl].dimension
+        idColumns1dim = [0, 1, 2]
+        idColumns2dim = [0, 1, 2, 3]
+        idColumns = idColumns1dim if '1' in dim else idColumns2dim
         setattr(esM.componentModelingDict[mdl], 'optSummary',
-                pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary', index_col=id_c))
+                pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary_' + dim, index_col=idColumns))
         sheets = []
         sheets += (sheet for sheet in file.sheet_names if mdl[0:-5] in sheet and 'optVar' in sheet)
         if len(sheets) > 0:
             for sheet in sheets:
-                optVal = pd.read_excel(file,sheetname=sheet, index_col=id_c[0:-1] if 'TIoptVar' in sheet else id_c)
+                if 'TDoptVar_1dim' in sheet:
+                    index_col = idColumns1dim
+                elif 'TIoptVar_1dim' in sheet:
+                    index_col = idColumns1dim[:-1]
+                elif 'TDoptVar_2dim' in sheet:
+                    index_col = idColumns2dim
+                elif 'TIoptVar_2dim' in sheet:
+                    index_col = idColumns2dim[:-1]
+                else:
+                    continue
+                optVal = pd.read_excel(file, sheetname=sheet, index_col=index_col)
                 for var in optVal.index.levels[0]: setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
     return esM
 
