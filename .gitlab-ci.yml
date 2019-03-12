@@ -1,0 +1,8 @@
+conda:
+  image: continuumio/miniconda:latest
+
+  script:
+    - conda env update -q --file=requirements.yml
+    - conda env update -q --file=requirements_dev.yml
+    - pip install --no-cache-dir .
+    - pytest --cov FINE --cov-report term-missing
