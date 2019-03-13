@@ -1,5 +1,7 @@
 conda:
   image: continuumio/miniconda:latest
+  tags: 
+  - linux
 
   script:
     - conda env update -q --file=requirements.yml
