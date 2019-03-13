@@ -6,6 +6,7 @@ conda:
   script:
     - conda env update -q --file=requirements.yml
     - conda env update -q --file=requirements_dev.yml
-    - source activate tsam
+    - conda info --envs
+    - source activate FINE
     - pip install --no-cache-dir .
     - pytest --cov FINE --cov-report term-missing
