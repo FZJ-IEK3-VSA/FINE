@@ -10,7 +10,7 @@ def getData():
 
     # Onshore data
     capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Wind', 'maxCapacityOnshore_GW_el.xlsx'),
-                                index_col=0, squeeze=True)
+                                squeeze=True)
     operationRateMax = pd.read_excel(
         os.path.join(inputDataPath, 'SpatialData', 'Wind', 'maxOperationRateOnshore_el.xlsx'))
 
