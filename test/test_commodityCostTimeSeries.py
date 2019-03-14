@@ -22,10 +22,13 @@
 # 1. Import required packages and set input data path
 
 import FINE as fn
-from getData import getData
 import os
 import pandas as pd
 import numpy as np
+
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional Energy System Workflow_Test_190312'))
+from getData import getData
 
 def test_commodityCostTimeSeries():
     cwd = os.getcwd()
@@ -90,30 +93,14 @@ def test_commodityCostTimeSeries():
                       investPerCapacity=0, opexPerCapacity=0.208))
 
     ## 3.2. Methane (natural gas and biogas)
-    ### Natural gas
-
-    standardCommodityCost = 0.0331*1e-3
-
-    commodityCostTimeSeries = pd.DataFrame(columns=locations)
-    for loc in commodityCostTimeSeries:
-        randomSeries = np.random.uniform(low=0.8 * standardCommodityCost, high=1.5 * standardCommodityCost, size=(numberOfTimeSteps,))
-        commodityCostTimeSeries[loc] = randomSeries
-        
+    ### Natural gas        
     esM.add(fn.Source(esM=esM, name='Natural gas purchase', commodity='methane',
-                      hasCapacityVariable=False, commodityCostTimeSeries=commodityCostTimeSeries))
+                      hasCapacityVariable=False, commodityCostTimeSeries=data['Natural Gas, commodityCostTimeSeries']))
 
     ### Biogas
-
-    standardCommodityCost = 0.05409*1e-3
-
-    commodityCostTimeSeries = pd.DataFrame(columns=locations)
-    for loc in commodityCostTimeSeries:
-        randomSeries = np.random.uniform(low=0.8 * standardCommodityCost, high=1.5 * standardCommodityCost, size=(numberOfTimeSteps,))
-        commodityCostTimeSeries[loc] = randomSeries
-        
     esM.add(fn.Source(esM=esM, name='Biogas purchase', commodity='biogas',
                       operationRateMax=data['Biogas, operationRateMax'], hasCapacityVariable=False,
-                      commodityCostTimeSeries=commodityCostTimeSeries))
+                      commodityCostTimeSeries=data['Biogas, commodityCostTimeSeries']))
 
 
     ## 3.3 CO2
