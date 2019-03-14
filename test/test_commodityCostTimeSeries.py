@@ -25,6 +25,7 @@ import FINE as fn
 import os
 import pandas as pd
 import numpy as np
+import xlrd
 
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional Energy System Workflow_Test_190312'))
