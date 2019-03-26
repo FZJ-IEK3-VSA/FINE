@@ -406,7 +406,7 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
         return None
 
 
-def checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
+def checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
                                           hasIsBuiltBinaryVariable, bigM):
     if capacityVariableDomain != 'continuous' and capacityVariableDomain != 'discrete':
         raise ValueError('The capacity variable domain has to be either \'continuous\' or \'discrete\'.')
