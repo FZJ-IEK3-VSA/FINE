@@ -423,8 +423,11 @@ def checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVar
     if bigM is None and hasIsBuiltBinaryVariable:
         raise ValueError('A bigM value needs to be specified when considering fixed cost contributions.')
 
-    if bigM is not None:
-        isinstance(bigM, bool)
+    if bigM is not None and hasIsBuiltBinaryVariable:
+        isPositiveNumber(bigM)
+    elif bigM is not None and not hasIsBuiltBinaryVariable:
+        warnings.warn('A declaration of bigM is not necessary if hasIsBuiltBinaryVariable is set to false. '
+                      'The value of bigM will be ignored in the optimization.')
 
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationEligibility):
