@@ -264,7 +264,7 @@ class Component(metaclass=ABCMeta):
         self.modelingClass = ComponentModel
 
         # Set design variable modeling parameters
-        utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
+        utils.checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
                                                     hasIsBuiltBinaryVariable, bigM)
         self.hasCapacityVariable = hasCapacityVariable
         self.capacityVariableDomain = capacityVariableDomain
@@ -801,7 +801,8 @@ class ComponentModel(metaclass=ABCMeta):
             return opVar[loc, compName, p, t] <= factor1 * factor2 * capVar[loc, compName]
         setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
-    def operationMode2(self, pyM, esM, constrName, constrSetName, opVarName, isStateOfCharge=False):
+    def operationMode2(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix',
+                       isStateOfCharge=False):
         """
         Define operation mode 2. The operation [commodityUnit*h] is equal to the installed capacity multiplied
         with a time series in:\n
@@ -814,11 +815,12 @@ class ComponentModel(metaclass=ABCMeta):
         factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
 
         def op2(pyM, loc, compName, p, t):
-            return opVar[loc, compName, p, t] == capVar[loc, compName] * \
-                   compDict[compName].operationRateFix[loc][p, t] * factor
+            rate = getattr(compDict[compName], opRateName)
+            return opVar[loc, compName, p, t] == capVar[loc, compName] * rate[loc][p, t] * factor
         setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
 
-    def operationMode3(self, pyM, esM, constrName, constrSetName, opVarName, isStateOfCharge=False):
+    def operationMode3(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax',
+                       isStateOfCharge=False):
         """
         Define operation mode 3. The operation [commodityUnit*h] is limited by an installed capacity multiplied
         with a time series in:\n
@@ -831,11 +833,11 @@ class ComponentModel(metaclass=ABCMeta):
         factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
 
         def op3(pyM, loc, compName, p, t):
-            return opVar[loc, compName, p, t] <= capVar[loc, compName] * \
-                   compDict[compName].operationRateMax[loc][p, t] * factor
+            rate = getattr(compDict[compName], opRateName)
+            return opVar[loc, compName, p, t] <= capVar[loc, compName] * rate[loc][p, t] * factor
         setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
 
-    def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName):
+    def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix'):
         """
         Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
         """
@@ -844,10 +846,11 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet4 = getattr(pyM, constrSetName + '4_' + abbrvName)
 
         def op4(pyM, loc, compName, p, t):
-            return opVar[loc, compName, p, t] == compDict[compName].operationRateFix[loc][p, t]
+            rate = getattr(compDict[compName], opRateName)
+            return opVar[loc, compName, p, t] == rate[loc][p, t]
         setattr(pyM, constrName + '4_' + abbrvName, pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4))
 
-    def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName):
+    def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax'):
         """
         Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
         """
@@ -856,7 +859,8 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet5 = getattr(pyM, constrSetName + '5_' + abbrvName)
 
         def op5(pyM, loc, compName, p, t):
-            return opVar[loc, compName, p, t] <= compDict[compName].operationRateMax[loc][p, t]
+            rate = getattr(compDict[compName], opRateName)
+            return opVar[loc, compName, p, t] <= rate[loc][p, t]
         setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
 
     ####################################################################################################################
@@ -1049,14 +1053,15 @@ class ComponentModel(metaclass=ABCMeta):
         optVal_ = utils.formatOptimizationOutput(values, 'designVariables', self.dimension, compDict=compDict)
         self.capacityVariablesOptimum = optVal_
 
-        # Check if the installed capacities are close to a bigM value for components with design decision variables
-        for compName, comp in compDict.items():
-            if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max().max() >= comp.bigM * 0.9 \
-               and esM.verbose < 2:
-                warnings.warn('the capacity of component ' + compName + ' is in one or more locations close or equal '
-                              'to the chosen Big M. Consider rerunning the simulation with a higher Big M.')
-
         if optVal is not None:
+            # Check if the installed capacities are close to a bigM value for components with design decision variables
+            for compName, comp in compDict.items():
+                if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max().max() >= comp.bigM * 0.9 \
+                        and esM.verbose < 2:
+                    warnings.warn('the capacity of component ' + compName + ' is in one or more locations close ' +
+                                  'or equal to the chosen Big M. Consider rerunning the simulation with a higher' +
+                                  ' Big M.')
+
             i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index], axis=1)
             cx = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index] /
                                           compDict[cap.name].CCF[cap.index], axis=1)
@@ -1093,7 +1098,8 @@ class ComponentModel(metaclass=ABCMeta):
         optSummary.loc[optSummary.index.get_level_values(1) == 'TAC'] = \
             optSummary.loc[(optSummary.index.get_level_values(1) == 'capexCap') |
                            (optSummary.index.get_level_values(1) == 'opexCap') |
-                           (optSummary.index.get_level_values(1) == 'capexIfBuilt')].groupby(level=0).sum().values
+                           (optSummary.index.get_level_values(1) == 'capexIfBuilt') |
+                           (optSummary.index.get_level_values(1) == 'opexIfBuilt')].groupby(level=0).sum().values
 
         return optSummary
 

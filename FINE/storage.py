@@ -256,8 +256,8 @@ class Storage(Component):
         """
         self.chargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullChargeOpRateMax
         self.chargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullChargeOpRateFix
-        self.dischargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
-        self.dischargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
+        self.dischargeOpRateMax = self.aggregatedDischargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
+        self.dischargeOpRateFix = self.aggregatedDischargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
 
     def getDataForTimeSeriesAggregation(self):
         """ Function for getting the required data if a time series aggregation is requested. """
@@ -715,32 +715,32 @@ class StorageModel(ComponentModel):
         # Charging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied by
         # the hours per time step [h] and the charging rate factor [1/h]
         self.operationMode1(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeRate')
-        # Charging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied by
-        # the hours per time step [h] and the charging operation time series [1/h]
-        self.operationMode2(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp')
         # Charging of storage [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] multiplied by
         # the hours per time step [h] and the charging operation time series [1/h]
-        self.operationMode3(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp')
-        # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
-        self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp')
+        self.operationMode2(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateFix')
+        # Charging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied by
+        # the hours per time step [h] and the charging operation time series [1/h]
+        self.operationMode3(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateMax')
         # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
-        self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp')
+        self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateFix')
+        # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
+        self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateMax')
 
         #                             Constraints for enforcing discharging operation modes                            #
 
         # Discharging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied
         # by the hours per time step [h] and the discharging rate factor [1/h]
         self.operationMode1(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeRate')
-        # Discharging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied
-        # by the hours per time step [h] and the discharging operation time series [1/h]
-        self.operationMode2(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp')
         # Discharging of storage [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] multiplied
         # by the hours per time step [h] and the discharging operation time series [1/h]
-        self.operationMode3(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp')
-        # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
-        self.operationMode4(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp')
+        self.operationMode2(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateFix')
+        # Discharging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied
+        # by the hours per time step [h] and the discharging operation time series [1/h]
+        self.operationMode3(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateMax')
         # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
-        self.operationMode5(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp')
+        self.operationMode4(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateFix')
+        # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
+        self.operationMode5(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateMax')
 
         # Cyclic constraint enforcing that all storages have the same state of charge at the the beginning of the first
         # and the end of the last time step
