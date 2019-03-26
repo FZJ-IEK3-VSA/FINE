@@ -264,7 +264,7 @@ class Component(metaclass=ABCMeta):
         self.modelingClass = ComponentModel
 
         # Set design variable modeling parameters
-        utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
+        utils.checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
                                                     hasIsBuiltBinaryVariable, bigM)
         self.hasCapacityVariable = hasCapacityVariable
         self.capacityVariableDomain = capacityVariableDomain
