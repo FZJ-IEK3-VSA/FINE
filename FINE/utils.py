@@ -349,3 +349,133 @@ def setFormattedTimeSeries(timeSeries):
         data = timeSeries.copy()
         data["Period"], data["TimeStep"] = 0, data.index
         return data.set_index(['Period', 'TimeStep'])
+<<<<<<< HEAD
+=======
+
+
+def buildFullTimeSeries(df, periodsOrder):
+    data = []
+    for p in periodsOrder:
+        data.append(df.loc[p])
+    return pd.concat(data, axis=1, ignore_index=True)
+
+
+def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDict=None):
+    # If data is an empty dictionary (because no variables of that type were declared) return None
+    if not data:
+        return None
+    # If the dictionary is not empty, format it into a DataFrame
+    if varType == 'designVariables' and dimension == '1dim':
+        # Convert dictionary to DataFrame, transpose, put the components name first and sort the index
+        # Results in a one dimensional DataFrame
+        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=1, axis=0).sort_index()
+        # Unstack the regions (convert to a two dimensional DataFrame with the region indices being the columns)
+        # and fill NaN values (i.e. when a component variable was not initiated for that region)
+        df = df.unstack(level=-1)
+        # Get rid of the unnecessary 0 level
+        df.columns = df.columns.droplevel()
+        return df
+    elif varType == 'designVariables' and dimension == '2dim':
+        # Convert dictionary to DataFrame, transpose, put the components name first while keeping the order of the
+        # regions and sort the index
+        # Results in a one dimensional DataFrame
+        df = pd.DataFrame(data, index=[0]).T
+        indexNew = []
+        for tup in df.index.tolist():
+            loc1, loc2 = compDict[tup[1]]._mapC[tup[0]]
+            indexNew.append((loc1, loc2, tup[1]))
+        df.index = pd.MultiIndex.from_tuples(indexNew)
+        df = df.swaplevel(i=0, j=2, axis=0).swaplevel(i=1, j=2, axis=0).sort_index()
+        # Unstack the regions (convert to a two dimensional DataFrame with the region indices being the columns)
+        # and fill NaN values (i.e. when a component variable was not initiated for that region)
+        df = df.unstack(level=-1)
+        # Get rid of the unnecessary 0 level
+        df.columns = df.columns.droplevel()
+        return df
+    elif varType == 'operationVariables' and dimension == '1dim':
+        # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
+        # Results in a one dimensional DataFrame
+        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-2).sort_index()
+        # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
+        df = df.unstack(level=-1)
+        # Get rid of the unnecessary 0 level
+        df.columns = df.columns.droplevel()
+        # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
+        # used)
+        return buildFullTimeSeries(df, periodsOrder)
+    elif varType == 'operationVariables' and dimension == '2dim':
+        # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
+        # regions and sort the index
+        # Results in a one dimensional DataFrame
+        df = pd.DataFrame(data, index=[0]).T
+        indexNew = []
+        for tup in df.index.tolist():
+            loc1, loc2 = compDict[tup[1]]._mapC[tup[0]]
+            indexNew.append((loc1, loc2, tup[1], tup[2], tup[3]))
+        df.index = pd.MultiIndex.from_tuples(indexNew)
+        df = df.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=3, axis=0).swaplevel(i=2, j=3, axis=0).sort_index()
+        # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
+        df = df.unstack(level=-1)
+        # Get rid of the unnecessary 0 level
+        df.columns = df.columns.droplevel()
+        # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
+        # used)
+        return buildFullTimeSeries(df, periodsOrder)
+    else:
+        raise ValueError('The varType parameter has to be either \'designVariables\' or \'operationVariables\'\n' +
+                         'and the dimension parameter has to be either \'1dim\' or \'2dim\'.')
+
+
+def setOptimalComponentVariables(optVal, varType, compDict):
+    if optVal is not None:
+        for compName, comp in compDict.items():
+            if compName in optVal.index:
+                setattr(comp, varType, optVal.loc[compName])
+            else:
+                setattr(comp, varType, None)
+
+
+def preprocess2dimData(data, mapC=None):
+    if data is not None and isinstance(data, pd.DataFrame):
+        if mapC is None:
+            index, data_ = [], []
+            for loc1 in data.index:
+                for loc2 in data.columns:
+                    if data[loc1][loc2] > 0:
+                        index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+            return pd.Series(data_, index=index)
+        else:
+            return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+    else:
+        return data
+
+
+def map2dimData(data, mapC):
+    if data is not None and isinstance(data, pd.DataFrame):
+        return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+    else:
+        return data
+
+
+def output(output, verbose, val):
+    if verbose == val:
+        print(output)
+
+def checkModelClassEquality(esM, file):
+    mdlListFromModel = list(esM.componentModelingDict.keys())
+    mdlListFromExcel = []
+    for sheet in file.sheet_names:
+        mdlListFromExcel += [cl for cl in mdlListFromModel if (cl[0:-5] in sheet and cl not in mdlListFromExcel)]
+    if set(mdlListFromModel) != set(mdlListFromExcel):
+        raise ValueError('Loaded Output does not match the given energy system model.')
+
+def checkComponentsEquality(esM, file):
+    compListFromExcel = []
+    compListFromModel = list(esM.componentNames.keys())
+    for mdl in esM.componentModelingDict.keys():
+        dim = esM.componentModelingDict[mdl].dimension
+        readSheet = pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary_' + dim, index_col=[0, 1, 2, 3])
+        compListFromExcel += list(readSheet.index.levels[0])
+    if not set(compListFromExcel) <= set(compListFromModel):
+            raise ValueError('Loaded Output does not match the given energy system model.')
+>>>>>>> master

@@ -439,7 +439,7 @@ class TransmissionModel(ComponentModel):
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(esM, pyM, mapC.keys(), 'commodityUnit')
         for compName, comp in compDict.items():
-            for cost in ['invest', 'capexCap', 'capexIfBuilt', 'opexCap', 'opexIfBuilt']:
+            for cost in ['invest', 'capexCap', 'capexIfBuilt', 'opexCap', 'opexIfBuilt', 'TAC']:
                 data = optSummaryBasic.loc[compName, cost]
                 optSummaryBasic.loc[compName, cost] = (0.5 * data * comp.distances).values
 
@@ -482,6 +482,9 @@ class TransmissionModel(ComponentModel):
         names.extend(['LocationIn', 'LocationOut'])
         optSummary.index = pd.MultiIndex.from_tuples(indexNew, names=names)
         optSummary = optSummary.unstack(level=-1)
+        names = list(optSummaryBasic.index.names)
+        names.append('LocationIn')
+        optSummary.index.set_names(names, inplace=True)
 
         self.optSummary = optSummary
 
