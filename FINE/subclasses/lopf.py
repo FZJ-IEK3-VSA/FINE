@@ -7,7 +7,8 @@ import pandas as pd
 class LinearOptimalPowerFlow(Transmission):
     """
     A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a
-    linearized power flow. The LinearOptimalPowerFlow class inherits from the Transmission class.
+    linearized power flow (i.e. for AC lines). The LinearOptimalPowerFlow class inherits from the Transmission
+    class.
     """
     def __init__(self, esM, name, commodity, reactances, losses=0, distances=None,
                  hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
@@ -19,13 +20,13 @@ class LinearOptimalPowerFlow(Transmission):
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.
-        The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission component
-        specific input arguments are described in the Transmission class and the general component
+        The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
+        component specific input arguments are described in the Transmission class and the general component
         input arguments are described in the Component class.
 
         **Required arguments:**
 
-        :param reactances: reactances for DC power flow modeling.
+        :param reactances: reactances for DC power flow modeling (of AC lines).
         :type reactances: Pandas DataFrame. The row and column indices of the DataFrame have to equal
             the in the energy system model specified locations.
         """
@@ -264,7 +265,7 @@ class LOPFModel(TransmissionModel):
 
         optVal_ = utils.formatOptimizationOutput(phaseAngleVar.get_values(), 'operationVariables', '1dim',
                                                  esM.periodsOrder)
-        self.operationVariablesOptimum = optVal_
+        self.phaseAngleVariablesOptimum = optVal_
 
     def getOptimalValues(self, name='all'):
         """
@@ -285,7 +286,7 @@ class LOPFModel(TransmissionModel):
         elif name == 'operationVariablesOptimum':
             return {'values': self.operationVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
         elif name == 'phaseAngleVariablesOptimum':
-            return {'values': self.phaseAngleVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
+            return {'values': self.phaseAngleVariablesOptimum, 'timeDependent': True, 'dimension': '1dim'}
         else:
             return {'capacityVariablesOptimum': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
                                                  'dimension': self.dimension},
@@ -294,4 +295,4 @@ class LOPFModel(TransmissionModel):
                     'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
                                                   'dimension': self.dimension},
                     'phaseAngleVariablesOptimum': {'values': self.phaseAngleVariablesOptimum, 'timeDependent': True,
-                                                   'dimension': self.dimension}}
+                                                   'dimension': '1dim'}}
