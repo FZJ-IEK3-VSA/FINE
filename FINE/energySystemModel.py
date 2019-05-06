@@ -667,8 +667,8 @@ class EnergySystemModel:
         :type timeLimit: strictly positive integer or None
 
         :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver
-            documentation for more information)
-            |br| * the default value is 'LogToConsole=1 OptimalityTol=1e-6'
+            documentation for more information). Example: 'LogToConsole=1 OptimalityTol=1e-6'
+            |br| * the default value is an empty string ('')
         :type timeLimit: string
 
         :param warmstart: specifies if a warm start of the optimization should be considered
