@@ -1151,7 +1151,10 @@ class ComponentModel(metaclass=ABCMeta):
             return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorNames, varName, loc, compName, getOptValue)
                        for loc, compNames in indices for compName in compNames)
         else:
-            raise ValueError('Something went wrong') 
+            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorNames, varName, loc + '_' + loc_, compName, getOptValue)
+                        for loc, subDict in indices
+                        for loc_, compNames in subDict.items()
+                        for compName in compNames)
 
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=''):
         """
