@@ -1,9 +1,10 @@
 import pandas as pd
 import os
+import xlrd
 
 
 def getData():
-    cwd = os.getcwd()
+    cwd = os.path.dirname(os.path.realpath(__file__))
     inputDataPath = os.path.join(cwd, "InputData")
     data = {}
 
@@ -47,6 +48,17 @@ def getData():
                                                   'biogasPotential_GWh_biogas.xlsx'))
 
     data.update({'Biogas, operationRateMax': operationRateMax})
+
+    biogasCommodityCostTimeSeries = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Biogas',
+                                                  'biogasPriceTimeSeries_MrdEuro_GWh.xlsx'))
+
+    data.update({'Biogas, commodityCostTimeSeries': biogasCommodityCostTimeSeries})
+
+    # Natural gas data
+    naturalGasCommodityCostTimeSeries = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'NaturalGas',
+                                                  'naturalGasPriceTimeSeries_MrdEuro_GWh.xlsx'))
+
+    data.update({'Natural Gas, commodityCostTimeSeries': naturalGasCommodityCostTimeSeries})
 
     # Natural gas plant data
     capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'NaturalGasPlants',
