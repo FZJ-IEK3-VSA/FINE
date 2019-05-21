@@ -1,13 +1,13 @@
-########
+﻿########
 About Us
 ########
 
-.. image:: http://fz-juelich.de/SharedDocs/Bilder/IEK/IEK-3/Abteilungen2015/VSA_DepartmentPicture_2017.jpg?__blob=normal
+.. image:: https://www.fz-juelich.de/SharedDocs/Bilder/IEK/IEK-3/Abteilungen2015/VSA_DepartmentPicture_2019-02-04_459x244_2480x1317.jpg?__blob=normal
     :target: http://www.fz-juelich.de/iek/iek-3/EN/Forschung/_Process-and-System-Analysis/_node.html
-    :alt: Abteilung VSA
+    :alt: Abteilung TSA
     :align: center
 
-We are the `Process and Systems Analysis <http://www.fz-juelich.de/iek/iek-3/EN/Forschung/_Process-and-System-Analysis/_node.html>`_
+We are the `Techno-Economic Energy Systems Analysis <http://www.fz-juelich.de/iek/iek-3/EN/Forschung/_Process-and-System-Analysis/_node.html>`_
 department at the `Institute of Energy and Climate Research: Electrochemical Process Engineering (IEK-3)
 <http://www.fz-juelich.de/iek/iek-3/EN/Home/home_node.html>`_ belonging to the Forschungszentrum Jülich. Our
 interdisciplinary department's research is focusing on energy-related process and systems analyses. Data searches and
@@ -25,7 +25,7 @@ the EDOM Team at FAU `(PD Lars Schewe) <http://www.mso.math.fau.de/de/edom/team/
 `Jülich Supercomputing Centre (JSC) <http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html>`_ new methods and models
 within FINE.
 
-.. image:: http://www.metis-platform.net/metis-platform/SharedDocs/Bilder/DE/kick-off.jpg?__blob=normal
+.. image:: http://www.metis-platform.net/metis-platform/DE/_Documents/Pictures/projectTeamAtKickOffMeeting_640x338.jpg?__blob=normal
     :target: http://www.metis-platform.net
     :alt: METIS Team
     :align: center
