@@ -466,7 +466,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationEligibility):
     return _data
 
 
-def checkAndSetTimeSeriesCostParameter(esM, name, data, dimension, locationEligibility):
+def checkAndSetTimeSeriesCostParameter(esM, name, data, locationEligibility, dimension = 1):
     if data is not None:
         if not isinstance(data, pd.DataFrame):
             if len(esM.locations) == 1:
@@ -519,7 +519,9 @@ def checkAndSetTimeSeriesCostParameter(esM, name, data, dimension, locationEligi
                              'All entries in economic parameter series have to be positive.\n' +
                              'Time series containing positive and negative values can be split into \n' +
                              'seperate time series with absolute values for costs and revenues.')
-        return _data
+        _data = _data.copy()		
+        _data["Period"], _data["TimeStep"] = 0, _data.index		
+        return _data.set_index(['Period', 'TimeStep'])
 
     else:
         return None

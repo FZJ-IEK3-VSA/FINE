@@ -152,11 +152,13 @@ class Source(Component):
         self.commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',
                                                                locationalEligibility)
 
-        self.commodityCostTimeSeries = utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries,
-                                                            '1dim', locationalEligibility)
+        self.fullCommodityCostTimeSeries = utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries,
+                                                                        locationalEligibility)
+        self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
 
-        self.commodityRevenueTimeSeries = utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityRevenueTimeSeries,
-                                                            '1dim', locationalEligibility)
+        self.fullCommodityRevenueTimeSeries = utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityRevenueTimeSeries,
+                                                                        locationalEligibility)
+        self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
         if operationRateMax is not None and operationRateFix is not None:
@@ -192,20 +194,25 @@ class Source(Component):
 
     def setTimeSeriesData(self, hasTSA):
         """
-        Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
-        analysis is requested or not.
+        Function for setting the maximum operation rate, fixed operation rate and cost or revenue time series depending on whether a time series analysis is requested or not.
 
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
         self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
         self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
+        self.commodityCostTimeSeries = self.aggregatedCommodityCostTimeSeries if hasTSA else self.fullCommodityCostTimeSeries
+        self.commodityRevenueTimeSeries = self.aggregatedCommodityRevenueTimeSeries if hasTSA else self.fullCommodityRevenueTimeSeries
 
     def getDataForTimeSeriesAggregation(self):
         """ Function for getting the required data if a time series aggregation is requested. """
         weightDict, data = {}, []
         weightDict, data = self.prepareTSAInput(self.fullOperationRateFix, self.fullOperationRateMax,
                                                 '_operationRate_', self.tsaWeight, weightDict, data)
+        weightDict, data = self.prepareTSAInput(self.fullCommodityCostTimeSeries, None,
+                                                '_commodityCostTimeSeries_', self.tsaWeight, weightDict, data)
+        weightDict, data = self.prepareTSAInput(self.fullCommodityRevenueTimeSeries, None,
+                                                '_commodityRevenueTimeSeries_', self.tsaWeight, weightDict, data)
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data):
@@ -217,6 +224,8 @@ class Source(Component):
         """
         self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
         self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
+        self.aggregatedCommodityCostTimeSeries = self.getTSAOutput(self.fullCommodityCostTimeSeries, '_commodityCostTimeSeries_', data)
+        self.aggregatedCommodityRevenueTimeSeries = self.getTSAOutput(self.fullCommodityRevenueTimeSeries, '_commodityRevenueTimeSeries_', data)
 
 
 class Sink(Source):
@@ -466,8 +475,8 @@ class SourceSinkModel(ComponentModel):
         opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
         commodCost = self.getEconomicsTD(pyM, esM, ['commodityCost'], 'op', 'operationVarDict')
         commodRevenue = self.getEconomicsTD(pyM, esM, ['commodityRevenue'], 'op', 'operationVarDict')
-        commodCostTimeSeries = self.getEconomicsTimeSeries(pyM, esM, ['commodityCostTimeSeries'], 'op', 'operationVarDict')
-        commodRevenueTimeSeries = self.getEconomicsTimeSeries(pyM, esM, ['commodityRevenueTimeSeries'], 'op', 'operationVarDict')
+        commodCostTimeSeries = self.getEconomicsTimeSeries(pyM, esM, 'commodityCostTimeSeries', 'op', 'operationVarDict')
+        commodRevenueTimeSeries = self.getEconomicsTimeSeries(pyM, esM, 'commodityRevenueTimeSeries', 'op', 'operationVarDict')
 
         return capexCap + capexDec + opexCap + opexDec + opexOp + commodCost + commodCostTimeSeries - \
             (commodRevenue + commodRevenueTimeSeries)

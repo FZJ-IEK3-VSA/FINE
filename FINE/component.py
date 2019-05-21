@@ -1128,30 +1128,32 @@ class ComponentModel(metaclass=ABCMeta):
                        for loc_, compNames in subDict.items()
                        for compName in compNames)
 
-    def getLocEconomicsTimeSeries(self, pyM, esM, factorNames, varName, loc, compName, getOptValue=False):
+
+    def getLocEconomicsTimeSeries(self, pyM, esM, factorName, varName, loc, compName, getOptValue=False):
         var = getattr(pyM, varName + '_' + self.abbrvName)
-        if self.componentsDict[compName].commodityCostTimeSeries is not None:
-              multipleFactorSeries = [getattr(self.componentsDict[compName], factorName)[loc] for factorName in factorNames]
-              factorSeries = pd.Series().reindex_like(multipleFactorSeries[0])
-              factorSeries[:] = 1.0
-              for series_ in multipleFactorSeries:
-                  factorSeries = pd.Series(factorSeries.values*series_.values)
-              if not getOptValue:
-                  return sum(factorSeries[t] * var[loc, compName, p, t] * esM.periodOccurrences[p]
+        if getattr(self.componentsDict[compName], factorName) is not None:
+            #import pdb; pdb.set_trace()
+            print(compName)
+            factor = getattr(self.componentsDict[compName], factorName)[loc] 
+            
+            print(factor.mean())
+            
+            if not getOptValue:
+                return sum(factor[p, t] * var[loc, compName, p, t] * esM.periodOccurrences[p]
                                        for p, t in pyM.timeSet)/esM.numberOfYears
-              else:
-                  return sum(factorSeries[t] * var[loc, compName, p, t].value * esM.periodOccurrences[p]
+            else:
+                return sum(factor[p, t] * var[loc, compName, p, t].value * esM.periodOccurrences[p]
                                        for p, t in pyM.timeSet)/esM.numberOfYears
         else:
-              return 0
+            return 0
       
-    def getEconomicsTimeSeries(self, pyM, esM, factorNames, varName, dictName, getOptValue=False):
+    def getEconomicsTimeSeries(self, pyM, esM, factorName, varName, dictName, getOptValue=False):
         indices = getattr(pyM, dictName + '_' + self.abbrvName).items()
         if self.dimension == '1dim':
-            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorNames, varName, loc, compName, getOptValue)
+            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc, compName, getOptValue)
                        for loc, compNames in indices for compName in compNames)
         else:
-            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorNames, varName, loc + '_' + loc_, compName, getOptValue)
+            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc + '_' + loc_, compName, getOptValue)
                         for loc, subDict in indices
                         for loc_, compNames in subDict.items()
                         for compName in compNames)
