@@ -1,4 +1,4 @@
-<a href="http://www.fz-juelich.de/iek/iek-3/EN/Forschung/_Process-and-System-Analysis/_node.html"><img src="http://www.fz-juelich.de/SharedDocs/Bilder/IBG/IBG-3/DE/Plant-soil-atmosphere%20exchange%20processes/INPLAMINT%20(BONARES)/Bild3.jpg?__blob=poster" alt="Forschungszentrum Juelich Logo" width="230px"></a> 
+﻿<a href="http://www.fz-juelich.de/iek/iek-3/EN/Forschung/_Process-and-System-Analysis/_node.html"><img src="http://www.fz-juelich.de/SharedDocs/Bilder/IBG/IBG-3/DE/Plant-soil-atmosphere%20exchange%20processes/INPLAMINT%20(BONARES)/Bild3.jpg?__blob=poster" alt="Forschungszentrum Juelich Logo" width="230px"></a> 
 
 # FINE - Framework for Integrated Energy System Assessment
 
@@ -43,7 +43,7 @@ A number of [**examples**](examples/) shows the capabilities of FINE.
 
 MIT License
 
-Copyright (C) 2016-2019 Lara Welder, Dilara Caglayan, Theresa Groß, Heidi Heinrichs, Leander Kotzur, Jochen Linßen, Martin Robinius, Detlef Stolten
+Copyright (C) 2016-2019 Lara Welder (FZJ IEK-3), Theresa Groß (FZJ IEK-3), Dilara Caglayan (FZJ IEK-3), Heidi Heinrichs (FZJ IEK-3), Leander Kotzur (FZJ IEK-3), Jochen Linßen (FZJ IEK-3), Martin Robinius (FZJ IEK-3), Detlef Stolten (FZJ IEK-3)
 
 You should have received a copy of the MIT License along with this program.
 If not, see https://opensource.org/licenses/MIT

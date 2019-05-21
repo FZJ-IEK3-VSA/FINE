@@ -1,5 +1,5 @@
 #####################
-Source and Sink class
+Source and Sink classes
 #####################
 
 .. |br| raw:: html
