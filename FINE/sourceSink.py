@@ -59,6 +59,22 @@ class Source(Component):
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
+        :param commodityCostTimeSeries: if specified, indicates commodity cost rate for each location and each time
+            step by a positive float. The values are given as specific values relative to the commodityUnit 
+            for each time step.
+            |br| * the default value is None
+        :type commodityCostTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model specified time steps. The column indices have to equal the
+            in the energy system model specified locations. The data in ineligible locations are set to zero.
+
+        :param commodityRevenueTimeSeries:  if specified, indicates commodity revenue rate for each location and each time
+            step by a positive float. The values are given as specific values relative to the commodityUnit 
+            for each time step.
+            |br| * the default value is None
+        :type commodityRevenueTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model specified time steps. The column indices have to equal the
+            in the energy system model specified locations. The data in ineligible locations are set to zero.
+
         :param tsaWeight: weight with which the time series of the component should be considered when applying
             time series aggregation.
             |br| * the default value is 1
