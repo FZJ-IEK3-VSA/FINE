@@ -12,7 +12,8 @@ def getData():
     capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Wind', 'maxCapacityOnshore_GW_el.xlsx'),
                                 index_col=0, squeeze=True)
     operationRateMax = pd.read_excel(
-        os.path.join(inputDataPath, 'SpatialData', 'Wind', 'maxOperationRateOnshore_el.xlsx'))
+        os.path.join(inputDataPath, 'SpatialData', 'Wind', 'maxOperationRateOnshore_el.xlsx')
+                                                  header = 0, index_col = 0)
 
     data.update({'Wind (onshore), capacityMax': capacityMax})
     data.update({'Wind (onshore), operationRateMax': operationRateMax})
@@ -21,7 +22,8 @@ def getData():
     capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Wind', 'maxCapacityOffshore_GW_el.xlsx'),
                                 index_col=0, squeeze=True)
     operationRateMax = pd.read_excel(
-        os.path.join(inputDataPath, 'SpatialData', 'Wind', 'maxOperationRateOffshore_el.xlsx'))
+        os.path.join(inputDataPath, 'SpatialData', 'Wind', 'maxOperationRateOffshore_el.xlsx')
+                                                  header = 0, index_col = 0)
 
     data.update({'Wind (offshore), capacityMax': capacityMax})
     data.update({'Wind (offshore), operationRateMax': operationRateMax})
@@ -29,7 +31,8 @@ def getData():
     # PV data
     capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'PV', 'maxCapacityPV_GW_el.xlsx'),
                                 index_col=0, squeeze=True)
-    operationRateMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'PV', 'maxOperationRatePV_el.xlsx'))
+    operationRateMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'PV', 'maxOperationRatePV_el.xlsx')
+                                                  header = 0, index_col = 0)
 
     data.update({'PV, capacityMax': capacityMax})
     data.update({'PV, operationRateMax': operationRateMax})
@@ -38,25 +41,29 @@ def getData():
     capacityFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'HydroPower', 'fixCapacityROR_GW_el.xlsx'),
                                 index_col=0, squeeze=True)
     operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'HydroPower',
-                                                  'fixOperationRateROR_GW_el.xlsx'))
+                                                  'fixOperationRateROR_GW_el.xlsx')
+                                                  header = 0, index_col = 0)
 
     data.update({'Existing run-of-river plants, capacityFix': capacityFix})
     data.update({'Existing run-of-river plants, operationRateFix': operationRateFix})
 
     # Biogas data
     operationRateMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Biogas',
-                                                  'biogasPotential_GWh_biogas.xlsx'))
+                                                  'biogasPotential_GWh_biogas.xlsx')
+                                                  header = 0, index_col = 0)
 
     data.update({'Biogas, operationRateMax': operationRateMax})
 
     biogasCommodityCostTimeSeries = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Biogas',
-                                                  'biogasPriceTimeSeries_MrdEuro_GWh.xlsx'))
+                                                  'biogasPriceTimeSeries_MrdEuro_GWh.xlsx')
+                                                  header = 0, index_col = 0)
 
     data.update({'Biogas, commodityCostTimeSeries': biogasCommodityCostTimeSeries})
 
     # Natural gas data
     naturalGasCommodityCostTimeSeries = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'NaturalGas',
-                                                  'naturalGasPriceTimeSeries_MrdEuro_GWh.xlsx'))
+                                                  'naturalGasPriceTimeSeries_MrdEuro_GWh.xlsx')
+                                                  header = 0, index_col = 0)
 
     data.update({'Natural Gas, commodityCostTimeSeries': naturalGasCommodityCostTimeSeries})
 
@@ -127,13 +134,15 @@ def getData():
 
     # Electricity demand data
     operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Demands',
-                                                  'electricityDemand_GWh_el.xlsx'))
+                                                  'electricityDemand_GWh_el.xlsx')
+                                                  header = 0, index_col = 0)
 
     data.update({'Electricity demand, operationRateFix': operationRateFix})
 
     # Hydrogen demand data
     operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Demands',
-                                                  'hydrogenDemand_GWh_hydrogen.xlsx'))
+                                                  'hydrogenDemand_GWh_hydrogen.xlsx')
+                                                  header = 0, index_col = 0)
 
     data.update({'Hydrogen demand, operationRateFix': operationRateFix})
 
