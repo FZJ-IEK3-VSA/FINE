@@ -9,6 +9,7 @@ class Source(Component):
     """
     A Source component can transfer a commodity over the energy system boundary into the system.
     """
+
     def __init__(self, esM, name, commodity, hasCapacityVariable,
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
@@ -16,7 +17,8 @@ class Source(Component):
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
-                 commodityRevenue=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
+                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -54,6 +56,22 @@ class Source(Component):
             of the commodityUnit for each time step.
             |br| * the default value is None
         :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model specified time steps. The column indices have to equal the
+            in the energy system model specified locations. The data in ineligible locations are set to zero.
+
+        :param commodityCostTimeSeries: if specified, indicates commodity cost rate for each location and each time
+            step by a positive float. The values are given as specific values relative to the commodityUnit 
+            for each time step.
+            |br| * the default value is None
+        :type commodityCostTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model specified time steps. The column indices have to equal the
+            in the energy system model specified locations. The data in ineligible locations are set to zero.
+
+        :param commodityRevenueTimeSeries:  if specified, indicates commodity revenue rate for each location and each time
+            step by a positive float. The values are given as specific values relative to the commodityUnit 
+            for each time step.
+            |br| * the default value is None
+        :type commodityRevenueTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
@@ -123,6 +141,7 @@ class Source(Component):
         :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
         """
+
         Component. __init__(self, esM, name, dimension='1dim', hasCapacityVariable=hasCapacityVariable,
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
                             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
@@ -145,8 +164,17 @@ class Source(Component):
                                                                locationalEligibility)
         self.commodityCost = utils.checkAndSetCostParameter(esM, name, commodityCost, '1dim',
                                                             locationalEligibility)
+
         self.commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',
                                                                locationalEligibility)
+
+        self.fullCommodityCostTimeSeries = utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries,
+                                                                        locationalEligibility)
+        self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
+
+        self.fullCommodityRevenueTimeSeries = utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityRevenueTimeSeries,
+                                                                        locationalEligibility)
+        self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
         if operationRateMax is not None and operationRateFix is not None:
@@ -182,20 +210,25 @@ class Source(Component):
 
     def setTimeSeriesData(self, hasTSA):
         """
-        Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
-        analysis is requested or not.
+        Function for setting the maximum operation rate, fixed operation rate and cost or revenue time series depending on whether a time series analysis is requested or not.
 
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
         self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
         self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
+        self.commodityCostTimeSeries = self.aggregatedCommodityCostTimeSeries if hasTSA else self.fullCommodityCostTimeSeries
+        self.commodityRevenueTimeSeries = self.aggregatedCommodityRevenueTimeSeries if hasTSA else self.fullCommodityRevenueTimeSeries
 
     def getDataForTimeSeriesAggregation(self):
         """ Function for getting the required data if a time series aggregation is requested. """
         weightDict, data = {}, []
         weightDict, data = self.prepareTSAInput(self.fullOperationRateFix, self.fullOperationRateMax,
                                                 '_operationRate_', self.tsaWeight, weightDict, data)
+        weightDict, data = self.prepareTSAInput(self.fullCommodityCostTimeSeries, None,
+                                                '_commodityCostTimeSeries_', self.tsaWeight, weightDict, data)
+        weightDict, data = self.prepareTSAInput(self.fullCommodityRevenueTimeSeries, None,
+                                                '_commodityRevenueTimeSeries_', self.tsaWeight, weightDict, data)
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data):
@@ -207,12 +240,15 @@ class Source(Component):
         """
         self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
         self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
+        self.aggregatedCommodityCostTimeSeries = self.getTSAOutput(self.fullCommodityCostTimeSeries, '_commodityCostTimeSeries_', data)
+        self.aggregatedCommodityRevenueTimeSeries = self.getTSAOutput(self.fullCommodityRevenueTimeSeries, '_commodityRevenueTimeSeries_', data)
 
 
 class Sink(Source):
     """
     A Sink component can transfer a commodity over the energy system boundary out of the system.
     """
+
     def __init__(self, esM, name, commodity, hasCapacityVariable,
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
@@ -220,8 +256,8 @@ class Sink(Source):
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
-                 commodityRevenue=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08,
-                 economicLifetime=10):
+                 commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
+                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         """
         Constructor for creating an Sink class instance.
 
@@ -233,8 +269,8 @@ class Sink(Source):
                         capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix,
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
                         capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
-                        investIfBuilt, opexPerOperation, commodityCost, commodityRevenue,
-                        opexPerCapacity, opexIfBuilt, interestRate, economicLifetime)
+                        investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries, 
+                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, interestRate, economicLifetime)
 
         self.sign = -1
 
@@ -455,8 +491,11 @@ class SourceSinkModel(ComponentModel):
         opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
         commodCost = self.getEconomicsTD(pyM, esM, ['commodityCost'], 'op', 'operationVarDict')
         commodRevenue = self.getEconomicsTD(pyM, esM, ['commodityRevenue'], 'op', 'operationVarDict')
+        commodCostTimeSeries = self.getEconomicsTimeSeries(pyM, esM, 'commodityCostTimeSeries', 'op', 'operationVarDict')
+        commodRevenueTimeSeries = self.getEconomicsTimeSeries(pyM, esM, 'commodityRevenueTimeSeries', 'op', 'operationVarDict')
 
-        return capexCap + capexDec + opexCap + opexDec + opexOp + commodCost - commodRevenue
+        return capexCap + capexDec + opexCap + opexDec + opexOp + commodCost + commodCostTimeSeries - \
+            (commodRevenue + commodRevenueTimeSeries)
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #
