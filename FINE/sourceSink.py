@@ -59,21 +59,21 @@ class Source(Component):
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
-        :param commodityCostTimeSeries: if specified, indicates commodity cost rate for each location and each time
-            step by a positive float. The values are given as specific values relative to the commodityUnit 
+        :param commodityCostTimeSeries: if specified, indicates commodity cost rates for each location and each
+            time step by a positive float. The values are given as specific values relative to the commodityUnit 
             for each time step.
             |br| * the default value is None
         :type commodityCostTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
-        :param commodityRevenueTimeSeries:  if specified, indicates commodity revenue rate for each location and each time
-            step by a positive float. The values are given as specific values relative to the commodityUnit 
-            for each time step.
+        :param commodityRevenueTimeSeries:  if specified, indicates commodity revenue rate for each location and
+            each time step by a positive float. The values are given as specific values relative to the
+            commodityUnit for each time step.
             |br| * the default value is None
-        :type commodityRevenueTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to equal the
-            in the energy system model specified locations. The data in ineligible locations are set to zero.
+        :type commodityRevenueTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices
+            have to match the in the energy system model specified time steps. The column indices have to equal
+            the in the energy system model specified locations. The data in ineligible locations are set to zero.
 
         :param tsaWeight: weight with which the time series of the component should be considered when applying
             time series aggregation.
@@ -168,12 +168,12 @@ class Source(Component):
         self.commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',
                                                                locationalEligibility)
 
-        self.fullCommodityCostTimeSeries = utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries,
-                                                                        locationalEligibility)
+        self.fullCommodityCostTimeSeries = \
+            utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries, locationalEligibility)
         self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
 
-        self.fullCommodityRevenueTimeSeries = utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityRevenueTimeSeries,
-                                                                        locationalEligibility)
+        self.fullCommodityRevenueTimeSeries = \
+            utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityRevenueTimeSeries, locationalEligibility)
         self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
@@ -210,15 +210,18 @@ class Source(Component):
 
     def setTimeSeriesData(self, hasTSA):
         """
-        Function for setting the maximum operation rate, fixed operation rate and cost or revenue time series depending on whether a time series analysis is requested or not.
+        Function for setting the maximum operation rate, fixed operation rate and cost or revenue time series depending
+        on whether a time series analysis is requested or not.
 
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
         self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
         self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
-        self.commodityCostTimeSeries = self.aggregatedCommodityCostTimeSeries if hasTSA else self.fullCommodityCostTimeSeries
-        self.commodityRevenueTimeSeries = self.aggregatedCommodityRevenueTimeSeries if hasTSA else self.fullCommodityRevenueTimeSeries
+        self.commodityCostTimeSeries = \
+            self.aggregatedCommodityCostTimeSeries if hasTSA else self.fullCommodityCostTimeSeries
+        self.commodityRevenueTimeSeries = \
+            self.aggregatedCommodityRevenueTimeSeries if hasTSA else self.fullCommodityRevenueTimeSeries
 
     def getDataForTimeSeriesAggregation(self):
         """ Function for getting the required data if a time series aggregation is requested. """
@@ -240,8 +243,10 @@ class Source(Component):
         """
         self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
         self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
-        self.aggregatedCommodityCostTimeSeries = self.getTSAOutput(self.fullCommodityCostTimeSeries, '_commodityCostTimeSeries_', data)
-        self.aggregatedCommodityRevenueTimeSeries = self.getTSAOutput(self.fullCommodityRevenueTimeSeries, '_commodityRevenueTimeSeries_', data)
+        self.aggregatedCommodityCostTimeSeries = \
+            self.getTSAOutput(self.fullCommodityCostTimeSeries, '_commodityCostTimeSeries_', data)
+        self.aggregatedCommodityRevenueTimeSeries = \
+            self.getTSAOutput(self.fullCommodityRevenueTimeSeries, '_commodityRevenueTimeSeries_', data)
 
 
 class Sink(Source):
@@ -491,8 +496,10 @@ class SourceSinkModel(ComponentModel):
         opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
         commodCost = self.getEconomicsTD(pyM, esM, ['commodityCost'], 'op', 'operationVarDict')
         commodRevenue = self.getEconomicsTD(pyM, esM, ['commodityRevenue'], 'op', 'operationVarDict')
-        commodCostTimeSeries = self.getEconomicsTimeSeries(pyM, esM, 'commodityCostTimeSeries', 'op', 'operationVarDict')
-        commodRevenueTimeSeries = self.getEconomicsTimeSeries(pyM, esM, 'commodityRevenueTimeSeries', 'op', 'operationVarDict')
+        commodCostTimeSeries = \
+            self.getEconomicsTimeSeries(pyM, esM, 'commodityCostTimeSeries', 'op', 'operationVarDict')
+        commodRevenueTimeSeries = \
+            self.getEconomicsTimeSeries(pyM, esM, 'commodityRevenueTimeSeries', 'op', 'operationVarDict')
 
         return capexCap + capexDec + opexCap + opexDec + opexOp + commodCost + commodCostTimeSeries - \
             (commodRevenue + commodRevenueTimeSeries)
