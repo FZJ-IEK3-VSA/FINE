@@ -264,7 +264,7 @@ class Component(metaclass=ABCMeta):
         self.modelingClass = ComponentModel
 
         # Set design variable modeling parameters
-        utils.checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
+        utils.checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
                                                     hasIsBuiltBinaryVariable, bigM)
         self.hasCapacityVariable = hasCapacityVariable
         self.capacityVariableDomain = capacityVariableDomain
@@ -960,6 +960,40 @@ class ComponentModel(metaclass=ABCMeta):
                    if compDict[compName].sharedPotentialID == key and (loc, compName) in capVarSet)
 
     def getLocEconomicsTD(self, pyM, esM, factorNames, varName, loc, compName, getOptValue=False):
+        """
+        Set time-dependent equation specified for one component in one location or one connection between two locations.
+
+        **Required arguments:**
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param factorNames: Strings of the time-dependent parameters that have to be multiplied within the equation. 
+            (e.g. ['opexPerOperation'] to multiply the operation variable with the costs for each operation).
+        :type factorNames: list of strings
+
+        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'op' for operation variable).
+        :type varName: string
+
+        :param loc: String of the location or of the connection between two locations (e.g. for transmission components) 
+            for which the equation should be set up.
+        :type loc: string
+
+        :param compName: String of the component name for which the equation should be set up.
+        :type compName: string
+
+        **Default arguments:**
+
+        :param getOptValue: Boolean that defines the output of the function:
+            - True: Return the optimal value. 
+            - False: Return the equation. 
+            |br| * the default value is False.
+        :type getoptValue: boolean        
+        """
+
         var = getattr(pyM, varName + '_' + self.abbrvName)
         factors = [getattr(self.componentsDict[compName], factorName)[loc] for factorName in factorNames]
         factor = 1.
@@ -973,6 +1007,41 @@ class ComponentModel(metaclass=ABCMeta):
                                  for p, t in pyM.timeSet)/esM.numberOfYears)
 
     def getLocEconomicsTI(self, pyM, factorNames, varName, loc, compName, divisorName='', getOptValue=False):
+        """
+        Set time-independent equation specified for one component in one location.
+
+        **Required arguments:**
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param factorNames: Strings of the parameters that have to be multiplied within the equation. 
+            (e.g. ['investPerCapacity'] to multiply the capacity variable with the investment per each capacity unit).
+        :type factorNames: list of strings
+
+        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'cap' for capacity variable).
+        :type varName: string
+
+        :param loc: String of the location for which the equation should be set up.
+        :type loc: string
+
+        :param compName: String of the component name for which the equation should be set up.
+        :type compName: string
+
+        **Default arguments:**
+
+        :param divisorName: String of the variable that is used as a divisor within the equation (e.g. 'CCF'). 
+            If the divisorName is an empty string, there is no division within the equation.
+            |br| * the default value is ''.
+        :type divisorName: string       
+
+        :param getOptValue: Boolean that defines the output of the function:
+            - True: Return the optimal value. 
+            - False: Return the equation. 
+            |br| * the default value is False.
+        :type getoptValue: boolean
+        """        
+
         var = getattr(pyM, varName + '_' + self.abbrvName)
         factors = [getattr(self.componentsDict[compName], factorName)[loc] for factorName in factorNames]
         divisor = getattr(self.componentsDict[compName], divisorName)[loc] if not divisorName == '' else 1
@@ -985,11 +1054,70 @@ class ComponentModel(metaclass=ABCMeta):
             return factor * var[loc, compName].value
 
     def getEconomicsTI(self, pyM, factorNames, varName, divisorName='', getOptValue=False):
+        """
+        Set time-independent equations for the individual components. The equations will be set for all components of a modeling class 
+        and all locations.
+
+        **Required arguments**
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param factorNames: Strings of the parameters that have to be multiplied within the equation. 
+            (e.g. ['investPerCapacity'] to multiply the capacity variable with the investment per each capacity unit).
+        :type factorNames: list of strings
+
+        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'cap' for capacity variable).
+        :type varName: string
+
+        :param divisorName: String of the variable that is used as a divisor within the equation (e.g. 'CCF'). 
+            If the divisorName is an empty string, there is no division within the equation.
+            |br| * the default value is ''.
+        :type divisorName: string       
+
+        :param getOptValue: Boolean that defines the output of the function:
+            - True: Return the optimal value. 
+            - False: Return the equation. 
+            |br| * the default value is False.
+        :type getoptValue: boolean
+        """
         var = getattr(pyM, varName + '_' + self.abbrvName)
         return sum(self.getLocEconomicsTI(pyM, factorNames, varName, loc, compName, divisorName, getOptValue)
                    for loc, compName in var)
 
     def getEconomicsTD(self, pyM, esM, factorNames, varName, dictName, getOptValue=False):
+        """
+        Set time-dependent equations for the individual components. The equations will be set for all components of a modeling class 
+        and all locations as well as for each considered time step.
+        In case of a two-dimensional component (e.g. a transmission component), the equations will be set for all possible connections between the 
+        defined locations. 
+
+        **Required arguments:**
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param factorNames: Strings of the time-dependent parameters that have to be multiplied within the equation. 
+            (e.g. ['opexPerOperation'] to multiply the operation variable with the costs for each operation).
+        :type factorNames: list of strings
+
+        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'op' for operation variable).
+        :type varName: string
+
+        :param dictName: String of the variable set (e.g. 'operationVarDict')
+        :type dictName: string
+
+        **Default arguments:**  
+
+        :param getOptValue: Boolean that defines the output of the function:
+            - True: Return the optimal value. 
+            - False: Return the equation. 
+            |br| * the default value is False.
+        :type getoptValue: boolean
+        """
         indices = getattr(pyM, dictName + '_' + self.abbrvName).items()
         if self.dimension == '1dim':
             return sum(self.getLocEconomicsTD(pyM, esM, factorNames, varName, loc, compName, getOptValue)
@@ -999,6 +1127,97 @@ class ComponentModel(metaclass=ABCMeta):
                        for loc, subDict in indices
                        for loc_, compNames in subDict.items()
                        for compName in compNames)
+
+
+    def getLocEconomicsTimeSeries(self, pyM, esM, factorName, varName, loc, compName, getOptValue=False):
+        """
+        Set time-dependent cost functions for the individual components. The equations will be set for all components 
+        of a modeling class and all locations as well as for each considered time step.
+        
+        **Required arguments:**
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param factorName: String of the time-dependent parameter that have to be multiplied within the equation. 
+            (e.g. 'commodityCostTimeSeries' to multiply the operation variable with the costs for each operation).
+        :type factorNames: string
+
+        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'op' for operation variable).
+        :type varName: string
+
+        :param dictName: String of the variable set (e.g. 'operationVarDict')
+        :type dictName: string
+
+        :param loc: String of the location for which the equation should be set up.
+        :type loc: string
+
+        :param compName: String of the component name for which the equation should be set up.
+        :type compName: string
+
+        **Default arguments:**  
+
+        :param getOptValue: Boolean that defines the output of the function:
+            - True: Return the optimal value. 
+            - False: Return the equation. 
+            |br| * the default value is False.
+        :type getoptValue: boolean
+        """
+        var = getattr(pyM, varName + '_' + self.abbrvName)
+        if getattr(self.componentsDict[compName], factorName) is not None:
+            factor = getattr(self.componentsDict[compName], factorName)[loc]
+            if not getOptValue:
+                return sum(factor[p, t] * var[loc, compName, p, t] * esM.periodOccurrences[p]
+                                       for p, t in pyM.timeSet)/esM.numberOfYears
+            else:
+                return sum(factor[p, t] * var[loc, compName, p, t].value * esM.periodOccurrences[p]
+                                       for p, t in pyM.timeSet)/esM.numberOfYears
+        else:
+            return 0
+      
+    def getEconomicsTimeSeries(self, pyM, esM, factorName, varName, dictName, getOptValue=False):
+        """
+        Adds time-dependent cost functions for the individual components. The equations will be set for all components 
+        of a modeling class and all locations as well as for all considered time steps.
+        
+        **Required arguments:**
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param factorName: String of the time-dependent parameter that have to be multiplied within the equation. 
+            (e.g. 'commodityCostTimeSeries' to multiply the operation variable with the costs for each operation).
+        :type factorNames: string
+
+        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'op' for operation variable).
+        :type varName: string
+
+        :param dictName: String of the variable set (e.g. 'operationVarDict')
+        :type dictName: string
+
+        **Default arguments:**  
+
+        :param getOptValue: Boolean that defines the output of the function:
+            - True: Return the optimal value. 
+            - False: Return the equation. 
+            |br| * the default value is False.
+        :type getoptValue: boolean
+        """
+        indices = getattr(pyM, dictName + '_' + self.abbrvName).items()
+        if self.dimension == '1dim':
+            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc, compName, getOptValue)
+                       for loc, compNames in indices for compName in compNames)
+        else:
+            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc + '_' + loc_, compName, getOptValue)
+                        for loc, subDict in indices
+                        for loc_, compNames in subDict.items()
+                        for compName in compNames)
 
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=''):
         """

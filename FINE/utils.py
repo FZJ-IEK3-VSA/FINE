@@ -1,5 +1,5 @@
 """
-Last edited: May 13 2018
+Last edited: March 26, 2019
 
 @author: Lara Welder
 """
@@ -269,26 +269,26 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     if locationalEligibility is not None:
         # Check if values are either one or zero
         if ((locationalEligibility != 0) & (locationalEligibility != 1)).any():
-            raise ValueError('The locationEligibility entries have to be either 0 or 1.')
+            raise ValueError('The locationalEligibility entries have to be either 0 or 1.')
         # Check if given capacities indicate the same eligibility
         if capacityFix is not None:
             data = capacityFix.copy()
             data[data > 0] = 1
             if (data != locationalEligibility).any():
-                raise ValueError('The locationEligibility and capacityFix parameters indicate different eligibilities.')
+                raise ValueError('The locationalEligibility and capacityFix parameters indicate different eligibilities.')
         if capacityMax is not None:
             data = capacityMax.copy()
             data[data > 0] = 1
             if (data != locationalEligibility).any():
-                raise ValueError('The locationEligibility and capacityMax parameters indicate different eligibilities.')
+                raise ValueError('The locationalEligibility and capacityMax parameters indicate different eligibilities.')
         if capacityMin is not None:
             data = capacityMin.copy()
             data[data > 0] = 1
             if (data > locationalEligibility).any():
-                raise ValueError('The locationEligibility and capacityMin parameters indicate different eligibilities.')
+                raise ValueError('The locationalEligibility and capacityMin parameters indicate different eligibilities.')
         if isBuiltFix is not None:
             if (isBuiltFix != locationalEligibility).any():
-                raise ValueError('The locationEligibility and isBuiltFix parameters indicate different' +
+                raise ValueError('The locationalEligibility and isBuiltFix parameters indicate different' +
                                  'eligibilities.')
 
     if isBuiltFix is not None:
@@ -372,7 +372,7 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
                 data = operationTimeSeries.copy().sum()
                 data[data > 0] = 1
                 if (data > locationalEligibility).any().any():
-                    raise ValueError('The locationEligibility and operationTimeSeries parameters indicate different' +
+                    raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
                                      ' eligibilities.')
         elif dimension == '2dim':
             keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations}
@@ -393,7 +393,7 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
                 # Check if given capacities indicate the same eligibility
                 keys = set(locationalEligibility.index)
                 if not columns == keys:
-                    raise ValueError('The locationEligibility and operationTimeSeries parameters indicate different' +
+                    raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
                                      ' eligibilities.')
 
         if (operationTimeSeries < 0).any().any():
@@ -406,7 +406,7 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
         return None
 
 
-def checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
+def checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapacityVariable, capacityPerPlantUnit,
                                           hasIsBuiltBinaryVariable, bigM):
     if capacityVariableDomain != 'continuous' and capacityVariableDomain != 'discrete':
         raise ValueError('The capacity variable domain has to be either \'continuous\' or \'discrete\'.')
@@ -423,11 +423,15 @@ def checkDesignVariableModelingParameters(capacityVariableDomain, hasCapacityVar
     if bigM is None and hasIsBuiltBinaryVariable:
         raise ValueError('A bigM value needs to be specified when considering fixed cost contributions.')
 
-    if bigM is not None:
-        isinstance(bigM, bool)
+    if bigM is not None and hasIsBuiltBinaryVariable:
+        isPositiveNumber(bigM)
+    elif bigM is not None and not hasIsBuiltBinaryVariable:
+        if esM.verbose < 2:
+            warnings.warn('A declaration of bigM is not necessary if hasIsBuiltBinaryVariable is set to false. '
+                      'The value of bigM will be ignored in the optimization.')
 
 
-def checkAndSetCostParameter(esM, name, data, dimension, locationEligibility):
+def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     if dimension == '1dim':
         if not (isinstance(data, int) or isinstance(data, float) or isinstance(data, pd.Series)):
             raise TypeError('Type error in ' + name + ' detected.\n' +
@@ -449,8 +453,8 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationEligibility):
         if isinstance(data, int) or isinstance(data, float):
             if data < 0:
                 raise ValueError('Value error in ' + name + ' detected.\n Economic parameters have to be positive.')
-            return pd.Series([float(data) for loc in locationEligibility.index], index=locationEligibility.index)
-        checkConnectionIndex(data, locationEligibility)
+            return pd.Series([float(data) for loc in locationalEligibility.index], index=locationalEligibility.index)
+        checkConnectionIndex(data, locationalEligibility)
 
     _data = data.astype(float)
     if _data.isnull().any():
@@ -461,6 +465,66 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationEligibility):
                          'All entries in economic parameter series have to be positive.')
     return _data
 
+
+def checkAndSetTimeSeriesCostParameter(esM, name, data, locationalEligibility, dimension = 1):
+    if data is not None:
+        if not isinstance(data, pd.DataFrame):
+            if len(esM.locations) == 1:
+                if isinstance(data, pd.Series):
+                    data = pd.DataFrame(data.values, index=data.index, columns=list(esM.locations))
+                else:
+                    raise TypeError('Type error in ' + name + ' detected.\n' +
+                            'Economic time series parameters have to be a pandas DataFrame.')
+            else:
+                raise TypeError('Type error in ' + name + ' detected.\n' +
+                            'Economic time series parameters have to be a pandas DataFrame.')
+        checkTimeSeriesIndex(esM, data)
+
+        if dimension == '1dim':
+            checkRegionalColumnTitles(esM, data)
+
+            if locationalEligibility is not None and data is not None:
+                auxiliary = data.copy().sum()
+                auxiliary[auxiliary > 0] = 1
+                if (auxiliary > locationalEligibility).any().any():
+                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
+                                     ' eligibilities.')
+        elif dimension == '2dim':
+            keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations}
+            columns = set(data.columns)
+            if not columns <= keys:
+                raise ValueError('False column index detected in ' + name + ' time series. ' +
+                                 'The indicies have to be in the format \'loc1_loc2\' ' +
+                                 'with loc1 and loc2 being locations in the energy system model.')
+
+            for loc1 in esM.locations:
+                for loc2 in esM.locations:
+                    if loc1 + '_' + loc2 in columns and not loc2 + '_' + loc1 in columns:
+                        raise ValueError('Missing data in ' + name + ' time series DataFrame of a location \n' +
+                                         'connecting component. If the flow is specified from loc1 to loc2, \n' +
+                                         'then it must also be specified from loc2 to loc1.\n')
+
+            if locationalEligibility is not None and data is not None:
+                keys = set(locationalEligibility.index)
+                if not columns == keys:
+                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
+                                     ' eligibilities.')
+
+        _data = data.astype(float)
+        if _data.isnull().any().any():
+            raise ValueError('Value error in ' + name + ' detected.\n' +
+                             'An economic parameter contains values which are not numbers.')
+        if (_data < 0).any().any():
+            raise ValueError('Value error in ' + name + ' detected.\n' +
+                             'All entries in economic parameter series have to be positive.\n' +
+                             'Time series containing positive and negative values can be split into \n' +
+                             'seperate time series with absolute values for costs and revenues.')
+        _data = _data.copy()		
+        _data["Period"], _data["TimeStep"] = 0, _data.index		
+        return _data.set_index(['Period', 'TimeStep'])
+
+    else:
+        return None
 
 def checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps):
     isStrictlyPositiveInt(numberOfTypicalPeriods), isStrictlyPositiveInt(numberOfTimeStepsPerPeriod)
