@@ -1130,14 +1130,45 @@ class ComponentModel(metaclass=ABCMeta):
 
 
     def getLocEconomicsTimeSeries(self, pyM, esM, factorName, varName, loc, compName, getOptValue=False):
+        """
+        Set time-dependent cost functions for the individual components. The equations will be set for all components 
+        of a modeling class and all locations as well as for each considered time step.
+        
+        **Required arguments:**
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param factorName: String of the time-dependent parameter that have to be multiplied within the equation. 
+            (e.g. 'commodityCostTimeSeries' to multiply the operation variable with the costs for each operation).
+        :type factorNames: string
+
+        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'op' for operation variable).
+        :type varName: string
+
+        :param dictName: String of the variable set (e.g. 'operationVarDict')
+        :type dictName: string
+
+        :param loc: String of the location for which the equation should be set up.
+        :type loc: string
+
+        :param compName: String of the component name for which the equation should be set up.
+        :type compName: string
+
+        **Default arguments:**  
+
+        :param getOptValue: Boolean that defines the output of the function:
+            - True: Return the optimal value. 
+            - False: Return the equation. 
+            |br| * the default value is False.
+        :type getoptValue: boolean
+        """
         var = getattr(pyM, varName + '_' + self.abbrvName)
         if getattr(self.componentsDict[compName], factorName) is not None:
-            #import pdb; pdb.set_trace()
-            print(compName)
-            factor = getattr(self.componentsDict[compName], factorName)[loc] 
-            
-            print(factor.mean())
-            
+            factor = getattr(self.componentsDict[compName], factorName)[loc]
             if not getOptValue:
                 return sum(factor[p, t] * var[loc, compName, p, t] * esM.periodOccurrences[p]
                                        for p, t in pyM.timeSet)/esM.numberOfYears
@@ -1148,6 +1179,36 @@ class ComponentModel(metaclass=ABCMeta):
             return 0
       
     def getEconomicsTimeSeries(self, pyM, esM, factorName, varName, dictName, getOptValue=False):
+        """
+        Adds time-dependent cost functions for the individual components. The equations will be set for all components 
+        of a modeling class and all locations as well as for all considered time steps.
+        
+        **Required arguments:**
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param factorName: String of the time-dependent parameter that have to be multiplied within the equation. 
+            (e.g. 'commodityCostTimeSeries' to multiply the operation variable with the costs for each operation).
+        :type factorNames: string
+
+        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'op' for operation variable).
+        :type varName: string
+
+        :param dictName: String of the variable set (e.g. 'operationVarDict')
+        :type dictName: string
+
+        **Default arguments:**  
+
+        :param getOptValue: Boolean that defines the output of the function:
+            - True: Return the optimal value. 
+            - False: Return the equation. 
+            |br| * the default value is False.
+        :type getoptValue: boolean
+        """
         indices = getattr(pyM, dictName + '_' + self.abbrvName).items()
         if self.dimension == '1dim':
             return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc, compName, getOptValue)
