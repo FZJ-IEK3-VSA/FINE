@@ -269,26 +269,26 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     if locationalEligibility is not None:
         # Check if values are either one or zero
         if ((locationalEligibility != 0) & (locationalEligibility != 1)).any():
-            raise ValueError('The locationEligibility entries have to be either 0 or 1.')
+            raise ValueError('The locationalEligibility entries have to be either 0 or 1.')
         # Check if given capacities indicate the same eligibility
         if capacityFix is not None:
             data = capacityFix.copy()
             data[data > 0] = 1
             if (data != locationalEligibility).any():
-                raise ValueError('The locationEligibility and capacityFix parameters indicate different eligibilities.')
+                raise ValueError('The locationalEligibility and capacityFix parameters indicate different eligibilities.')
         if capacityMax is not None:
             data = capacityMax.copy()
             data[data > 0] = 1
             if (data != locationalEligibility).any():
-                raise ValueError('The locationEligibility and capacityMax parameters indicate different eligibilities.')
+                raise ValueError('The locationalEligibility and capacityMax parameters indicate different eligibilities.')
         if capacityMin is not None:
             data = capacityMin.copy()
             data[data > 0] = 1
             if (data > locationalEligibility).any():
-                raise ValueError('The locationEligibility and capacityMin parameters indicate different eligibilities.')
+                raise ValueError('The locationalEligibility and capacityMin parameters indicate different eligibilities.')
         if isBuiltFix is not None:
             if (isBuiltFix != locationalEligibility).any():
-                raise ValueError('The locationEligibility and isBuiltFix parameters indicate different' +
+                raise ValueError('The locationalEligibility and isBuiltFix parameters indicate different' +
                                  'eligibilities.')
 
     if isBuiltFix is not None:
@@ -372,7 +372,7 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
                 data = operationTimeSeries.copy().sum()
                 data[data > 0] = 1
                 if (data > locationalEligibility).any().any():
-                    raise ValueError('The locationEligibility and operationTimeSeries parameters indicate different' +
+                    raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
                                      ' eligibilities.')
         elif dimension == '2dim':
             keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations}
@@ -393,7 +393,7 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
                 # Check if given capacities indicate the same eligibility
                 keys = set(locationalEligibility.index)
                 if not columns == keys:
-                    raise ValueError('The locationEligibility and operationTimeSeries parameters indicate different' +
+                    raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
                                      ' eligibilities.')
 
         if (operationTimeSeries < 0).any().any():
@@ -431,7 +431,7 @@ def checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapaci
                       'The value of bigM will be ignored in the optimization.')
 
 
-def checkAndSetCostParameter(esM, name, data, dimension, locationEligibility):
+def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     if dimension == '1dim':
         if not (isinstance(data, int) or isinstance(data, float) or isinstance(data, pd.Series)):
             raise TypeError('Type error in ' + name + ' detected.\n' +
@@ -453,8 +453,8 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationEligibility):
         if isinstance(data, int) or isinstance(data, float):
             if data < 0:
                 raise ValueError('Value error in ' + name + ' detected.\n Economic parameters have to be positive.')
-            return pd.Series([float(data) for loc in locationEligibility.index], index=locationEligibility.index)
-        checkConnectionIndex(data, locationEligibility)
+            return pd.Series([float(data) for loc in locationalEligibility.index], index=locationalEligibility.index)
+        checkConnectionIndex(data, locationalEligibility)
 
     _data = data.astype(float)
     if _data.isnull().any():
@@ -466,7 +466,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationEligibility):
     return _data
 
 
-def checkAndSetTimeSeriesCostParameter(esM, name, data, locationEligibility, dimension = 1):
+def checkAndSetTimeSeriesCostParameter(esM, name, data, locationalEligibility, dimension = 1):
     if data is not None:
         if not isinstance(data, pd.DataFrame):
             if len(esM.locations) == 1:
@@ -483,11 +483,11 @@ def checkAndSetTimeSeriesCostParameter(esM, name, data, locationEligibility, dim
         if dimension == '1dim':
             checkRegionalColumnTitles(esM, data)
 
-            if locationEligibility is not None and data is not None:
+            if locationalEligibility is not None and data is not None:
                 auxiliary = data.copy().sum()
                 auxiliary[auxiliary > 0] = 1
-                if (auxiliary > locationEligibility).any().any():
-                    raise ValueError('The locationEligibility and ' + name + ' parameters indicate different' +
+                if (auxiliary > locationalEligibility).any().any():
+                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
                                      ' eligibilities.')
         elif dimension == '2dim':
             keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations}
@@ -504,10 +504,10 @@ def checkAndSetTimeSeriesCostParameter(esM, name, data, locationEligibility, dim
                                          'connecting component. If the flow is specified from loc1 to loc2, \n' +
                                          'then it must also be specified from loc2 to loc1.\n')
 
-            if locationEligibility is not None and data is not None:
-                keys = set(locationEligibility.index)
+            if locationalEligibility is not None and data is not None:
+                keys = set(locationalEligibility.index)
                 if not columns == keys:
-                    raise ValueError('The locationEligibility and ' + name + ' parameters indicate different' +
+                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
                                      ' eligibilities.')
 
         _data = data.astype(float)
