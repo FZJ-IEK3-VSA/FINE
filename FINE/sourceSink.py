@@ -18,7 +18,7 @@ class Source(Component):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexPerCapacity=0, opexIfBuilt=0, cScale=0, interestRate=0.08, economicLifetime=10):
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -148,7 +148,7 @@ class Source(Component):
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
+                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, cScale=cScale, interestRate=interestRate,
                             economicLifetime=economicLifetime)
 
         # Set general source/sink data: ID and yearly limit
@@ -262,7 +262,7 @@ class Sink(Source):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexPerCapacity=0, opexIfBuilt=0, cScale=0, interestRate=0.08, economicLifetime=10):
         """
         Constructor for creating an Sink class instance.
 
@@ -275,7 +275,7 @@ class Sink(Source):
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
                         capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
                         investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries, 
-                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, interestRate, economicLifetime)
+                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, cScale, interestRate, economicLifetime)
 
         self.sign = -1
 
@@ -489,10 +489,6 @@ class SourceSinkModel(ComponentModel):
             :type pym: pyomo ConcreteModel
         """
 
-        capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
-        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
-        opexCap = self.getEconomicsTI(pyM, ['opexPerCapacity'], 'cap')
-        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
         opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
         commodCost = self.getEconomicsTD(pyM, esM, ['commodityCost'], 'op', 'operationVarDict')
         commodRevenue = self.getEconomicsTD(pyM, esM, ['commodityRevenue'], 'op', 'operationVarDict')
@@ -501,7 +497,7 @@ class SourceSinkModel(ComponentModel):
         commodRevenueTimeSeries = \
             self.getEconomicsTimeSeries(pyM, esM, 'commodityRevenueTimeSeries', 'op', 'operationVarDict')
 
-        return capexCap + capexDec + opexCap + opexDec + opexOp + commodCost + commodCostTimeSeries - \
+        return super().getObjectiveFunctionContribution(esM, pyM) + opexOp + commodCost + commodCostTimeSeries - \
             (commodRevenue + commodRevenueTimeSeries)
 
     ####################################################################################################################

@@ -20,7 +20,7 @@ class Conversion(Component):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexIfBuilt=0, cScale=0, interestRate=0.08, economicLifetime=10):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
         """
@@ -100,7 +100,7 @@ class Conversion(Component):
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
+                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, cScale=cScale, interestRate=interestRate,
                             economicLifetime=economicLifetime)
 
         # Set general conversion data: commodityConversionFactors, physicalUnit, linkedConversionCapacityID
@@ -385,13 +385,10 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
-        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
-        opexCap = self.getEconomicsTI(pyM, ['opexPerCapacity'], 'cap')
-        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
+
         opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
 
-        return capexCap + capexDec + opexCap + opexDec + opexOp
+        return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #
