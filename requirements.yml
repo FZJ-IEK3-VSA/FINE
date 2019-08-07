@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python
-  - pandas
+  - pandas==0.24.2
   - numpy
   - matplotlib
   - pyomo
