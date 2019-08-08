@@ -19,7 +19,7 @@ class Transmission(Component):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexIfBuilt=0, cScale=0, interestRate=0.08, economicLifetime=10):
         """
         Constructor for creating an Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
@@ -99,6 +99,7 @@ class Transmission(Component):
         self.capacityFix = utils.preprocess2dimData(capacityFix)
         self.isBuiltFix = utils.preprocess2dimData(isBuiltFix)
 
+
         # Set locational eligibility
         operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
         self.locationalEligibility = \
@@ -131,7 +132,7 @@ class Transmission(Component):
                             capacityFix=self.capacityFix, isBuiltFix=self.isBuiltFix,
                             investPerCapacity=self.investPerCapacity, investIfBuilt=self.investIfBuilt,
                             opexPerCapacity=self.opexPerCapacity, opexIfBuilt=self.opexIfBuilt,
-                            interestRate=self.interestRate, economicLifetime=self.economicLifetime)
+                            interestRate=self.interestRate, cScale=cScale, economicLifetime=self.economicLifetime)
 
         # Set general component data
         utils.checkCommodities(esM, {commodity})
@@ -141,7 +142,13 @@ class Transmission(Component):
         self.distances = utils.checkAndSetDistances(self.distances, self.locationalEligibility, esM)
         self.losses = utils.checkAndSetTransmissionLosses(self.losses, self.distances, self.locationalEligibility)
         self.modelingClass = TransmissionModel
-
+        
+        # Set distance related costs data
+        self.investPerCapacity *= (self.distances * 0.5)
+        self.investIfBuilt *= (self.distances * 0.5)
+        self.opexPerCapacity *= (self.distances * 0.5)
+        self.opexIfBuilt *= (self.distances * 0.5)
+        
         # Set additional economic data
         self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',
                                                                self.locationalEligibility)
@@ -414,13 +421,9 @@ class TransmissionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
 
-        capexCap = self.getEconomicsTI(pyM, ['investPerCapacity', 'distances'], 'cap', 'CCF') * 0.5
-        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt', 'distances'], 'designBin', 'CCF') * 0.5
-        opexCap = self.getEconomicsTI(pyM, ['opexPerCapacity', 'distances'], 'cap') * 0.5
-        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt', 'distances'], 'designBin') * 0.5
         opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDictOut')
 
-        return capexCap + capexDec + opexCap + opexDec + opexOp
+        return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
 
     def setOptimalValues(self, esM, pyM):
         """
@@ -441,7 +444,7 @@ class TransmissionModel(ComponentModel):
         for compName, comp in compDict.items():
             for cost in ['invest', 'capexCap', 'capexIfBuilt', 'opexCap', 'opexIfBuilt', 'TAC']:
                 data = optSummaryBasic.loc[compName, cost]
-                optSummaryBasic.loc[compName, cost] = (0.5 * data * comp.distances).values
+                optSummaryBasic.loc[compName, cost] = (data).values
 
         # Set optimal operation variables and append optimization summary
         optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)

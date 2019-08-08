@@ -20,7 +20,7 @@ class Storage(Component):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
-                 opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, cScale=0, interestRate=0.08, economicLifetime=10):
         """
         Constructor for creating an Storage class instance.
         The Storage component specific input arguments are described below. The general component
@@ -171,7 +171,7 @@ class Storage(Component):
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
+                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, cScale=cScale, interestRate=interestRate,
                             economicLifetime=economicLifetime)
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,
@@ -831,14 +831,10 @@ class StorageModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
 
-        capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
-        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
-        opexCap = self.getEconomicsTI(pyM, ['opexPerCapacity'], 'cap')
-        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
         opexOp1 = self.getEconomicsTD(pyM, esM, ['opexPerChargeOperation'], 'chargeOp', 'operationVarDict')
         opexOp2 = self.getEconomicsTD(pyM, esM, ['opexPerDischargeOperation'], 'dischargeOp', 'operationVarDict')
 
-        return capexCap + capexDec + opexCap + opexDec + opexOp1 + opexOp2
+        return super().getObjectiveFunctionContribution(esM, pyM) + opexOp1 + opexOp2
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #
