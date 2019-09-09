@@ -95,5 +95,13 @@ def test_miniSystem():
     testresults = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Electricity market')
     np.testing.assert_array_almost_equal(testresults.values, [np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07]),],decimal=-3)
 
+    summary = esM.getOptimizationSummary("SourceSinkModel")
+    print(summary)
+
+
+    np.testing.assert_almost_equal(summary.loc[['Electricity market','commodCosts','[1 Euro/a]'],'ElectrolyzerLocation'].values[0],
+        costs['ElectrolyzerLocation'].mul(np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07])).sum(), decimal=0)
+
+
 if __name__ == "__main__":
     test_miniSystem()
