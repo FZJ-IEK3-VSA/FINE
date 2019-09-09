@@ -541,12 +541,31 @@ class SourceSinkModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
             cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[op.index], axis=1)
             cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[op.index], axis=1)
+            
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values/esM.numberOfYears
+            
+            # get empty datframe for resulting time dependent cost sum
+            cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = sorted(esM.locations))
+            cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = sorted(esM.locations))
+
+            # I need to create a copy with the correct time index TODO drop this
+            optValCor = optVal.copy()
+            optValCor.columns = compDict[list(compDict.keys())[0]].commodityCostTimeSeries.index
+            for compName in compDict.keys():
+                if pyM.hasTSA:
+                    raise NotImplementedError()
+                else:
+                    if not compDict[compName].commodityCostTimeSeries is None:
+                        cCostTD.loc[compName,:] = optValCor.xs(compName, level=0).T.mul(compDict[compName].commodityCostTimeSeries).sum(axis=0)
+                    if not compDict[compName].commodityRevenueTimeSeries is None:
+                        cRevenueTD.loc[compName,:] = optValCor.xs(compName, level=0).T.mul(compDict[compName].commodityRevenueTimeSeries).sum(axis=0)
+
             optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                (cCost-cRevenue).values/esM.numberOfYears
+                ((cCostTD - cRevenueTD).values + (cCost-cRevenue).values)/esM.numberOfYears
+
 
         optSummary = optSummary.append(optSummaryBasic).sort_index()
 
