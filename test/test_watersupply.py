@@ -18,8 +18,6 @@ def test_watersupply():
                  'Node 1', 'Node 2', 'Node 3', 'Node 4', 'Water treatment', 'Water tank']
     commodityUnitDict = {'clean water': 'U', 'river water': 'U'}
     commodities = {'clean water', 'river water'}
-    numberOfTimeSteps=8760
-    hoursPerTimeStep=1
 
 
     esM = fn.EnergySystemModel(locations=set(locations), commodities=commodities, numberOfTimeSteps=8760,

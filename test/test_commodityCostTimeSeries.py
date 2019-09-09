@@ -43,8 +43,6 @@ def test_commodityCostTimeSeries():
     commodityUnitDict = {'electricity': r'GW$_{el}$', 'methane': r'GW$_{CH_{4},LHV}$', 'biogas': r'GW$_{biogas,LHV}$',
                          'CO2': r'Mio. t$_{CO_2}$/h', 'hydrogen': r'GW$_{H_{2},LHV}$'}
     commodities = {'electricity', 'hydrogen', 'methane', 'biogas', 'CO2'}
-    numberOfTimeSteps=8760
-    hoursPerTimeStep=1
 
     esM = fn.EnergySystemModel(locations=locations, commodities=commodities, numberOfTimeSteps=8760,
                                commodityUnitsDict=commodityUnitDict,
