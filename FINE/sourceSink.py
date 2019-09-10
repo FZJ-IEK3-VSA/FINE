@@ -548,8 +548,8 @@ class SourceSinkModel(ComponentModel):
                 ox.values/esM.numberOfYears
             
             # get empty datframe for resulting time dependent cost sum
-            cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = sorted(esM.locations))
-            cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = sorted(esM.locations))
+            cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
+            cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
 
             for compName in compDict.keys():
                 if not compDict[compName].commodityCostTimeSeries is None:
@@ -571,7 +571,7 @@ class SourceSinkModel(ComponentModel):
                         optValCor.columns = compDict[compName].commodityRevenueTimeSeries.index
 
                         cRevenueTD.loc[compName,:] = optValCor.xs(compName, level=0).T.mul(compDict[compName].commodityRevenueTimeSeries).sum(axis=0)
-
+                        
             optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ((cCostTD - cRevenueTD).values + (cCost-cRevenue).values)/esM.numberOfYears
 
