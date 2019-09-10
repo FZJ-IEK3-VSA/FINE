@@ -551,16 +551,25 @@ class SourceSinkModel(ComponentModel):
             cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = sorted(esM.locations))
             cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = sorted(esM.locations))
 
-            # I need to create a copy with the correct time index TODO drop this
-            optValCor = optVal.copy()
-            optValCor.columns = compDict[list(compDict.keys())[0]].commodityCostTimeSeries.index
             for compName in compDict.keys():
-                if pyM.hasTSA:
-                    raise NotImplementedError()
-                else:
-                    if not compDict[compName].commodityCostTimeSeries is None:
+                if not compDict[compName].commodityCostTimeSeries is None:
+                    if pyM.hasTSA:
+                        raise NotImplementedError()
+                    else:
+                        # I need to create a copy with the correct time index TODO drop this
+                        optValCor = optVal.copy()
+                        optValCor.columns = compDict[compName].commodityCostTimeSeries.index
+
                         cCostTD.loc[compName,:] = optValCor.xs(compName, level=0).T.mul(compDict[compName].commodityCostTimeSeries).sum(axis=0)
-                    if not compDict[compName].commodityRevenueTimeSeries is None:
+
+                if not compDict[compName].commodityRevenueTimeSeries is None:
+                    if pyM.hasTSA:
+                        raise NotImplementedError()
+                    else:
+                        # I need to create a copy with the correct time index TODO drop this
+                        optValCor = optVal.copy()
+                        optValCor.columns = compDict[compName].commodityRevenueTimeSeries.index
+
                         cRevenueTD.loc[compName,:] = optValCor.xs(compName, level=0).T.mul(compDict[compName].commodityRevenueTimeSeries).sum(axis=0)
 
             optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
