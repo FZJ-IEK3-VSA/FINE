@@ -553,24 +553,16 @@ class SourceSinkModel(ComponentModel):
 
             for compName in compDict.keys():
                 if not compDict[compName].commodityCostTimeSeries is None:
-                    if pyM.hasTSA:
-                        raise NotImplementedError()
-                    else:
-                        # I need to create a copy with the correct time index TODO drop this
-                        optValCor = optVal.copy()
-                        optValCor.columns = compDict[compName].commodityCostTimeSeries.index
-
-                        cCostTD.loc[compName,:] = optValCor.xs(compName, level=0).T.mul(compDict[compName].commodityCostTimeSeries).sum(axis=0)
+                    # in case of time series aggregation rearange clustered cost time series
+                    calcCostTS = utils.buildFullTimeSeries(compDict[compName].commodityCostTimeSeries, esM.periodsOrder, axis=0)
+                    # multiply with operation values to get the total cost
+                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTS).sum(axis=0)
 
                 if not compDict[compName].commodityRevenueTimeSeries is None:
-                    if pyM.hasTSA:
-                        raise NotImplementedError()
-                    else:
-                        # I need to create a copy with the correct time index TODO drop this
-                        optValCor = optVal.copy()
-                        optValCor.columns = compDict[compName].commodityRevenueTimeSeries.index
-
-                        cRevenueTD.loc[compName,:] = optValCor.xs(compName, level=0).T.mul(compDict[compName].commodityRevenueTimeSeries).sum(axis=0)
+                    # in case of time series aggregation rearange clustered revenue time series
+                    calcRevenueTS = utils.buildFullTimeSeries(compDict[compName].commodityRevenueTimeSeries, esM.periodsOrder, axis=0)
+                    # multiply with operation values to get the total revenue
+                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTS).sum(axis=0)
                         
             optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ((cCostTD - cRevenueTD).values + (cCost-cRevenue).values)/esM.numberOfYears

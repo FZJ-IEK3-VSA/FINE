@@ -577,11 +577,11 @@ def setFormattedTimeSeries(timeSeries):
         return data.set_index(['Period', 'TimeStep'])
 
 
-def buildFullTimeSeries(df, periodsOrder):
+def buildFullTimeSeries(df, periodsOrder, axis=1):
     data = []
     for p in periodsOrder:
         data.append(df.loc[p])
-    return pd.concat(data, axis=1, ignore_index=True)
+    return pd.concat(data, axis=axis, ignore_index=True)
 
 
 def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDict=None):
