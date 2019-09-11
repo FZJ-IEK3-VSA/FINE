@@ -554,13 +554,15 @@ class SourceSinkModel(ComponentModel):
             for compName in compDict.keys():
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
-                    calcCostTS = utils.buildFullTimeSeries(compDict[compName].commodityCostTimeSeries, esM.periodsOrder, axis=0)
+                    calcCostTS = utils.buildFullTimeSeries(compDict[compName].commodityCostTimeSeries, 
+                                                           esM.periodsOrder, axis=0)
                     # multiply with operation values to get the total cost
                     cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTS).sum(axis=0)
 
                 if not compDict[compName].commodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
-                    calcRevenueTS = utils.buildFullTimeSeries(compDict[compName].commodityRevenueTimeSeries, esM.periodsOrder, axis=0)
+                    calcRevenueTS = utils.buildFullTimeSeries(compDict[compName].commodityRevenueTimeSeries,
+                                                              esM.periodsOrder, axis=0)
                     # multiply with operation values to get the total revenue
                     cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTS).sum(axis=0)
                         
