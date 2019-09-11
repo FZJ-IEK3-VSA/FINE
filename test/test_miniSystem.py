@@ -91,11 +91,11 @@ def test_miniSystem():
     esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
 
 
-    # test if here solved fits with original results
+    # test if solve fits to the original results
     testresults = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Electricity market')
     np.testing.assert_array_almost_equal(testresults.values, [np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07]),],decimal=-3)
 
-    # test if the summary fits to th expected summary
+    # test if the summary fits to the expected summary
     summary = esM.getOptimizationSummary("SourceSinkModel")
     np.testing.assert_almost_equal(summary.loc[['Electricity market','commodCosts','[1 Euro/a]'],'ElectrolyzerLocation'].values[0],
         costs['ElectrolyzerLocation'].mul(np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07])).sum(), decimal=0)
