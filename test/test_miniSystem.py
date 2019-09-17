@@ -45,11 +45,14 @@ def test_miniSystem():
     ### Buy electricity at the electricity market
     costs = pd.DataFrame([np.array([ 0.05, 0., 0.1, 0.051,]),np.array([0., 0., 0., 0.,])],
                             index = ['ElectrolyzerLocation', 'IndustryLocation']).T
+    revenues = pd.DataFrame([np.array([ 0., 0.01, 0., 0.,]),np.array([0., 0., 0., 0.,])],
+                            index = ['ElectrolyzerLocation', 'IndustryLocation']).T
     maxpurchase = pd.DataFrame([np.array([1e6, 1e6, 1e6, 1e6,]),np.array([0., 0., 0., 0.,])],
                             index = ['ElectrolyzerLocation', 'IndustryLocation']).T * hoursPerTimeStep
     esM.add(fn.Source(esM=esM, name='Electricity market', commodity='electricity', 
                         hasCapacityVariable=False, operationRateMax = maxpurchase,
                         commodityCostTimeSeries = costs,  
+                        commodityRevenueTimeSeries = revenues,  
                         )) # eur/kWh
 
     ### Electrolyzers
@@ -97,9 +100,12 @@ def test_miniSystem():
 
     # test if the summary fits to the expected summary
     summary = esM.getOptimizationSummary("SourceSinkModel")
-    np.testing.assert_almost_equal(summary.loc[['Electricity market','commodCosts','[1 Euro/a]'],'ElectrolyzerLocation'].values[0],
+    # of cost
+    np.testing.assert_almost_equal(summary.loc[('Electricity market','commodCosts','[1 Euro/a]'),'ElectrolyzerLocation'],
         costs['ElectrolyzerLocation'].mul(np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07])).sum(), decimal=0)
-
+    # and of revenues
+    np.testing.assert_almost_equal(summary.loc[('Electricity market','commodRevenues','[1 Euro/a]'),'ElectrolyzerLocation'],
+        revenues['ElectrolyzerLocation'].mul(np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07])).sum(), decimal=0)
 
 if __name__ == "__main__":
     test_miniSystem()
