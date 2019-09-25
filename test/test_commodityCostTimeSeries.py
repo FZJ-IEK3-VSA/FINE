@@ -36,7 +36,7 @@ def test_commodityCostTimeSeries():
     data = getData()
 
     # read in original results
-    results = pd.Series.from_csv(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional Energy System Workflow','totalBiogasPurchase.csv'))
+    results = pd.Series.read_csv(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional Energy System Workflow','totalBiogasPurchase.csv'))
 
     # 2. Create an energy system model instance 
     locations = {'cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'}

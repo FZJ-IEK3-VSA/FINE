@@ -10,7 +10,7 @@ import FINE as fn
 def test_watersupply():
 
     # read in original results
-    results = pd.Series.from_csv(os.path.join(os.path.dirname(__file__),'..','examples','WaterSupplySystem','totalTransmission.csv'), index_col = [0,1,2])
+    results = pd.Series.read_csv(os.path.join(os.path.dirname(__file__),'..','examples','WaterSupplySystem','totalTransmission.csv'), index_col = [0,1,2])
 
 
     # get parameters
