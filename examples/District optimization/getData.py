@@ -20,7 +20,7 @@ def getData():
 
     # PV data
     gen_capacityMax = pd.read_excel(os.path.join(inputDataPath, 'PV_Capacity.xlsx'),
-                                    sheetname='GenerationCapacities')
+                                    sheet_name ='GenerationCapacities')
     gen_capacityMax = gen_capacityMax.loc['PV_south'].T
     gen_operationRateMax = pd.read_excel(os.path.join(inputDataPath, 'PV_Generation.xlsx'))
 

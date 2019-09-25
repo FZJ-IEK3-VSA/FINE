@@ -698,7 +698,7 @@ def checkComponentsEquality(esM, file):
     compListFromModel = list(esM.componentNames.keys())
     for mdl in esM.componentModelingDict.keys():
         dim = esM.componentModelingDict[mdl].dimension
-        readSheet = pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary_' + dim, index_col=[0, 1, 2, 3])
+        readSheet = pd.read_excel(file, sheet_name =mdl[0:-5] + 'OptSummary_' + dim, index_col=[0, 1, 2, 3])
         compListFromExcel += list(readSheet.index.levels[0])
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
