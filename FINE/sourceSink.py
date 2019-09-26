@@ -528,8 +528,8 @@ class SourceSinkModel(ComponentModel):
         optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
         self.operationVariablesOptimum = optVal
 
-        props = ['operation', 'opexOp', 'commodCosts']
-        units = ['[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
+        props = ['operation', 'opexOp', 'commodCosts', 'commodRevenues']
+        units = ['[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
         tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
         tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].commodityUnit + '*h/a]')
                           if x[1] == 'operation' else x, tuples))
@@ -541,20 +541,46 @@ class SourceSinkModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
             cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[op.index], axis=1)
             cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[op.index], axis=1)
+            
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values/esM.numberOfYears
-            optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                (cCost-cRevenue).values/esM.numberOfYears
+            
+            # get empty datframe for resulting time dependent (TD) cost sum
+            cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
+            cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
 
+            for compName in compDict.keys():
+                if not compDict[compName].commodityCostTimeSeries is None:
+                    # in case of time series aggregation rearange clustered cost time series
+                    calcCostTD = utils.buildFullTimeSeries(compDict[compName].commodityCostTimeSeries, 
+                                                           esM.periodsOrder, axis=0)
+                    # multiply with operation values to get the total cost
+                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD).sum(axis=0)
+
+                if not compDict[compName].commodityRevenueTimeSeries is None:
+                    # in case of time series aggregation rearange clustered revenue time series
+                    calcRevenueTD = utils.buildFullTimeSeries(compDict[compName].commodityRevenueTimeSeries,
+                                                              esM.periodsOrder, axis=0)
+                    # multiply with operation values to get the total revenue
+                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD).sum(axis=0)
+                        
+            optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+                (cCostTD.values + cCost.values)/esM.numberOfYears
+
+            optSummary.loc[[(ix, 'commodRevenues', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+                (cRevenueTD.values + cRevenue.values)/esM.numberOfYears
+        
+        # get discounted investment cost as total annual cost (TAC)
         optSummary = optSummary.append(optSummaryBasic).sort_index()
 
-        # Summarize all contributions to the total annual cost
+        # add operation specific contributions to the total annual cost (TAC) and substract revenues
         optSummary.loc[optSummary.index.get_level_values(1) == 'TAC'] = \
             optSummary.loc[(optSummary.index.get_level_values(1) == 'TAC') |
                            (optSummary.index.get_level_values(1) == 'opexOp') |
-                           (optSummary.index.get_level_values(1) == 'commodCosts')].groupby(level=0).sum().values
+                           (optSummary.index.get_level_values(1) == 'commodCosts')].groupby(level=0).sum().values \
+            - optSummary.loc[(optSummary.index.get_level_values(1) == 'commodRevenues')].groupby(level=0).sum().values
 
         self.optSummary = optSummary
 
