@@ -10,7 +10,9 @@ import FINE as fn
 def test_watersupply():
 
     # read in original results
-    results = pd.Series.from_csv(os.path.join(os.path.dirname(__file__),'..','examples','WaterSupplySystem','totalTransmission.csv'), index_col = [0,1,2])
+    results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples', 'WaterSupplySystem',
+                                       'totalTransmission.csv'),
+                          index_col=[0, 1, 2], header=None, squeeze=True)
 
 
     # get parameters
@@ -37,13 +39,13 @@ def test_watersupply():
     # Conversion
     eligibility = pd.Series([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0], index=locations)
     esM.add(fn.Conversion(esM=esM, name='Water treatment plant', physicalUnit='U',
-                          commodityConversionFactors={'river water':-1, 'clean water':1}, 
+                          commodityConversionFactors={'river water':-1, 'clean water':1},
                           hasCapacityVariable=True, locationalEligibility=eligibility,
                           investPerCapacity=7, opexPerCapacity=0.02*7, interestRate=0.08, economicLifetime=20))
 
     # Storage
     eligibility = pd.Series([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], index=locations)
-    esM.add(fn.Storage(esM=esM, name='Water tank', commodity='clean water', hasCapacityVariable=True, 
+    esM.add(fn.Storage(esM=esM, name='Water tank', commodity='clean water', hasCapacityVariable=True,
                        chargeRate=1/24, dischargeRate=1/24, locationalEligibility=eligibility,
                        investPerCapacity=0.10, opexPerCapacity=0.02*0.1, interestRate=0.08, economicLifetime=20))
 

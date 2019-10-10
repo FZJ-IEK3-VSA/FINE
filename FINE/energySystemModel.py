@@ -371,9 +371,9 @@ class EnergySystemModel:
         timeSeriesData.index = pd.date_range('2050-01-01 00:30:00', periods=len(self.totalTimeSteps),
                                              freq=(str(self.hoursPerTimeStep) + 'H'), tz='Europe/Berlin')
 
-        # Cluster data with tsam package (the reindex_axis call is here for reproducibility of TimeSeriesAggregation
+        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
         # call)
-        timeSeriesData = timeSeriesData.reindex_axis(sorted(timeSeriesData.columns), axis=1)
+        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
         clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
                                              hoursPerPeriod=numberOfTimeStepsPerPeriod*self.hoursPerTimeStep,
                                              clusterMethod=clusterMethod, sortValues=sortValues, weightDict=weightDict,
