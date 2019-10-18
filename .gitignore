@@ -1,0 +1,8 @@
+bin/
+tests/data/output/
+tests/data/InputData/
+.vscode/
+.pytest_cache/
+*__pycache__*
+*.pyc
+*-checkpoint.ipynb
