@@ -1,7 +1,7 @@
 import pytest
 
+import metis_utils.io_tools as ito
 import spagat.manager as spm
-import tsa_lib.io_tools as ito
 
 
 def test_workflow():

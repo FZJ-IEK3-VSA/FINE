@@ -7,8 +7,8 @@ import xarray as xr
 from shapely.geometry import LineString
 
 import geokit as gk
-import tsa_lib.io_tools as ito
-import tsa_lib.time_tools as tto
+import metis_utils.io_tools as ito
+import metis_utils.time_tools as tto
 
 logger_dataset = logging.getLogger('spagat_dataset')
 

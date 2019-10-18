@@ -9,9 +9,9 @@ from matplotlib import pyplot as plt
 from scipy.cluster import hierarchy
 
 # import spagat.dataset as spd
-import tsa_lib.io_tools as ito
-import tsa_lib.plot_tools as pto
-import tsa_lib.time_tools as tto
+import metis_utils.io_tools as ito
+import metis_utils.plot_tools as pto
+import metis_utils.time_tools as tto
 
 # import pypsa
 # import pypsa.networkclustering as nc

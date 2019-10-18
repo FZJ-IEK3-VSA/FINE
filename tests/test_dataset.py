@@ -1,8 +1,8 @@
 
 import pytest
 
+import metis_utils.io_tools as ito
 import spagat.dataset as spd
-import tsa_lib.io_tools as ito
 
 
 def test_read_and_save_sds():

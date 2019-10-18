@@ -1,0 +1,11 @@
+README.md
+setup.py
+spagat/dataset.py
+spagat/grouping.py
+spagat/manager.py
+spagat/representation.py
+spagat.egg-info/PKG-INFO
+spagat.egg-info/SOURCES.txt
+spagat.egg-info/dependency_links.txt
+spagat.egg-info/requires.txt
+spagat.egg-info/top_level.txt

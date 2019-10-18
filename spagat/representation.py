@@ -8,9 +8,9 @@ import xarray as xr
 from shapely.geometry import LineString
 from shapely.ops import cascaded_union, unary_union
 
+import metis_utils.io_tools as ito
+import metis_utils.time_tools as tto
 import spagat.dataset as spd
-import tsa_lib.io_tools as ito
-import tsa_lib.time_tools as tto
 
 logger_representation = logging.getLogger('spagat_representation')
 
