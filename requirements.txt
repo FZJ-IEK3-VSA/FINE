@@ -1,4 +1,4 @@
-pandas>=0.19.2
+pandas>=0.21.0
 numpy>=1.11.3
 pyomo>=5.5.0
 tsam>=0.9.9
