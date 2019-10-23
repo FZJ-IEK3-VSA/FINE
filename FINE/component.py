@@ -15,7 +15,8 @@ class Component(metaclass=ABCMeta):
     def __init__(self, esM, name, dimension,
                  hasCapacityVariable, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None, locationalEligibility=None,
-                 capacityMin=None, capacityMax=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 capacityMin=None, capacityMax=None, sharedPotentialID=None, linkedQuantityID = None,
+                 capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0,
                  interestRate=0.08, economicLifetime=10):
         """
@@ -285,6 +286,7 @@ class Component(metaclass=ABCMeta):
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
+        self.linkedQuantityID   = linkedQuantityID
         self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
         self.isBuiltFix = isBuiltFix
         utils.checkLocationSpecficDesignInputParams(self, esM)

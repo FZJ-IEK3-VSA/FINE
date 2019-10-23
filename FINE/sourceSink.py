@@ -15,7 +15,7 @@ class Source(Component):
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1, commodityLimitID=None,
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
-                 sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 sharedPotentialID=None, linkedQuantityID = None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
                  opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
@@ -146,7 +146,8 @@ class Source(Component):
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
                             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
-                            capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
+                            capacityMax=capacityMax, sharedPotentialID=sharedPotentialID,
+                            linkedQuantityID = linkedQuantityID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
                             economicLifetime=economicLifetime)
@@ -259,7 +260,7 @@ class Sink(Source):
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsamWeight=1, commodityLimitID=None,
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
-                 sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 sharedPotentialID=None, linkedQuantityID = None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
                  opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
@@ -273,7 +274,7 @@ class Sink(Source):
         Source.__init__(self, esM, name, commodity, hasCapacityVariable, capacityVariableDomain,
                         capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix,
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
-                        capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
+                        capacityMax, sharedPotentialID, linkedQuantityID, capacityFix, isBuiltFix, investPerCapacity,
                         investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries, 
                         commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, interestRate, economicLifetime)
 
@@ -550,7 +551,7 @@ class SourceSinkModel(ComponentModel):
             # get empty datframe for resulting time dependent (TD) cost sum
             cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
             cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
-
+            
             for compName in compDict.keys():
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
