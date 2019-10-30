@@ -147,18 +147,18 @@ def aggregate_time_series(xr_data_array_in, sub_to_sup_region_id_dict, mode='mea
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
         if mode == 'mean':
             xr_data_array_out.loc[dict(regions=sup_region_id)] = xr_data_array_in.sel(
-                regions=sub_region_id_list).mean(dim='regions').values
+                region_ids=sub_region_id_list).mean(dim='region_ids').values
 
         if mode == 'weighted mean':
             weighted_xr_data_array_in = xr_data_array_in * xr_weight_array
 
             xr_data_array_out.loc[dict(regions=sup_region_id)] = weighted_xr_data_array_in.sel(
-                regions=sub_region_id_list).sum(dim='regions').values / xr_weight_array.sel(
-                regions=sub_region_id_list).sum(dim='regions').values
+                region_ids=sub_region_id_list).sum(dim='region_ids').values / xr_weight_array.sel(
+                region_ids=sub_region_id_list).sum(dim='region_ids').values
 
         if mode == 'sum':
             xr_data_array_out.loc[dict(regions=sup_region_id)] = xr_data_array_in.sel(
-                regions=sub_region_id_list).sum(dim='regions').values
+                region_ids=sub_region_id_list).sum(dim='region_ids').values
 
     return xr_data_array_out
 
