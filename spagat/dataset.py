@@ -62,8 +62,8 @@ class SpagatDataSet:
 
     def add_region_data(self, regions):
         """Add the region_ids as coordinates to the dataset"""
-        self.xr_dataset.coords['regions'] = regions
-        self.xr_dataset.coords['regions_2'] = regions
+        self.xr_dataset.coords['region_ids'] = regions   
+        self.xr_dataset.coords['region_ids_2'] = regions
 
     def read_sds(self, sds_folder_path,
                  sds_regions_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):        
@@ -75,13 +75,14 @@ class SpagatDataSet:
 
         self.xr_dataset = xr.open_dataset(sds_xr_dataset_path)
 
-        # TODO: remove the following quickfix
-        self.xr_dataset = self.xr_dataset.rename({'region_ids': 'regions'})
-        self.xr_dataset = self.xr_dataset.rename({'region_ids_2': 'regions_2'})
+        # TODO: remove the following quickfix 
+        #not necessary anymore 
+        #self.xr_dataset = self.xr_dataset.rename({'region_ids': 'regions'})
+        #self.xr_dataset = self.xr_dataset.rename({'region_ids_2': 'regions_2'})
 
         gdf_regions = gpd.read_file(sds_regions_path)
         self.add_objects(description='gpd_geometries',
-                         dimension_list=['regions'],
+                         dimension_list=['region_ids'],
                          object_list=gdf_regions.geometry)
 
     def save_sds_regions(self, shape_output_path, crs=3035):
