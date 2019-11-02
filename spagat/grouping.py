@@ -48,7 +48,7 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
 
         if ax_illustration is not None:
             R = hierarchy.dendrogram(Z, orientation="top",
-                                     labels=sds.xr_dataset.regions.values, ax=ax_illustration, leaf_font_size=14)
+                                     labels=sds.xr_dataset.region_ids.values, ax=ax_illustration, leaf_font_size=14)
 
             if save_fig is not None:
 
@@ -59,7 +59,7 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
             fig, ax = pto.plt.subplots(figsize=(25, 12))
 
             R = hierarchy.dendrogram(Z, orientation="top",
-                                     labels=sds.xr_dataset.regions.values, ax=ax, leaf_font_size=14)
+                                     labels=sds.xr_dataset.region_ids.values, ax=ax, leaf_font_size=14)
 
             pto.plt_savefig(fig=fig, save_name=save_fig)
 
@@ -67,9 +67,9 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
 
         aggregation_dict = {}
 
-        regions_dict = {region_id: [region_id] for region_id in list(sds.xr_dataset.regions.values)}
+        regions_dict = {region_id: [region_id] for region_id in list(sds.xr_dataset.region_ids.values)}
 
-        regions_dict_complete = {region_id: [region_id] for region_id in list(sds.xr_dataset.regions.values)}
+        regions_dict_complete = {region_id: [region_id] for region_id in list(sds.xr_dataset.region_ids.values)}
 
         aggregation_dict[n_regions] = regions_dict.copy()
 
