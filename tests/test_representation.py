@@ -88,14 +88,18 @@ def test_aggregate_time_series():
 
      test_xr_DataArray = xr.DataArray(xr_DataArray_values, coords=[region_ids,time], dims=['region_ids','time'])
      
-     #call the function 
-     ##modes have to be changed, xr_weight_array has to be provided in case of weighted mean  
-     mode = 'weighted mean'
-     xr_weight_array = test_xr_DataArray   #for weighted mean
-     time_series_aggregated = spr.aggregate_time_series(test_xr_DataArray, dict_ds, mode=mode, xr_weight_array=xr_weight_array)
+     #assert functions 
+     ##mean 
+     time_series_aggregated = spr.aggregate_time_series(test_xr_DataArray, dict_ds, mode='mean', xr_weight_array=None)
+     assert time_series_aggregated.loc[4,'de'].values == 5   #correct value = 5
+   
+     ##weighted mean
+     time_series_aggregated = spr.aggregate_time_series(test_xr_DataArray, dict_ds, mode='weighted mean', xr_weight_array=test_xr_DataArray)
+     assert time_series_aggregated.loc[4,'de'].values == 5  #correct value = 5
 
-     #correct values for mean = 5, weighted mean = 5, sum = 25  for loc[4,'de']
-     assert time_series_aggregated.loc[4,'de'].values == 5   
+     ##sum
+     time_series_aggregated = spr.aggregate_time_series(test_xr_DataArray, dict_ds, mode='sum', xr_weight_array=None)
+     assert time_series_aggregated.loc[4,'de'].values == 25  #correct value = 25
 
 
 @pytest.mark.skip()
