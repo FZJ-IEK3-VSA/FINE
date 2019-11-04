@@ -24,14 +24,14 @@ def string_based_clustering(regions):
     '''Creates a dictionary containing sup_regions and respective lists of sub_regions'''
 
     # TODO: this is implemented spefically for the e-id: '01_es' -> generalize this!
-    nation_set = set([region_id.item(0).split('_')[1] for region_id in regions])
+    nation_set = set([region_id.split('_')[1] for region_id in regions])
 
     sub_to_sup_region_id_dict = {}
 
     for nation in nation_set:
-        sub_to_sup_region_id_dict[nation] = [region_id.item(0)
+        sub_to_sup_region_id_dict[nation] = [region_id
                                              for region_id in regions
-                                             if region_id.item(0).split('_')[1] == nation]
+                                             if region_id.split('_')[1] == nation]
 
     return sub_to_sup_region_id_dict
 

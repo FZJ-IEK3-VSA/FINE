@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from shapely.geometry import LineString
+import os 
 
 import geokit as gk
 import metis_utils.io_tools as ito
@@ -61,21 +62,27 @@ class SpagatDataSet:
 
     def add_region_data(self, regions):
         """Add the region_ids as coordinates to the dataset"""
-        self.xr_dataset.coords['regions'] = regions
-        self.xr_dataset.coords['regions_2'] = regions
+        self.xr_dataset.coords['region_ids'] = regions   
+        self.xr_dataset.coords['region_ids_2'] = regions
 
-    def read_sds(self, sds_folder,
-                 sds_regions_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):
+    def read_sds(self, sds_folder_path,
+                 sds_regions_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):        
         '''Reads in both shapefile as well as xarray dataset from a folder to the sds'''
-        self.xr_dataset = xr.open_dataset(sds_folder / sds_xr_dataset_filename)
 
-        # TODO: remove the following quickfix
-        self.xr_dataset = self.xr_dataset.rename({'region_ids': 'regions'})
-        self.xr_dataset = self.xr_dataset.rename({'region_ids_2': 'regions_2'})
+        #gets the complete paths
+        sds_xr_dataset_path = os.path.join(sds_folder_path, sds_xr_dataset_filename)
+        sds_regions_path = os.path.join(sds_folder_path, sds_regions_filename)
 
-        gdf_regions = gpd.read_file(sds_folder / sds_regions_filename)
+        self.xr_dataset = xr.open_dataset(sds_xr_dataset_path)
+
+        # TODO: remove the following quickfix 
+        #not necessary anymore 
+        #self.xr_dataset = self.xr_dataset.rename({'region_ids': 'regions'})
+        #self.xr_dataset = self.xr_dataset.rename({'region_ids_2': 'regions_2'})
+
+        gdf_regions = gpd.read_file(sds_regions_path)
         self.add_objects(description='gpd_geometries',
-                         dimension_list=['regions'],
+                         dimension_list=['region_ids'],
                          object_list=gdf_regions.geometry)
 
     def save_sds_regions(self, shape_output_path, crs=3035):
@@ -97,16 +104,16 @@ class SpagatDataSet:
             self.xr_dataset.to_netcdf(sds_output_path)
 
     @tto.timer
-    def save_sds(self, sds_folder,
+    def save_sds(self, sds_folder_path,
                  sds_region_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):
-        ito.create_dir(sds_folder)
+        ito.create_dir(sds_folder_path)
 
         # save geometries
-        shape_output_path = sds_folder / sds_region_filename
+        shape_output_path =  os.path.join(sds_folder_path, sds_region_filename)  
         self.save_sds_regions(shape_output_path)
 
         # TODO: maybe also save grid files here
 
         # save data
-        sds_output_path = sds_folder / sds_xr_dataset_filename
+        sds_output_path = os.path.join(sds_folder_path, sds_xr_dataset_filename)  
         self.save_data(sds_output_path)
