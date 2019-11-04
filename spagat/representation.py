@@ -80,15 +80,6 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds, sub_to_sup_region_id_dict)
     sds_2.xr_dataset['Pipelines, eligibility'] = (('region_ids', 'region_ids_2'), h_pipelines_incidence_aggregated)
     sds_2.xr_dataset['Pipelines, distances'] = (('region_ids', 'region_ids_2'), h_pipelines_distances_aggregated)
     
-    #@Robin : I think this is redundant 
-    #...
-    sds_2.xr_dataset['AC_cable_incidence'] = (('region_ids', 'region_ids_2'), ac_grid_incidence_aggregated)
-    sds_2.xr_dataset['AC_cable_incidence'] = (('region_ids', 'region_ids_2'), ac_grid_incidence_aggregated)
-
-    sds_2.xr_dataset['AC_cable_incidence'] = (('region_ids', 'region_ids_2'), ac_grid_incidence_aggregated)
-    sds_2.xr_dataset['AC_cable_incidence'] = (('region_ids', 'region_ids_2'), ac_grid_incidence_aggregated)
-    #...
-    
     sds_2.xr_dataset.coords['time'] = e_load_aggregated.time
 
     sds_2.xr_dataset['e_load'] = (('region_ids', 'time'), e_load_aggregated.T)
@@ -126,8 +117,8 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     data = np.array(shape_list)
 
     # TODO: understand the multipolygon_dimension's origin: Why does shapely do these four polygons instead of one?
-    # xr_data_array_out = xr.DataArray(data, coords=[regions, multipolygon_dimension],
-    #                                  dims=['regions', 'multipolygon_dimension'])
+    # xr_data_array_out = xr.DataArray(data, coords=[region_ids, multipolygon_dimension],
+    #                                  dims=['region_ids', 'multipolygon_dimension'])
     xr_data_array_out = xr.DataArray(data, coords=[region_ids],
                                      dims=['region_ids'])
 
@@ -138,7 +129,7 @@ def aggregate_time_series(xr_data_array_in, sub_to_sup_region_id_dict, mode='mea
     """Aggregates all data of a data array containing time series with dimension 'sub_regions' to new data_array with
     dimension 'regions"""
     # TODO: maybe add this to SpagatDataset as method?
-    # TODO: generalize dims -> 'regions' could be replaced by sth more general such as 'locs'
+    # TODO: generalize dims -> 'region_ids' could be replaced by sth more general such as 'locs'
 
     time = xr_data_array_in.time
 
@@ -241,7 +232,7 @@ def create_grid_shapefile(sds, filename='AC_lines.shp'):
     buses_1 = []
     geoms = []
 
-    for region_id_1 in sds.xr_dataset.regions.values:
+    for region_id_1 in sds.xr_dataset.region_ids.values:
         for region_id_2 in sds.xr_dataset.region_ids_2.values:
             if sds.xr_dataset.AC_cable_incidence.sel(region_ids=region_id_1, region_ids_2=region_id_2).values:
                 buses_0.append(region_id_1)

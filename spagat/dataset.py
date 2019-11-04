@@ -60,25 +60,20 @@ class SpagatDataSet:
 
         # self.xr_dataset[description] = (('region_ids', 'region_ids_2'), grid_data)
 
-    def add_region_data(self, regions):
+    def add_region_data(self, region_ids):
         """Add the region_ids as coordinates to the dataset"""
-        self.xr_dataset.coords['region_ids'] = regions   
-        self.xr_dataset.coords['region_ids_2'] = regions
+        self.xr_dataset.coords['region_ids'] = region_ids
+        self.xr_dataset.coords['region_ids_2'] = region_ids
 
-    def read_sds(self, sds_folder_path,
-                 sds_regions_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):        
+    def read_dataset(self, sds_folder,
+                     sds_regions_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):
         '''Reads in both shapefile as well as xarray dataset from a folder to the sds'''
 
         #gets the complete paths
-        sds_xr_dataset_path = os.path.join(sds_folder_path, sds_xr_dataset_filename)
-        sds_regions_path = os.path.join(sds_folder_path, sds_regions_filename)
+        sds_xr_dataset_path = sds_folder_path / ds_xr_dataset_filename
+        sds_regions_path = sds_folder_path / sds_regions_filename
 
         self.xr_dataset = xr.open_dataset(sds_xr_dataset_path)
-
-        # TODO: remove the following quickfix 
-        #not necessary anymore 
-        #self.xr_dataset = self.xr_dataset.rename({'region_ids': 'regions'})
-        #self.xr_dataset = self.xr_dataset.rename({'region_ids_2': 'regions_2'})
 
         gdf_regions = gpd.read_file(sds_regions_path)
         self.add_objects(description='gpd_geometries',
@@ -88,7 +83,7 @@ class SpagatDataSet:
     def save_sds_regions(self, shape_output_path, crs=3035):
         """Save regions and geometries from xr_array to shapefile"""
 
-        df = self.xr_dataset.regions.to_dataframe()
+        df = self.xr_dataset.region_ids.to_dataframe()
         geometries = self.xr_dataset.gpd_geometries.values
 
         ito.create_gdf(df=df, geometries=geometries, crs=crs, filepath=shape_output_path)

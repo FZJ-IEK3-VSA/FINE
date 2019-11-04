@@ -1,5 +1,6 @@
 import logging
 
+import metis_utils.io_tools as ito
 import spagat.dataset as spd
 import spagat.grouping as spg
 import spagat.representation as spr
@@ -18,7 +19,7 @@ class SpagatManager:
 
     def read_data(self, sds_folder):
 
-        self.sds.read_sds(sds_folder=sds_folder)
+        self.sds.read_dataset(sds_folder=sds_folder)
         spr.add_region_centroids(self.sds)
 
     def grouping(self, mode='distance based'):
