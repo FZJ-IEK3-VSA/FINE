@@ -1,26 +1,26 @@
+import os
+import pathlib
+
 import pytest
 import numpy as np 
 import xarray as xr 
 
-import spagat.dataset as spd
 import spagat.representation as spr
 import spagat.grouping as spg
 
 import metis_utils.io_tools as ito
 
+# paths
+cfd = os.path.dirname(os.path.realpath(__file__))
+data_path = pathlib.Path(cfd, 'data/InputData/SpatialData/')
 
-@pytest.mark.skip()
-def test_add_region_centroids_and_distances():
 
-    sds = spd.SpagatDataSet()
-
-    # ...
+def test_add_region_centroids_and_distances(sds):
 
     spr.add_region_centroids(sds)
     spr.add_centroid_distances(sds)
 
 
-#@pytest.mark.skip()
 def test_aggregate_based_on_sub_to_sup_region_id_dict():
     
      #read the xr_dataset and manipulate it to obtain a test xarray dataset
@@ -64,12 +64,11 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict():
     
 
 
-@pytest.mark.skip()
+@pytest.mark.skip(reason='not yet implemented')
 def test_aggregate_geometries():
     pass
 
 
-#@pytest.mark.skip()
 def test_aggregate_time_series():
      
      #import dataset 
@@ -102,6 +101,7 @@ def test_aggregate_time_series():
      assert time_series_aggregated.loc[4,'de'].values == 25  #correct value = 25
 
 
-@pytest.mark.skip()
+# spagat.output
+@pytest.mark.skip(reason='not yet implemented')
 def test_create_grid_shapefile():
     pass
