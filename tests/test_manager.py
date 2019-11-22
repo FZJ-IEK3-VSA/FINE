@@ -15,7 +15,7 @@ def test_workflow():
 
     spagat_manager.analysis_path = sds_folder_path_out
 
-    spagat_manager.read_data(sds_folder=sds_folder_path_in)
+    spagat_manager.read_data(sds_folder_path=sds_folder_path_in)
 
     spagat_manager.grouping()
 

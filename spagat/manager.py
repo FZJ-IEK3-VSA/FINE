@@ -17,9 +17,9 @@ class SpagatManager:
         self.sds_out = spd.SpagatDataSet()
         self.analysis_path = None
 
-    def read_data(self, sds_folder):
+    def read_data(self, sds_folder_path):
 
-        self.sds.read_dataset(sds_folder=sds_folder)
+        self.sds.read_dataset(sds_folder_path=sds_folder_path)
         spr.add_region_centroids(self.sds)
 
     def grouping(self, mode='distance based'):

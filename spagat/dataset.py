@@ -10,6 +10,7 @@ import os
 import geokit as gk
 import metis_utils.io_tools as ito
 import metis_utils.time_tools as tto
+import pathlib
 
 logger_dataset = logging.getLogger('spagat_dataset')
 
@@ -65,12 +66,12 @@ class SpagatDataSet:
         self.xr_dataset.coords['region_ids'] = region_ids
         self.xr_dataset.coords['region_ids_2'] = region_ids
 
-    def read_dataset(self, sds_folder,
+    def read_dataset(self, sds_folder_path,
                      sds_regions_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):
         '''Reads in both shapefile as well as xarray dataset from a folder to the sds'''
 
         #gets the complete paths
-        sds_xr_dataset_path = sds_folder_path / ds_xr_dataset_filename
+        sds_xr_dataset_path = sds_folder_path / sds_xr_dataset_filename
         sds_regions_path = sds_folder_path / sds_regions_filename
 
         self.xr_dataset = xr.open_dataset(sds_xr_dataset_path)
