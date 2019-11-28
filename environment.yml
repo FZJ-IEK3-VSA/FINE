@@ -1,0 +1,16 @@
+name: FINE
+dependencies:
+- python=3.6
+- gdal=2.3.3
+- conda-forge::geopandas
+- conda-forge::jupyter
+- conda-forge::notebook
+- pip
+- descartes
+- glpk
+- openpyxl
+- pip:
+  - FINE
+  - pandas==0.23.4
+  - https://github.com/FZJ-IEK3-VSA/geokit/archive/gdal_relax.zip
+  - https://github.com/FZJ-IEK3-VSA/glaes/archive/gdal_relax.zip
