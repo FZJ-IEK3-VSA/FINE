@@ -9,4 +9,4 @@ conda:
     - conda info --envs
     - source activate FINE
     - pip install -e .
-    - pytest --cov=FINE --cov-report test/
+    - pytest --cov=FINE test/
