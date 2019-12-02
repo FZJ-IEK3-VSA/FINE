@@ -8,5 +8,5 @@ conda:
     - conda env update -q --file=requirements_dev.yml
     - conda info --envs
     - source activate FINE
-    - pip install -e --no-cache-dir .
+    - pip install -e .
     - pytest --cov=FINE --cov-report test/
