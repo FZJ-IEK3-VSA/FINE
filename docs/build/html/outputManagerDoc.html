@@ -1,0 +1,598 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Input Output Management &mdash; FINE 1.0.3 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial" href="tutorialDoc.html" />
+    <link rel="prev" title="LinearOptimalPowerFlow class" href="lopfClassDoc.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="gettingStartedDoc.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="usersGuideDoc.html">Users Guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="componentsIntroDoc.html">Energy System Modeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mathematicalBackgroundDoc.html">Mathematical Descriptions</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="structureOfFINEDoc.html">Python package description</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="componentsDoc.html">Components</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Input Output Management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#standard-inputs-and-outputs">Standard inputs and outputs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialDoc.html">Tutorial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="IODoc.html">Data Input and Output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="newsDoc.html">FINE’s News Feed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="integratedSoftwareDoc.html">Integrated Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="legalNoticeDoc.html">Legal Notice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="furtherReadingDoc.html">Further Reading</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="usersGuideDoc.html">Users Guide</a> &raquo;</li>
+        
+          <li><a href="structureOfFINEDoc.html">Python package description</a> &raquo;</li>
+        
+      <li>Input Output Management</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/outputManagerDoc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="input-output-management">
+<h1>Input Output Management<a class="headerlink" href="#input-output-management" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="standard-inputs-and-outputs">
+<h2>Standard inputs and outputs<a class="headerlink" href="#standard-inputs-and-outputs" title="Permalink to this headline">¶</a></h2>
+<p>Descriptions of the basic functions are given below.</p>
+<p><strong>Function descriptions:</strong></p>
+<span class="target" id="module-standardIO"></span><dl class="function">
+<dt id="standardIO.writeOptimizationOutputToExcel">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">writeOptimizationOutputToExcel</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">outputFileName='scenarioOutput'</em>, <em class="sig-param">optSumOutputLevel=2</em>, <em class="sig-param">optValOutputLevel=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#writeOptimizationOutputToExcel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.writeOptimizationOutputToExcel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write optimization output to an Excel file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel instance</em>) – EnergySystemModel instance in which the optimized model is hold</p></li>
+<li><p><strong>outputFileName</strong> (<em>string</em>) – name of the Excel output file (without .xlsx ending)
+<br /> * the default value is ‘scenarioOutput’</p></li>
+<li><p><strong>optSumOutputLevel</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em> (</em><em>0</em><em>,</em><em>1</em><em>,</em><em>2</em><em>) or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – output level of the optimization summary (see EnergySystemModel). Either an integer
+(0,1,2) which holds for all model classes or a dictionary with model class names as keys and an integer
+(0,1,2) for each key (e.g. {‘StorageModel’:1,’SourceSinkModel’:1,…}
+<br /> * the default value is 2</p></li>
+<li><p><strong>optValOutputLevel</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em> (</em><em>0</em><em>,</em><em>1</em><em>) or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><em>dict</em></a>) – output level of the optimal values. Either an integer (0,1) which holds for all
+model classes or a dictionary with model class names as keys and an integer (0,1) for each key
+(e.g. {‘StorageModel’:1,’SourceSinkModel’:1,…}
+- 0: all values are kept.
+- 1: Lines containing only zeroes are dropped.
+<br /> * the default value is 1</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.readEnergySystemModelFromExcel">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">readEnergySystemModelFromExcel</code><span class="sig-paren">(</span><em class="sig-param">fileName='scenarioInput.xlsx'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#readEnergySystemModelFromExcel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.readEnergySystemModelFromExcel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read energy system model from excel file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fileName</strong> (<em>string</em>) – excel file name or path (including .xlsx ending)
+<br /> * the default value is ‘scenarioInput.xlsx’</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>esM, esMData - an EnergySystemModel class instance and general esMData as a Series</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.energySystemModelRunFromExcel">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">energySystemModelRunFromExcel</code><span class="sig-paren">(</span><em class="sig-param">fileName='scenarioInput.xlsx'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#energySystemModelRunFromExcel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.energySystemModelRunFromExcel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run an energy system model from excel file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fileName</strong> (<em>string</em>) – excel file name or path (including .xlsx ending)
+<br /> * the default value is ‘scenarioInput.xlsx’</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>esM - an EnergySystemModel class instance and general esMData as a Series</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.readOptimizationOutputFromExcel">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">readOptimizationOutputFromExcel</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">fileName='scenarioOutput.xlsx'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#readOptimizationOutputFromExcel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.readOptimizationOutputFromExcel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read optimization output from an excel file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel instance</em>) – EnergySystemModel instance which includes the setting of the optimized model</p></li>
+<li><p><strong>fileName</strong> (<em>string</em>) – excel file name oder path (including .xlsx ending) to an execl file written by
+writeOptimizationOutputToExcel()
+<br /> * the default value is ‘scenarioOutput.xlsx’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>esM - an EnergySystemModel class instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.getDualValues">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">getDualValues</code><span class="sig-paren">(</span><em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#getDualValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.getDualValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get dual values of an optimized pyomo instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – optimized pyomo instance</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Pandas Series with dual values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.getShadowPrices">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">getShadowPrices</code><span class="sig-paren">(</span><em class="sig-param">pyM</em>, <em class="sig-param">constraint</em>, <em class="sig-param">dualValues=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#getShadowPrices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.getShadowPrices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get dual values of constraint (“shadow prices”).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo model instance with optimized optimization problem</p></li>
+<li><p><strong>constraint</strong> (<em>pyomo.core.base.constraint.SimpleConstraint</em>) – constraint from which the dual values should be obtained (e.g. pyM.commodityBalanceConstraint)</p></li>
+<li><p><strong>dualValues</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.8)"><em>None</em></a><em> or </em><em>Series</em>) – dual values of the optimized model instance. If it is not specified, it is set by using the
+function getDualValues().
+<br /> * the default value is None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Pandas Series with the dual values of the specified constraint</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.plotOperation">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">plotOperation</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">compName</em>, <em class="sig-param">loc</em>, <em class="sig-param">locTrans=None</em>, <em class="sig-param">tMin=0</em>, <em class="sig-param">tMax=-1</em>, <em class="sig-param">variableName='operationVariablesOptimum'</em>, <em class="sig-param">xlabel='time step'</em>, <em class="sig-param">ylabel='operation time series'</em>, <em class="sig-param">figsize=(12</em>, <em class="sig-param">4)</em>, <em class="sig-param">color='k'</em>, <em class="sig-param">fontsize=12</em>, <em class="sig-param">save=False</em>, <em class="sig-param">fileName='operation.png'</em>, <em class="sig-param">dpi=200</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#plotOperation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.plotOperation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot operation time series of a component at a location.</p>
+<p><strong>Required arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – considered energy system model</p></li>
+<li><p><strong>compName</strong> (<em>string</em>) – component name</p></li>
+<li><p><strong>loc</strong> (<em>string</em>) – location</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Default arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>locTrans</strong> (<em>string</em>) – second location, required when Transmission components are plotted</p></li>
+<li><p><strong>tMin</strong> (<em>integer</em>) – first time step to be plotted (starting from 0)
+<br /> * the default value is 0</p></li>
+<li><p><strong>tMax</strong> (<em>integer</em>) – last time step to be plotted
+<br /> * the default value is -1 (i.e. the last available index)</p></li>
+<li><p><strong>variableName</strong> (<em>string</em>) – name of the operation time series. Checkout the component model class to see which options
+are available.
+<br /> * the default value is ‘operationVariablesOptimum’</p></li>
+<li><p><strong>xlabel</strong> (<em>string</em>) – x-label of the plot
+<br /> * the default value is ‘time step’</p></li>
+<li><p><strong>ylabel</strong> (<em>string</em>) – y-label of the plot
+<br /> * the default value is ‘operation time series’</p></li>
+<li><p><strong>figsize</strong> (<em>tuple of positive floats</em>) – figure size in inches
+<br /> * the default value is (12,4)</p></li>
+<li><p><strong>color</strong> (<em>string</em>) – color of the operation line
+<br /> * the default value is ‘k’</p></li>
+<li><p><strong>fontsize</strong> (<em>positive float</em>) – font size of the axis
+<br /> * the default value is 12</p></li>
+<li><p><strong>save</strong> (<em>boolean</em>) – indicates if figure should be saved
+<br /> * the default value is False</p></li>
+<li><p><strong>fileName</strong> (<em>string</em>) – output file name
+<br /> * the default value is ‘operation.png’</p></li>
+<li><p><strong>dpi</strong> (<em>scalar &gt; 0</em>) – resolution in dots per inch
+<br /> * the default value is 200</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.plotOperationColorMap">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">plotOperationColorMap</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">compName</em>, <em class="sig-param">loc</em>, <em class="sig-param">locTrans=None</em>, <em class="sig-param">nbPeriods=365</em>, <em class="sig-param">nbTimeStepsPerPeriod=24</em>, <em class="sig-param">variableName='operationVariablesOptimum'</em>, <em class="sig-param">cmap='viridis'</em>, <em class="sig-param">vmin=0</em>, <em class="sig-param">vmax=-1</em>, <em class="sig-param">xlabel='day'</em>, <em class="sig-param">ylabel='hour'</em>, <em class="sig-param">zlabel='operation'</em>, <em class="sig-param">figsize=(12</em>, <em class="sig-param">4)</em>, <em class="sig-param">fontsize=12</em>, <em class="sig-param">save=False</em>, <em class="sig-param">fileName=''</em>, <em class="sig-param">dpi=200</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#plotOperationColorMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.plotOperationColorMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot operation time series of a component at a location.</p>
+<p><strong>Required arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – considered energy system model</p></li>
+<li><p><strong>compName</strong> (<em>string</em>) – component name</p></li>
+<li><p><strong>loc</strong> (<em>string</em>) – location</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Default arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>locTrans</strong> (<em>string</em>) – second location, required when Transmission components are plotted</p></li>
+<li><p><strong>nbPeriods</strong> (<em>integer</em>) – number of periods to be plotted
+<br /> * the default value is 365</p></li>
+<li><p><strong>nbTimeStepsPerPeriod</strong> (<em>integer</em>) – time steps per period to be plotted (nbPeriods*nbTimeStepsPerPeriod=length of time
+series)
+<br /> * the default value is 24</p></li>
+<li><p><strong>variableName</strong> (<em>string</em>) – name of the operation time series. Checkout the component model class to see which options
+are available.
+<br /> * the default value is ‘operationVariablesOptimum’</p></li>
+<li><p><strong>cmap</strong> (<em>string</em>) – heat map (color map) (see matplotlib options)
+<br /> * the default value is ‘viridis’</p></li>
+<li><p><strong>vmin</strong> (<em>integer</em>) – minimum value in heat map
+<br /> * the default value is 0</p></li>
+<li><p><strong>vmax</strong> (<em>integer</em>) – maximum value in heat map. If -1, vmax is set to the maximum value of the operation time series.
+<br /> * the default value is -1</p></li>
+<li><p><strong>xlabel</strong> (<em>string</em>) – x-label of the plot
+<br /> * the default value is ‘day’</p></li>
+<li><p><strong>ylabel</strong> (<em>string</em>) – y-label of the plot
+<br /> * the default value is ‘hour’</p></li>
+<li><p><strong>zlabel</strong> (<em>string</em>) – z-label of the plot
+<br /> * the default value is ‘operation’</p></li>
+<li><p><strong>figsize</strong> (<em>tuple of positive floats</em>) – figure size in inches
+<br /> * the default value is (12,4)</p></li>
+<li><p><strong>fontsize</strong> (<em>positive float</em>) – font size of the axis
+<br /> * the default value is 12</p></li>
+<li><p><strong>save</strong> (<em>boolean</em>) – indicates if figure should be saved
+<br /> * the default value is False</p></li>
+<li><p><strong>fileName</strong> (<em>string</em>) – output file name
+<br /> * the default value is ‘operation.png’</p></li>
+<li><p><strong>dpi</strong> (<em>scalar &gt; 0</em>) – resolution in dots per inch
+<br /> * the default value is 200</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.plotLocations">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">plotLocations</code><span class="sig-paren">(</span><em class="sig-param">locationsShapeFileName</em>, <em class="sig-param">indexColumn</em>, <em class="sig-param">plotLocNames=False</em>, <em class="sig-param">crs='epsg:3035'</em>, <em class="sig-param">faceColor='none'</em>, <em class="sig-param">edgeColor='black'</em>, <em class="sig-param">fig=None</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">linewidth=0.5</em>, <em class="sig-param">figsize=(6</em>, <em class="sig-param">6)</em>, <em class="sig-param">fontsize=12</em>, <em class="sig-param">save=False</em>, <em class="sig-param">fileName=''</em>, <em class="sig-param">dpi=200</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#plotLocations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.plotLocations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot locations from a shape file.</p>
+<p><strong>Required arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>locationsShapeFileName</strong> (<em>string</em>) – file name or path to a shape file</p></li>
+<li><p><strong>indexColumn</strong> (<em>string</em>) – name of the column in which the location indices are stored</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Default arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>plotLocNames</strong> (<em>boolean</em>) – indicates if the names of the locations should be plotted
+<br /> * the default value is False</p></li>
+<li><p><strong>crs</strong> (<em>string</em>) – coordinate reference system
+<br /> * the default value is ‘epsg:3035’</p></li>
+<li><p><strong>faceColor</strong> (<em>string</em>) – face color of the plot
+<br /> * the default value is ‘none’</p></li>
+<li><p><strong>edgeColor</strong> (<em>string</em>) – edge color of the plot
+<br /> * the default value is ‘black’</p></li>
+<li><p><strong>fig</strong> (<em>matplotlib Figure</em>) – None or figure to which the plot should be added
+<br /> * the default value is None</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib Axis</em>) – None or ax to which the plot should be added
+<br /> * the default value is None</p></li>
+<li><p><strong>linewidth</strong> (<em>positive float</em>) – linewidth of the plot
+<br /> * the default value is 0.5</p></li>
+<li><p><strong>figsize</strong> (<em>tuple of positive floats</em>) – figure size in inches
+<br /> * the default value is (6,6)</p></li>
+<li><p><strong>fontsize</strong> (<em>positive float</em>) – font size of the axis
+<br /> * the default value is 12</p></li>
+<li><p><strong>save</strong> (<em>boolean</em>) – indicates if figure should be saved
+<br /> * the default value is False</p></li>
+<li><p><strong>fileName</strong> (<em>string</em>) – output file name
+<br /> * the default value is ‘operation.png’</p></li>
+<li><p><strong>dpi</strong> (<em>scalar &gt; 0</em>) – resolution in dots per inch
+<br /> * the default value is 200</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.plotTransmission">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">plotTransmission</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">compName</em>, <em class="sig-param">transmissionShapeFileName</em>, <em class="sig-param">loc0</em>, <em class="sig-param">loc1</em>, <em class="sig-param">crs='epsg:3035'</em>, <em class="sig-param">variableName='capacityVariablesOptimum'</em>, <em class="sig-param">color='k'</em>, <em class="sig-param">loc=7</em>, <em class="sig-param">alpha=0.5</em>, <em class="sig-param">ax=None</em>, <em class="sig-param">fig=None</em>, <em class="sig-param">linewidth=10</em>, <em class="sig-param">figsize=(6</em>, <em class="sig-param">6)</em>, <em class="sig-param">fontsize=12</em>, <em class="sig-param">save=False</em>, <em class="sig-param">fileName=''</em>, <em class="sig-param">dpi=200</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#plotTransmission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.plotTransmission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot build transmission lines from a shape file.</p>
+<p><strong>Required arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – considered energy system model</p></li>
+<li><p><strong>compName</strong> (<em>string</em>) – component name</p></li>
+<li><p><strong>transmissionShapeFileName</strong> (<em>string</em>) – file name or path to a shape file</p></li>
+<li><p><strong>loc0</strong> (<em>string</em>) – name of the column in which the location indices are stored (e.g. start/end of line)</p></li>
+<li><p><strong>loc1</strong> (<em>string</em>) – name of the column in which the location indices are stored (e.g. end/start of line)</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Default arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crs</strong> (<em>string</em>) – coordinate reference system
+<br /> * the default value is ‘epsg:3035’</p></li>
+<li><p><strong>variableName</strong> (<em>string</em>) – name of the operation time series. Checkout the component model class to see which options
+are available.
+<br /> * the default value is ‘capacityVariables’</p></li>
+<li><p><strong>color</strong> (<em>string</em>) – color of the transmission line
+<br /> * the default value is ‘k’</p></li>
+<li><p><strong>loc</strong> (<em>0 &lt;= integer &lt;= 10</em>) – location of the legend in the plot
+<br /> * the default value is 7</p></li>
+<li><p><strong>alpha</strong> (<em>0 &lt;= scalar &lt;= 1</em>) – transparency of the legend
+<br /> * the default value is 0.5</p></li>
+<li><p><strong>fig</strong> (<em>matplotlib Figure</em>) – None or figure to which the plot should be added
+<br /> * the default value is None</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib Axis</em>) – None or ax to which the plot should be added
+<br /> * the default value is None</p></li>
+<li><p><strong>linewidth</strong> (<em>positive float</em>) – line width of the plot
+<br /> * the default value is 0.5</p></li>
+<li><p><strong>figsize</strong> (<em>tuple of positive floats</em>) – figure size in inches
+<br /> * the default value is (6,6)</p></li>
+<li><p><strong>fontsize</strong> (<em>positive float</em>) – font size of the axis
+<br /> * the default value is 12</p></li>
+<li><p><strong>save</strong> (<em>boolean</em>) – indicates if figure should be saved
+<br /> * the default value is False</p></li>
+<li><p><strong>fileName</strong> (<em>string</em>) – output file name
+<br /> * the default value is ‘operation.png’</p></li>
+<li><p><strong>dpi</strong> (<em>scalar &gt; 0</em>) – resolution in dots per inch
+<br /> * the default value is 200</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="standardIO.plotLocationalColorMap">
+<code class="sig-prename descclassname">standardIO.</code><code class="sig-name descname">plotLocationalColorMap</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">compName</em>, <em class="sig-param">locationsShapeFileName</em>, <em class="sig-param">indexColumn</em>, <em class="sig-param">perArea=True</em>, <em class="sig-param">areaFactor=1000.0</em>, <em class="sig-param">crs='epsg:3035'</em>, <em class="sig-param">variableName='capacityVariablesOptimum'</em>, <em class="sig-param">doSum=False</em>, <em class="sig-param">cmap='viridis'</em>, <em class="sig-param">vmin=0</em>, <em class="sig-param">vmax=-1</em>, <em class="sig-param">zlabel='Installed capacity\nper kilometer\n'</em>, <em class="sig-param">figsize=(6</em>, <em class="sig-param">6)</em>, <em class="sig-param">fontsize=12</em>, <em class="sig-param">save=False</em>, <em class="sig-param">fileName=''</em>, <em class="sig-param">dpi=200</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/standardIO.html#plotLocationalColorMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#standardIO.plotLocationalColorMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the data of a component for each location.</p>
+<p><strong>Required arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – considered energy system model</p></li>
+<li><p><strong>compName</strong> (<em>string</em>) – component name</p></li>
+<li><p><strong>locationsShapeFileName</strong> (<em>string</em>) – file name or path to a shape file</p></li>
+<li><p><strong>indexColumn</strong> (<em>string</em>) – name of the column in which the location indices are stored</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Default arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>perArea</strong> (<em>boolean</em>) – indicates if the capacity should be given per area
+<br /> * the default value is False</p></li>
+<li><p><strong>areaFactor</strong> (<em>scalar &gt; 0</em>) – meter * areaFactor = km –&gt; areaFactor = 1e3 (–&gt; capacity/km)
+<br /> * the default value is 1e3</p></li>
+<li><p><strong>crs</strong> (<em>string</em>) – coordinate reference system
+<br /> * the default value is ‘epsg:3035’</p></li>
+<li><p><strong>variableName</strong> (<em>string</em>) – name of the operation time series. Checkout the component model class to see which options
+are available.
+<br /> * the default value is ‘operationVariablesOptimum’</p></li>
+<li><p><strong>doSum</strong> (<em>boolean</em>) – indicates if the variable has to be summarized for the location (e.g. for operation
+variables)
+<br /> * the default value is False</p></li>
+<li><p><strong>cmap</strong> (<em>string</em>) – heat map (color map) (see matplotlib options)
+<br /> * the default value is ‘viridis’</p></li>
+<li><p><strong>vmin</strong> (<em>integer</em>) – minimum value in heat map
+<br /> * the default value is 0</p></li>
+<li><p><strong>vmax</strong> (<em>integer</em>) – maximum value in heat map. If -1, vmax is set to the maximum value of the operation time series.
+<br /> * the default value is -1</p></li>
+<li><p><strong>zlabel</strong> (<em>string</em>) – z-label of the plot
+<br /> * the default value is ‘operation’</p></li>
+<li><p><strong>figsize</strong> (<em>tuple of positive floats</em>) – figure size in inches
+<br /> * the default value is (12,4)</p></li>
+<li><p><strong>fontsize</strong> (<em>positive float</em>) – font size of the axis
+<br /> * the default value is 12</p></li>
+<li><p><strong>save</strong> (<em>boolean</em>) – indicates if figure should be saved
+<br /> * the default value is False</p></li>
+<li><p><strong>fileName</strong> (<em>string</em>) – output file name
+<br /> * the default value is ‘operation.png’</p></li>
+<li><p><strong>dpi</strong> (<em>scalar &gt; 0</em>) – resolution in dots per inch
+<br /> * the default value is 200</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tutorialDoc.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lopfClassDoc.html" class="btn btn-neutral float-left" title="LinearOptimalPowerFlow class" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
