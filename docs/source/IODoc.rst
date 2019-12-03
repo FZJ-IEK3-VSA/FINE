@@ -6,6 +6,6 @@ Something to:
 
 Pandas
 
-General IO FINE (figures, tables, netcdf etc.)
+General IO FINE (figures, tables, netcdf IO etc.)
 
 Geopandas & GeoKit
