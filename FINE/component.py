@@ -617,6 +617,42 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet4(pyM, constrSetName, rateFix)
         self.declareOpConstrSet5(pyM, constrSetName, rateMax)
 
+    def full_load_hour_below_limit(time_series, full_load_hour_limit):
+        # TODO: Take sourceSink.yearlyLimitConstraint as template for this constraint, create two constraints (one for min, one for max full load hours)
+        # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
+        # capacity x maxFullLoadHours >= sum(opVar[t], t)
+        # capacity x minFullLoadHours <= sum(opVar[t], t)
+        # Template:
+            # def yearlyLimitationConstraint(self, pyM, esM):
+            #     """
+            #     Limit annual commodity imports/exports over the energySystemModel's boundaries for one or multiple
+            #     Source/Sink components.
+
+            #     :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+            #     :type esM: esM - EnergySystemModel class instance
+
+            #     :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+            #     :type pyM: pyomo ConcreteModel
+            #     """
+            #     compDict, abbrvName = self.componentsDict, self.abbrvName
+            #     opVar = getattr(pyM, 'op_' + abbrvName)
+            #     limitDict = getattr(pyM, 'yearlyCommodityLimitationDict_' + abbrvName)
+
+            #     def yearlyLimitationConstraint(pyM, key):
+            #         sumEx = -sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+            #                      esM.periodOccurrences[p]/esM.numberOfYears
+            #                      for loc, compName, p, t in opVar if compName in limitDict[key][1])
+            #         sign = limitDict[key][0]/abs(limitDict[key][0]) if limitDict[key][0] != 0 else 1
+            #         return sign * sumEx <= sign * limitDict[key][0]
+            #     setattr(pyM, 'ConstrYearlyLimitation_' + abbrvName,
+            #             pyomo.Constraint(limitDict.keys(), rule=yearlyLimitationConstraint))
+
+            """Checks whether the full load hours of a time series are above a limit"""
+
+            if len(time_series) == 2:
+                capacity_factor_time_series = capacity
+        pass
+
     ####################################################################################################################
     #                                         Functions for declaring variables                                        #
     ####################################################################################################################
