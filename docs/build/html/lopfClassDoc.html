@@ -1,0 +1,463 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>LinearOptimalPowerFlow class &mdash; FINE 1.0.3 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Input Output Management" href="outputManagerDoc.html" />
+    <link rel="prev" title="Storage class" href="storageClassDoc.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> FINE
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="gettingStartedDoc.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="usersGuideDoc.html">Users Guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="componentsIntroDoc.html">Energy System Modeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mathematicalBackgroundDoc.html">Mathematical Descriptions</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="structureOfFINEDoc.html">Python package description</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="energySystemModelDoc.html">EnergySystemModel class</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="componentsDoc.html">Components</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="componentClassDoc.html">Component class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sourceSinkClassDoc.html">Source and Sink classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="conversionClassDoc.html">Conversion class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="transmissionClassDoc.html">Transmission class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="storageClassDoc.html">Storage class</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">LinearOptimalPowerFlow class</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="outputManagerDoc.html">Input Output Management</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tutorialDoc.html">Tutorial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="IODoc.html">Data Input and Output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="newsDoc.html">FINE’s News Feed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="integratedSoftwareDoc.html">Integrated Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="legalNoticeDoc.html">Legal Notice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="furtherReadingDoc.html">Further Reading</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FINE</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="usersGuideDoc.html">Users Guide</a> &raquo;</li>
+        
+          <li><a href="structureOfFINEDoc.html">Python package description</a> &raquo;</li>
+        
+          <li><a href="componentsDoc.html">Components</a> &raquo;</li>
+        
+      <li>LinearOptimalPowerFlow class</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lopfClassDoc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="linearoptimalpowerflow-class">
+<h1>LinearOptimalPowerFlow class<a class="headerlink" href="#linearoptimalpowerflow-class" title="Permalink to this headline">¶</a></h1>
+<p>Linear optimal power flow components are transmission components which additionally consider linear optimal power
+flow equations.</p>
+<p><strong>LinearOptimalPowerFlow class description:</strong></p>
+<span class="target" id="module-lopf"></span><dl class="class">
+<dt id="lopf.LinearOptimalPowerFlow">
+<em class="property">class </em><code class="sig-prename descclassname">lopf.</code><code class="sig-name descname">LinearOptimalPowerFlow</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">name</em>, <em class="sig-param">commodity</em>, <em class="sig-param">reactances</em>, <em class="sig-param">losses=0</em>, <em class="sig-param">distances=None</em>, <em class="sig-param">hasCapacityVariable=True</em>, <em class="sig-param">capacityVariableDomain='continuous'</em>, <em class="sig-param">capacityPerPlantUnit=1</em>, <em class="sig-param">hasIsBuiltBinaryVariable=False</em>, <em class="sig-param">bigM=None</em>, <em class="sig-param">operationRateMax=None</em>, <em class="sig-param">operationRateFix=None</em>, <em class="sig-param">tsaWeight=1</em>, <em class="sig-param">locationalEligibility=None</em>, <em class="sig-param">capacityMin=None</em>, <em class="sig-param">capacityMax=None</em>, <em class="sig-param">sharedPotentialID=None</em>, <em class="sig-param">capacityFix=None</em>, <em class="sig-param">isBuiltFix=None</em>, <em class="sig-param">investPerCapacity=0</em>, <em class="sig-param">investIfBuilt=0</em>, <em class="sig-param">opexPerOperation=0</em>, <em class="sig-param">opexPerCapacity=0</em>, <em class="sig-param">opexIfBuilt=0</em>, <em class="sig-param">interestRate=0.08</em>, <em class="sig-param">economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LinearOptimalPowerFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LinearOptimalPowerFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a
+linearized power flow (i.e. for AC lines). The LinearOptimalPowerFlow class inherits from the Transmission
+class.</p>
+<dl class="method">
+<dt id="lopf.LinearOptimalPowerFlow.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">name</em>, <em class="sig-param">commodity</em>, <em class="sig-param">reactances</em>, <em class="sig-param">losses=0</em>, <em class="sig-param">distances=None</em>, <em class="sig-param">hasCapacityVariable=True</em>, <em class="sig-param">capacityVariableDomain='continuous'</em>, <em class="sig-param">capacityPerPlantUnit=1</em>, <em class="sig-param">hasIsBuiltBinaryVariable=False</em>, <em class="sig-param">bigM=None</em>, <em class="sig-param">operationRateMax=None</em>, <em class="sig-param">operationRateFix=None</em>, <em class="sig-param">tsaWeight=1</em>, <em class="sig-param">locationalEligibility=None</em>, <em class="sig-param">capacityMin=None</em>, <em class="sig-param">capacityMax=None</em>, <em class="sig-param">sharedPotentialID=None</em>, <em class="sig-param">capacityFix=None</em>, <em class="sig-param">isBuiltFix=None</em>, <em class="sig-param">investPerCapacity=0</em>, <em class="sig-param">investIfBuilt=0</em>, <em class="sig-param">opexPerOperation=0</em>, <em class="sig-param">opexPerCapacity=0</em>, <em class="sig-param">opexIfBuilt=0</em>, <em class="sig-param">interestRate=0.08</em>, <em class="sig-param">economicLifetime=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LinearOptimalPowerFlow.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LinearOptimalPowerFlow.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating an LinearOptimalPowerFlow class instance.
+The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
+component specific input arguments are described in the Transmission class and the general component
+input arguments are described in the Component class.</p>
+<p><strong>Required arguments:</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>reactances</strong> (<em>Pandas DataFrame. The row and column indices of the DataFrame have to equal
+the in the energy system model specified locations.</em>) – reactances for DC power flow modeling (of AC lines).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LinearOptimalPowerFlow.addToEnergySystemModel">
+<code class="sig-name descname">addToEnergySystemModel</code><span class="sig-paren">(</span><em class="sig-param">esM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LinearOptimalPowerFlow.addToEnergySystemModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LinearOptimalPowerFlow.addToEnergySystemModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for adding a LinearOptimalPowerFlow component to the given energy system model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p><em>Inheritance diagram:</em></p>
+<div class="graphviz"><img src="_images/inheritance-aa9a42f4dc35fbb6092794456be24a9a6423efd1.png" alt="Inheritance diagram of LinearOptimalPowerFlow" usemap="#inheritancef257b1b58e" class="inheritance graphviz" /></div>
+<map id="inheritancef257b1b58e" name="inheritancef257b1b58e">
+<area shape="poly" id="node2" href="#lopf.LinearOptimalPowerFlow" target="_top" title="A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a" alt="" coords="642,41,636,30,618,20,589,12,553,7,513,5,473,7,437,12,409,20,391,30,384,41,391,52,409,62,437,70,473,76,513,77,553,76,589,70,618,62,636,52"/>
+</map><div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><strong>LOPFModel class description:</strong></p>
+<dl class="class">
+<dt id="lopf.LOPFModel">
+<em class="property">class </em><code class="sig-prename descclassname">lopf.</code><code class="sig-name descname">LOPFModel</code><a class="reference internal" href="_modules/lopf.html#LOPFModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
+It is used for the declaration of the sets, variables and constraints which are valid for the LinearOptimalPowerFlow
+class instance. These declarations are necessary for the modeling and optimization of the energy system model.
+The LOPFModel class inherits from the TransmissionModel class.</p>
+<dl class="method">
+<dt id="lopf.LOPFModel.initPhaseAngleVarSet">
+<code class="sig-name descname">initPhaseAngleVarSet</code><span class="sig-paren">(</span><em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.initPhaseAngleVarSet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.initPhaseAngleVarSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare phase angle variable set in the pyomo object for for each node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo ConcreteModel which stores the mathematical formulation of the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.declareSets">
+<code class="sig-name descname">declareSets</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.declareSets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.declareSets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
+linked components dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</p></li>
+<li><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo ConcreteModel which stores the mathematical formulation of the model.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.declarePhaseAngleVariables">
+<code class="sig-name descname">declarePhaseAngleVariables</code><span class="sig-paren">(</span><em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.declarePhaseAngleVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.declarePhaseAngleVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare phase angle variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo ConcreteModel which stores the mathematical formulation of the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.declareVariables">
+<code class="sig-name descname">declareVariables</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.declareVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.declareVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare design and operation variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</p></li>
+<li><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo ConcreteModel which stores the mathematical formulation of the model.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.powerFlowDC">
+<code class="sig-name descname">powerFlowDC</code><span class="sig-paren">(</span><em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.powerFlowDC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.powerFlowDC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure that the flow between two locations is equal to the difference between the phase angle variables at
+these locations divided by the reactance of the line between these locations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo ConcreteModel which stores the mathematical formulation of the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.basePhaseAngle">
+<code class="sig-name descname">basePhaseAngle</code><span class="sig-paren">(</span><em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.basePhaseAngle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.basePhaseAngle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare the constraint that the reference phase angle is set to zero for all time steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo ConcreteModel which stores the mathematical formulation of the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.declareComponentConstraints">
+<code class="sig-name descname">declareComponentConstraints</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.declareComponentConstraints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.declareComponentConstraints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Declare time independent and dependent constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</p></li>
+<li><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo ConcreteModel which stores the mathematical formulation of the model.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.getSharedPotentialContribution">
+<code class="sig-name descname">getSharedPotentialContribution</code><span class="sig-paren">(</span><em class="sig-param">pyM</em>, <em class="sig-param">key</em>, <em class="sig-param">loc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.getSharedPotentialContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.getSharedPotentialContribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get contributions to shared location potential.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.hasOpVariablesForLocationCommodity">
+<code class="sig-name descname">hasOpVariablesForLocationCommodity</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">loc</em>, <em class="sig-param">commod</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.hasOpVariablesForLocationCommodity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.hasOpVariablesForLocationCommodity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the commodity´s transfer between a given location and the other locations of the energy system model
+is eligible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>esM - EnergySystemModel class instance</em>) – EnergySystemModel in which the LinearOptimalPowerFlow components have been added to.</p></li>
+<li><p><strong>loc</strong> (<em>string</em>) – Name of the regarded location (locations are defined in the EnergySystemModel instance)</p></li>
+<li><p><strong>commod</strong> – Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)</p></li>
+<li><p><strong>commod</strong> – string</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.getCommodityBalanceContribution">
+<code class="sig-name descname">getCommodityBalanceContribution</code><span class="sig-paren">(</span><em class="sig-param">pyM</em>, <em class="sig-param">commod</em>, <em class="sig-param">loc</em>, <em class="sig-param">p</em>, <em class="sig-param">t</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.getCommodityBalanceContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.getCommodityBalanceContribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get contribution to a commodity balance.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.getObjectiveFunctionContribution">
+<code class="sig-name descname">getObjectiveFunctionContribution</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.getObjectiveFunctionContribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.getObjectiveFunctionContribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get contribution to the objective function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</p></li>
+<li><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo ConcreteModel which stores the mathematical formulation of the model.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.setOptimalValues">
+<code class="sig-name descname">setOptimalValues</code><span class="sig-paren">(</span><em class="sig-param">esM</em>, <em class="sig-param">pyM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.setOptimalValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.setOptimalValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the optimal values of the components.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>esM</strong> (<em>EnergySystemModel class instance</em>) – EnergySystemModel instance representing the energy system in which the component should be modeled.</p></li>
+<li><p><strong>pyM</strong> (<em>pyomo Concrete Model</em>) – pyomo ConcreteModel which stores the mathematical formulation of the model.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lopf.LOPFModel.getOptimalValues">
+<code class="sig-name descname">getOptimalValues</code><span class="sig-paren">(</span><em class="sig-param">name='all'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lopf.html#LOPFModel.getOptimalValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lopf.LOPFModel.getOptimalValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return optimal values of the components.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – name of the variables of which the optimal values should be returned:</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>‘capacityVariables’,</p></li>
+<li><p>‘isBuiltVariables’,</p></li>
+<li><p>‘operationVariablesOptimum’,</p></li>
+<li><p>‘phaseAngleVariablesOptimum’,</p></li>
+<li><p>‘all’ or another input: all variables are returned.</p></li>
+</ul>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p><em>Inheritance diagram:</em></p>
+<div class="graphviz"><img src="_images/inheritance-a2101a65cf87d71e3d92715d47a28ff12c0b5e72.png" alt="Inheritance diagram of LOPFModel" usemap="#inheritanceef5c50f727" class="inheritance graphviz" /></div>
+<map id="inheritanceef5c50f727" name="inheritanceef5c50f727">
+<area shape="poly" id="node2" href="#lopf.LOPFModel" target="_top" title="A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized." alt="" coords="638,41,634,30,625,20,609,12,590,7,568,5,547,7,528,12,512,20,503,30,499,41,503,52,512,62,528,70,547,76,568,77,590,76,609,70,625,62,634,52"/>
+</map></div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="outputManagerDoc.html" class="btn btn-neutral float-right" title="Input Output Management" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="storageClassDoc.html" class="btn btn-neutral float-left" title="Storage class" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Lara Welder
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

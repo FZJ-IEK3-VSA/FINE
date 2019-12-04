@@ -394,7 +394,7 @@ class EnergySystemModel:
         self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
         self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
         self.periodsOrder = clusterClass.clusterOrder
-        self.periodOccurrences = [(self.periodsOrder == tp).sum()/self.numberOfYears for tp in self.typicalPeriods]
+        self.periodOccurrences = [(self.periodsOrder == tp).sum() for tp in self.typicalPeriods]
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
