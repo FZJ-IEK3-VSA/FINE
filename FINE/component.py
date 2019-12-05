@@ -279,8 +279,14 @@ class Component(metaclass=ABCMeta):
         self.partLoadMin = partLoadMin
         
         if self.partLoadMin is not None:
+            if type(self.partLoadMin)!=float:
+                raise TypeError('partLoadMin for ' + self.name +  ' needs to be a float in the intervall ]0-1].')
+            if self.partLoadMin <= 0:
+                raise ValueError('partLoadMin for ' + self.name +  ' needs to be a float in the intervall ]0-1].')
+            if self.partLoadMin > 1:
+                raise ValueError('partLoadMin for ' + self.name +  ' needs to be a float in the intervall ]0-1].')
             if self.bigM is None:
-                raise ValueError('BigM needs to be defined for compeonent ' + self.name + ' if minimum part load is not None.')
+                raise ValueError('bigM needs to be defined for compeonent ' + self.name + ' if minimum part load is not None.')
 
         # Set economic data
         elig = locationalEligibility
