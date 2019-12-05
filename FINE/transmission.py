@@ -16,7 +16,7 @@ class Transmission(Component):
                  hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
+                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
@@ -127,7 +127,7 @@ class Transmission(Component):
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
                             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
                             locationalEligibility=self.locationalEligibility, capacityMin=self.capacityMin,
-                            capacityMax=self.capacityMax, sharedPotentialID=sharedPotentialID,
+                            capacityMax=self.capacityMax, partLoadMin=partLoadMin, sharedPotentialID=sharedPotentialID,
                             capacityFix=self.capacityFix, isBuiltFix=self.isBuiltFix,
                             investPerCapacity=self.investPerCapacity, investIfBuilt=self.investIfBuilt,
                             opexPerCapacity=self.opexPerCapacity, opexIfBuilt=self.opexIfBuilt,
@@ -240,6 +240,7 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
+        self.declareOperationBinarySet(pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -269,6 +270,8 @@ class TransmissionModel(ComponentModel):
         self.declareBinaryDesignDecisionVars(pyM)
         # Operation of component [commodityUnit]
         self.declareOperationVars(pyM, 'op')
+        # Operation of component as binary [1/0]
+        self.declareOperationBinaryVars(pyM, 'op_bin')
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -359,6 +362,8 @@ class TransmissionModel(ComponentModel):
         self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
         # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        # Operation [physicalUnit*h] is limited by minimum part Load
+        self.additionalMinPartLoad(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op', 'op_bin', 'cap')
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #

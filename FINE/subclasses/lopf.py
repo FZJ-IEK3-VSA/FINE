@@ -14,7 +14,7 @@ class LinearOptimalPowerFlow(Transmission):
                  hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
+                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
@@ -33,7 +33,7 @@ class LinearOptimalPowerFlow(Transmission):
         Transmission.__init__(self, esM, name, commodity, losses, distances, hasCapacityVariable,
                               capacityVariableDomain, capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM,
                               operationRateMax, operationRateFix, tsaWeight, locationalEligibility, capacityMin,
-                              capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
+                              capacityMax, partLoadMin, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
                               investIfBuilt, opexPerOperation, opexPerCapacity, opexIfBuilt, interestRate,
                               economicLifetime)
 
@@ -107,6 +107,7 @@ class LOPFModel(TransmissionModel):
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
+        self.declareOperationBinarySet(pyM)
 
         # Declare operation variable set
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -146,6 +147,8 @@ class LOPFModel(TransmissionModel):
         self.declareBinaryDesignDecisionVars(pyM)
         # Flow over the edges of the components [commodityUnit]
         self.declareOperationVars(pyM, 'op')
+        # Operation of component as binary [1/0]
+        self.declareOperationBinaryVars(pyM, 'op_bin')
         # Operation of component [commodityUnit]
         self.declarePhaseAngleVariables(pyM)
 

@@ -15,7 +15,7 @@ class Component(metaclass=ABCMeta):
     def __init__(self, esM, name, dimension,
                  hasCapacityVariable, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None, locationalEligibility=None,
-                 capacityMin=None, capacityMax=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0,
                  interestRate=0.08, economicLifetime=10):
         """
@@ -126,6 +126,11 @@ class Component(metaclass=ABCMeta):
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
+       
+        :param partLoadMin: if specified, indicates minimal part load of component. 
+        :type partLoadMin:
+            * None or
+            * Float value in range ]0;1]
 
         :param sharedPotentialID: if specified, indicates that the component has to share its maximum
             potential capacity with other components (e.g. due to space limitations). The shares of how
@@ -271,6 +276,11 @@ class Component(metaclass=ABCMeta):
         self.capacityPerPlantUnit = capacityPerPlantUnit
         self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self.bigM = bigM
+        self.partLoadMin = partLoadMin
+        
+        if self.partLoadMin is not None:
+            if self.bigM is None:
+                raise ValueError('BigM needs to be defined for compeonent ' + self.name + ' if minimum part load is not None.')
 
         # Set economic data
         elig = locationalEligibility
@@ -519,7 +529,22 @@ class ComponentModel(metaclass=ABCMeta):
                     {loc: {loc_: {compName for compName in compDict
                                   if (loc_ + '_' + loc, compName) in getattr(pyM, 'operationVarSet_' + abbrvName)}
                            for loc_ in esM.locations} for loc in esM.locations})
-
+   
+    def declareOperationBinarySet(self, pyM):
+        """
+        Declare operation related sets for binary decicion variables (operation variables) in the pyomo object for a
+        modeling class. This reflects an on/off decision for the regarding component.        
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel  
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        def declareOperationBinarySet(pyM):
+            return ((loc, compName) for compName, comp in compDict.items() 
+                for loc in comp.locationalEligibility.index if comp.locationalEligibility[loc] == 1)
+        setattr(pyM, 'operationVarSetBin_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOperationBinarySet))
+           
+             
     ####################################################################################################################
     #                                   Functions for declaring operation mode sets                                    #
     ####################################################################################################################
@@ -552,7 +577,8 @@ class ComponentModel(metaclass=ABCMeta):
                     and getattr(compDict[compName], rateFix) is not None)
 
         setattr(pyM, constrSetName + '2_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet2))
-
+        
+    
     def declareOpConstrSet3(self, pyM, constrSetName, rateMax):
         """
         Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
@@ -594,8 +620,20 @@ class ComponentModel(metaclass=ABCMeta):
                     and getattr(compDict[compName], rateMax) is not None)
 
         setattr(pyM, constrSetName + '5_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet5))
+        
+    def declareOpConstrSetMinPartLoad(self, pyM, constrSetName, partLoadMin):
+        """
+        Declare set of locations and components for which partLoadMin is not NONE.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSetBin_' + abbrvName)
 
-    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix):
+        def declareOpConstrSetMinPartLoad(pyM):
+            return ((loc, compName) for loc, compName in varSet if getattr(compDict[compName], 'partLoadMin') is not None)
+
+        setattr(pyM, constrSetName + 'partLoadMin_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSetMinPartLoad))
+
+    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix, partLoadMin=None):
         """
         Declare operating mode sets.
 
@@ -616,6 +654,7 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet3(pyM, constrSetName, rateMax)
         self.declareOpConstrSet4(pyM, constrSetName, rateFix)
         self.declareOpConstrSet5(pyM, constrSetName, rateMax)
+        self.declareOpConstrSetMinPartLoad(pyM, constrSetName, partLoadMin)
 
     ####################################################################################################################
     #                                         Functions for declaring variables                                        #
@@ -639,6 +678,13 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'cap_' + abbrvName, pyomo.Var(getattr(pyM, 'designDimensionVarSet_' + abbrvName),
                 domain=pyomo.NonNegativeReals, bounds=capBounds))
 
+    def declareOperationBinary(self, pyM):
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            def declareOperationBinary(pyM):
+                return ((loc, compName, t) for compName, comp in compDict.items() for t in range(pyM.numberOfTimeSteps)
+                    for loc in comp.locationalEligibility.index if comp.locationalEligibility[loc] == 1)
+            setattr(pyM, 'operationBinary' + abbrvName, pyomo.Set(dimen=3, initialize=declareOperationBinary, domain=pyomo.Binary))
+            
     def declareRealNumbersVars(self, pyM):
         """ 
         Declare variables representing the (continuous) number of installed components [-]. 
@@ -682,6 +728,18 @@ class ComponentModel(metaclass=ABCMeta):
         abbrvName = self.abbrvName
         setattr(pyM, opVarName + '_' + abbrvName,
                 pyomo.Var(getattr(pyM, 'operationVarSet_' + abbrvName), pyM.timeSet, domain=pyomo.NonNegativeReals))
+        
+    
+    def declareOperationBinaryVars(self, pyM, opVarBinName):
+        """ 
+        Declare operation Binary variables. Discrete decicion between on and off.
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        abbrvName = self.abbrvName
+        setattr(pyM, opVarBinName + '_' + abbrvName,
+                pyomo.Var(getattr(pyM, 'operationVarSetBin_' + abbrvName), pyM.timeSet, domain=pyomo.Binary))
 
     ####################################################################################################################
     #                              Functions for declaring time independent constraints                                #
@@ -764,6 +822,8 @@ class ComponentModel(metaclass=ABCMeta):
                     if compDict[compName].capacityFix is not None else pyomo.Constraint.Skip)
         setattr(pyM, 'ConstrCapacityFix_' + abbrvName, pyomo.Constraint(capVarSet, rule=capacityFix))
 
+
+        
     def designBinFix(self, pyM):
         """ 
         Set, if applicable, the installed capacities of a component. 
@@ -863,6 +923,33 @@ class ComponentModel(metaclass=ABCMeta):
             return opVar[loc, compName, p, t] <= rate[loc][p, t]
         setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
 
+    def additionalMinPartLoad(self, pyM, esM, constrName, constrSetName, opVarName, opVarBinName, capVarName):
+        """
+        Set, if applicable, the minimal part load of a component.
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar = getattr(pyM, opVarName + '_' + abbrvName)
+        opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)
+        capVar = getattr(pyM, capVarName + '_' + abbrvName)
+        constrSetMinPartLoad = getattr(pyM, constrSetName + 'partLoadMin_' + abbrvName)
+        
+        def opMinPartLoad1(pyM, loc, compName, p, t):
+            bigM = getattr(compDict[compName], 'bigM')
+            print(abbrvName)
+            print(opVar)
+            print(opVarBin)
+            print(bigM)
+            return opVar[loc, compName, p, t] <= opVarBin[loc, compName, p, t]*bigM
+        setattr(pyM, constrName + 'partLoadMin_1_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad1))
+        
+        def opMinPartLoad2(pyM, loc, compName, p, t):
+            partLoadMin = getattr(compDict[compName], 'partLoadMin')
+            bigM = getattr(compDict[compName], 'bigM')
+            return opVar[loc, compName, p, t] >= partLoadMin*capVar[loc, compName]-(1-opVarBin[loc, compName, p, t])*bigM
+        setattr(pyM, constrName + 'partLoadMin_2_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2))
+        
     ####################################################################################################################
     #  Functions for declaring component contributions to basic energy system constraints and the objective function   #
     ####################################################################################################################
