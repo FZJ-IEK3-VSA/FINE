@@ -882,9 +882,9 @@ def plotLocationalPieMap(esM, compNames, locationsShapeFileName,
     :type locationsShapeFileName: string
 
     :param variableName: variable name
-    :type variableName: string
         |br| * the default value is 'operationVariablesOptimum'
-
+    :type variableName: string
+        
     :param doSum: indicates if the variable has to be summarized for the location (e.g. for operation
         variables)
         |br| * the default value is False

@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 colors = ['yellowGreen','#4d6619', 'gold','darkOrange','purple', 'skyBlue','steelBlue','#2A4E6C','sienna']
 
 
-def piechart_plot_function(shapes, pieDataframe, transmission_dataframe=None, pieColors=None, piechart_locations=None, ax=None, plot_settings=None, srs=gk.srs.EPSG3035):
+def piechart_plot_function(shapes, pieDataframe, 
+    transmission_dataframe=None, pieColors=None, piechart_locations=None, ax=None, plot_settings=None, srs=gk.srs.EPSG3035):
     """    Plot the data of a component for each location.
 
     **Required arguments:**
@@ -18,7 +19,7 @@ def piechart_plot_function(shapes, pieDataframe, transmission_dataframe=None, pi
 
     :param shapes: Dataframe of the regions. It can be obtained by gk.vector.extractFeatures...
         The column name of geometry objects in the dataframe has to be 'geom'
-        *Region names have to be the index
+        * Region names have to be the index
     :type shapes: pd.DataFrame
 
     :param pieDataframe:
@@ -26,25 +27,35 @@ def piechart_plot_function(shapes, pieDataframe, transmission_dataframe=None, pi
         *Region names have to be the index, columns have to be individual attributes
     :type pieDataframe: pd.DataFrame
 
+    **Default arguments:**
+
     :param transmission_dataframe: 
         Dataframe of the transmission connections with attribute to be represented with lineWidth
-        *The name of attribute column has to be weight
-        *It has the geometries of connections between region centroids, the column name has to be 'geom'
-
+        * The name of attribute column has to be weight
+        * It has the geometries of connections between region centroids, the column name has to be 'geom'
+        |br| * the default value is None
     :type transmission_dataframe: pd.DataFrame
 
     :param pieColor: A list of colors to be used
+        |br| * the default value is None
     :type pieColor: list; optional
 
     :param piechart_locations: 
         A dictionary of geometry objects for centroids at which the piechart will be plotted
+        |br| * the default value is None
     :type piechart_locations: dictionary; optional
 
     :param ax: A matplotlib axis to plot the shapes on
+        |br| * the default value is None
     :type ax: matplotlib axis; optional
 
     :param plotSettings: A dictionary involving arguments for plottings.
+        |br| * the default value is None
     :type plotSettings: dictionary; optional
+
+    :param srs: The srs of the shapes.
+        |br| * the default value is gk.srs.EPSG3035
+    :type srs: dictionary; optional
 
     Returns:
     --------
