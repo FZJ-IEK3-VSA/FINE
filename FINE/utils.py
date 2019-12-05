@@ -95,6 +95,7 @@ def checkTimeSeriesIndex(esM, data):
     """
     if isinstance(data.index,pd.MultiIndex):
         dataindex = data.index.get_level_values('TimeStep')
+        data.index = dataindex
     else:
         dataindex = data.index
     if list(dataindex) != esM.totalTimeSteps:
