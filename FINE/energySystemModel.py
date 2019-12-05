@@ -764,7 +764,8 @@ class EnergySystemModel:
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
 
 
-    def optimize2LevelApproach(self, declaresOptimizationProblem=True, timeSeriesAggregation=False,  
+    def optimize2LevelApproach(self, declaresOptimizationProblem=True, relaxed=False, 
+                               numberOfTypicalPeriods=30, clusterMethod='hierarchical',
                                logFileName='', threads=3, solver='gurobi', timeLimit=None, 
                                optimizationSpecs='', warmstart=False):
         """
@@ -827,16 +828,30 @@ class EnergySystemModel:
         Last edited: December 05, 2019
         |br| @author: Theresa Gross
         """
+        lowerBound=None
+        if relaxed:
+            self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxed=True, 
+                        logFileName='relaxedProblem', threads=threads, solver=solver, timeLimit=timeLimit, 
+                        optimizationSpecs=optimizationSpecs, warmstart=warmstart)
+            lowerBound = self.pyM.Obj()
+
+        self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, clusterMethod=clusterMethod, 
+                    solver='gurobi', sortValues=True)
         
-        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=True, relaxed=False, 
                         logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=warmstart)
 
         self.setFixedVariables('isBuiltVariablesOptimum')
 
-        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, 
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxed=False, 
                       logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
-                      optimizationSpecs=optimizationSpecs, warmstart=False)                        
+                      optimizationSpecs=optimizationSpecs, warmstart=False)  
+        upperBound = self.pyM.Obj()
+
+        if lowerBound is not None:
+            delta = upperBound - lowerBound  
+            print('The real optimal value lies between ', lowerBound, ' and ', upperBound, '.')                    
 
     def setFixedVariables(self, optVariables):
         """
