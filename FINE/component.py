@@ -302,7 +302,8 @@ class Component(metaclass=ABCMeta):
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
         self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
-        self.yearlyFullLoadHoursMin, self.yearlyFullLoadHoursMax = yearlyFullLoadHoursMin, yearlyFullLoadHoursMax
+        self.yearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMin, dimension, elig)
+        self.yearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMax, dimension, elig)
         self.isBuiltFix = isBuiltFix
         utils.checkLocationSpecficDesignInputParams(self, esM)
         #
@@ -634,18 +635,31 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet4(pyM, constrSetName, rateFix)
         self.declareOpConstrSet5(pyM, constrSetName, rateMax)
 
-    # TODO: Use these sets to create constraints only for components with yearlyFullLoadHours parameter set.
-    # def declareYearlyFullLoadHoursMinConstrSet(self, pyM, yearlyFullLoadHoursMin):
-    #     """
-    #     Declare set of locations and components for which minimum yearly full load hours are given.
-    #     """
-    #     compDict, abbrvName = self.componentsDict, self.abbrvName
-    #     varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
-    #
-    #     def declareYearlyFullLoadHoursMinConstrSet(pyM):
-    #         return ((loc, compName) for loc, compName in varSet if compDict[compName].yearlyFullLoadHoursMin)
-    #
-    #     setattr(pyM, constrSetName + '_' + abbrvName, pyomo.Set(dimen=1, initialize=declareYearlyFullLoadHoursMinConstrSet))
+    def declareYearlyFullLoadHoursMinSet(self, pyM):
+        """
+        Declare set of locations and components for which minimum yearly full load hours are given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+
+        def declareYearlyFullLoadHoursMinSet():
+            return ((loc, compName) for loc, compName in varSet if compDict[compName].yearlyFullLoadHoursMin is not None)
+
+        setattr(pyM, 'yearlyFullLoadHoursMinSet_' + abbrvName,
+                pyomo.Set(dimen=2, initialize=declareYearlyFullLoadHoursMinSet()))
+
+    def declareYearlyFullLoadHoursMaxSet(self, pyM):
+        """
+        Declare set of locations and components for which maximum yearly full load hours are given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+
+        def declareYearlyFullLoadHoursMaxSet():
+            return ((loc, compName) for loc, compName in varSet if compDict[compName].yearlyFullLoadHoursMax is not None)
+
+        setattr(pyM, 'yearlyFullLoadHoursMaxSet_' + abbrvName,
+                pyomo.Set(dimen=2, initialize=declareYearlyFullLoadHoursMaxSet()))
 
     ####################################################################################################################
     #                                         Functions for declaring variables                                        #
@@ -907,16 +921,18 @@ class ComponentModel(metaclass=ABCMeta):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
-        capVarSet = getattr(pyM, 'designDimensionVarSet_' + abbrvName)
+        capVar = getattr(pyM, 'cap_' + abbrvName)
+        yearlyFullLoadHoursMinSet = getattr(pyM, 'yearlyFullLoadHoursMinSet_' + abbrvName)
+
 
         def yearlyFullLoadHoursMinConstraint(pyM, loc, compName, p, t):
             full_load_hours = sum(
                 opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
                 in opVar)
-            return full_load_hours >= compDict[compName].yearlyFullLoadHoursMin[loc]
+            return full_load_hours >= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMin[loc]
 
-        setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
-                pyomo.Constraint(capVarSet, rule=yearlyFullLoadHoursMinConstraint))
+        setattr(pyM, 'ConstrYearlyFullLoadHoursMin_' + abbrvName,
+                pyomo.Constraint(yearlyFullLoadHoursMinSet, pyM.timeSet, rule=yearlyFullLoadHoursMinConstraint))
 
     def yearlyFullLoadHoursMax(self, pyM, esM):
         """
@@ -930,17 +946,17 @@ class ComponentModel(metaclass=ABCMeta):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
-        capVarSet = getattr(pyM, 'designDimensionVarSet_' + abbrvName)
+        capVar = getattr(pyM, 'cap_' + abbrvName)
+        yearlyFullLoadHoursMaxSet = getattr(pyM, 'yearlyFullLoadHoursMaxSet_' + abbrvName)
 
         def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, p, t):
             full_load_hours = sum(
                 opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
                 in opVar)
-            return full_load_hours <= compDict[compName].yearlyFullLoadHoursMax[loc]
+            return full_load_hours <= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMax[loc]
 
         setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
-                pyomo.Constraint(capVarSet, rule=yearlyFullLoadHoursMaxConstraint))
-
+                pyomo.Constraint(yearlyFullLoadHoursMaxSet, pyM.timeSet, rule=yearlyFullLoadHoursMaxConstraint))
 
     ####################################################################################################################
     #  Functions for declaring component contributions to basic energy system constraints and the objective function   #
