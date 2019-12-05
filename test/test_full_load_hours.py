@@ -1,4 +1,4 @@
-
+import pandas as pd
 
 def test_fullloadhours_above(minimal_test_esM):
    '''
@@ -32,7 +32,7 @@ def test_fullloadhours_max(minimal_test_esM):
    electrolyzer = esM.getComponent('Electrolyzers')
 
    # set fullloadhour limit
-   electrolyzer.yearlyFullLoadHoursMax = 3000.
+   electrolyzer.yearlyFullLoadHoursMax = pd.Series(3000., index = esM.locations)
 
    # optimize
    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
@@ -61,7 +61,7 @@ def test_fullloadhours_min(minimal_test_esM):
    electrolyzer = esM.getComponent('Electrolyzers')
 
    # set fullloadhour limit
-   electrolyzer.yearlyFullLoadHoursMin = 5000.
+   electrolyzer.yearlyFullLoadHoursMin = pd.Series(5000., index = esM.locations)
 
    # optimize
    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
