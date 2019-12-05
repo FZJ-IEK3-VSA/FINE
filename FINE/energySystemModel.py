@@ -353,6 +353,7 @@ class EnergySystemModel:
 
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps))
+        hoursPerPeriod = int(numberOfTimeStepsPerPeriod*self.hoursPerTimeStep)
 
         timeStart = time.time()
         utils.output('\nClustering time series data with ' + str(numberOfTypicalPeriods) + ' typical periods and '
@@ -377,7 +378,7 @@ class EnergySystemModel:
         # call)
         timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
         clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
-                                             hoursPerPeriod=numberOfTimeStepsPerPeriod*self.hoursPerTimeStep,
+                                             hoursPerPeriod=hoursPerPeriod,
                                              clusterMethod=clusterMethod, sortValues=sortValues, weightDict=weightDict,
                                              **kwargs)
 

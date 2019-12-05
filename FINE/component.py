@@ -921,6 +921,7 @@ class ComponentModel(metaclass=ABCMeta):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
+        capVar = getattr(pyM, 'cap_' + abbrvName)
         yearlyFullLoadHoursMinSet = getattr(pyM, 'yearlyFullLoadHoursMinSet_' + abbrvName)
 
 
@@ -928,7 +929,7 @@ class ComponentModel(metaclass=ABCMeta):
             full_load_hours = sum(
                 opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
                 in opVar)
-            return full_load_hours >= compDict[compName].yearlyFullLoadHoursMin[loc]
+            return full_load_hours >= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMin[loc]
 
         setattr(pyM, 'ConstrYearlyFullLoadHoursMin_' + abbrvName,
                 pyomo.Constraint(yearlyFullLoadHoursMinSet, pyM.timeSet, rule=yearlyFullLoadHoursMinConstraint))
@@ -945,17 +946,17 @@ class ComponentModel(metaclass=ABCMeta):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
+        capVar = getattr(pyM, 'cap_' + abbrvName)
         yearlyFullLoadHoursMaxSet = getattr(pyM, 'yearlyFullLoadHoursMaxSet_' + abbrvName)
 
         def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, p, t):
             full_load_hours = sum(
                 opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
                 in opVar)
-            return full_load_hours <= compDict[compName].yearlyFullLoadHoursMax[loc]
+            return full_load_hours <= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMax[loc]
 
         setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
                 pyomo.Constraint(yearlyFullLoadHoursMaxSet, pyM.timeSet, rule=yearlyFullLoadHoursMaxConstraint))
-
 
     ####################################################################################################################
     #  Functions for declaring component contributions to basic energy system constraints and the objective function   #
