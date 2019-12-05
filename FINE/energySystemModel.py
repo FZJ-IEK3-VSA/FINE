@@ -764,7 +764,7 @@ class EnergySystemModel:
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
 
 
-    def optimize2LevelApproach(self, declaresOptimizationProblem=True, relaxed=False, 
+    def optimize2StageApproach(self, declaresOptimizationProblem=True, relaxed=False, 
                                numberOfTypicalPeriods=30, clusterMethod='hierarchical',
                                logFileName='', threads=3, solver='gurobi', timeLimit=None, 
                                optimizationSpecs='', warmstart=False):
