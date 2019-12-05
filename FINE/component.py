@@ -17,7 +17,7 @@ class Component(metaclass=ABCMeta):
                  hasIsBuiltBinaryVariable=False, bigM=None, locationalEligibility=None,
                  capacityMin=None, capacityMax=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0,
-                 interestRate=0.08, economicLifetime=10):
+                 interestRate=0.08, economicLifetime=10, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Component class instance.
 
@@ -253,6 +253,22 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
+        # TODO: Write more detailed description.
+        :param yearlyFullLoadHoursMin: if specified, indicates the maximum yearly full load hours.
+            |br| * the default value is None
+        :type yearlyFullLoadHoursMin:
+            * None or
+            * Float with positive (>=0) value or
+            * Pandas Series with positive (>=0) values.
+
+        # TODO: Write more detailed description.
+        :param yearlyFullLoadHoursMax: if specified, indicates the maximum yearly full load hours.
+            |br| * the default value is None
+        :type yearlyFullLoadHoursMax:
+            * None or
+            * Float with positive (>=0) value or
+            * Pandas Series with positive (>=0) values.
+
         :param modelingClass: to the Component connected modeling class.
             |br| * the default value is ModelingClass
         :type modelingClass: a class inherting from ComponentModeling
@@ -286,6 +302,7 @@ class Component(metaclass=ABCMeta):
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
         self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
+        self.yearlyFullLoadHoursMin, self.yearlyFullLoadHoursMax = yearlyFullLoadHoursMin, yearlyFullLoadHoursMax
         self.isBuiltFix = isBuiltFix
         utils.checkLocationSpecficDesignInputParams(self, esM)
         #
@@ -617,41 +634,18 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet4(pyM, constrSetName, rateFix)
         self.declareOpConstrSet5(pyM, constrSetName, rateMax)
 
-    def full_load_hour_below_limit(time_series, full_load_hour_limit):
-        # TODO: Take sourceSink.yearlyLimitConstraint as template for this constraint, create two constraints (one for min, one for max full load hours)
-        # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
-        # capacity x maxFullLoadHours >= sum(opVar[t], t)
-        # capacity x minFullLoadHours <= sum(opVar[t], t)
-        # Template:
-            # def yearlyLimitationConstraint(self, pyM, esM):
-            #     """
-            #     Limit annual commodity imports/exports over the energySystemModel's boundaries for one or multiple
-            #     Source/Sink components.
-
-            #     :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-            #     :type esM: esM - EnergySystemModel class instance
-
-            #     :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-            #     :type pyM: pyomo ConcreteModel
-            #     """
-            #     compDict, abbrvName = self.componentsDict, self.abbrvName
-            #     opVar = getattr(pyM, 'op_' + abbrvName)
-            #     limitDict = getattr(pyM, 'yearlyCommodityLimitationDict_' + abbrvName)
-
-            #     def yearlyLimitationConstraint(pyM, key):
-            #         sumEx = -sum(opVar[loc, compName, p, t] * compDict[compName].sign *
-            #                      esM.periodOccurrences[p]/esM.numberOfYears
-            #                      for loc, compName, p, t in opVar if compName in limitDict[key][1])
-            #         sign = limitDict[key][0]/abs(limitDict[key][0]) if limitDict[key][0] != 0 else 1
-            #         return sign * sumEx <= sign * limitDict[key][0]
-            #     setattr(pyM, 'ConstrYearlyLimitation_' + abbrvName,
-            #             pyomo.Constraint(limitDict.keys(), rule=yearlyLimitationConstraint))
-
-            """Checks whether the full load hours of a time series are above a limit"""
-
-            if len(time_series) == 2:
-                capacity_factor_time_series = capacity
-        pass
+    # TODO: Use these sets to create constraints only for components with yearlyFullLoadHours parameter set.
+    # def declareYearlyFullLoadHoursMinConstrSet(self, pyM, yearlyFullLoadHoursMin):
+    #     """
+    #     Declare set of locations and components for which minimum yearly full load hours are given.
+    #     """
+    #     compDict, abbrvName = self.componentsDict, self.abbrvName
+    #     varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+    #
+    #     def declareYearlyFullLoadHoursMinConstrSet(pyM):
+    #         return ((loc, compName) for loc, compName in varSet if compDict[compName].yearlyFullLoadHoursMin)
+    #
+    #     setattr(pyM, constrSetName + '_' + abbrvName, pyomo.Set(dimen=1, initialize=declareYearlyFullLoadHoursMinConstrSet))
 
     ####################################################################################################################
     #                                         Functions for declaring variables                                        #
@@ -898,6 +892,55 @@ class ComponentModel(metaclass=ABCMeta):
             rate = getattr(compDict[compName], opRateName)
             return opVar[loc, compName, p, t] <= rate[loc][p, t]
         setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
+
+    def yearlyFullLoadHoursMin(self, pyM, esM):
+        # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
+        # TODO: Use a set to declare Constraint only for components with full load hour limit set.
+        """
+        Limit the annual full load hours to a minimum value.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar = getattr(pyM, 'op_' + abbrvName)
+        capVarSet = getattr(pyM, 'designDimensionVarSet_' + abbrvName)
+
+        def yearlyFullLoadHoursMinConstraint(pyM, loc, compName, p, t):
+            full_load_hours = sum(
+                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
+                in opVar)
+            return full_load_hours >= compDict[compName].yearlyFullLoadHoursMin[loc]
+
+        setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
+                pyomo.Constraint(capVarSet, rule=yearlyFullLoadHoursMinConstraint))
+
+    def yearlyFullLoadHoursMax(self, pyM, esM):
+        """
+        Limit the annual full load hours to a maximum value.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar = getattr(pyM, 'op_' + abbrvName)
+        capVarSet = getattr(pyM, 'designDimensionVarSet_' + abbrvName)
+
+        def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, p, t):
+            full_load_hours = sum(
+                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
+                in opVar)
+            return full_load_hours <= compDict[compName].yearlyFullLoadHoursMax[loc]
+
+        setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
+                pyomo.Constraint(capVarSet, rule=yearlyFullLoadHoursMaxConstraint))
+
 
     ####################################################################################################################
     #  Functions for declaring component contributions to basic energy system constraints and the objective function   #
