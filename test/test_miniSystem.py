@@ -36,7 +36,7 @@ def test_miniSystem():
                                 commodityUnitsDict={'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'},
                                 hoursPerTimeStep=hoursPerTimeStep, costUnit='1 Euro', 
                                 lengthUnit='km', 
-                                verboseLogLevel=0)
+                                verboseLogLevel=2)
 
     # time step length [h]
     timeStepLength = numberOfTimeSteps * hoursPerTimeStep
