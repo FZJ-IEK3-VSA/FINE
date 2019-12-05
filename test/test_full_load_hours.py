@@ -32,7 +32,7 @@ def test_fullloadhours_max(minimal_test_esM):
    electrolyzer = esM.getComponent('Electrolyzers')
 
    # set fullloadhour limit
-   electrolyzer.yearlyFullLoadHourMax = 3000.
+   electrolyzer.yearlyFullLoadHoursMax = 3000.
 
    # optimize
    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
@@ -61,7 +61,7 @@ def test_fullloadhours_min(minimal_test_esM):
    electrolyzer = esM.getComponent('Electrolyzers')
 
    # set fullloadhour limit
-   electrolyzer.yearlyFullLoadHourMin = 5000.
+   electrolyzer.yearlyFullLoadHoursMin = 5000.
 
    # optimize
    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
