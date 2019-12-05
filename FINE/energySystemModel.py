@@ -859,7 +859,7 @@ class EnergySystemModel:
                     print('Ich bin Komponente: ',comp)
                     if optVariables == 'isBuiltVariablesOptimum':
                         # Set the optimal values for the isBuiltVariables as fixed
-                        values = compValues.loc[comp].fillna(value=0).astype(np.int64)
+                        values = compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64)
                         self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
                     elif optVariables == 'capacityVariablesOptimum':
                         # Set the optimal values for the capacities as fixed
