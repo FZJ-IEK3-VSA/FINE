@@ -1,31 +1,15 @@
-#!/usr/bin/env python
-# coding: utf-8
 
-# # Workflow for a multi-regional energy system
-# 
-# In this application of the FINE framework, a multi-regional energy system is modeled and optimized.
-# 
-# All classes which are available to the user are utilized and examples of the selection of different parameters within these classes are given.
-# 
-# The workflow is structures as follows:
-# 1. Required packages are imported and the input data path is set
-# 2. An energy system model instance is created
-# 3. Commodity sources are added to the energy system model
-# 4. Commodity conversion components are added to the energy system model
-# 5. Commodity storages are added to the energy system model
-# 6. Commodity transmission components are added to the energy system model
-# 7. Commodity sinks are added to the energy system model
-# 8. The energy system model is optimized
-# 9. Selected optimization results are presented
-# 
-
-# 1. Import required packages and set input data path
+import pytest
 
 import FINE as fn
 import numpy as np
 import pandas as pd
 
-def test_miniSystem():
+
+@pytest.fixture
+def minimal_test_esM():
+    """Returns minimal instance of esM"""
+
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -56,7 +40,7 @@ def test_miniSystem():
                         )) # eur/kWh
 
     ### Electrolyzers
-    esM.add(fn.Conversion(esM=esM, name='Electroylzers', physicalUnit=r'kW$_{el}$',
+    esM.add(fn.Conversion(esM=esM, name='Electrolyzers', physicalUnit=r'kW$_{el}$',
                           commodityConversionFactors={'electricity':-1, 'hydrogen':0.7},
                           hasCapacityVariable=True, 
                           investPerCapacity=500, # euro/kW
@@ -86,26 +70,4 @@ def test_miniSystem():
                     operationRateFix = demand,
                     ))
 
-    # 8. Optimize energy system model
-    
-    
-    #esM.cluster(numberOfTypicalPeriods=4, numberOfTimeStepsPerPeriod=1)
-
-    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
-
-
-    # test if solve fits to the original results
-    testresults = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Electricity market')
-    np.testing.assert_array_almost_equal(testresults.values, [np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07]),],decimal=-3)
-
-    # test if the summary fits to the expected summary
-    summary = esM.getOptimizationSummary("SourceSinkModel")
-    # of cost
-    np.testing.assert_almost_equal(summary.loc[('Electricity market','commodCosts','[1 Euro/a]'),'ElectrolyzerLocation'],
-        costs['ElectrolyzerLocation'].mul(np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07])).sum(), decimal=0)
-    # and of revenues
-    np.testing.assert_almost_equal(summary.loc[('Electricity market','commodRevenues','[1 Euro/a]'),'ElectrolyzerLocation'],
-        revenues['ElectrolyzerLocation'].mul(np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07])).sum(), decimal=0)
-
-if __name__ == "__main__":
-    test_miniSystem()
+    return esM
