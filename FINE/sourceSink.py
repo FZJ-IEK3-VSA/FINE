@@ -18,7 +18,8 @@ class Source(Component):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10, yearlyFullLoadHoursMin=None,
+                 yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -149,7 +150,8 @@ class Source(Component):
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
-                            economicLifetime=economicLifetime)
+                            economicLifetime=economicLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
+                            yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
         # Set general source/sink data: ID and yearly limit
         utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
