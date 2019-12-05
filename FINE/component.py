@@ -1356,6 +1356,9 @@ class ComponentModel(metaclass=ABCMeta):
         * 'isBuiltVariables',
         * 'operationVariablesOptimum'.\n
         :type name: string
+
+        Last edited: December 05, 2019
+        |br| @author: Theresa Gross
         """
         if name == 'capacityVariablesOptimum':
             return self.capacityVariablesOptimum

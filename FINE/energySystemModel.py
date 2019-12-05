@@ -7,6 +7,7 @@ from FINE.component import Component, ComponentModel
 from FINE import utils
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 import pandas as pd
+import numpy as np
 import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
@@ -763,14 +764,18 @@ class EnergySystemModel:
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
 
 
-    # def optimize2LevelApproach(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='', threads=3,
-    #              solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
-    #     if declaresOptimizationProblem:
-    #         self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation)
-    #     else:
-    #         if self.pyM is None:
-    #             raise TypeError('The optimization problem is not declared yet. Set the argument declaresOptimization'
-    #                             ' problem to True or call the declareOptimizationProblem function first.')
+    def optimize2LevelApproach(self, declaresOptimizationProblem=True, timeSeriesAggregation=False,  
+                               logFileName='', threads=3, solver='gurobi', timeLimit=None, 
+                               optimizationSpecs='', warmstart=False):
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
+                        logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
+                        optimizationSpecs=optimizationSpecs, warmstart=warmstart)
+
+        self.setFixedVariables('isBuiltVariablesOptimum')
+
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, 
+                      logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
+                      optimizationSpecs=optimizationSpecs, warmstart=False)
 
 
     def setFixedVariables(self, optVariables):
@@ -793,7 +798,8 @@ class EnergySystemModel:
                 for comp in compValues.index:
                     if optVariables == 'isBuiltVariablesOptimum':
                         # Set the optimal values for the isBuiltVariables as fixed
-                        self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = compValues.loc[comp].values
+                        self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = compValues.loc[comp].astype(np.int64)
+                        print(comp, self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix)
                     elif optVariables == 'capacityVariablesOptimum':
                         # Set the optimal values for the capacities as fixed
                         self.componentModelingDict[mdl].componentsDict[comp].capacityFix = compValues.loc[comp].values
