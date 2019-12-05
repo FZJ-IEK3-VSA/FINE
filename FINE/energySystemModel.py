@@ -767,6 +767,67 @@ class EnergySystemModel:
     def optimize2LevelApproach(self, declaresOptimizationProblem=True, timeSeriesAggregation=False,  
                                logFileName='', threads=3, solver='gurobi', timeLimit=None, 
                                optimizationSpecs='', warmstart=False):
+        """
+        Call the optimize function for a temporal aggregated MILP (so the model has to include 
+        hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again
+        without temporal aggregation. 
+
+        **Default arguments:**
+
+        :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
+            (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
+            (b) If false a previously declared pyomo ConcreteModel instance is used.
+            |br| * the default value is True
+        :type declaresOptimizationProblem: boolean
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+            |br| * the default value is False
+        :type timeSeriesAggregation: boolean
+
+        :param logFileName: logFileName is used for naming the log file of the optimization solver output
+            if gurobi is used as the optimization solver.
+            If the logFileName is given as an absolute path (e.g. logFileName = os.path.join(os.getcwd(),
+            'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise,
+            it will be stored by default in the directory where the executing python script is called.
+            |br| * the default value is 'job'
+        :type logFileName: string
+
+        :param threads: number of computational threads used for solving the optimization (solver dependent
+            input) if gurobi is used as the solver. A value of 0 results in using all available threads. If
+            a value larger than the available number of threads are chosen, the value will reset to the maximum
+            number of threads.
+            |br| * the default value is 3
+        :type threads: positive integer
+
+        :param solver: specifies which solver should solve the optimization problem (which of course has to be
+            installed on the machine on which the model is run).
+            |br| * the default value is 'gurobi'
+        :type solver: string
+
+        :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
+            in seconds (solver dependent input). The use of this parameter is suggested when running models in
+            runtime restricted environments (such as clusters with job submission systems). If the runtime
+            limitation is triggered before an optimal solution is available, the best solution obtained up
+            until then (if available) is processed.
+            |br| * the default value is None
+        :type timeLimit: strictly positive integer or None
+
+        :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver
+            documentation for more information). Example: 'LogToConsole=1 OptimalityTol=1e-6'
+            |br| * the default value is an empty string ('')
+        :type timeLimit: string
+
+        :param warmstart: specifies if a warm start of the optimization should be considered
+            (not always supported by the solvers).
+            |br| * the default value is False
+        :type warmstart: boolean
+
+        Last edited: December 05, 2019
+        |br| @author: Theresa Gross
+        """
+        
         self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
                         logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=warmstart)
@@ -775,8 +836,7 @@ class EnergySystemModel:
 
         self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, 
                       logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
-                      optimizationSpecs=optimizationSpecs, warmstart=False)
-
+                      optimizationSpecs=optimizationSpecs, warmstart=False)                        
 
     def setFixedVariables(self, optVariables):
         """
@@ -795,11 +855,12 @@ class EnergySystemModel:
             # for comp in self.componentsModelingDict[mdl].componentsDict.keys():
             compValues = self.componentModelingDict[mdl].getOptimizedValues(optVariables)
             if compValues is not None:
-                for comp in compValues.index:
+                for comp in compValues.index.get_level_values(0).unique():
+                    print('Ich bin Komponente: ',comp)
                     if optVariables == 'isBuiltVariablesOptimum':
                         # Set the optimal values for the isBuiltVariables as fixed
-                        self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = compValues.loc[comp].astype(np.int64)
-                        print(comp, self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix)
+                        values = compValues.loc[comp].fillna(value=0).astype(np.int64)
+                        self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
                     elif optVariables == 'capacityVariablesOptimum':
                         # Set the optimal values for the capacities as fixed
                         self.componentModelingDict[mdl].componentsDict[comp].capacityFix = compValues.loc[comp].values
