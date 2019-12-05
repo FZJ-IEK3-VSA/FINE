@@ -253,6 +253,12 @@ class ConversionModel(ComponentModel):
         # Declare linked components dictionary
         self.declareLinkedCapacityDict(pyM)
 
+        # Declare minimum yearly full load hour set
+        self.declareYearlyFullLoadHoursMinSet(pyM)
+
+        # Declare maximum yearly full load hour set
+        self.declareYearlyFullLoadHoursMaxSet(pyM)
+
     ####################################################################################################################
     #                                                Declare variables                                                 #
     ####################################################################################################################
