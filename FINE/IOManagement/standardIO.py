@@ -1,10 +1,14 @@
 import FINE as fn
 import FINE.utils as utils
+from FINE.IOManagement import plot
 import pandas as pd
 import ast
 import inspect
 import time
 import warnings
+
+import geokit as gk
+
 
 try:
     import geopandas as gpd
@@ -857,5 +861,46 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
 
     if save:
         plt.savefig(fileName, dpi=dpi, bbox_inches='tight')
+
+    return fig, ax
+
+
+def plotLocationalPieMap(esM, compNames, locationsShapeFileName, variableName='operationVariablesOptimum', doSum=False, **kwargs):
+    """
+    Plot the data of a component for each location.
+
+    **Required arguments:**
+
+    :param esM: considered energy system model
+    :type esM: EnergySystemModel class instance
+
+    :param compNames: component names
+    :type compNames: list of strings
+
+    :param locationsShapeFileName: file name or path to a shape file
+    :type locationsShapeFileName: string
+
+    :param doSum: indicates if the variable has to be summarized for the location (e.g. for operation
+        variables)
+        |br| * the default value is False
+    :type doSum: boolean
+
+    """
+
+    shapes = gk.vector.extractFeatures(locationsShapeFileName)
+    shapes.set_index('index', inplace=True)
+
+    comp_data_list = []
+
+    for compName in compNames:
+        comp_dict = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(variableName)
+        values = comp_dict['values'].loc[(compName)]
+        if doSum:
+            values = values.sum(axis=1)
+        comp_data_list.append(values)
+
+    comp_data_df = pd.concat(comp_data_list, axis=1, keys=compNames).fillna(0)
+
+    fig, ax = plot.piechart_plot_function(shapes, comp_data_df, **kwargs)
 
     return fig, ax
