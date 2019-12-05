@@ -9,7 +9,47 @@ colors = ['yellowGreen','#4d6619', 'gold','darkOrange','purple', 'skyBlue','stee
 
 
 def piechart_plot_function(shapes, pieDataframe, transmission_dataframe=None, pieColors=None, piechart_locations=None, ax=None, plot_settings=None, srs=gk.srs.EPSG3035):
-    """Plot ..."""
+    """    Plot the data of a component for each location.
+
+    **Required arguments:**
+
+    :param esM: considered energy system model
+    :type esM: EnergySystemModel class instance
+
+    :param shapes: Dataframe of the regions. It can be obtained by gk.vector.extractFeatures...
+        The column name of geometry objects in the dataframe has to be 'geom'
+        *Region names have to be the index
+    :type shapes: pd.DataFrame
+
+    :param pieDataframe:
+        Dataframe of the attributes to be plotted in each region as piechart.
+        *Region names have to be the index, columns have to be individual attributes
+    :type pieDataframe: pd.DataFrame
+
+    :param transmission_dataframe: 
+        Dataframe of the transmission connections with attribute to be represented with lineWidth
+        *The name of attribute column has to be weight
+        *It has the geometries of connections between region centroids, the column name has to be 'geom'
+
+    :type transmission_dataframe: pd.DataFrame
+
+    :param pieColor: A list of colors to be used
+    :type pieColor: list; optional
+
+    :param piechart_locations: 
+        A dictionary of geometry objects for centroids at which the piechart will be plotted
+    :type piechart_locations: dictionary; optional
+
+    :param ax: A matplotlib axis to plot the shapes on
+    :type ax: matplotlib axis; optional
+
+    :param plotSettings: A dictionary involving arguments for plottings.
+    :type plotSettings: dictionary; optional
+
+    Returns:
+    --------
+    The map figure and axis
+"""
     
     if plot_settings is None: plot_settings={}
     if 'transmissionLineColor' not in plot_settings.keys(): plot_settings['transmissionLineColor']='#767676'

@@ -880,6 +880,9 @@ def plotLocationalPieMap(esM, compNames, locationsShapeFileName, variableName='o
     :param locationsShapeFileName: file name or path to a shape file
     :type locationsShapeFileName: string
 
+    :param variableName: variable name
+    :type variableName: string
+
     :param doSum: indicates if the variable has to be summarized for the location (e.g. for operation
         variables)
         |br| * the default value is False
