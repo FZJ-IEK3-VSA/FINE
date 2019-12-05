@@ -302,7 +302,8 @@ class Component(metaclass=ABCMeta):
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
         self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
-        self.yearlyFullLoadHoursMin, self.yearlyFullLoadHoursMax = yearlyFullLoadHoursMin, yearlyFullLoadHoursMax
+        self.yearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMin, dimension, elig)
+        self.yearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMax, dimension, elig)
         self.isBuiltFix = isBuiltFix
         utils.checkLocationSpecficDesignInputParams(self, esM)
         #
@@ -909,6 +910,7 @@ class ComponentModel(metaclass=ABCMeta):
         opVar = getattr(pyM, 'op_' + abbrvName)
         capVarSet = getattr(pyM, 'designDimensionVarSet_' + abbrvName)
 
+
         def yearlyFullLoadHoursMinConstraint(pyM, loc, compName, p, t):
             full_load_hours = sum(
                 opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
@@ -916,7 +918,7 @@ class ComponentModel(metaclass=ABCMeta):
             return full_load_hours >= compDict[compName].yearlyFullLoadHoursMin[loc]
 
         setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
-                pyomo.Constraint(capVarSet, rule=yearlyFullLoadHoursMinConstraint))
+                pyomo.Constraint(capVarSet, pyM.timeSet, rule=yearlyFullLoadHoursMinConstraint))
 
     def yearlyFullLoadHoursMax(self, pyM, esM):
         """
@@ -939,7 +941,7 @@ class ComponentModel(metaclass=ABCMeta):
             return full_load_hours <= compDict[compName].yearlyFullLoadHoursMax[loc]
 
         setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
-                pyomo.Constraint(capVarSet, rule=yearlyFullLoadHoursMaxConstraint))
+                pyomo.Constraint(capVarSet, pyM.timeSet, rule=yearlyFullLoadHoursMaxConstraint))
 
 
     ####################################################################################################################

@@ -326,6 +326,10 @@ class ConversionModel(ComponentModel):
         self.designBinFix(pyM)
         # Link, if applicable, the capacity of components with the same linkedConversionCapacityID
         self.linkedCapacity(pyM)
+        # Set yearly full load hours minimum limit
+        self.yearlyFullLoadHoursMin(pyM, esM)
+        # Set yearly full load hours maximum limit
+        self.yearlyFullLoadHoursMax(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
