@@ -145,6 +145,7 @@ class EnergySystemModel:
         # resolution. The hoursPerTimeStep parameter (float > 0) refers to the temporal length of a time step in the
         # totalTimeSteps. From the numberOfTimeSteps and the hoursPerTimeStep the numberOfYears parameter is computed.
         self.totalTimeSteps, self.hoursPerTimeStep = list(range(numberOfTimeSteps)), hoursPerTimeStep
+        self.numberOfTimeSteps = numberOfTimeSteps
         self.numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
@@ -226,6 +227,7 @@ class EnergySystemModel:
         # warnings are displayed, the optimization solver logging is set to a minimum.
         # The optimization solver logging can be separately enabled in the optimizationSpecs of the optimize function.
         self.verbose = verboseLogLevel
+        self.verboseLogLevel = verboseLogLevel # TODO replace 
 
     def add(self, component):
         """
