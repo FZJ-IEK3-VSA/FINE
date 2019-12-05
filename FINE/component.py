@@ -1346,3 +1346,23 @@ class ComponentModel(metaclass=ABCMeta):
                                                 'dimension': self.dimension},
                     'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
                                                   'dimension': self.dimension}}
+
+    def getOptimizedValues(self, name):
+        """
+        Return the optimal values of the components as a pandas.DataFrame. 
+
+        :param name: name of the variables of which the optimal values should be returned:\n
+        * 'capacityVariables',
+        * 'isBuiltVariables',
+        * 'operationVariablesOptimum'.\n
+        :type name: string
+        """
+        if name == 'capacityVariablesOptimum':
+            return self.capacityVariablesOptimum
+        elif name == 'isBuiltVariablesOptimum':
+            return self.isBuiltVariablesOptimum
+        elif name == 'operationVariablesOptimum':
+            return self.operationVariablesOptimum
+
+
+

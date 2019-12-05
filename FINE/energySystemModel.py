@@ -761,3 +761,42 @@ class EnergySystemModel:
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
+
+
+    # def optimize2LevelApproach(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='', threads=3,
+    #              solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
+    #     if declaresOptimizationProblem:
+    #         self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation)
+    #     else:
+    #         if self.pyM is None:
+    #             raise TypeError('The optimization problem is not declared yet. Set the argument declaresOptimization'
+    #                             ' problem to True or call the declareOptimizationProblem function first.')
+
+
+    def setFixedVariables(self, optVariables):
+        """
+        Search for optimized variables (capacities or binary decision variables) and set the variables as fixed.
+        This function is used for the myopic approach (capacities) and the Two-Stage-Approach (binary decisions).
+
+        :param optVariables: Name of the variables of which the optimal values should be returned and set to the current energy system model instance:\n
+        * 'isBuiltVariablesOptimum', or
+        * 'capacityVariablesOptimum'\n
+        :type name: string
+
+        Last edited: December 05, 2019
+        |br| @author: Theresa Gross
+        """      
+        for mdl in self.componentModelingDict.keys():
+            # for comp in self.componentsModelingDict[mdl].componentsDict.keys():
+            compValues = self.componentModelingDict[mdl].getOptimizedValues(optVariables)
+            if compValues is not None:
+                for comp in compValues.index:
+                    if optVariables == 'isBuiltVariablesOptimum':
+                        # Set the optimal values for the isBuiltVariables as fixed
+                        self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = compValues.loc[comp].values
+                    elif optVariables == 'capacityVariablesOptimum':
+                        # Set the optimal values for the capacities as fixed
+                        self.componentModelingDict[mdl].componentsDict[comp].capacityFix = compValues.loc[comp].values
+                        # Set capacityMin and capacityMax as None to avoid problems
+                        self.componentModelingDict[mdl].componentsDict[comp].capacityMax = None
+                        self.componentModelingDict[mdl].componentsDict[comp].capacityMin = None
