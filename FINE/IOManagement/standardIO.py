@@ -865,7 +865,8 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     return fig, ax
 
 
-def plotLocationalPieMap(esM, compNames, locationsShapeFileName, variableName='operationVariablesOptimum', doSum=False, **kwargs):
+def plotLocationalPieMap(esM, compNames, locationsShapeFileName, 
+    variableName='operationVariablesOptimum', doSum=False, **kwargs):
     """
     Plot the data of a component for each location.
 
@@ -882,6 +883,7 @@ def plotLocationalPieMap(esM, compNames, locationsShapeFileName, variableName='o
 
     :param variableName: variable name
     :type variableName: string
+        |br| * the default value is 'operationVariablesOptimum'
 
     :param doSum: indicates if the variable has to be summarized for the location (e.g. for operation
         variables)
