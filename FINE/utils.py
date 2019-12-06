@@ -93,10 +93,16 @@ def checkTimeSeriesIndex(esM, data):
     Necessary if the data rows represent the time-dependent data:
     Check if the row-indices of the data match the time indices of the energy system model.
     """
-    if list(data.index) != esM.totalTimeSteps:
+    if isinstance(data.index,pd.MultiIndex):
+        dataindex = data.index.get_level_values('TimeStep')
+        data.index = dataindex
+    else:
+        dataindex = data.index
+    if list(dataindex) != esM.totalTimeSteps:
         raise ValueError('Time indices do not match the one of the specified energy system model.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
-                         'Energy system model time steps: ' + str(esM._timeSteps))
+                         'Energy system model time steps: ' + str(esM.totalTimeSteps))
+    return 
 
 
 def checkRegionalColumnTitles(esM, data):
@@ -739,3 +745,34 @@ def checkComponentsEquality(esM, file):
         compListFromExcel += list(readSheet.index.levels[0])
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
+
+
+class PowerDict(dict):  
+    '''
+    Dictionary with additional functions
+    '''
+    def __init__(self, parent=None, key=None):
+        self.parent = parent
+        self.key = key
+
+    def __missing__(self, key): 
+        '''
+        Creation of subdictionaries on fly
+        '''
+        self[key] = PowerDict(self, key)
+        return self[key]
+
+    def append(self, item):
+        '''
+        additional append function for lists in dict
+        '''
+        self.parent[self.key] = [item]
+
+    def __setitem__(self, key, val):
+        dict.__setitem__(self, key, val)
+        try:
+            val.parent = self
+            val.key = key
+        except AttributeError:
+            pass
+
