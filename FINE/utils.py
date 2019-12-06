@@ -6,6 +6,7 @@ Last edited: March 26, 2019
 import warnings
 import pandas as pd
 import FINE as fn
+import numpy as np
 
 def isString(string):
     """ Check if the input argument is a string. """
@@ -746,6 +747,16 @@ def checkComponentsEquality(esM, file):
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
+def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
+    values = np.zeros((len(locations), len(locations)))
+
+    df = pd.DataFrame(values, columns=locations, index=locations)
+
+    for row in series.iteritems():
+        id_1, id_2 = row[0].split(separator)
+        df.loc[id_1, id_2] = row[1]
+
+    return df
 
 class PowerDict(dict):  
     '''
