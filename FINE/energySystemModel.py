@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import pyomo.environ as pyomo
 import pyomo.opt as opt
+import copy
 import time
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -857,14 +858,24 @@ class EnergySystemModel:
             compValues = self.componentModelingDict[mdl].getOptimizedValues(optVariables)
             if compValues is not None:
                 for comp in compValues.index.get_level_values(0).unique():
-                    print('Ich bin Komponente: ',comp)
                     if optVariables == 'isBuiltVariablesOptimum':
                         # Set the optimal values for the isBuiltVariables as fixed
                         values = compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64)
                         self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
                     elif optVariables == 'capacityVariablesOptimum':
                         # Set the optimal values for the capacities as fixed
-                        self.componentModelingDict[mdl].componentsDict[comp].capacityFix = compValues.loc[comp].values
+                        self.componentModelingDict[mdl].componentsDict[comp].capacityFix = compValues.loc[comp].values[0]
                         # Set capacityMin and capacityMax as None to avoid problems
                         self.componentModelingDict[mdl].componentsDict[comp].capacityMax = None
                         self.componentModelingDict[mdl].componentsDict[comp].capacityMin = None
+
+    def getStock(self):
+        for mdl in self.componentModelingDict.keys():
+            compValues = self.componentModelingDict[mdl].getOptimizedValues('capacityVariablesOptimum')
+            for comp in compValues.index.get_level_values(0).unique():
+                stockName = comp+'_stock'
+                stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
+                stockComp.name = stockName
+                stockComp.capacityFix = compValues.loc[comp]
+                stockComp.capacityMin, stockComp.capacityMax = None, None
+                self.add(stockComp)
