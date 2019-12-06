@@ -13,7 +13,7 @@ class ConversionFancy(Conversion):
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1, linkedConversionCapacityID=None,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, downTimeMin=None, upTimeMin=None, sharedPotentialID=None,
+                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, downTimeMin=None, upTimeMin=None, rampUpMax =None, rampDownMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
@@ -41,6 +41,8 @@ class ConversionFancy(Conversion):
         self.modelingClass = ConversionFancyModel
         self.downTimeMin = downTimeMin
         self.upTimeMin = upTimeMin
+        self.rampUpMax =rampUpMax
+        self.rampDownMax = rampDownMax
         utils.checkConversionFancySpecficDesignInputParams(self, esM)     
 
 
@@ -104,6 +106,33 @@ class ConversionFancyModel(ConversionModel):
 
         setattr(pyM, constrSetName + 'upTimeMin_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSetMinUpTime))
         
+    def declareOpConstrSetMaxRampUp(self, pyM, constrSetName):
+        """
+        Declare set of locations and components for which rampUpMax is not NONE.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+
+
+        def declareOpConstrSetMaxRampUp(pyM):
+           return ((loc, compName) for loc, compName in varSet if getattr(compDict[compName], 'rampUpMax') is not None)
+
+        setattr(pyM, constrSetName + 'rampUpMax_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSetMaxRampUp))
+
+    def declareOpConstrSetMaxRampDown(self, pyM, constrSetName):
+        """
+        Declare set of locations and components for which rampDownMax is not NONE.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+
+
+        def declareOpConstrSetMaxRampDown(pyM):
+           return ((loc, compName) for loc, compName in varSet if getattr(compDict[compName], 'rampDownMax') is not None)
+
+        setattr(pyM, constrSetName + 'rampDownMax_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSetMaxRampDown))
+
+        
     def declareSets(self, esM, pyM):
         """
         Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
@@ -123,6 +152,8 @@ class ConversionFancyModel(ConversionModel):
         # Declare Min down time constraint
         self.declareOpConstrSetMinDownTime(pyM, 'opConstrSet')
         self.declareOpConstrSetMinUpTime(pyM, 'opConstrSet')
+        self.declareOpConstrSetMaxRampUp(pyM, 'opConstrSet')
+        self.declareOpConstrSetMaxRampDown(pyM, 'opConstrSet')
         
    
     ####################################################################################################################
@@ -225,6 +256,57 @@ class ConversionFancyModel(ConversionModel):
     
             setattr(pyM, 'ConstrMinUpTime2_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime2))    
     
+    
+    def rampUpMax(self, pyM):
+            """
+            Ensure that conversion unit is not ramping up too fast by implementing a maximum ramping rate as share of the installed capacity.
+            
+    
+            :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+            :type pyM: pyomo Concrete Model
+            """
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            
+            opVar= getattr(pyM, 'op_' + abbrvName)
+            capVar= getattr(pyM, 'cap_' + abbrvName)
+            
+            constrSetRampUpMax = getattr(pyM,'opConstrSet' + 'rampUpMax_' + abbrvName)
+            
+    
+            def rampUpMax(pyM, loc, compName, p, t):
+                rampRateMax = getattr(compDict[compName], 'rampUpMax')
+                if (t>=1): # avoid to set constraints twice
+                    return (opVar[loc, compName, p, t]-opVar[loc, compName, p, t-1] <= rampRateMax*capVar[loc, compName])
+                else:
+                    return pyomo.Constraint.Skip
+            setattr(pyM, 'ConstrRampUpMax_' + abbrvName, pyomo.Constraint(constrSetRampUpMax, pyM.timeSet, rule=rampUpMax))
+              
+    def rampDownMax(self, pyM):
+            """
+            Ensure that conversion unit is not ramping down too fast by implementing a maximum ramping rate as share of the installed capacity.
+            
+    
+            :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+            :type pyM: pyomo Concrete Model
+            """
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            
+            opVar= getattr(pyM, 'op_' + abbrvName)
+            capVar= getattr(pyM, 'cap_' + abbrvName)
+            
+            constrSetRampDownMax = getattr(pyM,'opConstrSet' + 'rampDownMax_' + abbrvName)
+            
+    
+            def rampDownMax(pyM, loc, compName, p, t):
+                rampRateMax = getattr(compDict[compName], 'rampDownMax')
+                if (t>=1): # avoid to set constraints twice
+                    return (opVar[loc, compName, p, t-1]-opVar[loc, compName, p, t] <= rampRateMax*capVar[loc, compName])
+                else:
+                    return pyomo.Constraint.Skip
+            setattr(pyM, 'ConstrRampDownMax_' + abbrvName, pyomo.Constraint(constrSetRampDownMax, pyM.timeSet, rule=rampDownMax))
+                    
+    
+    
     def declareComponentConstraints(self, esM, pyM):
         """
         Declare time independent and dependent constraints.
@@ -243,5 +325,7 @@ class ConversionFancyModel(ConversionModel):
 
         self.minimumDownTime(pyM)
         self.minimumUpTime(pyM)
+        self.rampUpMax(pyM)
+        self.rampDownMax(pyM)
         
         

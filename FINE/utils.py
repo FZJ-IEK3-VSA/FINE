@@ -333,6 +333,8 @@ def checkConversionFancySpecficDesignInputParams(compFancy, esM):
     upTimeMin = compFancy.upTimeMin
     numberOfTimeSteps = esM.numberOfTimeSteps
     name = compFancy.name
+    rampUpMax = compFancy.rampUpMax
+    rampDownMax = compFancy.rampDownMax
     
     if downTimeMin is not None:
         if type(downTimeMin)!=int:
@@ -349,7 +351,24 @@ def checkConversionFancySpecficDesignInputParams(compFancy, esM):
             raise ValueError('upTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
         if upTimeMin > numberOfTimeSteps:
             raise ValueError('upTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+    
+    if rampUpMax is not None:
+        if type(rampUpMax)!= float:
+            raise TypeError('rampUpMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+        if rampUpMax <= 0:
+            raise ValueError('rampUpMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+        if rampUpMax > 1:
+            raise ValueError('rampUpMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
         
+    if rampDownMax is not None:
+        if type(rampDownMax)!= float:
+            raise TypeError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+        if rampDownMax <= 0:
+            raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+        if rampDownMax > 1:
+            raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+        
+
 
 
 
