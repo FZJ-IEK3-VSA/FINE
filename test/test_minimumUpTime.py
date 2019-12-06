@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-re
 
 def test_minimumUpTime():
     # read in original results
-    results = [5.0,  5.0,  0.0,  0.0,  0.0, 0.0,  0.0,  0.0,  0.0,  4.0,  5.0,  5.0,  4.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  4.0]
+    results = [0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  4.0,  5.0,  5.0,  4.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0]
 
     # 2. Create an energy system model instance
     locations = {'example_region1', 'example_region2'}

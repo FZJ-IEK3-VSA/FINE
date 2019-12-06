@@ -193,7 +193,7 @@ class ConversionFancyModel(ConversionModel):
     #                                          Declare component constraints                                           #
     ####################################################################################################################
 
-    def minimumDownTime(self, pyM):
+    def minimumDownTime(self, pyM, esM):
         """
         Ensure that conversion unit is not ramping up and down too often by implementing a minimum down time after ramping down.
         
@@ -206,13 +206,13 @@ class ConversionFancyModel(ConversionModel):
         opVarBin= getattr(pyM, 'op_bin_' + abbrvName)
         opVarStartBin, opVarStopBin = getattr(pyM, 'startVariable_' + abbrvName), getattr(pyM, 'stopVariable_' + abbrvName)
         constrSetMinDownTime = getattr(pyM,'opConstrSet' + 'downTimeMin_' + abbrvName)
-        
+        numberOfTimeSteps = esM.numberOfTimeSteps
 
         def minimumDownTime1(pyM, loc, compName, p, t):
             if t>=1:
                 return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, t-1]-opVarStartBin[loc, compName, p, t]+opVarStopBin[loc, compName, p, t] == 0)
             else:
-                return pyomo.Constraint.Skip
+                return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, numberOfTimeSteps-1]-opVarStartBin[loc, compName, p, t]+opVarStopBin[loc, compName, p, t] == 0)
         setattr(pyM, 'ConstrMinDownTime1_' + abbrvName, pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime1))
           
         def minimumDownTime2(pyM, loc, compName, p, t):
@@ -220,11 +220,11 @@ class ConversionFancyModel(ConversionModel):
             if t >= downTimeMin:
                 return opVarBin[loc, compName, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(t-downTimeMin+1, t))
             else:
-                return opVarBin[loc, compName, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(0, t))
+                return opVarBin[loc, compName, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(0, t)) - pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(numberOfTimeSteps-(downTimeMin-t), numberOfTimeSteps))
 
         setattr(pyM, 'ConstrMinDownTime2_' + abbrvName, pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime2))          
                     
-    def minimumUpTime(self, pyM):
+    def minimumUpTime(self, pyM, esM):
             """
             Ensure that conversion unit is not ramping up and down too often by implementing a minimum up time after ramping up.
             
@@ -237,14 +237,14 @@ class ConversionFancyModel(ConversionModel):
             opVarBin= getattr(pyM, 'op_bin_' + abbrvName)
             opVarStartBin, opVarStopBin = getattr(pyM, 'startVariable_' + abbrvName), getattr(pyM, 'stopVariable_' + abbrvName)
             constrSetMinUpTime = getattr(pyM,'opConstrSet' + 'upTimeMin_' + abbrvName)
-            
+            numberOfTimeSteps = esM.numberOfTimeSteps
     
             def minimumUpTime1(pyM, loc, compName, p, t):
                 downTimeMin = getattr(compDict[compName], 'downTimeMin')
                 if (t>=1 and downTimeMin==None): # avoid to set constraints twice
                     return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, t-1]-opVarStartBin[loc, compName, p, t]+opVarStopBin[loc, compName, p, t] == 0)
                 else:
-                    return pyomo.Constraint.Skip
+                    return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, numberOfTimeSteps-1]-opVarStartBin[loc, compName, p, t]+opVarStopBin[loc, compName, p, t] == 0)
             setattr(pyM, 'ConstrMinUpTime1_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime1))
               
             def minimumUpTime2(pyM, loc, compName, p, t):
@@ -252,12 +252,12 @@ class ConversionFancyModel(ConversionModel):
                 if t >= upTimeMin:
                     return opVarBin[loc, compName, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, p, t_up] for t_up in range(t-upTimeMin+1, t))
                 else:
-                    return opVarBin[loc, compName, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, p, t_up] for t_up in range(0, t))
+                    return opVarBin[loc, compName, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, p, t_up] for t_up in range(0, t)) + pyomo.quicksum(opVarStartBin[loc, compName, p, t_up] for t_up in range(numberOfTimeSteps-(upTimeMin-t), numberOfTimeSteps))
     
             setattr(pyM, 'ConstrMinUpTime2_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime2))    
     
     
-    def rampUpMax(self, pyM):
+    def rampUpMax(self, pyM, esM):
             """
             Ensure that conversion unit is not ramping up too fast by implementing a maximum ramping rate as share of the installed capacity.
             
@@ -271,17 +271,17 @@ class ConversionFancyModel(ConversionModel):
             capVar= getattr(pyM, 'cap_' + abbrvName)
             
             constrSetRampUpMax = getattr(pyM,'opConstrSet' + 'rampUpMax_' + abbrvName)
-            
+            numberOfTimeSteps = esM.numberOfTimeSteps
     
             def rampUpMax(pyM, loc, compName, p, t):
                 rampRateMax = getattr(compDict[compName], 'rampUpMax')
                 if (t>=1): # avoid to set constraints twice
                     return (opVar[loc, compName, p, t]-opVar[loc, compName, p, t-1] <= rampRateMax*capVar[loc, compName])
                 else:
-                    return pyomo.Constraint.Skip
+                    return (opVar[loc, compName, p, t]-opVar[loc, compName, p, numberOfTimeSteps-1] <= rampRateMax*capVar[loc, compName])
             setattr(pyM, 'ConstrRampUpMax_' + abbrvName, pyomo.Constraint(constrSetRampUpMax, pyM.timeSet, rule=rampUpMax))
               
-    def rampDownMax(self, pyM):
+    def rampDownMax(self, pyM, esM):
             """
             Ensure that conversion unit is not ramping down too fast by implementing a maximum ramping rate as share of the installed capacity.
             
@@ -295,14 +295,14 @@ class ConversionFancyModel(ConversionModel):
             capVar= getattr(pyM, 'cap_' + abbrvName)
             
             constrSetRampDownMax = getattr(pyM,'opConstrSet' + 'rampDownMax_' + abbrvName)
-            
+            numberOfTimeSteps = esM.numberOfTimeSteps
     
             def rampDownMax(pyM, loc, compName, p, t):
                 rampRateMax = getattr(compDict[compName], 'rampDownMax')
                 if (t>=1): # avoid to set constraints twice
                     return (opVar[loc, compName, p, t-1]-opVar[loc, compName, p, t] <= rampRateMax*capVar[loc, compName])
                 else:
-                    return pyomo.Constraint.Skip
+                    return (opVar[loc, compName, p, numberOfTimeSteps-1]-opVar[loc, compName, p, t] <= rampRateMax*capVar[loc, compName])
             setattr(pyM, 'ConstrRampDownMax_' + abbrvName, pyomo.Constraint(constrSetRampDownMax, pyM.timeSet, rule=rampDownMax))
                     
     
@@ -323,9 +323,9 @@ class ConversionFancyModel(ConversionModel):
         #                                         Fancy Constraints                                        #
         ################################################################################################################
 
-        self.minimumDownTime(pyM)
-        self.minimumUpTime(pyM)
-        self.rampUpMax(pyM)
-        self.rampDownMax(pyM)
+        self.minimumDownTime(pyM, esM)
+        self.minimumUpTime(pyM, esM)
+        self.rampUpMax(pyM, esM)
+        self.rampDownMax(pyM, esM)
         
         

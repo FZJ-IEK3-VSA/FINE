@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-re
 
 def test_rampUpMax():
     # read in original results
-    results = [10.0,  10.0,  0.0,  0.0,  4.0,  5.0,  5.0,  0.0,  0.0,  5.0,  10.0,  5.0,  4.0,  0.0,  4.0,  5.0,  5.0,  0.0,  0.0,  4.0]
+    results = [8.0,  10.0,  0.0,  0.0,  4.0,  5.0,  5.0,  0.0,  0.0,  4.0,  8.0,  5.0,  4.0,  0.0,  4.0 , 5.0,  5.0,  0.0,  0.0,  4.0]
 
     # 2. Create an energy system model instance
     locations = {'example_region1', 'example_region2'}
@@ -50,7 +50,7 @@ def test_rampUpMax():
     
     esM.add(fn.ConversionFancy(esM=esM, name='restricted', physicalUnit=r'GW$_{el}$',
                           commodityConversionFactors={'electricity':1, 'methane':-1/0.625},
-                          capacityFix = data_cap, partLoadMin = 0.3, bigM= 100, rampUpMax=0.5,
+                          capacityFix = data_cap, partLoadMin = 0.3, bigM= 100, rampUpMax=0.4,
                           investPerCapacity=0.5, opexPerCapacity=0.021, opexPerOperation =1, interestRate=0.08,
                           economicLifetime=33))
 
