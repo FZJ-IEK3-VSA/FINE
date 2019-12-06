@@ -37,7 +37,7 @@ class DemandSideManagement(Sink):
             dischargeFix[dischargeFix.index % self.tDelta != i] = 0
 
             esM.add(fn.StorageExt(esM, name + '_' + str(i), commodity, stateOfChargeOpRateMax=SOCmax,
-                dischargeOpRateFix=dischargeFix, capacityFix=SOCmax.max()*1.001))
+                dischargeOpRateFix=dischargeFix, hasCapacityVariable=False))
 
 
 class DSMModel(SourceSinkModel):
@@ -54,8 +54,7 @@ class DSMModel(SourceSinkModel):
         self.dimension = '1dim'
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.chargeOperationVariablesOptimum, self.dischargeOperationVariablesOptimum = None, None
-        self.stateOfChargeOperationVariablesOptimum = None
+        self.operationVariablesOptimum = None
         self.optSummary = None
 
 
@@ -77,7 +76,7 @@ class DSMModel(SourceSinkModel):
         opVar = getattr(pyM, 'op_' + abbrvName)
 
         # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(esM, pyM)
+        optSummaryBasic = super(SourceSinkModel, self).setOptimalValues(esM, pyM, esM.locations, 'commodityUnit')
 
         # Set optimal operation variables and append optimization summary
         chargeOp = getattr(pyM, 'chargeOp_storExt')

@@ -380,23 +380,23 @@ class StorageModel(ComponentModel):
             # Energy amount stored at the beginning of a time step during the (one) period (the i-th state of charge
             # refers to the state of charge at the beginning of the i-th time step, the last index is the state of
             # charge after the last time step)
-            setattr(pyM, 'stateOfCharge_' + self.abbrvName, pyomo.Var(getattr(pyM, 'designDimensionVarSet_' +
+            setattr(pyM, 'stateOfCharge_' + self.abbrvName, pyomo.Var(getattr(pyM, 'operationVarSet_' +
                     self.abbrvName), pyM.interTimeStepsSet, domain=pyomo.NonNegativeReals))
         else:
             # (Virtual) energy amount stored during a period (the i-th state of charge refers to the state of charge at
             # the beginning of the i-th time step, the last index is the state of charge after the last time step)
-            setattr(pyM, 'stateOfCharge_' + self.abbrvName, pyomo.Var(getattr(pyM, 'designDimensionVarSet_' +
+            setattr(pyM, 'stateOfCharge_' + self.abbrvName, pyomo.Var(getattr(pyM, 'operationVarSet_' +
                     self.abbrvName), pyM.interTimeStepsSet, domain=pyomo.Reals))
             # (Virtual) minimum amount of energy stored within a period
-            setattr(pyM, 'stateOfChargeMin_' + self.abbrvName, pyomo.Var(getattr(pyM, 'designDimensionVarSet_' +
+            setattr(pyM, 'stateOfChargeMin_' + self.abbrvName, pyomo.Var(getattr(pyM, 'operationVarSet_' +
                     self.abbrvName), esM.typicalPeriods, domain=pyomo.Reals))
             # (Virtual) maximum amount of energy stored within a period
-            setattr(pyM, 'stateOfChargeMax_' + self.abbrvName, pyomo.Var(getattr(pyM, 'designDimensionVarSet_' +
+            setattr(pyM, 'stateOfChargeMax_' + self.abbrvName, pyomo.Var(getattr(pyM, 'operationVarSet_' +
                     self.abbrvName), esM.typicalPeriods, domain=pyomo.Reals))
             # (Real) energy amount stored at the beginning of a period between periods(the i-th state of charge refers
             # to the state of charge at the beginning of the i-th period, the last index is the state of charge after
             # the last period)
-            setattr(pyM, 'stateOfChargeInterPeriods_' + self.abbrvName, pyomo.Var(getattr(pyM, 'designDimensionVarSet_'
+            setattr(pyM, 'stateOfChargeInterPeriods_' + self.abbrvName, pyomo.Var(getattr(pyM, 'operationVarSet_'
                     + self.abbrvName), esM.interPeriodTimeSteps, domain=pyomo.NonNegativeReals))
 
     ####################################################################################################################
