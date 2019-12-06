@@ -14,3 +14,6 @@ dependencies:
 - pyomo
 - numpy
 - pandas
+- pip:
+    - https://github.com/FZJ-IEK3-VSA/geokit/archive/gdal_relax.zip
+  
