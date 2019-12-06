@@ -219,7 +219,11 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
     hasCapacityVariable, hasIsBuiltBinaryVariable = comp.hasCapacityVariable, comp.hasIsBuiltBinaryVariable
     sharedPotentialID = comp.sharedPotentialID
-
+    partLoadMin = comp.partLoadMin
+    name=comp.name
+    bigM = comp.bigM     
+   
+    
     for data in [capacityMin, capacityFix, capacityMax, locationalEligibility, isBuiltFix]:
         if data is not None:
             if comp.dimension == '1dim':
@@ -312,6 +316,32 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             data[data > 0] = 1
             if (data > isBuiltFix).any():
                 raise ValueError('The isBuiltFix and capacityMin parameters indicate different design decisions.')
+    
+    if partLoadMin is not None:
+            if type(partLoadMin)!=float:
+                raise TypeError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
+            if partLoadMin <= 0:
+                raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
+            if partLoadMin > 1:
+                raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
+            if bigM is None:
+                raise ValueError('bigM needs to be defined for compeonent ' + name + ' if minimum part load is not None.')
+
+
+def checkConversionFancySpecficDesignInputParams(compFancy, esM):
+    downTimeMin = compFancy.downTimeMin
+    numberOfTimeSteps = esM.numberOfTimeSteps
+    name = compFancy.name
+    
+    if downTimeMin is not None:
+        if type(downTimeMin)!=int:
+            raise TypeError('downTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+        if downTimeMin <= 0:
+            raise ValueError('downTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+        if downTimeMin > numberOfTimeSteps:
+            raise ValueError('partLoadMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+            
+
 
 
 def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFix, isBuiltFix,

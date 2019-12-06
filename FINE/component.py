@@ -131,7 +131,7 @@ class Component(metaclass=ABCMeta):
         :type partLoadMin:
             * None or
             * Float value in range ]0;1]
-
+    
         :param sharedPotentialID: if specified, indicates that the component has to share its maximum
             potential capacity with other components (e.g. due to space limitations). The shares of how
             much of the maximum potential is used have to add up to less then 100%.
@@ -278,16 +278,9 @@ class Component(metaclass=ABCMeta):
         self.bigM = bigM
         self.partLoadMin = partLoadMin
         
-        if self.partLoadMin is not None:
-            if type(self.partLoadMin)!=float:
-                raise TypeError('partLoadMin for ' + self.name +  ' needs to be a float in the intervall ]0-1].')
-            if self.partLoadMin <= 0:
-                raise ValueError('partLoadMin for ' + self.name +  ' needs to be a float in the intervall ]0-1].')
-            if self.partLoadMin > 1:
-                raise ValueError('partLoadMin for ' + self.name +  ' needs to be a float in the intervall ]0-1].')
-            if self.bigM is None:
-                raise ValueError('bigM needs to be defined for compeonent ' + self.name + ' if minimum part load is not None.')
-
+       
+ 
+            
         # Set economic data
         elig = locationalEligibility
         self.investPerCapacity = utils.checkAndSetCostParameter(esM, name, investPerCapacity, dimension, elig)
@@ -627,7 +620,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         setattr(pyM, constrSetName + '5_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet5))
         
-    def declareOpConstrSetMinPartLoad(self, pyM, constrSetName, partLoadMin):
+    def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
         """
         Declare set of locations and components for which partLoadMin is not NONE.
         """
@@ -660,7 +653,7 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet3(pyM, constrSetName, rateMax)
         self.declareOpConstrSet4(pyM, constrSetName, rateFix)
         self.declareOpConstrSet5(pyM, constrSetName, rateMax)
-        self.declareOpConstrSetMinPartLoad(pyM, constrSetName, partLoadMin)
+        self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
 
     ####################################################################################################################
     #                                         Functions for declaring variables                                        #
@@ -943,10 +936,6 @@ class ComponentModel(metaclass=ABCMeta):
         
         def opMinPartLoad1(pyM, loc, compName, p, t):
             bigM = getattr(compDict[compName], 'bigM')
-            print(abbrvName)
-            print(opVar)
-            print(opVarBin)
-            print(bigM)
             return opVar[loc, compName, p, t] <= opVarBin[loc, compName, p, t]*bigM
         setattr(pyM, constrName + 'partLoadMin_1_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad1))
         
