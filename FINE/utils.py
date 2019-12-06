@@ -330,6 +330,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
 
 def checkConversionFancySpecficDesignInputParams(compFancy, esM):
     downTimeMin = compFancy.downTimeMin
+    upTimeMin = compFancy.upTimeMin
     numberOfTimeSteps = esM.numberOfTimeSteps
     name = compFancy.name
     
@@ -341,6 +342,14 @@ def checkConversionFancySpecficDesignInputParams(compFancy, esM):
         if downTimeMin > numberOfTimeSteps:
             raise ValueError('partLoadMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
             
+    if upTimeMin is not None:
+        if type(upTimeMin)!=int:
+            raise TypeError('upTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+        if upTimeMin <= 0:
+            raise ValueError('upTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+        if upTimeMin > numberOfTimeSteps:
+            raise ValueError('upTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+        
 
 
 
