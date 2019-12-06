@@ -42,15 +42,6 @@ class ConversionFancy(Conversion):
         self.downTimeMin = downTimeMin
         utils.checkConversionFancySpecficDesignInputParams(self, esM)     
 
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a ConversionFancy component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
-
 
 class ConversionFancyModel(ConversionModel):
 
@@ -110,24 +101,13 @@ class ConversionFancyModel(ConversionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
-        # Declare design variable sets
-        self.declareDesignVarSet(pyM)
-        self.declareContinuousDesignVarSet(pyM)
-        self.declareDiscreteDesignVarSet(pyM)
-        self.declareDesignDecisionVarSet(pyM)
+        super().declareSets(esM, pyM)
 
         # Declare operation variable sets
-        self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(pyM)
         self.declareOperationStartStopBinarySet(pyM)
 
-        # Declare operation mode sets
-        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
+        # Declare Min down time constraint
         self.declareOpConstrSetMinDownTime(pyM, 'opConstrSet')
-
-        # Declare linked components dictionary
-        self.declareLinkedCapacityDict(pyM)
         
    
     ####################################################################################################################
@@ -218,84 +198,3 @@ class ConversionFancyModel(ConversionModel):
         self.minimumDownTime(pyM)
         
         
-
-    ####################################################################################################################
-    #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
-    ####################################################################################################################
-
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Get contributions to shared location potential. """
-        return super().getSharedPotentialContribution(pyM, key, loc)
-
-    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if the commodity´s transfer between a given location and the other locations of the energy system model
-        is eligible.
-
-        :param esM: EnergySystemModel in which the LinearOptimalPowerFlow components have been added to.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
-
-        :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
-        :param commod: string
-        """
-        return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
-
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
-        return super().getCommodityBalanceContribution(pyM, commod, loc, p, t)
-
-    def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
-        """
-        return super().getObjectiveFunctionContribution(esM, pyM)
-
-    def setOptimalValues(self, esM, pyM):
-        """
-        Set the optimal values of the components.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
-        """
-
-        super().setOptimalValues(esM, pyM)
-
-        
-
-    def getOptimalValues(self, name='all'):
-        """
-        Return optimal values of the components.
-
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'operationVariablesOptimum',
-        * 'all' or another input: all variables are returned.\n
-        :type name: string
-        """
-        if name == 'capacityVariablesOptimum':
-            return {'values': self.capacityVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
-        elif name == 'isBuiltVariablesOptimum':
-            return {'values': self.isBuiltVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
-        elif name == 'operationVariablesOptimum':
-            return {'values': self.operationVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
-        else:
-            return {'capacityVariablesOptimum': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
-                                                 'dimension': self.dimension},
-                    'isBuiltVariablesOptimum': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
-                                                'dimension': self.dimension},
-                    'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
-                                                  'dimension': self.dimension}}
-                    
