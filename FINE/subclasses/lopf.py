@@ -97,10 +97,20 @@ class LOPFModel(TransmissionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-        super().declareVariables(esM, pyM)
-        
+
+        # # Declare design variable sets
+        self.declareDesignVarSet(pyM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
+
+        # Declare operation variable sets
+        self.declareOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
-        
+        self.declareOperationBinarySet(pyM)
+
+        # Declare operation variable set
+        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -127,8 +137,18 @@ class LOPFModel(TransmissionModel):
         :type pyM: pyomo Concrete Model
         """
 
-        super().declareVariables(esM, pyM)
-        
+        # Capacity variables in [commodityUnit]
+        self.declareCapacityVars(pyM)
+        # (Continuous) numbers of installed components [-]
+        self.declareRealNumbersVars(pyM)
+        # (Discrete/integer) numbers of installed components [-]
+        self.declareIntNumbersVars(pyM)
+        # Binary variables [-] indicating if a component is considered at a location or not [-]
+        self.declareBinaryDesignDecisionVars(pyM)
+        # Flow over the edges of the components [commodityUnit]
+        self.declareOperationVars(pyM, 'op')
+        # Operation of component as binary [1/0]
+        self.declareOperationBinaryVars(pyM, 'op_bin')
         # Operation of component [commodityUnit]
         self.declarePhaseAngleVariables(pyM)
 
