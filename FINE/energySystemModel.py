@@ -7,8 +7,10 @@ from FINE.component import Component, ComponentModel
 from FINE import utils
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 import pandas as pd
+import numpy as np
 import pyomo.environ as pyomo
 import pyomo.opt as opt
+import copy
 import time
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -762,3 +764,86 @@ class EnergySystemModel:
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
+    
+    def optimizeMyopic(self, startYear, nbOfSteps, stepLength, declaresOptimizationProblem=True, timeSeriesAggregation=False,  
+                        numberOfTypicalPeriods = 7,
+                        logFileName='', threads=3, solver='gurobi', timeLimit=None, 
+                        optimizationSpecs='', warmstart=False):
+        """
+        Optimization function for myopic approach. For each optimization run, the newly installed capacities
+        will be given as a stock (with capacityFix) to the next optimization run. 
+
+        :param startYear: Year of the optimization
+        :type name: int
+
+        :param nbOfSteps: Number of optimization runs 
+        :type name: int
+
+        :param stepLength: Number of years represented by one optimization run
+        :type name: int
+
+        Last edited: December 06, 2019
+        |br| @author: Theresa Gross, Felix Kullmann
+        """                              
+        
+        mileStoneYear = startYear
+
+        for step in range(0,nbOfSteps):
+            mileStoneYear = startYear + step*stepLength
+            logFileName = 'log_'+str(mileStoneYear)
+            # First optimization: Optimize start year for first stock
+            self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods)
+
+            self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
+                            logFileName=logFileName, threads=threads, solver=solver, timeLimit=timeLimit, 
+                            optimizationSpecs=optimizationSpecs, warmstart=False)
+            # Get first stock (installed capacities within the start year)
+            self.getStock(mileStoneYear)
+            
+    def setFixedVariables(self, optVariables):
+        """
+        Search for optimized variables (capacities or binary decision variables) and set the variables as fixed.
+        This function is used for the myopic approach (capacities) and the Two-Stage-Approach (binary decisions).
+
+        :param optVariables: Name of the variables of which the optimal values should be returned and set to the current energy system model instance:\n
+        * 'isBuiltVariablesOptimum', or
+        * 'capacityVariablesOptimum'\n
+        :type name: string
+
+        Last edited: December 05, 2019
+        |br| @author: Theresa Gross
+        """      
+        for mdl in self.componentModelingDict.keys():
+            # for comp in self.componentsModelingDict[mdl].componentsDict.keys():
+            compValues = self.componentModelingDict[mdl].getOptimizedValues(optVariables)
+            if compValues is not None:
+                for comp in compValues.index.get_level_values(0).unique():
+                    if optVariables == 'isBuiltVariablesOptimum':
+                        # Set the optimal values for the isBuiltVariables as fixed
+                        values = compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64)
+                        self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
+                    elif optVariables == 'capacityVariablesOptimum':
+                        # Set the optimal values for the capacities as fixed
+                        self.componentModelingDict[mdl].componentsDict[comp].capacityFix = compValues.loc[comp].values[0]
+                        # Set capacityMin and capacityMax as None to avoid problems
+                        self.componentModelingDict[mdl].componentsDict[comp].capacityMax = None
+                        self.componentModelingDict[mdl].componentsDict[comp].capacityMin = None
+
+    def getStock(self, mileStoneYear):
+        '''
+        :param mileStoneYear: Year of the optimization
+        :type name: int
+
+        Last edited: December 06, 2019
+        |br| @author: Theresa Gross, Felix Kullmann
+        ''' 
+        for mdl in self.componentModelingDict.keys():
+            compValues = self.componentModelingDict[mdl].getOptimizedValues('capacityVariablesOptimum')
+            for comp in compValues.index.get_level_values(0).unique():
+                if 'stock' not in self.componentModelingDict[mdl].componentsDict[comp].name:
+                    stockName = comp+'_stock'+'_'+str(mileStoneYear)
+                    stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
+                    stockComp.name = stockName
+                    stockComp.capacityFix = compValues.loc[comp]
+                    stockComp.capacityMin, stockComp.capacityMax = None, None
+                    self.add(stockComp)
