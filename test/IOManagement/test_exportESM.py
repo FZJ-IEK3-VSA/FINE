@@ -2,6 +2,7 @@ import FINE
 import numpy as np
 import os
 import pytest
+import xarray as xr
 
 from FINE.IOManagement import dictIO, xarray_io
 
@@ -11,6 +12,7 @@ def test_export_to_dict(minimal_test_esM):
     '''
 
     esm_dict, comp_dict = dictIO.exportToDict(minimal_test_esM)
+    # TODO: check whether order is always the same and consistent between locations and data
 
 def test_import_from_dict(minimal_test_esM):
 
@@ -32,12 +34,24 @@ def test_import_from_dict(minimal_test_esM):
 
     np.testing.assert_array_almost_equal(testresults.values, [np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07]),],decimal=-3)
 
-def test_create_component_ds_multinode(multi_node_test_esM_init):
-    extracted_ds = xarray_io.create_component_ds(multi_node_test_esM_init)
 
+def test_create_component_ds_multinode(multi_node_test_esM_init):
+
+    ds_extracted = xarray_io.create_component_ds(multi_node_test_esM_init)
+
+    # ds_extracted.to_netcdf('ds_multinode_2.nc4')
+
+    ds_expected = xr.open_dataset(os.path.join(os.path.dirname(__file__), '../data/ds_multi_node.nc4'))
+
+    xr.testing.assert_allclose(ds_extracted.sortby('location'), ds_expected.sortby('location'))
 
 
 def test_create_component_ds_minimal(minimal_test_esM):
-    extracted_ds = xarray_io.create_component_ds(minimal_test_esM)
 
-    # assert extracted_ds == expected_ds 
+    ds_extracted = xarray_io.create_component_ds(minimal_test_esM)
+
+    # ds_extracted.to_netcdf('ds_minimal_2.nc4')
+
+    ds_expected = xr.open_dataset(os.path.join(os.path.dirname(__file__), '../data/ds_minimal.nc4'))
+
+    xr.testing.assert_allclose(ds_extracted.sortby('location'), ds_expected.sortby('location'))
