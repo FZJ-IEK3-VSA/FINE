@@ -13,8 +13,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-re
 
 def test_minimumDownTime():
     # read in original results
-    results = [5.0,  5.0,  0.0,  0.0,  0.0,  5.0,  5.0,  0.0,  0.0,  0.0,  5.0,  5.0,  0.0,  0.0,  0.0,  5.0,  5.0,  0.0,  0.0,  0.0]
-
+    results = [5.0,  5.0,  0.0,  0.0,  0.0,  5.0,  5.0,  0.0,  0.0,  0.0,  5.0,  5.0,  0.0,  0.0,  0.0,  5.0,  0.0,  0.0,  0.0,  4.0]
+ 
     # 2. Create an energy system model instance
     locations = {'example_region1', 'example_region2'}
     commodityUnitDict = {'electricity': r'GW$_{el}$', 'methane': r'GW$_{CH_{4},LHV}$'}
