@@ -1,7 +1,7 @@
 import FINE.IOManagement.standardIO as stdio
 import os
 
-def test_plotLocationalPieMap(multi_node_test_esM):
+def test_plotLocationalPieMap(multi_node_test_esM_optimized):
     """Test this function"""
 
     compNames = ['Wind (onshore)', 'Wind (offshore)', 'PV', ]
@@ -12,6 +12,6 @@ def test_plotLocationalPieMap(multi_node_test_esM):
     plot_settings = {}
     plot_settings['markerScaling'] = 1/4
 
-    stdio.plotLocationalPieMap(multi_node_test_esM, compNames, locationsShapeFileName, variableName='operationVariablesOptimum', doSum=True, plot_settings=plot_settings)
+    stdio.plotLocationalPieMap(multi_node_test_esM_optimized, compNames, locationsShapeFileName, variableName='operationVariablesOptimum', doSum=True, plot_settings=plot_settings)
 
-    stdio.plotLocationalPieMap(multi_node_test_esM, compNames, locationsShapeFileName, variableName='capacityVariablesOptimum', doSum=False)
+    stdio.plotLocationalPieMap(multi_node_test_esM_optimized, compNames, locationsShapeFileName, variableName='capacityVariablesOptimum', doSum=False)

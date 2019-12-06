@@ -1,6 +1,7 @@
 import FINE 
 import numpy as np
 import os
+import pytest
 
 from FINE.IOManagement import dictIO, xarray_io
 
@@ -31,7 +32,12 @@ def test_import_from_dict(minimal_test_esM):
 
     np.testing.assert_array_almost_equal(testresults.values, [np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07]),],decimal=-3)
 
-def test_create_component_ds(minimal_test_esM):
+def test_create_component_ds_multinode(multi_node_test_esM_init):
+    extracted_ds = xarray_io.create_component_ds(multi_node_test_esM_init)
+
+
+
+def test_create_component_ds_minimal(minimal_test_esM):
     extracted_ds = xarray_io.create_component_ds(minimal_test_esM)
 
     # assert extracted_ds == expected_ds 
