@@ -1,50 +1,50 @@
-from FINE.transmission import Transmission, TransmissionModel
+from FINE.conversion import Conversion, ConversionModel
 from FINE import utils
 import pyomo.environ as pyomo
 import pandas as pd
 
 
-class LinearOptimalPowerFlow(Transmission):
+
+class ConversionFancy(Conversion):
     """
-    A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a
-    linearized power flow (i.e. for AC lines). The LinearOptimalPowerFlow class inherits from the Transmission
-    class.
+    Extension of the conversion class with more specific ramping behavior
     """
-    def __init__(self, esM, name, commodity, reactances, losses=0, distances=None,
-                 hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
+    def __init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable=True,
+                 capacityVariableDomain='continuous', capacityPerPlantUnit=1, linkedConversionCapacityID=None,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None,
+                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, downTimeMin=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         """
-        Constructor for creating an LinearOptimalPowerFlow class instance.
-        The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
-        component specific input arguments are described in the Transmission class and the general component
+        Constructor for creating a ConversionFancy class instance.
+        The ConversionFancy component specific input arguments are described below. The Conversion
+        specific input arguments are described in the Conversion class and the general component
         input arguments are described in the Component class.
 
         **Required arguments:**
-
-        :param reactances: reactances for DC power flow modeling (of AC lines).
-        :type reactances: Pandas DataFrame. The row and column indices of the DataFrame have to equal
-            the in the energy system model specified locations.
+        :param downTimeMin: if specified, indicates minimal down time of the component [number of time steps]. 
+        :type downTimeMin:
+            * None or
+            * Integer value in range [0;numberOfTimeSteps]
         """
-        Transmission.__init__(self, esM, name, commodity, losses, distances, hasCapacityVariable,
-                              capacityVariableDomain, capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM,
-                              operationRateMax, operationRateFix, tsaWeight, locationalEligibility, capacityMin,
-                              capacityMax, partLoadMin, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
-                              investIfBuilt, opexPerOperation, opexPerCapacity, opexIfBuilt, interestRate,
-                              economicLifetime)
 
-        self.modelingClass = LOPFModel
+        
+        Conversion. __init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable, capacityVariableDomain, capacityPerPlantUnit, linkedConversionCapacityID,
+                             hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix, tsaWeight,
+                             locationalEligibility, capacityMin, capacityMax, partLoadMin, sharedPotentialID,
+                             capacityFix, isBuiltFix, investPerCapacity, investIfBuilt, opexPerOperation, opexPerCapacity,
+                             opexIfBuilt, interestRate, economicLifetime)
 
-        self.reactances2dim = reactances
-        self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
+
+        self.modelingClass = ConversionFancyModel
+        self.downTimeMin = downTimeMin
+        utils.checkConversionFancySpecficDesignInputParams(self, esM)     
 
     def addToEnergySystemModel(self, esM):
         """
-        Function for adding a LinearOptimalPowerFlow component to the given energy system model.
+        Function for adding a ConversionFancy component to the given energy system model.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -52,53 +52,66 @@ class LinearOptimalPowerFlow(Transmission):
         super().addToEnergySystemModel(esM)
 
 
-class LOPFModel(TransmissionModel):
+class ConversionFancyModel(ConversionModel):
 
     """
-    A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
-    It is used for the declaration of the sets, variables and constraints which are valid for the LinearOptimalPowerFlow
+    A ConversionFancyModel class instance will be instantly created if a ConversionFancy class instance is initialized.
+    It is used for the declaration of the sets, variables and constraints which are valid for the ConversionFancy
     class instance. These declarations are necessary for the modeling and optimization of the energy system model.
-    The LOPFModel class inherits from the TransmissionModel class. """
+    The ConversionFancyModel class inherits from the ConversionModel class. """
 
     def __init__(self):
-        self.abbrvName = 'lopf'
-        self.dimension = '2dim'
+        self.abbrvName = 'conv_fancy'
+        self.dimension = '1dim'
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
+        self.operationVariablesOptimum = None
         self.optSummary = None
-
+        
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
 
-    def initPhaseAngleVarSet(self, pyM):
+    def declareOperationStartStopBinarySet(self, pyM):
         """
-        Declare phase angle variable set in the pyomo object for for each node.
-
+        Declare operation related sets for binary decicion variables (operation variables) in the pyomo object for a
+        modeling class. This reflects the starting or stopping state of the conversion component.        
+        
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel  
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
+        def declareOperationBinarySet(pyM):
+            return ((loc, compName) for compName, comp in compDict.items() 
+                for loc in comp.locationalEligibility.index if comp.locationalEligibility[loc] == 1)
+        setattr(pyM, 'operationVarStartStopSetBin_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOperationBinarySet))
+        
+        
+    def declareOpConstrSetMinDownTime(self, pyM, constrSetName):
+        """
+        Declare set of locations and components for which downTimeMin is not NONE.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarStartStopSetBin_' + abbrvName)
 
-        # Set for operation variables
-        def initPhaseAngleVarSet(pyM):
-            return ((loc, compName) for compName, comp in compDict.items() for loc in compDict[compName]._mapL.keys())
-        setattr(pyM, 'phaseAngleVarSet_' + abbrvName, pyomo.Set(dimen=2, initialize=initPhaseAngleVarSet))
+        def declareOpConstrSetMinDownTime(pyM):
+            return ((loc, compName) for loc, compName in varSet if getattr(compDict[compName], 'downTimeMin') is not None)
 
+        setattr(pyM, constrSetName + 'downTimeMin_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSetMinDownTime))
+    
     def declareSets(self, esM, pyM):
         """
-        Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
+        Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
         linked components dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
+        :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
 
-        # # Declare design variable sets
+        # Declare design variable sets
         self.declareDesignVarSet(pyM)
         self.declareContinuousDesignVarSet(pyM)
         self.declareDiscreteDesignVarSet(pyM)
@@ -106,90 +119,85 @@ class LOPFModel(TransmissionModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
-        self.initPhaseAngleVarSet(pyM)
         self.declareOperationBinarySet(pyM)
+        self.declareOperationStartStopBinarySet(pyM)
 
-        # Declare operation variable set
+        # Declare operation mode sets
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
+        self.declareOpConstrSetMinDownTime(pyM, 'opConstrSet')
 
+        # Declare linked components dictionary
+        self.declareLinkedCapacityDict(pyM)
+        
+   
     ####################################################################################################################
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
-    def declarePhaseAngleVariables(self, pyM):
+    def declareStartStopVariables(self, pyM):
         """
-        Declare phase angle variables.
+        Declare start stop variables.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-        setattr(pyM, 'phaseAngle_' + self.abbrvName,
-                pyomo.Var(getattr(pyM, 'phaseAngleVarSet_' + self.abbrvName), pyM.timeSet, domain=pyomo.Reals))
+        setattr(pyM, 'startVariable_' + self.abbrvName,
+                pyomo.Var(getattr(pyM, 'operationVarStartStopSetBin_' + self.abbrvName), pyM.timeSet, domain=pyomo.Binary))
+        
+        setattr(pyM, 'stopVariable_' + self.abbrvName,
+                pyomo.Var(getattr(pyM, 'operationVarStartStopSetBin_' + self.abbrvName), pyM.timeSet, domain=pyomo.Binary))
+        
 
     def declareVariables(self, esM, pyM):
         """
-        Declare design and operation variables.
+        Declare design and operation variables
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
+        :type esM: esM - EnergySystemModel class instance
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        :type pyM: pyomo ConcreteModel
         """
-
-        # Capacity variables in [commodityUnit]
-        self.declareCapacityVars(pyM)
-        # (Continuous) numbers of installed components [-]
-        self.declareRealNumbersVars(pyM)
-        # (Discrete/integer) numbers of installed components [-]
-        self.declareIntNumbersVars(pyM)
-        # Binary variables [-] indicating if a component is considered at a location or not [-]
-        self.declareBinaryDesignDecisionVars(pyM)
-        # Flow over the edges of the components [commodityUnit]
-        self.declareOperationVars(pyM, 'op')
-        # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, 'op_bin')
-        # Operation of component [commodityUnit]
-        self.declarePhaseAngleVariables(pyM)
+        super().declareVariables(esM, pyM)
+               
+        self.declareStartStopVariables(pyM)
+        
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
     ####################################################################################################################
 
-    def powerFlowDC(self, pyM):
+    def minimumDownTime(self, pyM):
         """
-        Ensure that the flow between two locations is equal to the difference between the phase angle variables at
-        these locations divided by the reactance of the line between these locations.
+        Ensure that conversion unit is not ramping up and down too often by implementing a minimum down time after ramping down.
+        
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        phaseAngleVar = getattr(pyM, 'phaseAngle_' + self.abbrvName)
-        opVar, opVarSet = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarSet_' + abbrvName)
+        
+        opVarBin= getattr(pyM, 'op_bin_' + abbrvName)
+        opVarStartBin, opVarStopBin = getattr(pyM, 'startVariable_' + abbrvName), getattr(pyM, 'stopVariable_' + abbrvName)
+        constrSetMinDownTime = getattr(pyM,'opConstrSet' + 'downTimeMin_' + abbrvName)
+        
 
-        def powerFlowDC(pyM, loc, compName, p, t):
-            node1, node2 = compDict[compName]._mapC[loc]
-            return (opVar[loc, compName, p, t] - opVar[compDict[compName]._mapI[loc], compName, p, t] ==
-                    (phaseAngleVar[node1, compName, p, t]-phaseAngleVar[node2, compName, p, t])/
-                    compDict[compName].reactances[loc])
-        setattr(pyM, 'ConstrpowerFlowDC_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=powerFlowDC))
+        def minimumDownTime1(pyM, loc, compName, p, t):
+            if t>=1:
+                return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, t-1]-opVarStartBin[loc, compName, p, t]+opVarStopBin[loc, compName, p, t] == 0)
+            else:
+                return pyomo.Constraint.Skip
+        setattr(pyM, 'ConstrMinDownTime1_' + abbrvName, pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime1))
+          
+        def minimumDownTime2(pyM, loc, compName, p, t):
+            downTimeMin = getattr(compDict[compName], 'downTimeMin')
+            if t >= downTimeMin:
+                return opVarBin[loc, compName, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(t-downTimeMin+1, t))
+            else:
+                return opVarBin[loc, compName, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(0, t))
 
-    def basePhaseAngle(self, pyM):
-        """
-        Declare the constraint that the reference phase angle is set to zero for all time steps.
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        phaseAngleVar = getattr(pyM, 'phaseAngle_' + self.abbrvName)
-
-        def basePhaseAngle(pyM, compName, p, t):
-            node0 = sorted(compDict[compName]._mapL)[0]
-            return phaseAngleVar[node0, compName, p, t] == 0
-        setattr(pyM, 'ConstrBasePhaseAngle_' + abbrvName,
-                pyomo.Constraint(compDict.keys(), pyM.timeSet, rule=basePhaseAngle))
+        setattr(pyM, 'ConstrMinDownTime2_' + abbrvName, pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime2))          
+                    
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -204,11 +212,12 @@ class LOPFModel(TransmissionModel):
         super().declareComponentConstraints(esM, pyM)
 
         ################################################################################################################
-        #                                         Add DC power flow constraints                                        #
+        #                                         Fancy Constraints                                        #
         ################################################################################################################
 
-        self.powerFlowDC(pyM)
-        self.basePhaseAngle(pyM)
+        self.minimumDownTime(pyM)
+        
+        
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
@@ -263,12 +272,7 @@ class LOPFModel(TransmissionModel):
 
         super().setOptimalValues(esM, pyM)
 
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        phaseAngleVar = getattr(pyM, 'phaseAngle_' + abbrvName)
-
-        optVal_ = utils.formatOptimizationOutput(phaseAngleVar.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder)
-        self.phaseAngleVariablesOptimum = optVal_
+        
 
     def getOptimalValues(self, name='all'):
         """
@@ -278,7 +282,6 @@ class LOPFModel(TransmissionModel):
         * 'capacityVariables',
         * 'isBuiltVariables',
         * 'operationVariablesOptimum',
-        * 'phaseAngleVariablesOptimum',
         * 'all' or another input: all variables are returned.\n
         :type name: string
         """
@@ -288,14 +291,11 @@ class LOPFModel(TransmissionModel):
             return {'values': self.isBuiltVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
         elif name == 'operationVariablesOptimum':
             return {'values': self.operationVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
-        elif name == 'phaseAngleVariablesOptimum':
-            return {'values': self.phaseAngleVariablesOptimum, 'timeDependent': True, 'dimension': '1dim'}
         else:
             return {'capacityVariablesOptimum': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
                                                  'dimension': self.dimension},
                     'isBuiltVariablesOptimum': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
                                                 'dimension': self.dimension},
                     'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
-                                                  'dimension': self.dimension},
-                    'phaseAngleVariablesOptimum': {'values': self.phaseAngleVariablesOptimum, 'timeDependent': True,
-                                                   'dimension': '1dim'}}
+                                                  'dimension': self.dimension}}
+                    

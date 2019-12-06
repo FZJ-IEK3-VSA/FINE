@@ -134,7 +134,7 @@ class EnergySystemModel:
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
         self.locations, self.lengthUnit = locations, lengthUnit
-
+        self.numberOfTimeSteps = numberOfTimeSteps
         ################################################################################################################
         #                                            Time series parameters                                            #
         ################################################################################################################
