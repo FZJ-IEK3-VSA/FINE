@@ -764,82 +764,42 @@ class EnergySystemModel:
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
-
-
-    def optimize2LevelApproach(self, declaresOptimizationProblem=True, timeSeriesAggregation=False,  
-                               logFileName='', threads=3, solver='gurobi', timeLimit=None, 
-                               optimizationSpecs='', warmstart=False):
+    
+    def optimizeMyopic(self, startYear, nbOfSteps, stepLength, declaresOptimizationProblem=True, timeSeriesAggregation=False,  
+                        numberOfTypicalPeriods = 7,
+                        logFileName='', threads=3, solver='gurobi', timeLimit=None, 
+                        optimizationSpecs='', warmstart=False):
         """
-        Call the optimize function for a temporal aggregated MILP (so the model has to include 
-        hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again
-        without temporal aggregation. 
+        Optimization function for myopic approach. For each optimization run, the newly installed capacities
+        will be given as a stock (with capacityFix) to the next optimization run. 
 
-        **Default arguments:**
+        :param startYear: Year of the optimization
+        :type name: int
 
-        :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
-            (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
-            (b) If false a previously declared pyomo ConcreteModel instance is used.
-            |br| * the default value is True
-        :type declaresOptimizationProblem: boolean
+        :param nbOfSteps: Number of optimization runs 
+        :type name: int
 
-        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-            (a) the full time series (False) or
-            (b) clustered time series data (True).
-            |br| * the default value is False
-        :type timeSeriesAggregation: boolean
+        :param stepLength: Number of years represented by one optimization run
+        :type name: int
 
-        :param logFileName: logFileName is used for naming the log file of the optimization solver output
-            if gurobi is used as the optimization solver.
-            If the logFileName is given as an absolute path (e.g. logFileName = os.path.join(os.getcwd(),
-            'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise,
-            it will be stored by default in the directory where the executing python script is called.
-            |br| * the default value is 'job'
-        :type logFileName: string
-
-        :param threads: number of computational threads used for solving the optimization (solver dependent
-            input) if gurobi is used as the solver. A value of 0 results in using all available threads. If
-            a value larger than the available number of threads are chosen, the value will reset to the maximum
-            number of threads.
-            |br| * the default value is 3
-        :type threads: positive integer
-
-        :param solver: specifies which solver should solve the optimization problem (which of course has to be
-            installed on the machine on which the model is run).
-            |br| * the default value is 'gurobi'
-        :type solver: string
-
-        :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
-            in seconds (solver dependent input). The use of this parameter is suggested when running models in
-            runtime restricted environments (such as clusters with job submission systems). If the runtime
-            limitation is triggered before an optimal solution is available, the best solution obtained up
-            until then (if available) is processed.
-            |br| * the default value is None
-        :type timeLimit: strictly positive integer or None
-
-        :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver
-            documentation for more information). Example: 'LogToConsole=1 OptimalityTol=1e-6'
-            |br| * the default value is an empty string ('')
-        :type timeLimit: string
-
-        :param warmstart: specifies if a warm start of the optimization should be considered
-            (not always supported by the solvers).
-            |br| * the default value is False
-        :type warmstart: boolean
-
-        Last edited: December 05, 2019
-        |br| @author: Theresa Gross
-        """
+        Last edited: December 06, 2019
+        |br| @author: Theresa Gross, Felix Kullmann
+        """                              
         
-        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
-                        logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
-                        optimizationSpecs=optimizationSpecs, warmstart=warmstart)
+        mileStoneYear = startYear
 
-        self.setFixedVariables('isBuiltVariablesOptimum')
+        for step in range(0,nbOfSteps):
+            mileStoneYear = startYear + step*stepLength
+            logFileName = 'log_'+str(mileStoneYear)
+            # First optimization: Optimize start year for first stock
+            self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods)
 
-        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, 
-                      logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
-                      optimizationSpecs=optimizationSpecs, warmstart=False)                        
-
+            self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
+                            logFileName=logFileName, threads=threads, solver=solver, timeLimit=timeLimit, 
+                            optimizationSpecs=optimizationSpecs, warmstart=False)
+            # Get first stock (installed capacities within the start year)
+            self.getStock(mileStoneYear)
+            
     def setFixedVariables(self, optVariables):
         """
         Search for optimized variables (capacities or binary decision variables) and set the variables as fixed.
@@ -869,13 +829,18 @@ class EnergySystemModel:
                         self.componentModelingDict[mdl].componentsDict[comp].capacityMax = None
                         self.componentModelingDict[mdl].componentsDict[comp].capacityMin = None
 
-    def getStock(self):
+    def getStock(self, mileStoneYear):
+        '''
+        :param mileStoneYear: Year of the optimization
+        :type name: int
+        ''' 
         for mdl in self.componentModelingDict.keys():
             compValues = self.componentModelingDict[mdl].getOptimizedValues('capacityVariablesOptimum')
             for comp in compValues.index.get_level_values(0).unique():
-                stockName = comp+'_stock'
-                stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
-                stockComp.name = stockName
-                stockComp.capacityFix = compValues.loc[comp]
-                stockComp.capacityMin, stockComp.capacityMax = None, None
-                self.add(stockComp)
+                if 'stock' not in self.componentModelingDict[mdl].componentsDict[comp].name:
+                    stockName = comp+'_stock'+'_'+str(mileStoneYear)
+                    stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
+                    stockComp.name = stockName
+                    stockComp.capacityFix = compValues.loc[comp]
+                    stockComp.capacityMin, stockComp.capacityMax = None, None
+                    self.add(stockComp)
