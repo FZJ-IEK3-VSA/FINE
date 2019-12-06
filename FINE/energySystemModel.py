@@ -833,6 +833,9 @@ class EnergySystemModel:
         '''
         :param mileStoneYear: Year of the optimization
         :type name: int
+
+        Last edited: December 06, 2019
+        |br| @author: Theresa Gross, Felix Kullmann
         ''' 
         for mdl in self.componentModelingDict.keys():
             compValues = self.componentModelingDict[mdl].getOptimizedValues('capacityVariablesOptimum')
