@@ -1,5 +1,6 @@
 import xarray as xr
 import FINE.IOManagement.dictIO as dictio
+from FINE import utils
 import FINE as fn
 import numpy as np
 import pandas as pd
@@ -7,33 +8,41 @@ import pandas as pd
 def create_component_ds(esM):
     """Reads a dictionary of dataframes created from an esM instance into an xarray dataset"""
 
-    esm_dict, comp_dict = dictio.exportToDict(esM)
+    esm_dict, component_dict = dictio.exportToDict(esM)
 
     locations = list(esm_dict['locations'])
-    locations.sort()
+    locations.sort() # TODO: should not be necessary any more
 
-    n_timesteps = esm_dict['numberOfTimeSteps']
+    ds = xr.Dataset()
 
-    time = np.arange(n_timesteps)
+    for classname in component_dict:
 
-    ds = xr.Dataset({"time": time, "location": locations})
+        for component in component_dict[classname]:            
+            component_dict[classname][component]
 
-    for classname in comp_dict:
-        # get class
-        class_ = getattr(fn, classname)
+            for description, data in component_dict[classname][component].items():
 
-        for comp in comp_dict[classname]:            
-            comp_dict[classname][comp]
+                # description_tuple = (classname, component, description)
+                description_tuple = f"{classname}, {component}, {description}"
 
-            for key, value in comp_dict[classname][comp].items():
-                if isinstance(value, pd.DataFrame):
-                    # import pdb; pdb.set_trace()
-                    ds[comp] = (('time', 'location'), value.loc[time, locations].values)
-                    # TODO: replace this with da = da.read_from_dataframe and then ds[comp] = da
+                if isinstance(data, pd.DataFrame):
+                    multi_index_dataframe = data.stack()
+                    multi_index_dataframe.index.set_names("location", level=2, inplace=True)
 
-                elif isinstance(value, pd.DataFrame):
-                    # import pdb; pdb.set_trace() # TODO: test this
-                    ds[comp] = (('location'), value.loc[locations].values)
-    # import pdb; pdb.set_trace()
+                    ds[description_tuple] = multi_index_dataframe.to_xarray()
+
+                elif isinstance(data, pd.Series):
+
+                    if classname == 'Transmission':
+                        # TODO: which one of transmission's components are 2d and which 1d or dimensionless
+
+                        df = utils.transform1dSeriesto2dDataFrame(data, locations)
+                        multi_index_dataframe = df.stack()
+                        multi_index_dataframe.index.set_names(["location", "location_2"], inplace=True)
+
+                        ds[description_tuple] = multi_index_dataframe.to_xarray()
+
+                    else:
+                        ds[description_tuple] = data.rename_axis("location").to_xarray()
 
     return ds

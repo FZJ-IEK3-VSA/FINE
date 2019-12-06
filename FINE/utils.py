@@ -7,6 +7,7 @@ import warnings
 import pandas as pd
 import FINE as fn
 import numpy as np
+import math
 
 def isString(string):
     """ Check if the input argument is a string. """
@@ -753,7 +754,13 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
     df = pd.DataFrame(values, columns=locations, index=locations)
 
     for row in series.iteritems():
-        id_1, id_2 = row[0].split(separator)
+        row_center_id = math.ceil(len(row[0])/2)
+
+        try:
+            id_1, id_2 = row[0].split(separator)  # TODO: add warning
+        except:
+            id_1, id_2 = row[0][:row_center_id-1], row[0][row_center_id:]
+
         df.loc[id_1, id_2] = row[1]
 
     return df
