@@ -430,6 +430,10 @@ def checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapaci
             warnings.warn('A declaration of bigM is not necessary if hasIsBuiltBinaryVariable is set to false. '
                       'The value of bigM will be ignored in the optimization.')
 
+def checkTechnicalLifetime(esM, technicalLifetime, economicLifetime):
+    if technicalLifetime is None:
+        technicalLifetime = economicLifetime
+    return technicalLifetime
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     if dimension == '1dim':
