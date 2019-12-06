@@ -97,20 +97,10 @@ class LOPFModel(TransmissionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-
-        # # Declare design variable sets
-        self.declareDesignVarSet(pyM)
-        self.declareContinuousDesignVarSet(pyM)
-        self.declareDiscreteDesignVarSet(pyM)
-        self.declareDesignDecisionVarSet(pyM)
-
-        # Declare operation variable sets
-        self.declareOpVarSet(esM, pyM)
+        super().declareVariables(esM, pyM)
+        
         self.initPhaseAngleVarSet(pyM)
-        self.declareOperationBinarySet(pyM)
-
-        # Declare operation variable set
-        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
+        
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -137,18 +127,8 @@ class LOPFModel(TransmissionModel):
         :type pyM: pyomo Concrete Model
         """
 
-        # Capacity variables in [commodityUnit]
-        self.declareCapacityVars(pyM)
-        # (Continuous) numbers of installed components [-]
-        self.declareRealNumbersVars(pyM)
-        # (Discrete/integer) numbers of installed components [-]
-        self.declareIntNumbersVars(pyM)
-        # Binary variables [-] indicating if a component is considered at a location or not [-]
-        self.declareBinaryDesignDecisionVars(pyM)
-        # Flow over the edges of the components [commodityUnit]
-        self.declareOperationVars(pyM, 'op')
-        # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, 'op_bin')
+        super().declareVariables(esM, pyM)
+        
         # Operation of component [commodityUnit]
         self.declarePhaseAngleVariables(pyM)
 
@@ -213,42 +193,6 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
-
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Get contributions to shared location potential. """
-        return super().getSharedPotentialContribution(pyM, key, loc)
-
-    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if the commodity´s transfer between a given location and the other locations of the energy system model
-        is eligible.
-
-        :param esM: EnergySystemModel in which the LinearOptimalPowerFlow components have been added to.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
-
-        :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
-        :param commod: string
-        """
-        return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
-
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
-        return super().getCommodityBalanceContribution(pyM, commod, loc, p, t)
-
-    def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
-        """
-        return super().getObjectiveFunctionContribution(esM, pyM)
 
     def setOptimalValues(self, esM, pyM):
         """
