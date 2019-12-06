@@ -1,4 +1,8 @@
 name: FINE
+channel_priority: strict
+channels:
+  - conda-forge
+  - defaults
 dependencies:
 - python=3.6
 - gdal=2.3.3
