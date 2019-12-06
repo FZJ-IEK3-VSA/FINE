@@ -10,10 +10,13 @@ def create_component_ds(esM):
     esm_dict, comp_dict = dictio.exportToDict(esM)
 
     locations = list(esm_dict['locations'])
+    locations.sort()
 
     n_timesteps = esm_dict['numberOfTimeSteps']
 
-    ds = xr.Dataset({"time": np.arange(n_timesteps), "location": locations})
+    time = np.arange(n_timesteps)
+
+    ds = xr.Dataset({"time": time, "location": locations})
 
     for classname in comp_dict:
         # get class
@@ -24,8 +27,13 @@ def create_component_ds(esM):
 
             for key, value in comp_dict[classname][comp].items():
                 if isinstance(value, pd.DataFrame):
-                    ds[comp] = (('time', 'location'), value.values)
+                    # import pdb; pdb.set_trace()
+                    ds[comp] = (('time', 'location'), value.loc[time, locations].values)
+                    # TODO: replace this with da = da.read_from_dataframe and then ds[comp] = da
+
                 elif isinstance(value, pd.DataFrame):
-                    ds[comp] = (('location'), value.values)
+                    # import pdb; pdb.set_trace() # TODO: test this
+                    ds[comp] = (('location'), value.loc[locations].values)
+    # import pdb; pdb.set_trace()
 
     return ds

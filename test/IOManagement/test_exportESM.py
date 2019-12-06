@@ -12,7 +12,7 @@ def test_export_to_dict(minimal_test_esM):
     '''
 
     esm_dict, comp_dict = dictIO.exportToDict(minimal_test_esM)
-    # TODO: check whether order is always the same and consistent between locations and data
+    # TODO: check whether PowerDict is an ordered dict (especially whether order of locations and data is consistent) 
 
 def test_import_from_dict(minimal_test_esM):
 
@@ -39,9 +39,9 @@ def test_create_component_ds_multinode(multi_node_test_esM_init):
 
     ds_extracted = xarray_io.create_component_ds(multi_node_test_esM_init)
 
-    # ds_extracted.to_netcdf('ds_multinode_2.nc4')
+    ds_extracted.to_netcdf('ds_multinode.nc4')
 
-    ds_expected = xr.open_dataset(os.path.join(os.path.dirname(__file__), '../data/ds_multi_node.nc4'))
+    ds_expected = xr.open_dataset(os.path.join(os.path.dirname(__file__), '../data/ds_multinode.nc4'))
 
     xr.testing.assert_allclose(ds_extracted.sortby('location'), ds_expected.sortby('location'))
 
@@ -50,7 +50,7 @@ def test_create_component_ds_minimal(minimal_test_esM):
 
     ds_extracted = xarray_io.create_component_ds(minimal_test_esM)
 
-    # ds_extracted.to_netcdf('ds_minimal_2.nc4')
+    ds_extracted.to_netcdf('ds_minimal.nc4')
 
     ds_expected = xr.open_dataset(os.path.join(os.path.dirname(__file__), '../data/ds_minimal.nc4'))
 
