@@ -5,8 +5,8 @@ import FINE as fn
 import numpy as np
 import pandas as pd
 
-def create_component_ds(esM):
-    """Reads a dictionary of dataframes created from an esM instance into an xarray dataset"""
+def dimensional_data_to_xarray(esM):
+    """Outputs all dimensional data, hence data containing at least one of the dimensions of time and space, to an xarray dataset"""
 
     esm_dict, component_dict = dictio.exportToDict(esM)
 
