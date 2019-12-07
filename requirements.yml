@@ -1,4 +1,8 @@
 name: FINE
+channel_priority: strict
+channels:
+  - conda-forge
+  - defaults
 dependencies:
 - python=3.6
 - gdal=2.3.3
@@ -14,3 +18,6 @@ dependencies:
 - pyomo
 - numpy
 - pandas
+- pip:
+    - https://github.com/FZJ-IEK3-VSA/geokit/archive/gdal_relax.zip
+  
