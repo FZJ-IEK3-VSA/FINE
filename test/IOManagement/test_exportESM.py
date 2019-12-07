@@ -37,7 +37,7 @@ def test_import_from_dict(minimal_test_esM):
     np.testing.assert_array_almost_equal(testresults.values, [np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07]),],decimal=-3)
 
 
-def test_to_xarray_multinode(multi_node_test_esM_init):
+def test_dimensional_data_to_xarray_multinode(multi_node_test_esM_init):
 
     nc_path = os.path.join(os.path.dirname(__file__), '../data/ds_multinode.nc4')
 
@@ -50,7 +50,7 @@ def test_to_xarray_multinode(multi_node_test_esM_init):
     xr.testing.assert_allclose(ds_extracted.sortby('location'), ds_expected.sortby('location'))
 
 
-def test_to_xarray_minimal(minimal_test_esM):
+def test_dimensional_data_to_xarray_minimal(minimal_test_esM):
 
     nc_path = os.path.join(os.path.dirname(__file__), '../data/ds_minimal.nc4')
 
