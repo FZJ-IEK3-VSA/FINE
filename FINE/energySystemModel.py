@@ -633,6 +633,11 @@ class EnergySystemModel:
             |br| * the default value is True
         :type declaresOptimizationProblem: boolean
 
+#TODO: Check description
+        :param relaxed: states if the optimization problem should be solved as a relaxed LP to get the lower bound of the problem.
+            |br| * the default value is False
+        :type declaresOptimizationProblem: boolean
+
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
             (a) the full time series (False) or
             (b) clustered time series data (True).
@@ -781,11 +786,18 @@ class EnergySystemModel:
             |br| * the default value is True
         :type declaresOptimizationProblem: boolean
 
-        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-            (a) the full time series (False) or
-            (b) clustered time series data (True).
+#TODO: Check description
+        :param relaxed: states if the optimization problem should be solved as a relaxed LP to get the lower bound of the problem.
             |br| * the default value is False
-        :type timeSeriesAggregation: boolean
+        :type declaresOptimizationProblem: boolean
+
+        :param numberOfTypicalPeriods: 
+# TODO: Add description
+        :type numberOfTypicalPeriods: int
+
+        :param clusterMethod:
+# TODO: Add description
+        :type clusterMethod: string
 
         :param logFileName: logFileName is used for naming the log file of the optimization solver output
             if gurobi is used as the optimization solver.
@@ -825,8 +837,8 @@ class EnergySystemModel:
             |br| * the default value is False
         :type warmstart: boolean
 
-        Last edited: December 05, 2019
-        |br| @author: Theresa Gross
+        Last edited: December 09, 2019
+        |br| @author: Theresa Gross, Max Hoffmann
         """
         lowerBound=None
         if relaxed:
@@ -842,7 +854,7 @@ class EnergySystemModel:
                         logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=warmstart)
 
-        self.setFixedVariables('isBuiltVariablesOptimum')
+        self.fixBinaryVariables()
 
         self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxed=False, 
                       logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
@@ -853,32 +865,11 @@ class EnergySystemModel:
             delta = upperBound - lowerBound  
             print('The real optimal value lies between ', lowerBound, ' and ', upperBound, '.')                    
 
-    def setFixedVariables(self, optVariables):
-        """
-        Search for optimized variables (capacities or binary decision variables) and set the variables as fixed.
-        This function is used for the myopic approach (capacities) and the Two-Stage-Approach (binary decisions).
-
-        :param optVariables: Name of the variables of which the optimal values should be returned and set to the current energy system model instance:\n
-        * 'isBuiltVariablesOptimum', or
-        * 'capacityVariablesOptimum'\n
-        :type name: string
-
-        Last edited: December 05, 2019
-        |br| @author: Theresa Gross
-        """      
-        for mdl in self.componentModelingDict.keys():
-            # for comp in self.componentsModelingDict[mdl].componentsDict.keys():
-            compValues = self.componentModelingDict[mdl].getOptimizedValues(optVariables)
-            if compValues is not None:
-                for comp in compValues.index.get_level_values(0).unique():
-                    print('Ich bin Komponente: ',comp)
-                    if optVariables == 'isBuiltVariablesOptimum':
-                        # Set the optimal values for the isBuiltVariables as fixed
+        def fixBinaryVariables(self):
+        # Search for the optimized binary variables and set them as fixed.
+            for mdl in self.componentModelingDict.keys():
+                compValues = self.componentModelingDict[mdl].getOptimizedValues('isBuiltVariablesOptimum')
+                if compValues is not None:
+                    for comp in compValues.index.get_level_values(0).unique():
                         values = compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64)
                         self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
-                    elif optVariables == 'capacityVariablesOptimum':
-                        # Set the optimal values for the capacities as fixed
-                        self.componentModelingDict[mdl].componentsDict[comp].capacityFix = compValues.loc[comp].values
-                        # Set capacityMin and capacityMax as None to avoid problems
-                        self.componentModelingDict[mdl].componentsDict[comp].capacityMax = None
-                        self.componentModelingDict[mdl].componentsDict[comp].capacityMin = None
