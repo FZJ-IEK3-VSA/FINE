@@ -15,10 +15,10 @@ class Source(Component):
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1, commodityLimitID=None,
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None,
-                 sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 sharedPotentialID=None, linkedQuantityID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, 
+                 opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10,
                  technicalLifetime=None, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Source class instance.
@@ -150,7 +150,7 @@ class Source(Component):
                             capacityMax=capacityMax, partLoadMin=partLoadMin, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, QPcostScale=QPcostScale, interestRate=interestRate,
-                            economicLifetime=economicLifetime, technicalLifetime=None, 
+                            economicLifetime=economicLifetime, technicalLifetime=None,
                             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin, yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
         # Set general source/sink data: ID and yearly limit
@@ -269,10 +269,10 @@ class Sink(Source):
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsamWeight=1, commodityLimitID=None,
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None,
-                 sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 sharedPotentialID=None, linkedQantityID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, 
+                 opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10,
                  technicalLifetime=None):
         """
         Constructor for creating an Sink class instance.
@@ -285,8 +285,9 @@ class Sink(Source):
                         capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix,
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
                         capacityMax, partLoadMin, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
-                        investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries, 
-                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate, 
+                        capacityMax, sharedPotentialID, linkedQuantityID, capacityFix, isBuiltFix, investPerCapacity,
+                        investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries,
+                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate,
                         economicLifetime, technicalLifetime)
 
         self.sign = -1

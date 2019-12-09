@@ -14,12 +14,12 @@ class Storage(Component):
                  chargeEfficiency=1, dischargeEfficiency=1, selfDischarge=0, cyclicLifetime=None,
                  stateOfChargeMin=0, stateOfChargeMax=1,
                  hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, bigM=None, doPreciseTsaModeling=False, 
+                 hasIsBuiltBinaryVariable=False, bigM=None, doPreciseTsaModeling=False,
                  chargeOpRateMax=None, chargeOpRateFix=None, chargeTsaWeight=1,
                  dischargeOpRateMax=None, dischargeOpRateFix=None, dischargeTsaWeight=1,
                  isPeriodicalStorage=False,
                  locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None,
-                 capacityFix=None, isBuiltFix=None,
+                 linkedQuantiyID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
                  opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10,
                  technicalLifetime=None, socOffsetDown=-1, socOffsetUp=-1):
@@ -169,7 +169,7 @@ class Storage(Component):
 
         :param socOffsetDown: determines whether the state of charge at the end of a period p has
             to be equal to the one at the beginning of a period p+1 (socOffsetDown=-1) or if
-            it can be smaller at the beginning of p+1 (socOffsetDown>=0). In the latter case, 
+            it can be smaller at the beginning of p+1 (socOffsetDown>=0). In the latter case,
             the product of the parameter socOffsetDown and the actual soc offset is used as a penalty
             factor in the objective function.
             |br| * the default value is -1
@@ -177,7 +177,7 @@ class Storage(Component):
 
         :param socOffsetUp: determines whether the state of charge at the end of a period p has
             to be equal to the one at the beginning of a period p+1 (socOffsetUp=-1) or if
-            it can be larger at the beginning of p+1 (socOffsetUp>=0). In the latter case, 
+            it can be larger at the beginning of p+1 (socOffsetUp>=0). In the latter case,
             the product of the parameter socOffsetUp and the actual soc offset is used as a penalty
             factor in the objective function.
             |br| * the default value is -1
@@ -187,7 +187,7 @@ class Storage(Component):
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
                             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
-                            capacityMax=capacityMax, partLoadMin=partLoadMin, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
+                            capacityMax=capacityMax, partLoadMin=partLoadMin, sharedPotentialID=sharedPotentialID, linkedQuantityID=linkedQuantityID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
                             economicLifetime=economicLifetime, technicalLifetime=technicalLifetime)
@@ -229,7 +229,7 @@ class Storage(Component):
         self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, chargeOpRateFix, locationalEligibility)
         self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, None
 
-        
+
         if self.partLoadMin is not None:
             if self.fullChargeOpRateMax is not None:
                 if ((self.fullChargeOpRateMax > 0) & (self.fullChargeOpRateMax < self.partLoadMin)).any().any():
@@ -360,7 +360,7 @@ class StorageModel(ComponentModel):
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
         self.declareOperationBinarySet(pyM)
-        
+
         if pyM.hasTSA:
             varSet = getattr(pyM, 'operationVarSet_' + self.abbrvName)
 
@@ -368,7 +368,7 @@ class StorageModel(ComponentModel):
                 return ((loc, compName) for loc, compName in varSet if not compDict[compName].doPreciseTsaModeling)
             setattr(pyM, 'varSetSimple_' + self.abbrvName,
                     pyomo.Set(dimen=2, initialize=initVarSimpleTSASet))
-    
+
             def initVarPreciseTSASet(pyM):
                 return ((loc, compName) for loc, compName in varSet if compDict[compName].doPreciseTsaModeling)
             setattr(pyM, 'varSetPrecise_' + self.abbrvName,
@@ -378,13 +378,13 @@ class StorageModel(ComponentModel):
             return ((loc, compName) for loc, compName in getattr(pyM, 'operationVarSet_' + self.abbrvName)
                 if compDict[compName].socOffsetUp >= 0)
         setattr(pyM, 'varSetOffsetUp_' + self.abbrvName,
-                pyomo.Set(dimen=2, initialize=initOffsetUpSet))  
+                pyomo.Set(dimen=2, initialize=initOffsetUpSet))
 
         def initOffsetDownSet(pyM):
             return ((loc, compName) for loc, compName in getattr(pyM, 'operationVarSet_' + self.abbrvName)
                 if compDict[compName].socOffsetDown >= 0)
         setattr(pyM, 'varSetOffsetDown_' + self.abbrvName,
-                pyomo.Set(dimen=2, initialize=initOffsetDownSet))        
+                pyomo.Set(dimen=2, initialize=initOffsetDownSet))
 
         # Declare sets for case differentiation of operating modes
         # * Charge operation
@@ -847,7 +847,7 @@ class StorageModel(ComponentModel):
         self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateMax')
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOp_bin', 'cap')
-        
+
         #                             Constraints for enforcing discharging operation modes                            #
 
         # Discharging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied
@@ -966,7 +966,7 @@ class StorageModel(ComponentModel):
         offsetUp = getattr(pyM, 'stateOfChargeOffsetUp_' + abbrvName)
         offsetDown = getattr(pyM, 'stateOfChargeOffsetDown_' + abbrvName)
         offsetUpOp = sum(offsetUp[loc, compName, period]*compDict[compName].socOffsetUp
-            for loc, compName, period in offsetUp)        
+            for loc, compName, period in offsetUp)
         offsetDownOp = sum(offsetDown[loc, compName, period]*compDict[compName].socOffsetDown
             for loc, compName, period in offsetDown)
 
