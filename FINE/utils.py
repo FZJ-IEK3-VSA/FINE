@@ -783,7 +783,7 @@ class PowerDict(dict):
 
     def append(self, item):
         '''
-        additional append function for lists in dict
+        Additional append function for lists in dict
         '''
         self.parent[self.key] = [item]
 
