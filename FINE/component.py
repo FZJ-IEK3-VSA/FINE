@@ -15,7 +15,8 @@ class Component(metaclass=ABCMeta):
     def __init__(self, esM, name, dimension,
                  hasCapacityVariable, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None, locationalEligibility=None,
-                 capacityMin=None, capacityMax=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 capacityMin=None, capacityMax=None, sharedPotentialID=None, linkedQuantityID=None,
+                 capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0,
                  interestRate=0.08, economicLifetime=10, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
         """
@@ -132,6 +133,11 @@ class Component(metaclass=ABCMeta):
             much of the maximum potential is used have to add up to less then 100%.
             |br| * the default value is None
         :type sharedPotentialID: string
+
+        :param linkedQuantityID: if specified, indicates that the components with the same ID are built with the same number.
+            (e.g. if a vehicle with an engine is built also a storage needs to be built)
+            |br| * the default value is None
+        :type linkedQuantityID: string
 
         :param capacityFix: if specified, indicates the fixed capacities. The type of this parameter
             depends on the dimension of the component: If dimension=1dim, it has to be a Pandas Series.
@@ -301,6 +307,7 @@ class Component(metaclass=ABCMeta):
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
+        self.linkedQuantityID = linkedQuantityID
         self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
         self.yearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMin, dimension, elig)
         self.yearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMax, dimension, elig)

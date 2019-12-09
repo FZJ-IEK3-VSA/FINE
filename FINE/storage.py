@@ -18,6 +18,7 @@ class Storage(Component):
                  dischargeOpRateMax=None, dischargeOpRateFix=None, dischargeTsaWeight=1,
                  isPeriodicalStorage=False,
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
+                 linkedQuantityID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
                  opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
@@ -169,7 +170,7 @@ class Storage(Component):
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
                             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
-                            capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
+                            capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, linkedQuantityID=linkedQuantityID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
                             economicLifetime=economicLifetime)
