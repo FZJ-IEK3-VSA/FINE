@@ -2,11 +2,11 @@
 # coding: utf-8
 
 # # Workflow for a multi-regional energy system
-# 
+#
 # In this application of the FINE framework, a multi-regional energy system is modeled and optimized.
-# 
+#
 # All classes which are available to the user are utilized and examples of the selection of different parameters within these classes are given.
-# 
+#
 # The workflow is structures as follows:
 # 1. Required packages are imported and the input data path is set
 # 2. An energy system model instance is created
@@ -17,7 +17,7 @@
 # 7. Commodity sinks are added to the energy system model
 # 8. The energy system model is optimized
 # 9. Selected optimization results are presented
-# 
+#
 
 # 1. Import required packages and set input data path
 
@@ -36,9 +36,11 @@ def test_commodityCostTimeSeries():
     data = getData()
 
     # read in original results
-    results = pd.Series.from_csv(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional Energy System Workflow','totalBiogasPurchase.csv'))
+    results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples',
+                                       'Multi-regional Energy System Workflow', 'totalBiogasPurchase.csv'),
+                          index_col=0, header=None, squeeze=True)
 
-    # 2. Create an energy system model instance 
+    # 2. Create an energy system model instance
     locations = {'cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'}
     commodityUnitDict = {'electricity': r'GW$_{el}$', 'methane': r'GW$_{CH_{4},LHV}$', 'biogas': r'GW$_{biogas,LHV}$',
                          'CO2': r'Mio. t$_{CO_2}$/h', 'hydrogen': r'GW$_{H_{2},LHV}$'}
@@ -92,7 +94,7 @@ def test_commodityCostTimeSeries():
                       investPerCapacity=0, opexPerCapacity=0.208))
 
     ## 3.2. Methane (natural gas and biogas)
-    ### Natural gas        
+    ### Natural gas
     esM.add(fn.Source(esM=esM, name='Natural gas purchase', commodity='methane',
                       hasCapacityVariable=False, commodityCostTimeSeries=data['Natural Gas, commodityCostTimeSeries']))
 
@@ -124,7 +126,7 @@ def test_commodityCostTimeSeries():
 
     esM.add(fn.Conversion(esM=esM, name='New CCGT plants (biogas)', physicalUnit=r'GW$_{el}$',
                           commodityConversionFactors={'electricity':1, 'biogas':-1/0.635},
-                          hasCapacityVariable=True, 
+                          hasCapacityVariable=True,
                           investPerCapacity=0.7, opexPerCapacity=0.021, interestRate=0.08,
                           economicLifetime=33))
 
@@ -133,7 +135,7 @@ def test_commodityCostTimeSeries():
 
     esM.add(fn.Conversion(esM=esM, name='New CCGT plants (hydrogen)', physicalUnit=r'GW$_{el}$',
                           commodityConversionFactors={'electricity':1, 'hydrogen':-1/0.6},
-                          hasCapacityVariable=True, 
+                          hasCapacityVariable=True,
                           investPerCapacity=0.7, opexPerCapacity=0.021, interestRate=0.08,
                           economicLifetime=33))
 
@@ -141,7 +143,7 @@ def test_commodityCostTimeSeries():
 
     esM.add(fn.Conversion(esM=esM, name='Electroylzers', physicalUnit=r'GW$_{el}$',
                           commodityConversionFactors={'electricity':-1, 'hydrogen':0.7},
-                          hasCapacityVariable=True, 
+                          hasCapacityVariable=True,
                           investPerCapacity=0.5, opexPerCapacity=0.5*0.025, interestRate=0.08,
                           economicLifetime=10))
 
@@ -151,13 +153,13 @@ def test_commodityCostTimeSeries():
 
     esM.add(fn.Conversion(esM=esM, name='rSOEC', physicalUnit=r'GW$_{el}$', linkedConversionCapacityID='rSOC',
                           commodityConversionFactors={'electricity':-1, 'hydrogen':0.6},
-                          hasCapacityVariable=True, 
+                          hasCapacityVariable=True,
                           investPerCapacity=capexRSOC/2, opexPerCapacity=capexRSOC*0.02/2, interestRate=0.08,
                           economicLifetime=10))
 
     esM.add(fn.Conversion(esM=esM, name='rSOFC', physicalUnit=r'GW$_{el}$', linkedConversionCapacityID='rSOC',
                           commodityConversionFactors={'electricity':1, 'hydrogen':-1/0.6},
-                          hasCapacityVariable=True, 
+                          hasCapacityVariable=True,
                           investPerCapacity=capexRSOC/2, opexPerCapacity=capexRSOC*0.02/2, interestRate=0.08,
                           economicLifetime=10))
 
@@ -225,7 +227,7 @@ def test_commodityCostTimeSeries():
     ## 6.2 Methane transmission
     ### Methane pipeline
 
-    esM.add(fn.Transmission(esM=esM, name='Pipelines (biogas)', commodity='biogas', 
+    esM.add(fn.Transmission(esM=esM, name='Pipelines (biogas)', commodity='biogas',
                             distances=data['Pipelines, distances'],
                             hasCapacityVariable=True, hasIsBuiltBinaryVariable=False, bigM=300,
                             locationalEligibility=data['Pipelines, eligibility'],

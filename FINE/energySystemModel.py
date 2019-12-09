@@ -351,6 +351,7 @@ class EnergySystemModel:
 
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps))
+        hoursPerPeriod = int(numberOfTimeStepsPerPeriod*self.hoursPerTimeStep)
 
         timeStart = time.time()
         utils.output('\nClustering time series data with ' + str(numberOfTypicalPeriods) + ' typical periods and '
@@ -371,11 +372,11 @@ class EnergySystemModel:
         timeSeriesData.index = pd.date_range('2050-01-01 00:30:00', periods=len(self.totalTimeSteps),
                                              freq=(str(self.hoursPerTimeStep) + 'H'), tz='Europe/Berlin')
 
-        # Cluster data with tsam package (the reindex_axis call is here for reproducibility of TimeSeriesAggregation
+        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
         # call)
-        timeSeriesData = timeSeriesData.reindex_axis(sorted(timeSeriesData.columns), axis=1)
+        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
         clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
-                                             hoursPerPeriod=numberOfTimeStepsPerPeriod*self.hoursPerTimeStep,
+                                             hoursPerPeriod=hoursPerPeriod,
                                              clusterMethod=clusterMethod, sortValues=sortValues, weightDict=weightDict,
                                              **kwargs)
 
@@ -394,7 +395,7 @@ class EnergySystemModel:
         self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
         self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
         self.periodsOrder = clusterClass.clusterOrder
-        self.periodOccurrences = [(self.periodsOrder == tp).sum()/self.numberOfYears for tp in self.typicalPeriods]
+        self.periodOccurrences = [(self.periodsOrder == tp).sum() for tp in self.typicalPeriods]
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
@@ -536,6 +537,47 @@ class EnergySystemModel:
                     rule=linkedQuantityConstraint))
 
 
+    def declareComponentLinkedQuantityConstraints(self, pyM):
+        """
+        Declare linked component quantity constraint, e.g. if an engine (E-Motor) is built also a storage (Battery)
+        and a vehicle body (e.g. BEV Car) needs to be built. Not the capacity of the components, but the number of
+        the components is linked.
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel     
+        """
+        utils.output('Declaring linked component quantity constraint...', self.verbose, 0)
+
+        compDict = {}
+        for mdl in self.componentModelingDict.values():
+            for compName, comp in mdl.componentsDict.items():
+                if comp.linkedQuantityID is not None:
+                    [compDict.setdefault((comp.linkedQuantityID, loc), []).append(compName)
+                    for loc in comp.locationalEligibility.index]
+        pyM.linkedQuantityDict = compDict
+       
+        def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2):
+            abbrvName1 = self.componentModelingDict[self.componentNames[compName1]].abbrvName
+            abbrvName2 = self.componentModelingDict[self.componentNames[compName2]].abbrvName
+            capVar1 = getattr(pyM, 'cap_' + abbrvName1)
+            capVar2 = getattr(pyM, 'cap_' + abbrvName2)
+            capPPU1 = self.componentModelingDict[self.componentNames[compName1]].componentsDict[compName1].capacityPerPlantUnit
+            capPPU2 = self.componentModelingDict[self.componentNames[compName2]].componentsDict[compName2].capacityPerPlantUnit
+            return capVar1[loc, compName1] / capPPU1 == capVar2[loc, compName2] / capPPU2
+
+
+        for (i,j) in pyM.linkedQuantityDict.keys():
+            linkedQuantityList = []
+            linkedQuantityList.append((i, j))
+            
+            setattr(pyM, 'ConstraintLinkedQuantity_' + str(i) + '_' + str(j),\
+                pyomo.Constraint(\
+                    linkedQuantityList,\
+                    pyM.linkedQuantityDict[i, j],\
+                    pyM.linkedQuantityDict[i, j],\
+                    rule=linkedQuantityConstraint))
+
     def declareCommodityBalanceConstraints(self, pyM):
         """
         Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
@@ -642,12 +684,10 @@ class EnergySystemModel:
         self.declareSharedPotentialConstraints(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
-
         # Declare constraints for linked quantities
         _t = time.time()
         self.declareComponentLinkedQuantityConstraints(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
-
 
         # Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
         _t = time.time()

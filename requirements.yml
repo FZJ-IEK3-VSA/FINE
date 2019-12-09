@@ -1,11 +1,16 @@
 name: FINE
-channels:
-  - conda-forge
 dependencies:
-  - python
-  - pandas==0.24.2
-  - numpy
-  - matplotlib
-  - pyomo
-  - glpk
-  - xlrd
+- python=3.6
+- gdal=2.3.3
+- conda-forge::geopandas
+- conda-forge::jupyter
+- conda-forge::notebook
+- pip
+- descartes
+- glpk
+- openpyxl
+- matplotlib
+- xlrd
+- pyomo
+- numpy
+- pandas

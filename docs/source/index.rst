@@ -11,9 +11,9 @@
 Welcome to FINE's documentation!
 ================================
 
-##########################################################
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 FINE - A Framework for Integrated Energy System Assessment
-##########################################################
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 The FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided
 framework, systems with multiple regions, commodities and time steps can be modeled. Target of the optimization is the
@@ -38,12 +38,12 @@ and its corresponding literatur can be found `here <https://github.com/FZJ-IEK3-
     :maxdepth: 1
     :caption: Contents:
 
-    installationDoc
-    examplesDoc
-    packageDoc
-    licenseDoc
-    aboutUsDoc
-    acknowledgementDoc
+    gettingStartedDoc
+    usersGuideDoc
+    newsDoc
+    integratedSoftwareDoc
+    legalNoticeDoc
+    furtherReadingDoc
 
 * :ref:`genindex`
 * :ref:`modindex`
