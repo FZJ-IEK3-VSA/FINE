@@ -526,6 +526,43 @@ def checkAndSetTimeSeriesCostParameter(esM, name, data, locationalEligibility, d
     else:
         return None
 
+def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalEligibility):
+    if data is None:
+        return None
+    else:
+        if dimension == '1dim':
+            if not (isinstance(data, int) or isinstance(data, float) or isinstance(data, pd.Series)):
+                raise TypeError('Type error in ' + name + ' detected.\n' +
+                                'Full load hours limitations have to be a number or a pandas Series.')
+        elif dimension == '2dim':
+            if not (isinstance(data, int) or isinstance(data, float) or isinstance(data, pd.Series)):
+                raise TypeError('Type error in ' + name + ' detected.\n' +
+                                'Full load hours limitations have to be a number or a pandas Series.')
+        else:
+            raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
+
+        if dimension == '1dim':
+            if isinstance(data, int) or isinstance(data, float):
+                if data < 0:
+                    raise ValueError('Value error in ' + name + ' detected.\n Full load hours limitations have to be positive.')
+                return pd.Series([float(data) for loc in esM.locations], index=esM.locations)
+            checkRegionalIndex(esM, data)
+        else:
+            if isinstance(data, int) or isinstance(data, float):
+                if data < 0:
+                    raise ValueError('Value error in ' + name + ' detected.\n Full load hours limitations have to be positive.')
+                return pd.Series([float(data) for loc in locationalEligibility.index], index=locationalEligibility.index)
+            checkConnectionIndex(data, locationalEligibility)
+
+        _data = data.astype(float)
+        if _data.isnull().any():
+            raise ValueError('Value error in ' + name + ' detected.\n' +
+                             'An economic parameter contains values which are not numbers.')
+        if (_data < 0).any():
+            raise ValueError('Value error in ' + name + ' detected.\n' +
+                             'All entries in economic parameter series have to be positive.')
+        return _data
+
 def checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps):
     isStrictlyPositiveInt(numberOfTypicalPeriods), isStrictlyPositiveInt(numberOfTimeStepsPerPeriod)
     if not totalNumberOfTimeSteps % numberOfTimeStepsPerPeriod == 0:

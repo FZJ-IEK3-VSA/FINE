@@ -20,7 +20,7 @@ class Conversion(Component):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
         """
@@ -101,7 +101,8 @@ class Conversion(Component):
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
-                            economicLifetime=economicLifetime)
+                            economicLifetime=economicLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
+                            yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
         # Set general conversion data: commodityConversionFactors, physicalUnit, linkedConversionCapacityID
         utils.checkCommodities(esM, set(commodityConversionFactors.keys()))
@@ -253,6 +254,12 @@ class ConversionModel(ComponentModel):
         # Declare linked components dictionary
         self.declareLinkedCapacityDict(pyM)
 
+        # Declare minimum yearly full load hour set
+        self.declareYearlyFullLoadHoursMinSet(pyM)
+
+        # Declare maximum yearly full load hour set
+        self.declareYearlyFullLoadHoursMaxSet(pyM)
+
     ####################################################################################################################
     #                                                Declare variables                                                 #
     ####################################################################################################################
@@ -326,6 +333,10 @@ class ConversionModel(ComponentModel):
         self.designBinFix(pyM)
         # Link, if applicable, the capacity of components with the same linkedConversionCapacityID
         self.linkedCapacity(pyM)
+        # Set yearly full load hours minimum limit
+        self.yearlyFullLoadHoursMin(pyM, esM)
+        # Set yearly full load hours maximum limit
+        self.yearlyFullLoadHoursMax(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
