@@ -799,35 +799,6 @@ class EnergySystemModel:
                             optimizationSpecs=optimizationSpecs, warmstart=False)
             # Get first stock (installed capacities within the start year)
             self.getStock(mileStoneYear)
-            
-    def setFixedVariables(self, optVariables):
-        """
-        Search for optimized variables (capacities or binary decision variables) and set the variables as fixed.
-        This function is used for the myopic approach (capacities) and the Two-Stage-Approach (binary decisions).
-
-        :param optVariables: Name of the variables of which the optimal values should be returned and set to the current energy system model instance:\n
-        * 'isBuiltVariablesOptimum', or
-        * 'capacityVariablesOptimum'\n
-        :type name: string
-
-        Last edited: December 05, 2019
-        |br| @author: Theresa Gross
-        """      
-        for mdl in self.componentModelingDict.keys():
-            # for comp in self.componentsModelingDict[mdl].componentsDict.keys():
-            compValues = self.componentModelingDict[mdl].getOptimizedValues(optVariables)
-            if compValues is not None:
-                for comp in compValues.index.get_level_values(0).unique():
-                    if optVariables == 'isBuiltVariablesOptimum':
-                        # Set the optimal values for the isBuiltVariables as fixed
-                        values = compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64)
-                        self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
-                    elif optVariables == 'capacityVariablesOptimum':
-                        # Set the optimal values for the capacities as fixed
-                        self.componentModelingDict[mdl].componentsDict[comp].capacityFix = compValues.loc[comp].values[0]
-                        # Set capacityMin and capacityMax as None to avoid problems
-                        self.componentModelingDict[mdl].componentsDict[comp].capacityMax = None
-                        self.componentModelingDict[mdl].componentsDict[comp].capacityMin = None
 
     def getStock(self, mileStoneYear):
         '''
