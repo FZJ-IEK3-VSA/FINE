@@ -821,6 +821,6 @@ class EnergySystemModel:
                     self.add(stockComp)
                 if 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
                     self.componentModelingDict[mdl].componentsDict[comp].lifetime = self.componentModelingDict[mdl].componentsDict[comp].lifetime-stepLength
-                    if self.componentModelingDict[mdl].componentsDict[comp].lifetime <= 0:
-                        print(self.componentModelingDict[mdl].componentsDict[comp].capacityFix = 0)
+                    # if self.componentModelingDict[mdl].componentsDict[comp].lifetime <= 0:
+                    #     print(self.componentModelingDict[mdl].componentsDict[comp].capacityFix)
                         
