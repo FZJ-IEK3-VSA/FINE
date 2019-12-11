@@ -844,7 +844,7 @@ class EnergySystemModel:
             |br| * the default value is False
         :type warmstart: boolean
 
-        Last edited: December 09, 2019
+        Last edited: December 11, 2019
         |br| @author: Theresa Gross, Max Hoffmann
         """
         lowerBound=None
@@ -854,7 +854,6 @@ class EnergySystemModel:
                         logFileName='relaxedProblem', threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=warmstart)
             lowerBound = self.pyM.Obj()
-            self.lowerBound = self.pyM.Obj()
 
         self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
                      clusterMethod=clusterMethod, solver=solver, sortValues=True)
@@ -876,8 +875,8 @@ class EnergySystemModel:
             gap = delta/upperBound 
             self.lowerBound, self.upperBound = lowerBound, upperBound
             self.gap = gap
-            print('The real optimal value lies between ', round(lowerBound,2), ' and ', 
-                   round(upperBound,2), ' with a gap of ', round(gap*100,2), '%.')                    
+            print('The real optimal value lies between ' + str(round(lowerBound,2)) + ' and ' +
+                   str(round(upperBound,2)) + ' with a gap of ' + str(round(gap*100,2)) + '%.')
 
     def fixBinaryVariables(self):
     # Search for the optimized binary variables and set them as fixed.
