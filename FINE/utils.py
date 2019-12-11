@@ -116,10 +116,7 @@ def checkRegionalColumnTitles(esM, data):
                          'Data columns: ' + str(set(data.columns)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
     elif not np.array_equal(data.columns, esM._locationsOrdered):
-        data.sort_index(inplace=True, axis=1)
-        # test again if feasible now
-        if not np.array_equal(data.columns, esM._locationsOrdered):
-            raise ValueError('Something went wront...')        
+        data.sort_index(inplace=True, axis=1)    
     return data
 
 
@@ -134,10 +131,6 @@ def checkRegionalIndex(esM, data):
                         'Energy system model regions: ' + str(esM.locations))
     elif not np.array_equal(data.index, esM._locationsOrdered):
         data.sort_index(inplace=True)
-        # test again if feasible now
-        if not np.array_equal(data.index, esM._locationsOrdered):
-            raise ValueError('Something went wront...')
-
     return data
 
 def checkConnectionIndex(data, locationalEligibility):
@@ -151,10 +144,6 @@ def checkConnectionIndex(data, locationalEligibility):
                          'Eligible connections: ' + str(set(locationalEligibility.index)))
     elif not np.array_equal(data.index,locationalEligibility.index):
         data = data.reindex(locationalEligibility.index)
-        # test again if feasible now
-        if not np.array_equal(data.index, locationalEligibility.index):
-            raise ValueError('Something went wront...')
-
     return data
 
 def checkCommodities(esM, commodities):
