@@ -674,13 +674,8 @@ class EnergySystemModel:
             |br| * the default value is True
         :type declaresOptimizationProblem: boolean
 
-#TODO: Check description
-<<<<<<< HEAD
         :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
             bound of the problem.
-=======
-        :param relaxed: states if the optimization problem should be solved as a relaxed LP to get the lower bound of the problem.
->>>>>>> Modify 2StageApproach and remove unneccessary functions
             |br| * the default value is False
         :type declaresOptimizationProblem: boolean
 
