@@ -248,7 +248,7 @@ class TransmissionModel(ComponentModel):
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relaxed):
         """
         Declare design and operation variables
 
@@ -266,7 +266,7 @@ class TransmissionModel(ComponentModel):
         # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
         # Binary variables [-] indicating if a component is considered at a location or not
-        self.declareBinaryDesignDecisionVars(pyM)
+        self.declareBinaryDesignDecisionVars(pyM, relaxed)
         # Operation of component [commodityUnit]
         self.declareOperationVars(pyM, 'op')
 

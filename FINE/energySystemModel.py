@@ -7,6 +7,7 @@ from FINE.component import Component, ComponentModel
 from FINE import utils
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 import pandas as pd
+import numpy as np
 import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
@@ -539,7 +540,7 @@ class EnergySystemModel:
             return TAC
         pyM.Obj = pyomo.Objective(rule=objective)
 
-    def declareOptimizationProblem(self, timeSeriesAggregation=False):
+    def declareOptimizationProblem(self, timeSeriesAggregation=False, relaxed=False):
         """
         Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
         instance is built and filled with
@@ -588,7 +589,7 @@ class EnergySystemModel:
             _t = time.time()
             utils.output('Declaring sets, variables and constraints for ' + key, self.verbose, 0)
             utils.output('\tdeclaring sets... ', self.verbose, 0), mdl.declareSets(self, pyM)
-            utils.output('\tdeclaring variables... ', self.verbose, 0), mdl.declareVariables(self, pyM)
+            utils.output('\tdeclaring variables... ', self.verbose, 0), mdl.declareVariables(self, pyM, relaxed)
             utils.output('\tdeclaring constraints... ', self.verbose, 0), mdl.declareComponentConstraints(self, pyM)
             utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
@@ -618,7 +619,7 @@ class EnergySystemModel:
         # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
-    def optimize(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='', threads=3,
+    def optimize(self, declaresOptimizationProblem=True, relaxed=False, timeSeriesAggregation=False, logFileName='', threads=3,
                  solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
@@ -631,6 +632,11 @@ class EnergySystemModel:
             (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
             (b) If false a previously declared pyomo ConcreteModel instance is used.
             |br| * the default value is True
+        :type declaresOptimizationProblem: boolean
+
+#TODO: Check description
+        :param relaxed: states if the optimization problem should be solved as a relaxed LP to get the lower bound of the problem.
+            |br| * the default value is False
         :type declaresOptimizationProblem: boolean
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
@@ -681,7 +687,7 @@ class EnergySystemModel:
         |br| @author: Lara Welder
         """
         if declaresOptimizationProblem:
-            self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation)
+            self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation, relaxed=relaxed)
         else:
             if self.pyM is None:
                 raise TypeError('The optimization problem is not declared yet. Set the argument declaresOptimization'
@@ -762,3 +768,123 @@ class EnergySystemModel:
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
+
+
+    def optimizeErrorBoundingApproach(self, declaresOptimizationProblem=True, relaxed=False, 
+                               numberOfTypicalPeriods=30, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical', 
+                               logFileName='', threads=3, solver='gurobi', timeLimit=None, 
+                               optimizationSpecs='', warmstart=False):
+        """
+        Call the optimize function for a temporal aggregated MILP (so the model has to include 
+        hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again
+        without temporal aggregation. 
+        #TODO: Update the docstring. 
+
+        **Default arguments:**
+
+        :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
+            (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
+            (b) If false a previously declared pyomo ConcreteModel instance is used.
+            |br| * the default value is True
+        :type declaresOptimizationProblem: boolean
+
+#TODO: Check description
+        :param relaxed: states if the optimization problem should be solved as a relaxed LP to get the lower bound of the problem.
+            |br| * the default value is False
+        :type declaresOptimizationProblem: boolean
+
+        :param numberOfTypicalPeriods: 
+# TODO: Add description
+        :type numberOfTypicalPeriods: int
+
+        :param numberOfTimeStepsPerPeriod: 
+# TODO: Add description
+            |br| * the default value is 24 
+        :type numberOfTimeStepsPerPeriod: int
+
+        :param clusterMethod:
+# TODO: Add description
+        :type clusterMethod: string
+
+        :param logFileName: logFileName is used for naming the log file of the optimization solver output
+            if gurobi is used as the optimization solver.
+            If the logFileName is given as an absolute path (e.g. logFileName = os.path.join(os.getcwd(),
+            'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise,
+            it will be stored by default in the directory where the executing python script is called.
+            |br| * the default value is 'job'
+        :type logFileName: string
+
+        :param threads: number of computational threads used for solving the optimization (solver dependent
+            input) if gurobi is used as the solver. A value of 0 results in using all available threads. If
+            a value larger than the available number of threads are chosen, the value will reset to the maximum
+            number of threads.
+            |br| * the default value is 3
+        :type threads: positive integer
+
+        :param solver: specifies which solver should solve the optimization problem (which of course has to be
+            installed on the machine on which the model is run).
+            |br| * the default value is 'gurobi'
+        :type solver: string
+
+        :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
+            in seconds (solver dependent input). The use of this parameter is suggested when running models in
+            runtime restricted environments (such as clusters with job submission systems). If the runtime
+            limitation is triggered before an optimal solution is available, the best solution obtained up
+            until then (if available) is processed.
+            |br| * the default value is None
+        :type timeLimit: strictly positive integer or None
+
+        :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver
+            documentation for more information). Example: 'LogToConsole=1 OptimalityTol=1e-6'
+            |br| * the default value is an empty string ('')
+        :type timeLimit: string
+
+        :param warmstart: specifies if a warm start of the optimization should be considered
+            (not always supported by the solvers).
+            |br| * the default value is False
+        :type warmstart: boolean
+
+        Last edited: December 09, 2019
+        |br| @author: Theresa Gross, Max Hoffmann
+        """
+        lowerBound=None
+
+        if relaxed:
+            self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxed=True, 
+                        logFileName='relaxedProblem', threads=threads, solver=solver, timeLimit=timeLimit, 
+                        optimizationSpecs=optimizationSpecs, warmstart=warmstart)
+            lowerBound = self.pyM.Obj()
+            self.lowerBound = self.pyM.Obj()
+
+        self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+                     clusterMethod=clusterMethod, solver=solver, sortValues=True)
+        
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=True, relaxed=False, 
+                        logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
+                        optimizationSpecs=optimizationSpecs, warmstart=warmstart)
+
+        # Set the binary variables to the values resulting from the first optimization step
+        self.fixBinaryVariables()
+
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxed=False, 
+                      logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
+                      optimizationSpecs=optimizationSpecs, warmstart=False)  
+        upperBound = self.pyM.Obj()
+
+        if lowerBound is not None:
+            delta = upperBound - lowerBound 
+            gap = delta/upperBound 
+            self.lowerBound, self.upperBound = lowerBound, upperBound
+            self.gap = gap
+            print('The real optimal value lies between ', round(lowerBound,2), ' and ', 
+                   round(upperBound,2), ' with a gap of ', round(gap*100,2), '%.')                    
+
+    def fixBinaryVariables(self):
+    # Search for the optimized binary variables and set them as fixed.
+    # TODO: Combine it with another method (e.g. while implementing the myopic approach etc.)
+        for mdl in self.componentModelingDict.keys():
+            compValues = self.componentModelingDict[mdl].getOptimizedValues('isBuiltVariablesOptimum')
+            if compValues is not None:
+                for comp in compValues.index.get_level_values(0).unique():
+                    values = compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64)
+                    self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values

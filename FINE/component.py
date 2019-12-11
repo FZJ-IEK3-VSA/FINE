@@ -705,7 +705,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'nbInt_' + abbrvName, pyomo.Var(getattr(pyM, 'discreteDesignDimensionVarSet_' + abbrvName),
                 domain=pyomo.NonNegativeIntegers))
 
-    def declareBinaryDesignDecisionVars(self, pyM):
+    def declareBinaryDesignDecisionVars(self, pyM, relaxed):
         """ 
         Declare binary variables [-] indicating if a component is considered at a location or not [-]. 
         
@@ -713,8 +713,12 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         abbrvName = self.abbrvName
-        setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
-                domain=pyomo.Binary))
+        if relaxed:
+            setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
+                    domain=pyomo.NonNegativeReals, bounds=(0,1)))
+        else:
+            setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
+                    domain=pyomo.Binary))
 
     def declareOperationVars(self, pyM, opVarName):
         """ 
@@ -1441,3 +1445,26 @@ class ComponentModel(metaclass=ABCMeta):
                                                 'dimension': self.dimension},
                     'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
                                                   'dimension': self.dimension}}
+
+    def getOptimizedValues(self, name):
+        """
+        Return the optimal values of the components as a pandas.DataFrame. 
+
+        :param name: name of the variables of which the optimal values should be returned:\n
+        * 'capacityVariables',
+        * 'isBuiltVariables',
+        * 'operationVariablesOptimum'.\n
+        :type name: string
+
+        Last edited: December 05, 2019
+        |br| @author: Theresa Gross
+        """
+        if name == 'capacityVariablesOptimum':
+            return self.capacityVariablesOptimum
+        elif name == 'isBuiltVariablesOptimum':
+            return self.isBuiltVariablesOptimum
+        elif name == 'operationVariablesOptimum':
+            return self.operationVariablesOptimum
+
+
+
