@@ -770,14 +770,15 @@ class EnergySystemModel:
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
 
 
-    def optimize2StageApproach(self, declaresOptimizationProblem=True, relaxed=False, 
-                               numberOfTypicalPeriods=30, clusterMethod='hierarchical',
+    def optimizeErrorBoundingApproach(self, declaresOptimizationProblem=True, relaxed=False, 
+                               numberOfTypicalPeriods=30, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical', 
                                logFileName='', threads=3, solver='gurobi', timeLimit=None, 
                                optimizationSpecs='', warmstart=False):
         """
         Call the optimize function for a temporal aggregated MILP (so the model has to include 
         hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again
         without temporal aggregation. 
+        #TODO: Update the docstring. 
 
         **Default arguments:**
 
@@ -795,6 +796,11 @@ class EnergySystemModel:
         :param numberOfTypicalPeriods: 
 # TODO: Add description
         :type numberOfTypicalPeriods: int
+
+        :param numberOfTimeStepsPerPeriod: 
+# TODO: Add description
+            |br| * the default value is 24 
+        :type numberOfTimeStepsPerPeriod: int
 
         :param clusterMethod:
 # TODO: Add description
@@ -842,19 +848,22 @@ class EnergySystemModel:
         |br| @author: Theresa Gross, Max Hoffmann
         """
         lowerBound=None
+
         if relaxed:
             self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxed=True, 
                         logFileName='relaxedProblem', threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=warmstart)
             lowerBound = self.pyM.Obj()
+            self.lowerBound = self.pyM.Obj()
 
-        self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, clusterMethod=clusterMethod, 
-                    solver='gurobi', sortValues=True)
+        self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+                     clusterMethod=clusterMethod, solver=solver, sortValues=True)
         
         self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=True, relaxed=False, 
                         logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=warmstart)
 
+        # Set the binary variables to the values resulting from the first optimization step
         self.fixBinaryVariables()
 
         self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxed=False, 
@@ -863,14 +872,19 @@ class EnergySystemModel:
         upperBound = self.pyM.Obj()
 
         if lowerBound is not None:
-            delta = upperBound - lowerBound  
-            print('The real optimal value lies between ', lowerBound, ' and ', upperBound, '.')                    
+            delta = upperBound - lowerBound 
+            gap = delta/upperBound 
+            self.lowerBound, self.upperBound = lowerBound, upperBound
+            self.gap = gap
+            print('The real optimal value lies between ', round(lowerBound,2), ' and ', 
+                   round(upperBound,2), ' with a gap of ', round(gap*100,2), '%.')                    
 
-        def fixBinaryVariables(self):
-        # Search for the optimized binary variables and set them as fixed.
-            for mdl in self.componentModelingDict.keys():
-                compValues = self.componentModelingDict[mdl].getOptimizedValues('isBuiltVariablesOptimum')
-                if compValues is not None:
-                    for comp in compValues.index.get_level_values(0).unique():
-                        values = compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64)
-                        self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
+    def fixBinaryVariables(self):
+    # Search for the optimized binary variables and set them as fixed.
+    # TODO: Combine it with another method (e.g. while implementing the myopic approach etc.)
+        for mdl in self.componentModelingDict.keys():
+            compValues = self.componentModelingDict[mdl].getOptimizedValues('isBuiltVariablesOptimum')
+            if compValues is not None:
+                for comp in compValues.index.get_level_values(0).unique():
+                    values = compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64)
+                    self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
