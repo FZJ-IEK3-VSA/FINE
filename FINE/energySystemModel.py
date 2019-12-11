@@ -351,6 +351,7 @@ class EnergySystemModel:
 
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps))
+        hoursPerPeriod = int(numberOfTimeStepsPerPeriod*self.hoursPerTimeStep)
 
         timeStart = time.time()
         utils.output('\nClustering time series data with ' + str(numberOfTypicalPeriods) + ' typical periods and '
@@ -371,11 +372,11 @@ class EnergySystemModel:
         timeSeriesData.index = pd.date_range('2050-01-01 00:30:00', periods=len(self.totalTimeSteps),
                                              freq=(str(self.hoursPerTimeStep) + 'H'), tz='Europe/Berlin')
 
-        # Cluster data with tsam package (the reindex_axis call is here for reproducibility of TimeSeriesAggregation
+        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
         # call)
-        timeSeriesData = timeSeriesData.reindex_axis(sorted(timeSeriesData.columns), axis=1)
+        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
         clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
-                                             hoursPerPeriod=numberOfTimeStepsPerPeriod*self.hoursPerTimeStep,
+                                             hoursPerPeriod=hoursPerPeriod,
                                              clusterMethod=clusterMethod, sortValues=sortValues, weightDict=weightDict,
                                              **kwargs)
 
@@ -394,7 +395,7 @@ class EnergySystemModel:
         self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
         self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
         self.periodsOrder = clusterClass.clusterOrder
-        self.periodOccurrences = [(self.periodsOrder == tp).sum()/self.numberOfYears for tp in self.typicalPeriods]
+        self.periodOccurrences = [(self.periodsOrder == tp).sum() for tp in self.typicalPeriods]
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True

@@ -113,24 +113,24 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
     """
     file = pd.ExcelFile(fileName)
 
-    esMData = pd.read_excel(file, sheetname='EnergySystemModel', index_col=0, squeeze=True)
+    esMData = pd.read_excel(file, sheet_name ='EnergySystemModel', index_col=0, squeeze=True)
     esMData = esMData.apply(lambda v: ast.literal_eval(v) if type(v) == str and v[0] == '{' else v)
 
     kw = inspect.getargspec(fn.EnergySystemModel.__init__).args
     esM = fn.EnergySystemModel(**esMData[esMData.index.isin(kw)])
 
     for comp in esMData['componentClasses']:
-        data = pd.read_excel(file, sheetname=comp)
+        data = pd.read_excel(file, sheet_name =comp)
         dataKeys = set(data['name'].values)
         if comp + 'LocSpecs' in file.sheet_names:
-            dataLoc = pd.read_excel(file, sheetname=comp + 'LocSpecs', index_col=[0, 1, 2]).sort_index()
+            dataLoc = pd.read_excel(file, sheet_name =comp + 'LocSpecs', index_col=[0, 1, 2]).sort_index()
             dataLocKeys = set(dataLoc.index.get_level_values(0).unique())
             if not dataLocKeys <= dataKeys:
                 raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataLocKeys - dataKeys)
             if dataLoc.isnull().any().any():
                 raise ValueError('NaN values in ' + comp + 'LocSpecs data detected.')
         if comp + 'TimeSeries' in file.sheet_names:
-            dataTS = pd.read_excel(file, sheetname=comp + 'TimeSeries', index_col=[0, 1, 2]).sort_index()
+            dataTS = pd.read_excel(file, sheet_name =comp + 'TimeSeries', index_col=[0, 1, 2]).sort_index()
             dataTSKeys = set(dataTS.index.get_level_values(0).unique())
             if not dataTSKeys <= dataKeys:
                 raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataTSKeys - dataKeys)
@@ -205,7 +205,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
         idColumns2dim = [0, 1, 2, 3]
         idColumns = idColumns1dim if '1' in dim else idColumns2dim
         setattr(esM.componentModelingDict[mdl], 'optSummary',
-                pd.read_excel(file, sheetname=mdl[0:-5] + 'OptSummary_' + dim, index_col=idColumns))
+                pd.read_excel(file, sheet_name =mdl[0:-5] + 'OptSummary_' + dim, index_col=idColumns))
         sheets = []
         sheets += (sheet for sheet in file.sheet_names if mdl[0:-5] in sheet and 'optVar' in sheet)
         if len(sheets) > 0:
@@ -220,7 +220,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
                     index_col = idColumns2dim[:-1]
                 else:
                     continue
-                optVal = pd.read_excel(file, sheetname=sheet, index_col=index_col)
+                optVal = pd.read_excel(file, sheet_name =sheet, index_col=index_col)
                 for var in optVal.index.levels[0]: setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
     return esM
 
@@ -353,8 +353,10 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
 
 def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTimeStepsPerPeriod=24,
                           variableName='operationVariablesOptimum', cmap='viridis', vmin=0, vmax=-1,
-                          xlabel='day', ylabel='hour', zlabel='operation', figsize=(12, 4),
-                          fontsize=12, save=False, fileName='', dpi=200, **kwargs):
+                          xlabel='period', ylabel='timestep per period', zlabel='', figsize=(12, 4),
+                          fontsize=12, save=False, fileName='', xticks=None, yticks=None,
+                          xticklabels=None, yticklabels=None, monthlabels=False, dpi=200, pad=0.12,
+                          aspect=15, fraction=0.2, orientation='horizontal', **kwargs):
     """
     Plot operation time series of a component at a location.
 
@@ -428,32 +430,109 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
         |br| * the default value is 'operation.png'
     :type fileName: string
 
+    :param xticks: user specified ticks of the x axis
+        |br| * the default value is None
+    :type xticks: list
+
+    :param yticks: user specified ticks of the ý axis
+        |br| * the default value is None
+    :type yticks: list
+
+    :param xticklabels: user specified tick labels of the x axis
+        |br| * the default value is None
+    :type xticklabels: list
+
+    :param yticklabels: user specified tick labels of the ý axis
+        |br| * the default value is None
+    :type yticklabels: list
+
+    :param monthlabels: specifies if month labels are to be plotted (only works correctly if
+        365 days are specified as the number of periods)
+        |br| * the default value is False
+    :type monthlabels: boolean
+
     :param dpi: resolution in dots per inch
         |br| * the default value is 200
     :type dpi: scalar > 0
+
+    :param pad: pad parameter of colorbar
+        |br| * the default value is 0.12
+    :type pad: float
+
+    :param aspect: aspect parameter of colorbar
+        |br| * the default value is 15
+    :type aspect: float
+
+    :param fraction: fraction parameter of colorbar
+        |br| * the default value is 0.2
+    :type fraction: float
+
+    :param orientation: orientation parameter of colorbar
+        |br| * the default value is 'horizontal'
+    :type orientation: float
+
     """
+    isStorage=False
+
+    if (isinstance(esM.getComponent(compName), fn.Conversion) |
+        issubclass(esM.getComponent(compName), fn.Conversion)):
+        unit = esM.getComponent(compName).physicalUnit
+    else:
+        unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+
+    if (isinstance(esM.getComponent(compName), fn.Storage) |
+        issubclass(esM.getComponent(compName), fn.Storage)):
+        isStorage=True
+        unit = unit + '*h'
+
     data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(variableName)
+
     if locTrans is None:
         timeSeries = data['values'].loc[(compName, loc)].values
     else:
         timeSeries = data['values'].loc[(compName, loc, locTrans)].values
+    timeSeries = timeSeries/esM.hoursPerTimeStep if not isStorage else timeSeries
+
     timeSeries = timeSeries.reshape(nbPeriods, nbTimeStepsPerPeriod).T
     vmax = timeSeries.max() if vmax == -1 else vmax
 
     fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
 
-    ax.pcolormesh(range(nbPeriods), range(nbTimeStepsPerPeriod), timeSeries, cmap=cmap, vmin=vmin,
+    ax.pcolormesh(range(nbPeriods+1), range(nbTimeStepsPerPeriod+1), timeSeries, cmap=cmap, vmin=vmin,
                   vmax=vmax, **kwargs)
-    ax.axis([0, nbPeriods-1, 0, nbTimeStepsPerPeriod-1])
+    ax.axis([0, nbPeriods, 0, nbTimeStepsPerPeriod])
     ax.set_xlabel(xlabel, fontsize=fontsize)
     ax.set_ylabel(ylabel, fontsize=fontsize)
+    ax.xaxis.set_label_position('top'), ax.xaxis.set_ticks_position('top')
 
     sm1 = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
     sm1._A = []
-    cb1 = fig.colorbar(sm1, ax=ax, pad=0.05, aspect=7, fraction=0.07)
+    cb1 = fig.colorbar(sm1, ax=ax, pad=pad, aspect=aspect, fraction=fraction, orientation=orientation) 
     cb1.ax.tick_params(labelsize=fontsize)
-    cb1.ax.set_xlabel(zlabel, size=fontsize)
+    if zlabel != '':
+        cb1.ax.set_xlabel(zlabel, size=fontsize)
+    elif isStorage:
+        cb1.ax.set_xlabel('Storage inventory' + ' [' + unit + ']', size=fontsize)
+    else:
+        cb1.ax.set_xlabel('Operation' + ' [' + unit + ']', size=fontsize)
     cb1.ax.xaxis.set_label_position('top')
+
+    if xticks:
+        ax.set_xticks(xticks)
+    if yticks:
+        ax.set_yticks(yticks)
+    if xticklabels:
+        ax.set_xticklabels(xticklabels, fontsize=fontsize)
+    if yticklabels:
+        ax.set_yticklabels(yticklabels, fontsize=fontsize)
+
+    if monthlabels:
+        import datetime
+        xticks, xlabels = [], []
+        for i in range(1, 13, 2):
+            xlabels.append(datetime.date(2050, i+1, 1).strftime("%b"))
+            xticks.append(datetime.datetime(2050, i+1, 1).timetuple().tm_yday)
+            ax.set_xticks(xticks), ax.set_xticklabels(xlabels, fontsize=fontsize)
 
     fig.tight_layout()
 
