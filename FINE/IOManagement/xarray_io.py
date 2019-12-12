@@ -50,17 +50,19 @@ def dimensional_data_to_xarray(esM):
 
     ds = xr.Dataset()
 
+    # get all regional time series (regions, time)
     for variable_description, description_tuple_list in df_iteration_dict.items():
         df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
-    
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
 
             df_description = f"{classname}, {component}"
+            # print(df_description)
 
             data = component_dict[classname][component][variable_description]
 
             if isinstance(data, pd.DataFrame):
+                # print('data is pd.DataFrame')
                 multi_index_dataframe = data.stack()
                 multi_index_dataframe.index.set_names("location", level=2, inplace=True)
 
@@ -72,6 +74,7 @@ def dimensional_data_to_xarray(esM):
         da_component = df_variable.to_xarray()
         ds[variable_description] = da_component
 
+    # get all 2d data (regions, regions)
     for variable_description, description_tuple_list in series_iteration_dict.items():
         df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
     
@@ -96,6 +99,7 @@ def dimensional_data_to_xarray(esM):
                 # else:
                 #     df_dict[df_description] = data.rename_axis("location")
 
+
         if len(df_dict) > 0:
             df_variable = pd.concat(df_dict)
             df_variable.index.set_names("component", level=0, inplace=True) # ?
@@ -103,17 +107,20 @@ def dimensional_data_to_xarray(esM):
             da_component = df_variable.to_xarray()
             ds[variable_description] = da_component
 
+    # get all 1d data (regions)
     for variable_description, description_tuple_list in series_iteration_dict.items():
+
         df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
-    
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
-
+    
             df_description = f"{classname}, {component}"
+            # print(df_description)
 
             data = component_dict[classname][component][variable_description]
 
             if isinstance(data, pd.Series):
+                # print('data is pd.Series')
 
                 if classname != 'Transmission':
                     df_dict[df_description] = data.rename_axis("location")
