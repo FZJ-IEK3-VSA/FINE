@@ -1,6 +1,6 @@
 import pandas as pd
 
-def test_errorBoundingApproach(minimal_test_esM):
+def test_TSAmultiStage(minimal_test_esM):
     '''
     Get the minimal test system, and check if the Error-Bounding-Approach works for it
     '''
@@ -23,7 +23,7 @@ def test_errorBoundingApproach(minimal_test_esM):
     pressureTank.bigM = 30e6
 
     # optimize with 2 Stage Approach
-    esM.optimizeErrorBoundingApproach(relaxed=True, solver = 'glpk', numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
+    esM.optimizeTSAmultiStage(relaxIsBuiltBinary=True, solver = 'glpk', numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
 
     # get gap
     gap=esM.gap

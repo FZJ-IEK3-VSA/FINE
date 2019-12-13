@@ -125,7 +125,7 @@ class LOPFModel(TransmissionModel):
         setattr(pyM, 'phaseAngle_' + self.abbrvName,
                 pyomo.Var(getattr(pyM, 'phaseAngleVarSet_' + self.abbrvName), pyM.timeSet, domain=pyomo.Reals))
 
-    def declareVariables(self, esM, pyM, relaxed):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
         Declare design and operation variables.
 
@@ -143,7 +143,7 @@ class LOPFModel(TransmissionModel):
         # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
         # Binary variables [-] indicating if a component is considered at a location or not [-]
-        self.declareBinaryDesignDecisionVars(pyM, relaxed)
+        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Flow over the edges of the components [commodityUnit]
         self.declareOperationVars(pyM, 'op')
         # Operation of component [commodityUnit]
