@@ -1,0 +1,422 @@
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 11:41:41
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.02s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.05 seconds
+Optimal objective  1.339433845e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 11:42:01
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 4733 rows, 2463 columns and 12253 nonzeros
+Model fingerprint: 0xe5963ad6
+Coefficient statistics:
+  Matrix range     [3e-02, 1e+00]
+  Objective range  [6e-04, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 3e+03]
+Presolve removed 1795 rows and 1263 columns
+Presolve time: 0.02s
+Presolved: 2938 rows, 1200 columns, 12055 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     818    1.3694858e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 818 iterations and 0.05 seconds
+Optimal objective  1.369485840e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 11:43:15
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.00s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.02 seconds
+Optimal objective  1.339433845e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 11:48:38
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.00s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.02 seconds
+Optimal objective  1.339433845e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 12:01:15
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.00s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.02 seconds
+Optimal objective  1.339433845e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 12:08:23
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.02s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.03 seconds
+Optimal objective  1.339433845e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 12:13:38
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 23232 rows, 16827 columns and 66345 nonzeros
+Model fingerprint: 0x6bbe8120
+Coefficient statistics:
+  Matrix range     [4e-06, 7e+01]
+  Objective range  [1e-03, 2e+03]
+  Bounds range     [7e-01, 6e+02]
+  RHS range        [4e-01, 2e+05]
+
+Concurrent LP optimizer: dual simplex and barrier
+Showing barrier log only...
+
+Presolve removed 7097 rows and 5589 columns
+Presolve time: 0.05s
+Presolved: 16135 rows, 11238 columns, 59511 nonzeros
+
+Ordering time: 0.16s
+
+Barrier statistics:
+ Dense cols : 66
+ Free vars  : 180
+ AA' NZ     : 1.717e+05
+ Factor NZ  : 7.643e+05 (roughly 17 MBytes of memory)
+ Factor Ops : 1.067e+08 (less than 1 second per iteration)
+ Threads    : 2
+
+                  Objective                Residual
+Iter       Primal          Dual         Primal    Dual     Compl     Time
+   0   2.07909965e+07 -9.69846905e+04  3.12e+05 1.32e+02  2.35e+05     0s
+   1   1.85345197e+07 -1.89870281e+07  2.11e+05 6.17e+01  9.49e+04     0s
+   2   1.15321251e+07 -2.33882868e+07  5.64e+04 1.56e+01  2.66e+04     0s
+   3   8.06248705e+06 -1.97333919e+07  1.68e+04 2.66e+00  7.29e+03     0s
+   4   4.43905263e+06 -1.23716591e+07  4.18e+03 7.01e-01  2.13e+03     0s
+   5   2.94398087e+06 -6.39590231e+06  1.81e+03 1.85e-01  8.54e+02     0s
+   6   2.05308436e+06 -3.04305230e+06  9.61e+02 4.21e-02  3.86e+02     0s
+   7   1.11386824e+06 -1.22028883e+06  2.56e+02 8.08e-03  1.27e+02     0s
+   8   7.43993074e+05 -3.75930841e+05  9.34e+01 2.17e-03  5.21e+01     0s
+   9   6.65134325e+05 -1.51253877e+05  6.26e+01 2.43e-03  3.64e+01     0s
+  10   5.76886562e+05  1.99079996e+05  2.96e+01 5.75e-04  1.60e+01     1s
+  11   5.27740745e+05  3.04160884e+05  1.56e+01 2.97e-04  9.21e+00     1s
+  12   4.94514747e+05  3.22386128e+05  9.13e+00 2.49e-04  7.00e+00     1s
+  13   4.81693335e+05  3.34245319e+05  7.39e+00 2.09e-04  5.97e+00     1s
+  14   4.52012233e+05  3.60410912e+05  3.50e+00 1.42e-04  3.67e+00     1s
+  15   4.37556926e+05  3.83444468e+05  1.85e+00 1.31e-04  2.16e+00     1s
+  16   4.31637459e+05  3.94205365e+05  1.28e+00 1.12e-04  1.49e+00     1s
+  17   4.28839523e+05  3.99586443e+05  1.04e+00 8.88e-05  1.16e+00     1s
+  18   4.25341571e+05  4.02846075e+05  7.91e-01 7.47e-05  8.92e-01     1s
+  19   4.18850260e+05  4.07153260e+05  3.60e-01 4.99e-05  4.63e-01     1s
+  20   4.17308254e+05  4.09019283e+05  2.61e-01 4.70e-05  3.28e-01     1s
+  21   4.16087049e+05  4.09984710e+05  1.86e-01 4.37e-05  2.41e-01     1s
+  22   4.14907299e+05  4.10770556e+05  1.15e-01 4.03e-05  1.63e-01     1s
+  23   4.14180236e+05  4.11648123e+05  7.47e-02 3.62e-05  9.99e-02     1s
+  24   4.13658153e+05  4.12038243e+05  4.60e-02 3.13e-05  6.39e-02     1s
+  25   4.13421608e+05  4.12290378e+05  3.32e-02 2.40e-05  4.46e-02     1s
+  26   4.13198982e+05  4.12476395e+05  2.20e-02 1.89e-05  2.85e-02     1s
+  27   4.13008546e+05  4.12630209e+05  1.31e-02 1.12e-05  1.49e-02     1s
+  28   4.12823234e+05  4.12654404e+05  4.77e-03 1.34e-05  6.65e-03     1s
+  29   4.12768026e+05  4.12679145e+05  2.41e-03 1.04e-05  3.50e-03     1s
+  30   4.12723240e+05  4.12691660e+05  6.57e-04 7.97e-06  1.24e-03     1s
+  31   4.12713131e+05  4.12700840e+05  3.16e-04 8.15e-06  4.84e-04     1s
+  32   4.12706246e+05  4.12702116e+05  9.21e-05 1.62e-05  1.63e-04     1s
+  33   4.12704537e+05  4.12702425e+05  4.09e-05 1.30e-05  8.32e-05     1s
+  34   4.12703412e+05  4.12702769e+05  8.27e-06 5.77e-06  2.53e-05     1s
+  35   4.12703154e+05  4.12702933e+05  2.84e-06 1.75e-06  8.69e-06     1s
+  36   4.12703133e+05  4.12702961e+05  2.46e-06 1.03e-06  6.78e-06     1s
+  37   4.12703133e+05  4.12702961e+05  2.46e-06 1.03e-06  6.77e-06     1s
+  38   4.12703133e+05  4.12702961e+05  2.46e-06 1.03e-06  6.77e-06     1s
+  39   4.12703133e+05  4.12702961e+05  2.46e-06 1.03e-06  6.76e-06     1s
+  40   4.12703133e+05  4.12702961e+05  2.46e-06 1.03e-06  6.76e-06     1s
+  41   4.12703133e+05  4.12702961e+05  2.46e-06 1.03e-06  6.75e-06     1s
+  42   4.12703133e+05  4.12702961e+05  2.46e-06 1.03e-06  6.75e-06     1s
+  43   4.12703133e+05  4.12702961e+05  2.71e-06 1.03e-06  6.75e-06     1s
+  44   4.12703133e+05  4.12702961e+05  2.72e-06 1.03e-06  6.75e-06     2s
+  45   4.12703133e+05  4.12702961e+05  3.26e-06 1.03e-06  6.75e-06     2s
+  46   4.12703133e+05  4.12702961e+05  3.26e-06 1.03e-06  6.74e-06     2s
+
+Barrier performed 46 iterations in 1.64 seconds
+Sub-optimal termination - objective 4.12703133e+05
+
+Crossover log...
+
+       0 DPushes remaining with DInf 5.3788562e-12                 2s
+
+    7160 PPushes remaining with PInf 4.5393024e-04                 2s
+       0 PPushes remaining with PInf 2.3991598e-01                 3s
+
+  Push phase complete: Pinf 2.3991598e-01, Dinf 6.0373861e+02      3s
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+   12850    4.1270301e+05   0.000000e+00   6.037386e+02      3s
+   13341    4.1270300e+05   0.000000e+00   0.000000e+00      4s
+
+Solved with barrier
+Solved in 13341 iterations and 3.61 seconds
+Optimal objective  4.127029997e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 15:36:34
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.00s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.03 seconds
+Optimal objective  1.339433845e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 15:37:19
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.00s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.02 seconds
+Optimal objective  1.339433845e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 15:38:14
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 4903 rows, 2633 columns and 12760 nonzeros
+Model fingerprint: 0xf2f35b03
+Coefficient statistics:
+  Matrix range     [3e-02, 1e+00]
+  Objective range  [5e-04, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 3e+03]
+Presolve removed 1965 rows and 1433 columns
+Presolve time: 0.02s
+Presolved: 2938 rows, 1200 columns, 11973 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     600    1.3694489e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 600 iterations and 0.03 seconds
+Optimal objective  1.369448948e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 15:40:12
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 8963 rows, 4589 columns and 23835 nonzeros
+Model fingerprint: 0x6527a0fe
+Coefficient statistics:
+  Matrix range     [3e-02, 1e+00]
+  Objective range  [1e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 6e+02]
+Presolve removed 6025 rows and 3389 columns
+Presolve time: 0.02s
+Presolved: 2938 rows, 1200 columns, 12053 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     566    1.0605681e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 566 iterations and 0.03 seconds
+Optimal objective  1.060568136e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 15:41:15
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.00s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.03 seconds
+Optimal objective  1.339433845e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 15:43:04
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 8963 rows, 4589 columns and 23835 nonzeros
+Model fingerprint: 0x32b87f2c
+Coefficient statistics:
+  Matrix range     [3e-02, 1e+00]
+  Objective range  [1e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 3e+03]
+Presolve removed 6025 rows and 3389 columns
+Presolve time: 0.02s
+Presolved: 2938 rows, 1200 columns, 12053 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     791    1.4077218e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 791 iterations and 0.05 seconds
+Optimal objective  1.407721805e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 15:43:50
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.00s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.02 seconds
+Optimal objective  1.339433845e+05
+
+Gurobi 9.0.0 (win64) logging started 12/06/19 15:44:43
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 2618 rows, 1400 columns and 6462 nonzeros
+Model fingerprint: 0xd30429f1
+Coefficient statistics:
+  Matrix range     [2e-02, 1e+00]
+  Objective range  [3e-03, 2e+02]
+  Bounds range     [6e+02, 6e+02]
+  RHS range        [1e+00, 8e+01]
+Presolve removed 857 rows and 664 columns
+Presolve time: 0.00s
+Presolved: 1761 rows, 736 columns, 6820 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+     701    1.3394338e+05   0.000000e+00   0.000000e+00      0s
+
+Solved in 701 iterations and 0.02 seconds
+Optimal objective  1.339433845e+05
