@@ -773,17 +773,21 @@ class EnergySystemModel:
         """
         Optimization function for myopic approach. For each optimization run, the newly installed capacities
         will be given as a stock (with capacityFix) to the next optimization run. 
+        #TODO: Write precise docstring for the function 
+        #TODO: Write description of all arguments.
 
         :param startYear: Year of the optimization
         :type name: int
 
-        :param nbOfSteps: Number of optimization runs 
-        :type name: int
+        :param nbOfSteps: Number of optimization runs
+            |br| * the default value is None
+        :type name: int or None 
+            
+        :param noOfRepresentedYears: Number of years represented by one optimization run
+            |br| * the default value is None
+        :type name: int or None
 
-        :param stepLength: Number of years represented by one optimization run
-        :type name: int
-
-        Last edited: December 06, 2019
+        Last edited: December 13, 2019
         |br| @author: Theresa Gross, Felix Kullmann
         """                              
         
@@ -796,16 +800,20 @@ class EnergySystemModel:
                     if diff%i==0:
                         return i
             nbOfRepresentedYears=biggestDivisor(diff)
-            nbOfSteps=diff/nbOfRepresentedYears
-            print('StepLength = ', nbOfRepresentedYears)
+            nbOfSteps=int(diff/nbOfRepresentedYears)
             print('nbOfSteps = ', nbOfSteps)
+            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
         elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None):
             # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
             nbOfSteps=nbOfSteps
+            print('nbOfSteps = ', nbOfSteps)
+            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
         elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is None):
             # If number of steps is given but no endyear and no the number of represented years per optimization run,
             # nbOfRepresentedYears is set to 1 year. 
             nbOfRepresentedYears = 1
+            print('nbOfSteps = ', nbOfSteps)
+            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
         elif (endYear is not None) & (nbOfSteps is not None):
             diff = endYear - startYear
             if diff%nbOfSteps!=0:
@@ -813,12 +821,21 @@ class EnergySystemModel:
             elif (diff%nbOfSteps==0) & (nbOfRepresentedYears is not None):
                 if diff/nbOfSteps!=nbOfRepresentedYears:
                     raise ValueError('Number of represented years does not fit for the given time horizon and the number of steps.')
+            print('nbOfSteps = ', nbOfSteps)
+            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
         elif (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is not None):
             diff = endYear - startYear
             if diff%nbOfRepresentedYears!=0:
                 raise ValueError('Number of represented Years is not an integer divisor of the requested time horizon.')
+            else:
+                nbOfSteps = int(diff/nbOfRepresentedYears)
+            print('nbOfSteps = ', nbOfSteps)
+            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
         else:
-            print('Test')
+            nbOfSteps=1
+            nbOfRepresentedYears=1
+            print('nbOfSteps = ', nbOfSteps)
+            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
 
 
         for step in range(0,nbOfSteps):
