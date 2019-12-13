@@ -5,6 +5,7 @@ Last edited: July 27 2018
 
 from FINE.component import Component, ComponentModel
 from FINE import utils
+from FINE.IOManagement import standardIO
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 import pandas as pd
 import numpy as np
@@ -765,7 +766,7 @@ class EnergySystemModel:
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
     
-    def optimizeMyopic(self, startYear, nbOfSteps, stepLength, declaresOptimizationProblem=True, timeSeriesAggregation=False,  
+    def optimizeMyopic(self, startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None, declaresOptimizationProblem=True, timeSeriesAggregation=False,  
                         numberOfTypicalPeriods = 7,
                         logFileName='', threads=3, solver='gurobi', timeLimit=None, 
                         optimizationSpecs='', warmstart=False):
@@ -787,9 +788,41 @@ class EnergySystemModel:
         """                              
         
         mileStoneYear = startYear
+        if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
+            # endYear is given; determine the nbOfRepresentedYears 
+            diff = endYear-startYear
+            def biggestDivisor(diff):
+                for i in [10,5,3,2,1]:
+                    if diff%i==0:
+                        return i
+            nbOfRepresentedYears=biggestDivisor(diff)
+            nbOfSteps=diff/nbOfRepresentedYears
+            print('StepLength = ', nbOfRepresentedYears)
+            print('nbOfSteps = ', nbOfSteps)
+        elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None):
+            # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
+            nbOfSteps=nbOfSteps
+        elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is None):
+            # If number of steps is given but no endyear and no the number of represented years per optimization run,
+            # nbOfRepresentedYears is set to 1 year. 
+            nbOfRepresentedYears = 1
+        elif (endYear is not None) & (nbOfSteps is not None):
+            diff = endYear - startYear
+            if diff%nbOfSteps!=0:
+                raise ValueError('Number of Steps does not fit for the given time horizon between start and end year.')
+            elif (diff%nbOfSteps==0) & (nbOfRepresentedYears is not None):
+                if diff/nbOfSteps!=nbOfRepresentedYears:
+                    raise ValueError('Number of represented years does not fit for the given time horizon and the number of steps.')
+        elif (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is not None):
+            diff = endYear - startYear
+            if diff%nbOfRepresentedYears!=0:
+                raise ValueError('Number of represented Years is not an integer divisor of the requested time horizon.')
+        else:
+            print('Test')
+
 
         for step in range(0,nbOfSteps):
-            mileStoneYear = startYear + step*stepLength
+            mileStoneYear = startYear + step*nbOfRepresentedYears
             logFileName = 'log_'+str(mileStoneYear)
             # First optimization: Optimize start year for first stock
             self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods)
@@ -797,10 +830,13 @@ class EnergySystemModel:
             self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
                             logFileName=logFileName, threads=threads, solver=solver, timeLimit=timeLimit, 
                             optimizationSpecs=optimizationSpecs, warmstart=False)
-            # Get first stock (installed capacities within the start year)
-            self.getStock(mileStoneYear)
 
-    def getStock(self, mileStoneYear, stepLength):
+            standardIO.writeOptimizationOutputToExcel(self, outputFileName='ESM'+str(mileStoneYear), optSumOutputLevel=2, optValOutputLevel=1)
+            
+            # Get first stock (installed capacities within the start year)
+            self.getStock(mileStoneYear, nbOfRepresentedYears)
+
+    def getStock(self, mileStoneYear, nbOfRepresentedYears):
         '''
         :param mileStoneYear: Year of the optimization
         :type name: int
@@ -815,12 +851,12 @@ class EnergySystemModel:
                     stockName = comp+'_stock'+'_'+str(mileStoneYear)
                     stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
                     stockComp.name = stockName
-                    stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime # - stepLength
+                    stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime # - nbOfRepresentedYears
                     stockComp.capacityFix = compValues.loc[comp]
                     stockComp.capacityMin, stockComp.capacityMax = None, None
                     self.add(stockComp)
                 if 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
-                    self.componentModelingDict[mdl].componentsDict[comp].lifetime = self.componentModelingDict[mdl].componentsDict[comp].lifetime-stepLength
+                    self.componentModelingDict[mdl].componentsDict[comp].lifetime = self.componentModelingDict[mdl].componentsDict[comp].lifetime-nbOfRepresentedYears
                     # if self.componentModelingDict[mdl].componentsDict[comp].lifetime <= 0:
                     #     print(self.componentModelingDict[mdl].componentsDict[comp].capacityFix)
                         
