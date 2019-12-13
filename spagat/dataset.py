@@ -59,12 +59,12 @@ class SpagatDataSet:
 
         self.xr_dataset[description] = (dimension_list, pd.Series(object_list).values)
 
-        # self.xr_dataset[description] = (('region_ids', 'region_ids_2'), grid_data)
+        # self.xr_dataset[description] = (('space', 'space_2'), grid_data)
 
-    def add_region_data(self, region_ids):
-        """Add the region_ids as coordinates to the dataset"""
-        self.xr_dataset.coords['region_ids'] = region_ids
-        self.xr_dataset.coords['region_ids_2'] = region_ids
+    def add_region_data(self, space, spatial_dim='space'):
+        """Add the space as coordinates to the dataset"""
+        self.xr_dataset.coords[f'{spatial_dim}'] = space
+        self.xr_dataset.coords[f'{spatial_dim}_2'] = space
 
     def read_dataset(self, sds_folder_path,
                      sds_regions_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):
@@ -78,13 +78,13 @@ class SpagatDataSet:
 
         gdf_regions = gpd.read_file(sds_regions_path)
         self.add_objects(description='gpd_geometries',
-                         dimension_list=['region_ids'],
+                         dimension_list=['space'],
                          object_list=gdf_regions.geometry)
 
     def save_sds_regions(self, shape_output_path, crs=3035):
         """Save regions and geometries from xr_array to shapefile"""
 
-        df = self.xr_dataset.region_ids.to_dataframe()
+        df = self.xr_dataset.space.to_dataframe()
         geometries = self.xr_dataset.gpd_geometries.values
 
         ito.create_gdf(df=df, geometries=geometries, crs=crs, filepath=shape_output_path)
