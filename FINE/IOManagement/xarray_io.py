@@ -64,7 +64,7 @@ def dimensional_data_to_xarray(esM):
             if isinstance(data, pd.DataFrame):
                 # print('data is pd.DataFrame')
                 multi_index_dataframe = data.stack()
-                multi_index_dataframe.index.set_names("location", level=2, inplace=True)
+                multi_index_dataframe.index.set_names("space", level=2, inplace=True)
 
                 df_dict[df_description] = multi_index_dataframe # append or concat or so
                                         
@@ -92,12 +92,12 @@ def dimensional_data_to_xarray(esM):
 
                     df = utils.transform1dSeriesto2dDataFrame(data, locations)
                     multi_index_dataframe = df.stack()
-                    multi_index_dataframe.index.set_names(["location", "location_2"], inplace=True)
+                    multi_index_dataframe.index.set_names(["space", "space_2"], inplace=True)
 
                     df_dict[df_description] = multi_index_dataframe
 
                 # else:
-                #     df_dict[df_description] = data.rename_axis("location")
+                #     df_dict[df_description] = data.rename_axis("space")
 
 
         if len(df_dict) > 0:
@@ -123,7 +123,7 @@ def dimensional_data_to_xarray(esM):
                 # print('data is pd.Series')
 
                 if classname != 'Transmission':
-                    df_dict[df_description] = data.rename_axis("location")
+                    df_dict[df_description] = data.rename_axis("space")
 
         if len(df_dict) > 0:
             df_variable = pd.concat(df_dict)
