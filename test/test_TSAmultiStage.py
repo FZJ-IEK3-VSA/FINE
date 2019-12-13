@@ -11,16 +11,20 @@ def test_TSAmultiStage(minimal_test_esM):
     # get the components with capacity variables
     electrolyzers = esM.getComponent('Electrolyzers')
     pressureTank = esM.getComponent('Pressure tank')
+    pipelines = esM.getComponent('Pipelines')
 
     # set binary variables and define bigM
     electrolyzers.hasIsBuiltBinaryVariable = True
     pressureTank.hasIsBuiltBinaryVariable = True
+    pipelines.hasIsBuiltBinaryVariable = True
 
     electrolyzers.investIfBuilt = pd.Series(2e5, index = esM.locations)
     pressureTank.investIfBuilt = pd.Series(1e5, index = esM.locations)
+    pipelines.investIfBuilt.loc[:] = 100
 
     electrolyzers.bigM = 30e4
     pressureTank.bigM = 30e6
+    pipelines.bigM = 30e3
 
     # optimize with 2 Stage Approach
     esM.optimizeTSAmultiStage(relaxIsBuiltBinary=True, solver = 'glpk', numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
