@@ -798,7 +798,7 @@ class EnergySystemModel:
                             logFileName=logFileName, threads=threads, solver=solver, timeLimit=timeLimit, 
                             optimizationSpecs=optimizationSpecs, warmstart=False)
             # Get first stock (installed capacities within the start year)
-            self.getStock(mileStoneYear)
+            self.getStock(mileStoneYear, stepLength)
             
     def setFixedVariables(self, optVariables):
         """
@@ -829,7 +829,7 @@ class EnergySystemModel:
                         self.componentModelingDict[mdl].componentsDict[comp].capacityMax = None
                         self.componentModelingDict[mdl].componentsDict[comp].capacityMin = None
 
-    def getStock(self, mileStoneYear):
+    def getStock(self, mileStoneYear, stepLength):
         '''
         :param mileStoneYear: Year of the optimization
         :type name: int
@@ -844,12 +844,13 @@ class EnergySystemModel:
                     stockName = comp+'_stock'+'_'+str(mileStoneYear)
                     stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
                     stockComp.name = stockName
-                    stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime - stepLength
+                    stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime # - stepLength
                     stockComp.capacityFix = compValues.loc[comp]
                     stockComp.capacityMin, stockComp.capacityMax = None, None
                     self.add(stockComp)
                 if 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
-                    self.componentModelingDict[mdl].componentsDict[comp].lifetime = self.componentModelingDict[mdl].componentsDict[comp].lifetime-stepLength
-                    if self.componentModelingDict[mdl].componentsDict[comp].lifetime <= 0:
-                        print(self.componentModelingDict[mdl].componentsDict[comp].capacityFix = 0)
+                    self.componentModelingDict[mdl].componentsDict[comp].lifetime = self.componentModelingDict[mdl].componentsDict[comp].lifetime -stepLength
+                    print(self.componentModelingDict[mdl].componentsDict[comp].name, self.componentModelingDict[mdl].componentsDict[comp].lifetime)
+                    # if self.componentModelingDict[mdl].componentsDict[comp].lifetime <= 0:
+                    #     print(self.componentModelingDict[mdl].componentsDict[comp].capacityFix)
                         
