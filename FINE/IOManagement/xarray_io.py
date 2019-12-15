@@ -75,8 +75,10 @@ def dimensional_data_to_xarray(esM):
         df_variable = pd.concat(df_dict)
         df_variable.index.set_names("component", level=0, inplace=True) # ?
 
-        da_component = df_variable.to_xarray()
-        ds[variable_description] = da_component
+        ds_component = xr.Dataset()
+        ds_component[variable_description] = df_variable.to_xarray()
+
+        ds = xr.merge([ds, ds_component])
 
     # get all 2d data (regions, regions)
     for variable_description, description_tuple_list in series_iteration_dict.items():
@@ -109,8 +111,10 @@ def dimensional_data_to_xarray(esM):
             df_variable = pd.concat(df_dict)
             df_variable.index.set_names("component", level=0, inplace=True) # ?
 
-            da_component = df_variable.to_xarray()
-            ds[variable_description] = da_component
+            ds_component = xr.Dataset()
+            ds_component[variable_description] = df_variable.to_xarray()
+
+            ds = xr.merge([ds, ds_component])
 
     # get all 1d data (regions)
     for variable_description, description_tuple_list in series_iteration_dict.items():
@@ -134,8 +138,10 @@ def dimensional_data_to_xarray(esM):
             df_variable = pd.concat(df_dict)
             df_variable.index.set_names("component", level=0, inplace=True) # ?
 
-            da_component = df_variable.to_xarray()
-            ds[variable_description] = da_component
+            ds_component = xr.Dataset()
+            ds_component[variable_description] = df_variable.to_xarray()
+
+            ds = xr.merge([ds, ds_component])
 
     return ds
 
@@ -153,57 +159,48 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
             classname, component_description = description_tuple
 
             df_description = f"{classname}, {component_description}"
-            # print(df_description)
             try:
                 df = xarray_dataset[variable_description].sel(component=df_description).drop("component").to_dataframe().unstack(level=0)            
 
-                # print(component_dict[classname][component_description][variable_description].head())
-
                 component_dict[classname][component_description][variable_description] = df
-
-                # print(component_dict[classname][component_description][variable_description].head())
 
             except:
                 print(f"'{variable_description}' for '{df_description}' not in xarray_dataset")
                 # TODO: these data should not be missing, should they? check to_dict function @Leander
-                # print(component_dict[classname][component_description][variable_description])
 
     # set all 2d data (regions, regions)
-    # for variable_description, description_tuple_list in series_iteration_dict.items():
-    #     df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
+    for variable_description, description_tuple_list in series_iteration_dict.items():
     
-    #     for description_tuple in description_tuple_list:
-    #         classname, component = description_tuple
+        for description_tuple in description_tuple_list:
+            classname, component_description = description_tuple
 
-    #         df_description = f"{classname}, {component}"
+            df_description = f"{classname}, {component_description}"
 
-    #         data = component_dict[classname][component][variable_description]
+            try:
+                if classname == 'Transmission':
+                    df = xarray_dataset[variable_description].sel(component=df_description).drop("component").to_dataframe().unstack(level=0)            
 
-    #         if isinstance(data, pd.Series):
+                    component_dict[classname][component_description][variable_description] = df
+                
+                # else:  # TODO: shouldn't this case be uncommented?
+                #     df_dict[df_description] = data.rename_axis("space")
 
-    #             if classname == 'Transmission':
-    #                 # read data from xarray_dataset, unstack it and replace respective dictionary entry
-    #                 component_dict[classname][component][variable_description] = unstacked_data
-    #             # TODO: shouldn't this case be uncommented?
-    #             # else:
-    #             #     df_dict[df_description] = data.rename_axis("space")
+            except:
+                print(f"'{variable_description}' for '{df_description}' not in xarray_dataset")
+                # TODO: these data should not be missing, should they? check to_dict function @Leander
 
     # set all 1d data (regions)
-    # for variable_description, description_tuple_list in series_iteration_dict.items():
+    for variable_description, description_tuple_list in series_iteration_dict.items():
 
-    #     df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
-    #     for description_tuple in description_tuple_list:
-    #         classname, component = description_tuple
-    
-    #         df_description = f"{classname}, {component}"
+        for description_tuple in description_tuple_list:
+            classname, component_description = description_tuple
 
-    #         data = component_dict[classname][component][variable_description]
+            df_description = f"{classname}, {component_description}"
 
-    #         if isinstance(data, pd.Series):
+            if classname != 'Transmission':
+                df = xarray_dataset[variable_description].sel(component=df_description).drop("component").to_dataframe().unstack(level=0)            
 
-    #             if classname != 'Transmission':
-                    
-    #                 component_dict[classname][component][variable_description] = xarray_dataset[...].to_dataframe().rename_axis("space") 
-    #                 # TODO: correctly unstack and rename the dataframe
+                component_dict[classname][component_description][variable_description] = df
+                # TODO: correctly unstack and rename the dataframe
 
     return esm_dict, component_dict
