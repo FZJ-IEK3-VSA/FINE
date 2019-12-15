@@ -5,15 +5,7 @@ import FINE as fn
 import numpy as np
 import pandas as pd
 
-def dimensional_data_to_xarray(esM):
-
-    """Outputs all dimensional data, hence data containing at least one of the dimensions of time and space, to an xarray dataset"""
-
-    esm_dict, component_dict = dictio.exportToDict(esM)
-
-    locations = list(esm_dict['locations'])
-    locations.sort() # TODO: should not be necessary any more
-
+def generate_iteration_dicts(esm_dict, component_dict):
     # create iteration dict that indicates all iterators
 
     df_iteration_dict = {}
@@ -45,6 +37,18 @@ def dimensional_data_to_xarray(esM):
                         series_iteration_dict[variable_description] = [description_tuple]
                     else:
                         series_iteration_dict[variable_description].append(description_tuple)
+
+    return df_iteration_dict, series_iteration_dict
+
+def dimensional_data_to_xarray(esM):
+    """Outputs all dimensional data, hence data containing at least one of the dimensions of time and space, to an xarray dataset"""
+
+    esm_dict, component_dict = dictio.exportToDict(esM)
+
+    locations = list(esm_dict['locations'])
+    locations.sort() # TODO: should not be necessary any more
+
+    df_iteration_dict, series_iteration_dict = generate_iteration_dicts(esm_dict, component_dict)
 
     # iterate over iteration dict
 
@@ -96,6 +100,7 @@ def dimensional_data_to_xarray(esM):
 
                     df_dict[df_description] = multi_index_dataframe
 
+                # TODO: shouldn't this case be uncommented?
                 # else:
                 #     df_dict[df_description] = data.rename_axis("space")
 
@@ -133,3 +138,72 @@ def dimensional_data_to_xarray(esM):
             ds[variable_description] = da_component
 
     return ds
+
+def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_dataset):
+    """Replaces dimensional data (using aggregated data from xarray_dataset) and respective description in component_dict and esm_dict"""
+    df_iteration_dict, series_iteration_dict = generate_iteration_dicts(esm_dict, component_dict)
+
+    # update esm_dict
+    esm_dict['locations'] = set(str(value) for value in xarray_dataset.space.values)
+    
+    # update component_dict
+    # set all regional time series (regions, time)
+    for variable_description, description_tuple_list in df_iteration_dict.items():
+        for description_tuple in description_tuple_list:
+            classname, component_description = description_tuple
+
+            df_description = f"{classname}, {component_description}"
+            # print(df_description)
+            try:
+                df = xarray_dataset[variable_description].sel(component=df_description).drop("component").to_dataframe().unstack(level=0)            
+
+                # print(component_dict[classname][component_description][variable_description].head())
+
+                component_dict[classname][component_description][variable_description] = df
+
+                # print(component_dict[classname][component_description][variable_description].head())
+
+            except:
+                print(f"'{variable_description}' for '{df_description}' not in xarray_dataset")
+                # TODO: these data should not be missing, should they? check to_dict function @Leander
+                # print(component_dict[classname][component_description][variable_description])
+
+    # set all 2d data (regions, regions)
+    # for variable_description, description_tuple_list in series_iteration_dict.items():
+    #     df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
+    
+    #     for description_tuple in description_tuple_list:
+    #         classname, component = description_tuple
+
+    #         df_description = f"{classname}, {component}"
+
+    #         data = component_dict[classname][component][variable_description]
+
+    #         if isinstance(data, pd.Series):
+
+    #             if classname == 'Transmission':
+    #                 # read data from xarray_dataset, unstack it and replace respective dictionary entry
+    #                 component_dict[classname][component][variable_description] = unstacked_data
+    #             # TODO: shouldn't this case be uncommented?
+    #             # else:
+    #             #     df_dict[df_description] = data.rename_axis("space")
+
+    # set all 1d data (regions)
+    # for variable_description, description_tuple_list in series_iteration_dict.items():
+
+    #     df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
+    #     for description_tuple in description_tuple_list:
+    #         classname, component = description_tuple
+    
+    #         df_description = f"{classname}, {component}"
+
+    #         data = component_dict[classname][component][variable_description]
+
+    #         if isinstance(data, pd.Series):
+
+    #             if classname != 'Transmission':
+                    
+    #                 component_dict[classname][component][variable_description] = xarray_dataset[...].to_dataframe().rename_axis("space") 
+    #                 # TODO: correctly unstack and rename the dataframe
+
+    return esm_dict, component_dict
