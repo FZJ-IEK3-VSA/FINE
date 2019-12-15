@@ -53,19 +53,19 @@ def exportToDict(esM):
     return esmDict, compDict
 
 
-def importFromDict(esmDict, compDict):
+def importFromDict(esmDict, compDict, esM=None):
     """
     Writes the dictionaries to an EnergySystemModel.
 
-    :param esM: dictionary created from exportToDict contains all esM information
-    :type esmDict: dictionary instance
+    :param esMDict: dictionary created from exportToDict contains all esM information
+    :type dict: dictionary instance
 
-    :param esM: dictionary create from exportToDict containing all component information
-    :type esmDict: dictionary instance
+    :param compDict: dictionary create from exportToDict containing all component information
+    :type dict: dictionary instance
     """
-    
-    # init esM
-    esM = fn.EnergySystemModel(**esmDict)
+
+    if esM is None:
+        esM = fn.EnergySystemModel(**esmDict)
 
     # add components
     for classname in compDict:
