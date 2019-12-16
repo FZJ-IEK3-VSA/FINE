@@ -887,5 +887,5 @@ class EnergySystemModel:
             compValues = self.componentModelingDict[mdl].getOptimizedValues('isBuiltVariablesOptimum')
             if compValues is not None:
                 for comp in compValues.index.get_level_values(0).unique():
-                    values = utils.preprocess2dimData(compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64))
+                    values = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1).round(decimals=0).astype(np.int64), discard=False)
                     self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
