@@ -873,7 +873,7 @@ class EnergySystemModel:
                     stockComp.capacityMin, stockComp.capacityMax = None, None
                     self.add(stockComp)
                 if 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
-                    self.componentModelingDict[mdl].componentsDict[comp].lifetime = self.componentModelingDict[mdl].componentsDict[comp].lifetime-nbOfRepresentedYears
-                    # if self.componentModelingDict[mdl].componentsDict[comp].lifetime <= 0:
-                    #     print(self.componentModelingDict[mdl].componentsDict[comp].capacityFix)
+                    self.componentModelingDict[mdl].componentsDict[comp].lifetime -= nbOfRepresentedYears
+                    if any(getattr(self.componentModelingDict[mdl].componentsDict[comp],'lifetime') <= 0):
+                        setattr(self.componentModelingDict[mdl].componentsDict[comp], 'capacityFix', pd.Series(0, index=getattr(self,'locations')))
                         
