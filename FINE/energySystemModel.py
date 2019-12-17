@@ -884,7 +884,7 @@ class EnergySystemModel:
     # Search for the optimized binary variables and set them as fixed.
     # TODO: Combine it with another method (e.g. while implementing the myopic approach etc.)
         for mdl in self.componentModelingDict.keys():
-            compValues = self.componentModelingDict[mdl].getOptimizedValues('isBuiltVariablesOptimum')
+            compValues = self.componentModelingDict[mdl].getOptimalValues('isBuiltVariablesOptimum')['values']
             if compValues is not None:
                 for comp in compValues.index.get_level_values(0).unique():
                     values = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1).round(decimals=0).astype(np.int64), discard=False)
