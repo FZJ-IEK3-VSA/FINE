@@ -808,3 +808,126 @@ class EnergySystemModel:
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
+<<<<<<< HEAD
+=======
+
+
+    def optimizeTSAmultiStage(self, declaresOptimizationProblem=True, relaxIsBuiltBinary=False,
+                               numberOfTypicalPeriods=30, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical', 
+                               logFileName='', threads=3, solver='gurobi', timeLimit=None, 
+                               optimizationSpecs='', warmstart=False):
+        """
+        Call the optimize function for a temporally aggregated MILP (so the model has to include
+        hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again
+        without temporal aggregation. Furthermore, a LP with relaxed binary variables can be solved to
+        obtain both, an upper and lower bound for the fully resolved MILP.
+        #TODO: Update the docstring. 
+
+        **Default arguments:**
+
+        :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
+            (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
+            (b) If false a previously declared pyomo ConcreteModel instance is used.
+            |br| * the default value is True
+        :type declaresOptimizationProblem: boolean
+
+#TODO: Check description
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower bound of the problem.
+            |br| * the default value is False
+        :type declaresOptimizationProblem: boolean
+
+        :param numberOfTypicalPeriods: 
+# TODO: Add description
+        :type numberOfTypicalPeriods: int
+
+        :param numberOfTimeStepsPerPeriod: 
+# TODO: Add description
+            |br| * the default value is 24 
+        :type numberOfTimeStepsPerPeriod: int
+
+        :param clusterMethod:
+# TODO: Add description
+        :type clusterMethod: string
+
+        :param logFileName: logFileName is used for naming the log file of the optimization solver output
+            if gurobi is used as the optimization solver.
+            If the logFileName is given as an absolute path (e.g. logFileName = os.path.join(os.getcwd(),
+            'Results', 'logFileName.txt')) the log file will be stored in the specified directory. Otherwise,
+            it will be stored by default in the directory where the executing python script is called.
+            |br| * the default value is 'job'
+        :type logFileName: string
+
+        :param threads: number of computational threads used for solving the optimization (solver dependent
+            input) if gurobi is used as the solver. A value of 0 results in using all available threads. If
+            a value larger than the available number of threads are chosen, the value will reset to the maximum
+            number of threads.
+            |br| * the default value is 3
+        :type threads: positive integer
+
+        :param solver: specifies which solver should solve the optimization problem (which of course has to be
+            installed on the machine on which the model is run).
+            |br| * the default value is 'gurobi'
+        :type solver: string
+
+        :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
+            in seconds (solver dependent input). The use of this parameter is suggested when running models in
+            runtime restricted environments (such as clusters with job submission systems). If the runtime
+            limitation is triggered before an optimal solution is available, the best solution obtained up
+            until then (if available) is processed.
+            |br| * the default value is None
+        :type timeLimit: strictly positive integer or None
+
+        :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver
+            documentation for more information). Example: 'LogToConsole=1 OptimalityTol=1e-6'
+            |br| * the default value is an empty string ('')
+        :type timeLimit: string
+
+        :param warmstart: specifies if a warm start of the optimization should be considered
+            (not always supported by the solvers).
+            |br| * the default value is False
+        :type warmstart: boolean
+
+        Last edited: December 11, 2019
+        |br| @author: Theresa Gross, Max Hoffmann
+        """
+        lowerBound=None
+
+        if relaxIsBuiltBinary:
+            self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxIsBuiltBinary=True,
+                        logFileName='relaxedProblem', threads=threads, solver=solver, timeLimit=timeLimit, 
+                        optimizationSpecs=optimizationSpecs, warmstart=warmstart)
+            lowerBound = self.pyM.Obj()
+
+        self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+                     clusterMethod=clusterMethod, solver=solver, sortValues=True)
+        
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=True, relaxIsBuiltBinary=False,
+                        logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
+                        optimizationSpecs=optimizationSpecs, warmstart=warmstart)
+
+        # Set the binary variables to the values resulting from the first optimization step
+        self.fixBinaryVariables()
+
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxIsBuiltBinary=False,
+                      logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
+                      optimizationSpecs=optimizationSpecs, warmstart=False)  
+        upperBound = self.pyM.Obj()
+
+        if lowerBound is not None:
+            delta = upperBound - lowerBound 
+            gap = delta/upperBound 
+            self.lowerBound, self.upperBound = lowerBound, upperBound
+            self.gap = gap
+            print('The real optimal value lies between ' + str(round(lowerBound,2)) + ' and ' +
+                   str(round(upperBound,2)) + ' with a gap of ' + str(round(gap*100,2)) + '%.')
+
+    def fixBinaryVariables(self):
+    # Search for the optimized binary variables and set them as fixed.
+    # TODO: Combine it with another method (e.g. while implementing the myopic approach etc.)
+        for mdl in self.componentModelingDict.keys():
+            compValues = self.componentModelingDict[mdl].getOptimalValues('isBuiltVariablesOptimum')['values']
+            if compValues is not None:
+                for comp in compValues.index.get_level_values(0).unique():
+                    values = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1).round(decimals=0).astype(np.int64), discard=False)
+                    self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values
+>>>>>>> getOptimizedValues Function deleted and getOptimalValues used instead in Multi Stage Approach
