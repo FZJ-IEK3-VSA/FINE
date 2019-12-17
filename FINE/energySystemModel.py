@@ -838,7 +838,7 @@ class EnergySystemModel:
             print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
 
 
-        for step in range(0,nbOfSteps):
+        for step in range(0,nbOfSteps+1):
             mileStoneYear = startYear + step*nbOfRepresentedYears
             logFileName = 'log_'+str(mileStoneYear)
             # First optimization: Optimize start year for first stock
@@ -855,25 +855,30 @@ class EnergySystemModel:
 
     def getStock(self, mileStoneYear, nbOfRepresentedYears):
         '''
-        :param mileStoneYear: Year of the optimization
-        :type name: int
+        :param mileStoneYear: Last year of the optimization period
+        :type mileStoneYear: int
 
-        Last edited: December 06, 2019
+        :param nbOfRepresentativeYears: Number of years within one optimization period.
+        :type nbOfRepresentativeYears: int
+
+        Last edited: December 17, 2019
         |br| @author: Theresa Gross, Felix Kullmann
         ''' 
         for mdl in self.componentModelingDict.keys():
-            compValues = self.componentModelingDict[mdl].getOptimizedValues('capacityVariablesOptimum')
+            compValues = self.componentModelingDict[mdl].getOptimalValues('capacityVariablesOptimum')['values']
             for comp in compValues.index.get_level_values(0).unique():
                 if 'stock' not in self.componentModelingDict[mdl].componentsDict[comp].name:
                     stockName = comp+'_stock'+'_'+str(mileStoneYear)
                     stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
                     stockComp.name = stockName
                     stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime # - nbOfRepresentedYears
-                    stockComp.capacityFix = compValues.loc[comp]
+                    # TODO: Not working yet! 
+                    stockComp.capacityFix = utils.preprocess2dimData(compValues.loc[comp])
                     stockComp.capacityMin, stockComp.capacityMax = None, None
                     self.add(stockComp)
-                if 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
+                elif 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
                     self.componentModelingDict[mdl].componentsDict[comp].lifetime -= nbOfRepresentedYears
                     if any(getattr(self.componentModelingDict[mdl].componentsDict[comp],'lifetime') <= 0):
                         setattr(self.componentModelingDict[mdl].componentsDict[comp], 'capacityFix', pd.Series(0, index=getattr(self,'locations')))
+                            
                         
