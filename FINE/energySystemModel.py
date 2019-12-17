@@ -540,7 +540,7 @@ class EnergySystemModel:
             return TAC
         pyM.Obj = pyomo.Objective(rule=objective)
 
-    def declareOptimizationProblem(self, timeSeriesAggregation=False, relaxed=False):
+    def declareOptimizationProblem(self, timeSeriesAggregation=False, relaxIsBuiltBinary=False):
         """
         Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
         instance is built and filled with
@@ -589,7 +589,7 @@ class EnergySystemModel:
             _t = time.time()
             utils.output('Declaring sets, variables and constraints for ' + key, self.verbose, 0)
             utils.output('\tdeclaring sets... ', self.verbose, 0), mdl.declareSets(self, pyM)
-            utils.output('\tdeclaring variables... ', self.verbose, 0), mdl.declareVariables(self, pyM, relaxed)
+            utils.output('\tdeclaring variables... ', self.verbose, 0), mdl.declareVariables(self, pyM, relaxIsBuiltBinary)
             utils.output('\tdeclaring constraints... ', self.verbose, 0), mdl.declareComponentConstraints(self, pyM)
             utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
@@ -619,8 +619,8 @@ class EnergySystemModel:
         # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
-    def optimize(self, declaresOptimizationProblem=True, relaxed=False, timeSeriesAggregation=False, logFileName='', threads=3,
-                 solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
+    def optimize(self, declaresOptimizationProblem=True, relaxIsBuiltBinary=False, timeSeriesAggregation=False,
+                 logFileName='', threads=3, solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
         A pyomo instance is optimized with the specified inputs, and the optimization results are further
@@ -635,7 +635,8 @@ class EnergySystemModel:
         :type declaresOptimizationProblem: boolean
 
 #TODO: Check description
-        :param relaxed: states if the optimization problem should be solved as a relaxed LP to get the lower bound of the problem.
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
+            bound of the problem.
             |br| * the default value is False
         :type declaresOptimizationProblem: boolean
 
@@ -687,7 +688,7 @@ class EnergySystemModel:
         |br| @author: Lara Welder
         """
         if declaresOptimizationProblem:
-            self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation, relaxed=relaxed)
+            self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation, relaxIsBuiltBinary=relaxIsBuiltBinary)
         else:
             if self.pyM is None:
                 raise TypeError('The optimization problem is not declared yet. Set the argument declaresOptimization'
@@ -770,14 +771,15 @@ class EnergySystemModel:
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
 
 
-    def optimizeErrorBoundingApproach(self, declaresOptimizationProblem=True, relaxed=False, 
+    def optimizeTSAmultiStage(self, declaresOptimizationProblem=True, relaxIsBuiltBinary=False,
                                numberOfTypicalPeriods=30, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical', 
                                logFileName='', threads=3, solver='gurobi', timeLimit=None, 
                                optimizationSpecs='', warmstart=False):
         """
-        Call the optimize function for a temporal aggregated MILP (so the model has to include 
+        Call the optimize function for a temporally aggregated MILP (so the model has to include
         hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again
-        without temporal aggregation. 
+        without temporal aggregation. Furthermore, a LP with relaxed binary variables can be solved to
+        obtain both, an upper and lower bound for the fully resolved MILP.
         #TODO: Update the docstring. 
 
         **Default arguments:**
@@ -789,7 +791,7 @@ class EnergySystemModel:
         :type declaresOptimizationProblem: boolean
 
 #TODO: Check description
-        :param relaxed: states if the optimization problem should be solved as a relaxed LP to get the lower bound of the problem.
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower bound of the problem.
             |br| * the default value is False
         :type declaresOptimizationProblem: boolean
 
@@ -844,29 +846,28 @@ class EnergySystemModel:
             |br| * the default value is False
         :type warmstart: boolean
 
-        Last edited: December 09, 2019
+        Last edited: December 11, 2019
         |br| @author: Theresa Gross, Max Hoffmann
         """
         lowerBound=None
 
-        if relaxed:
-            self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxed=True, 
+        if relaxIsBuiltBinary:
+            self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxIsBuiltBinary=True,
                         logFileName='relaxedProblem', threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=warmstart)
             lowerBound = self.pyM.Obj()
-            self.lowerBound = self.pyM.Obj()
 
         self.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
                      clusterMethod=clusterMethod, solver=solver, sortValues=True)
         
-        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=True, relaxed=False, 
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=True, relaxIsBuiltBinary=False,
                         logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=warmstart)
 
         # Set the binary variables to the values resulting from the first optimization step
         self.fixBinaryVariables()
 
-        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxed=False, 
+        self.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxIsBuiltBinary=False,
                       logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
                       optimizationSpecs=optimizationSpecs, warmstart=False)  
         upperBound = self.pyM.Obj()
@@ -876,8 +877,8 @@ class EnergySystemModel:
             gap = delta/upperBound 
             self.lowerBound, self.upperBound = lowerBound, upperBound
             self.gap = gap
-            print('The real optimal value lies between ', round(lowerBound,2), ' and ', 
-                   round(upperBound,2), ' with a gap of ', round(gap*100,2), '%.')                    
+            print('The real optimal value lies between ' + str(round(lowerBound,2)) + ' and ' +
+                   str(round(upperBound,2)) + ' with a gap of ' + str(round(gap*100,2)) + '%.')
 
     def fixBinaryVariables(self):
     # Search for the optimized binary variables and set them as fixed.
@@ -886,5 +887,5 @@ class EnergySystemModel:
             compValues = self.componentModelingDict[mdl].getOptimizedValues('isBuiltVariablesOptimum')
             if compValues is not None:
                 for comp in compValues.index.get_level_values(0).unique():
-                    values = compValues.loc[comp].fillna(value=0).round(decimals=0).astype(np.int64)
+                    values = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1).round(decimals=0).astype(np.int64), discard=False)
                     self.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values

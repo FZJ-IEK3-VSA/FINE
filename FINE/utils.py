@@ -696,14 +696,18 @@ def setOptimalComponentVariables(optVal, varType, compDict):
                 setattr(comp, varType, None)
 
 
-def preprocess2dimData(data, mapC=None):
+def preprocess2dimData(data, mapC=None, discard=True):
     if data is not None and isinstance(data, pd.DataFrame):
         if mapC is None:
             index, data_ = [], []
             for loc1 in data.index:
                 for loc2 in data.columns:
-                    if data[loc1][loc2] > 0:
-                        index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+                    if discard:
+                        if data[loc1][loc2] > 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+                    else:
+                        if data[loc1][loc2] >= 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
             return pd.Series(data_, index=index)
         else:
             return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
