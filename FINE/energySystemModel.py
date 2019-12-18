@@ -791,52 +791,8 @@ class EnergySystemModel:
         |br| @author: Theresa Gross, Felix Kullmann
         """                              
         
+        nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None)
         mileStoneYear = startYear
-        if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
-            # endYear is given; determine the nbOfRepresentedYears 
-            diff = endYear-startYear
-            def biggestDivisor(diff):
-                for i in [10,5,3,2,1]:
-                    if diff%i==0:
-                        return i
-            nbOfRepresentedYears=biggestDivisor(diff)
-            nbOfSteps=int(diff/nbOfRepresentedYears)
-            print('nbOfSteps = ', nbOfSteps)
-            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
-        elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None):
-            # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
-            nbOfSteps=nbOfSteps
-            print('nbOfSteps = ', nbOfSteps)
-            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
-        elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is None):
-            # If number of steps is given but no endyear and no the number of represented years per optimization run,
-            # nbOfRepresentedYears is set to 1 year. 
-            nbOfRepresentedYears = 1
-            print('nbOfSteps = ', nbOfSteps)
-            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
-        elif (endYear is not None) & (nbOfSteps is not None):
-            diff = endYear - startYear
-            if diff%nbOfSteps!=0:
-                raise ValueError('Number of Steps does not fit for the given time horizon between start and end year.')
-            elif (diff%nbOfSteps==0) & (nbOfRepresentedYears is not None):
-                if diff/nbOfSteps!=nbOfRepresentedYears:
-                    raise ValueError('Number of represented years does not fit for the given time horizon and the number of steps.')
-            print('nbOfSteps = ', nbOfSteps)
-            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
-        elif (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is not None):
-            diff = endYear - startYear
-            if diff%nbOfRepresentedYears!=0:
-                raise ValueError('Number of represented Years is not an integer divisor of the requested time horizon.')
-            else:
-                nbOfSteps = int(diff/nbOfRepresentedYears)
-            print('nbOfSteps = ', nbOfSteps)
-            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
-        else:
-            nbOfSteps=1
-            nbOfRepresentedYears=1
-            print('nbOfSteps = ', nbOfSteps)
-            print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
-
 
         for step in range(0,nbOfSteps+1):
             mileStoneYear = startYear + step*nbOfRepresentedYears
@@ -874,16 +830,18 @@ class EnergySystemModel:
                     stockComp.name = stockName
                     stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime # - nbOfRepresentedYears
                     # TODO: Not working yet! 
-                    print(compValues.loc[comp])
-                    if isinstance(compValues.loc[comp], pd.DataFrame):
-                        values = compValues.loc[comp].fillna(value=0)
-                        print(values)
-                        stockComp.capacityFix = utils.preprocess2dimData(values)
+                    if getattr(stockComp, 'capacityFix') is None:
+                        if isinstance(compValues.loc[comp], pd.DataFrame):
+                            values = compValues.loc[comp].fillna(value=-1)
+                            print(values)
+                            stockComp.capacityFix = utils.preprocess2dimData(values, discard=False)
+                        else:
+                            stockComp.capacityFix = compValues.loc[comp]
+                        print(stockComp.capacityFix)
+                        stockComp.capacityMin, stockComp.capacityMax = None, None
+                        self.add(stockComp)
                     else:
-                        stockComp.capacityFix = compValues.loc[comp]
-                    print(stockComp.capacityFix)
-                    stockComp.capacityMin, stockComp.capacityMax = None, None
-                    self.add(stockComp)
+                        print('Mich kennt man schon')
                 elif 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
                     self.componentModelingDict[mdl].componentsDict[comp].lifetime -= nbOfRepresentedYears
                     if any(getattr(self.componentModelingDict[mdl].componentsDict[comp],'lifetime') <= 0):

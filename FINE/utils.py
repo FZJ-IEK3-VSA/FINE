@@ -705,12 +705,15 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
             index, data_ = [], []
             for loc1 in data.index:
                 for loc2 in data.columns:
-                    if discard:
-                        if data[loc1][loc2] > 0:
-                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
-                    else:
-                        if data[loc1][loc2] >= 0:
-                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])   
+                    try:
+                        if discard:
+                            if data[loc1][loc2] > 0:
+                                index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+                        else:
+                            if data[loc2][loc1] >= 0:
+                                index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+                    except:
+                        print('Hoppla')
             return pd.Series(data_, index=index)
         else:
             return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
@@ -719,7 +722,6 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
         return data2
     else:
         return data
-
 
 def map2dimData(data, mapC):
     if data is not None and isinstance(data, pd.DataFrame):
@@ -749,3 +751,42 @@ def checkComponentsEquality(esM, file):
         compListFromExcel += list(readSheet.index.levels[0])
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
+
+def checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None):
+    if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
+         # endYear is given; determine the nbOfRepresentedYears 
+        diff = endYear-startYear
+        def biggestDivisor(diff):
+            for i in [10,5,3,2,1]:
+                if diff%i==0:
+                    return i
+        nbOfRepresentedYears=biggestDivisor(diff)
+        nbOfSteps=int(diff/nbOfRepresentedYears)
+        print('nbOfSteps = ', nbOfSteps)
+        print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
+    elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None):
+        # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
+        nbOfSteps=nbOfSteps
+    elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is None):
+        # If number of steps is given but no endyear and no the number of represented years per optimization run,
+        # nbOfRepresentedYears is set to 1 year. 
+        nbOfRepresentedYears = 1
+    elif (endYear is not None) & (nbOfSteps is not None):
+        diff = endYear - startYear
+        if diff%nbOfSteps!=0:
+            raise ValueError('Number of Steps does not fit for the given time horizon between start and end year.')
+        elif (diff%nbOfSteps==0) & (nbOfRepresentedYears is not None):
+            if diff/nbOfSteps!=nbOfRepresentedYears:
+                raise ValueError('Number of represented years does not fit for the given time horizon and the number of steps.')
+    elif (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is not None):
+        diff = endYear - startYear
+        if diff%nbOfRepresentedYears!=0:
+            raise ValueError('Number of represented Years is not an integer divisor of the requested time horizon.')
+        else:
+            nbOfSteps = int(diff/nbOfRepresentedYears)
+    else:
+        nbOfSteps=1
+        nbOfRepresentedYears=1
+    
+    return nbOfSteps, nbOfRepresentedYears
+
