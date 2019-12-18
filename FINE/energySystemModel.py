@@ -867,13 +867,21 @@ class EnergySystemModel:
         for mdl in self.componentModelingDict.keys():
             compValues = self.componentModelingDict[mdl].getOptimalValues('capacityVariablesOptimum')['values']
             for comp in compValues.index.get_level_values(0).unique():
+                print(comp)
                 if 'stock' not in self.componentModelingDict[mdl].componentsDict[comp].name:
                     stockName = comp+'_stock'+'_'+str(mileStoneYear)
                     stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
                     stockComp.name = stockName
                     stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime # - nbOfRepresentedYears
                     # TODO: Not working yet! 
-                    stockComp.capacityFix = utils.preprocess2dimData(compValues.loc[comp])
+                    print(compValues.loc[comp])
+                    if isinstance(compValues.loc[comp], pd.DataFrame):
+                        values = compValues.loc[comp].fillna(value=0)
+                        print(values)
+                        stockComp.capacityFix = utils.preprocess2dimData(values)
+                    else:
+                        stockComp.capacityFix = compValues.loc[comp]
+                    print(stockComp.capacityFix)
                     stockComp.capacityMin, stockComp.capacityMax = None, None
                     self.add(stockComp)
                 elif 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
