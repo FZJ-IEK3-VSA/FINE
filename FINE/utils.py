@@ -703,17 +703,15 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
     if data is not None and isinstance(data, pd.DataFrame):
         if mapC is None:
             index, data_ = [], []
-            for loc1 in data.index:
-                for loc2 in data.columns:
-                    try:
-                        if discard:
-                            if data[loc1][loc2] > 0:
-                                index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
-                        else:
-                            if data[loc2][loc1] >= 0:
-                                index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
-                    except:
-                        print('Hoppla')
+            for loc1 in data.columns:
+                for loc2 in data.index:
+                    if discard:
+                        # Structure: data[column][row]
+                        if data[loc1][loc2] > 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+                    else:
+                        if data[loc1][loc2] >= 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
             return pd.Series(data_, index=index)
         else:
             return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
@@ -753,6 +751,8 @@ def checkComponentsEquality(esM, file):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
 def checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None):
+    """ Check if there are enough input parameters given for defining the time horizon for the myopic approach. 
+        Calculate the number of optimization steps and the number of represented years per each step if not given."""
     if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
          # endYear is given; determine the nbOfRepresentedYears 
         diff = endYear-startYear

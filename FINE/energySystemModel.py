@@ -792,6 +792,8 @@ class EnergySystemModel:
         """                              
         
         nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None)
+        print('Number of optimizations: ', nbOfSteps)
+        print('Number of years represented by one optimization: ', nbOfRepresentedYears)
         mileStoneYear = startYear
 
         for step in range(0,nbOfSteps+1):
@@ -811,6 +813,8 @@ class EnergySystemModel:
 
     def getStock(self, mileStoneYear, nbOfRepresentedYears):
         '''
+        Function for determining the stock of all considered technologies for the next optimization period. 
+
         :param mileStoneYear: Last year of the optimization period
         :type mileStoneYear: int
 
@@ -823,25 +827,18 @@ class EnergySystemModel:
         for mdl in self.componentModelingDict.keys():
             compValues = self.componentModelingDict[mdl].getOptimalValues('capacityVariablesOptimum')['values']
             for comp in compValues.index.get_level_values(0).unique():
-                print(comp)
                 if 'stock' not in self.componentModelingDict[mdl].componentsDict[comp].name:
                     stockName = comp+'_stock'+'_'+str(mileStoneYear)
                     stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
                     stockComp.name = stockName
-                    stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime # - nbOfRepresentedYears
-                    # TODO: Not working yet! 
+                    stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime
                     if getattr(stockComp, 'capacityFix') is None:
                         if isinstance(compValues.loc[comp], pd.DataFrame):
-                            values = compValues.loc[comp].fillna(value=-1)
-                            print(values)
-                            stockComp.capacityFix = utils.preprocess2dimData(values, discard=False)
+                            stockComp.capacityFix = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1), discard=False)
                         else:
                             stockComp.capacityFix = compValues.loc[comp]
-                        print(stockComp.capacityFix)
                         stockComp.capacityMin, stockComp.capacityMax = None, None
                         self.add(stockComp)
-                    else:
-                        print('Mich kennt man schon')
                 elif 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
                     self.componentModelingDict[mdl].componentsDict[comp].lifetime -= nbOfRepresentedYears
                     if any(getattr(self.componentModelingDict[mdl].componentsDict[comp],'lifetime') <= 0):
