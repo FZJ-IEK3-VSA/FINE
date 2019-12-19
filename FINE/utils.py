@@ -379,7 +379,7 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
                 # Check if given capacities indicate the same eligibility
                 data = operationTimeSeries.copy().sum()
                 data[data > 0] = 1
-                if (data > locationalEligibility).any().any():
+                if (data.sort_index() > locationalEligibility.sort_index()).any().any():
                     raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
                                      ' eligibilities.')
         elif dimension == '2dim':
