@@ -312,15 +312,11 @@ class Component(metaclass=ABCMeta):
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
-<<<<<<< FINE/component.py
         self.capacityMin = utils.castToSeries(capacityMin, esM)
         self.capacityMax = utils.castToSeries(capacityMax, esM)
         self.capacityFix = utils.castToSeries(capacityFix, esM)
-=======
-        self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
         self.yearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMin, dimension, elig)
         self.yearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMax, dimension, elig)
->>>>>>> FINE/component.py
         self.isBuiltFix = isBuiltFix
         utils.checkLocationSpecficDesignInputParams(self, esM)
         
