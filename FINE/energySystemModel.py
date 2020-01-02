@@ -240,7 +240,6 @@ class EnergySystemModel:
         if not issubclass(type(component), Component):
             raise TypeError('The added component has to inherit from the FINE class Component.')
         if not issubclass(component.modelingClass, ComponentModel):
-            print(component.name, component.modelingClass, ComponentModel)
             raise TypeError('The added component has to inherit from the FINE class ComponentModel.')
         component.addToEnergySystemModel(self)
 
