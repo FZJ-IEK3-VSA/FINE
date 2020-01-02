@@ -100,14 +100,9 @@ class Conversion(Component):
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-<<<<<<< FINE/conversion.py
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, cScale=cScale, interestRate=interestRate,
-                            economicLifetime=economicLifetime)
-=======
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
                             economicLifetime=economicLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
                             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
->>>>>>> FINE/conversion.py
 
         # Set general conversion data: commodityConversionFactors, physicalUnit, linkedConversionCapacityID
         utils.checkCommodities(esM, set(commodityConversionFactors.keys()))
