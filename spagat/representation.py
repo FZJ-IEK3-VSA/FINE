@@ -173,9 +173,14 @@ def aggregate_values(xr_data_array_in, sub_to_sup_region_id_dict, mode='mean', o
         if mode == 'mean':
             xr_data_array_out.loc[dict(space=sup_region_id)] = xr_data_array_in.sel(
                 space=sub_region_id_list).mean(dim='space').values
-        if mode == 'sum':
+        elif mode == 'sum':
             xr_data_array_out.loc[dict(space=sup_region_id)] = xr_data_array_in.sel(
                 space=sub_region_id_list).sum(dim='space').values
+        elif mode == 'bool':
+            xr_data_array_out.loc[dict(space=sup_region_id)] = xr_data_array_in.sel(
+                space=sub_region_id_list).any(dim='space').values
+        else:
+            logger_representation.error('Please select one of the modes "mean", "bool" or "sum"')
 
     if output_unit == 'GW':
         return xr_data_array_out
@@ -183,7 +188,7 @@ def aggregate_values(xr_data_array_in, sub_to_sup_region_id_dict, mode='mean', o
         return xr_data_array_out
 
 
-def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='bool', set_diagonal_to_zero=True):
+def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='bool', set_diagonal_to_zero=True, spatial_dim='space'):
     """Aggregates all data of a data array containing connections with dimension 'sub_regions' to new data_array with
     dimension 'regions"""
     # TODO: make sure that region and region_2 ids don't get confused
@@ -191,8 +196,8 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='boo
 
     aggregated_coords = {key: value.values for key, value in xr_data_array_in.coords.items()}
 
-    aggregated_coords['space'] = space_coords
-    aggregated_coords['space_2'] = space_coords
+    aggregated_coords[f'{spatial_dim}'] = space_coords
+    aggregated_coords[f'{spatial_dim}_2'] = space_coords
 
     coord_list = [value for value in aggregated_coords.values()]
     dim_list = [key for key in aggregated_coords.keys()]
@@ -205,13 +210,15 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='boo
         for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():
             if mode == 'mean':
                 xr_data_array_out.loc[dict(space=sup_region_id,
-                                           space_2=sup_region_id_2)] = xr_data_array_in.sel(
-                    space=sub_region_id_list, space_2=sub_region_id_list_2).mean().values
+                                           space_2=sup_region_id_2)] = xr_data_array_in.sel(space=sub_region_id_list, 
+                                                                                            space_2=sub_region_id_list_2).mean().values
 
             elif mode == 'bool':
-                xr_data_array_out.loc[dict(space=sup_region_id,
-                                           space_2=sup_region_id_2)] = xr_data_array_in.sel(
+                bool_array = xr_data_array_in.sel(
                     space=sub_region_id_list, space_2=sub_region_id_list_2).any()
+                
+                xr_data_array_out.loc[dict(space=sup_region_id,
+                                           space_2=sup_region_id_2)] = bool_array
 
             elif mode == 'sum':
                 xr_data_array_out.loc[dict(space=sup_region_id,
@@ -228,7 +235,7 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='boo
 
 
 # spagat.output:
-def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space'):
+def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space', locational_eligibility='2d_locationalEligibility'):
     # TODO: move this to spr or so
     # TODO: add check, whether gpd_centroids exist
 
@@ -240,7 +247,7 @@ def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space'):
 
     for region_id_1 in sds.xr_dataset[f'{spatial_dim}'].values:
         for region_id_2 in sds.xr_dataset[f'{spatial_dim}_2'].values:
-            if sds.xr_dataset.AC_cable_incidence.sel(space=region_id_1, space_2=region_id_2).values:
+            if sds.xr_dataset[locational_eligibility].sel(space=region_id_1, space_2=region_id_2).isel(component=0).values:
                 buses_0.append(region_id_1)
                 buses_1.append(region_id_2)
 
