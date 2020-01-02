@@ -188,7 +188,8 @@ def aggregate_values(xr_data_array_in, sub_to_sup_region_id_dict, mode='mean', o
         return xr_data_array_out
 
 
-def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='bool', set_diagonal_to_zero=True, spatial_dim='space'):
+def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='bool', 
+                          set_diagonal_to_zero=True, spatial_dim='space'):
     """Aggregates all data of a data array containing connections with dimension 'sub_regions' to new data_array with
     dimension 'regions"""
     # TODO: make sure that region and region_2 ids don't get confused
@@ -209,27 +210,30 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='boo
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
         for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():
             if mode == 'mean':
-                xr_data_array_out.loc[dict(space=sup_region_id,
+                xr_data_array_out.loc[dict(space=sup_region_id, 
                                            space_2=sup_region_id_2)] = xr_data_array_in.sel(space=sub_region_id_list, 
-                                                                                            space_2=sub_region_id_list_2).mean().values
-
+                                                                                            space_2=sub_region_id_list_2).mean(dim=['space', 'space_2']).values
             elif mode == 'bool':
-                bool_array = xr_data_array_in.sel(
-                    space=sub_region_id_list, space_2=sub_region_id_list_2).any()
-                
-                xr_data_array_out.loc[dict(space=sup_region_id,
-                                           space_2=sup_region_id_2)] = bool_array
+                sum_array = xr_data_array_in.sel(
+                    space=sub_region_id_list, space_2=sub_region_id_list_2).sum(dim=['space', 'space_2'])
 
+                xr_data_array_out.loc[dict(space=sup_region_id,
+                                           space_2=sup_region_id_2)] = sum_array.where(sum_array==0, 1)
+                
+                
             elif mode == 'sum':
                 xr_data_array_out.loc[dict(space=sup_region_id,
                                            space_2=sup_region_id_2)] = xr_data_array_in.sel(
-                    space=sub_region_id_list, space_2=sub_region_id_list_2).sum()
+                    space=sub_region_id_list, space_2=sub_region_id_list_2).sum(dim=['space', 'space_2'])
             else:
                 logger_representation.error('Please select one of the modes "mean", "bool" or "sum"')
 
             if set_diagonal_to_zero and sup_region_id == sup_region_id_2:
                 xr_data_array_out.loc[dict(space=sup_region_id,
                                            space_2=sup_region_id_2)] = 0
+
+                # TODO: make sure, that setting NAN values to 0 does not cause troubles 
+                # -> find a better, such that only non-nan diagonal entries are set to zero
 
     return xr_data_array_out
 
@@ -247,7 +251,7 @@ def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space', loc
 
     for region_id_1 in sds.xr_dataset[f'{spatial_dim}'].values:
         for region_id_2 in sds.xr_dataset[f'{spatial_dim}_2'].values:
-            if sds.xr_dataset[locational_eligibility].sel(space=region_id_1, space_2=region_id_2).isel(component=0).values:
+            if sds.xr_dataset[locational_eligibility].sel(space=region_id_1, space_2=region_id_2).sel(component='Transmission, AC cables').values:
                 buses_0.append(region_id_1)
                 buses_1.append(region_id_2)
 

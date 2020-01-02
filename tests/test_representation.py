@@ -86,30 +86,48 @@ testdata = [
 @pytest.mark.parametrize("mode, expected", testdata) 
 def test_aggregate_connections(mode, expected):
 
+    # TODO: improve test data (component dimension needs to be added)
     ds = xr.open_dataset('tests/data/input/sds_xr_dataset.nc4')
-    ds_reduced = ds.isel(region_ids=range(5), region_ids_2=range(5))
+    ds_reduced = ds.isel(region_ids=range(8), region_ids_2=range(8))
 
     xr_data_array_in = ds_reduced['AC_cable_capacity']
     xr_data_array_in = xr_data_array_in.rename({"region_ids": "space", "region_ids_2": "space_2",}) 
-    data = np.array([
-                     [0, 0, 1, 0, 0], # es-pt
-                     [0, 0, 0, 1, 1], # es-nl, es-de
-                     [1, 0, 0, 0, 0], # pt-es
-                     [0, 1, 0, 0, 0], # nl-es
-                     [0, 1, 0, 0, 0], # de-es
-                 ]) 
-                 # sum: es-others: 2, es-pt: 1, pt-others: 0
-                 # mean: 1, 1, 0
-                 # bool: 1, 1, 0
-    
-    xr_data_array_in.data = data
-    # TODO: rename test data properly OR implement a check, whether coords are called space or not and change if not
+    # data = np.array([
+    #                  [0, 0, 1, 0, 0], # es-pt
+    #                  [0, 0, 0, 1, 1], # es-nl, es-de
+    #                  [1, 0, 0, 0, 0], # pt-es
+    #                  [0, 1, 0, 0, 0], # nl-es
+    #                  [0, 1, 0, 0, 0], # de-es
+    #              ]) 
+    #              # sum: es-others: 2, es-pt: 1, pt-others: 0
+    #              # mean: 1, 1, 0
+    #              # bool: 1, 1, 0
 
     sub_to_sup_region_id_dict = {
                                  "es": ['06_es', '11_es'], 
                                  "pt": ['13_pt'], 
                                  "others": ['30_nl', '31_de'],
                                  }
+
+
+    data = np.array([[ 0.,  0.,  0.,  0., 15.,  0.,  0.,  0.],
+              [ 0.,  0., 15.,  0.,  0.,  0.,  0., 15.],
+              [ 0., 15.,  0.,  0., 15.,  0.,  0.,  0.],
+              [ 0.,  0.,  0.,  0., 15., 15.,  0.,  0.],
+              [15.,  0., 15., 15.,  0.,  0.,  0.,  0.],
+              [ 0.,  0.,  0., 15.,  0.,  0.,  0.,  0.],
+              [ 0.,  0.,  0.,  0.,  0.,  0.,  0., 15.],
+              [ 0., 15.,  0.,  0.,  0.,  0., 15.,  0.]])
+
+    sub_to_sup_region_id_dict = {
+                                 "es": ['06_es', '11_es'], 
+                                 "pt": ['13_pt'], 
+                                 "others": ['30_nl', '31_de'],
+                                 }
+
+    xr_data_array_in.data = data
+    # TODO: rename test data properly OR implement a check, whether coords are called space or not and change if not
+
     
     ds_reduced_aggregated = spr.aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, 
                                                       mode=mode, set_diagonal_to_zero=True)
