@@ -64,6 +64,58 @@ def test_aggregate_geometries():
     pass
 
 
+# TODO: rename and correctly set testdata
+testdata = [
+            ('mean', np.array([
+                               [0.0, 0.5, 0.5],
+                               [0.5, 0.0, 0.0],
+                               [0.5, 0.0, 0.0],
+                              ])),
+            ('sum', np.array([
+                               [0, 1, 2],
+                               [1, 0, 0],
+                               [2, 0, 0],
+                              ])),
+            ('bool', np.array([
+                               [0, 1, 1],
+                               [1, 0, 0],
+                               [1, 0, 0],
+                              ])) 
+            ]
+
+@pytest.mark.parametrize("mode, expected", testdata) 
+def test_aggregate_connections(mode, expected):
+
+    ds = xr.open_dataset('tests/data/input/sds_xr_dataset.nc4')
+    ds_reduced = ds.isel(region_ids=range(5), region_ids_2=range(5))
+
+    xr_data_array_in = ds_reduced['AC_cable_capacity']
+    xr_data_array_in = xr_data_array_in.rename({"region_ids": "space", "region_ids_2": "space_2",}) 
+    data = np.array([
+                     [0, 0, 1, 0, 0], # es-pt
+                     [0, 0, 0, 1, 1], # es-nl, es-de
+                     [1, 0, 0, 0, 0], # pt-es
+                     [0, 1, 0, 0, 0], # nl-es
+                     [0, 1, 0, 0, 0], # de-es
+                 ]) 
+                 # sum: es-others: 2, es-pt: 1, pt-others: 0
+                 # mean: 1, 1, 0
+                 # bool: 1, 1, 0
+    
+    xr_data_array_in.data = data
+    # TODO: rename test data properly OR implement a check, whether coords are called space or not and change if not
+
+    sub_to_sup_region_id_dict = {
+                                 "es": ['06_es', '11_es'], 
+                                 "pt": ['13_pt'], 
+                                 "others": ['30_nl', '31_de'],
+                                 }
+    
+    ds_reduced_aggregated = spr.aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, 
+                                                      mode=mode, set_diagonal_to_zero=True)
+
+    assert np.array_equal(ds_reduced_aggregated.data, expected)
+
 testdata = [('mean', 5),
             ('weighted mean', 5),
             ('sum', 25)]
