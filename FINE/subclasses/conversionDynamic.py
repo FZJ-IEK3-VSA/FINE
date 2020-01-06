@@ -3,9 +3,10 @@ from FINE import utils
 import pyomo.environ as pyomo
 import pandas as pd
 
+import warnings
 
 
-class ConversionFancy(Conversion):
+class ConversionDynamic(Conversion):
     """
     Extension of the conversion class with more specific ramping behavior
     """
@@ -13,13 +14,14 @@ class ConversionFancy(Conversion):
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1, linkedConversionCapacityID=None,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, downTimeMin=None, upTimeMin=None, rampUpMax =None, rampDownMax=None, sharedPotentialID=None,
+                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, downTimeMin=None, 
+                 upTimeMin=None, rampUpMax =None, rampDownMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
         """
-        Constructor for creating a ConversionFancy class instance.
-        The ConversionFancy component specific input arguments are described below. The Conversion
+        Constructor for creating a ConversionDynamic class instance.
+        The ConversionDynamic component specific input arguments are described below. The Conversion
         specific input arguments are described in the Conversion class and the general component
         input arguments are described in the Component class.
 
@@ -31,28 +33,45 @@ class ConversionFancy(Conversion):
         """
 
         
-        Conversion. __init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable, capacityVariableDomain, capacityPerPlantUnit, linkedConversionCapacityID,
+        Conversion. __init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable, 
+                             capacityVariableDomain, capacityPerPlantUnit, linkedConversionCapacityID,
                              hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix, tsaWeight,
                              locationalEligibility, capacityMin, capacityMax, partLoadMin, sharedPotentialID,
                              capacityFix, isBuiltFix, investPerCapacity, investIfBuilt, opexPerOperation, opexPerCapacity,
                              opexIfBuilt, interestRate, economicLifetime)
 
 
-        self.modelingClass = ConversionFancyModel
+        self.modelingClass = ConversionDynamicModel
         self.downTimeMin = downTimeMin
         self.upTimeMin = upTimeMin
         self.rampUpMax =rampUpMax
         self.rampDownMax = rampDownMax
-        utils.checkConversionFancySpecficDesignInputParams(self, esM)     
+        utils.checkConversionDynamicSpecficDesignInputParams(self, esM)
+
+    def setTimeSeriesData(self, hasTSA):
+        """
+        Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
+        analysis is requested or not.
+
+        :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
+        :type hasTSA: boolean
+        """
+        super().setTimeSeriesData(hasTSA)
+        if hasTSA:
+            warnings.warn('Class "ConversionDynamic" works only partially together with "timeSeriesAggregation"' 
+                    + ', since the dynamic constraints between typical periods are relaxed.')
+        return
+        
 
 
-class ConversionFancyModel(ConversionModel):
+
+class ConversionDynamicModel(ConversionModel):
 
     """
-    A ConversionFancyModel class instance will be instantly created if a ConversionFancy class instance is initialized.
-    It is used for the declaration of the sets, variables and constraints which are valid for the ConversionFancy
+    A ConversionDynamicModel class instance will be instantly created if a ConversionDynamic class instance is initialized.
+    It is used for the declaration of the sets, variables and constraints which are valid for the ConversionDynamic
     class instance. These declarations are necessary for the modeling and optimization of the energy system model.
-    The ConversionFancyModel class inherits from the ConversionModel class. """
+    The ConversionDynamicModel class inherits from the ConversionModel class. """
 
     def __init__(self):
         self.abbrvName = 'conv_fancy'
@@ -322,10 +341,8 @@ class ConversionFancyModel(ConversionModel):
         ################################################################################################################
         #                                         Fancy Constraints                                        #
         ################################################################################################################
-
         self.minimumDownTime(pyM, esM)
         self.minimumUpTime(pyM, esM)
         self.rampUpMax(pyM, esM)
         self.rampDownMax(pyM, esM)
-        
         

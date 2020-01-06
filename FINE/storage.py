@@ -208,6 +208,17 @@ class Storage(Component):
         self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, chargeOpRateFix, locationalEligibility)
         self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, None
 
+        
+        if self.partLoadMin is not None:
+            if self.fullChargeOpRateMax is not None:
+                if ((self.fullChargeOpRateMax > 0) & (self.fullChargeOpRateMax < self.partLoadMin)).any().any():
+                    raise ValueError('"operationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+            if self.fullChargeOpRateFix is not None:
+                if ((self.fullChargeOpRateFix > 0) & (self.fullChargeOpRateFix < self.partLoadMin)).any().any():
+                    raise ValueError('"fullChargeOpRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
+
+
+
         utils.isPositiveNumber(chargeTsaWeight)
         self.chargeTsaWeight = chargeTsaWeight
 

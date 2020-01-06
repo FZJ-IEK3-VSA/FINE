@@ -328,8 +328,9 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             raise ValueError('bigM needs to be defined for component ' + name + ' if partLoadMin is not None.')
         if not hasCapacityVariable:
             raise ValueError('hasCapacityVariable needs to be True for component ' + name + ' if partLoadMin is not None.')
+            
 
-def checkConversionFancySpecficDesignInputParams(compFancy, esM):
+def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     downTimeMin = compFancy.downTimeMin
     upTimeMin = compFancy.upTimeMin
     numberOfTimeSteps = esM.numberOfTimeSteps
