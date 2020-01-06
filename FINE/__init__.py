@@ -11,3 +11,4 @@ from .transmission import Transmission
 from .component import Component, ComponentModel
 from .subclasses import *
 from .IOManagement import *
+from .wrapperFunctions import *
