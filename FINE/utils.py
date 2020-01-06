@@ -222,7 +222,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     partLoadMin = comp.partLoadMin
     name=comp.name
     bigM = comp.bigM     
-   
+    hasCapacityVariable = comp.hasCapacityVariable
     
     for data in [capacityMin, capacityFix, capacityMax, locationalEligibility, isBuiltFix]:
         if data is not None:
@@ -318,15 +318,16 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError('The isBuiltFix and capacityMin parameters indicate different design decisions.')
     
     if partLoadMin is not None:
-            if type(partLoadMin)!=float:
-                raise TypeError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
-            if partLoadMin <= 0:
-                raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
-            if partLoadMin > 1:
-                raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
-            if bigM is None:
-                raise ValueError('bigM needs to be defined for compeonent ' + name + ' if minimum part load is not None.')
-
+        if type(partLoadMin)!=float:
+            raise TypeError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
+        if partLoadMin <= 0:
+            raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
+        if partLoadMin > 1:
+            raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
+        if bigM is None:
+            raise ValueError('bigM needs to be defined for component ' + name + ' if partLoadMin is not None.')
+        if not hasCapacityVariable:
+            raise ValueError('hasCapacityVariable needs to be True for component ' + name + ' if partLoadMin is not None.')
 
 def checkConversionFancySpecficDesignInputParams(compFancy, esM):
     downTimeMin = compFancy.downTimeMin
