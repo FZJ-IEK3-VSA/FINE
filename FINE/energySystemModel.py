@@ -375,7 +375,7 @@ class EnergySystemModel:
         # call)
         timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
         clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
-                                             hoursPerPeriod=numberOfTimeStepsPerPeriod*self.hoursPerTimeStep,
+                                             hoursPerPeriod=int(numberOfTimeStepsPerPeriod*self.hoursPerTimeStep),
                                              clusterMethod=clusterMethod, sortValues=sortValues, weightDict=weightDict,
                                              **kwargs)
 

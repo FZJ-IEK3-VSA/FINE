@@ -5,6 +5,8 @@ Last edited: March 26, 2019
 """
 import warnings
 import pandas as pd
+import numpy as np
+import pwlf
 import FINE as fn
 
 def isString(string):
@@ -147,6 +149,49 @@ def checkCommodityUnits(esM, commodityUnit):
                          'Commodity unit: ' + str(commodityUnit) + '\n' +
                          'Energy system model commodityUnits: ' + str(esM.commodityUnitsDict.values()))
 
+
+def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
+    """ 
+    Check if one of the commodity conversion factors equals 1 and another is either a lambda function or a set of data points.
+    Additionally check if the conversion factor that depicts part load behavior 
+        (1) covers part loads from 0 to 1 and
+        (2) includes only conversion factors greater than 0 in the relevant part load range.
+    """
+    part_load_commod_present = False
+    non_part_load_commod_present = False
+
+    for conversionFactor in commodityConversionFactorsPartLoad:
+        if conversionFactor != 1 and conversionFactor != -1:
+            non_part_load_commod_present = True
+        if callable(conversionFactor):
+            checkCallableConversionFactor(conversionFactor)
+            part_load_commod_present = True
+        if type(conversionFactor) in [list, tuple] and all(isinstance(elem, tuple) for elem in conversionFactor):
+            checkListTypeConversionFactor(conversionFactor)
+            part_load_commod_present = True
+    
+    if non_part_load_commod_present == False:
+        raise TypeError('One conversion factor needs to be either 1 or -1.')
+    if part_load_commod_present == False:
+        raise TypeError('One conversion factor needs to be either a callable function or a list of two-dimensional data points.')
+
+
+def checkCallableConversionFactor(conversionFactor):
+    """  Check if the callable conversion factor includes only conversion factors greater than 0 in the relevant part load range. """
+    n_points_for_testing = 1001
+    x_test = np.linspace(0, 1, n_points_for_testing)
+    y_test = [conversionFactor(x_test_i) for x_test_i in x_test]
+
+    if any(y_test_i <= 0 for y_test_i in y_test):
+        raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
+
+
+def checkListTypeConversionFactor(conversionFactor):
+    """  
+    Check if the callable conversion factor covers part loads from 0 to 1 and 
+    if it includes only conversion factors greater than 0 in the relevant part load range. 
+    """
+    pass
 
 def checkAndSetDistances(distances, locationalEligibility, esM):
     """
@@ -702,3 +747,83 @@ def checkComponentsEquality(esM, file):
         compListFromExcel += list(readSheet.index.levels[0])
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
+
+def piece_wise_linearization(function, x_min, x_max, n_segments):
+
+    n_points_for_input_data = 1000
+    x = np.linspace(x_min, x_max, n_points_for_input_data)
+    y = [function(x_i) for x_i in x]
+
+    my_pwlf = pwlf.PiecewiseLinFit(x, y)
+    x_segments = my_pwlf.fit(n_segments)
+
+    # predict for the determined points
+    xHat = np.linspace(min(x), max(x), num=n_points_for_input_data)
+    yHat = my_pwlf.predict(xHat)
+
+    # Get the slopes
+    my_slopes = my_pwlf.slopes
+
+    # Get the y segments
+    y_segments = my_pwlf.predict(x_segments)
+
+    # calcualte the R^2 value
+    Rsquared = my_pwlf.r_squared()
+
+    # calculate the piecewise R^2 value
+    R2values = np.zeros(my_pwlf.n_segments)
+    for i in range(my_pwlf.n_segments):
+        # segregate the data based on break point locations
+        xmin = my_pwlf.fit_breaks[i]
+        xmax = my_pwlf.fit_breaks[i+1]
+        xtemp = my_pwlf.x_data
+        ytemp = my_pwlf.y_data
+        indtemp = np.where(xtemp >= xmin)
+        xtemp = my_pwlf.x_data[indtemp]
+        ytemp = my_pwlf.y_data[indtemp]
+        indtemp = np.where(xtemp <= xmax)
+        xtemp = xtemp[indtemp]
+        ytemp = ytemp[indtemp]
+
+        # predict for the new data
+        yhattemp = my_pwlf.predict(xtemp)
+
+        # calcualte ssr
+        e = yhattemp - ytemp
+        ssr = np.dot(e, e)
+
+        # calculate sst
+        ybar = np.ones(ytemp.size) * np.mean(ytemp)
+        ydiff = ytemp - ybar
+        sst = np.dot(ydiff, ydiff)
+
+        R2values[i] = 1.0 - (ssr/sst)
+
+    return {
+        'x_segments': x_segments, 
+        'y_segments': y_segments, 
+        'Rsquared': Rsquared, 
+        'R2values': R2values
+        }
+
+def getdiscretizedPartLoad(commodityConversionFactorsPartLoad, n_segments):
+    """ Preprocess the conversion factors passed by the user """
+    discretizedPartLoad = {commod: None for commod in commodityConversionFactorsPartLoad.keys()}
+    lambda_commod = None
+    non_lambda_commod = None
+    for commod, conversionFactor in commodityConversionFactorsPartLoad.items():
+        if conversionFactor != 1 and conversionFactor != -1:
+            ### TODO Add distinction between callable object and data points
+            discretizedPartLoad[commod] = piece_wise_linearization(function=conversionFactor, x_min=0, x_max=1, n_segments=n_segments)
+            lambda_commod = commod
+        else:
+            discretizedPartLoad[commod] = {
+                'x_segments': None,
+                'y_segments': [conversionFactor]*(n_segments+1), 
+                'Rsquared': 1.0, 
+                'R2values': 1.0
+                }
+            non_lambda_commod = commod
+    discretizedPartLoad[non_lambda_commod]['x_segments'] = discretizedPartLoad[lambda_commod]['x_segments']
+    print(discretizedPartLoad)
+    return discretizedPartLoad
