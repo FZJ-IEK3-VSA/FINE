@@ -762,8 +762,6 @@ def checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresen
                     return i
         nbOfRepresentedYears=biggestDivisor(diff)
         nbOfSteps=int(diff/nbOfRepresentedYears)
-        print('nbOfSteps = ', nbOfSteps)
-        print('NumberOfRepresentedYearsPerStep = ', nbOfRepresentedYears)
     elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None):
         # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
         nbOfSteps=nbOfSteps

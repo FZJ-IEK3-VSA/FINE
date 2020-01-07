@@ -766,8 +766,8 @@ class EnergySystemModel:
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
     
-    def optimizeMyopic(self, startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None, declaresOptimizationProblem=True, timeSeriesAggregation=False,  
-                        numberOfTypicalPeriods = 7,
+    def optimizeMyopic(self, startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None, timeSeriesAggregation=True,  
+                        numberOfTypicalPeriods = 7, 
                         logFileName='', threads=3, solver='gurobi', timeLimit=None, 
                         optimizationSpecs='', warmstart=False):
         """
@@ -775,23 +775,43 @@ class EnergySystemModel:
         will be given as a stock (with capacityFix) to the next optimization run. 
         #TODO: Write precise docstring for the function 
         #TODO: Write description of all arguments.
+        #TODO: TimeStepsPerPeriod required?
 
-        :param startYear: Year of the optimization
-        :type name: int
+        :param startYear: Year of the first optimization
+        :type startYear: int
+
+        **Default arguments:**
+
+        :param endYear: Year of the last optimization
+        :type endYear: int
 
         :param nbOfSteps: Number of optimization runs
             |br| * the default value is None
-        :type name: int or None 
+        :type nbOfSteps: int or None 
             
         :param noOfRepresentedYears: Number of years represented by one optimization run
             |br| * the default value is None
-        :type name: int or None
+        :type nbOfRepresentedYears: int or None
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+            |br| * the default value is False
+        :type timeSeriesAggregation: boolean
+
+        :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
+            should be clustered. The number of time steps per period must be an integer multiple of the total
+            number of considered time steps in the energy system. This argument is used if timeSeriesAggregation is set to True.
+            Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
+            information.
+            |br| * the default value is 7
+        :type numberOfTypicalPeriods: strictly positive integer
 
         Last edited: December 13, 2019
         |br| @author: Theresa Gross, Felix Kullmann
         """                              
         
-        nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None)
+        nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(startYear, endYear, nbOfSteps, nbOfRepresentedYears)
         print('Number of optimizations: ', nbOfSteps)
         print('Number of years represented by one optimization: ', nbOfRepresentedYears)
         mileStoneYear = startYear
@@ -826,22 +846,23 @@ class EnergySystemModel:
         ''' 
         for mdl in self.componentModelingDict.keys():
             compValues = self.componentModelingDict[mdl].getOptimalValues('capacityVariablesOptimum')['values']
-            for comp in compValues.index.get_level_values(0).unique():
-                if 'stock' not in self.componentModelingDict[mdl].componentsDict[comp].name:
-                    stockName = comp+'_stock'+'_'+str(mileStoneYear)
-                    stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
-                    stockComp.name = stockName
-                    stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime
-                    if getattr(stockComp, 'capacityFix') is None:
-                        if isinstance(compValues.loc[comp], pd.DataFrame):
-                            stockComp.capacityFix = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1), discard=False)
-                        else:
-                            stockComp.capacityFix = compValues.loc[comp]
-                        stockComp.capacityMin, stockComp.capacityMax = None, None
-                        self.add(stockComp)
-                elif 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
-                    self.componentModelingDict[mdl].componentsDict[comp].lifetime -= nbOfRepresentedYears
-                    if any(getattr(self.componentModelingDict[mdl].componentsDict[comp],'lifetime') <= 0):
-                        setattr(self.componentModelingDict[mdl].componentsDict[comp], 'capacityFix', pd.Series(0, index=getattr(self,'locations')))
+            if compValues is not None:
+                for comp in compValues.index.get_level_values(0).unique():
+                    if 'stock' not in self.componentModelingDict[mdl].componentsDict[comp].name:
+                        stockName = comp+'_stock'+'_'+str(mileStoneYear)
+                        stockComp = copy.copy(self.componentModelingDict[mdl].componentsDict[comp])
+                        stockComp.name = stockName
+                        stockComp.lifetime = self.componentModelingDict[mdl].componentsDict[comp].technicalLifetime
+                        if getattr(stockComp, 'capacityFix') is None:
+                            if isinstance(compValues.loc[comp], pd.DataFrame):
+                                stockComp.capacityFix = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1), discard=False)
+                            else:
+                                stockComp.capacityFix = compValues.loc[comp]
+                            stockComp.capacityMin, stockComp.capacityMax = None, None
+                            self.add(stockComp)
+                    elif 'stock' in self.componentModelingDict[mdl].componentsDict[comp].name:
+                        self.componentModelingDict[mdl].componentsDict[comp].lifetime -= nbOfRepresentedYears
+                        if any(getattr(self.componentModelingDict[mdl].componentsDict[comp],'lifetime') <= 0):
+                            setattr(self.componentModelingDict[mdl].componentsDict[comp], 'capacityFix', pd.Series(0, index=getattr(self,'locations')))
                             
                         
