@@ -183,6 +183,8 @@ def checkCallableConversionFactor(conversionFactor):
     y_test = [conversionFactor(x_test_i) for x_test_i in x_test]
 
     if any(y_test_i <= 0 for y_test_i in y_test):
+        print(max(y_test))
+        print(min(y_test))
         raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
 
 
