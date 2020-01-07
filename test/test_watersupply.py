@@ -133,7 +133,7 @@ def test_watersupply():
 
     # # Optimize the system
     esM.cluster(numberOfTypicalPeriods=7)
-    esM.optimize(timeSeriesAggregation=True, solver = 'gurobi', optimizationSpecs='LogToConsole=1 OptimalityTol=1e-6 crossover=1')
+    esM.optimize(timeSeriesAggregation=True, solver = 'glpk', optimizationSpecs='LogToConsole=1 OptimalityTol=1e-6 crossover=1')
 
 
     # # Selected results output

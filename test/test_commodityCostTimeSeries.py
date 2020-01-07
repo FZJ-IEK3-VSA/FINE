@@ -270,7 +270,7 @@ def test_commodityCostTimeSeries():
 
     esM.cluster(numberOfTypicalPeriods=3)
 
-    esM.optimize(timeSeriesAggregation=True, solver = 'gurobi')
+    esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
 
     # test if here solved fits with original results

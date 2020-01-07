@@ -85,7 +85,7 @@ def test_industrialSite():
 
     # Input parameters
     timeSeriesAggregation=False
-    solver='gurobi'
+    solver='glpk'
 
     # Optimize
     esM.optimize(timeSeriesAggregation=timeSeriesAggregation, solver=solver)
@@ -97,7 +97,7 @@ def test_industrialSite():
     print(testresults)
 
     # Write results to excel file
-    fn.writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput_industrialSite')
+    # fn.writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput_industrialSite')
 
 if __name__ == "__main__":
     test_miniSystem()
