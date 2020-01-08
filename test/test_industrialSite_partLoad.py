@@ -100,4 +100,4 @@ def test_industrialSite():
     # fn.writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput_industrialSite')
 
 if __name__ == "__main__":
-    test_miniSystem()
+    test_industrialSite()

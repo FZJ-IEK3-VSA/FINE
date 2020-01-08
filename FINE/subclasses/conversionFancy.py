@@ -41,7 +41,7 @@ class ConversionFancy(Conversion):
                  investPerCapacity, investIfBuilt, opexPerOperation, opexPerCapacity,
                  opexIfBuilt, interestRate, economicLifetime)
 
-        self.n_segments = 6
+        self.n_segments = 3
         self.modelingClass = ConversionFancyModel
 
         utils.checkCommodities(esM, set(commodityConversionFactorsPartLoad.keys()))
