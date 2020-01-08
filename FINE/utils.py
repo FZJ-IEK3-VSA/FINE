@@ -10,11 +10,6 @@ import numpy as np
 import math
 import os
 
-import spagat.manager as spm
-import spagat.representation as spr
-import metis_utils.io_tools as ito
-import geopandas as gpd
-
 def isString(string):
     """ Check if the input argument is a string. """
     if not type(string) == str:
@@ -775,82 +770,6 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
         df.loc[id_1, id_2] = row[1]
 
     return df
-
-
-def spatial_aggregation(esM, n_regions, 
-                        outputPath='tests/data/output/aggregated/33', 
-                        locFilePath=os.path.join('examples/Multi-regional Energy System Workflow', 'InputData', 'SpatialData','ShapeFiles', 'clusteredRegions.shp'), 
-                        saveAggregatedShapefiles=False):
-
-    # esM.spatial_aggregation()
-        # call utils.spatial_aggregation return esM_aggregated
-
-    # initialize spagat_manager
-    spagat_manager = spm.SpagatManager()
-    # spagat_manager.analysis_path = sds_folder_path_out
-    spagat_manager.sds.xr_dataset = fn.IOManagement.xarray_io.dimensional_data_to_xarray(esM)
-
-    gdf_regions = gpd.read_file(locFilePath)
-    spagat_manager.sds.add_objects(description='gpd_geometries',
-                    dimension_list=['space'],
-                    object_list=gdf_regions.geometry)
-    spr.add_region_centroids(spagat_manager.sds, spatial_dim='space')
-
-    # spatial clustering 
-    spagat_manager.grouping(dimension_description='space')
-
-    # representation of the clustered regions
-    spagat_manager.aggregation_function_dict = {'operationRateMax': ('mean', None), # ('weighted mean', 'capacityMax')
-                                            'operationRateFix': ('sum', None),
-                                            'locationalEligibility': ('bool', None), # TODO: set to bool
-                                            'capacityMax': ('sum', None),
-                                            'investPerCapacity': ('sum', None), # ?
-                                            'investIfBuilt': ('sum', None), # ? 
-                                            'opexPerOperation': ('sum', None), # ?
-                                            'opexPerCapacity': ('sum', None), # ?
-                                            'opexIfBuilt': ('sum', None), # ?
-                                            'interestRate': ('mean', None), # ?
-                                            'economicLifetime': ('mean', None), # ?
-                                            'capacityFix': ('sum', None),
-                                            'losses': ('mean', None), # ?
-                                            'distances': ('mean', None), # weighted mean ?
-                                            'commodityCost': ('mean', None), # ?
-                                            'commodityRevenue': ('mean', None), # ?
-                                            'opexPerChargeOperation': ('mean', None),
-                                            'opexPerDischargeOperation': ('mean', None),
-                                           }
-
-    spagat_manager.aggregation_function_dict = {f"{dimension}_{key}": value 
-                                                for key, value in spagat_manager.aggregation_function_dict.items()
-                                            for dimension in ["1d", "2d"]}
-
-    spagat_manager.representation(number_of_regions=n_regions)
-
-    # create aggregated esM instance
-
-    esmDict, compDict = fn.IOManagement.dictIO.exportToDict(esM)
-
-    esmDict, compDict = fn.IOManagement.xarray_io.update_dicts_based_on_xarray_dataset(esmDict, compDict, 
-                                                                  xarray_dataset=spagat_manager.sds_out.xr_dataset)
-    
-    esM_aggregated = fn.IOManagement.dictIO.importFromDict(esmDict, compDict)
-
-    if saveAggregatedShapefiles:
-
-        aggregated_grid_FilePath = os.path.join(cwd, 'InputData', 'SpatialData','ShapeFiles', 'aggregated_grid.shp')
-
-        spr.create_grid_shapefile(spagat_manager.sds_out, filename=aggregated_grid_FilePath)
-
-        aggregated_regions_FilePath = os.path.join(cwd, 'InputData', 'SpatialData','ShapeFiles', 'aggregated_regions.shp')
-
-        df_aggregated = spagat_manager.sds_out.xr_dataset.gpd_geometries.to_dataframe(
-            ).reset_index(level=0).rename(columns={'space':'index', 'gpd_geometries': 'geometry'})
-
-        gdf_aggregated = gpd.GeoDataFrame(df_aggregated)
-        gdf_aggregated.crs = {'init' :'epsg:3035'}
-        gdf_aggregated.to_file(aggregated_regions_FilePath)
-
-    return esM_aggregated
 
 
 class PowerDict(dict):  
