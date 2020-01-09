@@ -249,7 +249,6 @@ def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
     spagat_manager = spm.SpagatManager()
     spagat_manager.sds.xr_dataset = dimensional_data_to_xarray(esM)
 
-    locFilePath = os.path.join('examples/Multi-regional Energy System Workflow', 'InputData', 'SpatialData','ShapeFiles', 'clusteredRegions.shp')
     if locFilePath is not None:
         gdf_regions = gpd.read_file(locFilePath)
         spagat_manager.sds.add_objects(description='gpd_geometries',
