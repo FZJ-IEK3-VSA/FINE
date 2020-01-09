@@ -242,45 +242,47 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
 
     return esm_dict, component_dict
 
-def spatial_aggregation(esM, n_regions, 
-                        outputPath='tests/data/output/aggregated/33', 
-                        locFilePath=os.path.join('examples/Multi-regional Energy System Workflow', 'InputData', 'SpatialData','ShapeFiles', 'clusteredRegions.shp'), 
-                        aggregatedShapefileFolderPath = None):
+def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
+                        locFilePath=None, aggregatedShapefileFolderPath=None):
 
     # initialize spagat_manager
     spagat_manager = spm.SpagatManager()
-    # spagat_manager.analysis_path = sds_folder_path_out
     spagat_manager.sds.xr_dataset = dimensional_data_to_xarray(esM)
 
-    gdf_regions = gpd.read_file(locFilePath)
-    spagat_manager.sds.add_objects(description='gpd_geometries',
-                    dimension_list=['space'],
-                    object_list=gdf_regions.geometry)
-    spr.add_region_centroids(spagat_manager.sds, spatial_dim='space')
+    locFilePath = os.path.join('examples/Multi-regional Energy System Workflow', 'InputData', 'SpatialData','ShapeFiles', 'clusteredRegions.shp')
+    if locFilePath is not None:
+        gdf_regions = gpd.read_file(locFilePath)
+        spagat_manager.sds.add_objects(description='gpd_geometries',
+                        dimension_list=['space'],
+                        object_list=gdf_regions.geometry)
+        spr.add_region_centroids(spagat_manager.sds, spatial_dim='space')
 
     # spatial clustering 
     spagat_manager.grouping(dimension_description='space')
 
     # representation of the clustered regions
-    spagat_manager.aggregation_function_dict = {'operationRateMax': ('mean', None), # ('weighted mean', 'capacityMax')
-                                            'operationRateFix': ('sum', None),
-                                            'locationalEligibility': ('bool', None), # TODO: set to bool
-                                            'capacityMax': ('sum', None),
-                                            'investPerCapacity': ('sum', None), # ?
-                                            'investIfBuilt': ('sum', None), # ? 
-                                            'opexPerOperation': ('sum', None), # ?
-                                            'opexPerCapacity': ('sum', None), # ?
-                                            'opexIfBuilt': ('sum', None), # ?
-                                            'interestRate': ('mean', None), # ?
-                                            'economicLifetime': ('mean', None), # ?
-                                            'capacityFix': ('sum', None),
-                                            'losses': ('mean', None), # ?
-                                            'distances': ('mean', None), # weighted mean ?
-                                            'commodityCost': ('mean', None), # ?
-                                            'commodityRevenue': ('mean', None), # ?
-                                            'opexPerChargeOperation': ('mean', None),
-                                            'opexPerDischargeOperation': ('mean', None),
-                                           }
+    if aggregation_function_dict is None:
+        spagat_manager.aggregation_function_dict = {'operationRateMax': ('mean', None), # ('weighted mean', 'capacityMax')
+                                                'operationRateFix': ('sum', None),
+                                                'locationalEligibility': ('bool', None), 
+                                                'capacityMax': ('sum', None),
+                                                'investPerCapacity': ('sum', None), # ?
+                                                'investIfBuilt': ('sum', None), # ? 
+                                                'opexPerOperation': ('sum', None), # ?
+                                                'opexPerCapacity': ('sum', None), # ?
+                                                'opexIfBuilt': ('sum', None), # ?
+                                                'interestRate': ('mean', None), # ?
+                                                'economicLifetime': ('mean', None), # ?
+                                                'capacityFix': ('sum', None),
+                                                'losses': ('mean', None), # ?
+                                                'distances': ('mean', None), # weighted mean ?
+                                                'commodityCost': ('mean', None), # ?
+                                                'commodityRevenue': ('mean', None), # ?
+                                                'opexPerChargeOperation': ('mean', None),
+                                                'opexPerDischargeOperation': ('mean', None),
+                                            }
+    else:
+        spagat_manager.aggregation_function_dict = aggregation_function_dict
 
     spagat_manager.aggregation_function_dict = {f"{dimension}_{key}": value 
                                                 for key, value in spagat_manager.aggregation_function_dict.items()
