@@ -9,7 +9,7 @@ class ConversionFancy(Conversion):
     ToDo
     """
     def __init__(self, esM, name, physicalUnit, commodityConversionFactors, 
-                 commodityConversionFactorsPartLoad, hasCapacityVariable=True,
+                 commodityConversionFactorsPartLoad, nSegments=None, hasCapacityVariable=True,
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1, linkedConversionCapacityID=None,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
@@ -41,33 +41,18 @@ class ConversionFancy(Conversion):
                  investPerCapacity, investIfBuilt, opexPerOperation, opexPerCapacity,
                  opexIfBuilt, interestRate, economicLifetime)
 
-        self.n_segments = 3
+        self.nSegments = nSegments
         self.modelingClass = ConversionFancyModel
 
         utils.checkCommodities(esM, set(commodityConversionFactorsPartLoad.keys()))
         utils.checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad.values())
+
+        ### ToDo: Später auch mehr als 2 ConversionFactors zulassen - bis dahin wird Fehler geworfen, falls len(commodityConversionFactorsPartLoad.keys()) > 2
+        utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad.keys())
+
         self.commodityConversionFactorsPartLoad = commodityConversionFactorsPartLoad
-        self.discretizedPartLoad = utils.getdiscretizedPartLoad(commodityConversionFactorsPartLoad, self.n_segments)
-        # {commod: None for commod in commodityConversionFactorsPartLoad.keys()}
-     
-        # lambda_commod = None
-        # non_lambda_commod = None
-        # for commod, conversionFactor in commodityConversionFactorsPartLoad.items():
-        #     if conversionFactor != 1 and conversionFactor != -1:
-        #         ### TODO Test if object is lambda function
-        #         self.discretizedPartLoad[commod] = utils.piece_wise_linearization(function=conversionFactor, x_min=0, x_max=1, n_segments=self.n_segments)
-        #         lambda_commod = commod
-        #     else:
-        #         self.discretizedPartLoad[commod] = {
-        #             'x_segments': None,
-        #             'y_segments': [conversionFactor]*(self.n_segments+1), 
-        #             'Rsquared': 1.0, 
-        #             'R2values': 1.0
-        #             }
-        #         non_lambda_commod = commod
-        
-        # self.discretizedPartLoad[non_lambda_commod]['x_segments'] = self.discretizedPartLoad[lambda_commod]['x_segments']
-        # print(self.discretizedPartLoad)
+        self.discretizedPartLoad, self.nSegments = utils.getDiscretizedPartLoad(commodityConversionFactorsPartLoad, self.nSegments)
+       
 
     def addToEnergySystemModel(self, esM):
         """
@@ -114,7 +99,7 @@ class ConversionFancyModel(ConversionModel):
         def initDiscretizationPointVarSet(pyM):
             return ((loc, compName, discreteStep) for compName, comp in compDict.items() \
                     for loc in compDict[compName].locationalEligibility.index if compDict[compName].locationalEligibility[loc] == 1 \
-                    for discreteStep in range(compDict[compName].n_segments+1))
+                    for discreteStep in range(compDict[compName].nSegments+1))
         setattr(pyM, 'discretizationPointVarSet_' + abbrvName, pyomo.Set(dimen=3, initialize=initDiscretizationPointVarSet))
 
     def initDiscretizationSegmentVarSet(self, pyM):
@@ -131,7 +116,7 @@ class ConversionFancyModel(ConversionModel):
         def initDiscretizationSegmentVarSet(pyM):
             return ((loc, compName, discreteStep) for compName, comp in compDict.items() \
                     for loc in compDict[compName].locationalEligibility.index if compDict[compName].locationalEligibility[loc] == 1 \
-                    for discreteStep in range(compDict[compName].n_segments))
+                    for discreteStep in range(compDict[compName].nSegments))
         setattr(pyM, 'discretizationSegmentVarSet_' + abbrvName, pyomo.Set(dimen=3, initialize=initDiscretizationSegmentVarSet))
 
     def declareSets(self, esM, pyM):
@@ -245,7 +230,7 @@ class ConversionFancyModel(ConversionModel):
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def segmentSOS1(pyM, loc, compName, p, t):
-            return sum(discretizationSegmentBinVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].n_segments)) == 1
+            return sum(discretizationSegmentBinVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].nSegments)) == 1
         setattr(pyM, 'ConstrSegmentSOS1_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentSOS1))
 
 
@@ -281,7 +266,7 @@ class ConversionFancyModel(ConversionModel):
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def segmentCapacityConstraint(pyM, loc, compName, p, t):
-            return sum(discretizationSegmentConVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].n_segments)) == esM.hoursPerTimeStep * capVar[loc, compName]
+            return sum(discretizationSegmentConVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].nSegments)) == esM.hoursPerTimeStep * capVar[loc, compName]
         setattr(pyM, 'ConstrSegmentCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint))
 
 
@@ -299,7 +284,7 @@ class ConversionFancyModel(ConversionModel):
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def pointCapacityConstraint(pyM, loc, compName, p, t):
-            n_points = compDict[compName].n_segments+1
+            n_points = compDict[compName].nSegments+1
             return sum(discretizationPointConVar[loc, compName, discretStep, p, t] for discretStep in range(n_points)) == esM.hoursPerTimeStep * capVar[loc, compName]
         setattr(pyM, 'ConstrPointCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint))
 
@@ -318,8 +303,8 @@ class ConversionFancyModel(ConversionModel):
         discretizationPointVarSet = getattr(pyM, 'discretizationPointVarSet_' + self.abbrvName)
 
         def pointSOS2(pyM, loc, compName, discretStep, p, t):
-            points = list(range(compDict[compName].n_segments+1))
-            segments = list(range(compDict[compName].n_segments))
+            points = list(range(compDict[compName].nSegments+1))
+            segments = list(range(compDict[compName].nSegments))
 
             if discretStep == points[0]:
                 return discretizationPointConVar[loc, compName, points[0], p, t] <= discretizationSegmentConVar[loc, compName, segments[0], p, t]
@@ -344,7 +329,7 @@ class ConversionFancyModel(ConversionModel):
         opVar, opVarSet = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def partLoadOperationOutput(pyM, loc, compName, p, t):        
-            n_points = compDict[compName].n_segments+1
+            n_points = compDict[compName].nSegments+1
             ### TODO Store the part load levels seperately and do not use 
             # print(list(compDict[compName].discretizedPartLoad.keys()))
             return opVar[loc, compName, p, t] == sum(discretizationPointConVar[loc, compName, discretStep, p, t] * \
@@ -408,7 +393,7 @@ class ConversionFancyModel(ConversionModel):
         
         return sum(sum(discretizationPointConVar[loc, compName, discretStep, p, t] * \
                        compDict[compName].discretizedPartLoad[commod]['x_segments'][discretStep] * \
-                       compDict[compName].discretizedPartLoad[commod]['y_segments'][discretStep] for discretStep in range(compDict[compName].n_segments+1)) \
+                       compDict[compName].discretizedPartLoad[commod]['y_segments'][discretStep] for discretStep in range(compDict[compName].nSegments+1)) \
                    for compName in opVarDict[loc] if commod in compDict[compName].discretizedPartLoad)
 
     def getObjectiveFunctionContribution(self, esM, pyM):

@@ -8,6 +8,9 @@ import pandas as pd
 import numpy as np
 import pwlf
 import FINE as fn
+import matplotlib.pyplot as plt
+# from GPyOpt.methods import BayesianOptimization
+import sys
 
 def isString(string):
     """ Check if the input argument is a string. """
@@ -161,14 +164,14 @@ def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
     non_part_load_commod_present = False
 
     for conversionFactor in commodityConversionFactorsPartLoad:
-        if conversionFactor != 1 and conversionFactor != -1:
-            non_part_load_commod_present = True
-        if callable(conversionFactor):
+        if isinstance(conversionFactor,pd.DataFrame):
+            checkDataFrameTypeConversionFactor(conversionFactor)
+            part_load_commod_present = True
+        elif callable(conversionFactor):
             checkCallableConversionFactor(conversionFactor)
             part_load_commod_present = True
-        if type(conversionFactor) in [list, tuple] and all(isinstance(elem, tuple) for elem in conversionFactor):
-            checkListTypeConversionFactor(conversionFactor)
-            part_load_commod_present = True
+        elif conversionFactor == 1 or conversionFactor == -1:
+            non_part_load_commod_present = True
     
     if non_part_load_commod_present == False:
         raise TypeError('One conversion factor needs to be either 1 or -1.')
@@ -183,17 +186,25 @@ def checkCallableConversionFactor(conversionFactor):
     y_test = [conversionFactor(x_test_i) for x_test_i in x_test]
 
     if any(y_test_i <= 0 for y_test_i in y_test):
-        print(max(y_test))
-        print(min(y_test))
         raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
 
 
-def checkListTypeConversionFactor(conversionFactor):
+def checkDataFrameTypeConversionFactor(conversionFactor):
     """  
     Check if the callable conversion factor covers part loads from 0 to 1 and 
     if it includes only conversion factors greater than 0 in the relevant part load range. 
     """
-    pass
+    
+    x_test = np.array(conversionFactor['x'])
+    y_test = np.array(conversionFactor['y'])
+
+    ### ToDo: Prüfen, ob Check schon an anderer Stelle vorhanden ist
+    if np.isnan(x_test).any() or np.isnan(y_test).any():
+        raise ValueError('At least one value in the raw conversion factor data is non-numeric.')
+
+    if any(y_test_i <= 0 for y_test_i in y_test):
+        raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
+
 
 def checkAndSetDistances(distances, locationalEligibility, esM):
     """
@@ -750,32 +761,69 @@ def checkComponentsEquality(esM, file):
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
-def piece_wise_linearization(function, x_min, x_max, n_segments):
+def piece_wise_linearization(function_or_raw, x_min, x_max, nSegments):
 
-    n_points_for_input_data = 1000
-    x = np.linspace(x_min, x_max, n_points_for_input_data)
-    y = [function(x_i) for x_i in x]
+    if callable(function_or_raw):
+        n_points_for_input_data = 1000
+        x = np.linspace(x_min, x_max, n_points_for_input_data)
+        y = np.array([function_or_raw(x_i) for x_i in x])
+    else:
+        x = np.array(function_or_raw['x'])
+        y = np.array(function_or_raw['y'])
+        if not 0.0 in x:
+            xMinDefined = np.amin(x)
+            xMaxDefined = np.amax(x)
+            lenIntervalDefined = xMaxDefined - xMinDefined
+            lenIntervalUndefined = xMinDefined
+            nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
+            x_min_index = np.argmin(x)
+            for i in range(int(nPointsUndefined)):
+                x = np.append(x, [i/int(nPointsUndefined+1) * lenIntervalUndefined])
+                y = np.append(y, y[x_min_index])
+        if not 1.0 in x:
+            xMinDefined = np.amin(x)
+            xMaxDefined = np.amax(x)
+            lenIntervalDefined = xMaxDefined - xMinDefined
+            lenIntervalUndefined = 1.0 - xMaxDefined
+            nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
+            x_max_index = np.argmax(x)
+            for i in range(int(nPointsUndefined)):
+                x = np.append(x, [xMaxDefined + (i+1)/int(nPointsUndefined) * lenIntervalUndefined])
+                y = np.append(y, y[x_max_index])
 
     my_pwlf = pwlf.PiecewiseLinFit(x, y)
-    x_segments = my_pwlf.fit(n_segments)
 
-    # predict for the determined points
-    xHat = np.linspace(min(x), max(x), num=n_points_for_input_data)
-    yHat = my_pwlf.predict(xHat)
+    if nSegments == None:
+        # Define the lower and upper bound for the number of line segments
+        nSegments = 5
 
-    # Get the slopes
-    my_slopes = my_pwlf.slopes
+        # bounds = [{'name': 'var_1', 'type': 'discrete',
+        #    'domain': np.arange(2, 20)}] # TODO: Change to lower upper bound
+
+        # myBopt = BayesianOptimization(my_obj, domain=bounds, model_type='GP',
+        #                       initial_design_numdata=10,
+        #                       initial_design_type='latin',
+        #                       exact_feval=True, verbosity=True,
+        #                       verbosity_model=False)
+
+        # max_iter = 30
+
+        # # Perform the bayesian optimization to find the optimum number of line segments
+        # myBopt.run_optimization(max_iter=max_iter, verbosity=True)
+        # nSegments = myBopt.x_opt
+    
+    x_segments = my_pwlf.fit(nSegments)
 
     # Get the y segments
     y_segments = my_pwlf.predict(x_segments)
 
-    # calcualte the R^2 value
+    # Calcualte the R^2 value
     Rsquared = my_pwlf.r_squared()
 
-    # calculate the piecewise R^2 value
-    R2values = np.zeros(my_pwlf.n_segments)
-    for i in range(my_pwlf.n_segments):
-        # segregate the data based on break point locations
+    # Calculate the piecewise R^2 value
+    R2values = np.zeros(nSegments)
+    for i in range(nSegments):
+        # Segregate the data based on break point locations
         xmin = my_pwlf.fit_breaks[i]
         xmax = my_pwlf.fit_breaks[i+1]
         xtemp = my_pwlf.x_data
@@ -787,45 +835,77 @@ def piece_wise_linearization(function, x_min, x_max, n_segments):
         xtemp = xtemp[indtemp]
         ytemp = ytemp[indtemp]
 
-        # predict for the new data
+        # Predict for the new data
         yhattemp = my_pwlf.predict(xtemp)
 
-        # calcualte ssr
+        # Calcualte ssr
         e = yhattemp - ytemp
         ssr = np.dot(e, e)
 
-        # calculate sst
+        # Calculate sst
         ybar = np.ones(ytemp.size) * np.mean(ytemp)
         ydiff = ytemp - ybar
         sst = np.dot(ydiff, ydiff)
 
         R2values[i] = 1.0 - (ssr/sst)
 
+    # Plot the results
+    # plt.figure()
+    # plt.plot(x, y, 'o') # Raw data
+    # plt.plot(x_segments, y_segments, '-') # Piecewise linear function
+    # plt.show()
+
     return {
         'x_segments': x_segments, 
-        'y_segments': y_segments, 
+        'y_segments': y_segments,
+        'nSegments': nSegments,
         'Rsquared': Rsquared, 
         'R2values': R2values
         }
 
-def getdiscretizedPartLoad(commodityConversionFactorsPartLoad, n_segments):
+def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
     """ Preprocess the conversion factors passed by the user """
     discretizedPartLoad = {commod: None for commod in commodityConversionFactorsPartLoad.keys()}
-    lambda_commod = None
-    non_lambda_commod = None
+    function_or_raw_commod = None
+    non_function_or_raw_commod = None
     for commod, conversionFactor in commodityConversionFactorsPartLoad.items():
-        if conversionFactor != 1 and conversionFactor != -1:
-            ### TODO Add distinction between callable object and data points
-            discretizedPartLoad[commod] = piece_wise_linearization(function=conversionFactor, x_min=0, x_max=1, n_segments=n_segments)
-            lambda_commod = commod
-        else:
+        if isinstance(conversionFactor,pd.DataFrame):
+            discretizedPartLoad[commod] = piece_wise_linearization(function_or_raw=conversionFactor, x_min=0, x_max=1, nSegments=nSegments)
+            function_or_raw_commod = commod
+            nSegments = discretizedPartLoad[commod]['nSegments']
+        elif callable(conversionFactor):
+            discretizedPartLoad[commod] = piece_wise_linearization(function_or_raw=conversionFactor, x_min=0, x_max=1, nSegments=nSegments)
+            function_or_raw_commod = commod
+            nSegments = discretizedPartLoad[commod]['nSegments']
+        elif conversionFactor == 1 or conversionFactor == -1:
             discretizedPartLoad[commod] = {
                 'x_segments': None,
-                'y_segments': [conversionFactor]*(n_segments+1), 
+                'y_segments': None,
+                'nSegments': None,
                 'Rsquared': 1.0, 
                 'R2values': 1.0
                 }
-            non_lambda_commod = commod
-    discretizedPartLoad[non_lambda_commod]['x_segments'] = discretizedPartLoad[lambda_commod]['x_segments']
-    print(discretizedPartLoad)
-    return discretizedPartLoad
+            non_function_or_raw_commod = commod
+    discretizedPartLoad[non_function_or_raw_commod]['x_segments'] = discretizedPartLoad[function_or_raw_commod]['x_segments']
+    discretizedPartLoad[non_function_or_raw_commod]['y_segments'] = [commodityConversionFactorsPartLoad[non_function_or_raw_commod]]*(nSegments+1)
+    discretizedPartLoad[non_function_or_raw_commod]['nSegments'] = nSegments
+    return discretizedPartLoad, nSegments
+
+def checkNumberOfConversionFactors(commods):
+    if len(commods) > 2:
+        raise ValueError('Currently only two commodities are allowed in conversion processes that use commodityConversionFactorsPartLoad.')
+    else:
+        return True
+
+# Define objective function to get optimal number of line segments
+def my_obj(x):
+# The penalty parameter l is set arbitrarily. 
+# It depends upon the noise in your data and the value of your sum of square of residuals 
+    l = y.mean()*0.001
+
+    f = np.zeros(x.shape[0])
+
+    for i, j in enumerate(x):
+        my_pwlf.fit(j[0])
+        f[i] = my_pwlf.ssr + (l*j[0])
+    return f
