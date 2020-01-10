@@ -65,6 +65,7 @@ def importFromDict(esmDict, compDict, esM=None):
     """
 
     if esM is None:
+        # TODO: drop LinearOptimalPowerFlow ?
         esM = fn.EnergySystemModel(**esmDict)
 
     # add components
@@ -72,7 +73,8 @@ def importFromDict(esmDict, compDict, esM=None):
         # get class
         class_ = getattr(fn, classname)
 
-        for comp in compDict[classname]:            
+        for comp in compDict[classname]:
+            # if classname != 'LinearOptimalPowerFlow':
             esM.add(class_(esM, **compDict[classname][comp]))
 
     return esM
