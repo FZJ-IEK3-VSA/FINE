@@ -7,7 +7,7 @@ import json
 
 from FINE.IOManagement import dictIO
 
-def test_export_to_dict(minimal_test_esM):
+def test_export_to_dict_minimal(minimal_test_esM):
     '''
     Export esM class to file
     '''
@@ -16,7 +16,7 @@ def test_export_to_dict(minimal_test_esM):
 
     # TODO: test against expected values
 
-def test_export_to_dict_2(multi_node_test_esM_init):
+def test_export_to_dict_multinode(multi_node_test_esM_init):
     # TODO: use parametrization instead of repeating the test
     '''
     Export esM class to file
@@ -26,7 +26,7 @@ def test_export_to_dict_2(multi_node_test_esM_init):
 
     # TODO: test against expected values
 
-def test_import_from_dict(minimal_test_esM):
+def test_import_from_dict_minimal(minimal_test_esM):
 
     '''
     Get a dictionary of a esM class and write it to another esM
@@ -46,7 +46,7 @@ def test_import_from_dict(minimal_test_esM):
 
     np.testing.assert_array_almost_equal(testresults.values, [np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07]),],decimal=-3)
 
-def test_import_from_dict_2(multi_node_test_esM_init, multi_node_test_esM_optimized):
+def test_import_from_dict_multinode(multi_node_test_esM_init, multi_node_test_esM_optimized):
     # TODO: use parametrization instead of repeating the test
     '''
     Get a dictionary of a esM class and write it to another esM

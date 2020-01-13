@@ -73,7 +73,11 @@ def dimensional_data_to_xarray(esM):
             if isinstance(data, pd.DataFrame):
                 # print('data is pd.DataFrame')
                 multi_index_dataframe = data.stack()
-                multi_index_dataframe.index.set_names("space", level=2, inplace=True)
+                if classname == 'LinearOptimalPowerFlow':
+                    multi_index_dataframe.index.set_names("space", level=1, inplace=True)
+                else:
+                    multi_index_dataframe.index.set_names("space", level=2, inplace=True)
+                    
 
                 df_dict[df_description] = multi_index_dataframe # append or concat or so
                                         
