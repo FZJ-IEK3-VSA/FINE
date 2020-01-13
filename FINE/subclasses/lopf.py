@@ -39,8 +39,8 @@ class LinearOptimalPowerFlow(Transmission):
 
         self.modelingClass = LOPFModel
 
-        self.reactances2dim = reactances
-        self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
+        self.reactances = reactances
+        self._reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances[loc[0]][loc[1]])
 
     def addToEnergySystemModel(self, esM):
         """
@@ -169,7 +169,7 @@ class LOPFModel(TransmissionModel):
             node1, node2 = compDict[compName]._mapC[loc]
             return (opVar[loc, compName, p, t] - opVar[compDict[compName]._mapI[loc], compName, p, t] ==
                     (phaseAngleVar[node1, compName, p, t]-phaseAngleVar[node2, compName, p, t])/
-                    compDict[compName].reactances[loc])
+                    compDict[compName]._reactances[loc])
         setattr(pyM, 'ConstrpowerFlowDC_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=powerFlowDC))
 
     def basePhaseAngle(self, pyM):
