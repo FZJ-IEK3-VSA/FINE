@@ -2,7 +2,7 @@ import FINE as fn
 import FINE.utils as utils
 
 import inspect
-
+import json
 
 def exportToDict(esM):
     """
@@ -52,6 +52,13 @@ def exportToDict(esM):
 
     return esmDict, compDict
 
+def exportToJSON(esM, filename):
+    esmDict, compDict = exportToDict(esM)
+
+    entireEsmDict = {'esmDict': esmDict, 'compDict': compDict}
+
+    with open(filename, 'w') as fp:
+        json.dump(entireEsmDict, fp)
 
 def importFromDict(esmDict, compDict, esM=None):
     """
@@ -80,4 +87,11 @@ def importFromDict(esmDict, compDict, esM=None):
     return esM
 
 
+def importFromJSON(filename):
 
+    with open(filename, 'r') as fp:
+        entireEsmDict = json.load(fp)
+
+    esM = importFromDict(entireEsmDict['esmDict'], entireEsmDict['compDict'])
+
+    return esM
