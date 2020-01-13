@@ -86,7 +86,6 @@ def importFromDict(esmDict, compDict, esM=None):
 
     return esM
 
-
 def importFromJSON(filename):
 
     with open(filename, 'r') as fp:

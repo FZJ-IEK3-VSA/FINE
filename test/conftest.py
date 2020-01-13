@@ -33,7 +33,6 @@ def minimal_test_esM(scope="session"):
     # time step length [h]
     timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
-
     ### Buy electricity at the electricity market
     costs = pd.DataFrame([np.array([ 0.05, 0., 0.1, 0.051,]),np.array([0., 0., 0., 0.,])],
                             index = ['ElectrolyzerLocation', 'IndustryLocation']).T
@@ -574,7 +573,6 @@ def multi_node_test_esM_optimized(scope="session"):
 
 
     return esM
-
 
 @pytest.fixture
 def multi_node_geokit_shapes(scope="session"):
