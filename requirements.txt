@@ -5,3 +5,4 @@ tsam>=0.9.9
 sphinx_rtd_theme>=0.3.1
 matplotlib
 xlrd
+xarray
