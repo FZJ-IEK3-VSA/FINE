@@ -1,8 +1,7 @@
 
 def test_minimal_test_esM(minimal_test_esM):
 
-    # TODO: add test with time series aggregation ?
-    # minimal_test_esM.cluster(numberOfTypicalPeriods=2)
+    minimal_test_esM.cluster(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
 
     minimal_test_esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
 

@@ -585,8 +585,8 @@ def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalElig
 def checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps):
     isStrictlyPositiveInt(numberOfTypicalPeriods), isStrictlyPositiveInt(numberOfTimeStepsPerPeriod)
     if not totalNumberOfTimeSteps % numberOfTimeStepsPerPeriod == 0:
-        raise ValueError('The numberOfTimeStepsPerPeriod has to be an integer divisor of the total number of time\n' +
-                         ' steps considered in the energy system model.')
+        raise ValueError(f'The numberOfTimeStepsPerPeriod ({numberOfTimeStepsPerPeriod}) has to be an integer divisor of the total number of time' +
+                         f' steps considered in the energy system model ({totalNumberOfTimeSteps}).')
     if totalNumberOfTimeSteps < numberOfTypicalPeriods * numberOfTimeStepsPerPeriod:
         raise ValueError('The product of the numberOfTypicalPeriods and the numberOfTimeStepsPerPeriod has to be \n' +
                          'smaller than the total number of time steps considered in the energy system model.')
