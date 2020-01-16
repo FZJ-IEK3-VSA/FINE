@@ -120,8 +120,8 @@ class StorageExt(Storage):
         """
         self.chargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullChargeOpRateMax
         self.chargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullChargeOpRateFix
-        self.dischargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
-        self.dischargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
+        self.dischargeOpRateMax = self.aggregatedDischargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
+        self.dischargeOpRateFix = self.aggregatedDischargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
         self.stateOfChargeOpRateMax = self.aggregatedStateOfChargeOpRateMax if hasTSA \
             else self.fullStateOfChargeOpRateMax
         self.stateOfChargeOpRateFix = self.aggregatedStateOfChargeOpRateFix if hasTSA \
@@ -441,8 +441,18 @@ class StorageExtModel(StorageModel):
             #              Constraints for enforcing a state of charge operation mode within given limits              #
 
             # State of charge [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] and the relative
-            # maximum state of charge
-            self.operationModeSOC(pyM, esM)
+            # maximum state of charge            
+            self.operationMode1(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeMax', True)
+            # State of charge [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] and the relative
+            # fixed state of charge time series [-]
+            self.operationMode2(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateFix', True)
+            # State of charge [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] and the relative
+            # maximum state of charge time series [-]
+            self.operationMode3(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateMax', True)
+            # State of charge [commodityUnit*h] is equal to the absolute fixed state of charge time series [commodityUnit*h]
+            self.operationMode4(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateFix')
+            # State of charge [commodityUnit*h] is limited by the absolute maximum state of charge time series [commodityUnit*h]
+            self.operationMode5(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateMax')
 
             # The state of charge [commodityUnit*h] has to be larger than the installed capacity [commodityUnit*h]
             # multiplied with the relative minimum state of charge

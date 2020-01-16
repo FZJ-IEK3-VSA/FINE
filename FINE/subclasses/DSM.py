@@ -3,6 +3,7 @@ from FINE import utils
 import FINE as fn
 import pyomo.environ as pyomo
 import pandas as pd
+import warnings
 
 class DemandSideManagement(Sink):
     """
@@ -29,15 +30,43 @@ class DemandSideManagement(Sink):
         self.modelingClass = DSMModel
 
         for i in range(self.tDelta):
-            SOCmax = pd.concat([operationRateFix[operationRateFix.index % self.tDelta == i]]*self.tDelta).\
+            SOCmax = operationRateFix.copy()
+            SOCmax[SOCmax > 0] = 0
+            
+            SOCmax_ = pd.concat([operationRateFix[operationRateFix.index % self.tDelta == i]]*self.tDelta).\
                 sort_index().reset_index(drop=True)
-            SOCmax = pd.concat([SOCmax.iloc[tDown+tUp-i:], SOCmax.iloc[:tDown+tUp-i]]).reset_index(drop=True)
+            
+            if (len(SOCmax_) > len(esM.totalTimeSteps)):
+                SOCmax_ = pd.concat([SOCmax_.iloc[tDown+tUp-i:], SOCmax_.iloc[:tDown+tUp-i]]).reset_index(drop=True)
+                print('tUp+tDown+1 is not a divisor of the total number of time steps of the energy system. ' +
+                    'This shortens the shiftable timeframe of demand_' + str(i) + ' by ' +
+                    str(len(SOCmax_)-len(esM.totalTimeSteps)) + ' time steps')
+                SOCmax = SOCmax_.iloc[:len(esM.totalTimeSteps)]
+
+            elif len(SOCmax_) < len(esM.totalTimeSteps):
+                SOCmax.iloc[0:len(SOCmax_.iloc[tDown+tUp-i:])] = SOCmax_.iloc[tDown+tUp-i:].values
+                if len(SOCmax_.iloc[:tDown+tUp-i]) > 0:
+                    SOCmax.iloc[-len(SOCmax_.iloc[:tDown+tUp-i]):] = SOCmax_.iloc[:tDown+tUp-i].values
+                    
+            else:
+                SOCmax_ = pd.concat([SOCmax_.iloc[tDown+tUp-i:], SOCmax_.iloc[:tDown+tUp-i]]).reset_index(drop=True)
+                SOCmax = SOCmax_
+
+            # SOCmax = pd.concat([operationRateFix[operationRateFix.index % self.tDelta == i]]*self.tDelta).\
+            #     sort_index().reset_index(drop=True)
+            # SOCmax = pd.concat([SOCmax.iloc[tDown+tUp-i:], SOCmax.iloc[:tDown+tUp-i]]).reset_index(drop=True)
+            # if (len(SOCmax) != len(esM.totalTimeSteps)):
+            #     warnings.warn('tUp+tDown+1 is not a divisor of the total number of time steps of the energy system. ' +
+            #                   'This shortens the available backwards shift of demand ' + str(i) + ' by ' +
+            #                   str(len(esM.totalTimeSteps)-len(SOCmax)) + ' time steps')
+            #     SOCmax = SOCmax.iloc[:len(esM.totalTimeSteps)]
 
             dischargeFix = operationRateFix.copy()
             dischargeFix[dischargeFix.index % self.tDelta != i] = 0
 
             esM.add(fn.StorageExt(esM, name + '_' + str(i), commodity, stateOfChargeOpRateMax=SOCmax,
-                dischargeOpRateFix=dischargeFix, hasCapacityVariable=False))
+                chargeOpRateMax=SOCmax, dischargeOpRateFix=dischargeFix, hasCapacityVariable=False,
+                doPreciseTsaModeling=True))
 
 
 class DSMModel(SourceSinkModel):
