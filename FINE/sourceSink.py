@@ -194,7 +194,7 @@ class Source(Component):
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:
                 if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
-                    raise ValueError('"operationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+                    raise ValueError('"fullOperationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
             if self.fullOperationRateFix is not None:
                 if ((self.fullOperationRateFix > 0) & (self.fullOperationRateFix < self.partLoadMin)).any().any():
                     raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
