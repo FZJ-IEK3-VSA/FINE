@@ -25,11 +25,13 @@ class ConversionDynamic(Conversion):
         specific input arguments are described in the Conversion class and the general component
         input arguments are described in the Component class.
 
-        **Required arguments:**
+        **Default arguments:**
         :param downTimeMin: if specified, indicates minimal down time of the component [number of time steps]. 
+            |br| * the default value is None
         :type downTimeMin:
             * None or
-            * Integer value in range [0;numberOfTimeSteps]
+            * Integer value in range ]0,numberOfTimeSteps]
+        
         """
 
         
@@ -74,7 +76,7 @@ class ConversionDynamicModel(ConversionModel):
     The ConversionDynamicModel class inherits from the ConversionModel class. """
 
     def __init__(self):
-        self.abbrvName = 'conv_fancy'
+        self.abbrvName = 'conv_dyn'
         self.dimension = '1dim'
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
@@ -102,7 +104,7 @@ class ConversionDynamicModel(ConversionModel):
         
     def declareOpConstrSetMinDownTime(self, pyM, constrSetName):
         """
-        Declare set of locations and components for which downTimeMin is not NONE.
+        Declare set of locations and components for which downTimeMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarStartStopSetBin_' + abbrvName)
@@ -115,7 +117,7 @@ class ConversionDynamicModel(ConversionModel):
     
     def declareOpConstrSetMinUpTime(self, pyM, constrSetName):
         """
-        Declare set of locations and components for which upTimeMin is not NONE.
+        Declare set of locations and components for which upTimeMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarStartStopSetBin_' + abbrvName)
@@ -127,7 +129,7 @@ class ConversionDynamicModel(ConversionModel):
         
     def declareOpConstrSetMaxRampUp(self, pyM, constrSetName):
         """
-        Declare set of locations and components for which rampUpMax is not NONE.
+        Declare set of locations and components for which rampUpMax is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
@@ -140,7 +142,7 @@ class ConversionDynamicModel(ConversionModel):
 
     def declareOpConstrSetMaxRampDown(self, pyM, constrSetName):
         """
-        Declare set of locations and components for which rampDownMax is not NONE.
+        Declare set of locations and components for which rampDownMax is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
@@ -181,7 +183,7 @@ class ConversionDynamicModel(ConversionModel):
 
     def declareStartStopVariables(self, pyM):
         """
-        Declare start stop variables.
+        Declare start/stop variables.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -249,7 +251,7 @@ class ConversionDynamicModel(ConversionModel):
             """
             Ensure that conversion unit is not ramping up and down too often by implementing a minimum up time after ramping up.
             
-    
+
             :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
             :type pyM: pyomo Concrete Model
             """
@@ -284,7 +286,7 @@ class ConversionDynamicModel(ConversionModel):
             """
             Ensure that conversion unit is not ramping up too fast by implementing a maximum ramping rate as share of the installed capacity.
             
-    
+
             :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
             :type pyM: pyomo Concrete Model
             """
@@ -343,7 +345,7 @@ class ConversionDynamicModel(ConversionModel):
         super().declareComponentConstraints(esM, pyM)
 
         ################################################################################################################
-        #                                         Fancy Constraints                                        #
+        #                                         Dynamic Constraints                                                  #
         ################################################################################################################
         self.minimumDownTime(pyM, esM)
         self.minimumUpTime(pyM, esM)
