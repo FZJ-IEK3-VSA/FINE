@@ -231,7 +231,8 @@ class ConversionDynamicModel(ConversionModel):
             if t>=1:
                 return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, t-1]-opVarStartBin[loc, compName, p, t]+opVarStopBin[loc, compName, p, t] == 0)
             else:
-                return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, numberOfTimeSteps-1]-opVarStartBin[loc, compName, p, t]+opVarStopBin[loc, compName, p, t] == 0)
+                return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, numberOfTimeSteps-1]-opVarStartBin[loc, compName, p, t] \
+                + opVarStopBin[loc, compName, p, t] == 0)
         setattr(pyM, 'ConstrMinDownTime1_' + abbrvName, pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime1))
           
         def minimumDownTime2(pyM, loc, compName, p, t):
@@ -239,7 +240,8 @@ class ConversionDynamicModel(ConversionModel):
             if t >= downTimeMin:
                 return opVarBin[loc, compName, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(t-downTimeMin+1, t))
             else:
-                return opVarBin[loc, compName, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(0, t)) - pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(numberOfTimeSteps-(downTimeMin-t), numberOfTimeSteps))
+                return opVarBin[loc, compName, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(0, t)) \
+                    - pyomo.quicksum(opVarStopBin[loc, compName, p, t_down] for t_down in range(numberOfTimeSteps-(downTimeMin-t), numberOfTimeSteps))
 
         setattr(pyM, 'ConstrMinDownTime2_' + abbrvName, pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime2))          
                     
@@ -263,7 +265,8 @@ class ConversionDynamicModel(ConversionModel):
                 if (t>=1 and downTimeMin==None): # avoid to set constraints twice
                     return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, t-1]-opVarStartBin[loc, compName, p, t]+opVarStopBin[loc, compName, p, t] == 0)
                 else:
-                    return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, numberOfTimeSteps-1]-opVarStartBin[loc, compName, p, t]+opVarStopBin[loc, compName, p, t] == 0)
+                    return (opVarBin[loc, compName, p, t]-opVarBin[loc, compName, p, numberOfTimeSteps-1]-opVarStartBin[loc, compName, p, t] \
+                        + opVarStopBin[loc, compName, p, t] == 0)
             setattr(pyM, 'ConstrMinUpTime1_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime1))
               
             def minimumUpTime2(pyM, loc, compName, p, t):
@@ -271,7 +274,8 @@ class ConversionDynamicModel(ConversionModel):
                 if t >= upTimeMin:
                     return opVarBin[loc, compName, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, p, t_up] for t_up in range(t-upTimeMin+1, t))
                 else:
-                    return opVarBin[loc, compName, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, p, t_up] for t_up in range(0, t)) + pyomo.quicksum(opVarStartBin[loc, compName, p, t_up] for t_up in range(numberOfTimeSteps-(upTimeMin-t), numberOfTimeSteps))
+                    return opVarBin[loc, compName, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, p, t_up] for t_up in range(0, t)) \
+                        + pyomo.quicksum(opVarStartBin[loc, compName, p, t_up] for t_up in range(numberOfTimeSteps-(upTimeMin-t), numberOfTimeSteps))
     
             setattr(pyM, 'ConstrMinUpTime2_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime2))    
     
