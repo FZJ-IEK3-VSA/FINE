@@ -640,7 +640,7 @@ class ComponentModel(metaclass=ABCMeta):
         
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
         """
-        Declare set of locations and components for which partLoadMin is not NONE.
+        Declare set of locations and components for which partLoadMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, 'operationVarSetBin_' + abbrvName)

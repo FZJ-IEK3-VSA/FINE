@@ -318,12 +318,13 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError('The isBuiltFix and capacityMin parameters indicate different design decisions.')
     
     if partLoadMin is not None:
+        # Check if values are floats and the intervall ]0,1].
         if type(partLoadMin)!=float:
-            raise TypeError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
+            raise TypeError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0,1].')
         if partLoadMin <= 0:
-            raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
+            raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0,1].')
         if partLoadMin > 1:
-            raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0-1].')
+            raise ValueError('partLoadMin for ' + name +  ' needs to be a float in the intervall ]0,1].')
         if bigM is None:
             raise ValueError('bigM needs to be defined for component ' + name + ' if partLoadMin is not None.')
         if not hasCapacityVariable:
@@ -339,36 +340,40 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     rampDownMax = compFancy.rampDownMax
     
     if downTimeMin is not None:
+        # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
         if type(downTimeMin)!=int:
-            raise TypeError('downTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+            raise TypeError('downTimeMin for ' + name +  ' needs to be an integer in the intervall ]0,numberOfTimeSteps].')
         if downTimeMin <= 0:
-            raise ValueError('downTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+            raise ValueError('downTimeMin for ' + name +  ' needs to be an integer in the intervall ]0,numberOfTimeSteps].')
         if downTimeMin > numberOfTimeSteps:
-            raise ValueError('partLoadMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+            raise ValueError('downTimeMin for ' + name +  ' needs to be an integer in the intervall ]0,numberOfTimeSteps].')
             
     if upTimeMin is not None:
+        # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
         if type(upTimeMin)!=int:
-            raise TypeError('upTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+            raise TypeError('upTimeMin for ' + name +  ' needs to be an integer in the intervall ]0,numberOfTimeSteps].')
         if upTimeMin <= 0:
-            raise ValueError('upTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+            raise ValueError('upTimeMin for ' + name +  ' needs to be an integer in the intervall ]0,numberOfTimeSteps].')
         if upTimeMin > numberOfTimeSteps:
-            raise ValueError('upTimeMin for ' + name +  ' needs to be an integer in the intervall [0;numberOfTimeSteps].')
+            raise ValueError('upTimeMin for ' + name +  ' needs to be an integer in the intervall ]0,numberOfTimeSteps].')
     
     if rampUpMax is not None:
+        # Check if values are floats and the intervall ]0,1].
         if type(rampUpMax)!= float:
-            raise TypeError('rampUpMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+            raise TypeError('rampUpMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
         if rampUpMax <= 0:
-            raise ValueError('rampUpMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+            raise ValueError('rampUpMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
         if rampUpMax > 1:
-            raise ValueError('rampUpMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+            raise ValueError('rampUpMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
         
     if rampDownMax is not None:
+        # Check if values are floats and the intervall ]0,1].
         if type(rampDownMax)!= float:
-            raise TypeError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+            raise TypeError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
         if rampDownMax <= 0:
-            raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+            raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
         if rampDownMax > 1:
-            raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0;1].')
+            raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
         
 
 
