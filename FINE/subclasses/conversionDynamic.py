@@ -31,6 +31,20 @@ class ConversionDynamic(Conversion):
         :type downTimeMin:
             * None or
             * Integer value in range ]0,numberOfTimeSteps]
+
+        :param upTimeMin: if specified, indicates minimal up time of the component [number of time steps]. 
+            |br| * the default value is None
+        :type upTimeMin:
+            * None or
+            * Integer value in range ]0,numberOfTimeSteps]
+
+        :param rampUpMax: 
+            |br| * the default value is None
+        :type rampUpMax:
+
+        :param rampDownMax:
+            |br| * the default value is None
+        :type rampDownMax:
         
         """
 
