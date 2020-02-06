@@ -29,7 +29,8 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
     :param endYear: Year of the last optimization
     :type endYear: int
 
-    :param nbOfSteps: Number of optimization runs
+    :param nbOfSteps: Number of optimization runs excluding the start year 
+                    (minimum number of optimization runs is 2: one optimization for the start year and one for the end year).
         |br| * the default value is None
     :type nbOfSteps: int or None 
                     
@@ -60,7 +61,7 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
     """                              
                 
     nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(startYear, endYear, nbOfSteps, nbOfRepresentedYears)
-    print('Number of optimizations: ', nbOfSteps)
+    print('Number of optimization steps: ', nbOfSteps, '(+ 1 (base year))')
     print('Number of years represented by one optimization: ', nbOfRepresentedYears)
     mileStoneYear = startYear
 
