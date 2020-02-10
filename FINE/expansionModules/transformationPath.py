@@ -4,9 +4,9 @@ Last edited: February 06, 2020
 @author: Theresa Groß
 """
 
-import pandas as pd 
 from FINE import utils
 from FINE.IOManagement import standardIO
+import pandas as pd 
 import copy
 
 def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None,
@@ -62,15 +62,21 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
         |br| * the default value is None
     :type CO2ReductionTargets: list of strictly positive integer or None
 
+    **Returns:**
+
+    :returns myopicResults: Store all optimization outputs in a dictionary for further analyses.
+    :type myopicResults: dict of all optimized objects of the EnergySystemModel class.
+
     Last edited: February 06, 2020
     |br| @author: Theresa Gross, Felix Kullmann
     """                              
                 
     nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(startYear, endYear, nbOfSteps, nbOfRepresentedYears)
-    print('Number of optimization steps: ', nbOfSteps, '(+ 1 (base year))')
+    utils.checkCO2ReductionsTargets(CO2ReductionTargets, nbOfSteps)
+    print('Number of optimization runs: ', nbOfSteps+1)
     print('Number of years represented by one optimization: ', nbOfRepresentedYears)
     mileStoneYear = startYear
-    utils.checkCO2ReductionsTargets(CO2ReductionTargets, nbOfSteps)
+    myopicResults = dict()
 
     for step in range(0,nbOfSteps+1):
         mileStoneYear = startYear + step*nbOfRepresentedYears
@@ -82,13 +88,12 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
         esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
                         logFileName=logFileName, threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=False)
-
         standardIO.writeOptimizationOutputToExcel(esM, outputFileName='ESM'+str(mileStoneYear), optSumOutputLevel=2, optValOutputLevel=1)
-                    
+        myopicResults.update({'ESM_'+str(mileStoneYear): copy.deepcopy(esM)})
         # Get first stock (installed capacities within the start year)
         esM = getStock(esM, mileStoneYear, nbOfRepresentedYears)
 
-    return esM
+    return myopicResults
 
 def getStock(esM, mileStoneYear, nbOfRepresentedYears):
     '''
