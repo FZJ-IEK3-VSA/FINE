@@ -131,9 +131,13 @@ def dimensional_data_to_xarray(esM):
 
             data = component_dict[classname][component][variable_description]
 
-            if isinstance(data, pd.Series):
+            if isinstance(data, pd.Series): # TODO: remove this line, as all data should be series (?)
+                # if classname not in ['Transmission', 'LinearOptimalPowerFlow'] and len(data>= len(locations)):
                 if classname not in ['Transmission', 'LinearOptimalPowerFlow']:
-                    df_dict[df_description] = data.rename_axis("space")
+                    if variable_description == '1d_commodityConversionFactors':
+                    # if len(data) >= len(locations): # TODO: this is a bugfix to remove some values, do this properly
+                        df_dict[df_description] = data.rename_axis("space")
+            
 
         if len(df_dict) > 0:
             df_variable = pd.concat(df_dict)
@@ -205,14 +209,13 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
     return esm_dict, component_dict
 
 def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
-                        locFilePath=None, aggregatedShapefileFolderPath=None):
+                        gdf_regions=None, aggregatedShapefileFolderPath=None):
 
     # initialize spagat_manager
     spagat_manager = spm.SpagatManager()
     spagat_manager.sds.xr_dataset = dimensional_data_to_xarray(esM)
 
-    if locFilePath is not None:
-        gdf_regions = gpd.read_file(locFilePath)
+    if gdf_regions is not None:
         spagat_manager.sds.add_objects(description='gpd_geometries',
                         dimension_list=['space'],
                         object_list=gdf_regions.geometry)

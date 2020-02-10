@@ -584,8 +584,10 @@ def multi_node_geokit_shapes(scope="session"):
 
     return geokit_shapes
 
+
 @pytest.fixture
 def multi_node_geopandas_shapes(scope="session"):
+
     shape_file_path = os.path.join(os.path.join(os.path.dirname(__file__), 
         "../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
 
@@ -593,3 +595,21 @@ def multi_node_geopandas_shapes(scope="session"):
     geokit_shapes.set_index('index', inplace=True)
 
     return geokit_shapes
+
+
+@pytest.fixture
+def european_model(scope="session"):
+    """Returns minimal instance of esM"""
+
+    # TODO: create smaller version for GitLab version control
+    from dilmod import OptimizationManager
+
+    output= '/home/r-beer/code/EuropeanModel/DGC_EuropeanScenario_ch5_sec1.nc'
+
+    typday=2
+    om = OptimizationManager(output,commodityUnitsDict={'electricity': 'GW_el', 'hydrogen': 'GW_h2', 'water': 'GW_wt', 
+                                                        'waterRes':'GW_wt', 'biomass':'GW_bio'})
+
+    esM = om.setup(timeSeriesAggregation=False, numberOfTypicalPeriods=typday, roundOutput=5, output=output)
+
+    return esM
