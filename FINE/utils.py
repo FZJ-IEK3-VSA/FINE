@@ -788,3 +788,12 @@ def checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresen
     
     return nbOfSteps, nbOfRepresentedYears
 
+
+def checkCO2ReductionsTargets(CO2ReductionTargets, nbOfSteps):
+    """
+    Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
+    """
+    if CO2ReductionTargets is not None:
+        if len(CO2ReductionTargets) != nbOfSteps+1:
+            raise ValueError('CO2ReductionTargets has to be None, or the lenght of the given list must equal the number \
+ of optimization steps.')

@@ -9,10 +9,10 @@ from FINE import utils
 from FINE.IOManagement import standardIO
 import copy
 
-def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None, timeSeriesAggregation=True,  
-                    numberOfTypicalPeriods = 7, numberOfTimeStepsPerPeriod=24,
+def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None,
+                    timeSeriesAggregation=True, numberOfTypicalPeriods = 7, numberOfTimeStepsPerPeriod=24,
                     logFileName='', threads=3, solver='gurobi', timeLimit=None, 
-                    optimizationSpecs='', warmstart=False):
+                    optimizationSpecs='', warmstart=False, CO2ReductionTargets=None):
     """
     Optimization function for myopic approach. For each optimization run, the newly installed capacities
     will be given as a stock (with capacityFix) to the next optimization run.
@@ -21,20 +21,20 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
                 transformation pathway (myopic foresight).
     :type esM: esM - EnergySystemModel class instance
 
-    :param startYear: Year of the first optimization
+    :param startYear: year of the first optimization
     :type startYear: int
 
     **Default arguments:**
 
-    :param endYear: Year of the last optimization
+    :param endYear: year of the last optimization
     :type endYear: int
 
-    :param nbOfSteps: Number of optimization runs excluding the start year 
-                    (minimum number of optimization runs is 2: one optimization for the start year and one for the end year).
+    :param nbOfSteps: number of optimization runs excluding the start year 
+            (minimum number of optimization runs is 2: one optimization for the start year and one for the end year).
         |br| * the default value is None
     :type nbOfSteps: int or None 
                     
-    :param noOfRepresentedYears: Number of years represented by one optimization run
+    :param noOfRepresentedYears: number of years represented by one optimization run
         |br| * the default value is None
     :type nbOfRepresentedYears: int or None
 
@@ -56,6 +56,12 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
         |br| * the default value is 24
     :type numberOfTimeStepsPerPeriod: strictly positive integer
 
+    :param CO2ReductionTargets: specifies the CO2 reduction targets for all optimization periods. 
+        If specified, the length of the list must equal the number of optimization steps, and an object of the sink class 
+        which counts the CO2 emission is required. 
+        |br| * the default value is None
+    :type CO2ReductionTargets: list of strictly positive integer or None
+
     Last edited: February 06, 2020
     |br| @author: Theresa Gross, Felix Kullmann
     """                              
@@ -64,6 +70,7 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
     print('Number of optimization steps: ', nbOfSteps, '(+ 1 (base year))')
     print('Number of years represented by one optimization: ', nbOfRepresentedYears)
     mileStoneYear = startYear
+    utils.checkCO2ReductionsTargets(CO2ReductionTargets, nbOfSteps)
 
     for step in range(0,nbOfSteps+1):
         mileStoneYear = startYear + step*nbOfRepresentedYears
