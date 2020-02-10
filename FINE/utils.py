@@ -789,7 +789,7 @@ def checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresen
     return nbOfSteps, nbOfRepresentedYears
 
 
-def checkCO2ReductionsTargets(CO2ReductionTargets, nbOfSteps):
+def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
     """
     Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
     """
@@ -797,3 +797,25 @@ def checkCO2ReductionsTargets(CO2ReductionTargets, nbOfSteps):
         if len(CO2ReductionTargets) != nbOfSteps+1:
             raise ValueError('CO2ReductionTargets has to be None, or the lenght of the given list must equal the number \
  of optimization steps.')
+
+def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
+    """
+    Check if a sink component object called >CO2 to environment< exists. 
+    This component is required if CO2 reduction targets are given.
+    """
+
+    if CO2ReductionTargets is not None:
+        if 'CO2 to environment' not in esM.componentNames:
+            warnings.warn('CO2 emissions are not considered in the current esM. CO2ReductionTargets will be ignored.')
+            CO2ReductionTargets=None
+            return CO2ReductionTargets
+        else:
+            return CO2ReductionTargets
+
+def setNewCO2ReductionTarget(esM, CO2ReductionTargets, step):
+    """
+    If CO2ReductionTargets are given, set the new value for each iteration.
+    """
+    if CO2ReductionTargets is not None: 
+        setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', 366*(1-CO2ReductionTargets[step]/100))
+        print(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'].yearlyLimit)

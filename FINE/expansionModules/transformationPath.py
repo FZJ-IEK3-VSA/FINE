@@ -67,12 +67,13 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
     :returns myopicResults: Store all optimization outputs in a dictionary for further analyses.
     :type myopicResults: dict of all optimized objects of the EnergySystemModel class.
 
-    Last edited: February 06, 2020
+    Last edited: February 10, 2020
     |br| @author: Theresa Gross, Felix Kullmann
     """                              
                 
     nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(startYear, endYear, nbOfSteps, nbOfRepresentedYears)
-    utils.checkCO2ReductionsTargets(CO2ReductionTargets, nbOfSteps)
+    utils.checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets)
+    utils.checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps)
     print('Number of optimization runs: ', nbOfSteps+1)
     print('Number of years represented by one optimization: ', nbOfRepresentedYears)
     mileStoneYear = startYear
@@ -81,6 +82,7 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
     for step in range(0,nbOfSteps+1):
         mileStoneYear = startYear + step*nbOfRepresentedYears
         logFileName = 'log_'+str(mileStoneYear)
+        utils.setNewCO2ReductionTarget(esM,CO2ReductionTargets,step)
         # First optimization: Optimize start year for first stock
         if timeSeriesAggregation:
             esM.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod)
@@ -115,7 +117,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
             for comp in compValues.index.get_level_values(0).unique():
                 if 'stock' not in esM.componentModelingDict[mdl].componentsDict[comp].name:
                     stockName = comp+'_stock'+'_'+str(mileStoneYear)
-                    stockComp = copy.copy(esM.componentModelingDict[mdl].componentsDict[comp])
+                    stockComp = copy.deepcopy(esM.componentModelingDict[mdl].componentsDict[comp])
                     stockComp.name = stockName
                     stockComp.lifetime = esM.componentModelingDict[mdl].componentsDict[comp].technicalLifetime
                     if getattr(stockComp, 'capacityFix') is None:
