@@ -56,7 +56,10 @@ def test_spatial_aggregation_multinode(multi_node_test_esM_init):
     gdf_regions = gpd.read_file(locFilePath)
 
     esM_aggregated = xrio.spatial_aggregation(esM=multi_node_test_esM_init, n_regions=3, 
-                                              gdf_regions=gdf_regions, aggregatedShapefileFolderPath=shapefile_folder)
+                                              gdf_regions=gdf_regions, 
+                                            #   aggregatedShapefileFolderPath=shapefile_folder,
+                                            # #TODO: provide spr.create_grid_shapefile() with component_name to enable grid shapefile creation
+                                              )
 
     # TODO: add aggregatedShapefileFolderPath as temporary path to save shapefiles temporarily
     # TODO: test whether shapefiles are similar
@@ -86,13 +89,16 @@ def test_spatial_aggregation_ehighway(european_model):
 
 
     esM_aggregated = xrio.spatial_aggregation(esM=european_model, n_regions=3, 
-                                              gdf_regions=gdf_regions, aggregatedShapefileFolderPath=shapefile_folder)
+                                              gdf_regions=gdf_regions, 
+                                            #   aggregatedShapefileFolderPath=shapefile_folder, 
+                                            # #TODO: provide spr.create_grid_shapefile() with component_name to enable grid shapefile creation
+                                              )
 
     esM_aggregated.cluster(numberOfTypicalPeriods=7)
     
     esM_aggregated.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0')
 
-    aggregated_regions_FilePath = os.path.join(shapefile_folder, 'aggregated_regions.shp')
-    aggregated_grid_FilePath = os.path.join(shapefile_folder, 'aggregated_grid.shp')
+    # aggregated_regions_FilePath = os.path.join(shapefile_folder, 'aggregated_regions.shp')
+    # aggregated_grid_FilePath = os.path.join(shapefile_folder, 'aggregated_grid.shp')
 
     # assert gdf_results == gdf_expected

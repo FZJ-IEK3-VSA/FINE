@@ -134,8 +134,7 @@ def dimensional_data_to_xarray(esM):
             if isinstance(data, pd.Series): # TODO: remove this line, as all data should be series (?)
                 # if classname not in ['Transmission', 'LinearOptimalPowerFlow'] and len(data>= len(locations)):
                 if classname not in ['Transmission', 'LinearOptimalPowerFlow']:
-                    if variable_description == '1d_commodityConversionFactors':
-                    # if len(data) >= len(locations): # TODO: this is a bugfix to remove some values, do this properly
+                    if len(data) >= len(locations): # TODO: this is a bugfix to remove '1d_locationalEligibility', do this properly
                         df_dict[df_description] = data.rename_axis("space")
             
 
@@ -199,12 +198,13 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
 
             if classname not in ['Transmission', 'LinearOptimalPowerFlow']:
 
-                # print(xarray_dataset[f"1d_{variable_description}"].sel(component=df_description))
-                series = xarray_dataset[f"1d_{variable_description}"].sel(component=df_description
-                                                                          ).drop("component").to_dataframe().unstack(level=0)
-                series.index = series.index.droplevel(level=0)
+                if variable_description not in ['commodityConversionFactors']: # TODO: this is a bugfix, properly implement this
+                    # print(xarray_dataset[f"1d_{variable_description}"].sel(component=df_description))
+                    series = xarray_dataset[f"1d_{variable_description}"].sel(component=df_description
+                                                                            ).drop("component").to_dataframe().unstack(level=0)
+                    series.index = series.index.droplevel(level=0)
 
-                component_dict[classname][component_description][variable_description] = series.sort_index()
+                    component_dict[classname][component_description][variable_description] = series.sort_index()
 
     return esm_dict, component_dict
 
