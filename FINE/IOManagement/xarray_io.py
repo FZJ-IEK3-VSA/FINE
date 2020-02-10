@@ -265,9 +265,7 @@ def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
 
     if aggregatedShapefileFolderPath is not None:
 
-        aggregated_grid_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_grid.shp')
-        spr.create_grid_shapefile(spagat_manager.sds_out, filename=aggregated_grid_FilePath)
-
+        # create region shape file
         aggregated_regions_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_regions.shp')
 
         df_aggregated = spagat_manager.sds_out.xr_dataset.gpd_geometries.to_dataframe(
@@ -276,5 +274,9 @@ def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
         gdf_aggregated = gpd.GeoDataFrame(df_aggregated)
         gdf_aggregated.crs = {'init' :'epsg:3035'}
         gdf_aggregated.to_file(aggregated_regions_FilePath)
+
+        # create grid shape file
+        aggregated_grid_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_grid.shp')
+        # spr.create_grid_shapefile(spagat_manager.sds_out, filename=aggregated_grid_FilePath)
 
     return esM_aggregated
