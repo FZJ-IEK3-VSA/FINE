@@ -819,3 +819,5 @@ def setNewCO2ReductionTarget(esM, CO2ReductionTargets, step):
     if CO2ReductionTargets is not None: 
         setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', 366*(1-CO2ReductionTargets[step]/100))
         print(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'].yearlyLimit)
+
+ 

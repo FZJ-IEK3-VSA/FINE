@@ -119,16 +119,26 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                     stockName = comp+'_stock'+'_'+str(mileStoneYear)
                     stockComp = copy.deepcopy(esM.componentModelingDict[mdl].componentsDict[comp])
                     stockComp.name = stockName
-                    stockComp.lifetime = esM.componentModelingDict[mdl].componentsDict[comp].technicalLifetime
+                    stockComp.lifetime = esM.componentModelingDict[mdl].componentsDict[comp].technicalLifetime - nbOfRepresentedYears
+                    if any(getattr(stockComp,'lifetime') <= 0):
+                        continue
+
                     if getattr(stockComp, 'capacityFix') is None:
                         if isinstance(compValues.loc[comp], pd.DataFrame):
                             stockComp.capacityFix = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1), discard=False)
                         else:
                             stockComp.capacityFix = compValues.loc[comp]
-                            stockComp.capacityMin, stockComp.capacityMax = None, None
-                        esM.add(stockComp)
+                            # if any(getattr(stockComp,'lifetime') <= 0):
+                            #     setattr(stockComp, 'capacityFix', pd.Series(0, index=getattr(esM,'locations')))
+                            #     setattr(stockComp, 'capacityMax', pd.Series(0, index=getattr(esM,'locations')))
+                            #     setattr(stockComp, 'capacityMin', pd.Series(0, index=getattr(esM,'locations')))
+                            #     setattr(stockComp, 'sharedPotentialID', None)
+                    esM.add(stockComp)
                 elif 'stock' in esM.componentModelingDict[mdl].componentsDict[comp].name:
                     esM.componentModelingDict[mdl].componentsDict[comp].lifetime -= nbOfRepresentedYears
                     if any(getattr(esM.componentModelingDict[mdl].componentsDict[comp],'lifetime') <= 0):
                         setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'capacityFix', pd.Series(0, index=getattr(esM,'locations')))
+                        setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'capacityMax', pd.Series(0, index=getattr(esM,'locations')))
+                        setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'capacityMin', pd.Series(0, index=getattr(esM,'locations')))
+                        setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'sharedPotentialID', None)
     return esM

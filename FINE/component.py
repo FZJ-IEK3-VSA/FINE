@@ -1066,7 +1066,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         return sum(capVar[loc, compName] / compDict[compName].capacityMax[loc] for compName in compDict
                    if compDict[compName].sharedPotentialID == key and (loc, compName) in capVarSet)
-
+                
     def getLocEconomicsTD(self, pyM, esM, factorNames, varName, loc, compName, getOptValue=False):
         """
         Set time-dependent equation specified for one component in one location or one connection between two locations.
