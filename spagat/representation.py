@@ -128,7 +128,9 @@ def aggregate_time_series(xr_data_array_in, sub_to_sup_region_id_dict, mode='mea
     coord_list = [value for value in aggregated_coords.values()]
     dim_list = [key for key in aggregated_coords.keys()]
 
-    data_out_dummy = np.zeros(tuple(len(coord) for coord in aggregated_coords.values()))
+    data_out_dummy = np.empty(tuple(len(coord) for coord in aggregated_coords.values()))
+
+    data_out_dummy[:] = np.nan
 
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list) 
 
@@ -239,7 +241,8 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='boo
 
 
 # spagat.output:
-def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space', locational_eligibility='2d_locationalEligibility'):
+def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space', locational_eligibility='2d_locationalEligibility', 
+                          component_name='Transmission, AC cables'):
     # TODO: move this to spr or so
     # TODO: add check, whether gpd_centroids exist
 
@@ -251,7 +254,7 @@ def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space', loc
 
     for region_id_1 in sds.xr_dataset[f'{spatial_dim}'].values:
         for region_id_2 in sds.xr_dataset[f'{spatial_dim}_2'].values:
-            if sds.xr_dataset[locational_eligibility].sel(space=region_id_1, space_2=region_id_2).sel(component='Transmission, AC cables').values:
+            if sds.xr_dataset[locational_eligibility].sel(space=region_id_1, space_2=region_id_2).sel(component=component_name).values:
                 buses_0.append(region_id_1)
                 buses_1.append(region_id_2)
 
