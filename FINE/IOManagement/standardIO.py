@@ -841,7 +841,7 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     gdf = gpd.read_file(locationsShapeFileName).to_crs({'init': crs})
 
     # sort data and shapes in the same order
-    data.sort_index()
+    data.sort_index(inplace=True)
     gdf.sort_values(indexColumn, inplace=True)
 
     if perArea:
