@@ -108,7 +108,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
     :param nbOfRepresentativeYears: Number of years within one optimization period.
     :type nbOfRepresentativeYears: int
 
-    Last edited: December 17, 2019
+    Last edited: February 10, 2020
     |br| @author: Theresa Gross, Felix Kullmann
     ''' 
     for mdl in esM.componentModelingDict.keys():
@@ -127,15 +127,14 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                         if isinstance(compValues.loc[comp], pd.DataFrame):
                             stockComp.capacityFix = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1), discard=False)
                         else:
+# NOTE: Values of capacityMin and capacityMax are not overwritten. 
+# CapacityFix set the capacity fix and fulfills the boundary constraints (capacityMin <= capacityFix <= capacityMax)
                             stockComp.capacityFix = compValues.loc[comp]
-                            # if any(getattr(stockComp,'lifetime') <= 0):
-                            #     setattr(stockComp, 'capacityFix', pd.Series(0, index=getattr(esM,'locations')))
-                            #     setattr(stockComp, 'capacityMax', pd.Series(0, index=getattr(esM,'locations')))
-                            #     setattr(stockComp, 'capacityMin', pd.Series(0, index=getattr(esM,'locations')))
-                            #     setattr(stockComp, 'sharedPotentialID', None)
                     esM.add(stockComp)
                 elif 'stock' in esM.componentModelingDict[mdl].componentsDict[comp].name:
                     esM.componentModelingDict[mdl].componentsDict[comp].lifetime -= nbOfRepresentedYears
+                    # If lifetime is exceeded, set all capacities to 0, and delete the sharedPotentialID of the component.
+                    # TODO: This functionality can also be provided by deleting the component. 
                     if any(getattr(esM.componentModelingDict[mdl].componentsDict[comp],'lifetime') <= 0):
                         setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'capacityFix', pd.Series(0, index=getattr(esM,'locations')))
                         setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'capacityMax', pd.Series(0, index=getattr(esM,'locations')))
