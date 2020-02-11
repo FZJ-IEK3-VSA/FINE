@@ -19,7 +19,7 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
 
     :param esM: EnergySystemModel instance representing the energy system which should be optimized by considering the
                 transformation pathway (myopic foresight).
-    :type esM: esM - EnergySystemModel class instance
+    :type esM: esM - EnergySystemModel instance
 
     :param startYear: year of the first optimization
     :type startYear: int
@@ -65,7 +65,7 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
     **Returns:**
 
     :returns myopicResults: Store all optimization outputs in a dictionary for further analyses.
-    :type myopicResults: dict of all optimized objects of the EnergySystemModel class.
+    :rtype myopicResults: dict of all optimized instances of the EnergySystemModel class.
 
     Last edited: February 10, 2020
     |br| @author: Theresa Gross, Felix Kullmann
@@ -108,6 +108,9 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
     :param nbOfRepresentativeYears: Number of years within one optimization period.
     :type nbOfRepresentativeYears: int
 
+    :return esM: EnergySystemModel instance including the installed capacities of the previous optimization runs. 
+    :rtype: EnergySystemModel instance
+
     Last edited: February 10, 2020
     |br| @author: Theresa Gross, Felix Kullmann
     ''' 
@@ -128,7 +131,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                             stockComp.capacityFix = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1), discard=False)
                         else:
 # NOTE: Values of capacityMin and capacityMax are not overwritten. 
-# CapacityFix set the capacity fix and fulfills the boundary constraints (capacityMin <= capacityFix <= capacityMax)
+# CapacityFix values set the capacity fix and fulfills the boundary constraints (capacityMin <= capacityFix <= capacityMax)
                             stockComp.capacityFix = compValues.loc[comp]
                     esM.add(stockComp)
                 elif 'stock' in esM.componentModelingDict[mdl].componentsDict[comp].name:
