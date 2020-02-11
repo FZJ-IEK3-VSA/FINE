@@ -10,8 +10,8 @@ class DemandSideManagement(Sink):
     TODO
     A DemandSideManagement component
     """
-    def __init__(self, esM, name, commodity, hasCapacityVariable, tDown, tUp,
-        operationRateFix, **kwargs):
+    def __init__(self, esM, name, commodity, hasCapacityVariable, tBwd, tFwd,
+        operationRateFix, opexShift=1e-6, shiftUpMax=None, shiftDownMax=None, **kwargs):
         """
         Constructor for creating an DemandSideManagement class instance.
         TODO
@@ -19,11 +19,23 @@ class DemandSideManagement(Sink):
         **Required arguments:**
 
         """
-        self.tUp = tUp
-        self.tDown = tDown
-        self.tDelta = tDown+tUp+1
+        self.tFwd = tFwd
+        self.tBwd = tBwd
+        self.tDelta = tBwd+tFwd+1
 
-        operationRateFix = pd.concat([operationRateFix.iloc[-tUp:], operationRateFix.iloc[:-tUp]]).reset_index(drop=True)
+        operationRateFix = pd.concat([operationRateFix.iloc[-tFwd:], operationRateFix.iloc[:-tFwd]]).reset_index(drop=True)
+        if shiftUpMax is None:
+            self.shiftUpMax = operationRateFix.max()
+            print('shiftUpMax was set to', operationRateFix.max())
+        else:
+            self.shiftUpMax = shiftUpMax
+
+        if shiftDownMax is None:
+            self.shiftDownMax = operationRateFix.max()
+            print('shiftDownMax was set to', operationRateFix.max())
+        else:
+            self.shiftDownMax = shiftDownMax
+
         Sink.__init__(self, esM, name, commodity, hasCapacityVariable,
             operationRateFix=operationRateFix, **kwargs)
 
@@ -37,36 +49,49 @@ class DemandSideManagement(Sink):
                 sort_index().reset_index(drop=True)
             
             if (len(SOCmax_) > len(esM.totalTimeSteps)):
-                SOCmax_ = pd.concat([SOCmax_.iloc[tDown+tUp-i:], SOCmax_.iloc[:tDown+tUp-i]]).reset_index(drop=True)
-                print('tUp+tDown+1 is not a divisor of the total number of time steps of the energy system. ' +
+                SOCmax_ = pd.concat([SOCmax_.iloc[tBwd+tFwd-i:], SOCmax_.iloc[:tBwd+tFwd-i]]).reset_index(drop=True)
+                print('tFwd+tBwd+1 is not a divisor of the total number of time steps of the energy system. ' +
                     'This shortens the shiftable timeframe of demand_' + str(i) + ' by ' +
                     str(len(SOCmax_)-len(esM.totalTimeSteps)) + ' time steps')
                 SOCmax = SOCmax_.iloc[:len(esM.totalTimeSteps)]
 
             elif len(SOCmax_) < len(esM.totalTimeSteps):
-                SOCmax.iloc[0:len(SOCmax_.iloc[tDown+tUp-i:])] = SOCmax_.iloc[tDown+tUp-i:].values
-                if len(SOCmax_.iloc[:tDown+tUp-i]) > 0:
-                    SOCmax.iloc[-len(SOCmax_.iloc[:tDown+tUp-i]):] = SOCmax_.iloc[:tDown+tUp-i].values
+                SOCmax.iloc[0:len(SOCmax_.iloc[tBwd+tFwd-i:])] = SOCmax_.iloc[tBwd+tFwd-i:].values
+                if len(SOCmax_.iloc[:tBwd+tFwd-i]) > 0:
+                    SOCmax.iloc[-len(SOCmax_.iloc[:tBwd+tFwd-i]):] = SOCmax_.iloc[:tBwd+tFwd-i].values
                     
             else:
-                SOCmax_ = pd.concat([SOCmax_.iloc[tDown+tUp-i:], SOCmax_.iloc[:tDown+tUp-i]]).reset_index(drop=True)
+                SOCmax_ = pd.concat([SOCmax_.iloc[tBwd+tFwd-i:], SOCmax_.iloc[:tBwd+tFwd-i]]).reset_index(drop=True)
                 SOCmax = SOCmax_
+
+            chargeOpRateMax = SOCmax.copy()
+
+            if i < self.tDelta - 1:
+                SOCmax[SOCmax.index % self.tDelta == i+1] = 0
+            else:
+                SOCmax[SOCmax.index % self.tDelta == 0] = 0
 
             # SOCmax = pd.concat([operationRateFix[operationRateFix.index % self.tDelta == i]]*self.tDelta).\
             #     sort_index().reset_index(drop=True)
-            # SOCmax = pd.concat([SOCmax.iloc[tDown+tUp-i:], SOCmax.iloc[:tDown+tUp-i]]).reset_index(drop=True)
+            # SOCmax = pd.concat([SOCmax.iloc[tBwd+tFwd-i:], SOCmax.iloc[:tBwd+tFwd-i]]).reset_index(drop=True)
             # if (len(SOCmax) != len(esM.totalTimeSteps)):
-            #     warnings.warn('tUp+tDown+1 is not a divisor of the total number of time steps of the energy system. ' +
+            #     warnings.warn('tFwd+tBwd+1 is not a divisor of the total number of time steps of the energy system. ' +
             #                   'This shortens the available backwards shift of demand ' + str(i) + ' by ' +
             #                   str(len(esM.totalTimeSteps)-len(SOCmax)) + ' time steps')
             #     SOCmax = SOCmax.iloc[:len(esM.totalTimeSteps)]
 
             dischargeFix = operationRateFix.copy()
             dischargeFix[dischargeFix.index % self.tDelta != i] = 0
+            
+            opexPerChargeOpTimeSeries = pd.DataFrame([[opexShift for loc in self.locationalEligibility] for t in esM.totalTimeSteps],
+                               columns=self.locationalEligibility.index)
+            opexPerChargeOpTimeSeries[(opexPerChargeOpTimeSeries.index - i ) % self.tDelta == tFwd + 1] = 0
+
+            # print(i, opexPerChargeOpTimeSeries)
 
             esM.add(fn.StorageExt(esM, name + '_' + str(i), commodity, stateOfChargeOpRateMax=SOCmax,
-                chargeOpRateMax=SOCmax, dischargeOpRateFix=dischargeFix, hasCapacityVariable=False,
-                doPreciseTsaModeling=True))
+                dischargeOpRateFix=dischargeFix, hasCapacityVariable=False, chargeOpRateMax=chargeOpRateMax, 
+                opexPerChargeOpTimeSeries=opexPerChargeOpTimeSeries, doPreciseTsaModeling=True, relaxedPeriodConnection=True))
 
 
 class DSMModel(SourceSinkModel):
@@ -85,6 +110,119 @@ class DSMModel(SourceSinkModel):
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
         self.operationVariablesOptimum = None
         self.optSummary = None
+
+
+    def limitUpDownShifts(self, pyM, esM):
+        """
+        Declare the constraint that the state of charge [commodityUnit*h] is limited by the installed capacity
+        [commodityUnit*h] and the relative maximum state of charge [-].
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        chargeOp = getattr(pyM, 'chargeOp_storExt')
+        constrSet = getattr(pyM, 'operationVarSet_' + self.abbrvName)
+
+        def limitUpDownShifts(pyM, loc, compName, p, t):
+
+            # ixDown = str((compDict[compName].tFwd + t) % compDict[compName].tDelta)
+            for i in range(compDict[compName].tDelta):
+                if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
+                    ixDown = str(i)
+                    break
+
+            ixUp = [str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown]
+
+            return (sum(chargeOp[loc, compName + '_' + compName_i, p, t] for compName_i in ixUp) +
+                    (esM.getComponent(compName + '_' + ixDown).chargeOpRateMax.loc[(p, t), loc] -
+                     chargeOp[loc, compName + '_' + ixDown, p, t]) <=
+                    max(compDict[compName].shiftUpMax, compDict[compName].shiftDownMax))
+
+        setattr(pyM, 'limitUpDownShifts_' + abbrvName,
+                pyomo.Constraint(constrSet, pyM.timeSet, rule=limitUpDownShifts))
+
+
+    def shiftUpMax(self, pyM, esM):
+        """
+        Declare the constraint that the state of charge [commodityUnit*h] is limited by the installed capacity
+        [commodityUnit*h] and the relative maximum state of charge [-].
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        chargeOp = getattr(pyM, 'chargeOp_storExt')
+        constrSet = getattr(pyM, 'operationVarSet_' + self.abbrvName)
+
+        def shiftUpMax(pyM, loc, compName, p, t):
+            
+            # ixDown = str((compDict[compName].tFwd + t) % compDict[compName].tDelta)
+            for i in range(compDict[compName].tDelta):
+                if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
+                    ixDown = str(i)
+                    break
+            ixUp = [str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown]
+
+            return (sum(chargeOp[loc, compName + '_' + compName_i, p, t] for compName_i in ixUp) <=
+                    compDict[compName].shiftUpMax)
+
+        setattr(pyM, 'shiftUpMax_' + abbrvName,
+                pyomo.Constraint(constrSet, pyM.timeSet, rule=shiftUpMax))
+
+
+    def shiftDownMax(self, pyM, esM):
+        """
+        Declare the constraint that the state of charge [commodityUnit*h] is limited by the installed capacity
+        [commodityUnit*h] and the relative maximum state of charge [-].
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        chargeOp = getattr(pyM, 'chargeOp_storExt')
+        constrSet = getattr(pyM, 'operationVarSet_' + self.abbrvName)
+
+        def shiftDownMax(pyM, loc, compName, p, t):
+
+            #ixDown = str((compDict[compName].tFwd + t) % compDict[compName].tDelta)
+            for i in range(compDict[compName].tDelta):
+                if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
+                    ixDown = str(i)
+                    break
+
+            return (esM.getComponent(compName + '_' + ixDown).chargeOpRateMax.loc[(p, t), loc] - 
+                    chargeOp[loc, compName + '_' + ixDown, p, t] <= compDict[compName].shiftDownMax)
+
+        setattr(pyM, 'shiftDownMax_' + abbrvName,
+                pyomo.Constraint(constrSet, pyM.timeSet, rule=shiftDownMax))
+
+
+    def declareComponentConstraints(self, esM, pyM):
+        """
+        Declare time independent and dependent constraints.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        
+        super().declareComponentConstraints(esM, pyM)
+
+        self.limitUpDownShifts(pyM, esM)
+        self.shiftUpMax(pyM, esM)
+        self.shiftDownMax(pyM, esM)
 
 
     ####################################################################################################################
@@ -114,7 +252,7 @@ class DSMModel(SourceSinkModel):
         def groupStor(x):
             ix = optVal.loc[x].name
             for compName, comp in self.componentsDict.items():
-                if ix[0] in [compName + '_' + str(i) for i in range(comp.tUp+comp.tDown+1)]:
+                if ix[0] in [compName + '_' + str(i) for i in range(comp.tFwd+comp.tBwd+1)]:
                     return (compName, ix[1])
 
         optVal = optVal.groupby(lambda x: groupStor(x)).sum()
