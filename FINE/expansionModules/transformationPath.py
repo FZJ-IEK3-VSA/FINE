@@ -9,10 +9,11 @@ from FINE.IOManagement import standardIO
 import pandas as pd 
 import copy
 
-def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None,
+def optimizeSimpleMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None,
                     timeSeriesAggregation=True, numberOfTypicalPeriods = 7, numberOfTimeStepsPerPeriod=24,
                     logFileName='', threads=3, solver='gurobi', timeLimit=None, 
-                    optimizationSpecs='', warmstart=False, CO2ReductionTargets=None):
+                    optimizationSpecs='', warmstart=False, 
+                    CO2Reference=366, CO2ReductionTargets=None, saveResults=True):
     """
     Optimization function for myopic approach. For each optimization run, the newly installed capacities
     will be given as a stock (with capacityFix) to the next optimization run.
@@ -56,11 +57,20 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
         |br| * the default value is 24
     :type numberOfTimeStepsPerPeriod: strictly positive integer
 
+    :param CO2Reference: gives the reference value of the CO2 emission to which the reduction should be applied to.
+        The default value refers to the emissions of 1990 within the electricity sector (366kt CO2_eq)
+        |br| * the default value is 366
+    :type CO2Reference: float
+
     :param CO2ReductionTargets: specifies the CO2 reduction targets for all optimization periods. 
         If specified, the length of the list must equal the number of optimization steps, and an object of the sink class 
         which counts the CO2 emission is required. 
         |br| * the default value is None
     :type CO2ReductionTargets: list of strictly positive integer or None
+
+    :param saveResults: specifies if the results are saves in excelfiles or not.
+        |br| * the default value is True 
+    :type saveResults: boolean
 
     **Returns:**
 
@@ -82,7 +92,7 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
     for step in range(0,nbOfSteps+1):
         mileStoneYear = startYear + step*nbOfRepresentedYears
         logFileName = 'log_'+str(mileStoneYear)
-        utils.setNewCO2ReductionTarget(esM,CO2ReductionTargets,step)
+        utils.setNewCO2ReductionTarget(esM,CO2Reference,CO2ReductionTargets,step)
 
         # Optimization
         if timeSeriesAggregation:
@@ -91,7 +101,10 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
         esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
                         logFileName=logFileName, threads=threads, solver=solver, timeLimit=timeLimit, 
                         optimizationSpecs=optimizationSpecs, warmstart=False)
-        standardIO.writeOptimizationOutputToExcel(esM, outputFileName='ESM'+str(mileStoneYear), optSumOutputLevel=2, optValOutputLevel=1)
+        
+        if saveResults:
+            standardIO.writeOptimizationOutputToExcel(esM, outputFileName='ESM'+str(mileStoneYear), optSumOutputLevel=2, optValOutputLevel=1)
+
         myopicResults.update({'ESM_'+str(mileStoneYear): copy.deepcopy(esM)})
 
         # Get stock if not all optimizations are done

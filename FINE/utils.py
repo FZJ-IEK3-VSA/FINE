@@ -812,12 +812,11 @@ def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
         else:
             return CO2ReductionTargets
 
-def setNewCO2ReductionTarget(esM, CO2ReductionTargets, step):
+def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
     """
     If CO2ReductionTargets are given, set the new value for each iteration.
     """
     if CO2ReductionTargets is not None: 
-        setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', 366*(1-CO2ReductionTargets[step]/100))
-        print(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'].yearlyLimit)
+        setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', CO2Reference*(1-CO2ReductionTargets[step]/100))
 
  
