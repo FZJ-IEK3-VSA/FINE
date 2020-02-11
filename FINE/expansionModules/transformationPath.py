@@ -1,5 +1,5 @@
 """
-Last edited: February 06, 2020
+Last edited: February 11, 2020
 
 @author: Theresa Groß
 """
@@ -67,7 +67,7 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
     :returns myopicResults: Store all optimization outputs in a dictionary for further analyses.
     :rtype myopicResults: dict of all optimized instances of the EnergySystemModel class.
 
-    Last edited: February 10, 2020
+    Last edited: February 11, 2020
     |br| @author: Theresa Gross, Felix Kullmann
     """                              
                 
@@ -83,7 +83,8 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
         mileStoneYear = startYear + step*nbOfRepresentedYears
         logFileName = 'log_'+str(mileStoneYear)
         utils.setNewCO2ReductionTarget(esM,CO2ReductionTargets,step)
-        # First optimization: Optimize start year for first stock
+
+        # Optimization
         if timeSeriesAggregation:
             esM.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod)
 
@@ -92,8 +93,10 @@ def optimizeMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresented
                         optimizationSpecs=optimizationSpecs, warmstart=False)
         standardIO.writeOptimizationOutputToExcel(esM, outputFileName='ESM'+str(mileStoneYear), optSumOutputLevel=2, optValOutputLevel=1)
         myopicResults.update({'ESM_'+str(mileStoneYear): copy.deepcopy(esM)})
-        # Get first stock (installed capacities within the start year)
-        esM = getStock(esM, mileStoneYear, nbOfRepresentedYears)
+
+        # Get stock if not all optimizations are done
+        if step != nbOfSteps+1:
+            esM = getStock(esM, mileStoneYear, nbOfRepresentedYears)
 
     return myopicResults
 
@@ -111,7 +114,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
     :return esM: EnergySystemModel instance including the installed capacities of the previous optimization runs. 
     :rtype: EnergySystemModel instance
 
-    Last edited: February 10, 2020
+    Last edited: February 11, 2020
     |br| @author: Theresa Gross, Felix Kullmann
     ''' 
     for mdl in esM.componentModelingDict.keys():
@@ -123,9 +126,11 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                     stockComp = copy.deepcopy(esM.componentModelingDict[mdl].componentsDict[comp])
                     stockComp.name = stockName
                     stockComp.lifetime = esM.componentModelingDict[mdl].componentsDict[comp].technicalLifetime - nbOfRepresentedYears
+                    # If lifetime is shorter than number of represented years, skip component
                     if any(getattr(stockComp,'lifetime') <= 0):
                         continue
 
+                    # If capacities are installed, set the values as capacityFix.
                     if getattr(stockComp, 'capacityFix') is None:
                         if isinstance(compValues.loc[comp], pd.DataFrame):
                             stockComp.capacityFix = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1), discard=False)
@@ -134,13 +139,11 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
 # CapacityFix values set the capacity fix and fulfills the boundary constraints (capacityMin <= capacityFix <= capacityMax)
                             stockComp.capacityFix = compValues.loc[comp]
                     esM.add(stockComp)
+
                 elif 'stock' in esM.componentModelingDict[mdl].componentsDict[comp].name:
                     esM.componentModelingDict[mdl].componentsDict[comp].lifetime -= nbOfRepresentedYears
-                    # If lifetime is exceeded, set all capacities to 0, and delete the sharedPotentialID of the component.
-                    # TODO: This functionality can also be provided by deleting the component. 
+                    # If lifetime is exceeded, remove component from the energySystemModel instance
                     if any(getattr(esM.componentModelingDict[mdl].componentsDict[comp],'lifetime') <= 0):
-                        setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'capacityFix', pd.Series(0, index=getattr(esM,'locations')))
-                        setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'capacityMax', pd.Series(0, index=getattr(esM,'locations')))
-                        setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'capacityMin', pd.Series(0, index=getattr(esM,'locations')))
-                        setattr(esM.componentModelingDict[mdl].componentsDict[comp], 'sharedPotentialID', None)
+                        esM.removeComponent(comp)
+
     return esM
