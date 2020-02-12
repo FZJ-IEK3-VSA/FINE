@@ -2,7 +2,7 @@
 Last edited: January 20 2020
 
 @author: Lara Welder, Johannes Thürauf
-the approaches used in this paper are described in
+the approaches used are described in
 Robinius et. al. (2019) "Robust Optimal Discrete Arc Sizing for Tree-Shaped Potential Networks"
 and they are further developed with the help of
 Theorem 10 of Labbé et. al. (2019) "Bookings in the European gas market: characterisation of feasibility and
