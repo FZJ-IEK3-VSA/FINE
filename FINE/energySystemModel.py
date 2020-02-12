@@ -256,17 +256,12 @@ class EnergySystemModel:
         if componentName not in self.componentNames.keys():
             raise ValueError('The component ' + componentName + ' cannot be found in the energy system model.\n' +
                              'The components considered in the model are: ' + str(self.componentNames.keys()))
-
         modelingClass = self.componentNames[componentName]
-
         # Remove component from the componentNames dict:
         del self.componentNames[componentName]
-
         # Remove component from the componentModelingDict:
         del self.componentModelingDict[modelingClass].componentsDict[componentName]
-
-        # Test if all components of one modelingClass are removed. If so, remove modelingClass
-
+        # Test if all components of one modelingClass are removed. If so, remove modelingClass:
         if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
             del self.componentModelingDict[modelingClass]
 
