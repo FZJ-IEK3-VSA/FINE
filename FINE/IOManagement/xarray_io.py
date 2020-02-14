@@ -1,5 +1,4 @@
 import xarray as xr
-import FINE.IOManagement.dictIO as dictio
 from FINE import utils
 import FINE as fn
 import numpy as np
@@ -46,23 +45,19 @@ def generate_iteration_dicts(esm_dict, component_dict):
 
     return df_iteration_dict, series_iteration_dict
 
-def dimensional_data_to_xarray(esM):
+def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
     """Outputs all dimensional data, hence data containing at least one of the dimensions of time and space, to an xarray dataset"""
 
-    esm_dict, component_dict = dictio.exportToDict(esM)
-
     locations = list(esm_dict['locations'])
-    locations.sort() # TODO: should not be necessary any more
 
     df_iteration_dict, series_iteration_dict = generate_iteration_dicts(esm_dict, component_dict)
 
-    # iterate over iteration dict
-
+    # iterate over iteration dicts
     ds = xr.Dataset()
 
     # get all regional time series (regions, time)
     for variable_description, description_tuple_list in df_iteration_dict.items():
-        df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
+        df_dict = {} # fn.dictionary of multiindex data frames that all contain all data for one variable
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
 
@@ -213,12 +208,13 @@ def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
 
     # initialize spagat_manager
     spagat_manager = spm.SpagatManager()
-    spagat_manager.sds.xr_dataset = dimensional_data_to_xarray(esM)
+    esm_dict, component_dict = fn.dictIO.exportToDict(esM)
+    spagat_manager.sds.xr_dataset = dimensional_data_to_xarray_dataset(esm_dict, component_dict)
 
     if gdf_regions is not None:
         spagat_manager.sds.add_objects(description='gpd_geometries',
-                        dimension_list=['space'],
-                        object_list=gdf_regions.geometry)
+                                       dimension_list=['space'],
+                                       object_list=gdf_regions.geometry)
         spr.add_region_centroids(spagat_manager.sds, spatial_dim='space')
 
     # spatial clustering 
@@ -256,27 +252,29 @@ def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
 
     # create aggregated esM instance
 
-    esmDict, compDict = dictio.exportToDict(esM)
-
-    esmDict, compDict = update_dicts_based_on_xarray_dataset(esmDict, compDict, 
-                                                                  xarray_dataset=spagat_manager.sds_out.xr_dataset)
+    esmDict, compDict = update_dicts_based_on_xarray_dataset(esm_dict, component_dict, 
+                                                             xarray_dataset=spagat_manager.sds_out.xr_dataset)
     
-    esM_aggregated = dictio.importFromDict(esmDict, compDict)
+    esM_aggregated = fn.dictIO.importFromDict(esmDict, compDict)
 
     if aggregatedShapefileFolderPath is not None:
 
         # create region shape file
         aggregated_regions_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_regions.shp')
 
-        df_aggregated = spagat_manager.sds_out.xr_dataset.gpd_geometries.to_dataframe(
-            ).reset_index(level=0).rename(columns={'space':'index', 'gpd_geometries': 'geometry'})
+        # gdf_aggregated_regions = spagat_manager.sds_out.create_shapefile() #TODO: implement this function in SPAGAT
+        # gdf_aggregated_regions.to_file(aggregated_regions_FilePath)
 
-        gdf_aggregated = gpd.GeoDataFrame(df_aggregated)
-        gdf_aggregated.crs = {'init' :'epsg:3035'}
-        gdf_aggregated.to_file(aggregated_regions_FilePath)
+        # df_aggregated = spagat_manager.sds_out.xr_dataset.gpd_geometries.to_dataframe(
+        #     ).reset_index(level=0).rename(columns={'space':'index', 'gpd_geometries': 'geometry'})
+
+        # gdf_aggregated = gpd.GeoDataFrame(df_aggregated)
+        # gdf_aggregated.crs = {'init' :'epsg:3035'}
+
 
         # create grid shape file
         aggregated_grid_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_grid.shp')
         # spr.create_grid_shapefile(spagat_manager.sds_out, filename=aggregated_grid_FilePath)
 
-    return esM_aggregated
+    return esM_aggregated, spagat_manager.sds_out.xr_dataset
+

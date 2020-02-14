@@ -14,6 +14,9 @@ import xlrd
 import geokit as gk
 import geopandas as gpd
 
+from dilmod import OptimizationManager
+
+
 @pytest.fixture
 def minimal_test_esM(scope="session"):
     """Returns minimal instance of esM"""
@@ -602,7 +605,6 @@ def european_model(scope="session"):
     """Returns minimal instance of esM"""
 
     # TODO: create smaller version for GitLab version control
-    from dilmod import OptimizationManager
 
     output= '/home/r-beer/code/EuropeanModel/DGC_EuropeanScenario_ch5_sec1.nc'
 
