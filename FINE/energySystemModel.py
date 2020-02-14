@@ -244,12 +244,19 @@ class EnergySystemModel:
             raise TypeError('The added component has to inherit from the FINE class ComponentModel.')
         component.addToEnergySystemModel(self)
 
-    def removeComponent(self, componentName):
+    def removeComponent(self, componentName, track=False):
         """
         Function which removes a component from the energy system.
 
         :param componentName: name of the component that should be removed
         :type componentName: string
+
+        :param track: specifies if the removed components should be tracked or not
+            |br| * the default value is False
+        :type track: boolean
+
+        :returns: dictionary with the removed componentName and component instance if track is set to True else None.
+        :rtype: dict or None
         """       
 
         # Test if component exists 
@@ -257,13 +264,23 @@ class EnergySystemModel:
             raise ValueError('The component ' + componentName + ' cannot be found in the energy system model.\n' +
                              'The components considered in the model are: ' + str(self.componentNames.keys()))
         modelingClass = self.componentNames[componentName]
-        # Remove component from the componentNames dict:
-        del self.componentNames[componentName]
-        # Remove component from the componentModelingDict:
-        del self.componentModelingDict[modelingClass].componentsDict[componentName]
+        removedComp = dict()
+        if track:
+            removedComp = dict({componentName : self.componentModelingDict[modelingClass].componentsDict.pop(componentName)})
+            del self.componentNames[componentName]
         # Test if all components of one modelingClass are removed. If so, remove modelingClass:
-        if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
-            del self.componentModelingDict[modelingClass]
+            if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
+                del self.componentModelingDict[modelingClass]
+            return removedComp
+        else:
+        # Remove component from the componentNames dict:
+            del self.componentNames[componentName]
+        # Remove component from the componentModelingDict:
+            del self.componentModelingDict[modelingClass].componentsDict[componentName]
+        # Test if all components of one modelingClass are removed. If so, remove modelingClass:
+            if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
+                del self.componentModelingDict[modelingClass]
+            return None
 
     def getComponent(self, componentName):
         """
