@@ -13,7 +13,7 @@ def optimizeSimpleMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepre
                     timeSeriesAggregation=True, numberOfTypicalPeriods = 7, numberOfTimeStepsPerPeriod=24,
                     logFileName='', threads=3, solver='gurobi', timeLimit=None, 
                     optimizationSpecs='', warmstart=False, 
-                    CO2Reference=366, CO2ReductionTargets=None, saveResults=True):
+                    CO2Reference=366, CO2ReductionTargets=None, saveResults=True, trackESMs=True):
     """
     Optimization function for myopic approach. For each optimization run, the newly installed capacities
     will be given as a stock (with capacityFix) to the next optimization run.
@@ -72,12 +72,18 @@ def optimizeSimpleMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepre
         |br| * the default value is True 
     :type saveResults: boolean
 
+    :param trackESMs: specifies if the energy system model instances of each model run should be stored in a dictionary or not. 
+        It´s not recommended to track the ESMs if the model is quite big. 
+        |br| * the default value is True
+    :type trackESMs: boolean
+
     **Returns:**
 
-    :returns myopicResults: Store all optimization outputs in a dictionary for further analyses.
-    :rtype myopicResults: dict of all optimized instances of the EnergySystemModel class.
+    :returns myopicResults: Store all optimization outputs in a dictionary for further analyses. If trackESMs is set to false,
+        nothing is returned.
+    :rtype myopicResults: dict of all optimized instances of the EnergySystemModel class or None.
 
-    Last edited: February 11, 2020
+    Last edited: February 14, 2020
     |br| @author: Theresa Gross, Felix Kullmann
     """                              
                 
@@ -87,7 +93,8 @@ def optimizeSimpleMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepre
     print('Number of optimization runs: ', nbOfSteps+1)
     print('Number of years represented by one optimization: ', nbOfRepresentedYears)
     mileStoneYear = startYear
-    myopicResults = dict()
+    if trackESMs:
+        myopicResults = dict()
 
     for step in range(0,nbOfSteps+1):
         mileStoneYear = startYear + step*nbOfRepresentedYears
@@ -105,13 +112,16 @@ def optimizeSimpleMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepre
         if saveResults:
             standardIO.writeOptimizationOutputToExcel(esM, outputFileName='ESM'+str(mileStoneYear), optSumOutputLevel=2, optValOutputLevel=1)
 
-        myopicResults.update({'ESM_'+str(mileStoneYear): copy.deepcopy(esM)})
+        if trackESMs:
+            myopicResults.update({'ESM_'+str(mileStoneYear): copy.deepcopy(esM)})
 
         # Get stock if not all optimizations are done
         if step != nbOfSteps+1:
             esM = getStock(esM, mileStoneYear, nbOfRepresentedYears)
-
-    return myopicResults
+    if trackESMs:
+        return myopicResults
+    else:
+        return None
 
 def getStock(esM, mileStoneYear, nbOfRepresentedYears):
     '''

@@ -60,7 +60,8 @@ def test_exceededLifetime():
     # Set the technical lifetime of the electrolyzers to 7 years.
     setattr(esM.componentModelingDict['ConversionModel'].componentsDict['Electrolyzers'], 'technicalLifetime', pd.Series([7], index=['OneLocation']))
 
-    results = fn.optimizeSimpleMyopic(esM, startYear=2020, endYear=2030, nbOfRepresentedYears=5, timeSeriesAggregation=False, solver='glpk', saveResults=False)
+    results = fn.optimizeSimpleMyopic(esM, startYear=2020, endYear=2030, nbOfRepresentedYears=5, timeSeriesAggregation=False, 
+                                        solver='glpk', saveResults=False, trackESMs=True)
 
     # Check if electrolyzers which are installed in 2020 are not included in the system of 2030 due to the exceeded lifetime
     assert 'Electrolyzers_stock_2020' not in results['ESM_2030'].componentNames.keys()
@@ -183,7 +184,7 @@ def test_CO2ReductionTargets():
 
     # Optimize the system with simple myopic approach
     results = fn.optimizeSimpleMyopic(esM, startYear=2020, nbOfSteps=2, nbOfRepresentedYears=5, CO2Reference=366, CO2ReductionTargets=[25,50,100], 
-                                        saveResults=False, numberOfTypicalPeriods=3, solver='glpk')
+                                        saveResults=False, trackESMs=True, numberOfTypicalPeriods=3, solver='glpk')
 
     assert results['ESM_2025'].getOptimizationSummary('SourceSinkModel').loc['CO2 to environment'].loc['operation'].values.sum() < 183
 

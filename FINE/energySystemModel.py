@@ -265,19 +265,21 @@ class EnergySystemModel:
                              'The components considered in the model are: ' + str(self.componentNames.keys()))
         modelingClass = self.componentNames[componentName]
         removedComp = dict()
+        # If track: Return a dictionary including the name of the removed component and the component instance
         if track:
             removedComp = dict({componentName : self.componentModelingDict[modelingClass].componentsDict.pop(componentName)})
+            # Remove component from the componentNames dict:
             del self.componentNames[componentName]
-        # Test if all components of one modelingClass are removed. If so, remove modelingClass:
+            # Test if all components of one modelingClass are removed. If so, remove modelingClass:
             if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
                 del self.componentModelingDict[modelingClass]
             return removedComp
         else:
-        # Remove component from the componentNames dict:
+            # Remove component from the componentNames dict:
             del self.componentNames[componentName]
-        # Remove component from the componentModelingDict:
+            # Remove component from the componentModelingDict:
             del self.componentModelingDict[modelingClass].componentsDict[componentName]
-        # Test if all components of one modelingClass are removed. If so, remove modelingClass:
+            # Test if all components of one modelingClass are removed. If so, remove modelingClass:
             if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
                 del self.componentModelingDict[modelingClass]
             return None
