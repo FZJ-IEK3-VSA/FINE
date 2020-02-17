@@ -19,7 +19,7 @@ class Transmission(Component):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
         """
         Constructor for creating an Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
@@ -122,6 +122,7 @@ class Transmission(Component):
         self.opexIfBuilt = utils.preprocess2dimData(opexIfBuilt, self._mapC)
         self.interestRate = utils.preprocess2dimData(interestRate, self._mapC)
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
+        self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
 
         Component. __init__(self, esM, name, dimension='2dim', hasCapacityVariable=hasCapacityVariable,
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
@@ -131,7 +132,8 @@ class Transmission(Component):
                             capacityFix=self.capacityFix, isBuiltFix=self.isBuiltFix,
                             investPerCapacity=self.investPerCapacity, investIfBuilt=self.investIfBuilt,
                             opexPerCapacity=self.opexPerCapacity, opexIfBuilt=self.opexIfBuilt,
-                            interestRate=self.interestRate, economicLifetime=self.economicLifetime)
+                            interestRate=self.interestRate, economicLifetime=self.economicLifetime,
+                            technicalLifetime=self.technicalLifetime)
 
         # Set general component data
         utils.checkCommodities(esM, {commodity})

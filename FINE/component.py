@@ -17,7 +17,7 @@ class Component(metaclass=ABCMeta):
                  hasIsBuiltBinaryVariable=False, bigM=None, locationalEligibility=None,
                  capacityMin=None, capacityMax=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0,
-                 interestRate=0.08, economicLifetime=10, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
+                 interestRate=0.08, economicLifetime=10, technicalLifetime=None, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Component class instance.
 
@@ -253,6 +253,17 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
+        :param technicalLifetime: technical lifetime of the component which is considered for computing the
+            stocks.
+            |br| * the default value is None
+        :type technicalLifetime:
+            * None or
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
+            * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
+              to equal the in the energy system model specified locations.
+
         # TODO: Write more detailed description.
         :param yearlyFullLoadHoursMin: if specified, indicates the maximum yearly full load hours.
             |br| * the default value is None
@@ -296,6 +307,8 @@ class Component(metaclass=ABCMeta):
         self.opexIfBuilt = utils.checkAndSetCostParameter(esM, name, opexIfBuilt, dimension, elig)
         self.interestRate = utils.checkAndSetCostParameter(esM, name, interestRate, dimension, elig)
         self.economicLifetime = utils.checkAndSetCostParameter(esM, name, economicLifetime, dimension, elig)
+        technicalLifetime = utils.checkTechnicalLifetime(esM, technicalLifetime, economicLifetime)
+        self.technicalLifetime = utils.checkAndSetCostParameter(esM, name, technicalLifetime, dimension, elig)
         self.CCF = utils.getCapitalChargeFactor(self.interestRate, self.economicLifetime)
 
         # Set location-specific design parameters
@@ -1053,7 +1066,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         return sum(capVar[loc, compName] / compDict[compName].capacityMax[loc] for compName in compDict
                    if compDict[compName].sharedPotentialID == key and (loc, compName) in capVarSet)
-
+                
     def getLocEconomicsTD(self, pyM, esM, factorNames, varName, loc, compName, getOptValue=False):
         """
         Set time-dependent equation specified for one component in one location or one connection between two locations.
@@ -1441,26 +1454,5 @@ class ComponentModel(metaclass=ABCMeta):
                                                 'dimension': self.dimension},
                     'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
                                                   'dimension': self.dimension}}
-
-    def getOptimizedValues(self, name):
-        """
-        Return the optimal values of the components as a pandas.DataFrame. 
-
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'operationVariablesOptimum'.\n
-        :type name: string
-
-        Last edited: December 05, 2019
-        |br| @author: Theresa Gross
-        """
-        if name == 'capacityVariablesOptimum':
-            return self.capacityVariablesOptimum
-        elif name == 'isBuiltVariablesOptimum':
-            return self.isBuiltVariablesOptimum
-        elif name == 'operationVariablesOptimum':
-            return self.operationVariablesOptimum
-
 
 
