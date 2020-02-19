@@ -21,6 +21,13 @@ import numpy as np
 import copy
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import geopandas as gpd
+import shapely as shp
+import time
+from multiprocessing import Pool
+import sys
+from functools import partial
 
 
 # local type und value checker
@@ -188,13 +195,225 @@ def getNetworkLengthsFromESM(componentName, esM):
     :return: pipeline distances in the length unit specified in the esM object
     :rtype: pandas series
     """
-    # TODO add type and value correctness check @Juelich
+    utils.isString(componentName)
+    utils.isEnergySystemModelInstance(esM)
 
     distances = esM.getComponent(componentName).distances.copy()
     indexMap = esM.getComponent(componentName)._mapC
     distances.index = [indexMap[ix] for ix in distances.index]
 
     return distances
+
+
+def getRefinedShapeFile(shapeFilePath, regColumn1, regColumn2, dic_node_minPress, dic_node_maxPress, minPipeLength, maxPipeLength):
+    """   
+    If a pipe is longer than maxPipeLength than it will be split into several pipes with equidistant length,
+    i.e., replace arc (u,v) by (u,v_1), (v_1,v_2),..., (v_n,v) with n = ceil(lengthOfPipe/maxPipeLength) -1
+
+    :param shapeFilePath: path to a shape file which connects the gas injection/ withdrawal nodes with each other. The rows of the
+        file describe connections between the injection/ withdrawal nodes. The required geometry of these connections is a shapely
+        LineString. Additionally, the file has two columns holding the names of the two injection/ withdrawal nodes (start and end
+        point of the LineString).
+    :type shapeFilePath: string
+
+    :param regColumn1: name of the column which holds the name of the injection/ withdrawal node at the beginning of the line
+    :type regColumn1: string
+
+    :param regColumn2: name of the column which holds the name of the injection/ withdrawal node at the end of the line
+    :type regColumn2: string
+
+    :param dic_node_minPress: dictionary that contains for every node of the network its lower pressure bound in [bar]
+    :type dic_node_minPress: dictionary: key: node of the network, value: non-negative float
+
+    :param dic_node_maxPress: dictionary that contains for every node of the network its upper pressure bound in [bar].
+        It holds: dic_node_minPress[index] <= dic_node_maxPress[index].
+    :type dic_node_maxPress: dictionary key: node of the network, value: non-negative float
+
+    :param minPipeLength: desired minimum length of a pipe in [m], note: not always possible to achieve.
+    :type minPipeLength: positive number
+
+    :param maxPipeLength: determines the maximal length of a pipe in [m].
+    :type maxPipeLength: positive number
+
+    :return: distances_new - pipeline distances in m
+    :rtype: pandas series
+
+    :return: dic_node_minPress_new - dictionary that contains for every node of the network its lower pressure  bound in [bar]
+    :rtype: dictionary key: node of the network, value: non-negative float
+
+    :return: dic_node_maxPress_new - dictionary that contains for every node of the network its upper pressure bound in [bar]
+    :rtype: dictionary key: node of the network, value: non-negative float
+
+    :return: gdfNodes - GeoDataFrame with the nodes of the network and their names
+    :rtype: geopandas GeoDataFrame
+
+    :return: gdfEdges - GeoDataFrame with the edges of the network and the names of their start and end nodes
+    :rtype: geopandas GeoDataFrame
+    """
+    # type and value check
+    isDictionaryPositiveNumber(dic_node_minPress)
+    isDictionaryPositiveNumber(dic_node_maxPress)
+    checkLowerUpperBoundsOfDicts(dic_node_minPress, dic_node_maxPress)
+    utils.isString(regColumn1), utils.isString(regColumn2)
+    utils.isStrictlyPositiveNumber(maxPipeLength)
+    utils.isStrictlyPositiveNumber(minPipeLength)
+
+    # Read shape file with linestrings connecting the entry/ exit nodes of the gas
+    gdf=gpd.read_file(shapeFilePath)
+    if not (gdf.geometry.type == 'LineString').all():
+        raise ValueError("Geometries of the shape file have to be LineStrings")
+
+    print('Number of edges before segmentation:', len(gdf))
+    originalNodesSet = set(gdf[regColumn1]) | set(gdf[regColumn2])
+    print('Number of nodes before segmentation:', len(originalNodesSet))
+
+    # Obtain nodes from shape file, assign names and minimum/ maximum pressure levels to them, delete duplicates
+    coordNames, coords = [], []
+    pMin, pMax = [], []
+
+    # Break linestrings into linear pieces
+    for i, row in gdf.iterrows():
+        # Simplify linestring (to increase the minimum length of pipeline connections wherever possible)
+        line = row.geometry.simplify(minPipeLength)    
+        row.geometry = line
+
+        # Get new nodes
+        coords_ = [i for i in line.coords]
+        coords.extend(coords_)
+
+        coordNames_ = [row[regColumn1]]
+        coordNames_.extend([row[regColumn1] + '_' + row[regColumn2] + '_' + str(j)
+                            for j in range(len(coords_)-2)])
+        coordNames_.append(row[regColumn2])
+        coordNames.extend(coordNames_)
+
+        # Get averaged lower and upper pressure levels 
+        pMin.extend([(dic_node_minPress[row[regColumn1]]*(len(coords_)-j-1) +
+                    dic_node_minPress[row[regColumn2]]*j)/(len(coords_)-1) for j in range(len(coords_))])
+        
+        pMax.extend([(dic_node_maxPress[row[regColumn1]]*(len(coords_)-j-1) +
+                    dic_node_maxPress[row[regColumn2]]*j)/(len(coords_)-1) for j in range(len(coords_))])
+
+    # Create DataFrame of old and new nodes and drop duplicates        
+    dfNodes = pd.DataFrame([coordNames, pMin, pMax, coords], index=['nodeName','pMin','pMax','lon_lat']).T
+    dfNodes = dfNodes.drop_duplicates(subset='lon_lat')
+    dfNodes = dfNodes.drop_duplicates(subset='nodeName')
+
+    # Obtain edges from shape file, assign names to them, delete duplicates
+    nodesIn_nodesOut = []
+    nodesIn = []
+    nodesOut = []
+    lineStrings = []
+
+    for i, row in gdf.iterrows():
+        coords_ = [i for i in row.geometry.coords]
+        for j in range(len(coords_)-1):
+            nodeIn = dfNodes.loc[dfNodes['lon_lat'] == coords_[j],'nodeName'].iloc[0]
+            nodeOut = dfNodes.loc[dfNodes['lon_lat'] == coords_[j+1],'nodeName'].iloc[0]
+            nodesIn.append(nodeIn), nodesOut.append(nodeOut)
+            nodes = [nodeIn,nodeOut]
+            nodes.sort()
+            nodesIn_nodesOut.append('edge_' + nodes[0] + '_' + nodes[1])
+            lineStrings.append(shp.geometry.LineString([coords_[j],coords_[j+1]]))
+            
+    dfEdges = pd.DataFrame([nodesIn, nodesOut, nodesIn_nodesOut, lineStrings],
+                        index=['nodeIn', 'nodeOut','edgeName','geometry']).T
+    dfEdges = dfEdges.drop_duplicates(subset='edgeName')
+    gdfEdges = gpd.GeoDataFrame(dfEdges,crs=gdf.crs).to_crs({'init': 'epsg:3035'})
+
+    print('Number of edges after 1. segmentation:', len(gdfEdges))
+    print('Number of nodes after 1. segmentation:', len(dfNodes))
+
+    # Add nodes when line distances are too long
+    newNodes, newLines, newNodesName, newLinesName = [], [], [], []
+    nodesIn, nodesOut, coords = [], [], []
+    pMin, pMax = [], []
+
+    for i, row in gdfEdges.iterrows():
+        # If lines are two long, segment them
+        if np.round(row['geometry'].length,2) > maxPipeLength:
+            nbNewNodes = int(np.floor(row['geometry'].length/maxPipeLength))
+            line = row.geometry 
+            newNodes_, newLines_, newNodesName_, newLinesName_ = [], [], [], []
+            nodesIn_, nodesOut_, coords_ = [], [], []
+            pMin_, pMax_ = [], []
+            nodeStart, nodeEnd = line.interpolate(0), line.interpolate(line.length)
+            nodeStartName = row['nodeIn']
+            
+            pMinIn  = dfNodes[dfNodes['nodeName'] == row['nodeIn'] ]['pMin'].iloc[0]
+            pMinOut = dfNodes[dfNodes['nodeName'] == row['nodeOut']]['pMin'].iloc[0]
+            pMaxIn  = dfNodes[dfNodes['nodeName'] == row['nodeIn'] ]['pMax'].iloc[0]
+            pMaxOut = dfNodes[dfNodes['nodeName'] == row['nodeOut']]['pMax'].iloc[0]
+            
+            spacing = row['geometry'].length/(nbNewNodes+1)
+            for j in range(1,nbNewNodes+1):
+                newNode = line.interpolate(j*spacing)
+                newNodes_.append(newNode)
+                coords_.append((newNode.x, newNode.y))
+                
+                newNodeName = row['nodeIn'] + '_' + row['nodeOut'] + '_a_' + str(j)
+                newNodesName_.append(newNodeName)
+                
+                newLine = shp.geometry.LineString([nodeStart,newNode])
+                newLines_.append(newLine)
+                newLinesName_.append('temp'), nodesIn_.append(nodeStartName), nodesOut_.append(newNodeName)
+
+                pMin_.append((pMinIn*(nbNewNodes-j+1) + pMinOut*j)/(nbNewNodes+1))    
+                pMax_.append((pMaxIn*(nbNewNodes-j+1) + pMaxOut*j)/(nbNewNodes+1))
+            
+                nodeStart, nodeStartName = newNode, newNodeName
+                
+            newLines_.append(shp.geometry.LineString([newNode,nodeEnd]))
+            newLinesName_.append('temp')
+            nodesIn_.append(newNodeName), nodesOut_.append(row['nodeOut'])
+            
+            newNodes.extend(newNodes_), newLines.extend(newLines_), newNodesName.extend(newNodesName_)
+            newLinesName.extend(newLinesName_), pMin.extend(pMin_), pMax.extend(pMax_)
+            nodesIn.extend(nodesIn_), nodesOut.extend(nodesOut_), coords.extend(coords_)   
+
+    if len(newNodes) > 0:
+        dfNodes = dfNodes.append(pd.DataFrame([newNodesName, pMin, pMax, coords],
+                                            index=['nodeName','pMin','pMax','lon_lat']).T)
+
+        dfEdges = pd.DataFrame([nodesIn, nodesOut, newLinesName, newLines],
+                            index=['nodeIn', 'nodeOut','edgeName','geometry']).T
+        gdfEdgesNew = gpd.GeoDataFrame(dfEdges,crs=gdf.crs).to_crs({'init': 'epsg:3035'})
+        gdfEdges = gdfEdges.append(gdfEdgesNew)
+        gdfEdges = gdfEdges[gdfEdges.geometry.length.round(2) <= maxPipeLength]
+
+    del gdfEdges['edgeName']
+
+    renameDict = {name: 'auxNode' + str(i) for i, name in enumerate(dfNodes.nodeName.values)
+                if name not in originalNodesSet}
+
+    for node in originalNodesSet:
+        renameDict.update({node:node})
+
+    gdfEdges['nodeIn'] = gdfEdges.apply(lambda x: renameDict[x['nodeIn']], axis=1)
+    gdfEdges['nodeOut'] = gdfEdges.apply(lambda x: renameDict[x['nodeOut']], axis=1)
+
+    gdfEdges['distances'] = gdfEdges['geometry'].length
+
+    print('Number of edges after 2. segmentation:', len(gdfEdges))
+
+    dfNodes['nodeName'] = dfNodes.apply(lambda x: renameDict[x['nodeName']], axis=1)
+    dfNodes['geometry'] = dfNodes.apply(lambda x: shp.geometry.Point(x['lon_lat']), axis=1)
+
+    del dfNodes['lon_lat']
+
+    gdfNodes = gpd.GeoDataFrame(dfNodes,crs=gdf.crs).to_crs({'init': 'epsg:3035'})
+    print('Number of nodes after 2. segmentation:', len(gdfNodes))
+
+    print('Minimum length [m]:', gdfEdges.distances.min(), 'Maximum length [m]:', gdfEdges.distances.max())
+
+    distances_new = pd.Series(gdfEdges['distances'].values,
+                              index = [(n1, n2) for n1, n2 in zip(gdfEdges['nodeIn'],gdfEdges['nodeOut'])])
+    
+    dic_node_minPress_new = {n:pMin for n, pMin in zip(gdfNodes['nodeName'], gdfNodes['pMin'])}
+    dic_node_maxPress_new = {n:pMax for n, pMax in zip(gdfNodes['nodeName'], gdfNodes['pMax'])}
+
+    return distances_new, dic_node_minPress_new, dic_node_maxPress_new, gdfNodes, gdfEdges
+
 
 
 def createNetwork(distances):
@@ -238,9 +457,9 @@ def createNetwork(distances):
     return G, distances
 
 
-def createMinimumSpanningTree(graph, distances):
+def createSteinerTree(graph, distances, inner_nodes):
     """
-    Computes a minimal spanning tree with minimal sum of pipeline lengths;
+    Computes a steiner tree with minimal sum of pipeline lengths;
     updates distances such that only arcs of the spanning tree are contained with corresponding length
 
     :param graph: an undirected networkx graph: Its edges have the attribute length which is the pipeline length in [m]
@@ -252,16 +471,20 @@ def createMinimumSpanningTree(graph, distances):
     :return spanning tree with sum of lengths of pipelines is minimal
     :rtype: graph object of networkx
     """
+    from networkx.algorithms import approximation
+    
     # type and value check
     isNetworkxGraph(graph)
     isPandasSeriesPositiveNumber(distances)
 
     # compute spanning tree with minimal sum of pipeline lengths
-    S = nx.minimum_spanning_tree(graph, weight='length')
-    # delete edges that are in graph but not in minimal spanning tree from the distance matrix
+    S = approximation.steiner_tree(graph, terminal_nodes=inner_nodes, weight='length')
+    # TODO check why function fails when MST function is not called here
+    S = nx.minimum_spanning_tree(S, weight='length')
+    # delete edges that are in graph but not in the tree from the distance matrix
     edgesToDelete = []
     for edge in distances.index:
-        # check if edge or its reversed edge are contained in minimal spanning tree
+        # check if edge or its reversed edge are contained in the tree
         # you have to check both directions because we have an undirected graph
         if edge not in S.edges and (edge[1], edge[0]) not in S.edges:
             edgesToDelete.append(edge)
@@ -270,103 +493,14 @@ def createMinimumSpanningTree(graph, distances):
     return S, distances
 
 
-def networkRefinement(distances, maxPipeLength, dic_node_minPress, dic_node_maxPress):
-    """
-    If a pipe is longer than maxPipeLength than it will be split into several pipes with equidistant length,
-    i.e., replace arc (u,v) by (u,v_1), (v_1,v_2),..., (v_n,v) with n = ceil(lengthOfPipe/maxPipeLength) -1
-
-    :param distances: pipeline distances in the length unit specified in the esM object
-    :type distances: pandas series
-
-    :param maxPipeLength: determines the maximal length of a pipe in [m].
-    :type maxPipeLength: positive number
-
-    :param dic_node_minPress: dictionary that contains for every node of the network its lower pressure bound in [bar]
-    :type dic_node_minPress: dictionary: key: node of the network, value: non-negative float
-
-    :param dic_node_maxPress: dictionary that contains for every node of the network its upper pressure bound in [bar]
-    :type dic_node_maxPress: dictionary key: node of the network, value: non-negative float
-
-    It holds dic_node_minPress[index] <= dic_node_maxPress[index]
-
-    :return: graph of the network corresponding to the distances
-    :rtype: graph object of networkx
-
-    :return: pipeline distances in the length unit specified in the esM object
-    :rtype: pandas series
-
-    :return: dic_node_minPress dictionary that contains for every node of the network its lower pressure  bound in [bar]
-    :rtype: dictionary key: node of the network, value: non-negative float
-
-    :return dic_node_maxPress dictionary that contains for every node of the network its upper pressure bound in [bar]
-    :rtype: dictionary key: node of the network, value: non-negative float
-    """
-    # type and value check
-    isPandasSeriesPositiveNumber(distances)
-    isDictionaryPositiveNumber(dic_node_minPress)
-    isDictionaryPositiveNumber(dic_node_maxPress)
-    checkLowerUpperBoundsOfDicts(dic_node_minPress, dic_node_maxPress)
-    if maxPipeLength is not None:
-        utils.isStrictlyPositiveNumber(maxPipeLength)
-
-    # if maximal pipeline length is a positive number we apply the refinement
-    if maxPipeLength is not None:
-        # we have to check if pipes satisfy maximal pipeline length
-        # list of new arcs that will be added
-        newPipes = []
-        # list of lengths of new added pipes
-        newPipesLengths = []
-        # list of split original pipes
-        splitEdges = []
-        for edge in distances.index:
-            # get length of pipeline
-            pipeLength = distances[edge]
-            if pipeLength > maxPipeLength:
-                # compute number of necessary artificial nodes
-                nArtificialNodes = math.ceil(pipeLength / maxPipeLength) - 1
-                # compute length of new pipelines
-                newPipeLength = float(pipeLength / (math.ceil(pipeLength / maxPipeLength)))
-                # lower and upper pressure bound for new nodes computed by average of nodes of original edge
-                lowPress = (dic_node_minPress[edge[0]] + dic_node_minPress[edge[1]]) / 2
-                maxPress = (dic_node_maxPress[edge[0]] + dic_node_maxPress[edge[1]]) / 2
-                # add first new pipe and its length
-                newPipes.append((edge[0], "v" + str(1) + "_" + str(edge[0]) + "_" + str(edge[1])))
-                # add length of first new pipe
-                newPipesLengths.append(newPipeLength)
-                # add lower and upper bound for new artificial node
-                dic_node_minPress["v" + str(1) + "_" + str(edge[0]) + "_" + str(edge[1])] = lowPress
-                dic_node_maxPress["v" + str(1) + "_" + str(edge[0]) + "_" + str(edge[1])] = maxPress
-                # add intermediate artificial pipes, its length, and lower/upper pressure bounds
-                for index in range(1, nArtificialNodes):
-                    newPipes.append(("v" + str(index) + "_" + str(edge[0]) + "_" + str(edge[1]),
-                                     "v" + str(index + 1) + "_" + str(edge[0]) + "_" + str(edge[1])))
-                    newPipesLengths.append(newPipeLength)
-                    dic_node_minPress["v" + str(index + 1) + "_" + str(edge[0]) + "_" + str(edge[1])] = lowPress
-                    dic_node_maxPress["v" + str(index + 1) + "_" + str(edge[0]) + "_" + str(edge[1])] = maxPress
-                # add last new pipe and its length
-                newPipes.append(("v" + str(nArtificialNodes) + "_" + str(edge[0]) + "_" + str(edge[1]),
-                                 edge[1]))
-                newPipesLengths.append(newPipeLength)
-                # add edge to split edges
-                splitEdges.append(edge)
-
-        # Now delete edges that have been split
-        distances = distances.drop(splitEdges)
-        # Add new edges
-        distances = distances.append(pd.Series(newPipesLengths, index=newPipes))
-
-    # get edges for graph
-    edges = distances.index
-    # create empty graph
-    G = nx.Graph()
-    # create graph from given edges and add length as edge attribute
-    for edge in edges:
-        G.add_edge(edge[0], edge[1], length=distances[edge])
-
-    return G, distances, dic_node_minPress, dic_node_maxPress
+def _generateRobustScenarios(startNode_endNode, **kwargs):
+    startNode = startNode_endNode[0]
+    endNode = startNode_endNode[1]
+    return startNode_endNode, computeSingleSpecialScenario(startNode=startNode, endNode=endNode, **kwargs)
 
 
-def generateRobustScenarios(injectionWithdrawalRates, graph, distances):
+def generateRobustScenarios(injectionWithdrawalRates, graph, distances, dic_node_minPress, dic_node_maxPress,
+    threads=1, verbose=0):
     """
     Compute for every node combination a special robust scenario according to Robinius et. al. (2019)
     and Labbé et. al. (2019)
@@ -380,6 +514,12 @@ def generateRobustScenarios(injectionWithdrawalRates, graph, distances):
 
     :param distances: pipeline distances in the length unit specified in the esM object
     :type distances: pandas series
+
+    :param threads: number of threads used for parallelization
+    :type threads: positive integer
+
+    :param verbose: if > 0, parallelization progress is displayed
+    :type verbose: int
 
     :return dictionary that contains for every node pair a dictionary containing all arc flows of the corresponding
     special scenario
@@ -404,6 +544,7 @@ def generateRobustScenarios(injectionWithdrawalRates, graph, distances):
     # list of entry nodes and exit nodes; note node can be in both for example storages
     entries = []
     exits = []
+    inners = []
     for node in list(injectionWithdrawalRates.columns.values):
         minRate = injectionWithdrawalRates[node].min()
         maxRate = injectionWithdrawalRates[node].max()
@@ -417,19 +558,40 @@ def generateRobustScenarios(injectionWithdrawalRates, graph, distances):
                 exits.append(node)
         elif maxRate > 0:
             exits.append(node)
+        else:
+            inners.append(node)
+
+    maxPressuresAreEqual = True if len(set(dic_node_maxPress.values())) == 1 else False
+
+    p_exits = [dic_node_minPress[exit] for exit in exits]
+    p_entries_inners = [dic_node_minPress[node] for node in entries]
+    p_inners = [dic_node_minPress[node] for node in inners]
+    p_entries_inners.extend(p_inners)
+    minPressureExitsIsLarger = True if min(p_exits) >= max(p_entries_inners) else False
 
     # compute special scenario for each node combination; see Paper Robinius et. al.(2019); Labbé et. al. (2019)
     # save arc flows of special scenarios for each node combination;
     # dictionary: key: node pair, value: dictionary: key: arc, value: arc flow
     dic_nodePair_flows = {}
-    for startNode in graph.nodes:
-        for endNode in graph.nodes:
-            # only compute special scenario if start and endnode are different
-            if startNode != endNode:
-                dic_nodePair_flows[(startNode, endNode)] = computeSingleSpecialScenario(graph, distances, entries,
-                                                                                        exits, startNode, endNode,
-                                                                                        dic_nodes_MinCapacity,
-                                                                                        dic_nodes_MaxCapacity)
+
+    if maxPressuresAreEqual and minPressureExitsIsLarger:
+        if verbose == 0:
+            print('Reduced robust scenario set can be generated' +
+                 ' (pMax is equal at all nodes & pMin at exits is >= at inner and entry nodes).')
+        nodes = [(startNode, endNode) for startNode in entries for endNode in exits if startNode != endNode]
+    else:
+        nodes = [(startNode, endNode) for startNode in graph.nodes for endNode in graph.nodes if startNode != endNode]
+
+    pool = Pool(threads)
+    for i, values in enumerate(pool.imap(partial(_generateRobustScenarios, graph=graph, distances=distances,
+                                                entries=entries, exits=exits, dic_nodes_MinCapacity=dic_nodes_MinCapacity,
+                                                dic_nodes_MaxCapacity=dic_nodes_MaxCapacity),
+                               nodes), 1):
+        if verbose == 0:
+            sys.stderr.write('\rPercentage simulated: {:d}%'.format(int(i / len(nodes) * 100)))
+        dic_nodePair_flows[values[0]] = values[1]
+    pool.close()
+    pool.join()
 
     return dic_nodePair_flows, entries, exits
 
@@ -786,7 +948,8 @@ def determinePressureDropCoef(dic_scenario_flows, distances, dic_node_minPress, 
 
 
 def determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureDropCoef, specialScenarioNames,
-                                              dic_node_minPress, dic_node_maxPress, dic_diam_costs, robust=True):
+                                              dic_node_minPress, dic_node_maxPress, dic_diam_costs, robust=True,
+                                              solver='gurobi', threads=4, verbose=0):
     """
     Model of optimal pipeline sizing (diameter selection) w.r.t. to the given scenarios
 
@@ -820,6 +983,15 @@ def determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureDrop
     :return dictionary that contains for every arc the optimal diameter in [m]
     :rtype dictionary: key: arc, value: optimal diameter
 
+    :param solver: name of the optimization solver to use
+    :type solver: string, default 'gurobi'
+
+    :param threads: number of threads used for optimization (if gurobi is used)
+    :type threads: positive integer
+
+    :param verbose: if > 0, parallelization progress is displayed
+    :type verbose: int
+
     :return dictionary that contains for every scenario the corresponding pressure levels
     :rtype dictionary: key: scenarioName, value: dict: key: node, value: pressure level of node
     """
@@ -846,6 +1018,8 @@ def determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureDrop
         raise TypeError("The input has to be a dictionary")
     if not isinstance(robust, bool):
         raise TypeError("The input has to be a bool")
+    utils.isString(solver)
+    utils.isPositiveNumber(verbose)
 
     # set list of available diameters
     diameters = dic_diam_costs.keys()
@@ -911,8 +1085,17 @@ def determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureDrop
     model.SelectionDiameter_cons = py.Constraint(model.arcs, rule=selection_diameter)
 
     # Create a solver
-    opt = SolverFactory('gurobi')
-    results = opt.solve(model, tee=True, report_timing=True, keepfiles=False)
+
+    opt = SolverFactory(solver)
+    # Set the specified solver options
+    # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
+    if (verbose == 2) & (solver == 'gurobi'):
+        optimizationSpecs = ' LogToConsole=0'
+        opt.set_options('Threads=' + str(threads) + optimizationSpecs)
+        results = opt.solve(model, tee=True, keepfiles=False)
+    else:
+        results = opt.solve(model, tee=True, report_timing=True, keepfiles=False)
+
     # status of solver
     status = results.solver.status
     # termination condition
@@ -957,7 +1140,44 @@ def determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureDrop
     return dic_arc_diam, dic_scen_node_press
 
 
-def postprocessing(graph, distances, dic_arc_diam, dic_scenario_flows, dic_node_minPress, dic_node_maxPress):
+def _postprocessing(scenario, dic_scenario_flows, graph, **kwargs):
+    dic_scen_PressLevel = {}
+    dic_scen_MaxViolPress = math.inf
+    # copy a list of nodes
+    tmp_nodes = copy.deepcopy(list(graph.nodes))
+    # we now set iteratively the pressure level of a single node to its upper pressure bound and then compute the
+    # unique pressure levels until we find valid pressure levels or have tested all nodes
+    while tmp_nodes:
+        # we have not found valid pressure levels for this scenario
+        # temporary pressure levels
+        dic_tmp_pressure = {}
+        for node in list(graph.nodes):
+            dic_tmp_pressure[node] = None
+        # choose the node which pressure level is fixed to the upper pressure bound
+        current_node = tmp_nodes[0]
+        validation, tmp_viol = computePressureAtNode(graph=graph, node=current_node, nodeUpperBound=current_node,
+            dic_scenario_flows=dic_scenario_flows[scenario], dic_node_pressure=dic_tmp_pressure, **kwargs)
+        # if validation true, then we have feasible pressure levels; empty list of nodes that have to be
+        # considered
+        if validation:
+            tmp_nodes = []
+            # we have feasible pressure level and save them
+            dic_scen_PressLevel = dic_tmp_pressure
+            dic_scen_MaxViolPress = tmp_viol
+        else:
+            # remove considered entry from list of nodes that will be considered for fixing the pressure level
+            tmp_nodes.remove(tmp_nodes[0])
+            # we update the maximal pressure level violation
+            if tmp_viol < dic_scen_MaxViolPress:
+                # save currently best pressure levels
+                dic_scen_PressLevel = copy.deepcopy(dic_tmp_pressure)
+                dic_scen_MaxViolPress = tmp_viol
+
+    return scenario, dic_scen_PressLevel, dic_scen_MaxViolPress
+
+
+def postprocessing(graph, distances, dic_arc_diam, dic_scenario_flows, dic_node_minPress, dic_node_maxPress,
+    threads=1, verbose=0):
     """"
     Compute "more" accurate pressure levels for the considered scenarios in the network with optimal diameters
     Apply postprocessing of Master's thesis with adaption that we possibly consider every node for fixing its
@@ -982,12 +1202,18 @@ def postprocessing(graph, distances, dic_arc_diam, dic_scenario_flows, dic_node_
     :param dic_node_maxPress: dictionary that contains for every node of the network its upper pressure bound in [bar]
     :type dic_node_maxPress: dictionary key: node of the network, value: non-negative float
 
+    :param threads: number of threads used for parallelization
+    :type threads: positive integer
+
+    :param verbose: if > 0, parallelization progress is displayed
+    :type verbose: int
+
     It holds dic_node_minPress[index] <= dic_node_maxPress[index]
 
-    :return dictionary that contains for every scenario the corresponding pressure levels in [bar]
+    :return: dictionary that contains for every scenario the corresponding pressure levels in [bar]
     :rtype: dictionary key: scenarioName, value: dic: key: arc, value pressure level
 
-    :return dictionary that contains for every scenario the maximal pressure bound violation in [bar]
+    :return: dictionary that contains for every scenario the maximal pressure bound violation in [bar]
     :rtype: dictionary key: scenarioName, value: float = maximal pressure bound violation
     """
     # Type and value check
@@ -1009,39 +1235,19 @@ def postprocessing(graph, distances, dic_arc_diam, dic_scenario_flows, dic_node_
     # maximal violation of pressure bounds; zero if no violation exists; dic: key: scenario, value: pressure violation
     dic_scen_MaxViolPress = {}
     # we compute "precise" pressure levels for every scenarios
-    for scenario in dic_scenario_flows.keys():
-        dic_scen_PressLevel[scenario] = {}
-        dic_scen_MaxViolPress[scenario] = math.inf
-        # copy a list of nodes
-        tmp_nodes = copy.deepcopy(list(graph.nodes))
-        # we now set iteratively the pressure level of a single node to its upper pressure bound and then compute the
-        # unique pressure levels until we find valid pressure levels or have tested all nodes
-        while tmp_nodes:
-            # we have not found valid pressure levels for this scenario
-            # temporary pressure levels
-            dic_tmp_pressure = {}
-            for node in list(graph.nodes):
-                dic_tmp_pressure[node] = None
-            # choose the node which pressure level is fixed to the upper pressure bound
-            current_node = tmp_nodes[0]
-            validation, tmp_viol = computePressureAtNode(True, current_node, current_node, graph,
-                                                         dic_arc_diam, distances, dic_scenario_flows[scenario],
-                                                         dic_node_minPress, dic_node_maxPress, 0, dic_tmp_pressure)
-            # if validation true, then we have feasible pressure levels; empty list of nodes that have to be
-            # considered
-            if validation:
-                tmp_nodes = []
-                # we have feasible pressure level and save them
-                dic_scen_PressLevel[scenario] = dic_tmp_pressure
-                dic_scen_MaxViolPress[scenario] = tmp_viol
-            else:
-                # remove considered entry from list of nodes that will be considered for fixing the pressure level
-                tmp_nodes.remove(tmp_nodes[0])
-                # we update the maximal pressure level violation
-                if tmp_viol < dic_scen_MaxViolPress[scenario]:
-                    # save currently best pressure levels
-                    dic_scen_PressLevel[scenario] = copy.deepcopy(dic_tmp_pressure)
-                    dic_scen_MaxViolPress[scenario] = tmp_viol
+
+    pool = Pool(threads)
+    scenarios = [scenario for scenario in dic_scenario_flows.keys()]
+
+    for i, values in enumerate(pool.imap(partial(_postprocessing, validation=True, graph=graph, dic_arc_diam=dic_arc_diam,
+        distances=distances, dic_node_minPress=dic_node_minPress, dic_node_maxPress=dic_node_maxPress, tmp_violation=0,
+        dic_scenario_flows=dic_scenario_flows), scenarios), 1):
+        if verbose == 0:
+            sys.stderr.write('\rPercentage simulated: {:d}%'.format(int(i / len(scenarios) * 100)))      
+        dic_scen_PressLevel[values[0]] = values[1]
+        dic_scen_MaxViolPress[values[0]] = values[2]
+    pool.close()
+    pool.join()
 
     return dic_scen_PressLevel, dic_scen_MaxViolPress
 
@@ -1160,7 +1366,7 @@ def computePressureAtNode(validation, node, nodeUpperBound, graph, dic_arc_diam,
         dic_node_pressure[node] = dic_node_maxPress[node]
     # list of arcs
     arcs = list(distances.keys())
-    # we now compute the neighbours of the considered node
+    # we now compute the neighbors of the considered node
     neighbors = graph.neighbors(node)
     # compute pressure levels for neighbor nodes
     for neighbor in neighbors:
@@ -1217,7 +1423,7 @@ def computePressureAtNode(validation, node, nodeUpperBound, graph, dic_arc_diam,
                             abs(dic_node_pressure[neighbor] - dic_node_maxPress[neighbor]) > tmp_violation:
                         tmp_violation = abs(dic_node_pressure[neighbor] - dic_node_maxPress[neighbor])
 
-            # compute value for neighbour of tmp
+            # compute value for neighbor of tmp
             validation, tmp_violation = computePressureAtNode(validation, neighbor, nodeUpperBound, graph, dic_arc_diam,
                                                               distances,
                                                               dic_scenario_flows, dic_node_minPress, dic_node_maxPress,
@@ -1455,8 +1661,26 @@ def computePressureEndnodeArc(arc, pressureStartNode, dic_scenario_flows, dic_ar
         # pressure drop is too big return negative value, which is a invalid pressure value
         return -math.inf
 
+def _computeTimeStepFlows(index, injectionWithdrawalRates, graph, **kwargs):
+    # compute flows corresponding to demand by fixing demand for every node to given value and then compute
+    # flows by LP
+    dic_nodes_MinCapacity = {}
+    dic_nodes_MaxCapacity = {}
+    activeNodes = injectionWithdrawalRates.columns
 
-def computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, exits):
+    for node in graph.nodes:
+        if node in activeNodes:
+            dic_nodes_MinCapacity[node] = injectionWithdrawalRates.at[index, node]
+            dic_nodes_MaxCapacity[node] = injectionWithdrawalRates.at[index, node]
+        else:
+            dic_nodes_MinCapacity[node] = 0
+            dic_nodes_MaxCapacity[node] = 0
+    # compute flows
+    return index, computeSingleSpecialScenario(dic_nodes_MinCapacity=dic_nodes_MinCapacity,
+        dic_nodes_MaxCapacity=dic_nodes_MaxCapacity, graph=graph, **kwargs)
+
+
+def computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, exits, threads=1, verbose=0):
     """"
     Compute for each timeStep and demands given by injectionWithdrawalRates the corresponding flow values
 
@@ -1476,8 +1700,14 @@ def computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, ex
     :param exits: list of exit nodes of the network
     :type exits: list of str
 
-    :return dictionary that contains for every time step the corresponding flows in [kg/s]
-    :rtype : dictionary key: timeStep, value: dict: key: arc, value: arc flow
+    :param threads: number of threads used for parallelization
+    :type threads: positive integer
+
+    :param verbose: if > 0, parallelization progress is displayed
+    :type verbose: int
+
+    :return: dictionary that contains for every time step the corresponding flows in [kg/s]
+    :rtype: dictionary key: timeStep, value: dict: key: arc, value: arc flow
     """
     # Type and value check
     isPandasDataFrameNumber(injectionWithdrawalRates)
@@ -1490,31 +1720,127 @@ def computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, ex
     dic_timeStep_flows = {}
     # nodes with nonzero demand are given by columns of dataframe
     activeNodes = injectionWithdrawalRates.columns
-    for index in injectionWithdrawalRates.index:
-        # compute flows corresponding to demand by fixing demand for every node to given value and then compute
-        # flows by LP
-        dic_nodes_MinCapacity = {}
-        dic_nodes_MaxCapacity = {}
-        for node in graph.nodes:
-            if node in activeNodes:
-                dic_nodes_MinCapacity[node] = injectionWithdrawalRates.at[index, node]
-                dic_nodes_MaxCapacity[node] = injectionWithdrawalRates.at[index, node]
-            else:
-                dic_nodes_MinCapacity[node] = 0
-                dic_nodes_MaxCapacity[node] = 0
-        # compute flows
-        dic_timeStep_flows[index] = computeSingleSpecialScenario(graph, distances, entries, exits, activeNodes[0],
-                                                                 activeNodes[1], dic_nodes_MinCapacity,
-                                                                 dic_nodes_MaxCapacity, False)
+    pool = Pool(threads)
+
+    indexList = list(injectionWithdrawalRates.index)
+
+    for i, values in enumerate(pool.imap(partial(_computeTimeStepFlows, graph=graph, distances=distances,
+                                                entries=entries, exits=exits, startNode=activeNodes[0],
+                                                endNode=activeNodes[1], specialScenario=False,
+                                                injectionWithdrawalRates=injectionWithdrawalRates),
+                               indexList), 1):
+        if verbose == 0:
+            sys.stderr.write('\rPercentage simulated: {:d}%'.format(int(i / len(indexList) * 100)))
+        dic_timeStep_flows[values[0]] = values[1]
+    pool.close()
+    pool.join()
 
     return dic_timeStep_flows
 
 
+def networkRefinement(distances, maxPipeLength, dic_node_minPress, dic_node_maxPress):
+    """
+    If a pipe is longer than maxPipeLength than it will be split into several pipes with equidistant length,
+    i.e., replace arc (u,v) by (u,v_1), (v_1,v_2),..., (v_n,v) with n = ceil(lengthOfPipe/maxPipeLength) -1
+    # TODO this function is only used for testing
+
+    :param distances: pipeline distances in the length unit specified in the esM object
+    :type distances: pandas series
+
+    :param maxPipeLength: determines the maximal length of a pipe in [m].
+    :type maxPipeLength: positive number
+
+    :param dic_node_minPress: dictionary that contains for every node of the network its lower pressure bound in [bar]
+    :type dic_node_minPress: dictionary: key: node of the network, value: non-negative float
+
+    :param dic_node_maxPress: dictionary that contains for every node of the network its upper pressure bound in [bar]
+    :type dic_node_maxPress: dictionary key: node of the network, value: non-negative float
+
+    It holds dic_node_minPress[index] <= dic_node_maxPress[index]
+
+    :return: graph of the network corresponding to the distances
+    :rtype: graph object of networkx
+
+    :return: pipeline distances in the length unit specified in the esM object
+    :rtype: pandas series
+
+    :return: dic_node_minPress dictionary that contains for every node of the network its lower pressure  bound in [bar]
+    :rtype: dictionary key: node of the network, value: non-negative float
+
+    :return dic_node_maxPress dictionary that contains for every node of the network its upper pressure bound in [bar]
+    :rtype: dictionary key: node of the network, value: non-negative float
+    """
+    # type and value check
+    isPandasSeriesPositiveNumber(distances)
+    isDictionaryPositiveNumber(dic_node_minPress)
+    isDictionaryPositiveNumber(dic_node_maxPress)
+    checkLowerUpperBoundsOfDicts(dic_node_minPress, dic_node_maxPress)
+    if maxPipeLength is not None:
+        utils.isStrictlyPositiveNumber(maxPipeLength)
+
+    # if maximal pipeline length is a positive number we apply the refinement
+    if maxPipeLength is not None:
+        # we have to check if pipes satisfy maximal pipeline length
+        # list of new arcs that will be added
+        newPipes = []
+        # list of lengths of new added pipes
+        newPipesLengths = []
+        # list of split original pipes
+        splitEdges = []
+        for edge in distances.index:
+            # get length of pipeline
+            pipeLength = distances[edge]
+            if pipeLength > maxPipeLength:
+                # compute number of necessary artificial nodes
+                nArtificialNodes = math.ceil(pipeLength / maxPipeLength) - 1
+                # compute length of new pipelines
+                newPipeLength = float(pipeLength / (math.ceil(pipeLength / maxPipeLength)))
+                # lower and upper pressure bound for new nodes computed by average of nodes of original edge
+                lowPress = (dic_node_minPress[edge[0]] + dic_node_minPress[edge[1]]) / 2
+                maxPress = (dic_node_maxPress[edge[0]] + dic_node_maxPress[edge[1]]) / 2
+                # add first new pipe and its length
+                newPipes.append((edge[0], "v" + str(1) + "_" + str(edge[0]) + "_" + str(edge[1])))
+                # add length of first new pipe
+                newPipesLengths.append(newPipeLength)
+                # add lower and upper bound for new artificial node
+                dic_node_minPress["v" + str(1) + "_" + str(edge[0]) + "_" + str(edge[1])] = lowPress
+                dic_node_maxPress["v" + str(1) + "_" + str(edge[0]) + "_" + str(edge[1])] = maxPress
+                # add intermediate artificial pipes, its length, and lower/upper pressure bounds
+                for index in range(1, nArtificialNodes):
+                    newPipes.append(("v" + str(index) + "_" + str(edge[0]) + "_" + str(edge[1]),
+                                     "v" + str(index + 1) + "_" + str(edge[0]) + "_" + str(edge[1])))
+                    newPipesLengths.append(newPipeLength)
+                    dic_node_minPress["v" + str(index + 1) + "_" + str(edge[0]) + "_" + str(edge[1])] = lowPress
+                    dic_node_maxPress["v" + str(index + 1) + "_" + str(edge[0]) + "_" + str(edge[1])] = maxPress
+                # add last new pipe and its length
+                newPipes.append(("v" + str(nArtificialNodes) + "_" + str(edge[0]) + "_" + str(edge[1]),
+                                 edge[1]))
+                newPipesLengths.append(newPipeLength)
+                # add edge to split edges
+                splitEdges.append(edge)
+
+        # Now delete edges that have been split
+        distances = distances.drop(splitEdges)
+        # Add new edges
+        distances = distances.append(pd.Series(newPipesLengths, index=newPipes))
+
+    # get edges for graph
+    edges = distances.index
+    # create empty graph
+    G = nx.Graph()
+    # create graph from given edges and add length as edge attribute
+    for edge in edges:
+        G.add_edge(edge[0], edge[1], length=distances[edge])
+
+    return G, distances, dic_node_minPress, dic_node_maxPress
+
+
 def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances, dic_node_minPress, dic_node_maxPress,
-                                    maxLengthPipe=None, dic_diameter_costs=None, dic_candidateMergedDiam_costs=None,
+                                    dic_diameter_costs=None, dic_candidateMergedDiam_costs=None,
+                                    gdfEdges=None, regColumn1='nodeIn', regColumn2='nodeOut',
                                     opexForDiameters=None, economicLifetime=30, interestRate=0.08, costUnit='€', ir=0.2,
                                     rho_n=0.089882, T_m=20 + 273.15, T_n=273.15, p_n=1.01325, Z_n=1.00062387922965,
-                                    originalFluidFlows=None, nDigits=6):
+                                    originalFluidFlows=None, nDigits=6, verbose=0, threads=1):
     """
     We compute a robust (depending on parameter robust) optimal pipeline design,
     i.e. for a given network, we compute a minimal spanning tree w.r.t. its total length.
@@ -1566,12 +1892,6 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
 
     It holds dic_node_minPress[index] <= dic_node_maxPress[index]
 
-    :param maxLengthPipe: parameter that is upper limit for pipeline length in [m].
-     If a pipe is longer then maxLengthPipe,
-        then we will split this pipe into several pipes with equidistant length with the help of networkRefinement.
-        |br| * the default value is None, i.e., no network refinement will be applied
-    :type maxLengthPipe: positive float; optional
-
     :param dic_diameter_costs: dictionary that contains all diameters in [m] as keys and the values are the
     corresponding costs in [Euro/m]. Default Value is a preselection of diameters and its costs.
     if None, then we chose the following preselection of diameters and costs
@@ -1588,26 +1908,18 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
         |br| * the default value is empty dictionary {}
     :type dic_candidateMergedDiam_costs: dict with keys: diameters, values: cost for pipeline; optional
 
-    :TODO not used @Juelich where to use
-    param opexForDiameters: opex of the individual pipeline diameter classes, specified
-        in costUnit/m/a (--> default €/m/a)
-        |br| * the default value is []
-    :type opexForDiameters: list; optional
+    :param gdfEdges: GeoDataFrame with the edges of the network and the names of their start and end nodes.
+        Required for geo-referenced result visualization. Should be obtained from the getRefinedShapeFile
+        function.
+    :type gdfEdges: GeoDataFrame or None: optional, default is None
 
-    :TODO not used @Juelich where to use
-    param economicLifetime: economic lifetime of the pipeline network in years
-        |br| * the default value is 30
-    :type economicLifetime: integer > 0; optional
+    :param regColumn1: name of the column in gdfEdges which holds the name of the injection/ withdrawal node
+        at the beginning of the line. Required if gdfEdges is specified.
+    :type regColumn1: string, optional, default is 'nodeIn'
 
-    :TODO not used @Juelich where to use
-    param interestRate: considered interest rate
-        |br| * the default value is 0.08
-    :type interestRate: float (0,1); optional
-
-    :TODO not used @Juelich where to use
-    param costUnit: cost unit of the invest
-        |br| * the default value is '€
-    :type costUnit: string; optional
+    :param regColumn2: name of the column in gdfEdges which holds the name of the injection/ withdrawal node
+        at the end of the line. Required if gdfEdges is specified.
+    :type regColumn2: string, optional, default is 'nodeOut'
 
     :param ir: integral roughness of pipe in [mm]
         |br| * the default value is 0.2 (hydrogen, this value can also be used for methane)
@@ -1642,16 +1954,39 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
         |br| * the default value is 6
     :type nDigits: positive int
 
-    :return: dictionary: key: arcs of the network, value: (number of pipes, optimal diameter of arc in [m]);
-    here number of pipe is usually 1, but if we have a looped pipe (two parallel pipes) with the same diameter, then it
-    is 2
-    :rtype: dictionary key: arc, value: tuple
+    :param verbose: defines how verbose the console logging is:\n
+        - 0: general model logging, warnings and optimization solver logging are displayed.
+        - 1: warnings are displayed.
+        - 2: no general model logging or warnings are displayed, the optimization solver logging is set to a
+            minimum.\n
+        Note: if required, the optimization solver logging can be separately enabled in the optimizationSpecs
+        of the optimize function.
+        |br| * the default value is 0
+    :type verbose: integer (0, 1 or 2)
 
-    :return: dictionary containing the pressure levels in [bar] of the postprocessing for the robust (special) scenarios
-    :rtype: dictionary: key: nodePair, value: dict: key: node, value: pressure level of node
 
-    :return: dictionary containing the pressure levels in [bar] of the postprocessing for each timeStep
-    :rtype: dictionary: key: timeStep, value: dict: key: node, value: pressure level of node
+    :return: tuple (dic_arc_optimalDiameters, dic_scen_PressLevels, dic_scen_MaxViolPress, dic_timeStep_PressLevels,
+           dic_timeStep_MaxViolPress, gdfEdges), with:
+           - dic_arc_optimalDiameters dictionary
+           - pressure levels of postprocessing of robust scenarios dic_scen_PressLevels
+           - violation of pressure bounds of robust scenarios in optimized network determined by postprocessing
+           - dic_scen_MaxViolPress: maximum pressure violation in robust scenarios
+           - pressure levels of postprocessing of timeSteps dic_timeStep_PressLevels
+           - violation of pressure bounds of timeStep scenarios in optimized network determined by postprocessing
+           - dic_timeStep_MaxViolPress: maximum pressure violation in timestep scenarios
+           - geopandas GeoDataFrame (information about diameters in 'diam' column and number of pipelines in
+             'nbPipes'); None if kwarg gdfEdges was specified as being Node
+    :rtype: return types:
+        - dic_arc_optimalDiameters: dictionary, key: arcs, values: (numberOfPipes, diameter) note usually numberOfPipes
+          is 1, but if we have chosen a merged diameter, then we have two parallel pipes with the same diameter,
+          i.e. numberOfPipes is 2.
+        - dic_scen_PressLevels: dictionary, key: nodePair, value: dict: key: arc, value: pressure level in [bar]
+        - dic_scen_MaxViolPress: dictionary, key: nodePair, value: dict: key: arc, value: non-negative number
+          (zero means no pressure violation)
+        - dic_timeStep_PressLevels: dictionary, key: timeStep, value: dict: key: arc, value: pressure level in [bar]
+        - dic_timeStep_MaxViolPress: dictionary, key: nodePair, value: dict: key: arc, value: non-negative number
+          (zero means no pressure violation)
+        - gdfEdges: geopandas geodataframe; None if kwarg gdfEdges was specified as being Node
     """
     # Do type and value check of input data:
     isBool(robust)
@@ -1660,8 +1995,6 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
     isDictionaryPositiveNumber(dic_node_minPress)
     isDictionaryPositiveNumber(dic_node_maxPress)
     checkLowerUpperBoundsOfDicts(dic_node_minPress, dic_node_maxPress)
-    if maxLengthPipe is not None:
-        utils.isPositiveNumber(maxLengthPipe)
     # extract diameters for the optimization
     if dic_diameter_costs is not None:
         if isinstance(dic_diameter_costs, dict):
@@ -1679,6 +2012,15 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
                 utils.isPositiveNumber(dic_candidateMergedDiam_costs[diam])
         else:
             raise TypeError("The input argument has to be a list")
+    utils.isString(regColumn1), utils.isString(regColumn2)
+    if gdfEdges is not None:
+        if isinstance(gdfEdges, gpd.GeoDataFrame):
+            if (not regColumn1 in gdfEdges.columns) | (not regColumn2 in gdfEdges.columns):
+                raise ValueError("regColumn1 or regColumn2 not in columns of gdfEdges")
+            else:
+                gdfEdges['nodes'] = gdfEdges.apply(lambda x: (x['nodeIn'], x['nodeOut']), axis=1)
+        else:
+            raise TypeError("gdfEdges has to be a geopandas GeoDataFrame.")
     if opexForDiameters is not None:
         if isinstance(opexForDiameters, list):
             for opex in opexForDiameters:
@@ -1711,44 +2053,54 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
         print(dic_diameter_costs)
 
     # create graph with respect to distances
-    print('Creating graph with respect to given distances')
+    utils.output('Creating graph with respect to given distances', verbose, 0)
     graph, distances = createNetwork(distances)
-
     # plot graph
-    print("Original Network Graph:")
-    nx.draw(graph, with_labels=True)
-    plt.show()
+    if verbose < 1:
+        if gdfEdges is not None:
+            gdfEdges = gdfEdges[gdfEdges.nodes.isin(distances.index)]
+            fig, ax = plt.subplots(figsize=(4,4))
+            gdfEdges.plot(ax=ax, color='k'), ax.axis('off')
+        else:
+            utils.output("Original Network Graph:", verbose, 0)
+            nx.draw(graph, with_labels=True)
+        plt.show()
 
     # Create a minimum spanning tree of the network with a reasonable logic
-    print('Creating a minimum spanning tree with minimal total length')
-    graph, distances = createMinimumSpanningTree(graph, distances)
+    utils.output('Creating a Steiner treee', verbose, 0)
+    inner_nodes = list(injectionWithdrawalRates.columns)
+    graph, distances = createSteinerTree(graph, distances, inner_nodes)
 
-    print("Minimal Spanning Tree:")
-    nx.draw(graph, with_labels=True)
-    plt.show()
-
-    # Apply a network refinement, if maxLengthPipe is not None
-    if maxLengthPipe is not None:
-        # apply network refinement:
-        print("Apply network refinement")
-        graph, distances, dic_node_minPress, dic_node_maxPress = networkRefinement(distances, maxLengthPipe,
-                                                                                   dic_node_minPress, dic_node_maxPress)
-        print("Network after pipeline refinement")
-        nx.draw(graph, with_labels=True)
+    utils.output("Steiner tree:", verbose, 0)
+    if verbose < 1:
+        if gdfEdges is not None:
+            gdfEdges = gdfEdges[gdfEdges.nodes.isin(distances.index)]
+            fig, ax = plt.subplots(figsize=(4,4))
+            gdfEdges.plot(ax=ax, color='k'), ax.axis('off')
+        else:
+            nx.draw(graph, with_labels=True)
         plt.show()
 
     # Compute robust scenarios for spanning tree network
-    print("Compute robust scenario set for spanning tree network")
-
-    dic_nodePair_flows, entries, exits = generateRobustScenarios(injectionWithdrawalRates, graph, distances)
+    utils.output("Compute robust scenario set for tree network (based on " +
+        str(len(graph.nodes)*len(graph.nodes)-len(graph.nodes)) +
+        ' node combinations). Threads: ' + str(threads), verbose, 0)
+    timeStart = time.time()
+    dic_nodePair_flows, entries, exits = generateRobustScenarios(injectionWithdrawalRates, graph, distances,
+        dic_node_minPress, dic_node_maxPress, threads=threads, verbose=verbose)
+    utils.output("Number of robust scenarios: " + str(len(dic_nodePair_flows.keys())) , verbose, 0)    
+    utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", verbose, 0)
 
     # Compute scenarios for timeSteps
-    print("Compute scenarios for timeStep. May take a little longer. Number Time Steps is "
-          + str(injectionWithdrawalRates.shape[0]))
-    dic_timeStep_flows = computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, exits)
+    utils.output("Compute scenarios for each timestep. Number of timestep scenarios: "
+          + str(injectionWithdrawalRates.shape[0]) + '. Threads: ' + str(threads), verbose, 0)
+    timeStart = time.time()
+    dic_timeStep_flows = computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, exits,
+        threads=threads, verbose=verbose)
+    utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", verbose, 0)
 
     # Compute equivalent single diameters for looped (parallel) pipes
-    print("Compute equivalent single diameters for looped (parallel) pipes")
+    utils.output("Compute equivalent single diameters for looped (parallel) pipes", verbose, 0)
     # dic_LoopedDiam_costs contains the new computed diameters and its costs
     dic_LoopedDiam_costs = None
     # dic_newDiam_oldDiam merges new and old diameters
@@ -1767,67 +2119,67 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
     dic_arc_diam = {}
     if robust:
         # we compute the pressure drops for the robust scenarios
-        print("Pressure drop coefficients for diameters with respect to robust scenarios")
+        utils.output("Pressure drop coefficients for diameters with respect to robust scenarios", verbose, 0)
         dic_pressureCoef = determinePressureDropCoef(dic_nodePair_flows, distances, dic_node_minPress,
                                                      dic_node_maxPress, list(dic_diameter_costs.keys()))
         specialScenarionames = list(dic_nodePair_flows.keys())
 
         # Determine optimal discrete pipeline selection by solving a MIP w.r.t. the robust scenarios
-        print('Determining optimal robust pipeline design under the consideration of pressure losses and robust '
-              'scenarios')
+        utils.output('Determining optimal robust pipeline design under the consideration of pressure ' +
+            'losses and robust scenarios', verbose, 0)
         # returns dict: key: arc, value: optimal diameter
         # returns dict: key: nodePair, value: dic: key: node, value: pressure level
-        dic_arc_diam, dic_scen_node_press = determineOptimalDiscretePipelineSelection(graph, distances,
-                                                                                      dic_pressureCoef,
-                                                                                      specialScenarionames,
-                                                                                      dic_node_minPress,
-                                                                                      dic_node_maxPress,
-                                                                                      dic_diameter_costs, robust)
+        dic_arc_diam, dic_scen_node_press = determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureCoef,
+            specialScenarionames, dic_node_minPress, dic_node_maxPress, dic_diameter_costs, robust, verbose=verbose)
     else:
         # we compute pressure drops for every timeStep scenario. Not robust version!
         # we compute the pressure drops for the robust scenarios and optimize
-        print("Pressure drop coefficients for diameters with respect to robust scenarios")
+        utils.output("Pressure drop coefficients for diameters with respect to robust scenarios", verbose, 0)
         dic_pressureCoef = determinePressureDropCoef(dic_timeStep_flows, distances, dic_node_minPress,
                                                      dic_node_maxPress, list(dic_diameter_costs.keys()))
         timeSteps = list(dic_timeStep_flows.keys())
 
         # Determine optimal discrete pipeline selection by solving a MIP w.r.t. the timeStep scenarios
-        print('Determining optimal pipeline design under the consideration of pressure losses and every time step')
-        print('This network design is necessarily robust!')
+        utils.output('Determining optimal pipeline design under the consideration of pressure losses and every time step',
+            verbose, 0)
+        utils.output('This network design is necessarily robust!', verbose, 0)
         # returns dict: key: arc, value: optimal diameter
         # returns dict: key: timeStep, value: dic: key: node, value: pressure level
-        dic_arc_diam, dic_scen_node_press = determineOptimalDiscretePipelineSelection(graph, distances,
-                                                                                      dic_pressureCoef, timeSteps,
-                                                                                      dic_node_minPress,
-                                                                                      dic_node_maxPress,
-                                                                                      dic_diameter_costs, False)
+        dic_arc_diam, dic_scen_node_press = determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureCoef,
+            timeSteps, dic_node_minPress, dic_node_maxPress, dic_diameter_costs, False, verbose=verbose)
 
     if not dic_arc_diam:
-        print("No feasible diameter selections exits")
+        utils.output("No feasible diameter selections exits", verbose, 0)
         return None
 
     # Do postprocessing: Use a "more" accurate pressure model and apply Postprocessing of master's thesis:
     # first do postprocessing for special scenarios
-    print("Do postprocessing for robust (special) scenarios")
+    utils.output("Do postprocessing for robust (special) scenarios. Number of scenarios: " + str(len(dic_nodePair_flows)) +
+        '. Threads: ' + str(threads), verbose, 0)
+    timeStart = time.time()
     dic_scen_PressLevels, dic_scen_MaxViolPress = postprocessing(graph, distances, dic_arc_diam, dic_nodePair_flows,
-                                                                 dic_node_minPress, dic_node_maxPress)
+                                                                 dic_node_minPress, dic_node_maxPress,
+                                                                 threads=threads, verbose=verbose)
+    utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", verbose, 0)
     # print if some of these scenarios are not feasible for the "more" precise pressure model
     for scenario in dic_scen_MaxViolPress.keys():
         if dic_scen_MaxViolPress[scenario] > 0:
-            print("Robust Scenario " + str(scenario) + " violates pressure bounds by " +
-                  str(dic_scen_MaxViolPress[scenario]))
+            utils.output("Robust Scenario " + str(scenario) + " violates pressure bounds by " +
+                  str(dic_scen_MaxViolPress[scenario]), verbose, 0)
 
     # compute pressure levels for each time step
-    print("Do postprocessing for timeStep scenarios. May take a little longer. Number of time steps is " +
-          str(injectionWithdrawalRates.shape[0]))
+    utils.output("Do postprocessing for each timestep scenarios. Number of scenarios: " +
+          str(injectionWithdrawalRates.shape[0])  + '. Threads: ' + str(threads), verbose, 0)
+    timeStart = time.time()
     dic_timeStep_PressLevels, dic_timeStep_MaxViolPress = postprocessing(graph, distances, dic_arc_diam,
                                                                          dic_timeStep_flows, dic_node_minPress,
-                                                                         dic_node_maxPress)
-
+                                                                         dic_node_maxPress,
+                                                                         threads=threads, verbose=verbose)
+    utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", verbose, 0)
     for timeStep in dic_timeStep_MaxViolPress.keys():
         if dic_timeStep_MaxViolPress[timeStep] > 0:
-            print("Time Step " + str(timeStep) + " violates pressure bounds by " +
-                  str(dic_timeStep_MaxViolPress[timeStep]))
+            utils.output("Time Step " + str(timeStep) + " violates pressure bounds by " +
+                  str(dic_timeStep_MaxViolPress[timeStep]), verbose, 0)
 
     # now determine final output, i.e. dictionary: key: arcs, values: (numberOfPipes, diameter)
     # note usually numberOfPipes is 1, but if we have chosen a merged diameter, then we have two parallel pipes with
@@ -1842,64 +2194,158 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
         else:
             dic_arc_optimalDiameters[arc] = (1, dic_arc_diam[arc])
 
-    print("Optimal Diameters: arc: (number of pipes, diameter)")
-    print(dic_arc_optimalDiameters)
+    if verbose < 1:
+        if gdfEdges is not None:
+            gdfEdges = gdfEdges[gdfEdges.nodes.isin(dic_arc_optimalDiameters)]
+            gdfEdges['diam'] = gdfEdges.apply(lambda x: dic_arc_optimalDiameters[x['nodes']][1], axis=1)
+            gdfEdges['nbPipes'] = gdfEdges.apply(lambda x: dic_arc_optimalDiameters[x['nodes']][0], axis=1)
 
-    # plot network with new diameters
-    print("Network with optimized diameters")
-    print("Looped pipes are indicated by two colored edges")
-    print("Thicker edge means larger diameter")
+            plotOptimizedNetwork(gdfEdges)
 
-    finalG = nx.MultiGraph()
-
-    for arc in dic_arc_optimalDiameters.keys():
-        if dic_arc_optimalDiameters[arc][0] == 1:
-            # we have a single not looped pipe
-            finalG.add_edge(arc[0], arc[1], color='black', weight=5 * dic_arc_optimalDiameters[arc][1])
         else:
-            # we have a looped pipe
-            finalG.add_edge(arc[0], arc[1], color='r',
-                            weight=10 * dic_arc_optimalDiameters[arc][1])
-            finalG.add_edge(arc[0], arc[1], color='b',
-                            weight=5 * dic_arc_optimalDiameters[arc][1])
-    # pos = nx.circular_layout(finalG)
+            # plot network with new diameters
+            utils.output("Network with optimized diameters, looped pipes are indicated by two colored edges, " +
+                "Thicker edge means larger diameter", verbose, 0)
+            finalG = nx.MultiGraph()
 
-    edges = finalG.edges()
+            for arc in dic_arc_optimalDiameters.keys():
+                if dic_arc_optimalDiameters[arc][0] == 1:
+                    # we have a single not looped pipe
+                    finalG.add_edge(arc[0], arc[1], color='black', weight=5 * dic_arc_optimalDiameters[arc][1])
+                else:
+                    # we have a looped pipe
+                    finalG.add_edge(arc[0], arc[1], color='r',
+                                    weight=10 * dic_arc_optimalDiameters[arc][1])
+                    finalG.add_edge(arc[0], arc[1], color='b',
+                                    weight=5 * dic_arc_optimalDiameters[arc][1])
+            # pos = nx.circular_layout(finalG)
 
-    colors = []
-    weight = []
+            edges = finalG.edges()
 
-    for (u, v, attrib_dict) in list(finalG.edges.data()):
-        colors.append(attrib_dict['color'])
-        weight.append(attrib_dict['weight'])
+            colors = []
+            weight = []
 
-    nx.draw(finalG, edges=edges, edge_color=colors, width=weight, with_labels=True)
-    plt.show()
+            for (u, v, attrib_dict) in list(finalG.edges.data()):
+                colors.append(attrib_dict['color'])
+                weight.append(attrib_dict['weight'])
 
-    # TODO use OUTPUT for nice visualization @Juelich
-    # dic_arc_optimalDiameters dictionary: key: arcs, values: (numberOfPipes, diameter)
-    # note usually numberOfPipes is 1, but if we have chosen a merged diameter, then we have two parallel pipes with
-    # the same diameter, i.e. numberOfPipes is 2.
-
-    # pressure levels of postprocessing  of robust scenarios dic_scen_PressLevels: key: nodePair,
-    # value: dict: key: arc, value: pressure level in [bar]
-
-    # violation of pressure bounds of robust scenarios in optimized network determined by postprocessing
-    # dic_scen_MaxViolPress: key: nodePair, value: dict: key: arc, value: non-negative number
-    # (zero means no pressure violation)
-
-    # pressure levels of postprocessing  of timeSteps dic_timeStep_PressLevels: key: timeStep,
-    # value: dict: key: arc, value: pressure level in [bar]
-
-    # violation of pressure bounds of timeStep scenarios in optimized network determined by postprocessing
-    # dic_timeStep_MaxViolPress: key: nodePair, value: dict: key: arc, value: non-negative number
-    # (zero means no pressure violation)
-
-    # distances: pandas series with the arcs of the network and their lengths in [m]
+            nx.draw(finalG, edges=edges, edge_color=colors, width=weight, with_labels=True)
+        
+        plt.show()
 
     # Add some output which somehow quantifies the difference between the original and the new
     # pipeline design (for this additional input argument are required)
     # TODO @ Juelich just compare original solution to solution dic_arc_optimalDiameters
 
     return dic_arc_optimalDiameters, dic_scen_PressLevels, dic_scen_MaxViolPress, dic_timeStep_PressLevels, \
-           dic_timeStep_MaxViolPress
+           dic_timeStep_MaxViolPress, gdfEdges
+
+
+def plotOptimizedNetwork(gdf_pipes, figsize=(4,4), nodesColumn='nodes', diamColumn='diam',
+    nbPipesColumn='nbPipes', line_scaling=1, gdf_regions=None, pressureLevels=None, pMin=50, pMax=100,
+    cmap='Spectral_r', cbxShift=0.32, cbyShift=0.08, cbWidth=0.4, fontsize=10, cbTitle='Pressure [bar]'):
+    """Plot optimized network, visualizing chosen pipe diameters and, if selected, pressure levels of
+    a scenario.
+    
+    :param gdf_pipes: GeoDataFrame, containing information about the diameters, number of pipes and
+        routes of the pipeline network 
+    :type gdf_pipes: geopandas GeoDataFrame
+
+    :param figsize: figure size, defaults to (4,4)
+    :type figsize: tuple, optional
+
+    :param nodesColumn: name of the column in gdf_pipes containing a tuple (startNode, endNode) with the
+        name of the nodes being strings, defaults to 'nodes'
+    :type nodesColumn: str, optional
+
+    :param diamColumn: name of the column in gdf_pipes containing the diameters of the pipelines in m,
+        defaults to 'diam'
+    :type diamColumn: str, optional
+
+    :param nbPipesColumn: name of the column in gdf_pipes containing the number of parallel pipes along
+        a connection (maximum parallel pipes: 2),
+        defaults to 'nbPipes'
+    :type nbPipesColumn: str, optional
+
+    :param line_scaling: scaling factor for line width, defaults to 1
+    :type line_scaling: int, optional
+
+    :param gdf_regions: GeoDataFrame for background plotting, defaults to None
+    :type gdf_regions: geopandas GeoDataFrame, optional
+
+    :param pressureLevels: pressure levels at each node for one scenario/ timestep, defaults to None
+    :type pressureLevels: dictionary or series with keys/ indices being the nodes of the network, optional
+
+    :param pMin: minimum pressure of colorbar, defaults to 50
+    :type pMin: int, optional
+
+    :param pMax: maximum pressure of colorbar, defaults to 100
+    :type pMax: int, optional
+
+    :param cmap: colormap name, defaults to 'Spectral_r'
+    :type cmap: str, optional
+
+    :param cbxShift: colorbar x shift, defaults to 0.32
+    :type cbxShift: float, optional
+
+    :param cbyShift: colorbar y shift, defaults to 0.08
+    :type cbyShift: float, optional
+
+    :param cbWidth: colorbar width, defaults to 0.4
+    :type cbWidth: float, optional
+
+    :param fontsize: fontsize of legend and colorbar, defaults to 10
+    :type fontsize: int, optional
+
+    :param cbTitle: colorbar title, defaults to 'Pressure [bar]'
+    :type cbTitle: str, optional
+
+    :return: tuple (fig, ax)
+    :rtype:
+        - fig: matplotlib figure
+        - ax: matplotlib axis
+    """
+
+    fig, ax = plt.subplots(figsize=figsize)
+    cmap = mpl.cm.get_cmap(cmap)
+
+    if gdf_regions is not None:
+        gdf_regions.plot(ax=ax, facecolor='lightgrey', edgecolor='lightgrey')
+    diamMin = gdf_pipes[gdf_pipes[diamColumn] > 0][diamColumn].min()
+    for i, row in gdf_pipes.iterrows():
+        lw = row[diamColumn]/diamMin*line_scaling
+        if pressureLevels is not None:
+            p = (pressureLevels[row[nodesColumn][0]] + pressureLevels[row[nodesColumn][1]])/2
+            color = cmap((p-pMin)/(pMax-pMin))
+        else:
+            color='k'
+        if (row[nbPipesColumn] == 1):
+            gdf_pipes[gdf_pipes.index == i].plot(ax=ax, color=color, linewidth=lw, capstyle='round')
+        else:
+            gdf_pipes[gdf_pipes.index == i].plot(ax=ax, color=color, linewidth=lw*3, capstyle='round')
+            gdf_pipes[gdf_pipes.index == i].plot(ax=ax, color='white', linewidth=lw)
+    ax.axis('off')    
+
+    lines = []
+    for diam in sorted(gdf_pipes[diamColumn].unique()):
+        line = plt.Line2D(range(1), range(1), linewidth=diam/diamMin*line_scaling, color='k', marker='_',
+                          label="{:>1.5}".format(str(diam)) + ' m')
+        lines.append(line)
+
+    leg = ax.legend(handles=lines, prop={'size': fontsize}, loc=6, bbox_to_anchor=(1,0.5), title='Diameters')
+    leg.get_frame().set_edgecolor('white')
+
+
+    if pressureLevels is not None:
+        sm1 = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=pMin, vmax=pMax))
+        sm1._A = []
+        cax = fig.add_axes([cbxShift, cbyShift, cbWidth, 0.03])
+        cb1 = fig.colorbar(sm1, cax=cax, pad=0.05, aspect=7, fraction=0.07, orientation='horizontal')
+        cax.tick_params(labelsize=fontsize)
+        cax.set_xlabel(cbTitle, size=fontsize)
+        cb1.ax.xaxis.set_label_position('top') 
+
+    plt.show()
+
+    return fig, ax
+

@@ -6,4 +6,4 @@ sphinx_rtd_theme>=0.3.1
 matplotlib
 xlrd
 networkx>=2.4
-scipy>=1.3.3
+scipy>=1.4.1
