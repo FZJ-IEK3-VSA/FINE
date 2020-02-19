@@ -601,7 +601,7 @@ def generateRobustScenarios(injectionWithdrawalRates, graph, distances, dic_node
 
 
 def computeSingleSpecialScenario(graph, distances, entries, exits, startNode, endNode, dic_nodes_MinCapacity,
-                                 dic_nodes_MaxCapacity, specialScenario=True):
+                                 dic_nodes_MaxCapacity, specialScenario=True, solver='glpk'):
     """
     Compute special robust scenario for given node combination according to Robinius et. al. (2019)
     and Labbé et. al. (2019)
@@ -633,6 +633,9 @@ def computeSingleSpecialScenario(graph, distances, entries, exits, startNode, en
     :param specialScenario: bool: True if we compute special robust scenario; False if we compute scenario for fixed
     demand vector, e.g., for scenario of a time step
     :type specialScenario: bool
+
+    :param solver: name of the optimization solver to use
+    :type solver: string, default 'glpk'
 
     :return dictionary that contains for every arc the corresponding arc flows of the (special) scenario
     :rtype: dictionary key: arc, value: arc flow
@@ -740,7 +743,7 @@ def computeSingleSpecialScenario(graph, distances, entries, exits, startNode, en
     model.Obj = py.Objective(rule=obj_rule, sense=py.maximize)
 
     # Create a solver
-    opt = SolverFactory('gurobi')
+    opt = SolverFactory(solver)
     # Solve optimization model
     results = opt.solve(model)
     # status of solver
@@ -953,7 +956,7 @@ def determinePressureDropCoef(dic_scenario_flows, distances, dic_node_minPress, 
 
 def determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureDropCoef, specialScenarioNames,
                                               dic_node_minPress, dic_node_maxPress, dic_diam_costs, robust=True,
-                                              solver='gurobi', threads=4, verbose=0):
+                                              solver='glpk', threads=4, verbose=0):
     """
     Model of optimal pipeline sizing (diameter selection) w.r.t. to the given scenarios
 
@@ -988,7 +991,7 @@ def determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureDrop
     :rtype dictionary: key: arc, value: optimal diameter
 
     :param solver: name of the optimization solver to use
-    :type solver: string, default 'gurobi'
+    :type solver: string, default 'glpk'
 
     :param threads: number of threads used for optimization (if gurobi is used)
     :type threads: positive integer
@@ -1681,10 +1684,10 @@ def _computeTimeStepFlows(index, injectionWithdrawalRates, graph, **kwargs):
             dic_nodes_MaxCapacity[node] = 0
     # compute flows
     return index, computeSingleSpecialScenario(dic_nodes_MinCapacity=dic_nodes_MinCapacity,
-        dic_nodes_MaxCapacity=dic_nodes_MaxCapacity, graph=graph, **kwargs)
+        dic_nodes_MaxCapacity=dic_nodes_MaxCapacity, solver=solver, graph=graph, **kwargs)
 
 
-def computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, exits, threads=1, verbose=0):
+def computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, exits, threads=1, verbose=0, solver='glpk'):
     """"
     Compute for each timeStep and demands given by injectionWithdrawalRates the corresponding flow values
 
@@ -1710,6 +1713,9 @@ def computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, ex
     :param verbose: if > 0, parallelization progress is displayed
     :type verbose: int
 
+    :param solver: name of the optimization solver to use
+    :type solver: string, default 'glpk'
+
     :return: dictionary that contains for every time step the corresponding flows in [kg/s]
     :rtype: dictionary key: timeStep, value: dict: key: arc, value: arc flow
     """
@@ -1731,7 +1737,8 @@ def computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, ex
     for i, values in enumerate(pool.imap(partial(_computeTimeStepFlows, graph=graph, distances=distances,
                                                 entries=entries, exits=exits, startNode=activeNodes[0],
                                                 endNode=activeNodes[1], specialScenario=False,
-                                                injectionWithdrawalRates=injectionWithdrawalRates),
+                                                injectionWithdrawalRates=injectionWithdrawalRates,
+                                                solver=solver),
                                indexList), 1):
         if verbose == 0:
             sys.stderr.write('\rPercentage simulated: {:d}%'.format(int(i / len(indexList) * 100)))
@@ -1841,7 +1848,7 @@ def networkRefinement(distances, maxPipeLength, dic_node_minPress, dic_node_maxP
 
 def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances, dic_node_minPress, dic_node_maxPress,
                                     dic_diameter_costs=None, dic_candidateMergedDiam_costs=None,
-                                    gdfEdges=None, regColumn1='nodeIn', regColumn2='nodeOut',
+                                    gdfEdges=None, regColumn1='nodeIn', regColumn2='nodeOut', solver='glpk',
                                     opexForDiameters=None, economicLifetime=30, interestRate=0.08, costUnit='€', ir=0.2,
                                     rho_n=0.089882, T_m=20 + 273.15, T_n=273.15, p_n=1.01325, Z_n=1.00062387922965,
                                     originalFluidFlows=None, nDigits=6, verbose=0, threads=1):
@@ -1924,6 +1931,9 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
     :param regColumn2: name of the column in gdfEdges which holds the name of the injection/ withdrawal node
         at the end of the line. Required if gdfEdges is specified.
     :type regColumn2: string, optional, default is 'nodeOut'
+
+    :param solver: name of the optimization solver to use
+    :type solver: string, default 'glpk'
 
     :param ir: integral roughness of pipe in [mm]
         |br| * the default value is 0.2 (hydrogen, this value can also be used for methane)
