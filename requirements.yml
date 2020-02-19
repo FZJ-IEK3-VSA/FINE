@@ -1,7 +1,7 @@
 name: FINE
 dependencies:
 - python=3.6
-- gdal=2.3.3
+- conda-forge::gdal=2.4.1
 - conda-forge::geopandas
 - conda-forge::jupyter
 - conda-forge::notebook
