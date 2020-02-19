@@ -160,32 +160,32 @@ def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
         (1) covers part loads from 0 to 1 and
         (2) includes only conversion factors greater than 0 in the relevant part load range.
     """
-    part_load_commod_present = False
-    non_part_load_commod_present = False
+    partLoadCommodPresent = False
+    nonPartLoadCommodPresent = False
 
     for conversionFactor in commodityConversionFactorsPartLoad:
         if isinstance(conversionFactor,pd.DataFrame):
             checkDataFrameTypeConversionFactor(conversionFactor)
-            part_load_commod_present = True
+            partLoadCommodPresent = True
         elif callable(conversionFactor):
             checkCallableConversionFactor(conversionFactor)
-            part_load_commod_present = True
+            partLoadCommodPresent = True
         elif conversionFactor == 1 or conversionFactor == -1:
-            non_part_load_commod_present = True
+            nonPartLoadCommodPresent = True
     
-    if non_part_load_commod_present == False:
+    if nonPartLoadCommodPresent == False:
         raise TypeError('One conversion factor needs to be either 1 or -1.')
-    if part_load_commod_present == False:
+    if partLoadCommodPresent == False:
         raise TypeError('One conversion factor needs to be either a callable function or a list of two-dimensional data points.')
 
 
 def checkCallableConversionFactor(conversionFactor):
     """  Check if the callable conversion factor includes only conversion factors greater than 0 in the relevant part load range. """
-    n_points_for_testing = 1001
-    x_test = np.linspace(0, 1, n_points_for_testing)
-    y_test = [conversionFactor(x_test_i) for x_test_i in x_test]
+    nPointsForTesting = 1001
+    xTest = np.linspace(0, 1, nPointsForTesting)
+    yTest = [conversionFactor(xTest_i) for xTest_i in xTest]
 
-    if any(y_test_i <= 0 for y_test_i in y_test):
+    if any(yTest_i <= 0 for yTest_i in yTest):
         raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
 
 
@@ -195,14 +195,14 @@ def checkDataFrameTypeConversionFactor(conversionFactor):
     if it includes only conversion factors greater than 0 in the relevant part load range. 
     """
     
-    x_test = np.array(conversionFactor['x'])
-    y_test = np.array(conversionFactor['y'])
+    xTest = np.array(conversionFactor['x'])
+    yTest = np.array(conversionFactor['y'])
 
     ### ToDo: Prüfen, ob Check schon an anderer Stelle vorhanden ist
-    if np.isnan(x_test).any() or np.isnan(y_test).any():
+    if np.isnan(xTest).any() or np.isnan(yTest).any():
         raise ValueError('At least one value in the raw conversion factor data is non-numeric.')
 
-    if any(y_test_i <= 0 for y_test_i in y_test):
+    if any(yTest_i <= 0 for yTest_i in yTest):
         raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
 
 
@@ -761,15 +761,15 @@ def checkComponentsEquality(esM, file):
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
-def piece_wise_linearization(function_or_raw, x_min, x_max, nSegments):
+def pieceWiseLinearization(functionOrRaw, x_min, x_max, nSegments):
 
-    if callable(function_or_raw):
-        n_points_for_input_data = 1000
-        x = np.linspace(x_min, x_max, n_points_for_input_data)
-        y = np.array([function_or_raw(x_i) for x_i in x])
+    if callable(functionOrRaw):
+        nPointsForInputData = 1000
+        x = np.linspace(x_min, x_max, nPointsForInputData)
+        y = np.array([functionOrRaw(x_i) for x_i in x])
     else:
-        x = np.array(function_or_raw['x'])
-        y = np.array(function_or_raw['y'])
+        x = np.array(functionOrRaw['x'])
+        y = np.array(functionOrRaw['y'])
         if not 0.0 in x:
             xMinDefined = np.amin(x)
             xMaxDefined = np.amax(x)
@@ -786,12 +786,12 @@ def piece_wise_linearization(function_or_raw, x_min, x_max, nSegments):
             lenIntervalDefined = xMaxDefined - xMinDefined
             lenIntervalUndefined = 1.0 - xMaxDefined
             nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
-            x_max_index = np.argmax(x)
+            xMaxIndex = np.argmax(x)
             for i in range(int(nPointsUndefined)):
                 x = np.append(x, [xMaxDefined + (i+1)/int(nPointsUndefined) * lenIntervalUndefined])
-                y = np.append(y, y[x_max_index])
+                y = np.append(y, y[xMaxIndex])
 
-    my_pwlf = pwlf.PiecewiseLinFit(x, y)
+    myPwlf = pwlf.PiecewiseLinFit(x, y)
 
     if nSegments == None:
         # Define the lower and upper bound for the number of line segments
@@ -812,39 +812,39 @@ def piece_wise_linearization(function_or_raw, x_min, x_max, nSegments):
         # myBopt.run_optimization(max_iter=max_iter, verbosity=True)
         # nSegments = myBopt.x_opt
     
-    x_segments = my_pwlf.fit(nSegments)
+    xSegments = myPwlf.fit(nSegments)
 
     # Get the y segments
-    y_segments = my_pwlf.predict(x_segments)
+    ySegments = myPwlf.predict(xSegments)
 
     # Calcualte the R^2 value
-    Rsquared = my_pwlf.r_squared()
+    Rsquared = myPwlf.r_squared()
 
     # Calculate the piecewise R^2 value
     R2values = np.zeros(nSegments)
     for i in range(nSegments):
         # Segregate the data based on break point locations
-        xmin = my_pwlf.fit_breaks[i]
-        xmax = my_pwlf.fit_breaks[i+1]
-        xtemp = my_pwlf.x_data
-        ytemp = my_pwlf.y_data
-        indtemp = np.where(xtemp >= xmin)
-        xtemp = my_pwlf.x_data[indtemp]
-        ytemp = my_pwlf.y_data[indtemp]
-        indtemp = np.where(xtemp <= xmax)
-        xtemp = xtemp[indtemp]
-        ytemp = ytemp[indtemp]
+        xMin = myPwlf.fit_breaks[i]
+        xMax = myPwlf.fit_breaks[i+1]
+        xTemp = myPwlf.x_data
+        yTemp = myPwlf.y_data
+        indTemp = np.where(xTemp >= xMin)
+        xTemp = myPwlf.x_data[indTemp]
+        yTemp = myPwlf.y_data[indTemp]
+        indTemp = np.where(xTemp <= xMax)
+        xTemp = xTemp[indTemp]
+        yTemp = yTemp[indTemp]
 
         # Predict for the new data
-        yhattemp = my_pwlf.predict(xtemp)
+        yHatTemp = myPwlf.predict(xTemp)
 
         # Calcualte ssr
-        e = yhattemp - ytemp
+        e = yHatTemp - yTemp
         ssr = np.dot(e, e)
 
         # Calculate sst
-        ybar = np.ones(ytemp.size) * np.mean(ytemp)
-        ydiff = ytemp - ybar
+        yBar = np.ones(yTemp.size) * np.mean(yTemp)
+        ydiff = yTemp - yBar
         sst = np.dot(ydiff, ydiff)
 
         R2values[i] = 1.0 - (ssr/sst)
@@ -852,12 +852,12 @@ def piece_wise_linearization(function_or_raw, x_min, x_max, nSegments):
     # Plot the results
     # plt.figure()
     # plt.plot(x, y, 'o') # Raw data
-    # plt.plot(x_segments, y_segments, '-') # Piecewise linear function
+    # plt.plot(xSegments, ySegments, '-') # Piecewise linear function
     # plt.show()
 
     return {
-        'x_segments': x_segments, 
-        'y_segments': y_segments,
+        'xSegments': xSegments, 
+        'ySegments': ySegments,
         'nSegments': nSegments,
         'Rsquared': Rsquared, 
         'R2values': R2values
@@ -866,29 +866,29 @@ def piece_wise_linearization(function_or_raw, x_min, x_max, nSegments):
 def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
     """ Preprocess the conversion factors passed by the user """
     discretizedPartLoad = {commod: None for commod in commodityConversionFactorsPartLoad.keys()}
-    function_or_raw_commod = None
-    non_function_or_raw_commod = None
+    functionOrRawCommod = None
+    nonFunctionOrRawCommod = None
     for commod, conversionFactor in commodityConversionFactorsPartLoad.items():
         if isinstance(conversionFactor,pd.DataFrame):
-            discretizedPartLoad[commod] = piece_wise_linearization(function_or_raw=conversionFactor, x_min=0, x_max=1, nSegments=nSegments)
-            function_or_raw_commod = commod
+            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, x_min=0, x_max=1, nSegments=nSegments)
+            functionOrRawCommod = commod
             nSegments = discretizedPartLoad[commod]['nSegments']
         elif callable(conversionFactor):
-            discretizedPartLoad[commod] = piece_wise_linearization(function_or_raw=conversionFactor, x_min=0, x_max=1, nSegments=nSegments)
-            function_or_raw_commod = commod
+            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, x_min=0, x_max=1, nSegments=nSegments)
+            functionOrRawCommod = commod
             nSegments = discretizedPartLoad[commod]['nSegments']
         elif conversionFactor == 1 or conversionFactor == -1:
             discretizedPartLoad[commod] = {
-                'x_segments': None,
-                'y_segments': None,
+                'xSegments': None,
+                'ySegments': None,
                 'nSegments': None,
                 'Rsquared': 1.0, 
                 'R2values': 1.0
                 }
-            non_function_or_raw_commod = commod
-    discretizedPartLoad[non_function_or_raw_commod]['x_segments'] = discretizedPartLoad[function_or_raw_commod]['x_segments']
-    discretizedPartLoad[non_function_or_raw_commod]['y_segments'] = [commodityConversionFactorsPartLoad[non_function_or_raw_commod]]*(nSegments+1)
-    discretizedPartLoad[non_function_or_raw_commod]['nSegments'] = nSegments
+            nonFunctionOrRawCommod = commod
+    discretizedPartLoad[nonFunctionOrRawCommod]['xSegments'] = discretizedPartLoad[functionOrRawCommod]['xSegments']
+    discretizedPartLoad[nonFunctionOrRawCommod]['ySegments'] = [commodityConversionFactorsPartLoad[nonFunctionOrRawCommod]]*(nSegments+1)
+    discretizedPartLoad[nonFunctionOrRawCommod]['nSegments'] = nSegments
     return discretizedPartLoad, nSegments
 
 def checkNumberOfConversionFactors(commods):
@@ -906,6 +906,6 @@ def my_obj(x):
     f = np.zeros(x.shape[0])
 
     for i, j in enumerate(x):
-        my_pwlf.fit(j[0])
-        f[i] = my_pwlf.ssr + (l*j[0])
+        myPwlf.fit(j[0])
+        f[i] = myPwlf.ssr + (l*j[0])
     return f
