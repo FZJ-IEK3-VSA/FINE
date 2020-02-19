@@ -22,12 +22,16 @@ import copy
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import geopandas as gpd
 import shapely as shp
 import time
 from multiprocessing import Pool
 import sys
 from functools import partial
+
+try:
+    import geopandas as gpd
+except ImportError:
+    warnings.warn('The GeoPandas python package could not be imported.')
 
 
 # local type und value checker
