@@ -41,7 +41,7 @@ def getData():
     capacityFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'HydroPower', 'fixCapacityROR_GW_el.xlsx'),
                                 index_col=0, squeeze=True)
     operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'HydroPower',
-                                                  'fixOperationRateROR_GW_el.xlsx'),
+                                                  'fixOperationRateROR.xlsx'),
                                                   header = 0, index_col = 0)
 
     data.update({'Existing run-of-river plants, capacityFix': capacityFix})
@@ -126,7 +126,7 @@ def getData():
     # Pipelines data
     eligibility = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Pipelines',
                                              'pipelineIncidence.xlsx'), index_col=0, header=0)
-    distances = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Pipelines', 'pipelineIncidence.xlsx'),
+    distances = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Pipelines', 'pipelineLength.xlsx'),
                               index_col=0, header=0)
 
     data.update({'Pipelines, eligibility': eligibility})
