@@ -477,7 +477,7 @@ def test_robustPipelineDesign():
         dic_pressure_coef, specialScenarionames, dic_node_minPress, dic_node_maxPress, dic_diameter_costs,
         robust=True, verbose=2)
 
-    assert (dic_arc_diam == dic_arc_diamTruth)
+    assert (sorted(dic_arc_diam) == sorted(dic_arc_diamTruth))
 
     #######################################################################################################################
     # unit test of function determineOptimalDiscretePipelineSelection case Robust = False
@@ -514,7 +514,7 @@ def test_robustPipelineDesign():
         dic_pressure_coef, specialScenarionames, dic_node_minPress, dic_node_maxPress, dic_diameter_costs,
         robust=False, verbose=2)
 
-    assert (dic_arc_diam == dic_arc_diamTruth)
+    assert (sorted(dic_arc_diam) == sorted(dic_arc_diamTruth))
 
     #######################################################################################################################
     # unit test of function computePressureStartnodeArc
