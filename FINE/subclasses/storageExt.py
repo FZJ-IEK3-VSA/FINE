@@ -12,7 +12,7 @@ class StorageExt(Storage):
     state of charge time series. The StorageExt class inherits from the Storage class.
     """
     def __init__(self, esM, name, commodity, stateOfChargeOpRateMax=None, stateOfChargeOpRateFix=None,
-        stateOfChargeTsaWeight=1, **kwargs):
+        opexPerChargeOpTimeSeries=None, stateOfChargeTsaWeight=1, opexChargeOpTsaWeight=1, **kwargs):
         """
         Constructor for creating an StorageExt class instance.
         The StorageExt component specific input arguments are described below. The Storage component specific
@@ -86,8 +86,12 @@ class StorageExt(Storage):
                                                                       self.locationalEligibility)
         self.aggregatedStateOfChargeOpRateFix, self.stateOfChargeOpRateFix = None, None
 
-        utils.isPositiveNumber(stateOfChargeTsaWeight)
-        self.stateOfChargeTsaWeight = stateOfChargeTsaWeight
+        self.fullOpexPerChargeOpTimeSeries = \
+            utils.checkAndSetTimeSeriesCostParameter(esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility)
+        self.aggregatedOpexPerChargeOpTimeSeries, self.opexPerChargeOpTimeSeries = None, None
+
+        utils.isPositiveNumber(stateOfChargeTsaWeight), utils.isPositiveNumber(opexChargeOpTsaWeight)
+        self.stateOfChargeTsaWeight, self.opexChargeOpTsaWeight = stateOfChargeTsaWeight, opexChargeOpTsaWeight
 
         # Set locational eligibility
         timeSeriesData = None
@@ -120,19 +124,22 @@ class StorageExt(Storage):
         """
         self.chargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullChargeOpRateMax
         self.chargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullChargeOpRateFix
-        self.dischargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
-        self.dischargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
+        self.dischargeOpRateMax = self.aggregatedDischargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
+        self.dischargeOpRateFix = self.aggregatedDischargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
         self.stateOfChargeOpRateMax = self.aggregatedStateOfChargeOpRateMax if hasTSA \
             else self.fullStateOfChargeOpRateMax
         self.stateOfChargeOpRateFix = self.aggregatedStateOfChargeOpRateFix if hasTSA \
             else self.fullStateOfChargeOpRateFix
+        self.opexPerChargeOpTimeSeries = \
+            self.aggregatedOpexPerChargeOpTimeSeries if hasTSA else self.fullOpexPerChargeOpTimeSeries
 
     def getDataForTimeSeriesAggregation(self):
         """ Function for getting the required data if a time series aggregation is requested. """
         weightDict, data = {}, []
         I = [(self.fullChargeOpRateFix, self.fullChargeOpRateMax, 'chargeRate_', self.chargeTsaWeight),
              (self.fullDischargeOpRateFix, self.fullDischargeOpRateMax, 'dischargeRate_', self.dischargeTsaWeight),
-             (self.fullStateOfChargeOpRateFix, self.fullStateOfChargeOpRateMax, '_SOCRate_', self.stateOfChargeTsaWeight)]
+             (self.fullStateOfChargeOpRateFix, self.fullStateOfChargeOpRateMax, '_SOCRate_', self.stateOfChargeTsaWeight),
+             (self.fullOpexPerChargeOpTimeSeries, None, '_opexPerChargeOp_', self.opexChargeOpTsaWeight)]
 
         for rateFix, rateMax, rateName, rateWeight in I:
             weightDict, data = self.prepareTSAInput(rateFix, rateMax, rateName, rateWeight, weightDict, data)
@@ -154,6 +161,8 @@ class StorageExt(Storage):
 
         self.aggregatedStateOfChargeOpRateFix = self.getTSAOutput(self.fullStateOfChargeOpRateFix, '_SOCRate_', data)
         self.aggregatedStateOfChargeOpRateMax = self.getTSAOutput(self.fullStateOfChargeOpRateMax, '_SOCRate_', data)
+
+        self.aggregatedOpexPerChargeOpTimeSeries = self.getTSAOutput(self.fullOpexPerChargeOpTimeSeries, '_opexPerChargeOp_', data)
 
 
 class StorageExtModel(StorageModel):
@@ -441,8 +450,18 @@ class StorageExtModel(StorageModel):
             #              Constraints for enforcing a state of charge operation mode within given limits              #
 
             # State of charge [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] and the relative
-            # maximum state of charge
-            self.operationModeSOC(pyM, esM)
+            # maximum state of charge            
+            self.operationMode1(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeMax', True)
+            # State of charge [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] and the relative
+            # fixed state of charge time series [-]
+            self.operationMode2(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateFix', True)
+            # State of charge [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] and the relative
+            # maximum state of charge time series [-]
+            self.operationMode3(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateMax', True)
+            # State of charge [commodityUnit*h] is equal to the absolute fixed state of charge time series [commodityUnit*h]
+            self.operationMode4(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateFix')
+            # State of charge [commodityUnit*h] is limited by the absolute maximum state of charge time series [commodityUnit*h]
+            self.operationMode5(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateMax')
 
             # The state of charge [commodityUnit*h] has to be larger than the installed capacity [commodityUnit*h]
             # multiplied with the relative minimum state of charge
@@ -512,7 +531,11 @@ class StorageExtModel(StorageModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        return super().getObjectiveFunctionContribution(esM, pyM)
+        
+        basicContribution = super().getObjectiveFunctionContribution(esM, pyM)
+        chargeOpContribution = self.getEconomicsTimeSeries(pyM, esM, 'opexPerChargeOpTimeSeries', 'chargeOp', 'operationVarDict')
+
+        return  basicContribution + chargeOpContribution
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #

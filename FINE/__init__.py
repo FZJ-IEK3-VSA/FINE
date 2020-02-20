@@ -1,5 +1,5 @@
 """
-Last edited: May 15 2018
+Last edited: February 06, 2020
 
 @author: Lara Welder
 """
@@ -11,3 +11,4 @@ from .transmission import Transmission
 from .component import Component, ComponentModel
 from .subclasses import *
 from .IOManagement import *
+from .expansionModules import *

@@ -7,6 +7,7 @@ from FINE.component import Component, ComponentModel
 from FINE import utils
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 import pandas as pd
+import numpy as np
 import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
@@ -241,6 +242,46 @@ class EnergySystemModel:
             print(component.name, component.modelingClass, ComponentModel)
             raise TypeError('The added component has to inherit from the FINE class ComponentModel.')
         component.addToEnergySystemModel(self)
+
+    def removeComponent(self, componentName, track=False):
+        """
+        Function which removes a component from the energy system.
+
+        :param componentName: name of the component that should be removed
+        :type componentName: string
+
+        :param track: specifies if the removed components should be tracked or not
+            |br| * the default value is False
+        :type track: boolean
+
+        :returns: dictionary with the removed componentName and component instance if track is set to True else None.
+        :rtype: dict or None
+        """       
+
+        # Test if component exists 
+        if componentName not in self.componentNames.keys():
+            raise ValueError('The component ' + componentName + ' cannot be found in the energy system model.\n' +
+                             'The components considered in the model are: ' + str(self.componentNames.keys()))
+        modelingClass = self.componentNames[componentName]
+        removedComp = dict()
+        # If track: Return a dictionary including the name of the removed component and the component instance
+        if track:
+            removedComp = dict({componentName : self.componentModelingDict[modelingClass].componentsDict.pop(componentName)})
+            # Remove component from the componentNames dict:
+            del self.componentNames[componentName]
+            # Test if all components of one modelingClass are removed. If so, remove modelingClass:
+            if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
+                del self.componentModelingDict[modelingClass]
+            return removedComp
+        else:
+            # Remove component from the componentNames dict:
+            del self.componentNames[componentName]
+            # Remove component from the componentModelingDict:
+            del self.componentModelingDict[modelingClass].componentsDict[componentName]
+            # Test if all components of one modelingClass are removed. If so, remove modelingClass:
+            if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
+                del self.componentModelingDict[modelingClass]
+            return None
 
     def getComponent(self, componentName):
         """
@@ -539,7 +580,7 @@ class EnergySystemModel:
             return TAC
         pyM.Obj = pyomo.Objective(rule=objective)
 
-    def declareOptimizationProblem(self, timeSeriesAggregation=False):
+    def declareOptimizationProblem(self, timeSeriesAggregation=False, relaxIsBuiltBinary=False):
         """
         Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
         instance is built and filled with
@@ -588,7 +629,7 @@ class EnergySystemModel:
             _t = time.time()
             utils.output('Declaring sets, variables and constraints for ' + key, self.verbose, 0)
             utils.output('\tdeclaring sets... ', self.verbose, 0), mdl.declareSets(self, pyM)
-            utils.output('\tdeclaring variables... ', self.verbose, 0), mdl.declareVariables(self, pyM)
+            utils.output('\tdeclaring variables... ', self.verbose, 0), mdl.declareVariables(self, pyM, relaxIsBuiltBinary)
             utils.output('\tdeclaring constraints... ', self.verbose, 0), mdl.declareComponentConstraints(self, pyM)
             utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
@@ -618,8 +659,8 @@ class EnergySystemModel:
         # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
-    def optimize(self, declaresOptimizationProblem=True, timeSeriesAggregation=False, logFileName='', threads=3,
-                 solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
+    def optimize(self, declaresOptimizationProblem=True, relaxIsBuiltBinary=False, timeSeriesAggregation=False,
+                 logFileName='', threads=3, solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
         A pyomo instance is optimized with the specified inputs, and the optimization results are further
@@ -631,6 +672,15 @@ class EnergySystemModel:
             (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
             (b) If false a previously declared pyomo ConcreteModel instance is used.
             |br| * the default value is True
+        :type declaresOptimizationProblem: boolean
+
+<<<<<<< HEAD
+=======
+#TODO: Check description
+>>>>>>> 40954fbfd42041f167c649421ab7413b6dc2bef7
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
+            bound of the problem.
+            |br| * the default value is False
         :type declaresOptimizationProblem: boolean
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
@@ -681,7 +731,7 @@ class EnergySystemModel:
         |br| @author: Lara Welder
         """
         if declaresOptimizationProblem:
-            self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation)
+            self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation, relaxIsBuiltBinary=relaxIsBuiltBinary)
         else:
             if self.pyM is None:
                 raise TypeError('The optimization problem is not declared yet. Set the argument declaresOptimization'
