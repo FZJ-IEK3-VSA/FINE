@@ -26,7 +26,6 @@ def test_industrialSite():
     # ## Add source component
 
     data = pd.read_excel('test/generationTimeSeries_e825103.xlsx')
-    # data = pd.read_excel(os.path.dirname(os.path.abspath(__file__)) + '/generationTimeSeries_e825103.xlsx')
     data = data.iloc[0:numberOfTimeSteps]
 
     operationRateMax = pd.DataFrame(data['e825103_2017_2.3MW_faults9'],index=range(numberOfTimeSteps)) # Dataset with least missing data
@@ -94,8 +93,8 @@ def test_industrialSite():
     # # Postprocessing
 
     # Print the discretization variables of the AEC
-    testresults = esM.componentModelingDict["ConversionFancyModel"].discretizationPointVariablesOptimun
-    print(testresults)
+    # testresults = esM.componentModelingDict["ConversionFancyModel"].discretizationPointVariablesOptimun
+    # print(testresults)
 
     # Write results to excel file
     # fn.writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput_industrialSite')

@@ -72,23 +72,23 @@ def test_industrialSite():
 
     func = lambda x: 0.5*(x-2)**3 + (x-2)**2 + 0.0001
 
-    commodityConversionFactorsPartLoad={'electricity':-1, 'hydrogen': func}
-    fn.utils.checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad.values())
+    # commodityConversionFactorsPartLoad={'electricity':-1, 'hydrogen': func}
+    # fn.utils.checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad.values())
 
-    pwl = fn.utils.getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments=5)
+    # pwl = fn.utils.getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments=3)
 
-    # Check piecewise linearization visually
-    plt.figure()
-    xPts = np.linspace(0, 1, 1000)
-    plt.plot(xPts, func(xPts), 'o') # Function
-    plt.plot(pwl[0]['hydrogen']['xSegments'], pwl[0]['hydrogen']['ySegments'], '-') # Piecewise linear function
-    plt.show()
+    # # Check piecewise linearization visually
+    # plt.figure()
+    # xPts = np.linspace(0, 1, 1000)
+    # plt.plot(xPts, func(xPts), 'o') # Function
+    # plt.plot(pwl[0]['hydrogen']['xSegments'], pwl[0]['hydrogen']['ySegments'], '-') # Piecewise linear function
+    # plt.show()
 
     esM.add(fn.ConversionPartLoad(esM=esM, name='AEC', physicalUnit=r'MW$_{el}$',
                         commodityConversionFactors={'electricity':-1, 'hydrogen':0.64},
                         commodityConversionFactorsPartLoad={'electricity':-1, 'hydrogen': func},
                         # commodityConversionFactorsPartLoad=pwl,
-                        nSegments=5,
+                        nSegments=3,
                         hasCapacityVariable=True, 
                         bigM=99,
                         investPerCapacity=1300, opexPerCapacity=18, interestRate=0.08, # for 2018 CAPEX
