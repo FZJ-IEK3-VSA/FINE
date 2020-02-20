@@ -15,4 +15,4 @@ dependencies:
 - numpy
 - pandas
 - GPyOpt
-- pwlf>=1.1.5
+- pwlf
