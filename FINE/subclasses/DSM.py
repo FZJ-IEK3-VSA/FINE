@@ -11,8 +11,7 @@ class DemandSideManagement(Sink):
     A DemandSideManagement component
     """
     def __init__(self, esM, name, commodity, hasCapacityVariable, tBwd, tFwd, operationRateFix,
-        opexShift=1e-6, shiftUpMax=None, shiftDownMax=None, socOffsetDown=-1,
-        socOffsetDown=-1, **kwargs):
+        opexShift=1e-6, shiftUpMax=None, shiftDownMax=None, socOffsetDown=-1, socOffsetUp=-1, **kwargs):
         """
         Constructor for creating an DemandSideManagement class instance.
         TODO
