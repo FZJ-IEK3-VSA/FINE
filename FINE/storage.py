@@ -351,7 +351,7 @@ class StorageModel(ComponentModel):
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
         Declare design and operation variables.
 
@@ -369,7 +369,7 @@ class StorageModel(ComponentModel):
         # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
         # Binary variables [-] indicating if a component is considered at a location or not
-        self.declareBinaryDesignDecisionVars(pyM)
+        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Energy amount injected into a storage (before injection efficiency losses) between two time steps
         self.declareOperationVars(pyM, 'chargeOp')
         # Energy amount delivered from a storage (after delivery efficiency losses) between two time steps

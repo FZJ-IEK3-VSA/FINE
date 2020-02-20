@@ -264,7 +264,7 @@ class ConversionModel(ComponentModel):
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
         Declare design and operation variables
 
@@ -282,7 +282,7 @@ class ConversionModel(ComponentModel):
         # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
         # Binary variables [-] indicating if a component is considered at a location or not
-        self.declareBinaryDesignDecisionVars(pyM)
+        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [physicalUnit*hour]
         self.declareOperationVars(pyM, 'op')
 

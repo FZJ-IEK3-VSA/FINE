@@ -6,3 +6,4 @@ Last edited: February 06, 2020
 
 from .transformationPath import *
 from .robustPipelineSizing import *
+from .optimizeTSAmultiStage import *

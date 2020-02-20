@@ -718,7 +718,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'nbInt_' + abbrvName, pyomo.Var(getattr(pyM, 'discreteDesignDimensionVarSet_' + abbrvName),
                 domain=pyomo.NonNegativeIntegers))
 
-    def declareBinaryDesignDecisionVars(self, pyM):
+    def declareBinaryDesignDecisionVars(self, pyM, relaxIsBuiltBinary):
         """ 
         Declare binary variables [-] indicating if a component is considered at a location or not [-]. 
         
@@ -726,8 +726,12 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         abbrvName = self.abbrvName
-        setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
-                domain=pyomo.Binary))
+        if relaxIsBuiltBinary:
+            setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
+                    domain=pyomo.NonNegativeReals, bounds=(0,1)))
+        else:
+            setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
+                    domain=pyomo.Binary))
 
     def declareOperationVars(self, pyM, opVarName):
         """ 
@@ -1454,5 +1458,3 @@ class ComponentModel(metaclass=ABCMeta):
                                                 'dimension': self.dimension},
                     'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
                                                   'dimension': self.dimension}}
-
-
