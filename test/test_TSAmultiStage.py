@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import FINE as fn
+=======
+>>>>>>> 40954fbfd42041f167c649421ab7413b6dc2bef7
 import pandas as pd
 
 def test_TSAmultiStage(minimal_test_esM):
@@ -12,8 +15,11 @@ def test_TSAmultiStage(minimal_test_esM):
     # get the components with capacity variables
     electrolyzers = esM.getComponent('Electrolyzers')
     pressureTank = esM.getComponent('Pressure tank')
+<<<<<<< HEAD
 
     pipelines = esM.getComponent('Pipelines')
+=======
+>>>>>>> 40954fbfd42041f167c649421ab7413b6dc2bef7
     pipelines = esM.getComponent('Pipelines')
 
     # set binary variables and define bigM

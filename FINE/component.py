@@ -1458,5 +1458,3 @@ class ComponentModel(metaclass=ABCMeta):
                                                 'dimension': self.dimension},
                     'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
                                                   'dimension': self.dimension}}
-
-

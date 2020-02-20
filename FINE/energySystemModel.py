@@ -674,6 +674,10 @@ class EnergySystemModel:
             |br| * the default value is True
         :type declaresOptimizationProblem: boolean
 
+<<<<<<< HEAD
+=======
+#TODO: Check description
+>>>>>>> 40954fbfd42041f167c649421ab7413b6dc2bef7
         :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
             bound of the problem.
             |br| * the default value is False
