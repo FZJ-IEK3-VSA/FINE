@@ -1,3 +1,4 @@
+import FINE as fn
 import pandas as pd
 
 def test_TSAmultiStage(minimal_test_esM):
@@ -11,22 +12,13 @@ def test_TSAmultiStage(minimal_test_esM):
     # get the components with capacity variables
     electrolyzers = esM.getComponent('Electrolyzers')
     pressureTank = esM.getComponent('Pressure tank')
-<<<<<<< HEAD
-<<<<<<< HEAD
+
     pipelines = esM.getComponent('Pipelines')
-=======
->>>>>>> errorBoundingApproach renamed to TSAmultiStage and relaxed to relaxIsBuiltBinary
-=======
     pipelines = esM.getComponent('Pipelines')
->>>>>>> TSAmultiStageTest adapted for isBuiltBinaries in transmission class and energySystemModel adapted to work with dataFrames in isBuiltFix instance
 
     # set binary variables and define bigM
     electrolyzers.hasIsBuiltBinaryVariable = True
     pressureTank.hasIsBuiltBinaryVariable = True
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> TSAmultiStageTest adapted for isBuiltBinaries in transmission class and energySystemModel adapted to work with dataFrames in isBuiltFix instance
     pipelines.hasIsBuiltBinaryVariable = True
 
     electrolyzers.investIfBuilt = pd.Series(2e5, index = esM.locations)
@@ -36,20 +28,15 @@ def test_TSAmultiStage(minimal_test_esM):
     electrolyzers.bigM = 30e4
     pressureTank.bigM = 30e6
     pipelines.bigM = 30e3
-<<<<<<< HEAD
-=======
 
     electrolyzers.investIfBuilt = pd.Series(2e5, index = esM.locations)
     pressureTank.investIfBuilt = pd.Series(1e5, index = esM.locations)
 
     electrolyzers.bigM = 30e4
     pressureTank.bigM = 30e6
->>>>>>> errorBoundingApproach renamed to TSAmultiStage and relaxed to relaxIsBuiltBinary
-=======
->>>>>>> TSAmultiStageTest adapted for isBuiltBinaries in transmission class and energySystemModel adapted to work with dataFrames in isBuiltFix instance
 
     # optimize with 2 Stage Approach
-    esM.optimizeTSAmultiStage(relaxIsBuiltBinary=True, solver = 'glpk', numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
+    fn.optimizeTSAmultiStage(esM, relaxIsBuiltBinary=True, solver = 'glpk', numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
 
     # get gap
     gap=esM.gap

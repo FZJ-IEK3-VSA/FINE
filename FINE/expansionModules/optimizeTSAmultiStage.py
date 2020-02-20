@@ -5,6 +5,7 @@ Last edited: February 20, 2020
 """
 
 from FINE import utils
+import FINE as fn
 import numpy as np
 
 def optimizeTSAmultiStage(esM, declaresOptimizationProblem=True, relaxIsBuiltBinary=False,
@@ -110,7 +111,7 @@ def optimizeTSAmultiStage(esM, declaresOptimizationProblem=True, relaxIsBuiltBin
                     optimizationSpecs=optimizationSpecs, warmstart=warmstart)
 
     # Set the binary variables to the values resulting from the first optimization step
-    esM.fixBinaryVariables()
+    fn.fixBinaryVariables(esM)
 
     esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxIsBuiltBinary=False,
                     logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
