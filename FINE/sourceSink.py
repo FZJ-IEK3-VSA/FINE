@@ -18,7 +18,7 @@ class Source(Component):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, cScale=0, interestRate=0.08, economicLifetime=10, 
+                 opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, 
                  technicalLifetime=None, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Source class instance.
@@ -149,7 +149,7 @@ class Source(Component):
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, cScale=cScale, interestRate=interestRate,
+                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, QPcostScale=QPcostScale, interestRate=interestRate,
                             economicLifetime=economicLifetime, technicalLifetime=None, 
                             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin, yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
@@ -264,7 +264,7 @@ class Sink(Source):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, cScale=0, interestRate=0.08, economicLifetime=10, 
+                 opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, 
                  technicalLifetime=None):
         """
         Constructor for creating an Sink class instance.
@@ -278,7 +278,7 @@ class Sink(Source):
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
                         capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
                         investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries, 
-                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, cScale, interestRate, 
+                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate, 
                         economicLifetime, technicalLifetime)
 
         self.sign = -1

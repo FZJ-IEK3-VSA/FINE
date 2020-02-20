@@ -20,7 +20,7 @@ class Storage(Component):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
-                 opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, cScale=0, interestRate=0.08, 
+                 opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, 
                  economicLifetime=10, technicalLifetime=None):
         """
         Constructor for creating an Storage class instance.
@@ -172,7 +172,7 @@ class Storage(Component):
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, cScale=cScale, 
+                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, QPcostScale=QPcostScale, 
                             interestRate=interestRate, economicLifetime=economicLifetime, 
                             technicalLifetime=technicalLifetime)
 

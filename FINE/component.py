@@ -16,7 +16,7 @@ class Component(metaclass=ABCMeta):
                  hasCapacityVariable, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None, locationalEligibility=None,
                  capacityMin=None, capacityMax=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0, cScale=0,
+                 investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0,
                  interestRate=0.08, economicLifetime=10, technicalLifetime=None, yearlyFullLoadHoursMin=None, 
                  yearlyFullLoadHoursMax=None):
         """
@@ -231,14 +231,17 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
-        :param cScale: the cost scale parameter describes the relative cost deviation from a constant "investment per capacity" 
-            or constant "opex per capacity" of a component.
-        :type cScale:
-            * Int or
-            * Pandas Series with positive (0 <= cScale <= 1) values. The indices of the series have to equal the in the
+        :param QPcostScale: describes the absolute deviation of the minimum or maximum cost value from
+            the average or weighted average cost value. For further information see 
+            Lopion et al. (2019): "Cost Uncertainties in Energy System Optimization Models: 
+            A Quadratic Programming Approach for Avoiding Penny Switching Effects". 
+            |br| * the default value is 0, i.e. the problem is not quadratic.
+        :type QPcostScale:
+            * float between 0 and 1
+            * Pandas Series with positive (0 <= QPcostScale <= 1) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
-            * Pandas DataFrame with positive (0 <= cScale <= 1) values. The row and column indices of the DataFrame have
+            * Pandas DataFrame with positive (0 <= QPcostScale <= 1) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
         :param interestRate: interest rate which is considered for computing the annuities of the invest
@@ -314,7 +317,7 @@ class Component(metaclass=ABCMeta):
         self.investIfBuilt = utils.checkAndSetCostParameter(esM, name, investIfBuilt, dimension, elig)
         self.opexPerCapacity = utils.checkAndSetCostParameter(esM, name, opexPerCapacity, dimension, elig)
         self.opexIfBuilt = utils.checkAndSetCostParameter(esM, name, opexIfBuilt, dimension, elig)
-        self.cScale = utils.checkAndSetCostParameter(esM, name, cScale, dimension, elig)
+        self.QPcostScale = utils.checkAndSetCostParameter(esM, name, QPcostScale, dimension, elig)
         self.interestRate = utils.checkAndSetCostParameter(esM, name, interestRate, dimension, elig)
         self.economicLifetime = utils.checkAndSetCostParameter(esM, name, economicLifetime, dimension, elig)
         technicalLifetime = utils.checkTechnicalLifetime(esM, technicalLifetime, economicLifetime)
@@ -334,7 +337,7 @@ class Component(metaclass=ABCMeta):
         
         # Set quadratic capacity bounds and residual cost scale (1-cost scale)
         self.QPbound = utils.getQPbound(esM, self.capacityMax, self.capacityMin)
-        self.QPcScale = utils.getQPcScale(esM, self.cScale)
+        self.QPcostDev = utils.getQPcostDev(esM, self.QPcostScale)
 
         #
         # # Variables at optimum (set after optimization)
@@ -1074,9 +1077,9 @@ class ComponentModel(metaclass=ABCMeta):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        capexCap = self.getEconomicsTI(pyM, factorNames=['investPerCapacity', 'QPcScale'], QPfactorNames=['cScale', 'investPerCapacity'], varName='cap', divisorName='CCF', QPdivisorNames=['QPbound', 'CCF'])
+        capexCap = self.getEconomicsTI(pyM, factorNames=['investPerCapacity', 'QPcostDev'], QPfactorNames=['QPcostScale', 'investPerCapacity'], varName='cap', divisorName='CCF', QPdivisorNames=['QPbound', 'CCF'])
         capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
-        opexCap = self.getEconomicsTI(pyM, factorNames=['opexPerCapacity', 'QPcScale'], QPfactorNames=['cScale', 'opexPerCapacity'], varName='cap', QPdivisorNames=['QPbound'])
+        opexCap = self.getEconomicsTI(pyM, factorNames=['opexPerCapacity', 'QPcostDev'], QPfactorNames=['QPcostScale', 'opexPerCapacity'], varName='cap', QPdivisorNames=['QPbound'])
         opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
 
         return capexCap + capexDec + opexCap + opexDec
@@ -1168,7 +1171,7 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is ''.
         :type divisorName: string       
 
-        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['cScale'])
+        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['QPcostScale'])
         :type QPfactorNames: list of strings
 
         :param QPdivisorNames: Strings of the parameters that have to be used as divisors when quadratic programming is used. (e.g. ['QPbound'])
@@ -1188,7 +1191,7 @@ class ComponentModel(metaclass=ABCMeta):
         for factor_ in factors:
             factor *= factor_ 
         
-        if self.componentsDict[compName].cScale[loc] == 0:
+        if self.componentsDict[compName].QPcostScale[loc] == 0:
             if not getOptValue:
                 return factor * var[loc, compName]
             else:
@@ -1228,7 +1231,7 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is ''.
         :type divisorName: string       
 
-        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['cScale'])
+        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['QPcostScale'])
         :type QPfactorNames: list of strings
 
         :param QPdivisorNames: Strings of the parameters that have to be used as divisors when quadratic programming is used. (e.g. ['QPbound'])
@@ -1440,16 +1443,16 @@ class ComponentModel(metaclass=ABCMeta):
                                   'or equal to the chosen Big M. Consider rerunning the simulation with a higher' +
                                   ' Big M.')
 
-            i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcScale[cap.index] 
-            + (compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].cScale[cap.index] 
+            i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] 
+            + (compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
             / (compDict[cap.name].QPbound[cap.index]) 
             * cap * cap), axis=1)
-            cx = optVal.apply(lambda cap: (cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcScale[cap.index] / compDict[cap.name].CCF[cap.index]) 
-            + (compDict[cap.name].investPerCapacity[cap.index] / compDict[cap.name].CCF[cap.index] * compDict[cap.name].cScale[cap.index] 
+            cx = optVal.apply(lambda cap: (cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] / compDict[cap.name].CCF[cap.index]) 
+            + (compDict[cap.name].investPerCapacity[cap.index] / compDict[cap.name].CCF[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
             / (compDict[cap.name].QPbound[cap.index]) 
             * cap * cap), axis=1)
-            ox = optVal.apply(lambda cap: cap * compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].QPcScale[cap.index] 
-            + (compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].cScale[cap.index] 
+            ox = optVal.apply(lambda cap: cap * compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] 
+            + (compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
             / (compDict[cap.name].QPbound[cap.index]) 
             * cap * cap), axis=1)                
 

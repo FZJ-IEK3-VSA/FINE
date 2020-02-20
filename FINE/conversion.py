@@ -20,7 +20,7 @@ class Conversion(Component):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, cScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None,
+                 opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None,
                  yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -101,7 +101,7 @@ class Conversion(Component):
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, cScale=cScale, interestRate=interestRate,
+                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, QPcostScale=QPcostScale, interestRate=interestRate,
                             economicLifetime=economicLifetime, technicalLifetime=technicalLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
                             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 

@@ -19,7 +19,7 @@ class Transmission(Component):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, cScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
+                 opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
         """
         Constructor for creating an Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
@@ -133,7 +133,7 @@ class Transmission(Component):
                             capacityFix=self.capacityFix, isBuiltFix=self.isBuiltFix,
                             investPerCapacity=self.investPerCapacity, investIfBuilt=self.investIfBuilt,
                             opexPerCapacity=self.opexPerCapacity, opexIfBuilt=self.opexIfBuilt,
-                            interestRate=self.interestRate, cScale=cScale, 
+                            interestRate=self.interestRate, QPcostScale=QPcostScale, 
                             economicLifetime=self.economicLifetime, technicalLifetime=self.technicalLifetime)
 
         # Set general component data

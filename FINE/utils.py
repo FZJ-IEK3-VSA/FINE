@@ -227,14 +227,14 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         comp.capacityMax = castToSeries(comp.capacityMax, esM)
         comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
-        comp.cScale = castToSeries(comp.cScale, esM)
+        comp.QPcostScale = castToSeries(comp.QPcostScale, esM)
 
-    capacityMin, capacityFix, capacityMax, cScale = comp.capacityMin, comp.capacityFix, comp.capacityMax, comp.cScale
+    capacityMin, capacityFix, capacityMax, QPcostScale = comp.capacityMin, comp.capacityFix, comp.capacityMax, comp.QPcostScale
     locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
     hasCapacityVariable, hasIsBuiltBinaryVariable = comp.hasCapacityVariable, comp.hasIsBuiltBinaryVariable
     sharedPotentialID = comp.sharedPotentialID
 
-    for data in [capacityMin, capacityFix, capacityMax, cScale, locationalEligibility, isBuiltFix]:
+    for data in [capacityMin, capacityFix, capacityMax, QPcostScale, locationalEligibility, isBuiltFix]:
         if data is not None:
             if comp.dimension == '1dim':
                 if not isinstance(data, pd.Series):
@@ -281,11 +281,11 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             raise ValueError('capacityFix values < capacityMax values detected.')
 
     if capacityMax is None or capacityMin is None:
-        if (cScale > 0).any():
-            raise ValueError('cScale is given but lower or upper capacity bounds are not specified.')
+        if (QPcostScale > 0).any():
+            raise ValueError('QPcostScale is given but lower or upper capacity bounds are not specified.')
 
-    if (cScale < 0).any() or (cScale > 1).any():
-        raise ValueError('cScale must ba a number between "0" and "1".')
+    if (QPcostScale < 0).any() or (QPcostScale > 1).any():
+        raise ValueError('QPcostScale must ba a number between "0" and "1".')
 
     if locationalEligibility is not None:
         # Check if values are either one or zero
@@ -334,10 +334,9 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             if (data > isBuiltFix).any():
                 raise ValueError('The isBuiltFix and capacityMin parameters indicate different design decisions.')
 
-def getQPcScale(esM, cScale):
-    QPcScale = 1 - cScale
-
-    return QPcScale
+def getQPcostDev(esM, QPcostScale):
+    QPcostDev = 1 - QPcostScale
+    return QPcostDev
 
 def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFix, isBuiltFix,
                              hasCapacityVariable, operationTimeSeries, dimension='1dim'):

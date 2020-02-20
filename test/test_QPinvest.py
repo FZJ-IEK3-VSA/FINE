@@ -48,7 +48,7 @@ def test_QPinvest():
                             investPerCapacity=500, # euro/kW
                             opexPerCapacity=500*0.025, 
                             interestRate=0.08,
-                            economicLifetime=10, cScale=0.1, 
+                            economicLifetime=10, QPcostScale=0.1, 
                             capacityMin=0, capacityMax=10))
 
 ### Industry site
