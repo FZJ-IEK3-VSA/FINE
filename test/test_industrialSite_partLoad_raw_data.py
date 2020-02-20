@@ -24,7 +24,7 @@ def test_industrialSite():
 
     # ## Add source component
 
-    data = pd.read_excel('generationTimeSeries_e825103.xlsx')
+    data = pd.read_excel('test/generationTimeSeries_e825103.xlsx')
     data = data.iloc[0:numberOfTimeSteps]
 
     # operationRateMax = pd.DataFrame(data['e825103_2017_2.3MW_faults9'],index=range(numberOfTimeSteps)) # Dataset with least missing data

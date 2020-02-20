@@ -52,7 +52,7 @@ def test_industrialSite():
                         investPerCapacity=2300, opexPerCapacity=12.5, interestRate=0.08, # for 2018 CAPEX
                         economicLifetime=5))
 
-    esM.add(fn.ConversionFancy(esM=esM, name='AEC', physicalUnit=r'MW$_{el}$',
+    esM.add(fn.ConversionPartLoad(esM=esM, name='AEC', physicalUnit=r'MW$_{el}$',
                         commodityConversionFactors={'electricity':-1, 'hydrogen':0.64},
                         commodityConversionFactorsPartLoad={'electricity':-1, 'hydrogen': lambda x: 0.5*(x-2)**3 + (x-2)**2 + 0.0001},
                         nSegments=3,
