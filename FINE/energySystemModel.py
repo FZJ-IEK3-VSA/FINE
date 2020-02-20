@@ -5,8 +5,10 @@ Last edited: July 27 2018
 
 from FINE.component import Component, ComponentModel
 from FINE import utils
+from FINE.IOManagement import standardIO
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 import pandas as pd
+import numpy as np
 import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
@@ -241,6 +243,46 @@ class EnergySystemModel:
             print(component.name, component.modelingClass, ComponentModel)
             raise TypeError('The added component has to inherit from the FINE class ComponentModel.')
         component.addToEnergySystemModel(self)
+
+    def removeComponent(self, componentName, track=False):
+        """
+        Function which removes a component from the energy system.
+
+        :param componentName: name of the component that should be removed
+        :type componentName: string
+
+        :param track: specifies if the removed components should be tracked or not
+            |br| * the default value is False
+        :type track: boolean
+
+        :returns: dictionary with the removed componentName and component instance if track is set to True else None.
+        :rtype: dict or None
+        """       
+
+        # Test if component exists 
+        if componentName not in self.componentNames.keys():
+            raise ValueError('The component ' + componentName + ' cannot be found in the energy system model.\n' +
+                             'The components considered in the model are: ' + str(self.componentNames.keys()))
+        modelingClass = self.componentNames[componentName]
+        removedComp = dict()
+        # If track: Return a dictionary including the name of the removed component and the component instance
+        if track:
+            removedComp = dict({componentName : self.componentModelingDict[modelingClass].componentsDict.pop(componentName)})
+            # Remove component from the componentNames dict:
+            del self.componentNames[componentName]
+            # Test if all components of one modelingClass are removed. If so, remove modelingClass:
+            if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
+                del self.componentModelingDict[modelingClass]
+            return removedComp
+        else:
+            # Remove component from the componentNames dict:
+            del self.componentNames[componentName]
+            # Remove component from the componentModelingDict:
+            del self.componentModelingDict[modelingClass].componentsDict[componentName]
+            # Test if all components of one modelingClass are removed. If so, remove modelingClass:
+            if not self.componentModelingDict[modelingClass].componentsDict: # False if dict is empty
+                del self.componentModelingDict[modelingClass]
+            return None
 
     def getComponent(self, componentName):
         """
@@ -762,3 +804,5 @@ class EnergySystemModel:
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
+                      
+                        
