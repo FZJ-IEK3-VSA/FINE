@@ -96,7 +96,7 @@ def checkTimeSeriesIndex(esM, data):
     if list(data.index) != esM.totalTimeSteps:
         raise ValueError('Time indices do not match the one of the specified energy system model.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
-                         'Energy system model time steps: ' + str(esM.totalTimeSteps))
+                         'Energy system model time steps: ' + str(esM._timeSteps))
 
 
 def checkRegionalColumnTitles(esM, data):
@@ -430,6 +430,10 @@ def checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapaci
             warnings.warn('A declaration of bigM is not necessary if hasIsBuiltBinaryVariable is set to false. '
                       'The value of bigM will be ignored in the optimization.')
 
+def checkTechnicalLifetime(esM, technicalLifetime, economicLifetime):
+    if technicalLifetime is None:
+        technicalLifetime = economicLifetime
+    return technicalLifetime
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     if dimension == '1dim':
@@ -695,21 +699,27 @@ def setOptimalComponentVariables(optVal, varType, compDict):
             else:
                 setattr(comp, varType, None)
 
-
-def preprocess2dimData(data, mapC=None):
+def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
     if data is not None and isinstance(data, pd.DataFrame):
         if mapC is None:
             index, data_ = [], []
-            for loc1 in data.index:
-                for loc2 in data.columns:
-                    if data[loc1][loc2] > 0:
-                        index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+            for loc1 in data.columns:
+                for loc2 in data.index:
+                    if discard:
+                        # Structure: data[column][row]
+                        if data[loc1][loc2] > 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+                    else:
+                        if data[loc1][loc2] >= 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
             return pd.Series(data_, index=index)
         else:
             return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+    elif isinstance(data, float) and locationalEligibility is not None:
+        data2 = data*locationalEligibility
+        return data2
     else:
         return data
-
 
 def map2dimData(data, mapC):
     if data is not None and isinstance(data, pd.DataFrame):
@@ -739,3 +749,74 @@ def checkComponentsEquality(esM, file):
         compListFromExcel += list(readSheet.index.levels[0])
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
+
+def checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None):
+    """ Check if there are enough input parameters given for defining the time horizon for the myopic approach. 
+        Calculate the number of optimization steps and the number of represented years per each step if not given."""
+    if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
+         # endYear is given; determine the nbOfRepresentedYears 
+        diff = endYear-startYear
+        def biggestDivisor(diff):
+            for i in [10,5,3,2,1]:
+                if diff%i==0:
+                    return i
+        nbOfRepresentedYears=biggestDivisor(diff)
+        nbOfSteps=int(diff/nbOfRepresentedYears)
+    elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None):
+        # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
+        nbOfSteps=nbOfSteps
+    elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is None):
+        # If number of steps is given but no endyear and no the number of represented years per optimization run,
+        # nbOfRepresentedYears is set to 1 year. 
+        nbOfRepresentedYears = 1
+    elif (endYear is not None) & (nbOfSteps is not None):
+        diff = endYear - startYear
+        if diff%nbOfSteps!=0:
+            raise ValueError('Number of Steps does not fit for the given time horizon between start and end year.')
+        elif (diff%nbOfSteps==0) & (nbOfRepresentedYears is not None):
+            if diff/nbOfSteps!=nbOfRepresentedYears:
+                raise ValueError('Number of represented years does not fit for the given time horizon and the number of steps.')
+    elif (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is not None):
+        diff = endYear - startYear
+        if diff%nbOfRepresentedYears!=0:
+            raise ValueError('Number of represented Years is not an integer divisor of the requested time horizon.')
+        else:
+            nbOfSteps = int(diff/nbOfRepresentedYears)
+    else:
+        nbOfSteps=1
+        nbOfRepresentedYears=1
+    
+    return nbOfSteps, nbOfRepresentedYears
+
+
+def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
+    """
+    Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
+    """
+    if CO2ReductionTargets is not None:
+        if len(CO2ReductionTargets) != nbOfSteps+1:
+            raise ValueError('CO2ReductionTargets has to be None, or the lenght of the given list must equal the number \
+ of optimization steps.')
+
+def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
+    """
+    Check if a sink component object called >CO2 to environment< exists. 
+    This component is required if CO2 reduction targets are given.
+    """
+
+    if CO2ReductionTargets is not None:
+        if 'CO2 to environment' not in esM.componentNames:
+            warnings.warn('CO2 emissions are not considered in the current esM. CO2ReductionTargets will be ignored.')
+            CO2ReductionTargets=None
+            return CO2ReductionTargets
+        else:
+            return CO2ReductionTargets
+
+def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
+    """
+    If CO2ReductionTargets are given, set the new value for each iteration.
+    """
+    if CO2ReductionTargets is not None: 
+        setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', CO2Reference*(1-CO2ReductionTargets[step]/100))
+
+ 

@@ -18,7 +18,7 @@ class Source(Component):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10, yearlyFullLoadHoursMin=None,
+                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None, yearlyFullLoadHoursMin=None,
                  yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Source class instance.
@@ -150,7 +150,7 @@ class Source(Component):
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
-                            economicLifetime=economicLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
+                            economicLifetime=economicLifetime, technicalLifetime=technicalLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
                             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
         # Set general source/sink data: ID and yearly limit
@@ -264,7 +264,7 @@ class Sink(Source):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
         """
         Constructor for creating an Sink class instance.
 
@@ -277,7 +277,7 @@ class Sink(Source):
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
                         capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
                         investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries, 
-                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, interestRate, economicLifetime)
+                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, interestRate, economicLifetime, technicalLifetime)
 
         self.sign = -1
 
@@ -352,7 +352,7 @@ class SourceSinkModel(ComponentModel):
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
         Declare design and operation variables.
 
@@ -370,7 +370,7 @@ class SourceSinkModel(ComponentModel):
         # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
         # Binary variables [-] indicating if a component is considered at a location or not
-        self.declareBinaryDesignDecisionVars(pyM)
+        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [commodityUnit*hour]
         self.declareOperationVars(pyM, 'op')
 
