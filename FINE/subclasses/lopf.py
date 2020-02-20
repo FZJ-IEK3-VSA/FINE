@@ -17,7 +17,7 @@ class LinearOptimalPowerFlow(Transmission):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None,):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.
         The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
@@ -35,7 +35,7 @@ class LinearOptimalPowerFlow(Transmission):
                               operationRateMax, operationRateFix, tsaWeight, locationalEligibility, capacityMin,
                               capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
                               investIfBuilt, opexPerOperation, opexPerCapacity, opexIfBuilt, interestRate,
-                              economicLifetime)
+                              economicLifetime, technicalLifetime)
 
         self.modelingClass = LOPFModel
 
