@@ -13,14 +13,15 @@ class Storage(Component):
                  chargeEfficiency=1, dischargeEfficiency=1, selfDischarge=0, cyclicLifetime=None,
                  stateOfChargeMin=0, stateOfChargeMax=1,
                  hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, bigM=None, doPreciseTsaModeling=False, relaxedPeriodConnection=False,
+                 hasIsBuiltBinaryVariable=False, bigM=None, doPreciseTsaModeling=False, 
                  chargeOpRateMax=None, chargeOpRateFix=None, chargeTsaWeight=1,
                  dischargeOpRateMax=None, dischargeOpRateFix=None, dischargeTsaWeight=1,
                  isPeriodicalStorage=False,
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
-                 opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10,
+                 socOffsetDown=-1, socOffsetUp=-1):
         """
         Constructor for creating an Storage class instance.
         The Storage component specific input arguments are described below. The general component
@@ -82,12 +83,6 @@ class Storage(Component):
             with a simplified method (False). The error is small if the selfDischarge is small.
             |br| * the default value is False
         :type doPreciseTsaModeling: boolean
-
-        :param relaxedPeriodConnection: determines whether the state of charge at the end of a period p has
-            to be equal to the one at the beginning of a period p+1 (relaxedPeriodConnection=False) or if
-            it can be smaller at the beginning of p+1 (relaxedPeriodConnection=True)
-            |br| * the default value is False
-        :type relaxedPeriodConnection: boolean
 
         :param chargeOpRateMax: if specified, indicates a maximum charging rate for each location and each time
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
@@ -170,6 +165,22 @@ class Storage(Component):
             |br| * the default value is 0
         :type opexPerDischargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
+
+        :param socOffsetDown: determines whether the state of charge at the end of a period p has
+            to be equal to the one at the beginning of a period p+1 (socOffsetDown=-1) or if
+            it can be smaller at the beginning of p+1 (socOffsetDown>=0). In the latter case, 
+            the product of the parameter socOffsetDown and the actual soc offset is used as a penalty
+            factor in the objective function.
+            |br| * the default value is False
+        :type socOffsetDown: boolean
+
+        :param socOffsetUp: determines whether the state of charge at the end of a period p has
+            to be equal to the one at the beginning of a period p+1 (socOffsetUp=-1) or if
+            it can be larger at the beginning of p+1 (socOffsetUp>=0). In the latter case, 
+            the product of the parameter socOffsetUp and the actual soc offset is used as a penalty
+            factor in the objective function.
+            |br| * the default value is False
+        :type socOffsetUp: boolean
         """
         Component. __init__(self, esM, name, dimension='1dim', hasCapacityVariable=hasCapacityVariable,
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
@@ -193,7 +204,8 @@ class Storage(Component):
         self.stateOfChargeMin, self.stateOfChargeMax = stateOfChargeMin, stateOfChargeMax
         self.isPeriodicalStorage = isPeriodicalStorage
         self.doPreciseTsaModeling = doPreciseTsaModeling
-        self.relaxedPeriodConnection = relaxedPeriodConnection
+        self.socOffsetUp = socOffsetUp
+        self.socOffsetDown = socOffsetDown
         self.modelingClass = StorageModel
 
         # Set additional economic data: opexPerChargeOperation, opexPerDischargeOperation
@@ -349,6 +361,18 @@ class StorageModel(ComponentModel):
             setattr(pyM, 'varSetPrecise_' + self.abbrvName,
                     pyomo.Set(dimen=2, initialize=initVarPreciseTSASet))
 
+        def initOffsetUpSet(pyM):
+            return ((loc, compName) for loc, compName in getattr(pyM, 'operationVarSet_' + self.abbrvName)
+                if compDict[compName].socOffsetUp >= 0)
+        setattr(pyM, 'varSetOffsetUp_' + self.abbrvName,
+                pyomo.Set(dimen=2, initialize=initOffsetUpSet))  
+
+        def initOffsetDownSet(pyM):
+            return ((loc, compName) for loc, compName in getattr(pyM, 'operationVarSet_' + self.abbrvName)
+                if compDict[compName].socOffsetDown >= 0)
+        setattr(pyM, 'varSetOffsetDown_' + self.abbrvName,
+                pyomo.Set(dimen=2, initialize=initOffsetDownSet))        
+
         # Declare sets for case differentiation of operating modes
         # * Charge operation
         self.declareOperationModeSets(pyM, 'chargeOpConstrSet', 'chargeOpRateMax', 'chargeOpRateFix')
@@ -390,6 +414,11 @@ class StorageModel(ComponentModel):
             # charge after the last time step)
             setattr(pyM, 'stateOfCharge_' + self.abbrvName, pyomo.Var(getattr(pyM, 'operationVarSet_' +
                     self.abbrvName), pyM.interTimeStepsSet, domain=pyomo.NonNegativeReals))
+            # Variables to allow a relaxation of the inter period storage connection
+            setattr(pyM, 'stateOfChargeOffsetUp_' + self.abbrvName, pyomo.Var(getattr(pyM, 'varSetOffsetUp_'
+                    + self.abbrvName), esM.periods, domain=pyomo.NonNegativeReals))
+            setattr(pyM, 'stateOfChargeOffsetDown_' + self.abbrvName, pyomo.Var(getattr(pyM, 'varSetOffsetDown_'
+                    + self.abbrvName), esM.periods, domain=pyomo.NonNegativeReals))
         else:
             # (Virtual) energy amount stored during a period (the i-th state of charge refers to the state of charge at
             # the beginning of the i-th time step, the last index is the state of charge after the last time step)
@@ -405,6 +434,11 @@ class StorageModel(ComponentModel):
             # to the state of charge at the beginning of the i-th period, the last index is the state of charge after
             # the last period)
             setattr(pyM, 'stateOfChargeInterPeriods_' + self.abbrvName, pyomo.Var(getattr(pyM, 'operationVarSet_'
+                    + self.abbrvName), esM.interPeriodTimeSteps, domain=pyomo.NonNegativeReals))
+            # Variables to allow a relaxation of the inter period storage connection
+            setattr(pyM, 'stateOfChargeOffsetUp_' + self.abbrvName, pyomo.Var(getattr(pyM, 'varSetOffsetUp_'
+                    + self.abbrvName), esM.interPeriodTimeSteps, domain=pyomo.NonNegativeReals))
+            setattr(pyM, 'stateOfChargeOffsetDown_' + self.abbrvName, pyomo.Var(getattr(pyM, 'varSetOffsetDown_'
                     + self.abbrvName), esM.interPeriodTimeSteps, domain=pyomo.NonNegativeReals))
 
     ####################################################################################################################
@@ -447,16 +481,26 @@ class StorageModel(ComponentModel):
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
+        abbrvName = self.abbrvName
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
         SOC = getattr(pyM, 'stateOfCharge_' + abbrvName)
+        offsetUp = getattr(pyM, 'stateOfChargeOffsetUp_' + abbrvName)
+        offsetDown = getattr(pyM, 'stateOfChargeOffsetDown_' + abbrvName)
+
         if not pyM.hasTSA:
             def cyclicState(pyM, loc, compName):
-                return SOC[loc, compName, 0, 0] == SOC[loc, compName, 0, esM.timeStepsPerPeriod[-1] + 1]
+                offsetUp_ = offsetUp[loc, compName, 0] if (loc, compName, 0) in offsetUp else 0
+                offsetDown_ = offsetDown[loc, compName, 0] if (loc, compName, 0) in offsetDown else 0
+                return SOC[loc, compName, 0, 0] == \
+                    SOC[loc, compName, 0, esM.timeStepsPerPeriod[-1] + 1] + (offsetUp_ - offsetDown_)
         else:
             SOCInter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
             def cyclicState(pyM, loc, compName):
-                return SOCInter[loc, compName, 0] == SOCInter[loc, compName, esM.interPeriodTimeSteps[-1]]
+                tLast = esM.interPeriodTimeSteps[-1]
+                offsetUp_ = offsetUp[loc, compName, tLast] if (loc, compName, tLast) in offsetUp else 0
+                offsetDown_ = offsetDown[loc, compName, tLast] if (loc, compName, tLast) in offsetDown else 0
+                return SOCInter[loc, compName, 0] == \
+                    SOCInter[loc, compName, tLast] + (offsetUp_ - offsetDown_)
         setattr(pyM, 'ConstrCyclicState_' + abbrvName, pyomo.Constraint(opVarSet, rule=cyclicState))
 
     def cyclicLifetime(self, pyM, esM):
@@ -497,18 +541,17 @@ class StorageModel(ComponentModel):
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
         SOC = getattr(pyM, 'stateOfCharge_' + abbrvName)
         SOCInter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
+        offsetUp = getattr(pyM, 'stateOfChargeOffsetUp_' + abbrvName)
+        offsetDown = getattr(pyM, 'stateOfChargeOffsetDown_' + abbrvName)
 
         def connectInterSOC(pyM, loc, compName, pInter):
-            if compDict[compName].relaxedPeriodConnection:
-                return SOCInter[loc, compName, pInter + 1] <= \
-                    SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
-                    ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
-                    SOC[loc, compName, esM.periodsOrder[pInter], esM.timeStepsPerPeriod[-1] + 1]
-            else:
-                return SOCInter[loc, compName, pInter + 1] == \
-                    SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
-                    ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
-                    SOC[loc, compName, esM.periodsOrder[pInter], esM.timeStepsPerPeriod[-1] + 1]
+            offsetUp_ = offsetUp[loc, compName, pInter] if (loc, compName, pInter) in offsetUp else 0
+            offsetDown_ = offsetDown[loc, compName, pInter] if (loc, compName, pInter) in offsetDown else 0
+            return SOCInter[loc, compName, pInter + 1] == \
+                SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
+                ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
+                SOC[loc, compName, esM.periodsOrder[pInter], esM.timeStepsPerPeriod[-1] + 1] + \
+                (offsetUp_ - offsetDown_)
         setattr(pyM, 'ConstrInterSOC_' + abbrvName, pyomo.Constraint(opVarSet, esM.periods, rule=connectInterSOC))
 
     def intraSOCstart(self, pyM, esM):
@@ -858,6 +901,7 @@ class StorageModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
 
         capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
         capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
@@ -866,7 +910,14 @@ class StorageModel(ComponentModel):
         opexOp1 = self.getEconomicsTD(pyM, esM, ['opexPerChargeOperation'], 'chargeOp', 'operationVarDict')
         opexOp2 = self.getEconomicsTD(pyM, esM, ['opexPerDischargeOperation'], 'dischargeOp', 'operationVarDict')
 
-        return capexCap + capexDec + opexCap + opexDec + opexOp1 + opexOp2
+        offsetUp = getattr(pyM, 'stateOfChargeOffsetUp_' + abbrvName)
+        offsetDown = getattr(pyM, 'stateOfChargeOffsetDown_' + abbrvName)
+        offsetUpOp = sum(offsetUp[loc, compName, period]*compDict[compName].socOffsetUp
+            for loc, compName, period in offsetUp)        
+        offsetDownOp = sum(offsetDown[loc, compName, period]*compDict[compName].socOffsetDown
+            for loc, compName, period in offsetDown)
+
+        return capexCap + capexDec + opexCap + opexDec + opexOp1 + opexOp2 + offsetUpOp + offsetDownOp
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #

@@ -10,8 +10,9 @@ class DemandSideManagement(Sink):
     TODO
     A DemandSideManagement component
     """
-    def __init__(self, esM, name, commodity, hasCapacityVariable, tBwd, tFwd,
-        operationRateFix, opexShift=1e-6, shiftUpMax=None, shiftDownMax=None, **kwargs):
+    def __init__(self, esM, name, commodity, hasCapacityVariable, tBwd, tFwd, operationRateFix,
+        opexShift=1e-6, shiftUpMax=None, shiftDownMax=None, socOffsetDown=-1,
+        socOffsetDown=-1, **kwargs):
         """
         Constructor for creating an DemandSideManagement class instance.
         TODO
@@ -71,15 +72,6 @@ class DemandSideManagement(Sink):
             else:
                 SOCmax[SOCmax.index % self.tDelta == 0] = 0
 
-            # SOCmax = pd.concat([operationRateFix[operationRateFix.index % self.tDelta == i]]*self.tDelta).\
-            #     sort_index().reset_index(drop=True)
-            # SOCmax = pd.concat([SOCmax.iloc[tBwd+tFwd-i:], SOCmax.iloc[:tBwd+tFwd-i]]).reset_index(drop=True)
-            # if (len(SOCmax) != len(esM.totalTimeSteps)):
-            #     warnings.warn('tFwd+tBwd+1 is not a divisor of the total number of time steps of the energy system. ' +
-            #                   'This shortens the available backwards shift of demand ' + str(i) + ' by ' +
-            #                   str(len(esM.totalTimeSteps)-len(SOCmax)) + ' time steps')
-            #     SOCmax = SOCmax.iloc[:len(esM.totalTimeSteps)]
-
             dischargeFix = operationRateFix.copy()
             dischargeFix[dischargeFix.index % self.tDelta != i] = 0
             
@@ -87,11 +79,10 @@ class DemandSideManagement(Sink):
                                columns=self.locationalEligibility.index)
             opexPerChargeOpTimeSeries[(opexPerChargeOpTimeSeries.index - i ) % self.tDelta == tFwd + 1] = 0
 
-            # print(i, opexPerChargeOpTimeSeries)
-
             esM.add(fn.StorageExt(esM, name + '_' + str(i), commodity, stateOfChargeOpRateMax=SOCmax,
                 dischargeOpRateFix=dischargeFix, hasCapacityVariable=False, chargeOpRateMax=chargeOpRateMax, 
-                opexPerChargeOpTimeSeries=opexPerChargeOpTimeSeries, doPreciseTsaModeling=True, relaxedPeriodConnection=True))
+                opexPerChargeOpTimeSeries=opexPerChargeOpTimeSeries, doPreciseTsaModeling=True,
+                socOffsetDown=socOffsetDown, socOffsetUp=socOffsetUp))
 
 
 class DSMModel(SourceSinkModel):
