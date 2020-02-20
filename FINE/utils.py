@@ -9,7 +9,7 @@ import numpy as np
 import pwlf
 import FINE as fn
 import matplotlib.pyplot as plt
-# from GPyOpt.methods import BayesianOptimization
+from GPyOpt.methods import BayesianOptimization
 import sys
 
 def isString(string):
@@ -198,7 +198,6 @@ def checkDataFrameTypeConversionFactor(conversionFactor):
     xTest = np.array(conversionFactor['x'])
     yTest = np.array(conversionFactor['y'])
 
-    ### ToDo: Prüfen, ob Check schon an anderer Stelle vorhanden ist
     if np.isnan(xTest).any() or np.isnan(yTest).any():
         raise ValueError('At least one value in the raw conversion factor data is non-numeric.')
 
@@ -761,11 +760,14 @@ def checkComponentsEquality(esM, file):
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
-def pieceWiseLinearization(functionOrRaw, x_min, x_max, nSegments):
-
+def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
+    """ Determine xSegments, ySegments.
+        If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by 
+        a bayesian optimization algorithm. 
+    """
     if callable(functionOrRaw):
         nPointsForInputData = 1000
-        x = np.linspace(x_min, x_max, nPointsForInputData)
+        x = np.linspace(xLowerBound, xUpperBound, nPointsForInputData)
         y = np.array([functionOrRaw(x_i) for x_i in x])
     else:
         x = np.array(functionOrRaw['x'])
@@ -776,10 +778,10 @@ def pieceWiseLinearization(functionOrRaw, x_min, x_max, nSegments):
             lenIntervalDefined = xMaxDefined - xMinDefined
             lenIntervalUndefined = xMinDefined
             nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
-            x_min_index = np.argmin(x)
+            xMinIndex = np.argmin(x)
             for i in range(int(nPointsUndefined)):
                 x = np.append(x, [i/int(nPointsUndefined+1) * lenIntervalUndefined])
-                y = np.append(y, y[x_min_index])
+                y = np.append(y, y[xMinIndex])
         if not 1.0 in x:
             xMinDefined = np.amin(x)
             xMaxDefined = np.amax(x)
@@ -794,23 +796,36 @@ def pieceWiseLinearization(functionOrRaw, x_min, x_max, nSegments):
     myPwlf = pwlf.PiecewiseLinFit(x, y)
 
     if nSegments == None:
-        # Define the lower and upper bound for the number of line segments
         nSegments = 5
+    elif nSegments == 'optimizeSegmentNumbers':
 
-        # bounds = [{'name': 'var_1', 'type': 'discrete',
-        #    'domain': np.arange(2, 20)}] # TODO: Change to lower upper bound
+        bounds = [{'name': 'var_1', 'type': 'discrete',
+           'domain': np.arange(2, 8)}]
 
-        # myBopt = BayesianOptimization(my_obj, domain=bounds, model_type='GP',
-        #                       initial_design_numdata=10,
-        #                       initial_design_type='latin',
-        #                       exact_feval=True, verbosity=True,
-        #                       verbosity_model=False)
+        # Define objective function to get optimal number of line segments
+        def my_obj(_x):
+        # The penalty parameter l is set arbitrarily. 
+        # It depends upon the noise in your data and the value of your sum of square of residuals 
+            l = y.mean()*0.001
 
-        # max_iter = 30
+            f = np.zeros(_x.shape[0])
 
-        # # Perform the bayesian optimization to find the optimum number of line segments
-        # myBopt.run_optimization(max_iter=max_iter, verbosity=True)
-        # nSegments = myBopt.x_opt
+            for i, j in enumerate(_x):
+                myPwlf.fit(j[0])
+                f[i] = myPwlf.ssr + (l*j[0])
+            return f
+
+        myBopt = BayesianOptimization(my_obj, domain=bounds, model_type='GP',
+                              initial_design_numdata=10,
+                              initial_design_type='latin',
+                              exact_feval=True, verbosity=True,
+                              verbosity_model=False)
+
+        max_iter = 30
+
+        # Perform bayesian optimization to find the optimum number of line segments
+        myBopt.run_optimization(max_iter=max_iter, verbosity=True)
+        nSegments = int(myBopt.x_opt)
     
     xSegments = myPwlf.fit(nSegments)
 
@@ -870,11 +885,11 @@ def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
     nonFunctionOrRawCommod = None
     for commod, conversionFactor in commodityConversionFactorsPartLoad.items():
         if isinstance(conversionFactor,pd.DataFrame):
-            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, x_min=0, x_max=1, nSegments=nSegments)
+            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, xLowerBound=0, xUpperBound=1, nSegments=nSegments)
             functionOrRawCommod = commod
             nSegments = discretizedPartLoad[commod]['nSegments']
         elif callable(conversionFactor):
-            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, x_min=0, x_max=1, nSegments=nSegments)
+            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, xLowerBound=0, xUpperBound=1, nSegments=nSegments)
             functionOrRawCommod = commod
             nSegments = discretizedPartLoad[commod]['nSegments']
         elif conversionFactor == 1 or conversionFactor == -1:
@@ -896,16 +911,3 @@ def checkNumberOfConversionFactors(commods):
         raise ValueError('Currently only two commodities are allowed in conversion processes that use commodityConversionFactorsPartLoad.')
     else:
         return True
-
-# Define objective function to get optimal number of line segments
-def my_obj(x):
-# The penalty parameter l is set arbitrarily. 
-# It depends upon the noise in your data and the value of your sum of square of residuals 
-    l = y.mean()*0.001
-
-    f = np.zeros(x.shape[0])
-
-    for i, j in enumerate(x):
-        myPwlf.fit(j[0])
-        f[i] = myPwlf.ssr + (l*j[0])
-    return f

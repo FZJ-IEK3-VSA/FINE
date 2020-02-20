@@ -3,10 +3,15 @@ from FINE import utils
 import pyomo.environ as pyomo
 import pandas as pd
 
-
-class ConversionFancy(Conversion):
+class ConversionPartLoad(Conversion):
     """
-    ToDo
+    A ConversionPartLoad component maps the (nonlinear) part-load behavior of a Conversion component.
+    It uses the open source module PWLF to generate piecewise linear functions upon a continuous function or 
+    discrete data points.
+    The formulation of the optimization is done by using special ordered sets (SOS) constraints.
+    When using ConversionPartLoad it is recommended to check visually to check the piecewise linearization
+    visually to verify that the accuracy meets the desired requirements.
+    The ConversionPartLoad class inherits from the Conversion class.
     """
     def __init__(self, esM, name, physicalUnit, commodityConversionFactors, 
                  commodityConversionFactorsPartLoad, nSegments=None, hasCapacityVariable=True,
@@ -17,20 +22,29 @@ class ConversionFancy(Conversion):
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
-        # TODO: allow for data sets as input for the (nonlinear) part load behavoir
-        # TODO: make segments for discretization adjustable
 
         """
-        Constructor for creating an Conversion class instance. Capacities are given in the physical unit
+        Constructor for creating an ConversionPartLoad class instance. Capacities are given in the physical unit
         of the plants.
-        The Conversion component specific input arguments are described below. The general component
-        input arguments are described in the Component class.
+        The ConversionPartLoad component specific input arguments are described below.
+        The ConversionPartLoad component specific input arguments are described in the Conversion class 
+        and the general component input arguments are described in the Component class.
 
         **Required arguments:**
+        
+        :param commodityConversionFactorsPartLoad: Function or data set describing (nonlinear) part load behavior.
+        :type commodityConversionFactorsPartLoad: Lambda function or Pandas DataFrame with to columns for the x-axis 
+            and the y-axis.
 
-        :param commodityConversionFactorsPartLoad: function or data set describing (nonlinear) part load behavior.
-        :type commodityConversionFactorsPartLoad: Lambda function. Initially this will be a function, 
-            later also data sets will be possible.
+        **Default arguments:**
+        :param nSegments: Number of line segments used for piecewise linearization and generation of point variable (nSegment+1) and 
+            segement (nSegment) variable sets.
+            By default, the nSegments is None. For this case, the number of line segments is set to 5.
+            The user can set nSegments by choosing an integer (>=0). It is recommended to choose values between 3 and 7 since
+            the computational rises dramatically with increasing nSegments.
+            When specifying nSegements='optimizeSegmentNumbers', an optimal number of line segments is automatically chosen by a 
+            bayesian optimization algorithm.
+        :type nSegments: None or integer or string 
         """
         Conversion.__init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable,
                  capacityVariableDomain, capacityPerPlantUnit, linkedConversionCapacityID,
@@ -41,22 +55,24 @@ class ConversionFancy(Conversion):
                  investPerCapacity, investIfBuilt, opexPerOperation, opexPerCapacity,
                  opexIfBuilt, interestRate, economicLifetime)
 
-        self.nSegments = nSegments
-        self.modelingClass = ConversionFancyModel
+        self.modelingClass = ConversionPartLoadModel
 
-        utils.checkCommodities(esM, set(commodityConversionFactorsPartLoad.keys()))
-        utils.checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad.values())
+        if type(commodityConversionFactorsPartLoad) == dict:
+            #TODO: Multiple conversionPartLoads
+            utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad.keys())
+            utils.checkCommodities(esM, set(commodityConversionFactorsPartLoad.keys()))
+            utils.checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad.values())
+            self.commodityConversionFactorsPartLoad = commodityConversionFactorsPartLoad
+            self.discretizedPartLoad, self.nSegments = utils.getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments)
 
-        ### ToDo: Später auch mehr als 2 ConversionFactors zulassen - bis dahin wird Fehler geworfen, falls len(commodityConversionFactorsPartLoad.keys()) > 2
-        utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad.keys())
-
-        self.commodityConversionFactorsPartLoad = commodityConversionFactorsPartLoad
-        self.discretizedPartLoad, self.nSegments = utils.getDiscretizedPartLoad(commodityConversionFactorsPartLoad, self.nSegments)
-       
+        elif type(commodityConversionFactorsPartLoad) == tuple:
+            utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad[0].keys()) 
+            self.discretizedPartLoad = commodityConversionFactorsPartLoad[0]
+            self.nSegments = commodityConversionFactorsPartLoad[1]
 
     def addToEnergySystemModel(self, esM):
         """
-        Function for adding a LinearOptimalPowerFlow component to the given energy system model.
+        Function for adding a ConversionPartLoad component to the given energy system model.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -64,17 +80,17 @@ class ConversionFancy(Conversion):
         super().addToEnergySystemModel(esM)
 
 
-class ConversionFancyModel(ConversionModel):
+class ConversionPartLoadModel(ConversionModel):
 
     """
-    A ConversionModel class instance will be instantly created if a Conversion class instance is initialized.
+    A ConversionPartLoad class instance will be instantly created if a ConversionPartLoad class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the Conversion class
     instance. These declarations are necessary for the modeling and optimization of the energy system model.
-    The ConversionModel class inherits from the ComponentModel class.
+    The ConversionPartLoad class inherits from the ConversionModel class.
     """
 
     def __init__(self):
-        self.abbrvName = 'fancy'
+        self.abbrvName = 'partLoad'
         self.dimension = '1dim'
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
@@ -284,8 +300,8 @@ class ConversionFancyModel(ConversionModel):
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def pointCapacityConstraint(pyM, loc, compName, p, t):
-            n_points = compDict[compName].nSegments+1
-            return sum(discretizationPointConVar[loc, compName, discretStep, p, t] for discretStep in range(n_points)) == esM.hoursPerTimeStep * capVar[loc, compName]
+            nPoints = compDict[compName].nSegments+1
+            return sum(discretizationPointConVar[loc, compName, discretStep, p, t] for discretStep in range(nPoints)) == esM.hoursPerTimeStep * capVar[loc, compName]
         setattr(pyM, 'ConstrPointCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint))
 
 
@@ -329,12 +345,12 @@ class ConversionFancyModel(ConversionModel):
         opVar, opVarSet = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def partLoadOperationOutput(pyM, loc, compName, p, t):        
-            n_points = compDict[compName].nSegments+1
+            nPoints = compDict[compName].nSegments+1
             ### TODO Store the part load levels seperately and do not use 
             # print(list(compDict[compName].discretizedPartLoad.keys()))
             return opVar[loc, compName, p, t] == sum(discretizationPointConVar[loc, compName, discretStep, p, t] * \
-                                                 compDict[compName].discretizedPartLoad[list(compDict[compName].discretizedPartLoad.keys())[0]]['x_segments'][discretStep] \
-                                                 for discretStep in range(n_points))
+                                                 compDict[compName].discretizedPartLoad[list(compDict[compName].discretizedPartLoad.keys())[0]]['xSegments'][discretStep] \
+                                                 for discretStep in range(nPoints))
         setattr(pyM, 'ConstrpartLoadOperationOutput_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=partLoadOperationOutput))
 
 
@@ -388,12 +404,12 @@ class ConversionFancyModel(ConversionModel):
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
         """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
+        opVarDict = getattr(pyM, 'operationVarDict_' + abbrvName)
         discretizationPointConVar = getattr(pyM, 'discretizationPoint_' + self.abbrvName)
         
         return sum(sum(discretizationPointConVar[loc, compName, discretStep, p, t] * \
-                       compDict[compName].discretizedPartLoad[commod]['x_segments'][discretStep] * \
-                       compDict[compName].discretizedPartLoad[commod]['y_segments'][discretStep] for discretStep in range(compDict[compName].nSegments+1)) \
+                       compDict[compName].discretizedPartLoad[commod]['xSegments'][discretStep] * \
+                       compDict[compName].discretizedPartLoad[commod]['ySegments'][discretStep] for discretStep in range(compDict[compName].nSegments+1)) \
                    for compName in opVarDict[loc] if commod in compDict[compName].discretizedPartLoad)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
@@ -421,7 +437,7 @@ class ConversionFancyModel(ConversionModel):
 
         super().setOptimalValues(esM, pyM)
 
-        compDict, abbrvName = self.componentsDict, self.abbrvName
+        abbrvName = self.abbrvName
         discretizationPointVariables = getattr(pyM, 'discretizationPoint_' + abbrvName)
         discretizationSegmentConVariables = getattr(pyM, 'discretizationSegmentCon_' + abbrvName)
         discretizationSegmentBinVariables = getattr(pyM, 'discretizationSegmentBin_' + abbrvName)
