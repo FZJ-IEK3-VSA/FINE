@@ -504,7 +504,7 @@ def _generateRobustScenarios(startNode_endNode, **kwargs):
 
 
 def generateRobustScenarios(injectionWithdrawalRates, graph, distances, dic_node_minPress, dic_node_maxPress,
-    threads=1, verbose=0):
+    solver='glpk', threads=1, verbose=0):
     """
     Compute for every node combination a special robust scenario according to Robinius et. al. (2019)
     and Labbé et. al. (2019)
@@ -589,7 +589,7 @@ def generateRobustScenarios(injectionWithdrawalRates, graph, distances, dic_node
     pool = Pool(threads)
     for i, values in enumerate(pool.imap(partial(_generateRobustScenarios, graph=graph, distances=distances,
                                                 entries=entries, exits=exits, dic_nodes_MinCapacity=dic_nodes_MinCapacity,
-                                                dic_nodes_MaxCapacity=dic_nodes_MaxCapacity),
+                                                dic_nodes_MaxCapacity=dic_nodes_MaxCapacity, solver=solver),
                                nodes), 1):
         if verbose == 0:
             sys.stderr.write('\rPercentage simulated: {:d}%'.format(int(i / len(nodes) * 100)))
@@ -1684,7 +1684,7 @@ def _computeTimeStepFlows(index, injectionWithdrawalRates, graph, **kwargs):
             dic_nodes_MaxCapacity[node] = 0
     # compute flows
     return index, computeSingleSpecialScenario(dic_nodes_MinCapacity=dic_nodes_MinCapacity,
-        dic_nodes_MaxCapacity=dic_nodes_MaxCapacity, solver=solver, graph=graph, **kwargs)
+        dic_nodes_MaxCapacity=dic_nodes_MaxCapacity, graph=graph, **kwargs)
 
 
 def computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, exits, threads=1, verbose=0, solver='glpk'):
@@ -2101,7 +2101,7 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
         ' node combinations). Threads: ' + str(threads), verbose, 0)
     timeStart = time.time()
     dic_nodePair_flows, entries, exits = generateRobustScenarios(injectionWithdrawalRates, graph, distances,
-        dic_node_minPress, dic_node_maxPress, threads=threads, verbose=verbose)
+        dic_node_minPress, dic_node_maxPress, solver=solver, threads=threads, verbose=verbose)
     utils.output("Number of robust scenarios: " + str(len(dic_nodePair_flows.keys())) , verbose, 0)    
     utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", verbose, 0)
 
@@ -2110,7 +2110,7 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
           + str(injectionWithdrawalRates.shape[0]) + '. Threads: ' + str(threads), verbose, 0)
     timeStart = time.time()
     dic_timeStep_flows = computeTimeStepFlows(injectionWithdrawalRates, distances, graph, entries, exits,
-        threads=threads, verbose=verbose)
+        solver=solver, threads=threads, verbose=verbose)
     utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", verbose, 0)
 
     # Compute equivalent single diameters for looped (parallel) pipes
