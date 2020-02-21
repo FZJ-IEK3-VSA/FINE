@@ -14,7 +14,7 @@ class ConversionPartLoad(Conversion):
     It uses the open source module PWLF to generate piecewise linear functions upon a continuous function or 
     discrete data points.
     The formulation of the optimization is done by using special ordered sets (SOS) constraints.
-    When using ConversionPartLoad it is recommended to check visually to check the piecewise linearization
+    When using ConversionPartLoad it is recommended to check the piecewise linearization
     visually to verify that the accuracy meets the desired requirements.
     The ConversionPartLoad class inherits from the Conversion class.
     """
@@ -43,13 +43,15 @@ class ConversionPartLoad(Conversion):
             and the y-axis.
 
         **Default arguments:**
+        
         :param nSegments: Number of line segments used for piecewise linearization and generation of point variable (nSegment+1) and 
-            segement (nSegment) variable sets.
+            segment (nSegment) variable sets.
             By default, the nSegments is None. For this case, the number of line segments is set to 5.
             The user can set nSegments by choosing an integer (>=0). It is recommended to choose values between 3 and 7 since
-            the computational rises dramatically with increasing nSegments.
+            the computational cost rises dramatically with increasing nSegments.
             When specifying nSegements='optimizeSegmentNumbers', an optimal number of line segments is automatically chosen by a 
             bayesian optimization algorithm.
+            |br| * the default value is None
         :type nSegments: None or integer or string 
         """
         Conversion.__init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable,
