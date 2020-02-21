@@ -2,7 +2,8 @@
 Expansion Modules
 #################
 
-ToDo
+FINE expansion modules provide additional functionalities to the user. These functionalities either run energy system models multiple times
+or can be applied in the pre- and postprocessing of an energy system model run.
 
 **Expansion Modules**
 

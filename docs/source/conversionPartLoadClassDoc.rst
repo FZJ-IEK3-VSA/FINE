@@ -6,7 +6,8 @@ ConversionPartLoad class
 
    <br />
 
-A ConversionPartLoad component maps the (nonlinear) part-load behavior of a Conversion component.
+ConversionPartLoad components are Conversion components that are additionally able to capture part-load behaviour.
+For that, the module is using piecewise linear functions and special ordered sets (SOS) constraints.
 
 **ConversionPartLoad class description:**
 

@@ -2,7 +2,6 @@
 EnergySystemModel class
 ***********************
 
-
 .. |br| raw:: html
 
    <br />
