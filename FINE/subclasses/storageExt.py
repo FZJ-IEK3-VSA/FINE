@@ -204,23 +204,6 @@ class StorageExtModel(StorageModel):
                                       'stateOfChargeOpRateMax', 'stateOfChargeOpRateFix')
 
     ####################################################################################################################
-    #                                                Declare variables                                                 #
-    ####################################################################################################################
-
-    def declareVariables(self, esM, pyM):
-        """
-        Declare design and operation variables.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-
-        super().declareVariables(esM, pyM)
-
-    ####################################################################################################################
     #                                          Declare component constraints                                           #
     ####################################################################################################################
 
