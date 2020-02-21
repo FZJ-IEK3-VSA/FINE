@@ -24,9 +24,10 @@ class ConversionPartLoad(Conversion):
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
-                 capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 capacityFix=None, isBuiltFix=None, investPerCapacity=0, investIfBuilt=0, 
+                 opexPerOperation=0, opexPerCapacity=0, QPcostScale=0,
+                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None,
+                 yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
 
         """
         Constructor for creating an ConversionPartLoad class instance. Capacities are given in the physical unit
@@ -56,9 +57,9 @@ class ConversionPartLoad(Conversion):
                  hasIsBuiltBinaryVariable, bigM,
                  operationRateMax, operationRateFix, tsaWeight,
                  locationalEligibility, capacityMin, capacityMax, sharedPotentialID,
-                 capacityFix, isBuiltFix,
-                 investPerCapacity, investIfBuilt, opexPerOperation, opexPerCapacity,
-                 opexIfBuilt, interestRate, economicLifetime)
+                 capacityFix, isBuiltFix, investPerCapacity, investIfBuilt, opexPerOperation, 
+                 opexPerCapacity, opexIfBuilt, QPcostScale, interestRate, economicLifetime, 
+                 technicalLifetime,yearlyFullLoadHoursMin, yearlyFullLoadHoursMax)
 
         self.modelingClass = ConversionPartLoadModel
 
@@ -169,6 +170,12 @@ class ConversionPartLoadModel(ConversionModel):
         # Declare linked components dictionary
         self.declareLinkedCapacityDict(pyM)
 
+        # Declare minimum yearly full load hour set
+        self.declareYearlyFullLoadHoursMinSet(pyM)
+
+        # Declare maximum yearly full load hour set
+        self.declareYearlyFullLoadHoursMaxSet(pyM)
+
     ####################################################################################################################
     #                                                Declare variables                                                 #
     ####################################################################################################################
@@ -206,7 +213,7 @@ class ConversionPartLoadModel(ConversionModel):
                 pyomo.Var(getattr(pyM, 'discretizationSegmentVarSet_' + self.abbrvName), pyM.timeSet, domain=pyomo.NonNegativeReals))
 
 
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
         Declare design and operation variables.
 
@@ -224,7 +231,7 @@ class ConversionPartLoadModel(ConversionModel):
         # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
         # Binary variables [-] indicating if a component is considered at a location or not [-]
-        self.declareBinaryDesignDecisionVars(pyM)
+        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Flow over the edges of the components [commodityUnit]
         self.declareOperationVars(pyM, 'op')
         # Operation of component [commodityUnit]

@@ -1,7 +1,7 @@
 """
-Last edited: March 26, 2019
+Last edited: February 21, 2020
 
-@author: Lara Welder
+@author: Lara Welder, Theresa Gross
 """
 import warnings
 import pandas as pd
@@ -263,6 +263,18 @@ def castToSeries(data, esM):
     isPositiveNumber(data)
     return pd.Series([data], index=list(esM.locations))
 
+def getQPbound(esM, capacityMax, capacityMin):
+    """ Compute and return lower and upper capacity bounds. """
+    index=list(esM.locations)
+    QPbound = pd.Series([np.inf] * len(esM.locations), index)
+
+    if capacityMin is not None and capacityMax is not None:
+        minS=pd.Series(capacityMin.isna(), index)
+        maxS=pd.Series(capacityMax.isna(), index)
+        for x in list(esM.locations):
+            if not minS.loc[x] and not maxS.loc[x]:
+                QPbound.loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
+    return QPbound
 
 def checkLocationSpecficDesignInputParams(comp, esM):
     if len(esM.locations) == 1:
@@ -271,13 +283,14 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         comp.capacityMax = castToSeries(comp.capacityMax, esM)
         comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
+        comp.QPcostScale = castToSeries(comp.QPcostScale, esM)
 
-    capacityMin, capacityFix, capacityMax = comp.capacityMin, comp.capacityFix, comp.capacityMax
+    capacityMin, capacityFix, capacityMax, QPcostScale = comp.capacityMin, comp.capacityFix, comp.capacityMax, comp.QPcostScale
     locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
     hasCapacityVariable, hasIsBuiltBinaryVariable = comp.hasCapacityVariable, comp.hasIsBuiltBinaryVariable
     sharedPotentialID = comp.sharedPotentialID
 
-    for data in [capacityMin, capacityFix, capacityMax, locationalEligibility, isBuiltFix]:
+    for data in [capacityMin, capacityFix, capacityMax, QPcostScale, locationalEligibility, isBuiltFix]:
         if data is not None:
             if comp.dimension == '1dim':
                 if not isinstance(data, pd.Series):
@@ -322,6 +335,13 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     if capacityFix is not None and capacityMin is not None:
         if (capacityFix < capacityMin).any():
             raise ValueError('capacityFix values < capacityMax values detected.')
+
+    if capacityMax is None or capacityMin is None:
+        if (QPcostScale > 0).any():
+            raise ValueError('QPcostScale is given but lower or upper capacity bounds are not specified.')
+
+    if (QPcostScale < 0).any() or (QPcostScale > 1).any():
+        raise ValueError('QPcostScale must ba a number between "0" and "1".')
 
     if locationalEligibility is not None:
         # Check if values are either one or zero
@@ -370,6 +390,9 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             if (data > isBuiltFix).any():
                 raise ValueError('The isBuiltFix and capacityMin parameters indicate different design decisions.')
 
+def getQPcostDev(esM, QPcostScale):
+    QPcostDev = 1 - QPcostScale
+    return QPcostDev
 
 def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFix, isBuiltFix,
                              hasCapacityVariable, operationTimeSeries, dimension='1dim'):
@@ -487,6 +510,10 @@ def checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapaci
             warnings.warn('A declaration of bigM is not necessary if hasIsBuiltBinaryVariable is set to false. '
                       'The value of bigM will be ignored in the optimization.')
 
+def checkTechnicalLifetime(esM, technicalLifetime, economicLifetime):
+    if technicalLifetime is None:
+        technicalLifetime = economicLifetime
+    return technicalLifetime
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     if dimension == '1dim':
@@ -752,21 +779,27 @@ def setOptimalComponentVariables(optVal, varType, compDict):
             else:
                 setattr(comp, varType, None)
 
-
-def preprocess2dimData(data, mapC=None):
+def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
     if data is not None and isinstance(data, pd.DataFrame):
         if mapC is None:
             index, data_ = [], []
-            for loc1 in data.index:
-                for loc2 in data.columns:
-                    if data[loc1][loc2] > 0:
-                        index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+            for loc1 in data.columns:
+                for loc2 in data.index:
+                    if discard:
+                        # Structure: data[column][row]
+                        if data[loc1][loc2] > 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+                    else:
+                        if data[loc1][loc2] >= 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
             return pd.Series(data_, index=index)
         else:
             return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+    elif isinstance(data, float) and locationalEligibility is not None:
+        data2 = data*locationalEligibility
+        return data2
     else:
         return data
-
 
 def map2dimData(data, mapC):
     if data is not None and isinstance(data, pd.DataFrame):
@@ -798,9 +831,10 @@ def checkComponentsEquality(esM, file):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
-    """ Determine xSegments, ySegments.
-        If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by 
-        a bayesian optimization algorithm. 
+    """ 
+    Determine xSegments, ySegments.
+    If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by 
+    a bayesian optimization algorithm. 
     """
     if callable(functionOrRaw):
         nPointsForInputData = 1000
@@ -901,12 +935,6 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
 
         R2values[i] = 1.0 - (ssr/sst)
 
-    # Plot the results
-    # plt.figure()
-    # plt.plot(x, y, 'o') # Raw data
-    # plt.plot(xSegments, ySegments, '-') # Piecewise linear function
-    # plt.show()
-
     return {
         'xSegments': xSegments, 
         'ySegments': ySegments,
@@ -948,3 +976,76 @@ def checkNumberOfConversionFactors(commods):
         raise ValueError('Currently only two commodities are allowed in conversion processes that use commodityConversionFactorsPartLoad.')
     else:
         return True
+
+def checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None):
+    """ 
+    Check if there are enough input parameters given for defining the time horizon for the myopic approach. 
+    Calculate the number of optimization steps and the number of represented years per each step if not given.
+    """
+    if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
+         # endYear is given; determine the nbOfRepresentedYears 
+        diff = endYear-startYear
+        def biggestDivisor(diff):
+            for i in [10,5,3,2,1]:
+                if diff%i==0:
+                    return i
+        nbOfRepresentedYears=biggestDivisor(diff)
+        nbOfSteps=int(diff/nbOfRepresentedYears)
+    elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None):
+        # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
+        nbOfSteps=nbOfSteps
+    elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is None):
+        # If number of steps is given but no endyear and no the number of represented years per optimization run,
+        # nbOfRepresentedYears is set to 1 year. 
+        nbOfRepresentedYears = 1
+    elif (endYear is not None) & (nbOfSteps is not None):
+        diff = endYear - startYear
+        if diff%nbOfSteps!=0:
+            raise ValueError('Number of Steps does not fit for the given time horizon between start and end year.')
+        elif (diff%nbOfSteps==0) & (nbOfRepresentedYears is not None):
+            if diff/nbOfSteps!=nbOfRepresentedYears:
+                raise ValueError('Number of represented years does not fit for the given time horizon and the number of steps.')
+    elif (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is not None):
+        diff = endYear - startYear
+        if diff%nbOfRepresentedYears!=0:
+            raise ValueError('Number of represented Years is not an integer divisor of the requested time horizon.')
+        else:
+            nbOfSteps = int(diff/nbOfRepresentedYears)
+    else:
+        nbOfSteps=1
+        nbOfRepresentedYears=1
+    
+    return nbOfSteps, nbOfRepresentedYears
+
+
+def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
+    """
+    Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
+    """
+    if CO2ReductionTargets is not None:
+        if len(CO2ReductionTargets) != nbOfSteps+1:
+            raise ValueError('CO2ReductionTargets has to be None, or the lenght of the given list must equal the number \
+ of optimization steps.')
+
+def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
+    """
+    Check if a sink component object called >CO2 to environment< exists. 
+    This component is required if CO2 reduction targets are given.
+    """
+
+    if CO2ReductionTargets is not None:
+        if 'CO2 to environment' not in esM.componentNames:
+            warnings.warn('CO2 emissions are not considered in the current esM. CO2ReductionTargets will be ignored.')
+            CO2ReductionTargets=None
+            return CO2ReductionTargets
+        else:
+            return CO2ReductionTargets
+
+def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
+    """
+    If CO2ReductionTargets are given, set the new value for each iteration.
+    """
+    if CO2ReductionTargets is not None: 
+        setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', CO2Reference*(1-CO2ReductionTargets[step]/100))
+
+ 

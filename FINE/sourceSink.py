@@ -18,8 +18,8 @@ class Source(Component):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10, yearlyFullLoadHoursMin=None,
-                 yearlyFullLoadHoursMax=None):
+                 opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, 
+                 technicalLifetime=None, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -149,9 +149,9 @@ class Source(Component):
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
-                            economicLifetime=economicLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
-                            yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
+                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, QPcostScale=QPcostScale, interestRate=interestRate,
+                            economicLifetime=economicLifetime, technicalLifetime=None, 
+                            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin, yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
         # Set general source/sink data: ID and yearly limit
         utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
@@ -264,7 +264,8 @@ class Sink(Source):
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, 
+                 technicalLifetime=None):
         """
         Constructor for creating an Sink class instance.
 
@@ -277,7 +278,8 @@ class Sink(Source):
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
                         capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
                         investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries, 
-                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, interestRate, economicLifetime)
+                        commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate, 
+                        economicLifetime, technicalLifetime)
 
         self.sign = -1
 
@@ -352,7 +354,7 @@ class SourceSinkModel(ComponentModel):
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
         Declare design and operation variables.
 
@@ -370,7 +372,7 @@ class SourceSinkModel(ComponentModel):
         # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
         # Binary variables [-] indicating if a component is considered at a location or not
-        self.declareBinaryDesignDecisionVars(pyM)
+        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [commodityUnit*hour]
         self.declareOperationVars(pyM, 'op')
 
@@ -491,10 +493,6 @@ class SourceSinkModel(ComponentModel):
             :type pym: pyomo ConcreteModel
         """
 
-        capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
-        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
-        opexCap = self.getEconomicsTI(pyM, ['opexPerCapacity'], 'cap')
-        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
         opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
         commodCost = self.getEconomicsTD(pyM, esM, ['commodityCost'], 'op', 'operationVarDict')
         commodRevenue = self.getEconomicsTD(pyM, esM, ['commodityRevenue'], 'op', 'operationVarDict')
@@ -503,7 +501,7 @@ class SourceSinkModel(ComponentModel):
         commodRevenueTimeSeries = \
             self.getEconomicsTimeSeries(pyM, esM, 'commodityRevenueTimeSeries', 'op', 'operationVarDict')
 
-        return capexCap + capexDec + opexCap + opexDec + opexOp + commodCost + commodCostTimeSeries - \
+        return super().getObjectiveFunctionContribution(esM, pyM) + opexOp + commodCost + commodCostTimeSeries - \
             (commodRevenue + commodRevenueTimeSeries)
 
     ####################################################################################################################
