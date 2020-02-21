@@ -14,6 +14,9 @@ dependencies:
 - pyomo
 - numpy
 - pandas
-- GPyOpt
 - networkx
 - scipy
+- pip:
+  - FINE
+  - https://github.com/FZJ-IEK3-VSA/geokit/archive/master.zip
+  - https://github.com/FZJ-IEK3-VSA/glaes/archive/master.zip

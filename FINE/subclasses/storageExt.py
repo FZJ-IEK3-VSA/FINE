@@ -6,7 +6,7 @@ import warnings
 import pandas as pd
 
 
-class StorageExt(Storage):
+class StorageExtBETA(Storage):
     """
     A StorageExt component shows the behavior of a Storage component but it is additionally possible to set a
     state of charge time series. The StorageExt class inherits from the Storage class.
@@ -202,23 +202,6 @@ class StorageExtModel(StorageModel):
         # * State of charge operation TODO check if also applied for simple SOC modeling
         self.declareOperationModeSets(pyM, 'stateOfChargeOpConstrSet',
                                       'stateOfChargeOpRateMax', 'stateOfChargeOpRateFix')
-
-    ####################################################################################################################
-    #                                                Declare variables                                                 #
-    ####################################################################################################################
-
-    def declareVariables(self, esM, pyM):
-        """
-        Declare design and operation variables.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-
-        super().declareVariables(esM, pyM)
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #

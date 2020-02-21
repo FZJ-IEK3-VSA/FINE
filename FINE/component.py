@@ -16,8 +16,9 @@ class Component(metaclass=ABCMeta):
                  hasCapacityVariable, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None, locationalEligibility=None,
                  capacityMin=None, capacityMax=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0,
-                 interestRate=0.08, economicLifetime=10, technicalLifetime=None, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
+                 investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0,
+                 interestRate=0.08, economicLifetime=10, technicalLifetime=None, yearlyFullLoadHoursMin=None, 
+                 yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Component class instance.
 
@@ -230,6 +231,19 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
+        :param QPcostScale: describes the absolute deviation of the minimum or maximum cost value from
+            the average or weighted average cost value. For further information see 
+            Lopion et al. (2019): "Cost Uncertainties in Energy System Optimization Models: 
+            A Quadratic Programming Approach for Avoiding Penny Switching Effects". 
+            |br| * the default value is 0, i.e. the problem is not quadratic.
+        :type QPcostScale:
+            * float between 0 and 1
+            * Pandas Series with positive (0 <= QPcostScale <= 1) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
+            * Pandas DataFrame with positive (0 <= QPcostScale <= 1) values. The row and column indices of the DataFrame have
+              to equal the in the energy system model specified locations.
+
         :param interestRate: interest rate which is considered for computing the annuities of the invest
             of the component (depreciates the invests over the economic lifetime).
             A value of 0.08 corresponds to an interest rate of 8%.
@@ -264,7 +278,6 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
-        # TODO: Write more detailed description.
         :param yearlyFullLoadHoursMin: if specified, indicates the maximum yearly full load hours.
             |br| * the default value is None
         :type yearlyFullLoadHoursMin:
@@ -272,7 +285,6 @@ class Component(metaclass=ABCMeta):
             * Float with positive (>=0) value or
             * Pandas Series with positive (>=0) values.
 
-        # TODO: Write more detailed description.
         :param yearlyFullLoadHoursMax: if specified, indicates the maximum yearly full load hours.
             |br| * the default value is None
         :type yearlyFullLoadHoursMax:
@@ -305,6 +317,7 @@ class Component(metaclass=ABCMeta):
         self.investIfBuilt = utils.checkAndSetCostParameter(esM, name, investIfBuilt, dimension, elig)
         self.opexPerCapacity = utils.checkAndSetCostParameter(esM, name, opexPerCapacity, dimension, elig)
         self.opexIfBuilt = utils.checkAndSetCostParameter(esM, name, opexIfBuilt, dimension, elig)
+        self.QPcostScale = utils.checkAndSetCostParameter(esM, name, QPcostScale, dimension, elig)
         self.interestRate = utils.checkAndSetCostParameter(esM, name, interestRate, dimension, elig)
         self.economicLifetime = utils.checkAndSetCostParameter(esM, name, economicLifetime, dimension, elig)
         technicalLifetime = utils.checkTechnicalLifetime(esM, technicalLifetime, economicLifetime)
@@ -314,11 +327,18 @@ class Component(metaclass=ABCMeta):
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
-        self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
+        self.capacityMin = utils.castToSeries(capacityMin, esM)
+        self.capacityMax = utils.castToSeries(capacityMax, esM)
+        self.capacityFix = utils.castToSeries(capacityFix, esM)
         self.yearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMin, dimension, elig)
         self.yearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMax, dimension, elig)
         self.isBuiltFix = isBuiltFix
         utils.checkLocationSpecficDesignInputParams(self, esM)
+        
+        # Set quadratic capacity bounds and residual cost scale (1-cost scale)
+        self.QPbound = utils.getQPbound(esM, self.capacityMax, self.capacityMin)
+        self.QPcostDev = utils.getQPcostDev(esM, self.QPcostScale)
+
         #
         # # Variables at optimum (set after optimization)
         # self.capacityVariablesOptimum = None
@@ -1046,7 +1066,6 @@ class ComponentModel(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
@@ -1058,7 +1077,12 @@ class ComponentModel(metaclass=ABCMeta):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        raise NotImplementedError
+        capexCap = self.getEconomicsTI(pyM, factorNames=['investPerCapacity', 'QPcostDev'], QPfactorNames=['QPcostScale', 'investPerCapacity'], varName='cap', divisorName='CCF', QPdivisorNames=['QPbound', 'CCF'])
+        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
+        opexCap = self.getEconomicsTI(pyM, factorNames=['opexPerCapacity', 'QPcostDev'], QPfactorNames=['QPcostScale', 'opexPerCapacity'], varName='cap', QPdivisorNames=['QPbound'])
+        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
+
+        return capexCap + capexDec + opexCap + opexDec
 
     def getSharedPotentialContribution(self, pyM, key, loc):
         """
@@ -1118,7 +1142,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (factor * sum(var[loc, compName, p, t].value * esM.periodOccurrences[p]
                                  for p, t in pyM.timeSet)/esM.numberOfYears)
 
-    def getLocEconomicsTI(self, pyM, factorNames, varName, loc, compName, divisorName='', getOptValue=False):
+    def getLocEconomicsTI(self, pyM, factorNames, varName, loc, compName, divisorName='', QPfactorNames=[], QPdivisorNames=[], getOptValue=False):
         """
         Set time-independent equation specified for one component in one location.
 
@@ -1147,6 +1171,12 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is ''.
         :type divisorName: string       
 
+        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['QPcostScale'])
+        :type QPfactorNames: list of strings
+
+        :param QPdivisorNames: Strings of the parameters that have to be used as divisors when quadratic programming is used. (e.g. ['QPbound'])
+        :type QPdivisorNames: list of strings
+
         :param getOptValue: Boolean that defines the output of the function:
             - True: Return the optimal value. 
             - False: Return the equation. 
@@ -1157,15 +1187,29 @@ class ComponentModel(metaclass=ABCMeta):
         var = getattr(pyM, varName + '_' + self.abbrvName)
         factors = [getattr(self.componentsDict[compName], factorName)[loc] for factorName in factorNames]
         divisor = getattr(self.componentsDict[compName], divisorName)[loc] if not divisorName == '' else 1
-        factor = 1./divisor
+        factor = 1./divisor      
         for factor_ in factors:
-            factor *= factor_
-        if not getOptValue:
-            return factor * var[loc, compName]
+            factor *= factor_ 
+        
+        if self.componentsDict[compName].QPcostScale[loc] == 0:
+            if not getOptValue:
+                return factor * var[loc, compName]
+            else:
+                return factor * var[loc, compName].value
         else:
-            return factor * var[loc, compName].value
+            QPfactors = [getattr(self.componentsDict[compName], QPfactorName)[loc] for QPfactorName in QPfactorNames]
+            QPdivisors = [getattr(self.componentsDict[compName], QPdivisorName)[loc] for QPdivisorName in QPdivisorNames]
+            QPfactor = 1
+            for QPfactor_ in QPfactors:
+                QPfactor *= QPfactor_
+            for QPdivisor in QPdivisors:
+                QPfactor /= QPdivisor
+            if not getOptValue:
+                return factor * var[loc, compName] + QPfactor * var[loc, compName] * var[loc, compName]
+            else:
+                return factor * var[loc, compName].value + QPfactor * var[loc, compName].value * var[loc, compName].value
 
-    def getEconomicsTI(self, pyM, factorNames, varName, divisorName='', getOptValue=False):
+    def getEconomicsTI(self, pyM, factorNames, varName, divisorName='', QPfactorNames=[], QPdivisorNames=[], getOptValue=False):
         """
         Set time-independent equations for the individual components. The equations will be set for all components of a modeling class 
         and all locations.
@@ -1187,6 +1231,12 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is ''.
         :type divisorName: string       
 
+        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['QPcostScale'])
+        :type QPfactorNames: list of strings
+
+        :param QPdivisorNames: Strings of the parameters that have to be used as divisors when quadratic programming is used. (e.g. ['QPbound'])
+        :type QPdivisorNames: list of strings
+
         :param getOptValue: Boolean that defines the output of the function:
             - True: Return the optimal value. 
             - False: Return the equation. 
@@ -1194,7 +1244,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type getoptValue: boolean
         """
         var = getattr(pyM, varName + '_' + self.abbrvName)
-        return sum(self.getLocEconomicsTI(pyM, factorNames, varName, loc, compName, divisorName, getOptValue)
+        return sum(self.getLocEconomicsTI(pyM, factorNames, varName, loc, compName, divisorName, QPfactorNames, QPdivisorNames, getOptValue)
                    for loc, compName in var)
 
     def getEconomicsTD(self, pyM, esM, factorNames, varName, dictName, getOptValue=False):
@@ -1387,19 +1437,28 @@ class ComponentModel(metaclass=ABCMeta):
         if optVal is not None:
             # Check if the installed capacities are close to a bigM value for components with design decision variables
             for compName, comp in compDict.items():
-                if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max().max() >= comp.bigM * 0.9 \
+                if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max() >= comp.bigM * 0.9 \
                         and esM.verbose < 2:
                     warnings.warn('the capacity of component ' + compName + ' is in one or more locations close ' +
                                   'or equal to the chosen Big M. Consider rerunning the simulation with a higher' +
                                   ' Big M.')
 
-            i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index], axis=1)
-            cx = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index] /
-                                          compDict[cap.name].CCF[cap.index], axis=1)
-            ox = optVal.apply(lambda cap: cap * compDict[cap.name].opexPerCapacity[cap.index], axis=1)
-            optSummary.loc[
-                [(ix, 'capacity', '[' + getattr(compDict[ix], plantUnit) + unitApp + ']') for ix in optVal.index],
-                optVal.columns] = optVal.values
+            i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] 
+            + (compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
+            / (compDict[cap.name].QPbound[cap.index]) 
+            * cap * cap), axis=1)
+            cx = optVal.apply(lambda cap: (cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] / compDict[cap.name].CCF[cap.index]) 
+            + (compDict[cap.name].investPerCapacity[cap.index] / compDict[cap.name].CCF[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
+            / (compDict[cap.name].QPbound[cap.index]) 
+            * cap * cap), axis=1)
+            ox = optVal.apply(lambda cap: cap * compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] 
+            + (compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
+            / (compDict[cap.name].QPbound[cap.index]) 
+            * cap * cap), axis=1)                
+
+
+            optSummary.loc[[(ix, 'capacity', '[' + getattr(compDict[ix], plantUnit) + unitApp + ']') 
+            for ix in optVal.index], optVal.columns] = optVal.values
             optSummary.loc[[(ix, 'invest', '[' + esM.costUnit + ']') for ix in i.index], i.columns] = \
                 i.values
             optSummary.loc[[(ix, 'capexCap', '[' + esM.costUnit + '/a]') for ix in cx.index], cx.columns] = \

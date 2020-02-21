@@ -1,3 +1,13 @@
+"""
+Last edited: January 21 2020
+
+@author: Lara Welder
+Basic idea inspired by:
+Zerrahn, Alexander, and Wolf-Peter Schill. "On the representation of demand-side management in
+power system models." Energy 84 (2015): 840-845.
+Approach adapted to be compatible with time series aggregation (idea: use virtual storages).
+"""
+
 from FINE.sourceSink import Sink, Source, SourceSinkModel
 from FINE import utils
 import FINE as fn
@@ -5,25 +15,104 @@ import pyomo.environ as pyomo
 import pandas as pd
 import warnings
 
-class DemandSideManagement(Sink):
+class DemandSideManagementBETA(Sink):
     """
-    TODO
-    A DemandSideManagement component
+    A DemandSideManagement component. Allows to shift demands (of Sink components) forwards and backwards in time.
+    Initializes a Sink component and multiple Storage components which are aggregated after optimization.
     """
-    def __init__(self, esM, name, commodity, hasCapacityVariable, tBwd, tFwd, operationRateFix,
+    def __init__(self, esM, name, commodity, hasCapacityVariable, tFwd, tBwd, operationRateFix,
         opexShift=1e-6, shiftUpMax=None, shiftDownMax=None, socOffsetDown=-1, socOffsetUp=-1, **kwargs):
         """
         Constructor for creating an DemandSideManagement class instance.
-        TODO
+        Note: the DemandSideManagement class inherits from the Sink class; kwargs provide input arguments
+        to the Sink component.
 
         **Required arguments:**
 
-        """
-        self.tFwd = tFwd
-        self.tBwd = tBwd
-        self.tDelta = tBwd+tFwd+1
+        :param esM: energy system model to which the DemandSideManagement component should be added.
+            Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
 
-        operationRateFix = pd.concat([operationRateFix.iloc[-tFwd:], operationRateFix.iloc[:-tFwd]]).reset_index(drop=True)
+        :param name: name of the component. Has to be unique (i.e. no other components with that name can
+            already exist in the EnergySystemModel instance to which the component is added).
+        :type name: string
+
+        :param hasCapacityVariable: specifies if the underlying Sink component should be modeled with a
+            capacity or not. Examples:\n
+            * An electrolyzer has a capacity given in GW_electric -> hasCapacityVariable is True.
+            * In the energy system, biogas can, from a model perspective, be converted into methane (and then
+              used in conventional power plants which emit CO2) by getting CO2 from the environment. Thus,
+              using biogas in conventional power plants is, from a balance perspective, CO2 free. This
+              conversion is purely theoretical and does not require a capacity -> hasCapacityVariable
+              is False.
+            * A electricity cable has a capacity given in GW_electric -> hasCapacityVariable is True.
+            * If the transmission capacity of a component is unlimited -> hasCapacityVariable is False.
+            * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
+            * Emitting CO2 into the environment is not per se limited by a capacity ->
+              hasCapacityVariable is False.\n
+        :type hasCapacityVariable: boolean
+
+        :param tFwd: the number of timesteps for backwards demand shifting.
+        :type tFwd: integer (>0)
+
+        :param tBwd: the number of timesteps for forwards demand shifting.
+        :type tBwd: integer (>= 0)
+
+        :param operationRateFix: specifies the original time series of the shiftable demand.
+            If hasCapacityVariable is set to True, the values are given relative
+            to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
+            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+            of the commodityUnit for each time step.
+        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model specified time steps. The column indices have to equal the
+            in the energy system model specified locations. The data in ineligible locations are set to zero.
+
+        **Default arguments:**
+
+        :param opexShift: operational cost for shifting the demand (given in costUnit/commodityUnit). Setting
+            this value also penalizes unreasonable, unnecessary shifting of demand.
+            |br| * the default value is 1e-6
+        :type opexShift: positive float (>0)
+
+        :param shiftUpMax: maximum amount of upwards shiftable commodity at one timestep. If None, the value
+            is set equal to the maximum demand of the respective location.
+            |br| * the default value is None
+        :type shiftUpMax: positive float or None
+
+        :param shiftDownMax: maximum amount of downwards shiftable commodity at one timestep. If None, the
+            value is set equal to the maximum demand of the respective location.
+            |br| * the default value is Nonde
+        :type shiftDownMax: positive float or None
+
+        :param socOffsetDown: determines whether the state of charge at the end of a period p has
+            to be equal to the one at the beginning of a period p+1 (socOffsetDown=-1) or if
+            it can be smaller at the beginning of p+1 (socOffsetDown>=0). In the latter case, 
+            the product of the parameter socOffsetDown and the actual soc offset is used as a penalty
+            factor in the objective function. (usefull when infeasibilities are encountered when using
+            DemandSideManagement and time series aggregation)
+            |br| * the default value is -1
+        :type socOffsetDown: float
+
+        :param socOffsetUp: determines whether the state of charge at the end of a period p has
+            to be equal to the one at the beginning of a period p+1 (socOffsetUp=-1) or if
+            it can be larger at the beginning of p+1 (socOffsetUp>=0). In the latter case, 
+            the product of the parameter socOffsetUp and the actual soc offset is used as a penalty
+            factor in the objective function. (usefull when infeasibilities are encountered when using
+            DemandSideManagement and time series aggregation)
+            |br| * the default value is -1
+        :type socOffsetUp: float
+        """
+        if esM.verbose < 2:
+            warnings.warn('The DemandSideManagement component is currently in its BETA testing phase. ' +
+                'Infeasiblities can occur (in this case consider using socOffsetUp/ socOffsetDown). ' +
+                'Best results can be obtained when tFwd+tBwd+1 is a divisor of either the total number ' +
+                'of timesteps or the number of time steps per period. Use with care...')
+
+        self.tBwd = tBwd
+        self.tFwd = tFwd
+        self.tDelta = tFwd+tBwd+1
+
+        operationRateFix = pd.concat([operationRateFix.iloc[-tBwd:], operationRateFix.iloc[:-tBwd]]).reset_index(drop=True)
         if shiftUpMax is None:
             self.shiftUpMax = operationRateFix.max()
             print('shiftUpMax was set to', operationRateFix.max())
@@ -49,19 +138,19 @@ class DemandSideManagement(Sink):
                 sort_index().reset_index(drop=True)
             
             if (len(SOCmax_) > len(esM.totalTimeSteps)):
-                SOCmax_ = pd.concat([SOCmax_.iloc[tBwd+tFwd-i:], SOCmax_.iloc[:tBwd+tFwd-i]]).reset_index(drop=True)
-                print('tFwd+tBwd+1 is not a divisor of the total number of time steps of the energy system. ' +
+                SOCmax_ = pd.concat([SOCmax_.iloc[tFwd+tBwd-i:], SOCmax_.iloc[:tFwd+tBwd-i]]).reset_index(drop=True)
+                print('tBwd+tFwd+1 is not a divisor of the total number of time steps of the energy system. ' +
                     'This shortens the shiftable timeframe of demand_' + str(i) + ' by ' +
                     str(len(SOCmax_)-len(esM.totalTimeSteps)) + ' time steps')
                 SOCmax = SOCmax_.iloc[:len(esM.totalTimeSteps)]
 
             elif len(SOCmax_) < len(esM.totalTimeSteps):
-                SOCmax.iloc[0:len(SOCmax_.iloc[tBwd+tFwd-i:])] = SOCmax_.iloc[tBwd+tFwd-i:].values
-                if len(SOCmax_.iloc[:tBwd+tFwd-i]) > 0:
-                    SOCmax.iloc[-len(SOCmax_.iloc[:tBwd+tFwd-i]):] = SOCmax_.iloc[:tBwd+tFwd-i].values
+                SOCmax.iloc[0:len(SOCmax_.iloc[tFwd+tBwd-i:])] = SOCmax_.iloc[tFwd+tBwd-i:].values
+                if len(SOCmax_.iloc[:tFwd+tBwd-i]) > 0:
+                    SOCmax.iloc[-len(SOCmax_.iloc[:tFwd+tBwd-i]):] = SOCmax_.iloc[:tFwd+tBwd-i].values
                     
             else:
-                SOCmax_ = pd.concat([SOCmax_.iloc[tBwd+tFwd-i:], SOCmax_.iloc[:tBwd+tFwd-i]]).reset_index(drop=True)
+                SOCmax_ = pd.concat([SOCmax_.iloc[tFwd+tBwd-i:], SOCmax_.iloc[:tFwd+tBwd-i]]).reset_index(drop=True)
                 SOCmax = SOCmax_
 
             chargeOpRateMax = SOCmax.copy()
@@ -76,9 +165,9 @@ class DemandSideManagement(Sink):
             
             opexPerChargeOpTimeSeries = pd.DataFrame([[opexShift for loc in self.locationalEligibility] for t in esM.totalTimeSteps],
                                columns=self.locationalEligibility.index)
-            opexPerChargeOpTimeSeries[(opexPerChargeOpTimeSeries.index - i ) % self.tDelta == tFwd + 1] = 0
+            opexPerChargeOpTimeSeries[(opexPerChargeOpTimeSeries.index - i ) % self.tDelta == tBwd + 1] = 0
 
-            esM.add(fn.StorageExt(esM, name + '_' + str(i), commodity, stateOfChargeOpRateMax=SOCmax,
+            esM.add(fn.StorageExtBETA(esM, name + '_' + str(i), commodity, stateOfChargeOpRateMax=SOCmax,
                 dischargeOpRateFix=dischargeFix, hasCapacityVariable=False, chargeOpRateMax=chargeOpRateMax, 
                 opexPerChargeOpTimeSeries=opexPerChargeOpTimeSeries, doPreciseTsaModeling=True,
                 socOffsetDown=socOffsetDown, socOffsetUp=socOffsetUp))
@@ -119,7 +208,7 @@ class DSMModel(SourceSinkModel):
 
         def limitUpDownShifts(pyM, loc, compName, p, t):
 
-            # ixDown = str((compDict[compName].tFwd + t) % compDict[compName].tDelta)
+            # ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
                 if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
                     ixDown = str(i)
@@ -153,7 +242,7 @@ class DSMModel(SourceSinkModel):
 
         def shiftUpMax(pyM, loc, compName, p, t):
             
-            # ixDown = str((compDict[compName].tFwd + t) % compDict[compName].tDelta)
+            # ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
                 if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
                     ixDown = str(i)
@@ -184,7 +273,7 @@ class DSMModel(SourceSinkModel):
 
         def shiftDownMax(pyM, loc, compName, p, t):
 
-            #ixDown = str((compDict[compName].tFwd + t) % compDict[compName].tDelta)
+            #ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
                 if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
                     ixDown = str(i)
@@ -242,7 +331,7 @@ class DSMModel(SourceSinkModel):
         def groupStor(x):
             ix = optVal.loc[x].name
             for compName, comp in self.componentsDict.items():
-                if ix[0] in [compName + '_' + str(i) for i in range(comp.tFwd+comp.tBwd+1)]:
+                if ix[0] in [compName + '_' + str(i) for i in range(comp.tBwd+comp.tFwd+1)]:
                     return (compName, ix[1])
 
         optVal = optVal.groupby(lambda x: groupStor(x)).sum()

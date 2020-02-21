@@ -171,16 +171,16 @@ class Storage(Component):
             it can be smaller at the beginning of p+1 (socOffsetDown>=0). In the latter case, 
             the product of the parameter socOffsetDown and the actual soc offset is used as a penalty
             factor in the objective function.
-            |br| * the default value is False
-        :type socOffsetDown: boolean
+            |br| * the default value is -1
+        :type socOffsetDown: float
 
         :param socOffsetUp: determines whether the state of charge at the end of a period p has
             to be equal to the one at the beginning of a period p+1 (socOffsetUp=-1) or if
             it can be larger at the beginning of p+1 (socOffsetUp>=0). In the latter case, 
             the product of the parameter socOffsetUp and the actual soc offset is used as a penalty
             factor in the objective function.
-            |br| * the default value is False
-        :type socOffsetUp: boolean
+            |br| * the default value is -1
+        :type socOffsetUp: float
         """
         Component. __init__(self, esM, name, dimension='1dim', hasCapacityVariable=hasCapacityVariable,
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
