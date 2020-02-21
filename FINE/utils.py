@@ -1,12 +1,16 @@
 """
-Last edited: March 26, 2019
+Last edited: February 21, 2020
 
-@author: Lara Welder
+@author: Lara Welder, Theresa Gross
 """
 import warnings
 import pandas as pd
-import FINE as fn
 import numpy as np
+import pwlf
+import FINE as fn
+import matplotlib.pyplot as plt
+from GPyOpt.methods import BayesianOptimization
+import sys
 
 def isString(string):
     """ Check if the input argument is a string. """
@@ -147,6 +151,58 @@ def checkCommodityUnits(esM, commodityUnit):
         raise ValueError('Commodity unit does not match the ones of the specified energy system model.\n' +
                          'Commodity unit: ' + str(commodityUnit) + '\n' +
                          'Energy system model commodityUnits: ' + str(esM.commodityUnitsDict.values()))
+
+
+def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
+    """ 
+    Check if one of the commodity conversion factors equals 1 and another is either a lambda function or a set of data points.
+    Additionally check if the conversion factor that depicts part load behavior 
+        (1) covers part loads from 0 to 1 and
+        (2) includes only conversion factors greater than 0 in the relevant part load range.
+    """
+    partLoadCommodPresent = False
+    nonPartLoadCommodPresent = False
+
+    for conversionFactor in commodityConversionFactorsPartLoad:
+        if isinstance(conversionFactor,pd.DataFrame):
+            checkDataFrameTypeConversionFactor(conversionFactor)
+            partLoadCommodPresent = True
+        elif callable(conversionFactor):
+            checkCallableConversionFactor(conversionFactor)
+            partLoadCommodPresent = True
+        elif conversionFactor == 1 or conversionFactor == -1:
+            nonPartLoadCommodPresent = True
+    
+    if nonPartLoadCommodPresent == False:
+        raise TypeError('One conversion factor needs to be either 1 or -1.')
+    if partLoadCommodPresent == False:
+        raise TypeError('One conversion factor needs to be either a callable function or a list of two-dimensional data points.')
+
+
+def checkCallableConversionFactor(conversionFactor):
+    """  Check if the callable conversion factor includes only conversion factors greater than 0 in the relevant part load range. """
+    nPointsForTesting = 1001
+    xTest = np.linspace(0, 1, nPointsForTesting)
+    yTest = [conversionFactor(xTest_i) for xTest_i in xTest]
+
+    if any(yTest_i <= 0 for yTest_i in yTest):
+        raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
+
+
+def checkDataFrameTypeConversionFactor(conversionFactor):
+    """  
+    Check if the callable conversion factor covers part loads from 0 to 1 and 
+    if it includes only conversion factors greater than 0 in the relevant part load range. 
+    """
+    
+    xTest = np.array(conversionFactor['x'])
+    yTest = np.array(conversionFactor['y'])
+
+    if np.isnan(xTest).any() or np.isnan(yTest).any():
+        raise ValueError('At least one value in the raw conversion factor data is non-numeric.')
+
+    if any(yTest_i <= 0 for yTest_i in yTest):
+        raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
 
 
 def checkAndSetDistances(distances, locationalEligibility, esM):
@@ -774,9 +830,158 @@ def checkComponentsEquality(esM, file):
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
+def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
+    """ 
+    Determine xSegments, ySegments.
+    If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by 
+    a bayesian optimization algorithm. 
+    """
+    if callable(functionOrRaw):
+        nPointsForInputData = 1000
+        x = np.linspace(xLowerBound, xUpperBound, nPointsForInputData)
+        y = np.array([functionOrRaw(x_i) for x_i in x])
+    else:
+        x = np.array(functionOrRaw['x'])
+        y = np.array(functionOrRaw['y'])
+        if not 0.0 in x:
+            xMinDefined = np.amin(x)
+            xMaxDefined = np.amax(x)
+            lenIntervalDefined = xMaxDefined - xMinDefined
+            lenIntervalUndefined = xMinDefined
+            nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
+            xMinIndex = np.argmin(x)
+            for i in range(int(nPointsUndefined)):
+                x = np.append(x, [i/int(nPointsUndefined+1) * lenIntervalUndefined])
+                y = np.append(y, y[xMinIndex])
+        if not 1.0 in x:
+            xMinDefined = np.amin(x)
+            xMaxDefined = np.amax(x)
+            lenIntervalDefined = xMaxDefined - xMinDefined
+            lenIntervalUndefined = 1.0 - xMaxDefined
+            nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
+            xMaxIndex = np.argmax(x)
+            for i in range(int(nPointsUndefined)):
+                x = np.append(x, [xMaxDefined + (i+1)/int(nPointsUndefined) * lenIntervalUndefined])
+                y = np.append(y, y[xMaxIndex])
+
+    myPwlf = pwlf.PiecewiseLinFit(x, y)
+
+    if nSegments == None:
+        nSegments = 5
+    elif nSegments == 'optimizeSegmentNumbers':
+
+        bounds = [{'name': 'var_1', 'type': 'discrete',
+           'domain': np.arange(2, 8)}]
+
+        # Define objective function to get optimal number of line segments
+        def my_obj(_x):
+        # The penalty parameter l is set arbitrarily. 
+        # It depends upon the noise in your data and the value of your sum of square of residuals 
+            l = y.mean()*0.001
+
+            f = np.zeros(_x.shape[0])
+
+            for i, j in enumerate(_x):
+                myPwlf.fit(j[0])
+                f[i] = myPwlf.ssr + (l*j[0])
+            return f
+
+        myBopt = BayesianOptimization(my_obj, domain=bounds, model_type='GP',
+                              initial_design_numdata=10,
+                              initial_design_type='latin',
+                              exact_feval=True, verbosity=True,
+                              verbosity_model=False)
+
+        max_iter = 30
+
+        # Perform bayesian optimization to find the optimum number of line segments
+        myBopt.run_optimization(max_iter=max_iter, verbosity=True)
+        nSegments = int(myBopt.x_opt)
+    
+    xSegments = myPwlf.fit(nSegments)
+
+    # Get the y segments
+    ySegments = myPwlf.predict(xSegments)
+
+    # Calcualte the R^2 value
+    Rsquared = myPwlf.r_squared()
+
+    # Calculate the piecewise R^2 value
+    R2values = np.zeros(nSegments)
+    for i in range(nSegments):
+        # Segregate the data based on break point locations
+        xMin = myPwlf.fit_breaks[i]
+        xMax = myPwlf.fit_breaks[i+1]
+        xTemp = myPwlf.x_data
+        yTemp = myPwlf.y_data
+        indTemp = np.where(xTemp >= xMin)
+        xTemp = myPwlf.x_data[indTemp]
+        yTemp = myPwlf.y_data[indTemp]
+        indTemp = np.where(xTemp <= xMax)
+        xTemp = xTemp[indTemp]
+        yTemp = yTemp[indTemp]
+
+        # Predict for the new data
+        yHatTemp = myPwlf.predict(xTemp)
+
+        # Calcualte ssr
+        e = yHatTemp - yTemp
+        ssr = np.dot(e, e)
+
+        # Calculate sst
+        yBar = np.ones(yTemp.size) * np.mean(yTemp)
+        ydiff = yTemp - yBar
+        sst = np.dot(ydiff, ydiff)
+
+        R2values[i] = 1.0 - (ssr/sst)
+
+    return {
+        'xSegments': xSegments, 
+        'ySegments': ySegments,
+        'nSegments': nSegments,
+        'Rsquared': Rsquared, 
+        'R2values': R2values
+        }
+
+def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
+    """ Preprocess the conversion factors passed by the user """
+    discretizedPartLoad = {commod: None for commod in commodityConversionFactorsPartLoad.keys()}
+    functionOrRawCommod = None
+    nonFunctionOrRawCommod = None
+    for commod, conversionFactor in commodityConversionFactorsPartLoad.items():
+        if isinstance(conversionFactor,pd.DataFrame):
+            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, xLowerBound=0, xUpperBound=1, nSegments=nSegments)
+            functionOrRawCommod = commod
+            nSegments = discretizedPartLoad[commod]['nSegments']
+        elif callable(conversionFactor):
+            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, xLowerBound=0, xUpperBound=1, nSegments=nSegments)
+            functionOrRawCommod = commod
+            nSegments = discretizedPartLoad[commod]['nSegments']
+        elif conversionFactor == 1 or conversionFactor == -1:
+            discretizedPartLoad[commod] = {
+                'xSegments': None,
+                'ySegments': None,
+                'nSegments': None,
+                'Rsquared': 1.0, 
+                'R2values': 1.0
+                }
+            nonFunctionOrRawCommod = commod
+    discretizedPartLoad[nonFunctionOrRawCommod]['xSegments'] = discretizedPartLoad[functionOrRawCommod]['xSegments']
+    discretizedPartLoad[nonFunctionOrRawCommod]['ySegments'] = [commodityConversionFactorsPartLoad[nonFunctionOrRawCommod]]*(nSegments+1)
+    discretizedPartLoad[nonFunctionOrRawCommod]['nSegments'] = nSegments
+    return discretizedPartLoad, nSegments
+
+def checkNumberOfConversionFactors(commods):
+    if len(commods) > 2:
+        raise ValueError('Currently only two commodities are allowed in conversion processes that use commodityConversionFactorsPartLoad.')
+    else:
+        return True
+
 def checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None):
-    """ Check if there are enough input parameters given for defining the time horizon for the myopic approach. 
-        Calculate the number of optimization steps and the number of represented years per each step if not given."""
+    """ 
+    Check if there are enough input parameters given for defining the time horizon for the myopic approach. 
+    Calculate the number of optimization steps and the number of represented years per each step if not given.
+    """
     if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
          # endYear is given; determine the nbOfRepresentedYears 
         diff = endYear-startYear

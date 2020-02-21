@@ -1437,7 +1437,7 @@ class ComponentModel(metaclass=ABCMeta):
         if optVal is not None:
             # Check if the installed capacities are close to a bigM value for components with design decision variables
             for compName, comp in compDict.items():
-                if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max().max() >= comp.bigM * 0.9 \
+                if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max() >= comp.bigM * 0.9 \
                         and esM.verbose < 2:
                     warnings.warn('the capacity of component ' + compName + ' is in one or more locations close ' +
                                   'or equal to the chosen Big M. Consider rerunning the simulation with a higher' +

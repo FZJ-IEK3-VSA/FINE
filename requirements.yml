@@ -14,5 +14,6 @@ dependencies:
 - pyomo
 - numpy
 - pandas
+- GPyOpt
 - networkx
 - scipy
