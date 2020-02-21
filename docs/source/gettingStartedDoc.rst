@@ -1,15 +1,25 @@
-###############
+﻿###############
 Getting started
 ###############
 
-Introduction (ToDo)
+**************************
+Purpose and Vision of FINE
+**************************
+
+FINE is a framework for generating energy system optimization models. This might sound difficult, but the puporse is easy to understand:
+FINE is designed to answer pressing questions on future energy systems which include affordability, a high share of renewable energy
+sources and - most importantly - low CO\ :sub:`2` emissions.
+
+The concept of FINE is that scientists, programmers and anyone who is interested all around the world can use FINE to answer their
+individual questions. Therefore, FINE is open source available and completely for free. Once FINE is installed, you can start
+implementing an energy system model that you want to investigate.
 
 ********
 About Us
 ********
 
-.. image:: https://www.fz-juelich.de/SharedDocs/Bilder/IEK/IEK-3/Abteilungen2015/VSA_DepartmentPicture_2019-02-04_459x244_2480x1317.jpg?__blob=normal
-    :target: http://www.fz-juelich.de/iek/iek-3/EN/Forschung/_Process-and-System-Analysis/_node.html
+.. image:: https://www.fz-juelich.de/iek/iek-3/DE/_Documents/Pictures/IEK-3Team_2019-02-04.jpg?__blob=poster
+    :target: https://www.fz-juelich.de/iek/iek-3/EN/Home/home_node.html
     :alt: Abteilung TSA
     :align: center
 
@@ -39,12 +49,6 @@ within FINE.
 Dr. Martin Robinius is teaching a `course <https://www.campus-elgouna.tu-berlin.de/energy/v_menu/msc_business_engineering_energy/modules_and_curricula/project_market_coupling/>`_
 at TU Berlin in which he is introducing FINE to students.
 
-**************************
-Purpose and Vision of FINE
-**************************
-
-ToDo
-
 ************
 Installation
 ************
@@ -64,7 +68,7 @@ is available in the advanced installation option. When selecting this options, t
 pip, jupyter etc. are remotely set and do not have to be manually set.
 
 A development platform which can be used to work with/on the code and which comes with Anaconda is Spyder.
-Another option for a development platform is PyCharm.
+Other development platforms are PyCharm or Visua Studio Code.
 
 **FINE installation**
 
