@@ -491,7 +491,6 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
         timeSeries = data['values'].loc[(compName, loc)].values
     else:
         timeSeries = data['values'].loc[(compName, loc, locTrans)].values
-
     timeSeries = timeSeries/esM.hoursPerTimeStep if not isStorage else timeSeries
 
     timeSeries = timeSeries.reshape(nbPeriods, nbTimeStepsPerPeriod).T

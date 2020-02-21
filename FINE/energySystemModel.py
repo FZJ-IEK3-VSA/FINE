@@ -674,10 +674,6 @@ class EnergySystemModel:
             |br| * the default value is True
         :type declaresOptimizationProblem: boolean
 
-<<<<<<< HEAD
-=======
-#TODO: Check description
->>>>>>> 40954fbfd42041f167c649421ab7413b6dc2bef7
         :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
             bound of the problem.
             |br| * the default value is False
@@ -786,6 +782,8 @@ class EnergySystemModel:
         # If not, no output is generated.
         # TODO check if this is still compatible with the latest pyomo version
         status, termCondition = solver_info.solver.status, solver_info.solver.termination_condition
+        self.solverSpecs['status'] = str(status)
+        self.solverSpecs['terminationCondition'] = str(termCondition)
         if status == opt.SolverStatus.error or status == opt.SolverStatus.aborted or status == opt.SolverStatus.unknown:
             utils.output('Solver status:  ' + str(status) + ', termination condition:  ' + str(termCondition) +
                          '. No output is generated.', self.verbose, 0)

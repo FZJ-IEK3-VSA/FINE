@@ -6,7 +6,7 @@ import warnings
 import pandas as pd
 
 
-class StorageExt(Storage):
+class StorageExtBETA(Storage):
     """
     A StorageExt component shows the behavior of a Storage component but it is additionally possible to set a
     state of charge time series. The StorageExt class inherits from the Storage class.

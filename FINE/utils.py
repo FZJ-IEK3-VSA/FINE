@@ -101,7 +101,7 @@ def checkTimeSeriesIndex(esM, data):
     if list(data.index) != esM.totalTimeSteps:
         raise ValueError('Time indices do not match the one of the specified energy system model.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
-                         'Energy system model time steps: ' + str(esM.totalTimeSteps))
+                         'Energy system model time steps: ' + str(esM._timeSteps))
 
 
 def checkRegionalColumnTitles(esM, data):
@@ -263,6 +263,18 @@ def castToSeries(data, esM):
     isPositiveNumber(data)
     return pd.Series([data], index=list(esM.locations))
 
+def getQPbound(esM, capacityMax, capacityMin):
+    """ Compute and return lower and upper capacity bounds. """
+    index=list(esM.locations)
+    QPbound = pd.Series([np.inf] * len(esM.locations), index)
+
+    if capacityMin is not None and capacityMax is not None:
+        minS=pd.Series(capacityMin.isna(), index)
+        maxS=pd.Series(capacityMax.isna(), index)
+        for x in list(esM.locations):
+            if not minS.loc[x] and not maxS.loc[x]:
+                QPbound.loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
+    return QPbound
 
 def checkLocationSpecficDesignInputParams(comp, esM):
     if len(esM.locations) == 1:
@@ -271,13 +283,14 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         comp.capacityMax = castToSeries(comp.capacityMax, esM)
         comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
+        comp.QPcostScale = castToSeries(comp.QPcostScale, esM)
 
-    capacityMin, capacityFix, capacityMax = comp.capacityMin, comp.capacityFix, comp.capacityMax
+    capacityMin, capacityFix, capacityMax, QPcostScale = comp.capacityMin, comp.capacityFix, comp.capacityMax, comp.QPcostScale
     locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
     hasCapacityVariable, hasIsBuiltBinaryVariable = comp.hasCapacityVariable, comp.hasIsBuiltBinaryVariable
     sharedPotentialID = comp.sharedPotentialID
 
-    for data in [capacityMin, capacityFix, capacityMax, locationalEligibility, isBuiltFix]:
+    for data in [capacityMin, capacityFix, capacityMax, QPcostScale, locationalEligibility, isBuiltFix]:
         if data is not None:
             if comp.dimension == '1dim':
                 if not isinstance(data, pd.Series):
@@ -322,6 +335,13 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     if capacityFix is not None and capacityMin is not None:
         if (capacityFix < capacityMin).any():
             raise ValueError('capacityFix values < capacityMax values detected.')
+
+    if capacityMax is None or capacityMin is None:
+        if (QPcostScale > 0).any():
+            raise ValueError('QPcostScale is given but lower or upper capacity bounds are not specified.')
+
+    if (QPcostScale < 0).any() or (QPcostScale > 1).any():
+        raise ValueError('QPcostScale must ba a number between "0" and "1".')
 
     if locationalEligibility is not None:
         # Check if values are either one or zero
@@ -370,6 +390,9 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             if (data > isBuiltFix).any():
                 raise ValueError('The isBuiltFix and capacityMin parameters indicate different design decisions.')
 
+def getQPcostDev(esM, QPcostScale):
+    QPcostDev = 1 - QPcostScale
+    return QPcostDev
 
 def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFix, isBuiltFix,
                              hasCapacityVariable, operationTimeSeries, dimension='1dim'):
