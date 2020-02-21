@@ -11,4 +11,5 @@ Contents:
 
    energySystemModelDoc
    componentsDoc
+   expansionModulesDoc
    outputManagerDoc
