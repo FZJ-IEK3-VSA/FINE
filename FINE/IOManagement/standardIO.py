@@ -145,12 +145,12 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
             if comp + 'LocSpecs' in file.sheet_names:
                 dataLoc_ = dataLoc[dataLoc.index.get_level_values(0) == temp['name']]
                 for ix in dataLoc_.index.get_level_values(1).unique():
-                    temp.set_value(ix, dataLoc.loc[(temp['name'], ix)].squeeze())
+                    temp[ix] = dataLoc.loc[(temp['name'], ix)].squeeze()
 
             if comp + 'TimeSeries' in file.sheet_names:
                 dataTS_ = dataTS[dataTS.index.get_level_values(0) == temp['name']]
                 for ix in dataTS_.index.get_level_values(1).unique():
-                    temp.set_value(ix, dataTS_.loc[(temp['name'], ix)].T)
+                    temp[ix] = dataTS_.loc[(temp['name'], ix)].T
 
             kwargs = temp
             esM.add(getattr(fn, comp)(esM, **kwargs))
