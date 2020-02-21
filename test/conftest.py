@@ -71,3 +71,42 @@ def minimal_test_esM():
                     ))
 
     return esM
+
+
+@pytest.fixture
+def dsm_test_esM():
+    """
+    Generate a simple energy system model with one node, two fixed generators and one load time series
+    for testing demand side management functionality.
+    """
+    # load without dsm
+    now = pd.Timestamp.now().round('h')
+    number_of_time_steps = 28
+    #t_index = pd.date_range(now, now + pd.DateOffset(hours=number_of_timeSteps - 1), freq='h')
+    t_index = range(number_of_time_steps)
+    load_without_dsm = pd.Series([80.] * number_of_time_steps, index=t_index)
+
+    timestep_up = 10
+    timestep_down = 20
+    load_without_dsm[timestep_up:timestep_down] += 40.
+
+    time_shift = 3
+    cheap_capacity = 100.
+    expensive_capacity = 20.
+
+    # set up energy model
+    esM = fn.EnergySystemModel(locations={'location'},
+                               commodities={'electricity'},
+                               numberOfTimeSteps=number_of_time_steps,
+                               commodityUnitsDict={'electricity': r'MW$_{el}$'},
+                               hoursPerTimeStep=1, costUnit='1 Euro',
+                               lengthUnit='km',
+                               verboseLogLevel=2)
+    esM.add(fn.Source(esM=esM, name='cheap', commodity='electricity', hasCapacityVariable=False,
+                      operationRateMax=pd.Series(cheap_capacity, index=t_index), opexPerOperation=25))
+    esM.add(fn.Source(esM=esM, name='expensive', commodity='electricity', hasCapacityVariable=False,
+                      operationRateMax=pd.Series(expensive_capacity, index=t_index), opexPerOperation=50))
+    esM.add(fn.Source(esM=esM, name='back-up', commodity='electricity', hasCapacityVariable=False,
+                      operationRateMax=pd.Series(1000, index=t_index), opexPerOperation=1000))
+
+    return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity

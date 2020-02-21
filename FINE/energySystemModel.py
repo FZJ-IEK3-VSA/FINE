@@ -782,6 +782,8 @@ class EnergySystemModel:
         # If not, no output is generated.
         # TODO check if this is still compatible with the latest pyomo version
         status, termCondition = solver_info.solver.status, solver_info.solver.termination_condition
+        self.solverSpecs['status'] = str(status)
+        self.solverSpecs['terminationCondition'] = str(termCondition)
         if status == opt.SolverStatus.error or status == opt.SolverStatus.aborted or status == opt.SolverStatus.unknown:
             utils.output('Solver status:  ' + str(status) + ', termination condition:  ' + str(termCondition) +
                          '. No output is generated.', self.verbose, 0)

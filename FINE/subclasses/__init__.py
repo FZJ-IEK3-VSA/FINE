@@ -5,3 +5,5 @@ Last edited: May 15 2018
 """
 from .lopf import LinearOptimalPowerFlow
 from .conversionPartLoad import ConversionPartLoad
+from .DSM import DemandSideManagementBETA
+from .storageExt import StorageExtBETA
