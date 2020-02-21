@@ -95,7 +95,7 @@ def test_DSM(dsm_test_esM):
     pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand', 'location')], load_with_dsm)
 
     esM_with.cluster(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)
-    esM_with.optimize(timeSeriesAggregation=True, solver='gurobi', optimizationSpecs='LogToConsole=0')
+    esM_with.optimize(timeSeriesAggregation=True, solver='glpk', optimizationSpecs='LogToConsole=0')
 
     # benchmark generation and load with dsm
     expensive_with_dsm = expensive_without_dsm.copy()

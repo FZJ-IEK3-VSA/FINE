@@ -274,11 +274,13 @@ def getRefinedShapeFile(shapeFilePath, regColumn1, regColumn2, dic_node_minPress
     # Obtain nodes from shape file, assign names and minimum/ maximum pressure levels to them, delete duplicates
     coordNames, coords = [], []
     pMin, pMax = [], []
+    lines = []
 
     # Break linestrings into linear pieces
     for i, row in gdf.iterrows():
         # Simplify linestring (to increase the minimum length of pipeline connections wherever possible)
         line = row.geometry.simplify(minPipeLength)    
+        lines.append(line)
         row.geometry = line
 
         # Get new nodes
@@ -297,6 +299,8 @@ def getRefinedShapeFile(shapeFilePath, regColumn1, regColumn2, dic_node_minPress
         
         pMax.extend([(dic_node_maxPress[row[regColumn1]]*(len(coords_)-j-1) +
                     dic_node_maxPress[row[regColumn2]]*j)/(len(coords_)-1) for j in range(len(coords_))])
+
+    gdf['geometry'] = lines
 
     # Create DataFrame of old and new nodes and drop duplicates        
     dfNodes = pd.DataFrame([coordNames, pMin, pMax, coords], index=['nodeName','pMin','pMax','lon_lat']).T
@@ -2144,7 +2148,8 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
         # returns dict: key: arc, value: optimal diameter
         # returns dict: key: nodePair, value: dic: key: node, value: pressure level
         dic_arc_diam, dic_scen_node_press = determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureCoef,
-            specialScenarionames, dic_node_minPress, dic_node_maxPress, dic_diameter_costs, robust, verbose=verbose)
+            specialScenarionames, dic_node_minPress, dic_node_maxPress, dic_diameter_costs, robust, verbose=verbose,
+            solver=solver, threads=threads)
     else:
         # we compute pressure drops for every timeStep scenario. Not robust version!
         # we compute the pressure drops for the robust scenarios and optimize
@@ -2160,7 +2165,8 @@ def determineDiscretePipelineDesign(robust, injectionWithdrawalRates, distances,
         # returns dict: key: arc, value: optimal diameter
         # returns dict: key: timeStep, value: dic: key: node, value: pressure level
         dic_arc_diam, dic_scen_node_press = determineOptimalDiscretePipelineSelection(graph, distances, dic_pressureCoef,
-            timeSteps, dic_node_minPress, dic_node_maxPress, dic_diameter_costs, False, verbose=verbose)
+            timeSteps, dic_node_minPress, dic_node_maxPress, dic_diameter_costs, False, verbose=verbose,
+            solver=solver, threads=threads)
 
     if not dic_arc_diam:
         utils.output("No feasible diameter selections exits", verbose, 0)
