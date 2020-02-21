@@ -376,7 +376,11 @@ class EnergySystemModel:
         # call)
         timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
         clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
+<<<<<<< HEAD
                                              hoursPerPeriod=hoursPerPeriod,
+=======
+                                             hoursPerPeriod=int(numberOfTimeStepsPerPeriod*self.hoursPerTimeStep),
+>>>>>>> metis/forks/zier1/FINE-lpartLoad
                                              clusterMethod=clusterMethod, sortValues=sortValues, weightDict=weightDict,
                                              **kwargs)
 
