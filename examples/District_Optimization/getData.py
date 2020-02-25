@@ -20,7 +20,7 @@ def getData():
 
     # PV data
     gen_capacityMax = pd.read_excel(os.path.join(inputDataPath, 'PV_Capacity.xlsx'),
-                                    sheet_name ='GenerationCapacities')
+                                    sheet_name ='GenerationCapacities', index_col=0)
     gen_capacityMax = gen_capacityMax.loc['PV_south'].T
     gen_operationRateMax = pd.read_excel(os.path.join(inputDataPath, 'PV_Generation.xlsx'))
 
@@ -28,7 +28,7 @@ def getData():
     data.update({'PV, operationRateMax': gen_operationRateMax})
     
     # Heat & Battery Storage
-    st_capacityMax = pd.read_excel(os.path.join(inputDataPath, 'Storage_capacities.xlsx'))
+    st_capacityMax = pd.read_excel(os.path.join(inputDataPath, 'Storage_capacities.xlsx'), index_col=0)
     st_capacityMax_TS = st_capacityMax.loc['Thermal Storage']
     st_capacityMax_BS = st_capacityMax.loc['Battery']
    
@@ -53,8 +53,8 @@ def getData():
     data.update({'Heat demand, operationRateFix': Hdemand_operationRateFix})
     
     # Purchase Data
-    Pu_operationRateMax_El = pd.read_excel(os.path.join(inputDataPath, 'purchaseElectricity.xlsx'))
-    Pu_operationRateMax_NG = pd.read_excel(os.path.join(inputDataPath, 'purchaseNaturalGas.xlsx'))
+    Pu_operationRateMax_El = pd.read_excel(os.path.join(inputDataPath, 'purchaseElectricity.xlsx'), index_col=0)
+    Pu_operationRateMax_NG = pd.read_excel(os.path.join(inputDataPath, 'purchaseNaturalGas.xlsx'), index_col=0)
     
     data.update({'El Purchase, operationRateMax': Pu_operationRateMax_El})
     data.update({'NG Purchase, operationRateMax': Pu_operationRateMax_NG})
