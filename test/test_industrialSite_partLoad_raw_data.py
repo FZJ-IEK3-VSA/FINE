@@ -5,6 +5,7 @@ import FINE as fn         # Provides objects and functions to model an energy sy
 import pandas as pd       # Used to manage data in tables
 import numpy as np        # Used to generate random input data
 import matplotlib.pyplot as plt
+import os
 
 def test_industrialSite():
     # # Model an energy system
@@ -22,8 +23,9 @@ def test_industrialSite():
         hoursPerTimeStep=hoursPerTimeStep, costUnit=costUnit, lengthUnit=lengthUnit, verboseLogLevel=0)
 
     # ## Add source component
+    data = pd.read_excel(os.path.join(os.path.dirname(__file__), '_testInputFiles', 
+                                       'generationTimeSeries_e825103.xlsx'))
 
-    data = pd.read_excel('test/generationTimeSeries_e825103.xlsx')
     data = data.iloc[0:numberOfTimeSteps]
 
     operationRateFix = pd.DataFrame(data['e825103_2017_2.3MW_faults9'],index=range(numberOfTimeSteps)) # Dataset with least missing data
