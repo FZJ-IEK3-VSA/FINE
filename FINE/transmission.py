@@ -108,9 +108,14 @@ class Transmission(Component):
         self._mapC, self._mapL, self._mapI = {}, {}, {}
         for loc1 in esM.locations:
             for loc2 in esM.locations:
-                if loc1 + '_' + loc2 in self.locationalEligibility.index:
-                    if self.locationalEligibility[loc1 + '_' + loc2] == 0:
-                        self.locationalEligibility[loc1 + '_' + loc2].drop(inplace=True)
+                loc_linkage_label = loc1 + '_' + loc2
+                if loc_linkage_label in self.locationalEligibility.index:
+                    if self.locationalEligibility[loc_linkage_label] == 0:
+                        self.locationalEligibility.drop(labels=loc_linkage_label)
+
+                        # self.locationalEligibility[loc1 + '_' + loc2].drop(inplace=True) 
+                        # TODO: Should this function also support dataframes? If so, the following (and more) lines need to be added
+
                     self._mapC.update({loc1 + '_' + loc2: (loc1, loc2)})
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + '_' + loc2})
                     self._mapI.update({loc1 + '_' + loc2: loc2 + '_' + loc1})

@@ -38,9 +38,10 @@ class LinearOptimalPowerFlow(Transmission):
                               economicLifetime)
 
         self.modelingClass = LOPFModel
-
-        self.reactances2dim = reactances
-        self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
+        
+        self.reactances = utils.preprocess2dimData(reactances, self._mapC) # modification by Leander
+        # self.reactances = reactances
+        # self._reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances[loc[0]][loc[1]])
 
     def addToEnergySystemModel(self, esM):
         """

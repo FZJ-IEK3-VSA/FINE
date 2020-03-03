@@ -26,7 +26,7 @@ import os
 import pandas as pd
 import numpy as np
 
-def test_commodityCostTimeSeries(multi_node_test_esM):
+def test_commodityCostTimeSeries(multi_node_test_esM_optimized):
 
     # read in original results
     expected_results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples',
@@ -34,5 +34,5 @@ def test_commodityCostTimeSeries(multi_node_test_esM):
                           index_col=0, header=None, squeeze=True)
 
     # test if here solved fits with original results
-    testresults = multi_node_test_esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Biogas purchase').sum(axis=1)
+    testresults = multi_node_test_esM_optimized.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Biogas purchase').sum(axis=1)
     np.testing.assert_array_almost_equal(testresults.values, expected_results.values, decimal=2)

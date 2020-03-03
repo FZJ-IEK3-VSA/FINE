@@ -5,9 +5,11 @@ Last edited: March 26, 2019
 """
 import warnings
 import pandas as pd
+import numpy as np
 import FINE as fn
 import numpy as np
 import math
+import os
 
 def isString(string):
     """ Check if the input argument is a string. """
@@ -104,7 +106,7 @@ def checkTimeSeriesIndex(esM, data):
         raise ValueError('Time indices do not match the one of the specified energy system model.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
                          'Energy system model time steps: ' + str(esM.totalTimeSteps))
-    return 
+    return data
 
 
 def checkRegionalColumnTitles(esM, data):
@@ -116,6 +118,9 @@ def checkRegionalColumnTitles(esM, data):
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data columns: ' + str(set(data.columns)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
+    elif not np.array_equal(data.columns, esM._locationsOrdered):
+        data.sort_index(inplace=True, axis=1)    
+    return data
 
 
 def checkRegionalIndex(esM, data):
@@ -125,9 +130,11 @@ def checkRegionalIndex(esM, data):
     """
     if set(data.index) != esM.locations:
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
-                         'Data indices: ' + str(set(data.index)) + '\n' +
-                         'Energy system model regions: ' + str(esM.locations))
-
+                        'Data indices: ' + str(set(data.index)) + '\n' +
+                        'Energy system model regions: ' + str(esM.locations))
+    elif not np.array_equal(data.index, esM._locationsOrdered):
+        data.sort_index(inplace=True)
+    return data
 
 def checkConnectionIndex(data, locationalEligibility):
     """
@@ -138,7 +145,9 @@ def checkConnectionIndex(data, locationalEligibility):
         raise ValueError('Indices do not match the eligible connections of the component.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
                          'Eligible connections: ' + str(set(locationalEligibility.index)))
-
+    elif not np.array_equal(data.index,locationalEligibility.index):
+        data = data.reindex(locationalEligibility.index)
+    return data
 
 def checkCommodities(esM, commodities):
     """ Check if the commodity is considered in the energy system model. """
@@ -169,7 +178,7 @@ def checkAndSetDistances(distances, locationalEligibility, esM):
             raise TypeError('Input data has to be a pandas DataFrame or Series')
         if (distances < 0).any():
             raise ValueError('Distance values smaller than 0 were detected.')
-        checkConnectionIndex(distances, locationalEligibility)
+        distances = checkConnectionIndex(distances, locationalEligibility)
     return distances
 
 
@@ -186,7 +195,7 @@ def checkAndSetTransmissionLosses(losses, distances, locationalEligibility):
         if losses < 0 or losses > 1:
             raise ValueError('Losses have to be values between 0 <= losses <= 1.')
         return pd.Series([float(losses) for loc in locationalEligibility.index], index=locationalEligibility.index)
-    checkConnectionIndex(losses, locationalEligibility)
+    losses = checkConnectionIndex(losses, locationalEligibility)
 
     losses = losses.astype(float)
     if losses.isnull().any():
@@ -233,11 +242,11 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             if comp.dimension == '1dim':
                 if not isinstance(data, pd.Series):
                     raise TypeError('Input data has to be a pandas Series')
-                checkRegionalIndex(esM, data)
+                data = checkRegionalIndex(esM, data)
             elif comp.dimension == '2dim':
                 if not isinstance(data, pd.Series):
                     raise TypeError('Input data has to be a pandas DataFrame')
-                checkConnectionIndex(data, comp.locationalEligibility)
+                data = checkConnectionIndex(data, comp.locationalEligibility)
             else:
                 raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
 
@@ -370,16 +379,16 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
                     raise TypeError('The operation time series data type has to be a pandas DataFrame or Series')
             else:
                 raise TypeError('The operation time series data type has to be a pandas DataFrame')
-        checkTimeSeriesIndex(esM, operationTimeSeries)
+        operationTimeSeries= checkTimeSeriesIndex(esM, operationTimeSeries)
 
         if dimension == '1dim':
-            checkRegionalColumnTitles(esM, operationTimeSeries)
+            data = checkRegionalColumnTitles(esM, operationTimeSeries)
 
             if locationalEligibility is not None and operationTimeSeries is not None:
                 # Check if given capacities indicate the same eligibility
                 data = operationTimeSeries.copy().sum()
                 data[data > 0] = 1
-                if (data > locationalEligibility).any().any():
+                if (data.sort_index() > locationalEligibility.sort_index()).any().any():
                     raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
                                      ' eligibilities.')
         elif dimension == '2dim':
@@ -456,13 +465,13 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             if data < 0:
                 raise ValueError('Value error in ' + name + ' detected.\n Economic parameters have to be positive.')
             return pd.Series([float(data) for loc in esM.locations], index=esM.locations)
-        checkRegionalIndex(esM, data)
+        data = checkRegionalIndex(esM, data)
     else:
         if isinstance(data, int) or isinstance(data, float):
             if data < 0:
                 raise ValueError('Value error in ' + name + ' detected.\n Economic parameters have to be positive.')
             return pd.Series([float(data) for loc in locationalEligibility.index], index=locationalEligibility.index)
-        checkConnectionIndex(data, locationalEligibility)
+        data = checkConnectionIndex(data, locationalEligibility)
 
     _data = data.astype(float)
     if _data.isnull().any():
@@ -486,10 +495,10 @@ def checkAndSetTimeSeriesCostParameter(esM, name, data, locationalEligibility, d
             else:
                 raise TypeError('Type error in ' + name + ' detected.\n' +
                             'Economic time series parameters have to be a pandas DataFrame.')
-        checkTimeSeriesIndex(esM, data)
+        data = checkTimeSeriesIndex(esM, data)
 
         if dimension == '1dim':
-            checkRegionalColumnTitles(esM, data)
+            data = checkRegionalColumnTitles(esM, data)
 
             if locationalEligibility is not None and data is not None:
                 auxiliary = data.copy().sum()
@@ -534,6 +543,7 @@ def checkAndSetTimeSeriesCostParameter(esM, name, data, locationalEligibility, d
     else:
         return None
 
+
 def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalEligibility):
     if data is None:
         return None
@@ -554,13 +564,13 @@ def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalElig
                 if data < 0:
                     raise ValueError('Value error in ' + name + ' detected.\n Full load hours limitations have to be positive.')
                 return pd.Series([float(data) for loc in esM.locations], index=esM.locations)
-            checkRegionalIndex(esM, data)
+            data = checkRegionalIndex(esM, data)
         else:
             if isinstance(data, int) or isinstance(data, float):
                 if data < 0:
                     raise ValueError('Value error in ' + name + ' detected.\n Full load hours limitations have to be positive.')
                 return pd.Series([float(data) for loc in locationalEligibility.index], index=locationalEligibility.index)
-            checkConnectionIndex(data, locationalEligibility)
+            data = checkConnectionIndex(data, locationalEligibility)
 
         _data = data.astype(float)
         if _data.isnull().any():
@@ -571,11 +581,12 @@ def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalElig
                              'All entries in economic parameter series have to be positive.')
         return _data
 
+
 def checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps):
     isStrictlyPositiveInt(numberOfTypicalPeriods), isStrictlyPositiveInt(numberOfTimeStepsPerPeriod)
     if not totalNumberOfTimeSteps % numberOfTimeStepsPerPeriod == 0:
-        raise ValueError('The numberOfTimeStepsPerPeriod has to be an integer divisor of the total number of time\n' +
-                         ' steps considered in the energy system model.')
+        raise ValueError(f'The numberOfTimeStepsPerPeriod ({numberOfTimeStepsPerPeriod}) has to be an integer divisor of the total number of time' +
+                         f' steps considered in the energy system model ({totalNumberOfTimeSteps}).')
     if totalNumberOfTimeSteps < numberOfTypicalPeriods * numberOfTimeStepsPerPeriod:
         raise ValueError('The product of the numberOfTypicalPeriods and the numberOfTimeStepsPerPeriod has to be \n' +
                          'smaller than the total number of time steps considered in the energy system model.')
@@ -730,6 +741,7 @@ def output(output, verbose, val):
     if verbose == val:
         print(output)
 
+
 def checkModelClassEquality(esM, file):
     mdlListFromModel = list(esM.componentModelingDict.keys())
     mdlListFromExcel = []
@@ -737,6 +749,7 @@ def checkModelClassEquality(esM, file):
         mdlListFromExcel += [cl for cl in mdlListFromModel if (cl[0:-5] in sheet and cl not in mdlListFromExcel)]
     if set(mdlListFromModel) != set(mdlListFromExcel):
         raise ValueError('Loaded Output does not match the given energy system model.')
+
 
 def checkComponentsEquality(esM, file):
     compListFromExcel = []
@@ -747,6 +760,7 @@ def checkComponentsEquality(esM, file):
         compListFromExcel += list(readSheet.index.levels[0])
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
+
 
 def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
     values = np.zeros((len(locations), len(locations)))
@@ -765,6 +779,7 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
 
     return df
 
+
 class PowerDict(dict):  
     '''
     Dictionary with additional functions
@@ -782,7 +797,7 @@ class PowerDict(dict):
 
     def append(self, item):
         '''
-        additional append function for lists in dict
+        Additional append function for lists in dict
         '''
         self.parent[self.key] = [item]
 

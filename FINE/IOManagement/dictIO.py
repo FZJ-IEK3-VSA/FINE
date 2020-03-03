@@ -2,36 +2,36 @@ import FINE as fn
 import FINE.utils as utils
 
 import inspect
-
+import json
 
 def exportToDict(esM):
     """
-    Writes an optimization input to a dictionary.
+    Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
 
     :param esM: EnergySystemModel instance in which the optimized model is hold
     :type esM: EnergySystemModel instance
     """
 
-    # get all input properties of the esM
+    # Get all input properties of the esM
     inputkwargs = inspect.getfullargspec(fn.EnergySystemModel.__init__)
 
     esmDict = {}        
-    # loop over all props
+    # Loop over all props
     for arg in inputkwargs.args:
         if not arg is 'self':
             esmDict[arg] = getattr(esM,arg)
 
     compDict = utils.PowerDict()
-    # loop over all components
+    # Loop over all components
     for modelname in esM.componentModelingDict.keys():
 
-        # get all component models
+        # Get all component models
         componentModel = esM.componentModelingDict[modelname]
 
-        # loop over all components belonging to the model
+        # Loop over all components belonging to the model
         for componentname in componentModel.componentsDict:
             
-            # get class of component
+            # Get class name of component
             classname = type(componentModel.componentsDict[componentname]).__name__
             if not classname in compDict:
                 compDict[classname] = utils.PowerDict()
@@ -39,43 +39,58 @@ def exportToDict(esM):
             compDict[classname][componentname] = utils.PowerDict()
             component = componentModel.componentsDict[componentname]
             
-            # get class
+            # Get class
             class_ = getattr(fn, classname)
 
-            # get input arguments of the class
+            # Get input arguments of the class
             inputkwargs = inspect.getfullargspec(class_.__init__)
 
-            # loop over all input props
+            # Loop over all input props
             for prop in inputkwargs.args:
                 if (prop is not 'self') and (prop is not 'esM'):
                     compDict[classname][componentname][prop] = getattr(component,prop)
 
     return esmDict, compDict
 
+def exportToJSON(esM, filename):
+    esmDict, compDict = exportToDict(esM)
 
-def importFromDict(esmDict, compDict):
+    entireEsmDict = {'esmDict': esmDict, 'compDict': compDict}
+
+    with open(filename, 'w') as fp:
+        json.dump(entireEsmDict, fp)
+
+def importFromDict(esmDict, compDict, esM=None):
     """
-    Writes the dictionaries to an EnergySystemModel.
+    Writes the dictionaries created by the exportToDict function to an EnergySystemModel.
 
-    :param esM: dictionary created from exportToDict contains all esM information
-    :type esmDict: dictionary instance
+    :param esMDict: dictionary created from exportToDict contains all esM information
+    :type dict: dictionary instance
 
-    :param esM: dictionary create from exportToDict containing all component information
-    :type esmDict: dictionary instance
+    :param compDict: dictionary create from exportToDict containing all component information
+    :type dict: dictionary instance
     """
-    
-    # init esM
-    esM = fn.EnergySystemModel(**esmDict)
+
+    if esM is None:
+        # TODO: drop LinearOptimalPowerFlow ?
+        esM = fn.EnergySystemModel(**esmDict)
 
     # add components
     for classname in compDict:
         # get class
         class_ = getattr(fn, classname)
 
-        for comp in compDict[classname]:            
+        for comp in compDict[classname]:
+            # if classname != 'LinearOptimalPowerFlow':
             esM.add(class_(esM, **compDict[classname][comp]))
 
     return esM
 
+def importFromJSON(filename):
 
+    with open(filename, 'r') as fp:
+        entireEsmDict = json.load(fp)
 
+    esM = importFromDict(entireEsmDict['esmDict'], entireEsmDict['compDict'])
+
+    return esM

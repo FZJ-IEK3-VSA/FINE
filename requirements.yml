@@ -17,6 +17,7 @@ dependencies:
 - pyomo
 - numpy
 - pandas
+- xarray
 - pip:
     - https://github.com/FZJ-IEK3-VSA/geokit/archive/gdal_relax.zip
   

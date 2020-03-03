@@ -134,6 +134,7 @@ class EnergySystemModel:
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
         self.locations, self.lengthUnit = locations, lengthUnit
+        self._locationsOrdered = sorted(locations)
 
         ################################################################################################################
         #                                            Time series parameters                                            #
@@ -240,7 +241,6 @@ class EnergySystemModel:
         if not issubclass(type(component), Component):
             raise TypeError('The added component has to inherit from the FINE class Component.')
         if not issubclass(component.modelingClass, ComponentModel):
-            print(component.name, component.modelingClass, ComponentModel)
             raise TypeError('The added component has to inherit from the FINE class ComponentModel.')
         component.addToEnergySystemModel(self)
 

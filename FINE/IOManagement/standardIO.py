@@ -834,9 +834,16 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     """
     data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(variableName)
     data = data['values'].loc[(compName)]
+
+
     if doSum:
         data = data.sum(axis=1)
     gdf = gpd.read_file(locationsShapeFileName).to_crs({'init': crs})
+
+    # sort data and shapes in the same order
+    data.sort_index(inplace=True)
+    gdf.sort_values(indexColumn, inplace=True)
+
     if perArea:
         gdf.loc[gdf[indexColumn] == data.index, "data"] = \
             data.fillna(0).values/(gdf.loc[gdf[indexColumn] == data.index].geometry.area/areaFactor**2)
