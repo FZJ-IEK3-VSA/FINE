@@ -1,7 +1,7 @@
 """
-Last edited: March 26, 2019
+Last edited: February 21, 2020
 
-@author: Lara Welder
+@author: Lara Welder, Theresa Gross
 """
 import warnings
 import pandas as pd
@@ -10,6 +10,10 @@ import FINE as fn
 import numpy as np
 import math
 import os
+import pwlf
+import matplotlib.pyplot as plt
+from GPyOpt.methods import BayesianOptimization
+import sys
 
 def isString(string):
     """ Check if the input argument is a string. """
@@ -165,6 +169,58 @@ def checkCommodityUnits(esM, commodityUnit):
                          'Energy system model commodityUnits: ' + str(esM.commodityUnitsDict.values()))
 
 
+def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
+    """ 
+    Check if one of the commodity conversion factors equals 1 and another is either a lambda function or a set of data points.
+    Additionally check if the conversion factor that depicts part load behavior 
+        (1) covers part loads from 0 to 1 and
+        (2) includes only conversion factors greater than 0 in the relevant part load range.
+    """
+    partLoadCommodPresent = False
+    nonPartLoadCommodPresent = False
+
+    for conversionFactor in commodityConversionFactorsPartLoad:
+        if isinstance(conversionFactor,pd.DataFrame):
+            checkDataFrameTypeConversionFactor(conversionFactor)
+            partLoadCommodPresent = True
+        elif callable(conversionFactor):
+            checkCallableConversionFactor(conversionFactor)
+            partLoadCommodPresent = True
+        elif conversionFactor == 1 or conversionFactor == -1:
+            nonPartLoadCommodPresent = True
+    
+    if nonPartLoadCommodPresent == False:
+        raise TypeError('One conversion factor needs to be either 1 or -1.')
+    if partLoadCommodPresent == False:
+        raise TypeError('One conversion factor needs to be either a callable function or a list of two-dimensional data points.')
+
+
+def checkCallableConversionFactor(conversionFactor):
+    """  Check if the callable conversion factor includes only conversion factors greater than 0 in the relevant part load range. """
+    nPointsForTesting = 1001
+    xTest = np.linspace(0, 1, nPointsForTesting)
+    yTest = [conversionFactor(xTest_i) for xTest_i in xTest]
+
+    if any(yTest_i <= 0 for yTest_i in yTest):
+        raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
+
+
+def checkDataFrameTypeConversionFactor(conversionFactor):
+    """  
+    Check if the callable conversion factor covers part loads from 0 to 1 and 
+    if it includes only conversion factors greater than 0 in the relevant part load range. 
+    """
+    
+    xTest = np.array(conversionFactor['x'])
+    yTest = np.array(conversionFactor['y'])
+
+    if np.isnan(xTest).any() or np.isnan(yTest).any():
+        raise ValueError('At least one value in the raw conversion factor data is non-numeric.')
+
+    if any(yTest_i <= 0 for yTest_i in yTest):
+        raise ValueError('The callable part load conversion factor is smaller or equal to 0 at least once within [0,1].')
+
+
 def checkAndSetDistances(distances, locationalEligibility, esM):
     """
     Check if the given values for the distances are valid (i.e. positive). If the distances parameter is None,
@@ -223,6 +279,18 @@ def castToSeries(data, esM):
     isPositiveNumber(data)
     return pd.Series([data], index=list(esM.locations))
 
+def getQPbound(esM, capacityMax, capacityMin):
+    """ Compute and return lower and upper capacity bounds. """
+    index=list(esM.locations)
+    QPbound = pd.Series([np.inf] * len(esM.locations), index)
+
+    if capacityMin is not None and capacityMax is not None:
+        minS=pd.Series(capacityMin.isna(), index)
+        maxS=pd.Series(capacityMax.isna(), index)
+        for x in list(esM.locations):
+            if not minS.loc[x] and not maxS.loc[x]:
+                QPbound.loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
+    return QPbound
 
 def checkLocationSpecficDesignInputParams(comp, esM):
     if len(esM.locations) == 1:
@@ -231,13 +299,14 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         comp.capacityMax = castToSeries(comp.capacityMax, esM)
         comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
+        comp.QPcostScale = castToSeries(comp.QPcostScale, esM)
 
-    capacityMin, capacityFix, capacityMax = comp.capacityMin, comp.capacityFix, comp.capacityMax
+    capacityMin, capacityFix, capacityMax, QPcostScale = comp.capacityMin, comp.capacityFix, comp.capacityMax, comp.QPcostScale
     locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
     hasCapacityVariable, hasIsBuiltBinaryVariable = comp.hasCapacityVariable, comp.hasIsBuiltBinaryVariable
     sharedPotentialID = comp.sharedPotentialID
 
-    for data in [capacityMin, capacityFix, capacityMax, locationalEligibility, isBuiltFix]:
+    for data in [capacityMin, capacityFix, capacityMax, QPcostScale, locationalEligibility, isBuiltFix]:
         if data is not None:
             if comp.dimension == '1dim':
                 if not isinstance(data, pd.Series):
@@ -282,6 +351,13 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     if capacityFix is not None and capacityMin is not None:
         if (capacityFix < capacityMin).any():
             raise ValueError('capacityFix values < capacityMax values detected.')
+
+    if capacityMax is None or capacityMin is None:
+        if (QPcostScale > 0).any():
+            raise ValueError('QPcostScale is given but lower or upper capacity bounds are not specified.')
+
+    if (QPcostScale < 0).any() or (QPcostScale > 1).any():
+        raise ValueError('QPcostScale must ba a number between "0" and "1".')
 
     if locationalEligibility is not None:
         # Check if values are either one or zero
@@ -330,6 +406,9 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             if (data > isBuiltFix).any():
                 raise ValueError('The isBuiltFix and capacityMin parameters indicate different design decisions.')
 
+def getQPcostDev(esM, QPcostScale):
+    QPcostDev = 1 - QPcostScale
+    return QPcostDev
 
 def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFix, isBuiltFix,
                              hasCapacityVariable, operationTimeSeries, dimension='1dim'):
@@ -447,6 +526,10 @@ def checkDesignVariableModelingParameters(esM, capacityVariableDomain, hasCapaci
             warnings.warn('A declaration of bigM is not necessary if hasIsBuiltBinaryVariable is set to false. '
                       'The value of bigM will be ignored in the optimization.')
 
+def checkTechnicalLifetime(esM, technicalLifetime, economicLifetime):
+    if technicalLifetime is None:
+        technicalLifetime = economicLifetime
+    return technicalLifetime
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     if dimension == '1dim':
@@ -714,21 +797,27 @@ def setOptimalComponentVariables(optVal, varType, compDict):
             else:
                 setattr(comp, varType, None)
 
-
-def preprocess2dimData(data, mapC=None):
+def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
     if data is not None and isinstance(data, pd.DataFrame):
         if mapC is None:
             index, data_ = [], []
-            for loc1 in data.index:
-                for loc2 in data.columns:
-                    if data[loc1][loc2] > 0:
-                        index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+            for loc1 in data.columns:
+                for loc2 in data.index:
+                    if discard:
+                        # Structure: data[column][row]
+                        if data[loc1][loc2] > 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
+                    else:
+                        if data[loc1][loc2] >= 0:
+                            index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
             return pd.Series(data_, index=index)
         else:
             return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+    elif isinstance(data, float) and locationalEligibility is not None:
+        data2 = data*locationalEligibility
+        return data2
     else:
         return data
-
 
 def map2dimData(data, mapC):
     if data is not None and isinstance(data, pd.DataFrame):
@@ -809,3 +898,222 @@ class PowerDict(dict):
         except AttributeError:
             pass
 
+def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
+    """ 
+    Determine xSegments, ySegments.
+    If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by 
+    a bayesian optimization algorithm. 
+    """
+    if callable(functionOrRaw):
+        nPointsForInputData = 1000
+        x = np.linspace(xLowerBound, xUpperBound, nPointsForInputData)
+        y = np.array([functionOrRaw(x_i) for x_i in x])
+    else:
+        x = np.array(functionOrRaw['x'])
+        y = np.array(functionOrRaw['y'])
+        if not 0.0 in x:
+            xMinDefined = np.amin(x)
+            xMaxDefined = np.amax(x)
+            lenIntervalDefined = xMaxDefined - xMinDefined
+            lenIntervalUndefined = xMinDefined
+            nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
+            xMinIndex = np.argmin(x)
+            for i in range(int(nPointsUndefined)):
+                x = np.append(x, [i/int(nPointsUndefined+1) * lenIntervalUndefined])
+                y = np.append(y, y[xMinIndex])
+        if not 1.0 in x:
+            xMinDefined = np.amin(x)
+            xMaxDefined = np.amax(x)
+            lenIntervalDefined = xMaxDefined - xMinDefined
+            lenIntervalUndefined = 1.0 - xMaxDefined
+            nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
+            xMaxIndex = np.argmax(x)
+            for i in range(int(nPointsUndefined)):
+                x = np.append(x, [xMaxDefined + (i+1)/int(nPointsUndefined) * lenIntervalUndefined])
+                y = np.append(y, y[xMaxIndex])
+
+    myPwlf = pwlf.PiecewiseLinFit(x, y)
+
+    if nSegments == None:
+        nSegments = 5
+    elif nSegments == 'optimizeSegmentNumbers':
+
+        bounds = [{'name': 'var_1', 'type': 'discrete',
+           'domain': np.arange(2, 8)}]
+
+        # Define objective function to get optimal number of line segments
+        def my_obj(_x):
+        # The penalty parameter l is set arbitrarily. 
+        # It depends upon the noise in your data and the value of your sum of square of residuals 
+            l = y.mean()*0.001
+
+            f = np.zeros(_x.shape[0])
+
+            for i, j in enumerate(_x):
+                myPwlf.fit(j[0])
+                f[i] = myPwlf.ssr + (l*j[0])
+            return f
+
+        myBopt = BayesianOptimization(my_obj, domain=bounds, model_type='GP',
+                              initial_design_numdata=10,
+                              initial_design_type='latin',
+                              exact_feval=True, verbosity=True,
+                              verbosity_model=False)
+
+        max_iter = 30
+
+        # Perform bayesian optimization to find the optimum number of line segments
+        myBopt.run_optimization(max_iter=max_iter, verbosity=True)
+        nSegments = int(myBopt.x_opt)
+    
+    xSegments = myPwlf.fit(nSegments)
+
+    # Get the y segments
+    ySegments = myPwlf.predict(xSegments)
+
+    # Calcualte the R^2 value
+    Rsquared = myPwlf.r_squared()
+
+    # Calculate the piecewise R^2 value
+    R2values = np.zeros(nSegments)
+    for i in range(nSegments):
+        # Segregate the data based on break point locations
+        xMin = myPwlf.fit_breaks[i]
+        xMax = myPwlf.fit_breaks[i+1]
+        xTemp = myPwlf.x_data
+        yTemp = myPwlf.y_data
+        indTemp = np.where(xTemp >= xMin)
+        xTemp = myPwlf.x_data[indTemp]
+        yTemp = myPwlf.y_data[indTemp]
+        indTemp = np.where(xTemp <= xMax)
+        xTemp = xTemp[indTemp]
+        yTemp = yTemp[indTemp]
+
+        # Predict for the new data
+        yHatTemp = myPwlf.predict(xTemp)
+
+        # Calcualte ssr
+        e = yHatTemp - yTemp
+        ssr = np.dot(e, e)
+
+        # Calculate sst
+        yBar = np.ones(yTemp.size) * np.mean(yTemp)
+        ydiff = yTemp - yBar
+        sst = np.dot(ydiff, ydiff)
+
+        R2values[i] = 1.0 - (ssr/sst)
+
+    return {
+        'xSegments': xSegments, 
+        'ySegments': ySegments,
+        'nSegments': nSegments,
+        'Rsquared': Rsquared, 
+        'R2values': R2values
+        }
+
+def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
+    """ Preprocess the conversion factors passed by the user """
+    discretizedPartLoad = {commod: None for commod in commodityConversionFactorsPartLoad.keys()}
+    functionOrRawCommod = None
+    nonFunctionOrRawCommod = None
+    for commod, conversionFactor in commodityConversionFactorsPartLoad.items():
+        if isinstance(conversionFactor,pd.DataFrame):
+            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, xLowerBound=0, xUpperBound=1, nSegments=nSegments)
+            functionOrRawCommod = commod
+            nSegments = discretizedPartLoad[commod]['nSegments']
+        elif callable(conversionFactor):
+            discretizedPartLoad[commod] = pieceWiseLinearization(functionOrRaw=conversionFactor, xLowerBound=0, xUpperBound=1, nSegments=nSegments)
+            functionOrRawCommod = commod
+            nSegments = discretizedPartLoad[commod]['nSegments']
+        elif conversionFactor == 1 or conversionFactor == -1:
+            discretizedPartLoad[commod] = {
+                'xSegments': None,
+                'ySegments': None,
+                'nSegments': None,
+                'Rsquared': 1.0, 
+                'R2values': 1.0
+                }
+            nonFunctionOrRawCommod = commod
+    discretizedPartLoad[nonFunctionOrRawCommod]['xSegments'] = discretizedPartLoad[functionOrRawCommod]['xSegments']
+    discretizedPartLoad[nonFunctionOrRawCommod]['ySegments'] = [commodityConversionFactorsPartLoad[nonFunctionOrRawCommod]]*(nSegments+1)
+    discretizedPartLoad[nonFunctionOrRawCommod]['nSegments'] = nSegments
+    return discretizedPartLoad, nSegments
+
+def checkNumberOfConversionFactors(commods):
+    if len(commods) > 2:
+        raise ValueError('Currently only two commodities are allowed in conversion processes that use commodityConversionFactorsPartLoad.')
+    else:
+        return True
+
+def checkAndSetTimeHorizon(startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None):
+    """ 
+    Check if there are enough input parameters given for defining the time horizon for the myopic approach. 
+    Calculate the number of optimization steps and the number of represented years per each step if not given.
+    """
+    if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
+         # endYear is given; determine the nbOfRepresentedYears 
+        diff = endYear-startYear
+        def biggestDivisor(diff):
+            for i in [10,5,3,2,1]:
+                if diff%i==0:
+                    return i
+        nbOfRepresentedYears=biggestDivisor(diff)
+        nbOfSteps=int(diff/nbOfRepresentedYears)
+    elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None):
+        # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
+        nbOfSteps=nbOfSteps
+    elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is None):
+        # If number of steps is given but no endyear and no the number of represented years per optimization run,
+        # nbOfRepresentedYears is set to 1 year. 
+        nbOfRepresentedYears = 1
+    elif (endYear is not None) & (nbOfSteps is not None):
+        diff = endYear - startYear
+        if diff%nbOfSteps!=0:
+            raise ValueError('Number of Steps does not fit for the given time horizon between start and end year.')
+        elif (diff%nbOfSteps==0) & (nbOfRepresentedYears is not None):
+            if diff/nbOfSteps!=nbOfRepresentedYears:
+                raise ValueError('Number of represented years does not fit for the given time horizon and the number of steps.')
+    elif (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is not None):
+        diff = endYear - startYear
+        if diff%nbOfRepresentedYears!=0:
+            raise ValueError('Number of represented Years is not an integer divisor of the requested time horizon.')
+        else:
+            nbOfSteps = int(diff/nbOfRepresentedYears)
+    else:
+        nbOfSteps=1
+        nbOfRepresentedYears=1
+    
+    return nbOfSteps, nbOfRepresentedYears
+
+
+def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
+    """
+    Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
+    """
+    if CO2ReductionTargets is not None:
+        if len(CO2ReductionTargets) != nbOfSteps+1:
+            raise ValueError('CO2ReductionTargets has to be None, or the lenght of the given list must equal the number \
+ of optimization steps.')
+
+def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
+    """
+    Check if a sink component object called >CO2 to environment< exists. 
+    This component is required if CO2 reduction targets are given.
+    """
+
+    if CO2ReductionTargets is not None:
+        if 'CO2 to environment' not in esM.componentNames:
+            warnings.warn('CO2 emissions are not considered in the current esM. CO2ReductionTargets will be ignored.')
+            CO2ReductionTargets=None
+            return CO2ReductionTargets
+        else:
+            return CO2ReductionTargets
+
+def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
+    """
+    If CO2ReductionTargets are given, set the new value for each iteration.
+    """
+    if CO2ReductionTargets is not None: 
+        setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', CO2Reference*(1-CO2ReductionTargets[step]/100))
+
+ 

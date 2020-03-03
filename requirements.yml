@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
 - python=3.6
-- gdal=2.4.1
+- conda-forge::gdal=2.4.1
 - conda-forge::geopandas
 - conda-forge::jupyter
 - conda-forge::notebook
@@ -21,3 +21,6 @@ dependencies:
 - pip:
     - https://github.com/FZJ-IEK3-VSA/geokit/archive/gdal_relax.zip
   
+- GPyOpt
+- networkx
+- scipy

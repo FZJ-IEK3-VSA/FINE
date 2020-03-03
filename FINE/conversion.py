@@ -20,7 +20,8 @@ class Conversion(Component):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10, yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
+                 opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None,
+                 yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
         """
@@ -100,8 +101,8 @@ class Conversion(Component):
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
                             capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
-                            economicLifetime=economicLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
+                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, QPcostScale=QPcostScale, interestRate=interestRate,
+                            economicLifetime=economicLifetime, technicalLifetime=technicalLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
                             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
         # Set general conversion data: commodityConversionFactors, physicalUnit, linkedConversionCapacityID
@@ -264,7 +265,7 @@ class ConversionModel(ComponentModel):
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
         Declare design and operation variables
 
@@ -282,7 +283,7 @@ class ConversionModel(ComponentModel):
         # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
         # Binary variables [-] indicating if a component is considered at a location or not
-        self.declareBinaryDesignDecisionVars(pyM)
+        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [physicalUnit*hour]
         self.declareOperationVars(pyM, 'op')
 
@@ -396,13 +397,10 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        capexCap = self.getEconomicsTI(pyM, ['investPerCapacity'], 'cap', 'CCF')
-        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
-        opexCap = self.getEconomicsTI(pyM, ['opexPerCapacity'], 'cap')
-        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
+
         opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
 
-        return capexCap + capexDec + opexCap + opexDec + opexOp
+        return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #

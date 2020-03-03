@@ -6,3 +6,8 @@ sphinx_rtd_theme>=0.3.1
 matplotlib
 xlrd
 xarray
+pwlf>=1.1.5
+GPyOpt
+networkx>=2.4
+scipy>=1.4.1
+
