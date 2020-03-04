@@ -7,6 +7,7 @@ import pandas as pd
 import xarray as xr
 from matplotlib import pyplot as plt
 from scipy.cluster import hierarchy
+from scipy.cluster import vq
 
 # import spagat.dataset as spd
 import metis_utils.io_tools as ito
@@ -112,3 +113,14 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
             aggregation_dict[n_regions - i] = regions_dict.copy()
 
         return aggregation_dict
+
+    if mode == 'kmeans':
+        
+        centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000
+        
+        # Perform k-means on the original centroids to obtained centroids of aggregated regions
+        aggregation_centroids = vq.kmeans(centroids,20)[0]
+        regions_label = vq.vq(centroids,aggregation_centroids)[0]
+
+        aggregation_dict = {}
+        
