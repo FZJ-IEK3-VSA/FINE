@@ -38,7 +38,7 @@ def string_based_clustering(regions):
 
 
 @tto.timer
-def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illustration=None, save_fig=None, dimension_description='space'):
+def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, save_fig=None, dimension_description='space'):
     '''Cluster M regions based on centroid distance, hence closest regions are aggregated to obtain N regions.'''
 
     if mode == 'hierarchical':
@@ -114,13 +114,31 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
 
         return aggregation_dict
 
-    if mode == 'kmeans':
-        
+    if mode == 'kmeans':   
+        regions_list = list(sds.xr_dataset[dimension_description].values)
         centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000
-        
-        # Perform k-means on the original centroids to obtained centroids of aggregated regions
-        aggregation_centroids = vq.kmeans(centroids,20)[0]
-        regions_label = vq.vq(centroids,aggregation_centroids)[0]
+        n_regions = len(centroids)
 
         aggregation_dict = {}
+        aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
         
+        for k in range(1,n_regions):
+            # Perform k-means on the original centroids to obtained k centroids of aggregated regions
+            aggregation_centroids = vq.kmeans(centroids, k)[0]
+            regions_label_list = vq.vq(centroids, aggregation_centroids)[0]
+
+            # Group the regions according to the regions labels
+            aggregation_list = [[] for i in range(k)]
+            for i in range(n_regions): 
+                region_label = regions_label_list[i]
+                aggregation_list[region_label].append(regions_list[i])
+            
+            # Create a regions dictionary for the aggregated regions
+            regions_dict = {}
+            for sup_regions in aggregation_list:
+                sup_region_id = '_'.join(sup_regions)
+                regions_dict[sup_region_id] = sup_regions.copy()
+
+            aggregation_dict[k] = regions_dict.copy()
+
+        return aggregation_dict

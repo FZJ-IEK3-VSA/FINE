@@ -23,7 +23,7 @@ class SpagatManager:
         self.sds.read_dataset(sds_folder_path=sds_folder_path)
         spr.add_region_centroids(self.sds)
 
-    def grouping(self, mode='distance based', dimension_description='space'):
+    def grouping(self, aggregation_mode, mode='distance based', dimension_description='space'):
 
         if mode == 'distance based':
             if self.analysis_path is not None:
@@ -31,7 +31,7 @@ class SpagatManager:
             else:
                 save_path = None
 
-            self.aggregation_dict = spg.distance_based_clustering(self.sds, save_fig=save_path, dimension_description=dimension_description)
+            self.aggregation_dict = spg.distance_based_clustering(self.sds, mode= aggregation_mode, save_fig=save_path, dimension_description=dimension_description)
 
     def representation(self, number_of_regions):
         self.sds_out = spr.aggregate_based_on_sub_to_sup_region_id_dict(self.sds,
