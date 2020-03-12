@@ -23,7 +23,8 @@ class SpagatManager:
         self.sds.read_dataset(sds_folder_path=sds_folder_path)
         spr.add_region_centroids(self.sds)
 
-    def grouping(self, aggregation_mode, mode='distance based', dimension_description='space'):
+    def grouping(self, mode='distance based', dimension_description='space'):
+        aggregation_mode = 'kmeans'
 
         if mode == 'distance based':
             if self.analysis_path is not None:
