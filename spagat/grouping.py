@@ -115,7 +115,43 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
         return aggregation_dict
 
     if mode == 'kmeans':   
-        regions_list = list(sds.xr_dataset[dimension_description].values)
+        regions_list = sds.xr_dataset[dimension_description].values
+        centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000
+        centroids_whitened = vq.whiten(centroids)
+        n_regions = len(centroids)
+
+        aggregation_dict = {}
+        aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
+        
+        rss = [] # RSS (distortion) for different k values - in vq.kmeans: average euclidean distance
+
+        for k in range(1,n_regions):
+            # Perform k-means on the original centroids to obtained k centroids of aggregated regions
+            aggregation_centroids, distortion = vq.kmeans(centroids_whitened, k)
+            rss.append(distortion)
+            regions_label_list = vq.vq(centroids_whitened, aggregation_centroids)[0]
+            
+            # Create a regions dictionary for the aggregated regions
+            regions_dict = {}
+            for label in range(k):
+                # Group the regions of this regions label
+                sup_region = regions_list[regions_label_list == label]
+                sup_region_id = '_'.join(sup_region)
+                regions_dict[sup_region_id] = sup_region.copy()
+
+            aggregation_dict[k] = regions_dict.copy()
+
+        # Plotting the rss according to increase of k values, check if there exists an inflection point
+        plt.plot(range(1,n_regions),rss,'g^-')
+        plt.title('Impact of k on distortion')
+        plt.xlabel('K (number_of_regions)')
+        plt.ylabel('Distortion')
+        plt.show()
+
+        return aggregation_dict
+
+    if mode == 'kmeans2':
+        regions_list = sds.xr_dataset[dimension_description].values
         centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000
         n_regions = len(centroids)
 
@@ -123,22 +159,16 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
         aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
         
         for k in range(1,n_regions):
-            # Perform k-means on the original centroids to obtained k centroids of aggregated regions
-            aggregation_centroids = vq.kmeans(centroids, k)[0]
-            regions_label_list = vq.vq(centroids, aggregation_centroids)[0]
+            regions_label_list = vq.kmeans2(centroids,k, minit='points')[1]
 
-            # Group the regions according to the regions labels
-            aggregation_list = [[] for i in range(k)]
-            for i in range(n_regions): 
-                region_label = regions_label_list[i]
-                aggregation_list[region_label].append(regions_list[i])
-            
             # Create a regions dictionary for the aggregated regions
             regions_dict = {}
-            for sup_regions in aggregation_list:
-                sup_region_id = '_'.join(sup_regions)
-                regions_dict[sup_region_id] = sup_regions.copy()
+            for label in range(k):
+                # Group the regions of this regions label
+                sup_region = regions_list[regions_label_list == label]
+                sup_region_id = '_'.join(sup_region)
+                regions_dict[sup_region_id] = sup_region.copy()
 
             aggregation_dict[k] = regions_dict.copy()
-
+        
         return aggregation_dict

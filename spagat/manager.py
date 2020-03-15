@@ -24,7 +24,8 @@ class SpagatManager:
         spr.add_region_centroids(self.sds)
 
     def grouping(self, mode='distance based', dimension_description='space'):
-        aggregation_mode = 'kmeans'
+        
+        aggregation_mode = 'kmeans2'
 
         if mode == 'distance based':
             if self.analysis_path is not None:
