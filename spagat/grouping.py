@@ -44,8 +44,17 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
     if mode == 'hierarchical':
 
         centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000  # km
+        distance_matrix = hierarchy.distance.pdist(centroids)
 
-        Z = hierarchy.linkage(centroids, 'centroid')
+        # TO-DO: can investigate various methods, e.g. 'average', 'weighted', 'centroid'
+        Z = hierarchy.linkage(distance_matrix, 'centroid')
+
+        print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
+        hierarchy.dendrogram(Z)
+
+        plt.figure(2)
+        inconsistency = hierarchy.inconsistent(Z)
+        plt.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
 
         if ax_illustration is not None:
             R = hierarchy.dendrogram(Z, orientation="top",
@@ -146,6 +155,8 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
         plt.title('Impact of k on distortion')
         plt.xlabel('K (number_of_regions)')
         plt.ylabel('Distortion')
+
+        plt.savefig('/home/s-xing/code/spagat/output/ClusteringAnalysis/Distortion_K.png')
         plt.show()
 
         return aggregation_dict
@@ -159,6 +170,7 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
         aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
         
         for k in range(1,n_regions):
+            # minit can be changed to other initialization method!
             regions_label_list = vq.kmeans2(centroids,k, minit='points')[1]
 
             # Create a regions dictionary for the aggregated regions

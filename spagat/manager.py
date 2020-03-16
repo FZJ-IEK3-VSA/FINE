@@ -25,7 +25,7 @@ class SpagatManager:
 
     def grouping(self, mode='distance based', dimension_description='space'):
         
-        aggregation_mode = 'kmeans2'
+        aggregation_mode = 'hierarchical'
 
         if mode == 'distance based':
             if self.analysis_path is not None:
