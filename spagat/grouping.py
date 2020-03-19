@@ -6,8 +6,14 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from matplotlib import pyplot as plt
+
+# Using SciPy.cluster for clustering
 from scipy.cluster import hierarchy
 from scipy.cluster import vq
+
+# Using Scikit Learn for clustering
+#from sklearn.cluster import KMeans
+import sklearn.cluster as skc
 
 # import spagat.dataset as spd
 import metis_utils.io_tools as ito
@@ -40,10 +46,15 @@ def string_based_clustering(regions):
 @tto.timer
 def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, save_fig=None, dimension_description='space'):
     '''Cluster M regions based on centroid distance, hence closest regions are aggregated to obtain N regions.'''
+    
+    centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000  # km
+    regions_list = sds.xr_dataset[dimension_description].values
+    n_regions = len(centroids)
+
+    '''Clustering methods via SciPy.cluster module'''
 
     if mode == 'hierarchical':
 
-        centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000  # km
         distance_matrix = hierarchy.distance.pdist(centroids)
 
         # TO-DO: can investigate various methods, e.g. 'average', 'weighted', 'centroid'
@@ -73,7 +84,7 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
 
             pto.plt_savefig(fig=fig, save_name=save_fig)
 
-        n_regions = len(Z)
+        #n_regions = len(Z)
 
         aggregation_dict = {}
 
@@ -124,10 +135,8 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
         return aggregation_dict
 
     if mode == 'kmeans':   
-        regions_list = sds.xr_dataset[dimension_description].values
-        centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000
+        # The input observations of kmeans must be "whitened"
         centroids_whitened = vq.whiten(centroids)
-        n_regions = len(centroids)
 
         aggregation_dict = {}
         aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
@@ -137,6 +146,7 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
         for k in range(1,n_regions):
             # Perform k-means on the original centroids to obtained k centroids of aggregated regions
             aggregation_centroids, distortion = vq.kmeans(centroids_whitened, k)
+            
             rss.append(distortion)
             regions_label_list = vq.vq(centroids_whitened, aggregation_centroids)[0]
             
@@ -151,16 +161,19 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
             aggregation_dict[k] = regions_dict.copy()
 
         # Plotting the rss according to increase of k values, check if there exists an inflection point
-        plt.plot(range(1,n_regions),rss,'g^-')
+        plt.plot(range(1,n_regions),rss,'go-')
         plt.title('Impact of k on distortion')
         plt.xlabel('K (number_of_regions)')
         plt.ylabel('Distortion')
 
-        plt.savefig('/home/s-xing/code/spagat/output/ClusteringAnalysis/Distortion_K.png')
+        plt.savefig('/home/s-xing/code/spagat/output/ClusteringAnalysis/scipy_kmeans_Distortion.png')
         plt.show()
+
 
         return aggregation_dict
 
+    # The selection of initialization is also available in sklearn.KMeans!
+    '''
     if mode == 'kmeans2':
         regions_list = sds.xr_dataset[dimension_description].values
         centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000
@@ -183,4 +196,87 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
 
             aggregation_dict[k] = regions_dict.copy()
         
+        return aggregation_dict
+    '''
+
+
+    '''Clustering methods via Scikit Learn module'''
+
+    if mode == 'kmeans2':
+
+        aggregation_dict = {}
+        aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
+
+        rss = [] # RSS (distortion) for different k values, in sklearn: inertia / within-cluster sum-of-squares
+
+        for k in range(1,n_regions):
+
+            # Compute K-Means clustering: configurations can be modified, e.g. init
+            kmeans = skc.KMeans(n_clusters=k).fit(centroids)
+            regions_label_list = kmeans.predict(centroids)
+            rss.append(kmeans.inertia_)
+
+            # Create a regions dictionary for the aggregated regions
+            regions_dict = {}
+            for label in range(k):
+                # Group the regions of this regions label
+                sup_region = regions_list[regions_label_list == label]
+                sup_region_id = '_'.join(sup_region)
+                regions_dict[sup_region_id] = sup_region.copy()
+
+            aggregation_dict[k] = regions_dict.copy()
+
+        # Plotting the rss according to increase of k values, check if there exists an inflection point
+        plt.plot(range(1,n_regions),rss,'go-')
+        plt.title('Within-cluster sum-of-squares')
+        plt.xlabel('K (number_of_regions)')
+        plt.ylabel('Inertia')
+
+        plt.savefig('/home/s-xing/code/spagat/output/ClusteringAnalysis/sklearn_kmeans_Distortion.png')
+        plt.show()
+
+        return aggregation_dict
+        
+    if mode == 'hierarchical2':
+
+        aggregation_dict = {}
+        aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
+
+        for i in range(1,n_regions):
+
+            # Computing hierarchical clustering
+            model = skc.AgglomerativeClustering(n_clusters=i).fit(centroids)
+            regions_label_list = model.labels_
+
+            # Create a regions dictionary for the aggregated regions
+            regions_dict = {}
+            for label in range(i):
+                # Group the regions of this regions label
+                sup_region = regions_list[regions_label_list == label]
+                sup_region_id = '_'.join(sup_region)
+                regions_dict[sup_region_id] = sup_region.copy()
+
+            aggregation_dict[i] = regions_dict.copy()
+
+        # Plot the hierarchical tree dendrogram
+        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(centroids)
+        # Create the counts of samples under each node
+        counts = np.zeros(clustering_tree.children_.shape[0])
+        n_samples = len(clustering_tree.labels_)
+        for i, merge in enumerate(clustering_tree.children_):
+            current_count = 0
+            for child_idx in merge:
+                if child_idx < n_samples:
+                    current_count += 1  # leaf node
+                else:
+                    current_count += counts[child_idx - n_samples]
+            counts[i] = current_count
+            
+        linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
+        # Plot the corresponding dendrogram
+        hierarchy.dendrogram(linkage_matrix)
+
+        distance_matrix = hierarchy.distance.pdist(centroids)
+        print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
+
         return aggregation_dict
