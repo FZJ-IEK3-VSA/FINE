@@ -95,7 +95,7 @@ class Transmission(Component):
         # TODO add unit checks
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
-        self.capacityMax = utils.preprocess2dimData(capacityMax)
+        self.capacityMax = utils.preprocess2dimData(capacityMax, locationalEligibility=locationalEligibility)
         self.capacityFix = utils.preprocess2dimData(capacityFix)
         self.isBuiltFix = utils.preprocess2dimData(isBuiltFix)
 
@@ -116,7 +116,7 @@ class Transmission(Component):
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + '_' + loc2})
                     self._mapI.update({loc1 + '_' + loc2: loc2 + '_' + loc1})
 
-        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC)
+        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC, locationalEligibility)
         self.investPerCapacity = utils.preprocess2dimData(investPerCapacity, self._mapC)
         self.investIfBuilt = utils.preprocess2dimData(investIfBuilt, self._mapC)
         self.opexPerCapacity = utils.preprocess2dimData(opexPerCapacity, self._mapC)
