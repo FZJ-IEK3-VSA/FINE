@@ -40,7 +40,10 @@ class LinearOptimalPowerFlow(Transmission):
         self.modelingClass = LOPFModel
 
         self.reactances2dim = reactances
-        self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
+        try:
+            self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
+        except:
+            self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
     def addToEnergySystemModel(self, esM):
         """
