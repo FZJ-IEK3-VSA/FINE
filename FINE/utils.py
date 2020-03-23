@@ -261,7 +261,7 @@ def castToSeries(data, esM):
     elif isinstance(data, pd.Series):
         return data
     isPositiveNumber(data)
-    return pd.Series([data], index=list(esM.locations))
+    return pd.Series(data, index=list(esM.locations))
 
 def getQPbound(esM, capacityMax, capacityMin):
     """ Compute and return lower and upper capacity bounds. """
