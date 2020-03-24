@@ -17,7 +17,7 @@ class LinearOptimalPowerFlow(Transmission):
                  locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+                 opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.
         The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
@@ -34,13 +34,16 @@ class LinearOptimalPowerFlow(Transmission):
                               capacityVariableDomain, capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM,
                               operationRateMax, operationRateFix, tsaWeight, locationalEligibility, capacityMin,
                               capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
-                              investIfBuilt, opexPerOperation, opexPerCapacity, opexIfBuilt, interestRate,
-                              economicLifetime)
+                              investIfBuilt, opexPerOperation, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate,
+                              economicLifetime, technicalLifetime)
 
         self.modelingClass = LOPFModel
 
         self.reactances2dim = reactances
-        self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
+        try:
+            self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
+        except:
+            self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
     def addToEnergySystemModel(self, esM):
         """
@@ -125,7 +128,7 @@ class LOPFModel(TransmissionModel):
         setattr(pyM, 'phaseAngle_' + self.abbrvName,
                 pyomo.Var(getattr(pyM, 'phaseAngleVarSet_' + self.abbrvName), pyM.timeSet, domain=pyomo.Reals))
 
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
         Declare design and operation variables.
 
@@ -143,7 +146,7 @@ class LOPFModel(TransmissionModel):
         # (Discrete/integer) numbers of installed components [-]
         self.declareIntNumbersVars(pyM)
         # Binary variables [-] indicating if a component is considered at a location or not [-]
-        self.declareBinaryDesignDecisionVars(pyM)
+        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Flow over the edges of the components [commodityUnit]
         self.declareOperationVars(pyM, 'op')
         # Operation of component [commodityUnit]
