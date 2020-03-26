@@ -547,11 +547,18 @@ class StorageModel(ComponentModel):
         def connectInterSOC(pyM, loc, compName, pInter):
             offsetUp_ = offsetUp[loc, compName, pInter] if (loc, compName, pInter) in offsetUp else 0
             offsetDown_ = offsetDown[loc, compName, pInter] if (loc, compName, pInter) in offsetDown else 0
-            return SOCInter[loc, compName, pInter + 1] == \
-                SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
-                ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
-                SOC[loc, compName, esM.periodsOrder[pInter], esM.timeStepsPerPeriod[-1] + 1] + \
-                (offsetUp_ - offsetDown_)
+            if not esM.pyM.hasSegmentation:
+                return SOCInter[loc, compName, pInter + 1] == \
+                    SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
+                    ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
+                    SOC[loc, compName, esM.periodsOrder[pInter], esM.timeStepsPerPeriod[-1] + 1] + \
+                    (offsetUp_ - offsetDown_)
+            else:
+                return SOCInter[loc, compName, pInter + 1] == \
+                    SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
+                    ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
+                    SOC[loc, compName, esM.periodsOrder[pInter], esM.segmentsPerPeriod[-1] + 1] + \
+                    (offsetUp_ - offsetDown_)
         setattr(pyM, 'ConstrInterSOC_' + abbrvName, pyomo.Constraint(opVarSet, esM.periods, rule=connectInterSOC))
 
     def intraSOCstart(self, pyM, esM):
