@@ -443,8 +443,7 @@ class EnergySystemModel:
             data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict).reset_index(level=2, drop=True)
             # Get the length of each segment in each typical period with the first index as typical period number and
             # the second index as segment number per typical period.
-            timeStepsPerSegment = pd.DataFrame.from_dict(clusterClass.segmentDurationDict)
-            #print(timeStepsPerSegment)
+            timeStepsPerSegment = pd.DataFrame.from_dict(clusterClass.segmentDurationDict)['Segment Duration']
         else:
             clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
                                                  hoursPerPeriod=hoursPerPeriod,
@@ -453,7 +452,6 @@ class EnergySystemModel:
             # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
             # second index as time step number per typical period.
             data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
-        #print(data)
         # Store the respective clustered time series data in the associated components
         for mdlName, mdl in self.componentModelingDict.items():
             for compName, comp in mdl.componentsDict.items():
@@ -467,6 +465,15 @@ class EnergySystemModel:
         self.segmentation = segmentation
         if segmentation:
             self.segmentsPerPeriod = list(range(numberOfSegmentsPerPeriod))
+            self.timeStepsPerSegment = timeStepsPerSegment
+            self.hoursPerSegment = self.hoursPerTimeStep * self.timeStepsPerSegment
+            # Define start time hour of each segment in each typical period
+            segmentStartTime = self.hoursPerSegment.groupby(level=0).cumsum()
+            segmentStartTime.index = segmentStartTime.index.set_levels(segmentStartTime.index.levels[1] + 1, level=1)
+            lvl0, lvl1 = segmentStartTime.index.levels
+            segmentStartTime = segmentStartTime.reindex(pd.MultiIndex.from_product([lvl0, [0, *lvl1]]))
+            segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
+            self.segmentStartTime = segmentStartTime
         self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
         self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
         self.periodsOrder = clusterClass.clusterOrder

@@ -875,12 +875,19 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet1 = getattr(pyM, constrSetName + '1_' + abbrvName)
-        factor1 = 1 if isStateOfCharge else esM.hoursPerTimeStep
 
-        def op1(pyM, loc, compName, p, t):
-            factor2 = 1 if factorName is None else getattr(compDict[compName], factorName)
-            return opVar[loc, compName, p, t] <= factor1 * factor2 * capVar[loc, compName]
-        setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+        if not pyM.hasSegmentation:
+            factor1 = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            def op1(pyM, loc, compName, p, t):
+                factor2 = 1 if factorName is None else getattr(compDict[compName], factorName)
+                return opVar[loc, compName, p, t] <= factor1 * factor2 * capVar[loc, compName]
+            setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+        else:
+            factor1 = (esM.hoursPerSegment/esM.hoursPerSegment).to_dict() if isStateOfCharge else esM.hoursPerSegment.to_dict()
+            def op1(pyM, loc, compName, p, t):
+                factor2 = 1 if factorName is None else getattr(compDict[compName], factorName)
+                return opVar[loc, compName, p, t] <= factor1[p,t] * factor2 * capVar[loc, compName]
+            setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
     def operationMode2(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix',
                        isStateOfCharge=False):
@@ -893,12 +900,19 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet2 = getattr(pyM, constrSetName + '2_' + abbrvName)
-        factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
 
-        def op2(pyM, loc, compName, p, t):
-            rate = getattr(compDict[compName], opRateName)
-            return opVar[loc, compName, p, t] == capVar[loc, compName] * rate[loc][p, t] * factor
-        setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
+        if not pyM.hasSegmentation:
+            factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            def op2(pyM, loc, compName, p, t):
+                rate = getattr(compDict[compName], opRateName)
+                return opVar[loc, compName, p, t] == capVar[loc, compName] * rate[loc][p, t] * factor
+            setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
+        else:
+            factor = (esM.hoursPerSegment/esM.hoursPerSegment).to_dict() if isStateOfCharge else esM.hoursPerSegment.to_dict()
+            def op2(pyM, loc, compName, p, t):
+                rate = getattr(compDict[compName], opRateName)
+                return opVar[loc, compName, p, t] == capVar[loc, compName] * rate[loc][p, t] * factor[p,t]
+            setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
 
     def operationMode3(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax',
                        isStateOfCharge=False):
@@ -911,12 +925,19 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet3 = getattr(pyM, constrSetName + '3_' + abbrvName)
-        factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
 
-        def op3(pyM, loc, compName, p, t):
-            rate = getattr(compDict[compName], opRateName)
-            return opVar[loc, compName, p, t] <= capVar[loc, compName] * rate[loc][p, t] * factor
-        setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
+        if not pyM.hasSegmentation:
+            factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            def op3(pyM, loc, compName, p, t):
+                rate = getattr(compDict[compName], opRateName)
+                return opVar[loc, compName, p, t] <= capVar[loc, compName] * rate[loc][p, t] * factor
+            setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
+        else:
+            factor = (esM.hoursPerSegment/esM.hoursPerSegment).to_dict() if isStateOfCharge else esM.hoursPerSegment.to_dict()
+            def op3(pyM, loc, compName, p, t):
+                rate = getattr(compDict[compName], opRateName)
+                return opVar[loc, compName, p, t] <= capVar[loc, compName] * rate[loc][p, t] * factor[p,t]
+            setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
 
     def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix'):
         """
