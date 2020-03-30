@@ -10,15 +10,8 @@ class ConversionDynamic(Conversion):
     """
     Extension of the conversion class with more specific ramping behavior
     """
-    def __init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable=True,
-                 capacityVariableDomain='continuous', capacityPerPlantUnit=1, linkedConversionCapacityID=None,
-                 hasIsBuiltBinaryVariable=False, bigM=None,
-                 operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, downTimeMin=None, 
-                 upTimeMin=None, rampUpMax =None, rampDownMax=None, sharedPotentialID=None,
-                 capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10):
+    def __init__(self, esM, name, physicalUnit, commodityConversionFactors, downTimeMin=None, 
+                 upTimeMin=None, rampUpMax =None, rampDownMax=None, **kwargs):
         """
         Constructor for creating a ConversionDynamic class instance.
         The ConversionDynamic component specific input arguments are described below. The Conversion
@@ -50,17 +43,11 @@ class ConversionDynamic(Conversion):
             * None or
             * Float value in range ]0.0,1.0]
 
-        
+        :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
+        :type kwargs:
+            * Check Conversion Class documentation.
         """
-
-        
-        Conversion. __init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable, 
-                             capacityVariableDomain, capacityPerPlantUnit, linkedConversionCapacityID,
-                             hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix, tsaWeight,
-                             locationalEligibility, capacityMin, capacityMax, partLoadMin, sharedPotentialID,
-                             capacityFix, isBuiltFix, investPerCapacity, investIfBuilt, opexPerOperation, opexPerCapacity,
-                             opexIfBuilt, interestRate, economicLifetime)
-
+        Conversion.__init__(self, esM, name, physicalUnit, commodityConversionFactors, **kwargs)
 
         self.modelingClass = ConversionDynamicModel
         self.downTimeMin = downTimeMin
@@ -214,7 +201,7 @@ class ConversionDynamicModel(ConversionModel):
                 pyomo.Var(getattr(pyM, 'operationVarStartStopSetBin_' + self.abbrvName), pyM.timeSet, domain=pyomo.Binary))
         
 
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
         Declare design and operation variables
 
@@ -224,7 +211,7 @@ class ConversionDynamicModel(ConversionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        super().declareVariables(esM, pyM)
+        super().declareVariables(esM, pyM, relaxIsBuiltBinary)
                
         self.declareStartStopVariables(pyM)
         
