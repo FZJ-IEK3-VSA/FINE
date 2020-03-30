@@ -145,12 +145,12 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
             if comp + 'LocSpecs' in file.sheet_names:
                 dataLoc_ = dataLoc[dataLoc.index.get_level_values(0) == temp['name']]
                 for ix in dataLoc_.index.get_level_values(1).unique():
-                    temp.set_value(ix, dataLoc.loc[(temp['name'], ix)].squeeze())
+                    temp[ix] = dataLoc.loc[(temp['name'], ix)].squeeze()
 
             if comp + 'TimeSeries' in file.sheet_names:
                 dataTS_ = dataTS[dataTS.index.get_level_values(0) == temp['name']]
                 for ix in dataTS_.index.get_level_values(1).unique():
-                    temp.set_value(ix, dataTS_.loc[(temp['name'], ix)].T)
+                    temp[ix] = dataTS_.loc[(temp['name'], ix)].T
 
             kwargs = temp
             esM.add(getattr(fn, comp)(esM, **kwargs))
@@ -237,7 +237,8 @@ def getDualValues(pyM):
     return pd.Series(list(pyM.dual.values()), index=pd.Index(list(pyM.dual.keys())))
 
 
-def getShadowPrices(pyM, constraint, dualValues=None):
+def getShadowPrices(pyM, constraint, dualValues=None, hasTimeSeries=False, periodOccurrences=None,
+    periodsOrder=None):
     """
     Get dual values of constraint ("shadow prices").
 
@@ -252,11 +253,35 @@ def getShadowPrices(pyM, constraint, dualValues=None):
         |br| * the default value is None
     :type dualValues: None or Series
 
+    :param hasTimeSeries: If the constaint is time dependent, this parameter concatenates the dual values
+        to a full time series (particularly usefull if time series aggregation was considered).
+        |br| * the default value is False
+    :type hasTimeSeries: bool
+
+    :param periodOccurrences: Only required if hasTimeSeries is set to True.
+        |br| * the default value is None
+    :type periodOccurrences: list or None
+
+    :param periodsOrder: Only required if hasTimeSeries is set to True.
+        |br| * the default value is None
+    :type periodsOrder: list or None
+
     :return: Pandas Series with the dual values of the specified constraint
     """
-    if not dualValues:
+    if dualValues is None:
         dualValues = getDualValues(pyM)
-    return pd.Series(list(constraint.values()), index=pd.Index(list(constraint.keys()))).map(dualValues)
+
+    SP = pd.Series(list(constraint.values()), index=pd.Index(list(constraint.keys()))).map(dualValues)
+
+    if hasTimeSeries:
+        SP = pd.DataFrame(SP).swaplevel(i=0, j=-2).sort_index()
+        SP = SP.unstack(level=-1)
+        SP.columns = SP.columns.droplevel()
+        SP = SP.apply(lambda x: x/(periodOccurrences[x.name[0]]), axis=1)
+        SP = fn.utils.buildFullTimeSeries(SP, periodsOrder)
+        SP = SP.stack()
+
+    return SP
 
 
 def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableName='operationVariablesOptimum',

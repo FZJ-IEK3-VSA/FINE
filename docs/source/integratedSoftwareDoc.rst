@@ -2,4 +2,5 @@
 Integrated Software
 ###################
 
-Cross-link to other read-the-docs pages (TSAM, GeoPandas, ...)
+* tsam: https://github.com/FZJ-IEK3-VSA/tsam
+* GeoPandas: https://geopandas.org/

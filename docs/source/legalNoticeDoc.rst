@@ -1,8 +1,6 @@
-############
+﻿############
 Legal Notice
 ############
-
-ToDo (license, acknowledgement)
 
 *******
 License
@@ -10,8 +8,9 @@ License
 
 `MIT License <https://opensource.org/licenses/MIT>`_
 
-Copyright (C) 2016-2018 Lara Welder (FZJ IEK-3), Jochen Linßen (FZJ IEK-3), Martin Robinius (FZJ IEK-3),
-Detlef Stolten (FZJ IEK-3)
+Copyright (C) 2016-2020 Lara Welder, Theresa Groß, Leander Kotzur, Robin Beer, Henrik Büsing, Dilara Caglayan, Heidi Heinrichs,
+Maximilian Hoffmann, Timo Kannengießer, Kevin Knosala, Felix Kullmann, Stefan Kraus, Jochen Linßen, Lars Nolting, Jan Priesmann,
+Bismark Singh, Andreas Smolenko, Chloi Syranidou, Johannes Thürauf, Michael Zier, Martin Robinius, Detlef Stolten
 
 ***************
 Acknowledgement
