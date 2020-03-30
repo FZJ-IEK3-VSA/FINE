@@ -15,9 +15,10 @@ class Component(metaclass=ABCMeta):
     def __init__(self, esM, name, dimension,
                  hasCapacityVariable, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None, locationalEligibility=None,
-                 capacityMin=None, capacityMax=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0,
-                 interestRate=0.08, economicLifetime=10):
+                 capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
+                 investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0,
+                 interestRate=0.08, economicLifetime=10, technicalLifetime=None, yearlyFullLoadHoursMin=None, 
+                 yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Component class instance.
 
@@ -126,7 +127,12 @@ class Component(metaclass=ABCMeta):
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
-
+       
+        :param partLoadMin: if specified, indicates minimal part load of component. 
+        :type partLoadMin:
+            * None or
+            * Float value in range ]0;1]
+    
         :param sharedPotentialID: if specified, indicates that the component has to share its maximum
             potential capacity with other components (e.g. due to space limitations). The shares of how
             much of the maximum potential is used have to add up to less then 100%.
@@ -230,6 +236,19 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
+        :param QPcostScale: describes the absolute deviation of the minimum or maximum cost value from
+            the average or weighted average cost value. For further information see 
+            Lopion et al. (2019): "Cost Uncertainties in Energy System Optimization Models: 
+            A Quadratic Programming Approach for Avoiding Penny Switching Effects". 
+            |br| * the default value is 0, i.e. the problem is not quadratic.
+        :type QPcostScale:
+            * float between 0 and 1
+            * Pandas Series with positive (0 <= QPcostScale <= 1) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
+            * Pandas DataFrame with positive (0 <= QPcostScale <= 1) values. The row and column indices of the DataFrame have
+              to equal the in the energy system model specified locations.
+
         :param interestRate: interest rate which is considered for computing the annuities of the invest
             of the component (depreciates the invests over the economic lifetime).
             A value of 0.08 corresponds to an interest rate of 8%.
@@ -253,6 +272,31 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
+        :param technicalLifetime: technical lifetime of the component which is considered for computing the
+            stocks.
+            |br| * the default value is None
+        :type technicalLifetime:
+            * None or
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
+            * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
+              to equal the in the energy system model specified locations.
+
+        :param yearlyFullLoadHoursMin: if specified, indicates the maximum yearly full load hours.
+            |br| * the default value is None
+        :type yearlyFullLoadHoursMin:
+            * None or
+            * Float with positive (>=0) value or
+            * Pandas Series with positive (>=0) values.
+
+        :param yearlyFullLoadHoursMax: if specified, indicates the maximum yearly full load hours.
+            |br| * the default value is None
+        :type yearlyFullLoadHoursMax:
+            * None or
+            * Float with positive (>=0) value or
+            * Pandas Series with positive (>=0) values.
+
         :param modelingClass: to the Component connected modeling class.
             |br| * the default value is ModelingClass
         :type modelingClass: a class inherting from ComponentModeling
@@ -271,23 +315,39 @@ class Component(metaclass=ABCMeta):
         self.capacityPerPlantUnit = capacityPerPlantUnit
         self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self.bigM = bigM
-
+        self.partLoadMin = partLoadMin
+        
+       
+ 
+            
         # Set economic data
         elig = locationalEligibility
         self.investPerCapacity = utils.checkAndSetCostParameter(esM, name, investPerCapacity, dimension, elig)
         self.investIfBuilt = utils.checkAndSetCostParameter(esM, name, investIfBuilt, dimension, elig)
         self.opexPerCapacity = utils.checkAndSetCostParameter(esM, name, opexPerCapacity, dimension, elig)
         self.opexIfBuilt = utils.checkAndSetCostParameter(esM, name, opexIfBuilt, dimension, elig)
+        self.QPcostScale = utils.checkAndSetCostParameter(esM, name, QPcostScale, dimension, elig)
         self.interestRate = utils.checkAndSetCostParameter(esM, name, interestRate, dimension, elig)
         self.economicLifetime = utils.checkAndSetCostParameter(esM, name, economicLifetime, dimension, elig)
+        technicalLifetime = utils.checkTechnicalLifetime(esM, technicalLifetime, economicLifetime)
+        self.technicalLifetime = utils.checkAndSetCostParameter(esM, name, technicalLifetime, dimension, elig)
         self.CCF = utils.getCapitalChargeFactor(self.interestRate, self.economicLifetime)
 
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
-        self.capacityMin, self.capacityMax, self.capacityFix = capacityMin, capacityMax, capacityFix
+        self.capacityMin = utils.castToSeries(capacityMin, esM)
+        self.capacityMax = utils.castToSeries(capacityMax, esM)
+        self.capacityFix = utils.castToSeries(capacityFix, esM)
+        self.yearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMin, dimension, elig)
+        self.yearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMax, dimension, elig)
         self.isBuiltFix = isBuiltFix
         utils.checkLocationSpecficDesignInputParams(self, esM)
+        
+        # Set quadratic capacity bounds and residual cost scale (1-cost scale)
+        self.QPbound = utils.getQPbound(esM, self.capacityMax, self.capacityMin)
+        self.QPcostDev = utils.getQPcostDev(esM, self.QPcostScale)
+
         #
         # # Variables at optimum (set after optimization)
         # self.capacityVariablesOptimum = None
@@ -519,7 +579,22 @@ class ComponentModel(metaclass=ABCMeta):
                     {loc: {loc_: {compName for compName in compDict
                                   if (loc_ + '_' + loc, compName) in getattr(pyM, 'operationVarSet_' + abbrvName)}
                            for loc_ in esM.locations} for loc in esM.locations})
-
+   
+    def declareOperationBinarySet(self, pyM):
+        """
+        Declare operation related sets for binary decicion variables (operation variables) in the pyomo object for a
+        modeling class. This reflects an on/off decision for the regarding component.        
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel  
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        def declareOperationBinarySet(pyM):
+            return ((loc, compName) for compName, comp in compDict.items() 
+                for loc in comp.locationalEligibility.index if comp.locationalEligibility[loc] == 1)
+        setattr(pyM, 'operationVarSetBin_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOperationBinarySet))
+           
+             
     ####################################################################################################################
     #                                   Functions for declaring operation mode sets                                    #
     ####################################################################################################################
@@ -552,7 +627,8 @@ class ComponentModel(metaclass=ABCMeta):
                     and getattr(compDict[compName], rateFix) is not None)
 
         setattr(pyM, constrSetName + '2_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet2))
-
+        
+    
     def declareOpConstrSet3(self, pyM, constrSetName, rateMax):
         """
         Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
@@ -594,8 +670,20 @@ class ComponentModel(metaclass=ABCMeta):
                     and getattr(compDict[compName], rateMax) is not None)
 
         setattr(pyM, constrSetName + '5_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSet5))
+        
+    def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
+        """
+        Declare set of locations and components for which partLoadMin is not None.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSetBin_' + abbrvName)
 
-    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix):
+        def declareOpConstrSetMinPartLoad(pyM):
+            return ((loc, compName) for loc, compName in varSet if getattr(compDict[compName], 'partLoadMin') is not None)
+
+        setattr(pyM, constrSetName + 'partLoadMin_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSetMinPartLoad))
+
+    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix, partLoadMin=None):
         """
         Declare operating mode sets.
 
@@ -616,6 +704,33 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet3(pyM, constrSetName, rateMax)
         self.declareOpConstrSet4(pyM, constrSetName, rateFix)
         self.declareOpConstrSet5(pyM, constrSetName, rateMax)
+        self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
+
+    def declareYearlyFullLoadHoursMinSet(self, pyM):
+        """
+        Declare set of locations and components for which minimum yearly full load hours are given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+
+        def declareYearlyFullLoadHoursMinSet():
+            return ((loc, compName) for loc, compName in varSet if compDict[compName].yearlyFullLoadHoursMin is not None)
+
+        setattr(pyM, 'yearlyFullLoadHoursMinSet_' + abbrvName,
+                pyomo.Set(dimen=2, initialize=declareYearlyFullLoadHoursMinSet()))
+
+    def declareYearlyFullLoadHoursMaxSet(self, pyM):
+        """
+        Declare set of locations and components for which maximum yearly full load hours are given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+
+        def declareYearlyFullLoadHoursMaxSet():
+            return ((loc, compName) for loc, compName in varSet if compDict[compName].yearlyFullLoadHoursMax is not None)
+
+        setattr(pyM, 'yearlyFullLoadHoursMaxSet_' + abbrvName,
+                pyomo.Set(dimen=2, initialize=declareYearlyFullLoadHoursMaxSet()))
 
     ####################################################################################################################
     #                                         Functions for declaring variables                                        #
@@ -639,6 +754,13 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'cap_' + abbrvName, pyomo.Var(getattr(pyM, 'designDimensionVarSet_' + abbrvName),
                 domain=pyomo.NonNegativeReals, bounds=capBounds))
 
+    def declareOperationBinary(self, pyM):
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            def declareOperationBinary(pyM):
+                return ((loc, compName, t) for compName, comp in compDict.items() for t in range(pyM.numberOfTimeSteps)
+                    for loc in comp.locationalEligibility.index if comp.locationalEligibility[loc] == 1)
+            setattr(pyM, 'operationBinary' + abbrvName, pyomo.Set(dimen=3, initialize=declareOperationBinary, domain=pyomo.Binary))
+            
     def declareRealNumbersVars(self, pyM):
         """ 
         Declare variables representing the (continuous) number of installed components [-]. 
@@ -661,7 +783,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, 'nbInt_' + abbrvName, pyomo.Var(getattr(pyM, 'discreteDesignDimensionVarSet_' + abbrvName),
                 domain=pyomo.NonNegativeIntegers))
 
-    def declareBinaryDesignDecisionVars(self, pyM):
+    def declareBinaryDesignDecisionVars(self, pyM, relaxIsBuiltBinary):
         """ 
         Declare binary variables [-] indicating if a component is considered at a location or not [-]. 
         
@@ -669,8 +791,12 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         abbrvName = self.abbrvName
-        setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
-                domain=pyomo.Binary))
+        if relaxIsBuiltBinary:
+            setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
+                    domain=pyomo.NonNegativeReals, bounds=(0,1)))
+        else:
+            setattr(pyM, 'designBin_' + abbrvName, pyomo.Var(getattr(pyM, 'designDecisionVarSet_' + abbrvName),
+                    domain=pyomo.Binary))
 
     def declareOperationVars(self, pyM, opVarName):
         """ 
@@ -682,6 +808,18 @@ class ComponentModel(metaclass=ABCMeta):
         abbrvName = self.abbrvName
         setattr(pyM, opVarName + '_' + abbrvName,
                 pyomo.Var(getattr(pyM, 'operationVarSet_' + abbrvName), pyM.timeSet, domain=pyomo.NonNegativeReals))
+        
+    
+    def declareOperationBinaryVars(self, pyM, opVarBinName):
+        """ 
+        Declare operation Binary variables. Discrete decicion between on and off.
+        
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        abbrvName = self.abbrvName
+        setattr(pyM, opVarBinName + '_' + abbrvName,
+                pyomo.Var(getattr(pyM, 'operationVarSetBin_' + abbrvName), pyM.timeSet, domain=pyomo.Binary))
 
     ####################################################################################################################
     #                              Functions for declaring time independent constraints                                #
@@ -764,6 +902,8 @@ class ComponentModel(metaclass=ABCMeta):
                     if compDict[compName].capacityFix is not None else pyomo.Constraint.Skip)
         setattr(pyM, 'ConstrCapacityFix_' + abbrvName, pyomo.Constraint(capVarSet, rule=capacityFix))
 
+
+        
     def designBinFix(self, pyM):
         """ 
         Set, if applicable, the installed capacities of a component. 
@@ -863,6 +1003,86 @@ class ComponentModel(metaclass=ABCMeta):
             return opVar[loc, compName, p, t] <= rate[loc][p, t]
         setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
 
+
+    def additionalMinPartLoad(self, pyM, esM, constrName, constrSetName, opVarName, opVarBinName, capVarName):
+        """
+        Set, if applicable, the minimal part load of a component.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+
+        opVar = getattr(pyM, opVarName + '_' + abbrvName)
+        opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)
+        capVar = getattr(pyM, capVarName + '_' + abbrvName)
+        constrSetMinPartLoad = getattr(pyM, constrSetName + 'partLoadMin_' + abbrvName)
+        
+        def opMinPartLoad1(pyM, loc, compName, p, t):
+            bigM = getattr(compDict[compName], 'bigM')
+            return opVar[loc, compName, p, t] <= opVarBin[loc, compName, p, t]*bigM
+        setattr(pyM, constrName + 'partLoadMin_1_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad1))
+        
+        def opMinPartLoad2(pyM, loc, compName, p, t):
+            partLoadMin = getattr(compDict[compName], 'partLoadMin')
+            bigM = getattr(compDict[compName], 'bigM')
+            return opVar[loc, compName, p, t] >= partLoadMin*capVar[loc, compName]-(1-opVarBin[loc, compName, p, t])*bigM
+        setattr(pyM, constrName + 'partLoadMin_2_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2))
+        
+
+
+    def yearlyFullLoadHoursMin(self, pyM, esM):
+        # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
+        # TODO: Use a set to declare Constraint only for components with full load hour limit set.
+        """
+        Limit the annual full load hours to a minimum value.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar = getattr(pyM, 'op_' + abbrvName)
+        capVar = getattr(pyM, 'cap_' + abbrvName)
+        yearlyFullLoadHoursMinSet = getattr(pyM, 'yearlyFullLoadHoursMinSet_' + abbrvName)
+
+
+        def yearlyFullLoadHoursMinConstraint(pyM, loc, compName, p, t):
+            full_load_hours = sum(
+                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
+                in opVar)
+            return full_load_hours >= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMin[loc]
+
+        setattr(pyM, 'ConstrYearlyFullLoadHoursMin_' + abbrvName,
+                pyomo.Constraint(yearlyFullLoadHoursMinSet, pyM.timeSet, rule=yearlyFullLoadHoursMinConstraint))
+
+    def yearlyFullLoadHoursMax(self, pyM, esM):
+        """
+        Limit the annual full load hours to a maximum value.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar = getattr(pyM, 'op_' + abbrvName)
+        capVar = getattr(pyM, 'cap_' + abbrvName)
+        yearlyFullLoadHoursMaxSet = getattr(pyM, 'yearlyFullLoadHoursMaxSet_' + abbrvName)
+
+        def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, p, t):
+            full_load_hours = sum(
+                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
+                in opVar)
+            return full_load_hours <= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMax[loc]
+
+        setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
+                pyomo.Constraint(yearlyFullLoadHoursMaxSet, pyM.timeSet, rule=yearlyFullLoadHoursMaxConstraint))
+
+
     ####################################################################################################################
     #  Functions for declaring component contributions to basic energy system constraints and the objective function   #
     ####################################################################################################################
@@ -934,7 +1154,6 @@ class ComponentModel(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
@@ -946,7 +1165,12 @@ class ComponentModel(metaclass=ABCMeta):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        raise NotImplementedError
+        capexCap = self.getEconomicsTI(pyM, factorNames=['investPerCapacity', 'QPcostDev'], QPfactorNames=['QPcostScale', 'investPerCapacity'], varName='cap', divisorName='CCF', QPdivisorNames=['QPbound', 'CCF'])
+        capexDec = self.getEconomicsTI(pyM, ['investIfBuilt'], 'designBin', 'CCF')
+        opexCap = self.getEconomicsTI(pyM, factorNames=['opexPerCapacity', 'QPcostDev'], QPfactorNames=['QPcostScale', 'opexPerCapacity'], varName='cap', QPdivisorNames=['QPbound'])
+        opexDec = self.getEconomicsTI(pyM, ['opexIfBuilt'], 'designBin')
+
+        return capexCap + capexDec + opexCap + opexDec
 
     def getSharedPotentialContribution(self, pyM, key, loc):
         """
@@ -958,7 +1182,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         return sum(capVar[loc, compName] / compDict[compName].capacityMax[loc] for compName in compDict
                    if compDict[compName].sharedPotentialID == key and (loc, compName) in capVarSet)
-
+                
     def getLocEconomicsTD(self, pyM, esM, factorNames, varName, loc, compName, getOptValue=False):
         """
         Set time-dependent equation specified for one component in one location or one connection between two locations.
@@ -1006,7 +1230,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (factor * sum(var[loc, compName, p, t].value * esM.periodOccurrences[p]
                                  for p, t in pyM.timeSet)/esM.numberOfYears)
 
-    def getLocEconomicsTI(self, pyM, factorNames, varName, loc, compName, divisorName='', getOptValue=False):
+    def getLocEconomicsTI(self, pyM, factorNames, varName, loc, compName, divisorName='', QPfactorNames=[], QPdivisorNames=[], getOptValue=False):
         """
         Set time-independent equation specified for one component in one location.
 
@@ -1035,6 +1259,12 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is ''.
         :type divisorName: string       
 
+        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['QPcostScale'])
+        :type QPfactorNames: list of strings
+
+        :param QPdivisorNames: Strings of the parameters that have to be used as divisors when quadratic programming is used. (e.g. ['QPbound'])
+        :type QPdivisorNames: list of strings
+
         :param getOptValue: Boolean that defines the output of the function:
             - True: Return the optimal value. 
             - False: Return the equation. 
@@ -1045,15 +1275,29 @@ class ComponentModel(metaclass=ABCMeta):
         var = getattr(pyM, varName + '_' + self.abbrvName)
         factors = [getattr(self.componentsDict[compName], factorName)[loc] for factorName in factorNames]
         divisor = getattr(self.componentsDict[compName], divisorName)[loc] if not divisorName == '' else 1
-        factor = 1./divisor
+        factor = 1./divisor      
         for factor_ in factors:
-            factor *= factor_
-        if not getOptValue:
-            return factor * var[loc, compName]
+            factor *= factor_ 
+        
+        if self.componentsDict[compName].QPcostScale[loc] == 0:
+            if not getOptValue:
+                return factor * var[loc, compName]
+            else:
+                return factor * var[loc, compName].value
         else:
-            return factor * var[loc, compName].value
+            QPfactors = [getattr(self.componentsDict[compName], QPfactorName)[loc] for QPfactorName in QPfactorNames]
+            QPdivisors = [getattr(self.componentsDict[compName], QPdivisorName)[loc] for QPdivisorName in QPdivisorNames]
+            QPfactor = 1
+            for QPfactor_ in QPfactors:
+                QPfactor *= QPfactor_
+            for QPdivisor in QPdivisors:
+                QPfactor /= QPdivisor
+            if not getOptValue:
+                return factor * var[loc, compName] + QPfactor * var[loc, compName] * var[loc, compName]
+            else:
+                return factor * var[loc, compName].value + QPfactor * var[loc, compName].value * var[loc, compName].value
 
-    def getEconomicsTI(self, pyM, factorNames, varName, divisorName='', getOptValue=False):
+    def getEconomicsTI(self, pyM, factorNames, varName, divisorName='', QPfactorNames=[], QPdivisorNames=[], getOptValue=False):
         """
         Set time-independent equations for the individual components. The equations will be set for all components of a modeling class 
         and all locations.
@@ -1075,6 +1319,12 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is ''.
         :type divisorName: string       
 
+        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['QPcostScale'])
+        :type QPfactorNames: list of strings
+
+        :param QPdivisorNames: Strings of the parameters that have to be used as divisors when quadratic programming is used. (e.g. ['QPbound'])
+        :type QPdivisorNames: list of strings
+
         :param getOptValue: Boolean that defines the output of the function:
             - True: Return the optimal value. 
             - False: Return the equation. 
@@ -1082,7 +1332,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type getoptValue: boolean
         """
         var = getattr(pyM, varName + '_' + self.abbrvName)
-        return sum(self.getLocEconomicsTI(pyM, factorNames, varName, loc, compName, divisorName, getOptValue)
+        return sum(self.getLocEconomicsTI(pyM, factorNames, varName, loc, compName, divisorName, QPfactorNames, QPdivisorNames, getOptValue)
                    for loc, compName in var)
 
     def getEconomicsTD(self, pyM, esM, factorNames, varName, dictName, getOptValue=False):
@@ -1275,19 +1525,28 @@ class ComponentModel(metaclass=ABCMeta):
         if optVal is not None:
             # Check if the installed capacities are close to a bigM value for components with design decision variables
             for compName, comp in compDict.items():
-                if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max().max() >= comp.bigM * 0.9 \
+                if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max() >= comp.bigM * 0.9 \
                         and esM.verbose < 2:
                     warnings.warn('the capacity of component ' + compName + ' is in one or more locations close ' +
                                   'or equal to the chosen Big M. Consider rerunning the simulation with a higher' +
                                   ' Big M.')
 
-            i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index], axis=1)
-            cx = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index] /
-                                          compDict[cap.name].CCF[cap.index], axis=1)
-            ox = optVal.apply(lambda cap: cap * compDict[cap.name].opexPerCapacity[cap.index], axis=1)
-            optSummary.loc[
-                [(ix, 'capacity', '[' + getattr(compDict[ix], plantUnit) + unitApp + ']') for ix in optVal.index],
-                optVal.columns] = optVal.values
+            i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] 
+            + (compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
+            / (compDict[cap.name].QPbound[cap.index]) 
+            * cap * cap), axis=1)
+            cx = optVal.apply(lambda cap: (cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] / compDict[cap.name].CCF[cap.index]) 
+            + (compDict[cap.name].investPerCapacity[cap.index] / compDict[cap.name].CCF[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
+            / (compDict[cap.name].QPbound[cap.index]) 
+            * cap * cap), axis=1)
+            ox = optVal.apply(lambda cap: cap * compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] 
+            + (compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
+            / (compDict[cap.name].QPbound[cap.index]) 
+            * cap * cap), axis=1)                
+
+
+            optSummary.loc[[(ix, 'capacity', '[' + getattr(compDict[ix], plantUnit) + unitApp + ']') 
+            for ix in optVal.index], optVal.columns] = optVal.values
             optSummary.loc[[(ix, 'invest', '[' + esM.costUnit + ']') for ix in i.index], i.columns] = \
                 i.values
             optSummary.loc[[(ix, 'capexCap', '[' + esM.costUnit + '/a]') for ix in cx.index], cx.columns] = \
