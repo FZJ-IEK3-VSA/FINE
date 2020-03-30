@@ -38,13 +38,18 @@ class ConversionDynamic(Conversion):
             * None or
             * Integer value in range ]0,numberOfTimeSteps]
 
-        :param rampUpMax: 
+        :param rampUpMax: A maximum ramping rate to limit the increase in the operation of the component as share of the installed capacity.
             |br| * the default value is None
         :type rampUpMax:
+            * None or
+            * Float value in range ]0.0,1.0]
 
-        :param rampDownMax:
+        :param rampDownMax: A maximum ramping rate to limit the decrease in the operation of the component as share of the installed capacity.
             |br| * the default value is None
         :type rampDownMax:
+            * None or
+            * Float value in range ]0.0,1.0]
+
         
         """
 
