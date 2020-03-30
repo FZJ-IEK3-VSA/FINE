@@ -19,15 +19,7 @@ class ConversionPartLoad(Conversion):
     The ConversionPartLoad class inherits from the Conversion class.
     """
     def __init__(self, esM, name, physicalUnit, commodityConversionFactors, 
-                 commodityConversionFactorsPartLoad, nSegments=None, hasCapacityVariable=True,
-                 capacityVariableDomain='continuous', capacityPerPlantUnit=1, linkedConversionCapacityID=None,
-                 hasIsBuiltBinaryVariable=False, bigM=None,
-                 operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
-                 capacityFix=None, isBuiltFix=None, investPerCapacity=0, investIfBuilt=0, 
-                 opexPerOperation=0, opexPerCapacity=0, QPcostScale=0,
-                 opexIfBuilt=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None,
-                 yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
+                 commodityConversionFactorsPartLoad, nSegments=None, **kwargs):
 
         """
         Constructor for creating an ConversionPartLoad class instance. Capacities are given in the physical unit
@@ -53,15 +45,12 @@ class ConversionPartLoad(Conversion):
             bayesian optimization algorithm.
             |br| * the default value is None
         :type nSegments: None or integer or string 
+        
+        :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
+        :type **kwargs:
+            * Check Conversion Class documentation.
         """
-        Conversion.__init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable,
-                 capacityVariableDomain, capacityPerPlantUnit, linkedConversionCapacityID,
-                 hasIsBuiltBinaryVariable, bigM,
-                 operationRateMax, operationRateFix, tsaWeight,
-                 locationalEligibility, capacityMin, capacityMax, sharedPotentialID,
-                 capacityFix, isBuiltFix, investPerCapacity, investIfBuilt, opexPerOperation, 
-                 opexPerCapacity, opexIfBuilt, QPcostScale, interestRate, economicLifetime, 
-                 technicalLifetime,yearlyFullLoadHoursMin, yearlyFullLoadHoursMax)
+        Conversion.__init__(self, esM, name, physicalUnit, commodityConversionFactors, **kwargs)
 
         self.modelingClass = ConversionPartLoadModel
 
@@ -155,28 +144,11 @@ class ConversionPartLoadModel(ConversionModel):
         :type pyM: pyomo Concrete Model
         """
 
-        # # Declare design variable sets
-        self.declareDesignVarSet(pyM)
-        self.declareContinuousDesignVarSet(pyM)
-        self.declareDiscreteDesignVarSet(pyM)
-        self.declareDesignDecisionVarSet(pyM)
+        super().declareSets(esM, pyM)
 
         # Declare operation variable sets
-        self.declareOpVarSet(esM, pyM)
         self.initDiscretizationPointVarSet(pyM)
         self.initDiscretizationSegmentVarSet(pyM)
-
-        # Declare operation variable set
-        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
-
-        # Declare linked components dictionary
-        self.declareLinkedCapacityDict(pyM)
-
-        # Declare minimum yearly full load hour set
-        self.declareYearlyFullLoadHoursMinSet(pyM)
-
-        # Declare maximum yearly full load hour set
-        self.declareYearlyFullLoadHoursMaxSet(pyM)
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -225,17 +197,8 @@ class ConversionPartLoadModel(ConversionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
+        super().declareVariables(esM, pyM, relaxIsBuiltBinary)
 
-        # Capacity variables in [commodityUnit]
-        self.declareCapacityVars(pyM)
-        # (Continuous) numbers of installed components [-]
-        self.declareRealNumbersVars(pyM)
-        # (Discrete/integer) numbers of installed components [-]
-        self.declareIntNumbersVars(pyM)
-        # Binary variables [-] indicating if a component is considered at a location or not [-]
-        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
-        # Flow over the edges of the components [commodityUnit]
-        self.declareOperationVars(pyM, 'op')
         # Operation of component [commodityUnit]
         self.declareDiscretizationPointVariables(pyM)
         # Operation of component [commodityUnit]
@@ -318,6 +281,17 @@ class ConversionPartLoadModel(ConversionModel):
             return sum(discretizationPointConVar[loc, compName, discretStep, p, t] for discretStep in range(nPoints)) == esM.hoursPerTimeStep * capVar[loc, compName]
         setattr(pyM, 'ConstrPointCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint))
 
+    def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
+        """
+        Declare set of locations and components for which partLoadMin is not None.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, 'operationVarSetBin_' + abbrvName)
+
+        def declareOpConstrSetMinPartLoad(pyM):
+            return ((loc, compName) for loc, compName in varSet if getattr(compDict[compName], 'partLoadMin') is not None)
+
+        setattr(pyM, constrSetName + 'partLoadMin_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSetMinPartLoad))
 
     def pointSOS2(self, pyM):
         """
