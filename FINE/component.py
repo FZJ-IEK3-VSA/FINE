@@ -947,10 +947,16 @@ class ComponentModel(metaclass=ABCMeta):
         opVar = getattr(pyM, opVarName + '_' + abbrvName)
         constrSet4 = getattr(pyM, constrSetName + '4_' + abbrvName)
 
-        def op4(pyM, loc, compName, p, t):
-            rate = getattr(compDict[compName], opRateName)
-            return opVar[loc, compName, p, t] == rate[loc][p, t]
-        setattr(pyM, constrName + '4_' + abbrvName, pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4))
+        if not pyM.hasSegmentation:
+            def op4(pyM, loc, compName, p, t):
+                rate = getattr(compDict[compName], opRateName)
+                return opVar[loc, compName, p, t] == rate[loc][p, t]
+            setattr(pyM, constrName + '4_' + abbrvName, pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4))
+        else:
+            def op4(pyM, loc, compName, p, t):
+                rate = getattr(compDict[compName], opRateName)
+                return opVar[loc, compName, p, t] == rate[loc][p, t] * esM.timeStepsPerSegment.to_dict()[p, t]
+            setattr(pyM, constrName + '4_' + abbrvName, pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4))
 
     def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax'):
         """
@@ -960,10 +966,16 @@ class ComponentModel(metaclass=ABCMeta):
         opVar = getattr(pyM, opVarName + '_' + abbrvName)
         constrSet5 = getattr(pyM, constrSetName + '5_' + abbrvName)
 
-        def op5(pyM, loc, compName, p, t):
-            rate = getattr(compDict[compName], opRateName)
-            return opVar[loc, compName, p, t] <= rate[loc][p, t]
-        setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
+        if not pyM.hasSegmentation:
+            def op5(pyM, loc, compName, p, t):
+                rate = getattr(compDict[compName], opRateName)
+                return opVar[loc, compName, p, t] <= rate[loc][p, t]
+            setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
+        else:
+            def op5(pyM, loc, compName, p, t):
+                rate = getattr(compDict[compName], opRateName)
+                return opVar[loc, compName, p, t] <= rate[loc][p, t] * esM.timeStepsPerSegment.to_dict()[p, t]
+            setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
 
     def yearlyFullLoadHoursMin(self, pyM, esM):
         # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
