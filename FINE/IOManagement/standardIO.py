@@ -96,6 +96,13 @@ def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumO
 
     periodsOrder = pd.DataFrame([esM.periodsOrder], index=['periodsOrder'], columns=esM.periods)
     periodsOrder.to_excel(writer, 'Misc')
+    if esM.segmentation:
+        ls = []
+        for i in esM.periodsOrder.tolist():
+            ls.append(esM.timeStepsPerSegment[i])
+        segmentDuration = pd.concat(ls, axis=1).rename(columns={"Segment Duration": "timeStepsPerSegment"})
+        segmentDuration.index.name = 'segmentNumber'
+        segmentDuration.to_excel(writer, 'Misc', startrow=3)
     utils.output('\tSaving file...', esM.verbose, 0)
     writer.save()
     utils.output('Done. (%.4f' % (time.time() - _t) + ' sec)', esM.verbose, 0)
