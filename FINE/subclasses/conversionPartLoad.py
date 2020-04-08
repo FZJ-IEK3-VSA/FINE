@@ -468,11 +468,11 @@ class ConversionPartLoadModel(ConversionModel):
         discretizationSegmentBinVariables = getattr(pyM, 'discretizationSegmentBin_' + abbrvName)
 
         discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(discretizationPointVariables.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder)
+                                                 esM.periodsOrder, esM=esM)
         discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(discretizationSegmentConVariables.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder)
+                                                 esM.periodsOrder, esM=esM)
         discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(discretizationSegmentBinVariables.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder)
+                                                 esM.periodsOrder, esM=esM)
 
         self.discretizationPointVariablesOptimun = discretizationPointVariablesOptVal_
         self.discretizationSegmentConVariablesOptimun = discretizationSegmentConVariablesOptVal_

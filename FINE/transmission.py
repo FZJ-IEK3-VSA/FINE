@@ -455,9 +455,10 @@ class TransmissionModel(ComponentModel):
                 optSummaryBasic.loc[compName, cost] = (data).values
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                esM=esM)
         optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', esM.periodsOrder,
-                                                 compDict=compDict)
+                                                 compDict=compDict, esM=esM)
         self.operationVariablesOptimum = optVal_
 
         props = ['operation', 'opexOp']

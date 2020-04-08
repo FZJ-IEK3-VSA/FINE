@@ -984,7 +984,8 @@ class StorageModel(ComponentModel):
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
 
         # * charge variables and contributions
-        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                esM=esM)
         self.chargeOperationVariablesOptimum = optVal
 
         if optVal is not None:
@@ -997,7 +998,7 @@ class StorageModel(ComponentModel):
 
         # * discharge variables and contributions
         optVal = utils.formatOptimizationOutput(dischargeOp.get_values(), 'operationVariables', '1dim',
-                                                esM.periodsOrder)
+                                                esM.periodsOrder, esM=esM)
         self.dischargeOperationVariablesOptimum = optVal
 
         if optVal is not None:
@@ -1010,7 +1011,8 @@ class StorageModel(ComponentModel):
 
         # * set state of charge variables
         if not pyM.hasTSA:
-            optVal = utils.formatOptimizationOutput(SOC.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+            optVal = utils.formatOptimizationOutput(SOC.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                    esM=esM)
             # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
             # other)
             optVal = optVal.loc[:, :len(optVal.columns) - 2]
@@ -1034,8 +1036,17 @@ class StorageModel(ComponentModel):
                 # Concat data
                 data = []
                 for count, p in enumerate(esM.periodsOrder):
-                    data.append((stateOfChargeInter.loc[:, count] +
-                                 stateOfChargeIntra.loc[p].loc[:, :esM.timeStepsPerPeriod[-1]].T).T)
+                    if esM.segmentation:
+                        dataSegment = []
+                        for t in esM.segmentsPerPeriod:
+                            for rep in range(esM.timeStepsPerSegment.loc[p, t]):
+                                dataSegment.append(stateOfChargeIntra.loc[p, t])
+                            dataPeriod = pd.concat(dataSegment, axis=1)
+                        data.append((stateOfChargeInter.loc[:, count] +
+                                     dataPeriod.T).T)
+                    else:
+                        data.append((stateOfChargeInter.loc[:, count] +
+                                     stateOfChargeIntra.loc[p].loc[:, :esM.timeStepsPerPeriod[-1]].T).T)
                 optVal = pd.concat(data, axis=1, ignore_index=True)
             else:
                 optVal = None

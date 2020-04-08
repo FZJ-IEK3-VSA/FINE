@@ -326,7 +326,8 @@ class DSMModel(SourceSinkModel):
 
         # Set optimal operation variables and append optimization summary
         chargeOp = getattr(pyM, 'chargeOp_storExt')
-        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                esM=esM)
 
         def groupStor(x):
             ix = optVal.loc[x].name

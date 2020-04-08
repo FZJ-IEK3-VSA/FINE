@@ -698,14 +698,22 @@ def setFormattedTimeSeries(timeSeries):
         return data.set_index(['Period', 'TimeStep'])
 
 
-def buildFullTimeSeries(df, periodsOrder, axis=1):
+def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None):
     data = []
     for p in periodsOrder:
-        data.append(df.loc[p])
+        if esM is not None and esM.segmentation:
+            dataSegment = []
+            for t in esM.segmentsPerPeriod:
+                for rep in range(esM.timeStepsPerSegment.loc[p, t]):
+                    dataSegment.append(df.loc[p,t]/esM.timeStepsPerSegment.loc[p, t])
+            dataPeriod = pd.concat(dataSegment, axis=1)
+            data.append(dataPeriod)
+        else:
+            data.append(df.loc[p])
     return pd.concat(data, axis=axis, ignore_index=True)
 
 
-def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDict=None):
+def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDict=None, esM=None):
     # If data is an empty dictionary (because no variables of that type were declared) return None
     if not data:
         return None
@@ -747,7 +755,7 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
         df.columns = df.columns.droplevel()
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
-        return buildFullTimeSeries(df, periodsOrder)
+        return buildFullTimeSeries(df, periodsOrder, esM=esM)
     elif varType == 'operationVariables' and dimension == '2dim':
         # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
         # regions and sort the index
@@ -765,7 +773,7 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
         df.columns = df.columns.droplevel()
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
-        return buildFullTimeSeries(df, periodsOrder)
+        return buildFullTimeSeries(df, periodsOrder, esM=esM)
     else:
         raise ValueError('The varType parameter has to be either \'designVariables\' or \'operationVariables\'\n' +
                          'and the dimension parameter has to be either \'1dim\' or \'2dim\'.')
