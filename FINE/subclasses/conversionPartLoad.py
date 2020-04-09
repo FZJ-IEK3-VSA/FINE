@@ -258,9 +258,14 @@ class ConversionPartLoadModel(ConversionModel):
         capVar = getattr(pyM, 'cap_' + abbrvName)
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
-        def segmentCapacityConstraint(pyM, loc, compName, p, t):
-            return sum(discretizationSegmentConVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].nSegments)) == esM.hoursPerTimeStep * capVar[loc, compName]
-        setattr(pyM, 'ConstrSegmentCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint))
+        if not pyM.hasSegmentation:
+            def segmentCapacityConstraint(pyM, loc, compName, p, t):
+                return sum(discretizationSegmentConVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].nSegments)) == esM.hoursPerTimeStep * capVar[loc, compName]
+            setattr(pyM, 'ConstrSegmentCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint))
+        else:
+            def segmentCapacityConstraint(pyM, loc, compName, p, t):
+                return sum(discretizationSegmentConVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].nSegments)) == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+            setattr(pyM, 'ConstrSegmentCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint))
 
 
     def pointCapacityConstraint(self, pyM, esM):
@@ -431,11 +436,11 @@ class ConversionPartLoadModel(ConversionModel):
         discretizationSegmentBinVariables = getattr(pyM, 'discretizationSegmentBin_' + abbrvName)
 
         discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(discretizationPointVariables.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder)
+                                                 esM.periodsOrder, esM=esM)
         discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(discretizationSegmentConVariables.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder)
+                                                 esM.periodsOrder, esM=esM)
         discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(discretizationSegmentBinVariables.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder)
+                                                 esM.periodsOrder, esM=esM)
 
         self.discretizationPointVariablesOptimun = discretizationPointVariablesOptVal_
         self.discretizationSegmentConVariablesOptimun = discretizationSegmentConVariablesOptVal_

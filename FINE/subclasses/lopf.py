@@ -234,7 +234,7 @@ class LOPFModel(TransmissionModel):
         phaseAngleVar = getattr(pyM, 'phaseAngle_' + abbrvName)
 
         optVal_ = utils.formatOptimizationOutput(phaseAngleVar.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder)
+                                                 esM.periodsOrder, esM=esM)
         self.phaseAngleVariablesOptimum = optVal_
 
     def getOptimalValues(self, name='all'):
