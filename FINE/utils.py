@@ -763,14 +763,18 @@ def setFormattedTimeSeries(timeSeries):
         return data.set_index(['Period', 'TimeStep'])
 
 
-def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None):
+def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
     data = []
+    #print(df)
     for p in periodsOrder:
         if esM is not None and esM.segmentation:
             dataSegment = []
             for t in esM.segmentsPerPeriod:
                 for rep in range(esM.timeStepsPerSegment.loc[p, t]):
-                    dataSegment.append(df.loc[p,t]/esM.timeStepsPerSegment.loc[p, t])
+                    if divide:
+                        dataSegment.append(df.loc[p, t]/esM.timeStepsPerSegment.loc[p, t])
+                    else:
+                        dataSegment.append(df.loc[p, t])
             dataPeriod = pd.concat(dataSegment, axis=1)
             data.append(dataPeriod)
         else:

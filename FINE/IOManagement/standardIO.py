@@ -244,13 +244,13 @@ def getDualValues(pyM):
     return pd.Series(list(pyM.dual.values()), index=pd.Index(list(pyM.dual.keys())))
 
 
-def getShadowPrices(pyM, constraint, dualValues=None, hasTimeSeries=False, periodOccurrences=None,
+def getShadowPrices(esM, constraint, dualValues=None, hasTimeSeries=False, periodOccurrences=None,
     periodsOrder=None):
     """
     Get dual values of constraint ("shadow prices").
 
-    :param pyM: pyomo model instance with optimized optimization problem
-    :type pyM: pyomo Concrete Model
+    :param esM: considered energy system model
+    :type esM: EnergySystemModel class instance
 
     :param constraint: constraint from which the dual values should be obtained (e.g. pyM.commodityBalanceConstraint)
     :type constraint: pyomo.core.base.constraint.SimpleConstraint
@@ -276,7 +276,7 @@ def getShadowPrices(pyM, constraint, dualValues=None, hasTimeSeries=False, perio
     :return: Pandas Series with the dual values of the specified constraint
     """
     if dualValues is None:
-        dualValues = getDualValues(pyM)
+        dualValues = getDualValues(esM.pyM)
 
     SP = pd.Series(list(constraint.values()), index=pd.Index(list(constraint.keys()))).map(dualValues)
 
@@ -285,7 +285,9 @@ def getShadowPrices(pyM, constraint, dualValues=None, hasTimeSeries=False, perio
         SP = SP.unstack(level=-1)
         SP.columns = SP.columns.droplevel()
         SP = SP.apply(lambda x: x/(periodOccurrences[x.name[0]]), axis=1)
-        SP = fn.utils.buildFullTimeSeries(SP, periodsOrder)
+        print(SP)
+        SP = fn.utils.buildFullTimeSeries(SP, periodsOrder, esM=esM, divide=False)
+        print(SP)
         SP = SP.stack()
 
     return SP
