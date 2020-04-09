@@ -14,7 +14,7 @@ class LinearOptimalPowerFlow(Transmission):
                  hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
+                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
                  opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
@@ -33,7 +33,7 @@ class LinearOptimalPowerFlow(Transmission):
         Transmission.__init__(self, esM, name, commodity, losses, distances, hasCapacityVariable,
                               capacityVariableDomain, capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM,
                               operationRateMax, operationRateFix, tsaWeight, locationalEligibility, capacityMin,
-                              capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
+                              capacityMax, partLoadMin, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
                               investIfBuilt, opexPerOperation, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate,
                               economicLifetime, technicalLifetime)
 
@@ -110,6 +110,7 @@ class LOPFModel(TransmissionModel):
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
+        self.declareOperationBinarySet(pyM)
 
         # Declare operation variable set
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -149,6 +150,8 @@ class LOPFModel(TransmissionModel):
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Flow over the edges of the components [commodityUnit]
         self.declareOperationVars(pyM, 'op')
+        # Operation of component as binary [1/0]
+        self.declareOperationBinaryVars(pyM, 'op_bin')
         # Operation of component [commodityUnit]
         self.declarePhaseAngleVariables(pyM)
 
@@ -213,42 +216,6 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
-
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Get contributions to shared location potential. """
-        return super().getSharedPotentialContribution(pyM, key, loc)
-
-    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if the commodity´s transfer between a given location and the other locations of the energy system model
-        is eligible.
-
-        :param esM: EnergySystemModel in which the LinearOptimalPowerFlow components have been added to.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
-
-        :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
-        :param commod: string
-        """
-        return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
-
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
-        return super().getCommodityBalanceContribution(pyM, commod, loc, p, t)
-
-    def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
-        """
-        return super().getObjectiveFunctionContribution(esM, pyM)
 
     def setOptimalValues(self, esM, pyM):
         """

@@ -17,7 +17,7 @@ class Storage(Component):
                  chargeOpRateMax=None, chargeOpRateFix=None, chargeTsaWeight=1,
                  dischargeOpRateMax=None, dischargeOpRateFix=None, dischargeTsaWeight=1,
                  isPeriodicalStorage=False,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
+                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None,
                  capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
                  opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10,
@@ -186,7 +186,7 @@ class Storage(Component):
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
                             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
-                            capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
+                            capacityMax=capacityMax, partLoadMin=partLoadMin, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, interestRate=interestRate,
                             economicLifetime=economicLifetime, technicalLifetime=technicalLifetime)
@@ -227,6 +227,17 @@ class Storage(Component):
 
         self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, chargeOpRateFix, locationalEligibility)
         self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, None
+
+        
+        if self.partLoadMin is not None:
+            if self.fullChargeOpRateMax is not None:
+                if ((self.fullChargeOpRateMax > 0) & (self.fullChargeOpRateMax < self.partLoadMin)).any().any():
+                    raise ValueError('"fullChargeOpRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+            if self.fullChargeOpRateFix is not None:
+                if ((self.fullChargeOpRateFix > 0) & (self.fullChargeOpRateFix < self.partLoadMin)).any().any():
+                    raise ValueError('"fullChargeOpRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
+
+
 
         utils.isPositiveNumber(chargeTsaWeight)
         self.chargeTsaWeight = chargeTsaWeight
@@ -347,7 +358,8 @@ class StorageModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-
+        self.declareOperationBinarySet(pyM)
+        
         if pyM.hasTSA:
             varSet = getattr(pyM, 'operationVarSet_' + self.abbrvName)
 
@@ -406,6 +418,10 @@ class StorageModel(ComponentModel):
         self.declareOperationVars(pyM, 'chargeOp')
         # Energy amount delivered from a storage (after delivery efficiency losses) between two time steps
         self.declareOperationVars(pyM, 'dischargeOp')
+        # Operation of component as binary [1/0]
+        self.declareOperationBinaryVars(pyM, 'chargeOp_bin')
+        self.declareOperationBinaryVars(pyM, 'dischargeOp_bin')
+
 
         # Inventory of storage components [commodityUnit*hour]
         if not pyM.hasTSA:
@@ -828,7 +844,9 @@ class StorageModel(ComponentModel):
         self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateFix')
         # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateMax')
-
+        # Operation [physicalUnit*h] is limited by minimum part Load
+        self.additionalMinPartLoad(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOp_bin', 'cap')
+        
         #                             Constraints for enforcing discharging operation modes                            #
 
         # Discharging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied
@@ -844,6 +862,8 @@ class StorageModel(ComponentModel):
         self.operationMode4(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateFix')
         # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateMax')
+        # Operation [physicalUnit*h] is limited by minimum part Load
+        self.additionalMinPartLoad(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOp_bin', 'cap')
 
         # Cyclic constraint enforcing that all storages have the same state of charge at the the beginning of the first
         # and the end of the last time step
