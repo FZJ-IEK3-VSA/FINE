@@ -285,9 +285,7 @@ def getShadowPrices(esM, constraint, dualValues=None, hasTimeSeries=False, perio
         SP = SP.unstack(level=-1)
         SP.columns = SP.columns.droplevel()
         SP = SP.apply(lambda x: x/(periodOccurrences[x.name[0]]), axis=1)
-        print(SP)
         SP = fn.utils.buildFullTimeSeries(SP, periodsOrder, esM=esM, divide=False)
-        print(SP)
         SP = SP.stack()
 
     return SP
