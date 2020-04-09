@@ -281,10 +281,16 @@ class ConversionPartLoadModel(ConversionModel):
         capVar = getattr(pyM, 'cap_' + abbrvName)
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
-        def pointCapacityConstraint(pyM, loc, compName, p, t):
-            nPoints = compDict[compName].nSegments+1
-            return sum(discretizationPointConVar[loc, compName, discretStep, p, t] for discretStep in range(nPoints)) == esM.hoursPerTimeStep * capVar[loc, compName]
-        setattr(pyM, 'ConstrPointCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint))
+        if not pyM.hasSegmentation:
+            def pointCapacityConstraint(pyM, loc, compName, p, t):
+                nPoints = compDict[compName].nSegments+1
+                return sum(discretizationPointConVar[loc, compName, discretStep, p, t] for discretStep in range(nPoints)) == esM.hoursPerTimeStep * capVar[loc, compName]
+            setattr(pyM, 'ConstrPointCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint))
+        else:
+            def pointCapacityConstraint(pyM, loc, compName, p, t):
+                nPoints = compDict[compName].nSegments+1
+                return sum(discretizationPointConVar[loc, compName, discretStep, p, t] for discretStep in range(nPoints)) == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+            setattr(pyM, 'ConstrPointCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint))
 
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
         """
