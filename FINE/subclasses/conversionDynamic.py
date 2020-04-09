@@ -67,7 +67,10 @@ class ConversionDynamic(Conversion):
         super().setTimeSeriesData(hasTSA)
         if hasTSA:
             warnings.warn('Class "ConversionDynamic" works only partially together with "timeSeriesAggregation"' 
-                    + ', since the dynamic constraints between typical periods are relaxed.')
+                    + ', since the dynamic constraints between typical periods are relaxed.'
+                    + 'Further, if the segmentation is activated, the the time steps have irregular lengths and'
+                    + ' the the minimum up- and downtime are as irregular as well. The ramping is adapted to the'
+                    + ' relative time step lengths.')
         return
         
 
@@ -233,7 +236,10 @@ class ConversionDynamicModel(ConversionModel):
         opVarBin= getattr(pyM, 'op_bin_' + abbrvName)
         opVarStartBin, opVarStopBin = getattr(pyM, 'startVariable_' + abbrvName), getattr(pyM, 'stopVariable_' + abbrvName)
         constrSetMinDownTime = getattr(pyM,'opConstrSet' + 'downTimeMin_' + abbrvName)
-        numberOfTimeSteps = esM.numberOfTimeSteps
+        if not pyM.hasSegmentation:
+            numberOfTimeSteps = len(esM.timeStepsPerPeriod)
+        else:
+            numberOfTimeSteps = len(esM.segmentsPerPeriod)
 
         def minimumDownTime1(pyM, loc, compName, p, t):
             if t>=1:
@@ -266,7 +272,10 @@ class ConversionDynamicModel(ConversionModel):
             opVarBin= getattr(pyM, 'op_bin_' + abbrvName)
             opVarStartBin, opVarStopBin = getattr(pyM, 'startVariable_' + abbrvName), getattr(pyM, 'stopVariable_' + abbrvName)
             constrSetMinUpTime = getattr(pyM,'opConstrSet' + 'upTimeMin_' + abbrvName)
-            numberOfTimeSteps = esM.numberOfTimeSteps
+            if not pyM.hasSegmentation:
+                numberOfTimeSteps = len(esM.timeStepsPerPeriod)
+            else:
+                numberOfTimeSteps = len(esM.segmentsPerPeriod)
     
             def minimumUpTime1(pyM, loc, compName, p, t):
                 downTimeMin = getattr(compDict[compName], 'downTimeMin')
@@ -302,14 +311,23 @@ class ConversionDynamicModel(ConversionModel):
             capVar= getattr(pyM, 'cap_' + abbrvName)
             
             constrSetRampUpMax = getattr(pyM,'opConstrSet' + 'rampUpMax_' + abbrvName)
-            numberOfTimeSteps = esM.numberOfTimeSteps
+            if not pyM.hasSegmentation:
+                numberOfTimeSteps = len(esM.timeStepsPerPeriod)
+            else:
+                numberOfTimeSteps = len(esM.segmentsPerPeriod)
     
             def rampUpMax(pyM, loc, compName, p, t):
                 rampRateMax = getattr(compDict[compName], 'rampUpMax')
-                if (t>=1): # avoid to set constraints twice
-                    return (opVar[loc, compName, p, t]-opVar[loc, compName, p, t-1] <= rampRateMax*capVar[loc, compName])
+                if not pyM.hasSegmentation:
+                    if (t>=1): # avoid to set constraints twice
+                        return (opVar[loc, compName, p, t]-opVar[loc, compName, p, t-1] <= rampRateMax*capVar[loc, compName])
+                    else:
+                        return (opVar[loc, compName, p, t]-opVar[loc, compName, p, numberOfTimeSteps-1] <= rampRateMax*capVar[loc, compName])
                 else:
-                    return (opVar[loc, compName, p, t]-opVar[loc, compName, p, numberOfTimeSteps-1] <= rampRateMax*capVar[loc, compName])
+                    if (t>=1): # avoid to set constraints twice
+                        return (opVar[loc, compName, p, t]-opVar[loc, compName, p, t-1] <= rampRateMax*capVar[loc, compName])
+                    else:
+                        return (opVar[loc, compName, p, t]-opVar[loc, compName, p, numberOfTimeSteps-1] <= rampRateMax*esM.timeStepsPerSegment.to_dict()[p, t]*capVar[loc, compName])
             setattr(pyM, 'ConstrRampUpMax_' + abbrvName, pyomo.Constraint(constrSetRampUpMax, pyM.timeSet, rule=rampUpMax))
               
     def rampDownMax(self, pyM, esM):
@@ -326,14 +344,23 @@ class ConversionDynamicModel(ConversionModel):
             capVar= getattr(pyM, 'cap_' + abbrvName)
             
             constrSetRampDownMax = getattr(pyM,'opConstrSet' + 'rampDownMax_' + abbrvName)
-            numberOfTimeSteps = esM.numberOfTimeSteps
+            if not pyM.hasSegmentation:
+                numberOfTimeSteps = len(esM.timeStepsPerPeriod)
+            else:
+                numberOfTimeSteps = len(esM.segmentsPerPeriod)
     
             def rampDownMax(pyM, loc, compName, p, t):
                 rampRateMax = getattr(compDict[compName], 'rampDownMax')
-                if (t>=1): # avoid to set constraints twice
-                    return (opVar[loc, compName, p, t-1]-opVar[loc, compName, p, t] <= rampRateMax*capVar[loc, compName])
+                if not pyM.hasSegmentation:
+                    if (t>=1): # avoid to set constraints twice
+                        return (opVar[loc, compName, p, t-1]-opVar[loc, compName, p, t] <= rampRateMax*capVar[loc, compName])
+                    else:
+                        return (opVar[loc, compName, p, numberOfTimeSteps-1]-opVar[loc, compName, p, t] <= rampRateMax*capVar[loc, compName])
                 else:
-                    return (opVar[loc, compName, p, numberOfTimeSteps-1]-opVar[loc, compName, p, t] <= rampRateMax*capVar[loc, compName])
+                    if (t>=1): # avoid to set constraints twice
+                        return (opVar[loc, compName, p, t-1]-opVar[loc, compName, p, t] <= rampRateMax*capVar[loc, compName])
+                    else:
+                        return (opVar[loc, compName, p, numberOfTimeSteps-1]-opVar[loc, compName, p, t] <= rampRateMax*esM.timeStepsPerSegment.to_dict()[p, t]*capVar[loc, compName])
             setattr(pyM, 'ConstrRampDownMax_' + abbrvName, pyomo.Constraint(constrSetRampDownMax, pyM.timeSet, rule=rampDownMax))
                     
     
