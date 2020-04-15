@@ -1,0 +1,7 @@
+# folders
+.pytest_cache/
+.vscode/
+tests/data/output
+# files
+*.ipynb_checkpoints
+*__pycache__
