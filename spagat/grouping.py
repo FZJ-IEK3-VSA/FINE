@@ -44,7 +44,7 @@ def string_based_clustering(regions):
 
 
 @tto.timer
-def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, save_fig=None, dimension_description='space'):
+def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None, save_fig=None, dimension_description='space'):
     '''Cluster M regions based on centroid distance, hence closest regions are aggregated to obtain N regions.'''
     
     centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000  # km
@@ -53,17 +53,20 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
 
     '''Clustering methods via SciPy.cluster module'''
 
-    if mode == 'hierarchical':
+    if agg_mode == 'hierarchical':
 
         distance_matrix = hierarchy.distance.pdist(centroids)
 
-        # TO-DO: can investigate various methods, e.g. 'average', 'weighted', 'centroid'
+        # Various methods, e.g. 'average', 'weighted', 'centroid' -> representation of new clusters 
         Z = hierarchy.linkage(distance_matrix, 'centroid')
 
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
+        plt.figure(1)
+        plt.title('Hierarchical Tree')
         hierarchy.dendrogram(Z)
 
         plt.figure(2)
+        plt.title('Inconsistencies')
         inconsistency = hierarchy.inconsistent(Z)
         plt.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
 
@@ -130,11 +133,11 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
                 print('\t', 'sup_region_id', sup_region_id)
                 print('\t', 'sup_region_id_list', sup_region_id_list)
 
-            aggregation_dict[n_regions - i] = regions_dict.copy()
+            aggregation_dict[n_regions - i - 1] = regions_dict.copy()
 
         return aggregation_dict
 
-    if mode == 'kmeans':   
+    if agg_mode == 'kmeans':   
         # The input observations of kmeans must be "whitened"
         centroids_whitened = vq.whiten(centroids)
 
@@ -202,7 +205,7 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
 
     '''Clustering methods via Scikit Learn module'''
 
-    if mode == 'kmeans2':
+    if agg_mode == 'kmeans2':
 
         aggregation_dict = {}
         aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
@@ -237,7 +240,7 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
 
         return aggregation_dict
         
-    if mode == 'hierarchical2':
+    if agg_mode == 'hierarchical2':
 
         aggregation_dict = {}
         aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
@@ -280,3 +283,128 @@ def distance_based_clustering(sds, mode, verbose=False, ax_illustration=None, sa
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
 
         return aggregation_dict
+
+
+@tto.timer
+def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_illustration=None, save_fig=None, dimension_description='space',weighting=None):
+    
+    '''Original region list'''
+    regions_list = sds.xr_dataset['space'].values
+    n_regions = len(regions_list)
+
+    # Dataset after preprocessing
+    ds = preprocessDataset(sds,n_regions)
+
+    '''Clustering methods via SciPy.cluster module'''
+
+    if agg_mode == 'hierarchical':
+
+        aggregation_dict = {}
+
+        # Apply clustering methods based on the modified distance function
+        Z = hierarchy.linkage(ds,method='average',metric=selfDistance)
+
+        distance_matrix = hierarchy.distance.pdist(ds,selfDistance)
+        print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
+        plt.figure(1)
+        plt.title('Hierarchical Tree')
+        hierarchy.dendrogram(Z)
+
+        plt.figure(2)
+        plt.title('Inconsistencies')
+        inconsistency = hierarchy.inconsistent(Z)
+        plt.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
+
+        # regions_dict to record the newest region set after each merging step, regions_dict_complete for all regions appearing during clustering
+        regions_dict = {region_id: [region_id] for region_id in regions_list}
+        regions_dict_complete = regions_dict.copy()
+
+        aggregation_dict[n_regions] = regions_dict.copy()
+        # Identify, which regions are merged together (new_merged_region_id_list)
+        for i in range(len(Z)):
+
+            # identify the keys of the sub regions that will be merged
+            key_list = list(regions_dict_complete.keys())
+            key_1 = key_list[int(Z[i][0])]
+            key_2 = key_list[int(Z[i][1])]
+
+            # get the region_id_list_s of the sub regions
+            value_list = list(regions_dict_complete.values())
+            sub_region_id_list_1 = value_list[int(Z[i][0])]
+            sub_region_id_list_2 = value_list[int(Z[i][1])]
+
+            # add the new region to the dict by merging the two region_id_lists
+            sup_region_id = f'{key_1}_{key_2}'
+            sup_region_id_list = sub_region_id_list_1.copy()
+            sup_region_id_list.extend(sub_region_id_list_2)
+
+            regions_dict_complete[sup_region_id] = sup_region_id_list
+            regions_dict[sup_region_id] = sup_region_id_list
+            del regions_dict[key_1]
+            del regions_dict[key_2]
+
+            if verbose:
+                print(i)
+                print('\t', 'keys:', key_1, key_2)
+                print('\t', 'list_1', sub_region_id_list_1)
+                print('\t', 'list_2', sub_region_id_list_2)
+                print('\t', 'sup_region_id', sup_region_id)
+                print('\t', 'sup_region_id_list', sup_region_id_list)
+
+            aggregation_dict[n_regions - i - 1] = regions_dict.copy()
+
+    return aggregation_dict
+
+ 
+
+ 
+def preprocessDataset(sds,n_regions,vars='all',dims='all'):
+    '''Preprocess the Xarray dataset: 
+        - Part 1: Time series variables & 1d variables as features of dissimilarity matrix
+        - Part 2: transfer 2d variables directly as distance matrix (Multiplicative inverse of element values)
+        - Test case: only consider one single component
+    '''
+
+    dataset = sds.xr_dataset
+
+    # Traverse all variables in the dataset, and put them in separate categories
+    vars_ts = []
+    vars_1d = []
+    vars_2d = []
+
+    for varname, da in dataset.data_vars.items():
+        if da.dims == ('space', 'TimeStep'):
+            vars_ts.append(varname)
+        if da.dims == ('space',):
+            vars_1d.append(varname)
+        if da.dims == ('space', 'space_2'):
+            vars_2d.append(varname)
+
+    # Part 1: time series & 1d variables -> Dissimilarity Matrix
+
+    # TO-DO: what if vars_ts / vars_1d are empty?
+
+    ds_part1 = dataset[vars_ts[0]].values
+    for var in vars_ts[1:] + vars_1d:
+        ds_part1 = np.concatenate((ds_part1, np.array([dataset[var].values]).T), axis=1)
+
+    # Part 2: 2d variables -> Distance Matrix
+    ds_part2 = 1.0/dataset[vars_2d[0]].values
+    for var in vars_2d[1:]:
+        ds_part2 = np.concatenate((ds_part2, 1.0/dataset[var].values), axis=1)
+    ds_part2[np.isinf(ds_part2)] = 0
+
+    # Concatenate two parts together and save the region ids at index 0, length of part_1 at index 1
+    ds = np.concatenate((np.array([range(n_regions)]).T, np.array([[ds_part1.shape[1]]*n_regions]).T, ds_part1, ds_part2), axis=1)
+
+    return ds
+
+
+def selfDistance(a,b):
+    ''' Custom distance function: 
+        - parameters a, b: two region-data containing region-id at index 0, part_1 data and part_2 data
+        - return: distance between a and b = euclidean distance of part_1 + corresponding value in part_2
+    '''
+    i= a[0]
+    n = int(a[1])
+    return np.linalg.norm(a[2:2+n]-b[2:2+n]) + b[n+int(i)+2]
