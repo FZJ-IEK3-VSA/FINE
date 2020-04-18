@@ -45,9 +45,17 @@ def test_dataset1():
      return sds
 
 def test_all_variable_based_clustering_hierarchical(test_dataset1):
-     clustered_regions = spg.all_variable_based_clustering(test_dataset1)
-     assert len(clustered_regions) == 3
-     assert clustered_regions.get(3) == {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']}
-     assert clustered_regions.get(2) == {'03_reg': ['03_reg'], '01_reg_02_reg': ['01_reg', '02_reg']}
-     assert clustered_regions.get(1) == {'03_reg_01_reg_02_reg': ['03_reg', '01_reg', '02_reg']}
-     
+     clustered_regions1 = spg.all_variable_based_clustering(test_dataset1,agg_mode='hierarchical')
+     assert len(clustered_regions1) == 3
+     assert clustered_regions1.get(3) == {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']}
+     assert clustered_regions1.get(2) == {'03_reg': ['03_reg'], '01_reg_02_reg': ['01_reg', '02_reg']}
+     assert clustered_regions1.get(1) == {'03_reg_01_reg_02_reg': ['03_reg', '01_reg', '02_reg']}
+
+     clustered_regions2 = spg.all_variable_based_clustering(test_dataset1,agg_mode='hierarchical2')
+     assert len(clustered_regions2) == 3
+     assert clustered_regions2.get(3) == {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']}
+     assert clustered_regions2.get(2) == {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']}
+     assert clustered_regions2.get(1) == {'01_reg_02_reg_03_reg': ['01_reg', '02_reg', '03_reg']}
+
+def test_all_variable_based_clustering_kmeans(test_dataset1):
+     clustered_regions1 = spg.all_variable_based_clustering(test_dataset1,agg_mode='kmeans')

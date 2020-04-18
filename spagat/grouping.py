@@ -255,9 +255,9 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
             regions_dict = {}
             for label in range(i):
                 # Group the regions of this regions label
-                sup_region = regions_list[regions_label_list == label]
-                sup_region_id = '_'.join(sup_region)
-                regions_dict[sup_region_id] = sup_region.copy()
+                sup_region_list = list(regions_list[regions_label_list == label])
+                sup_region_id = '_'.join(sup_region_list)
+                regions_dict[sup_region_id] = sup_region_list.copy()
 
             aggregation_dict[i] = regions_dict.copy()
 
@@ -292,6 +292,9 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
     regions_list = sds.xr_dataset['space'].values
     n_regions = len(regions_list)
 
+    aggregation_dict = {}
+    aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
+
     # Dataset after preprocessing
     ds = preprocessDataset(sds,n_regions)
 
@@ -299,9 +302,7 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
 
     if agg_mode == 'hierarchical':
 
-        aggregation_dict = {}
-
-        # Apply clustering methods based on the modified distance function
+        # Apply clustering methods based on the Custom Distance Function
         Z = hierarchy.linkage(ds,method='average',metric=selfDistance)
 
         distance_matrix = hierarchy.distance.pdist(ds,selfDistance)
@@ -319,7 +320,6 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         regions_dict = {region_id: [region_id] for region_id in regions_list}
         regions_dict_complete = regions_dict.copy()
 
-        aggregation_dict[n_regions] = regions_dict.copy()
         # Identify, which regions are merged together (new_merged_region_id_list)
         for i in range(len(Z)):
 
@@ -353,11 +353,59 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
 
             aggregation_dict[n_regions - i - 1] = regions_dict.copy()
 
+    '''Clustering methods via Scikit Learn module'''
+
+    if agg_mode == 'hierarchical2':
+
+        # Precompute the distance matrix according to the Custom Distance Function
+        distMatrix = np.zeros((n_regions,n_regions))
+        for i in range(n_regions):
+            for j in range(i+1,n_regions):
+                distMatrix[i,j] = selfDistance(ds[i],ds[j])
+        distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())
+
+        for i in range(1,n_regions):
+            # Computing hierarchical clustering
+            model = skc.AgglomerativeClustering(n_clusters=i,affinity='precomputed',linkage='average').fit(distMatrix)
+            regions_label_list = model.labels_
+
+            # Create a regions dictionary for the aggregated regions
+            regions_dict = {}
+            for label in range(i):
+                # Group the regions of this regions label
+                sup_region_list = list(regions_list[regions_label_list == label])
+                sup_region_id = '_'.join(sup_region_list)
+                regions_dict[sup_region_id] = sup_region_list.copy()
+
+            aggregation_dict[i] = regions_dict.copy()
+
+        # Plot the hierarchical tree dendrogram
+        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(distMatrix)
+        # Create the counts of samples under each node
+        counts = np.zeros(clustering_tree.children_.shape[0])
+        n_samples = len(clustering_tree.labels_)
+        for i, merge in enumerate(clustering_tree.children_):
+            current_count = 0
+            for child_idx in merge:
+                if child_idx < n_samples:
+                    current_count += 1  # leaf node
+                else:
+                    current_count += counts[child_idx - n_samples]
+            counts[i] = current_count
+            
+        linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
+        # Plot the corresponding dendrogram
+        hierarchy.dendrogram(linkage_matrix)
+
+        distance_matrix = hierarchy.distance.pdist(distMatrix)
+        print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
+
+
+
     return aggregation_dict
 
- 
 
- 
+
 def preprocessDataset(sds,n_regions,vars='all',dims='all'):
     '''Preprocess the Xarray dataset: 
         - Part 1: Time series variables & 1d variables as features of dissimilarity matrix
