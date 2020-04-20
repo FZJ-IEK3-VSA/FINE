@@ -233,7 +233,7 @@ class ConversionDynamicModel(ConversionModel):
         opVarBin= getattr(pyM, 'op_bin_' + abbrvName)
         opVarStartBin, opVarStopBin = getattr(pyM, 'startVariable_' + abbrvName), getattr(pyM, 'stopVariable_' + abbrvName)
         constrSetMinDownTime = getattr(pyM,'opConstrSet' + 'downTimeMin_' + abbrvName)
-        numberOfTimeSteps = esM.numberOfTimeSteps
+        numberOfTimeSteps = len(esM.timeStepsPerPeriod)
 
         def minimumDownTime1(pyM, loc, compName, p, t):
             if t>=1:
@@ -266,7 +266,7 @@ class ConversionDynamicModel(ConversionModel):
             opVarBin= getattr(pyM, 'op_bin_' + abbrvName)
             opVarStartBin, opVarStopBin = getattr(pyM, 'startVariable_' + abbrvName), getattr(pyM, 'stopVariable_' + abbrvName)
             constrSetMinUpTime = getattr(pyM,'opConstrSet' + 'upTimeMin_' + abbrvName)
-            numberOfTimeSteps = esM.numberOfTimeSteps
+            numberOfTimeSteps = len(esM.timeStepsPerPeriod)
     
             def minimumUpTime1(pyM, loc, compName, p, t):
                 downTimeMin = getattr(compDict[compName], 'downTimeMin')
@@ -302,7 +302,7 @@ class ConversionDynamicModel(ConversionModel):
             capVar= getattr(pyM, 'cap_' + abbrvName)
             
             constrSetRampUpMax = getattr(pyM,'opConstrSet' + 'rampUpMax_' + abbrvName)
-            numberOfTimeSteps = esM.numberOfTimeSteps
+            numberOfTimeSteps = len(esM.timeStepsPerPeriod)
     
             def rampUpMax(pyM, loc, compName, p, t):
                 rampRateMax = getattr(compDict[compName], 'rampUpMax')
@@ -326,7 +326,7 @@ class ConversionDynamicModel(ConversionModel):
             capVar= getattr(pyM, 'cap_' + abbrvName)
             
             constrSetRampDownMax = getattr(pyM,'opConstrSet' + 'rampDownMax_' + abbrvName)
-            numberOfTimeSteps = esM.numberOfTimeSteps
+            numberOfTimeSteps = len(esM.timeStepsPerPeriod)
     
             def rampDownMax(pyM, loc, compName, p, t):
                 rampRateMax = getattr(compDict[compName], 'rampDownMax')
