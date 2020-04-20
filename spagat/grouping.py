@@ -353,6 +353,7 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
 
             aggregation_dict[n_regions - i - 1] = regions_dict.copy()
 
+
     '''Clustering methods via Scikit Learn module'''
 
     if agg_mode == 'hierarchical2':
@@ -400,7 +401,10 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         distance_matrix = hierarchy.distance.pdist(distMatrix)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
 
-
+    '''K-Means method using custom distance'''
+    if agg_mode == 'kmeans':
+        clustering_res = kmeans(sds,3)
+        return clustering_res
 
     return aggregation_dict
 
@@ -408,8 +412,8 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
 
 def preprocessDataset(sds,n_regions,vars='all',dims='all'):
     '''Preprocess the Xarray dataset: 
-        - Part 1: Time series variables & 1d variables as features of dissimilarity matrix
-        - Part 2: transfer 2d variables directly as distance matrix (Multiplicative inverse of element values)
+        - Part 1: Time series variables & 1d variables as features matrix
+        - Part 2: transfer 2d variables directly as distance matrix / similarity matrix (Multiplicative inverse of element values)
         - Test case: only consider one single component
     '''
 
@@ -428,7 +432,7 @@ def preprocessDataset(sds,n_regions,vars='all',dims='all'):
         if da.dims == ('space', 'space_2'):
             vars_2d.append(varname)
 
-    # Part 1: time series & 1d variables -> Dissimilarity Matrix
+    # Part 1: time series & 1d variables -> Feature Matrix
 
     # TO-DO: what if vars_ts / vars_1d are empty?
 
@@ -447,7 +451,6 @@ def preprocessDataset(sds,n_regions,vars='all',dims='all'):
 
     return ds
 
-
 def selfDistance(a,b):
     ''' Custom distance function: 
         - parameters a, b: two region-data containing region-id at index 0, part_1 data and part_2 data
@@ -456,3 +459,48 @@ def selfDistance(a,b):
     i= a[0]
     n = int(a[1])
     return np.linalg.norm(a[2:2+n]-b[2:2+n]) + b[n+int(i)+2]
+
+def kmeans(df,k):
+    ''' Data points in form of DataFrame '''
+    dims = len(df.columns)
+
+    ## Step 1: Initialisation
+    col_maxs = df.max(axis=0)
+    col_mins = df.min(axis=0)
+
+    np.random.seed(200)
+    centroids = {
+        i+1: [np.random.randint(col_mins[d], col_maxs[d]) for d in range(dims)]
+        for i in range(k)
+    }
+
+    ## Repeat Step 2&3: Assigment & Update until stability => centroids don't change any more
+    old_centroids = copy.deepcopy(centroids)
+    while True:
+
+        ## Step 2: Assignment Stage -> to the nearest centroids
+
+        for i in centroids.keys():
+            # Distance between datapoint and centroids: 
+            df['distance_from_cluster_{}'.format(i)] = df.apply(lambda x: np.linalg.norm(x[:dims]-centroids[i]), axis=1)
+        
+        centroid_distance_cols = ['distance_from_cluster_{}'.format(i) for i in centroids.keys()]
+        df['closest'] = df.loc[:, centroid_distance_cols].idxmin(axis=1)
+        df['closest'] = df['closest'].map(lambda x: int(x.lstrip('distance_from_cluster_')))
+
+
+        ## Step 3: Update Stage
+
+        for i in centroids.keys():
+            for d in range(dims):
+                centroids[i][d] = np.mean(df[df['closest'] == i][d])
+
+        ## Check if the centroid is stable
+        if old_centroids == centroids:
+            break
+        else:
+            old_centroids = copy.deepcopy(centroids)
+
+    closest_centroids = df['closest'].copy(deep=True)
+
+    return closest_centroids

@@ -2,6 +2,7 @@ import pytest
 import xarray as xr 
 import geopandas
 import numpy as np
+import pandas as pd
 
 import spagat.representation as spr
 import spagat.grouping as spg
@@ -57,5 +58,8 @@ def test_all_variable_based_clustering_hierarchical(test_dataset1):
      assert clustered_regions2.get(2) == {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']}
      assert clustered_regions2.get(1) == {'01_reg_02_reg_03_reg': ['01_reg', '02_reg', '03_reg']}
 
-def test_all_variable_based_clustering_kmeans(test_dataset1):
-     clustered_regions1 = spg.all_variable_based_clustering(test_dataset1,agg_mode='kmeans')
+
+
+def test_all_variable_based_clustering_kmeans():
+
+     clustered_regions = spg.all_variable_based_clustering(test_dataset1,agg_mode='kmeans')
