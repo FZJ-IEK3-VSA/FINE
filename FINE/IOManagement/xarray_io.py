@@ -262,8 +262,7 @@ def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
         # create region shape file
         aggregated_regions_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_regions.shp')
 
-        # gdf_aggregated_regions = spagat_manager.sds_out.create_shapefile() #TODO: implement this function in SPAGAT
-        # gdf_aggregated_regions.to_file(aggregated_regions_FilePath)
+        spagat_manager.sds_out.save_sds_regions(aggregated_regions_FilePath)
 
         # df_aggregated = spagat_manager.sds_out.xr_dataset.gpd_geometries.to_dataframe(
         #     ).reset_index(level=0).rename(columns={'space':'index', 'gpd_geometries': 'geometry'})
