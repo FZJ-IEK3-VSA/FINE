@@ -20,6 +20,8 @@ import metis_utils.io_tools as ito
 import metis_utils.plot_tools as pto
 import metis_utils.time_tools as tto
 
+import spagat.grouping_utils as gu
+
 # import pypsa
 # import pypsa.networkclustering as nc
 # from sklearn.cluster import AgglomerativeClustering
@@ -295,17 +297,17 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
     aggregation_dict = {}
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
 
-    # Dataset after preprocessing
-    ds = preprocessDataset(sds,n_regions)
+    # Dataset after preprocessing as numpy array
+    ds = gu.preprocessDataset(sds,n_regions)
 
     '''Clustering methods via SciPy.cluster module'''
 
     if agg_mode == 'hierarchical':
 
         # Apply clustering methods based on the Custom Distance Function
-        Z = hierarchy.linkage(ds,method='average',metric=selfDistance)
+        Z = hierarchy.linkage(ds,method='average',metric=gu.selfDistance)
 
-        distance_matrix = hierarchy.distance.pdist(ds,selfDistance)
+        distance_matrix = hierarchy.distance.pdist(ds,gu.selfDistance)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
         plt.figure(1)
         plt.title('Hierarchical Tree')
@@ -362,7 +364,7 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         distMatrix = np.zeros((n_regions,n_regions))
         for i in range(n_regions):
             for j in range(i+1,n_regions):
-                distMatrix[i,j] = selfDistance(ds[i],ds[j])
+                distMatrix[i,j] = gu.selfDistance(ds[i],ds[j])
         distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())
 
         for i in range(1,n_regions):
@@ -402,105 +404,12 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
 
     '''K-Means method using custom distance'''
-    if agg_mode == 'kmeans':
-        clustering_res = kmeans(sds,3)
-        return clustering_res
+    #if agg_mode == 'kmeans':
+        
 
     return aggregation_dict
 
 
 
-def preprocessDataset(sds,n_regions,vars='all',dims='all'):
-    '''Preprocess the Xarray dataset: 
-        - Part 1: Time series variables & 1d variables as features matrix
-        - Part 2: transfer 2d variables directly as distance matrix / similarity matrix (Multiplicative inverse of element values)
-        - Test case: only consider one single component
-    '''
-
-    dataset = sds.xr_dataset
-
-    # Traverse all variables in the dataset, and put them in separate categories
-    vars_ts = []
-    vars_1d = []
-    vars_2d = []
-
-    for varname, da in dataset.data_vars.items():
-        if da.dims == ('space', 'TimeStep'):
-            vars_ts.append(varname)
-        if da.dims == ('space',):
-            vars_1d.append(varname)
-        if da.dims == ('space', 'space_2'):
-            vars_2d.append(varname)
-
-    # Part 1: time series & 1d variables -> Feature Matrix
-
-    # TO-DO: what if vars_ts / vars_1d are empty?
-
-    ds_part1 = dataset[vars_ts[0]].values
-    for var in vars_ts[1:] + vars_1d:
-        ds_part1 = np.concatenate((ds_part1, np.array([dataset[var].values]).T), axis=1)
-
-    # Part 2: 2d variables -> Distance Matrix
-    ds_part2 = 1.0/dataset[vars_2d[0]].values
-    for var in vars_2d[1:]:
-        ds_part2 = np.concatenate((ds_part2, 1.0/dataset[var].values), axis=1)
-    ds_part2[np.isinf(ds_part2)] = 0
-
-    # Concatenate two parts together and save the region ids at index 0, length of part_1 at index 1
-    ds = np.concatenate((np.array([range(n_regions)]).T, np.array([[ds_part1.shape[1]]*n_regions]).T, ds_part1, ds_part2), axis=1)
-
-    return ds
-
-def selfDistance(a,b):
-    ''' Custom distance function: 
-        - parameters a, b: two region-data containing region-id at index 0, part_1 data and part_2 data
-        - return: distance between a and b = euclidean distance of part_1 + corresponding value in part_2
-    '''
-    i= a[0]
-    n = int(a[1])
-    return np.linalg.norm(a[2:2+n]-b[2:2+n]) + b[n+int(i)+2]
-
-def kmeans(df,k):
-    ''' Data points in form of DataFrame '''
-    dims = len(df.columns)
-
-    ## Step 1: Initialisation
-    col_maxs = df.max(axis=0)
-    col_mins = df.min(axis=0)
-
-    np.random.seed(200)
-    centroids = {
-        i+1: [np.random.randint(col_mins[d], col_maxs[d]) for d in range(dims)]
-        for i in range(k)
-    }
-
-    ## Repeat Step 2&3: Assigment & Update until stability => centroids don't change any more
-    old_centroids = copy.deepcopy(centroids)
-    while True:
-
-        ## Step 2: Assignment Stage -> to the nearest centroids
-
-        for i in centroids.keys():
-            # Distance between datapoint and centroids: 
-            df['distance_from_cluster_{}'.format(i)] = df.apply(lambda x: np.linalg.norm(x[:dims]-centroids[i]), axis=1)
-        
-        centroid_distance_cols = ['distance_from_cluster_{}'.format(i) for i in centroids.keys()]
-        df['closest'] = df.loc[:, centroid_distance_cols].idxmin(axis=1)
-        df['closest'] = df['closest'].map(lambda x: int(x.lstrip('distance_from_cluster_')))
 
 
-        ## Step 3: Update Stage
-
-        for i in centroids.keys():
-            for d in range(dims):
-                centroids[i][d] = np.mean(df[df['closest'] == i][d])
-
-        ## Check if the centroid is stable
-        if old_centroids == centroids:
-            break
-        else:
-            old_centroids = copy.deepcopy(centroids)
-
-    closest_centroids = df['closest'].copy(deep=True)
-
-    return closest_centroids

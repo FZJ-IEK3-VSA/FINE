@@ -35,8 +35,8 @@ def test_dataset1():
      cap_1d = xr.DataArray(np.array([0.9,
                                        1,
                                        0.9]), coords=[space], dims=['space'])
-     dist_2d = xr.DataArray(np.array([[0,0,0],
-                                      [1,0,0],
+     dist_2d = xr.DataArray(np.array([[0,1,2],
+                                      [1,0,10],
                                       [2,10,0]]), coords=[space,space_2], dims=['space','space_2'])
 
      ds = xr.Dataset({'operationFixRate': opFix,'1d_capacity': cap_1d,'2d_distance': dist_2d})
@@ -59,7 +59,3 @@ def test_all_variable_based_clustering_hierarchical(test_dataset1):
      assert clustered_regions2.get(1) == {'01_reg_02_reg_03_reg': ['01_reg', '02_reg', '03_reg']}
 
 
-
-def test_all_variable_based_clustering_kmeans():
-
-     clustered_regions = spg.all_variable_based_clustering(test_dataset1,agg_mode='kmeans')
