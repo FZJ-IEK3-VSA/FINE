@@ -946,7 +946,6 @@ class ComponentModel(metaclass=ABCMeta):
 
     def yearlyFullLoadHoursMin(self, pyM, esM):
         # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
-        # TODO: Use a set to declare Constraint only for components with full load hour limit set.
         """
         Limit the annual full load hours to a minimum value.
 
@@ -961,15 +960,14 @@ class ComponentModel(metaclass=ABCMeta):
         capVar = getattr(pyM, 'cap_' + abbrvName)
         yearlyFullLoadHoursMinSet = getattr(pyM, 'yearlyFullLoadHoursMinSet_' + abbrvName)
 
-
-        def yearlyFullLoadHoursMinConstraint(pyM, loc, compName, p, t):
+        def yearlyFullLoadHoursMinConstraint(pyM, loc, compName):
             full_load_hours = sum(
-                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
-                in opVar)
+                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for p, t,
+                in pyM.timeSet)
             return full_load_hours >= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMin[loc]
 
         setattr(pyM, 'ConstrYearlyFullLoadHoursMin_' + abbrvName,
-                pyomo.Constraint(yearlyFullLoadHoursMinSet, pyM.timeSet, rule=yearlyFullLoadHoursMinConstraint))
+                pyomo.Constraint(yearlyFullLoadHoursMinSet, rule=yearlyFullLoadHoursMinConstraint))
 
     def yearlyFullLoadHoursMax(self, pyM, esM):
         """
@@ -986,14 +984,14 @@ class ComponentModel(metaclass=ABCMeta):
         capVar = getattr(pyM, 'cap_' + abbrvName)
         yearlyFullLoadHoursMaxSet = getattr(pyM, 'yearlyFullLoadHoursMaxSet_' + abbrvName)
 
-        def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, p, t):
+        def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName):
             full_load_hours = sum(
-                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for loc, compName, p, t,
-                in opVar)
+                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for p, t,
+                in pyM.timeSet)
             return full_load_hours <= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMax[loc]
 
         setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
-                pyomo.Constraint(yearlyFullLoadHoursMaxSet, pyM.timeSet, rule=yearlyFullLoadHoursMaxConstraint))
+                pyomo.Constraint(yearlyFullLoadHoursMaxSet, rule=yearlyFullLoadHoursMaxConstraint))
 
     ####################################################################################################################
     #  Functions for declaring component contributions to basic energy system constraints and the objective function   #
