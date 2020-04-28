@@ -1,7 +1,14 @@
 # folders
 .pytest_cache/
 .vscode/
-tests/data/output
+bin/
+tests/data/output/
+tests/data/InputData/
+.vscode/
+.pytest_cache/
 # files
 *.ipynb_checkpoints
 *__pycache__
+*__pycache__*
+*.pyc
+*-checkpoint.ipynb

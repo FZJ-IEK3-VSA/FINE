@@ -1,0 +1,7 @@
+geokit
+xarray
+numpy
+pandas
+geopandas
+dask
+scipy
