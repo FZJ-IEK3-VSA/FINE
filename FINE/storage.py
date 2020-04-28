@@ -3,6 +3,7 @@ from FINE import utils
 import pyomo.environ as pyomo
 import warnings
 import pandas as pd
+import numpy as np
 
 
 class Storage(Component):
@@ -1055,18 +1056,17 @@ class StorageModel(ComponentModel):
                 stateOfChargeInter.columns = stateOfChargeInter.columns.droplevel()
                 # Concat data
                 data = []
+                if esM.segmentation:
+                    dataAllPeriods=[]
+                    for p in esM.typicalPeriods:
+                        repList = esM.timeStepsPerSegment.loc[p, :].tolist()
+                        dataPeriod = pd.DataFrame(np.repeat(stateOfChargeIntra.loc[p].loc[:, :esM.segmentsPerPeriod[-1]].values, repList, axis=1),
+                                                  index=stateOfChargeIntra.xs(p, level=0, drop_level=False).index)
+                        dataAllPeriods.append(dataPeriod)
+                    stateOfChargeIntra = pd.concat(dataAllPeriods, axis=0)
                 for count, p in enumerate(esM.periodsOrder):
-                    if esM.segmentation:
-                        dataSegment = []
-                        for t in esM.segmentsPerPeriod:
-                            for rep in range(esM.timeStepsPerSegment.loc[p, t]):
-                                dataSegment.append(stateOfChargeIntra.loc[p, t])
-                            dataPeriod = pd.concat(dataSegment, axis=1)
-                        data.append((stateOfChargeInter.loc[:, count] +
-                                     dataPeriod.T).T)
-                    else:
-                        data.append((stateOfChargeInter.loc[:, count] +
-                                     stateOfChargeIntra.loc[p].loc[:, :esM.timeStepsPerPeriod[-1]].T).T)
+                    data.append((stateOfChargeInter.loc[:, count] +
+                                 stateOfChargeIntra.loc[p].loc[:, :esM.timeStepsPerPeriod[-1]].T).T)
                 optVal = pd.concat(data, axis=1, ignore_index=True)
             else:
                 optVal = None

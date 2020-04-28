@@ -765,20 +765,20 @@ def setFormattedTimeSeries(timeSeries):
 
 def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
     data = []
-    #print(df)
+    if esM is not None and esM.segmentation:
+        dataAllPeriods = []
+        for p in esM.typicalPeriods:
+            repList=esM.timeStepsPerSegment.loc[p,:].tolist()
+            if divide:
+                dataPeriod=pd.DataFrame(np.repeat(np.divide(df.loc[p].values, repList), repList, axis=1),
+                                        index=df.xs(p, level=0, drop_level=False).index)
+            else:
+                dataPeriod=pd.DataFrame(np.repeat(df.loc[p].values, repList, axis=1),
+                                        index=df.xs(p, level=0, drop_level=False).index)
+            dataAllPeriods.append(dataPeriod)
+        df=pd.concat(dataAllPeriods,axis=0)
     for p in periodsOrder:
-        if esM is not None and esM.segmentation:
-            dataSegment = []
-            for t in esM.segmentsPerPeriod:
-                for rep in range(esM.timeStepsPerSegment.loc[p, t]):
-                    if divide:
-                        dataSegment.append(df.loc[p, t]/esM.timeStepsPerSegment.loc[p, t])
-                    else:
-                        dataSegment.append(df.loc[p, t])
-            dataPeriod = pd.concat(dataSegment, axis=1)
-            data.append(dataPeriod)
-        else:
-            data.append(df.loc[p])
+        data.append(df.loc[p])
     return pd.concat(data, axis=axis, ignore_index=True)
 
 
