@@ -1,8 +1,6 @@
 name: SPAGAT
 channels:
-  - anaconda
   - conda-forge
-  - defaults
 dependencies:
   - cartopy
   - dask
