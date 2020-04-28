@@ -1054,16 +1054,22 @@ class StorageModel(ComponentModel):
                 # Get rid of the unnecessary 0 level
                 stateOfChargeIntra.columns = stateOfChargeIntra.columns.droplevel()
                 stateOfChargeInter.columns = stateOfChargeInter.columns.droplevel()
-                # Concat data
-                data = []
+                # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
+                # time steps first
                 if esM.segmentation:
-                    dataAllPeriods=[]
+                    dataAllPeriods = []
                     for p in esM.typicalPeriods:
+                        # Repeat each segment in each period as often as time steps are represented by the corresponding
+                        # segment
                         repList = esM.timeStepsPerSegment.loc[p, :].tolist()
                         dataPeriod = pd.DataFrame(np.repeat(stateOfChargeIntra.loc[p].loc[:, :esM.segmentsPerPeriod[-1]].values, repList, axis=1),
                                                   index=stateOfChargeIntra.xs(p, level=0, drop_level=False).index)
                         dataAllPeriods.append(dataPeriod)
+                    # Concat data to multiindex dataframe with periods, components and locations as indices and inner-
+                    # period time steps as columns
                     stateOfChargeIntra = pd.concat(dataAllPeriods, axis=0)
+                # Concat data according to periods order to cover the full time horizon
+                data = []
                 for count, p in enumerate(esM.periodsOrder):
                     data.append((stateOfChargeInter.loc[:, count] +
                                  stateOfChargeIntra.loc[p].loc[:, :esM.timeStepsPerPeriod[-1]].T).T)

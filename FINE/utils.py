@@ -764,19 +764,30 @@ def setFormattedTimeSeries(timeSeries):
 
 
 def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
-    data = []
+    # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
+    # time steps first
     if esM is not None and esM.segmentation:
         dataAllPeriods = []
         for p in esM.typicalPeriods:
-            repList=esM.timeStepsPerSegment.loc[p,:].tolist()
+            # Repeat each segment in each period as often as time steps are represented by the corresponding
+            # segment
+            repList = esM.timeStepsPerSegment.loc[p, :].tolist()
+            # if divide is set to True, the values are divided when being unravelled, e.g. in order to fit provided
+            # energy per segment provided energy per time step
             if divide:
-                dataPeriod=pd.DataFrame(np.repeat(np.divide(df.loc[p].values, repList), repList, axis=1),
-                                        index=df.xs(p, level=0, drop_level=False).index)
+                dataPeriod = pd.DataFrame(np.repeat(np.divide(df.loc[p].values, repList), repList, axis=1),
+                                          index=df.xs(p, level=0, drop_level=False).index)
+            # if divide is set to Frue, the values are not divided when being unravelled e.g. in case of time-
+            # independent costs
             else:
-                dataPeriod=pd.DataFrame(np.repeat(df.loc[p].values, repList, axis=1),
-                                        index=df.xs(p, level=0, drop_level=False).index)
+                dataPeriod = pd.DataFrame(np.repeat(df.loc[p].values, repList, axis=1),
+                                          index=df.xs(p, level=0, drop_level=False).index)
             dataAllPeriods.append(dataPeriod)
-        df=pd.concat(dataAllPeriods,axis=0)
+        # Concat data to multiindex dataframe with periods, components and locations as indices and inner-
+        # period time steps as columns
+        df = pd.concat(dataAllPeriods, axis=0)
+    # Concat data according to periods order to cover the full time horizon
+    data = []
     for p in periodsOrder:
         data.append(df.loc[p])
     return pd.concat(data, axis=axis, ignore_index=True)
