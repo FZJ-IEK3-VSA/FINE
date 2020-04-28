@@ -5,7 +5,7 @@ conda:
 
   script:
     - conda env update -q --file=environment.yml
-    - conda env update -q --file=environment_dev.yml
+    # - conda env update -q --file=environment_dev.yml
     - conda info --envs
     - source activate SPAGAT
     - pip install -e .
