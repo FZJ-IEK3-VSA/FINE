@@ -283,14 +283,18 @@ class Component(metaclass=ABCMeta):
         :type yearlyFullLoadHoursMin:
             * None or
             * Float with positive (>=0) value or
-            * Pandas Series with positive (>=0) values.
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim).
 
         :param yearlyFullLoadHoursMax: if specified, indicates the maximum yearly full load hours.
             |br| * the default value is None
         :type yearlyFullLoadHoursMax:
             * None or
             * Float with positive (>=0) value or
-            * Pandas Series with positive (>=0) values.
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim).
 
         :param modelingClass: to the Component connected modeling class.
             |br| * the default value is ModelingClass
@@ -961,9 +965,9 @@ class ComponentModel(metaclass=ABCMeta):
         yearlyFullLoadHoursMinSet = getattr(pyM, 'yearlyFullLoadHoursMinSet_' + abbrvName)
 
         def yearlyFullLoadHoursMinConstraint(pyM, loc, compName):
-            full_load_hours = sum(
-                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for p, t,
-                in pyM.timeSet)
+            full_load_hours = (
+                sum(opVar[loc, compName, p, t] * esM.periodOccurrences[p] for p, t in pyM.timeSet) / esM.numberOfYears
+            )
             return full_load_hours >= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMin[loc]
 
         setattr(pyM, 'ConstrYearlyFullLoadHoursMin_' + abbrvName,
@@ -985,9 +989,9 @@ class ComponentModel(metaclass=ABCMeta):
         yearlyFullLoadHoursMaxSet = getattr(pyM, 'yearlyFullLoadHoursMaxSet_' + abbrvName)
 
         def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName):
-            full_load_hours = sum(
-                opVar[loc, compName, p, t] * esM.periodOccurrences[p] / esM.numberOfYears for p, t,
-                in pyM.timeSet)
+            full_load_hours = (
+                sum(opVar[loc, compName, p, t] * esM.periodOccurrences[p] for p, t in pyM.timeSet) / esM.numberOfYears
+            )
             return full_load_hours <= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMax[loc]
 
         setattr(pyM, 'ConstrYearlyFullLoadHoursMax_' + abbrvName,
