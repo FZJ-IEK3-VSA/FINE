@@ -1,4 +1,5 @@
 # directories
+.vscode/
 FINE.egg-info
 .idea/
 __pycache__/
@@ -18,3 +19,4 @@ __pycache__/
 *.lp
 *.glp
 *.mps
+.coverage

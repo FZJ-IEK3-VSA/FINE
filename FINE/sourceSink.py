@@ -14,7 +14,7 @@ class Source(Component):
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsaWeight=1, commodityLimitID=None,
-                 yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
+                 yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None,
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
@@ -147,7 +147,7 @@ class Source(Component):
                             capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
                             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
                             locationalEligibility=locationalEligibility, capacityMin=capacityMin,
-                            capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
+                            capacityMax=capacityMax, partLoadMin=partLoadMin, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
                             opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, QPcostScale=QPcostScale, interestRate=interestRate,
                             economicLifetime=economicLifetime, technicalLifetime=None, 
@@ -190,6 +190,14 @@ class Source(Component):
 
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, locationalEligibility)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
+
+        if self.partLoadMin is not None:
+            if self.fullOperationRateMax is not None:
+                if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
+                    raise ValueError('"fullOperationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+            if self.fullOperationRateFix is not None:
+                if ((self.fullOperationRateFix > 0) & (self.fullOperationRateFix < self.partLoadMin)).any().any():
+                    raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
@@ -260,7 +268,7 @@ class Sink(Source):
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsamWeight=1, commodityLimitID=None,
-                 yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None,
+                 yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None,
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
@@ -276,7 +284,7 @@ class Sink(Source):
         Source.__init__(self, esM, name, commodity, hasCapacityVariable, capacityVariableDomain,
                         capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix,
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
-                        capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
+                        capacityMax, partLoadMin, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
                         investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries, 
                         commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate, 
                         economicLifetime, technicalLifetime)
@@ -343,6 +351,7 @@ class SourceSinkModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
+        self.declareOperationBinarySet(pyM)
 
         # Declare sets for case differentiation of operating modes
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -375,6 +384,8 @@ class SourceSinkModel(ComponentModel):
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [commodityUnit*hour]
         self.declareOperationVars(pyM, 'op')
+        # Operation of component as binary [1/0]
+        self.declareOperationBinaryVars(pyM, 'op_bin')
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -449,6 +460,8 @@ class SourceSinkModel(ComponentModel):
         self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
         # Operation [commodityUnit*h] limited by the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        # Operation [physicalUnit*h] is limited by minimum part Load
+        self.additionalMinPartLoad(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op', 'op_bin', 'cap')
 
         self.yearlyLimitationConstraint(pyM, esM)
 
