@@ -38,10 +38,15 @@ def preprocessDataset(sds,n_regions,vars='all',dims='all'):
         ds_part2 = np.concatenate((ds_part2, 1.0/dataset[var].values), axis=1)
     ds_part2[np.isinf(ds_part2)] = 0
 
+    # or handle part2 separately
+    part2 = {}
+    for var in vars_2d:
+        part2[var] = dataset[var].values
+
     # Concatenate two parts together and save the region ids at index 0, length of part_1 at index 1
     ds = np.concatenate((np.array([range(n_regions)]).T, np.array([[ds_part1.shape[1]]*n_regions]).T, ds_part1, ds_part2), axis=1)
 
-    return ds
+    return ds, part2
 
 
 # To-Do: not valid...

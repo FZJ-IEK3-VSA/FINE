@@ -286,6 +286,29 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
 
         return aggregation_dict
 
+    if agg_mode == 'spectral':
+        aggregation_dict = {}
+        aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
+
+        for i in range(1,n_regions):
+            # Computing spectral clustering
+            model = skc.SpectralClustering(n_clusters=i).fit(centroids)
+            regions_label_list = model.labels_
+
+            # Create a regions dictionary for the aggregated regions
+            regions_dict = {}
+            for label in range(i):
+                # Group the regions of this regions label
+                sup_region_list = list(regions_list[regions_label_list == label])
+                sup_region_id = '_'.join(sup_region_list)
+                regions_dict[sup_region_id] = sup_region_list.copy()
+
+            aggregation_dict[i] = regions_dict.copy()
+        
+        return aggregation_dict
+
+
+
 
 @tto.timer
 def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_illustration=None, save_fig=None, dimension_description='space',weighting=None):
@@ -298,7 +321,7 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
 
     # Dataset after preprocessing as numpy array
-    ds = gu.preprocessDataset(sds,n_regions)
+    ds, part2 = gu.preprocessDataset(sds,n_regions)
 
     '''Clustering methods via SciPy.cluster module'''
 
@@ -403,8 +426,26 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         distance_matrix = hierarchy.distance.pdist(distMatrix)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
 
-    '''K-Means method using custom distance'''
-    #if agg_mode == 'kmeans':
+    if agg_mode == 'spectral':
+        '''Spectral clustering applied on part_2 of the input dataset'''
+
+        # To-Do: if several variables! (currently 1 var)
+        for var in part2.keys():
+            for i in range(1,n_regions):
+                # Perform the spectral clustering with part2 as precomputed affinity matrix (adjacency matrix)
+                model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(part2[var])
+                regions_label_list = model.labels_
+
+                # Create a regions dictionary for the aggregated regions
+                regions_dict = {}
+                for label in range(i):
+                    # Group the regions of this regions label
+                    sup_region_list = list(regions_list[regions_label_list == label])
+                    sup_region_id = '_'.join(sup_region_list)
+                    regions_dict[sup_region_id] = sup_region_list.copy()
+
+                aggregation_dict[i] = regions_dict.copy()
+
         
 
     return aggregation_dict
