@@ -411,8 +411,13 @@ class EnergySystemModel:
         hoursPerPeriod = int(numberOfTimeStepsPerPeriod*self.hoursPerTimeStep)
 
         timeStart = time.time()
-        utils.output('\nClustering time series data with ' + str(numberOfTypicalPeriods) + ' typical periods and '
-                     + str(numberOfTimeStepsPerPeriod) + ' time steps per period...', self.verbose, 0)
+        if segmentation:
+            utils.output('\nClustering time series data with ' + str(numberOfTypicalPeriods) + ' typical periods and '
+                         + str(numberOfTimeStepsPerPeriod) + ' time steps per period \nfurther clustered to '
+                         + str(numberOfSegmentsPerPeriod) + ' segments per period...', self.verbose, 0)
+        else:
+            utils.output('\nClustering time series data with ' + str(numberOfTypicalPeriods) + ' typical periods and '
+                         + str(numberOfTimeStepsPerPeriod) + ' time steps per period...', self.verbose, 0)
 
         # Format data to fit the input requirements of the tsam package:
         # (a) append the time series data from all components stored in all initialized modeling classes to a pandas
