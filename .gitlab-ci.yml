@@ -4,11 +4,12 @@ conda:
     - linux
 
   script:
+    - echo $metis_utils_cicd_token
     - conda env update -q --file=environment.yml
     # - conda env update -q --file=environment_dev.yml
     - conda info --envs
     - source activate SPAGAT
-    - git clone https://gitlab+deploy-token-6:metis_utils_cicd_token@gitlab.version.fz-juelich.de:10022/metis/metis-utils.git
+    - git clone https://gitlab+deploy-token-6:$metis_utils_cicd_token@gitlab.version.fz-juelich.de:10022/metis/metis-utils.git
     - pip install -e metis-utils
     - pip install -e .
     - pytest --cov=spagat tests/
