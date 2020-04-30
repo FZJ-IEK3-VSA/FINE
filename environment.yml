@@ -2,7 +2,6 @@ name: SPAGAT
 channels:
   - conda-forge
 dependencies:
-  - cartopy
   - dask
   - dask-jobqueue
   - gdal=2.4.1
