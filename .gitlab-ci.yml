@@ -15,12 +15,17 @@ conda:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
 
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+
+    - ssh git@gitlab.version.fz-juelich.de:10022
+
     # setup git
     - git config --global user.email "l.kotzur@fz-jueich.de"
     - git config --global user.name "Leander Kotzur"
 
     # clone repositories
-    - git clone ssh://git@gitlab.version.fz-juelich.de:10022/metis/metis-utils.git
+    - git clone git@gitlab.version.fz-juelich.de:10022/metis/metis-utils.git
   
   script:
 
