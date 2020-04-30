@@ -18,7 +18,7 @@ conda:
     - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
 
-    - ssh git@gitlab.version.fz-juelich.de:10022
+    - ssh git@gitlab.version.fz-juelich.de
 
     # setup git
     - git config --global user.email "l.kotzur@fz-jueich.de"
