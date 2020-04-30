@@ -20,7 +20,7 @@ conda:
     # - conda env update -q --file=environment_dev.yml
     - conda info --envs
     - source activate SPAGAT
-    - git clone https://gitlab.version.fz-juelich.de:10022/metis/metis-utils.git
+    - git clone ssh://git@gitlab.version.fz-juelich.de:10022/metis/metis-utils.git
     - pip install -e metis-utils
     - pip install -e .
     - pytest --cov=spagat tests/
