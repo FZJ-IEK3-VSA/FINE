@@ -4,6 +4,9 @@ conda:
     - linux
 
   before_script:
+    # to download private repository dependencies, setup ssh and clone repositories
+
+    # setup ssh
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
 
     - eval $(ssh-agent -s)
@@ -12,15 +15,19 @@ conda:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
 
+    # setup git
     - git config --global user.email "l.kotzur@fz-jueich.de"
     - git config --global user.name "Leander Kotzur"
+
+    # clone repositories
+    - git clone ssh://git@gitlab.version.fz-juelich.de:10022/metis/metis-utils.git
   
   script:
+
     - conda env update -q --file=environment.yml
     # - conda env update -q --file=environment_dev.yml
     - conda info --envs
     - source activate SPAGAT
-    - git clone ssh://git@gitlab.version.fz-juelich.de:10022/metis/metis-utils.git
     - pip install -e metis-utils
     - pip install -e .
     - pytest --cov=spagat tests/
