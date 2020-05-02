@@ -452,5 +452,12 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
 
 
 
-
+@tto.timer
+def variables_and_distance_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_illustration=None, save_fig=None, dimension_description='space',weighting=None):
+    '''Ensemble clustering with basic clusterings from:
+        - geographical centroids
+        - part_1 of dataset (time seiries data + 1d variables) by various clustering methods
+        - part_2 of dataset (2d variables) as (un)directed graph
+    '''
+    return None
 
