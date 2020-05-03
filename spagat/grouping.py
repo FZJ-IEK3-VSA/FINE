@@ -320,12 +320,12 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
     aggregation_dict = {}
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
 
-    # Dataset after preprocessing as numpy array
-    ds, part2 = gu.preprocessDataset(sds,n_regions)
+    ''' 1. Using hierarchical clustering for all variables with custom defined distance'''
 
-    '''Clustering methods via SciPy.cluster module'''
-
+    ## Clustering methods via SciPy.cluster module
     if agg_mode == 'hierarchical':
+        # Dataset after preprocessing as numpy array
+        ds = gu.preprocessDataset(sds,n_regions)
 
         # Apply clustering methods based on the Custom Distance Function
         Z = hierarchy.linkage(ds,method='average',metric=gu.selfDistance)
@@ -378,10 +378,11 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
 
             aggregation_dict[n_regions - i - 1] = regions_dict.copy()
 
-
-    '''Clustering methods via Scikit Learn module'''
-
+    ## Clustering methods via Scikit Learn module'''
     if agg_mode == 'hierarchical2':
+
+        # Dataset after preprocessing as numpy array
+        ds = gu.preprocessDataset(sds,n_regions)
 
         # Precompute the distance matrix according to the Custom Distance Function
         distMatrix = np.zeros((n_regions,n_regions))
@@ -426,25 +427,67 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         distance_matrix = hierarchy.distance.pdist(distMatrix)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
 
+    ''' 2. Using spectral clustering with precomputed affinity matrix'''
     if agg_mode == 'spectral':
-        '''Spectral clustering applied on part_2 of the input dataset'''
+        '''Spectral clustering applied on the input dataset:
+        If affinity is the adjacency matrix of a graph, this method can be used to find normalized graph cuts.
 
-        # To-Do: if several variables! (currently 1 var)
-        for var in part2.keys():
-            for i in range(1,n_regions):
-                # Perform the spectral clustering with part2 as precomputed affinity matrix (adjacency matrix)
-                model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(part2[var])
-                regions_label_list = model.labels_
+            - part_1: given the feature matrix of samples, 
+                - transform it to a graph and obtain its adjacency matrix
+                - ## TO-DO: may need weighting for part_1 OR selecting delta
+                
+            - part_2: the original matrices can be regarded directly as the adjacency matrix of the graph
+                - for each variable and each component: an adjacency matrix
+                - multiple variables & multiple components: need to combine them as one affinity matrix (with weighting factors)
+                - transform the adjacency matrix to affinity matrix:
+                    - firstly get its reciprocal: now it is like a dissimilarity matrix
+                    - then apply rbf kernel to obtain the similarity scores
+        
+        If you have an affinity matrix, such as a distance matrix, 
+            - for which 0 means identical elements, 
+            - and high values means very dissimilar elements, 
+        it can be transformed in a similarity matrix that is well suited for the algorithm by applying the Gaussian (RBF, heat) kernel
+        
+        '''
 
-                # Create a regions dictionary for the aggregated regions
-                regions_dict = {}
-                for label in range(i):
-                    # Group the regions of this regions label
-                    sup_region_list = list(regions_list[regions_label_list == label])
-                    sup_region_id = '_'.join(sup_region_list)
-                    regions_dict[sup_region_id] = sup_region_list.copy()
+        # Obtain affinity matrix for part_1 via RBF kernel applied on distance matrix
 
-                aggregation_dict[i] = regions_dict.copy()
+        part1 = gu.preprocessDataset(sds,n_regions,obtain='part_1')
+
+        part1_distance_matrix = hierarchy.distance.squareform(hierarchy.distance.pdist(part1))
+        delta = 1
+
+        affinity_part1 = np.exp(- part1_distance_matrix ** 2 / (2. * delta ** 2))
+
+        # Obtain affinity matrix for part_2
+        
+        part2_adjacency_matrix = gu.preprocessDataset(sds,n_regions,obtain='part_2')
+
+        part2_adjacency_adverse = 1.0 / part2_adjacency_matrix
+        part2_adjacency_adverse[np.isinf(part2_adjacency_adverse)] = 10000
+        np.fill_diagonal(part2_adjacency_adverse,0)
+
+        affinity_part2 = np.exp(- part2_adjacency_adverse ** 2 / (2. * delta ** 2))
+
+        # The precomputed affinity matrix for spectral clustering
+        affinity_matrix = affinity_part1 + affinity_part2
+
+        for i in range(1,n_regions):
+            # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
+            model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_part2)
+            regions_label_list = model.labels_
+
+            # Create a regions dictionary for the aggregated regions
+            regions_dict = {}
+            for label in range(i):
+                # Group the regions of this regions label
+                sup_region_list = list(regions_list[regions_label_list == label])
+                sup_region_id = '_'.join(sup_region_list)
+                regions_dict[sup_region_id] = sup_region_list.copy()
+
+            aggregation_dict[i] = regions_dict.copy()
+
+                
 
         
 
