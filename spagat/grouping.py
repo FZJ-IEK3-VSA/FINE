@@ -450,6 +450,12 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         
         '''
 
+        # weighting factors for part1 and part2
+        if weighting:
+            weighting = weighting
+        else:
+            weighting = [1,1]
+
         # Obtain affinity matrix for part_1 via RBF kernel applied on distance matrix
 
         part1 = gu.preprocessDataset(sds,n_regions,obtain='part_1')
@@ -470,11 +476,11 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         affinity_part2 = np.exp(- part2_adjacency_adverse ** 2 / (2. * delta ** 2))
 
         # The precomputed affinity matrix for spectral clustering
-        affinity_matrix = affinity_part1 + affinity_part2
+        affinity_matrix = (affinity_part1 * weighting[0] + affinity_part2 * weighting[1]) / (weighting[0] + weighting[1])
 
         for i in range(1,n_regions):
             # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
-            model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_part2)
+            model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
             regions_label_list = model.labels_
 
             # Create a regions dictionary for the aggregated regions

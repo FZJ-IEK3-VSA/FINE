@@ -69,11 +69,19 @@ def test_all_variable_based_clustering_hierarchical(test_dataset1):
      assert clustered_regions2.get(1) == {'01_reg_02_reg_03_reg': ['01_reg', '02_reg', '03_reg']}
 
 def test_all_variable_based_clustering_spectral(test_dataset1):
-     # Current: apply only on part_2
-     clustered_regions = spg.all_variable_based_clustering(test_dataset1,agg_mode='spectral')
-     assert len(clustered_regions) == 3
+     # Results depends heavily on the weighting factors of part1 and part2
+     clustered_regions1 = spg.all_variable_based_clustering(test_dataset1,agg_mode='spectral',weighting=[5,1])
+     assert len(clustered_regions1) == 3
 
-     dict2 = clustered_regions.get(2)
+     dict2 = clustered_regions1.get(2)
      for sup_region in dict2.values():
+          if len(sup_region) == 2:
+               assert sorted(sup_region) ==  ['01_reg','02_reg']
+
+     clustered_regions2 = spg.all_variable_based_clustering(test_dataset1,agg_mode='spectral',weighting=[1,10])
+     assert len(clustered_regions2) == 3
+
+     dict2_2 = clustered_regions2.get(2)
+     for sup_region in dict2_2.values():
           if len(sup_region) == 2:
                assert sorted(sup_region) ==  ['02_reg','03_reg']
