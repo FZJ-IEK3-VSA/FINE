@@ -45,6 +45,41 @@ def test_dataset1():
      sds.xr_dataset = ds
      return sds
 
+# Create a Test Xarray Dataset: each variable has several components
+@pytest.fixture()
+def test_dataset2():
+     space = ['01_reg','02_reg','03_reg']
+     timestep = ['T0','T1']
+     space_2 = space.copy()
+     component = ['c1','c2','c3','c4']
+     Period = [0]
+
+     demand = np.stack([[[[np.nan,np.nan] for i in range(3)],
+                         [[1,    1],
+                          [0.9,  0],
+                          [2,   0.9]],
+                         [[np.nan,np.nan] for i in range(3)],
+                         [[0,   0.3],
+                          [1,    2],
+                          [1,    1]]]])
+     demand = xr.DataArray(demand, coords=[Period,component,space, timestep], dims=['Period','component','space', 'TimeStep'])
+     cap_1d = np.stack([[0.9,  1,  0.9],
+                        [1,    0,  1],
+                        [0.9,  0,  0.9],
+                        [np.nan] *3])
+     cap_1d = xr.DataArray(np.array(cap_1d, coords=[component,space], dims=['component','space'])
+     dist_2d = np.stack([[[0,1,2],[1,0,10],[2,10,0]],
+                         [[0,0.1,0.2],[0.1,0,1],[0.2,1,0]],
+                         [[np.nan] * 3 for i in range(3)],
+                         [[np.nan] * 3 for i in range(3)]])
+     dist_2d = xr.DataArray(np.array(dist_2d, coords=[component,space,space_2], dims=['component','space','space_2'])
+
+     ds = xr.Dataset({'operationFixRate': opFix,'1d_capacity': cap_1d,'2d_distance': dist_2d})
+
+     sds = spd.SpagatDataSet()
+     sds.xr_dataset = ds
+     return sds
+
 def test_all_variable_based_clustering_hierarchical(test_dataset1):
      clustered_regions1 = spg.all_variable_based_clustering(test_dataset1,agg_mode='hierarchical')
      assert len(clustered_regions1) == 3

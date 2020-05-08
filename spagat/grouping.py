@@ -450,18 +450,18 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         
         '''
 
-        # weighting factors for part1 and part2
+        # List of weighting factors for part1 and part2
         if weighting:
             weighting = weighting
         else:
             weighting = [1,1]
 
+        delta = 1
+
         # Obtain affinity matrix for part_1 via RBF kernel applied on distance matrix
 
         part1 = gu.preprocessDataset(sds,n_regions,obtain='part_1')
-
         part1_distance_matrix = hierarchy.distance.squareform(hierarchy.distance.pdist(part1))
-        delta = 1
 
         affinity_part1 = np.exp(- part1_distance_matrix ** 2 / (2. * delta ** 2))
 

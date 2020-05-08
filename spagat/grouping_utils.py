@@ -98,11 +98,11 @@ def preprocessDataset(sds,n_regions,vars='all',dims='all',obtain='complete'):
     vars_2d = []
 
     for varname, da in dataset.data_vars.items():
-        if da.dims == ('space', 'TimeStep'):
+        if da.dims == ('Period','component','space', 'TimeStep'):
             vars_ts.append(varname)
-        if da.dims == ('space',):
+        if da.dims == ('component','space'):
             vars_1d.append(varname)
-        if da.dims == ('space', 'space_2'):
+        if da.dims == ('component','space','space_2'):
             vars_2d.append(varname)
 
     if obtain == 'complete':
