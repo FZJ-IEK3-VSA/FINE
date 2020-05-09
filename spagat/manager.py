@@ -25,7 +25,7 @@ class SpagatManager:
 
     def grouping(self, mode='distance based', dimension_description='space'):
         
-        aggregation_mode = 'spectral'
+        aggregation_mode = 'hierarchical2'
 
         # Using distanced_based_clustering (geographical distance)
         if mode == 'distance based':

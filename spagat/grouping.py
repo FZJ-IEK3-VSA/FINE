@@ -51,7 +51,7 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
     
     centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000  # km
     regions_list = sds.xr_dataset[dimension_description].values
-    n_regions = len(centroids)
+    n_regions = len(regions_list)
 
     '''Clustering methods via SciPy.cluster module'''
 
@@ -62,16 +62,22 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         # Various methods, e.g. 'average', 'weighted', 'centroid' -> representation of new clusters 
         Z = hierarchy.linkage(distance_matrix, 'centroid')
 
-        print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
-        plt.figure(1)
-        plt.title('Hierarchical Tree')
-        hierarchy.dendrogram(Z)
-
-        plt.figure(2)
-        plt.title('Inconsistencies')
+        # Evaluation of this clustering methods
+        print('Statistics on this hiearchical clustering:')
+        
+        print('The cophentic correlation distance is ', hierarchy.cophenet(Z, distance_matrix)[0])
+        
+        fig, ax = plt.subplots(figsize=(18,7))
         inconsistency = hierarchy.inconsistent(Z)
-        plt.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
+        ax.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
+        ax.set_title('Inconsistency Coefficients: indicate where to cut the hierarchy', fontsize=14)
+        ax.set_xlabel('Linkage height', fontsize=12)
+        ax.set_ylabel('Inconsistencies', fontsize=12)
 
+        plt.xticks(np.arange(1, len(Z)+1, int(len(Z)/10)))
+        plt.show()
+        
+        # If and how to save the hierarchical tree 
         if ax_illustration is not None:
             R = hierarchy.dendrogram(Z, orientation="top",
                                      labels=sds.xr_dataset[dimension_description].values, ax=ax_illustration, leaf_font_size=14)
@@ -79,7 +85,6 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
             if save_fig is not None:
 
                 pto.plt_savefig(save_name=save_fig)
-
         elif save_fig is not None:
 
             fig, ax = pto.plt.subplots(figsize=(25, 12))
@@ -260,29 +265,69 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
                 sup_region_list = list(regions_list[regions_label_list == label])
                 sup_region_id = '_'.join(sup_region_list)
                 regions_dict[sup_region_id] = sup_region_list.copy()
+            
+            if verbose:
+                print(i)
+                print('\t', 'lables:', regions_label_list)
+                for sup_region_id, sup_region_list in regions_dict.items():
+                    print('\t', sup_region_id, ': ', sup_region_list)
 
             aggregation_dict[i] = regions_dict.copy()
 
-        # Plot the hierarchical tree dendrogram
-        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(centroids)
-        # Create the counts of samples under each node
-        counts = np.zeros(clustering_tree.children_.shape[0])
-        n_samples = len(clustering_tree.labels_)
-        for i, merge in enumerate(clustering_tree.children_):
-            current_count = 0
-            for child_idx in merge:
-                if child_idx < n_samples:
-                    current_count += 1  # leaf node
-                else:
-                    current_count += counts[child_idx - n_samples]
-            counts[i] = current_count
+        # Create linkage matrix for dendrogram
+        def createLinkages():
+            clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(centroids)
+            # Create the counts of samples under each node
+            counts = np.zeros(clustering_tree.children_.shape[0])
+            n_samples = len(clustering_tree.labels_)
+            for i, merge in enumerate(clustering_tree.children_):
+                current_count = 0
+                for child_idx in merge:
+                    if child_idx < n_samples:
+                        current_count += 1  # leaf node
+                    else:
+                        current_count += counts[child_idx - n_samples]
+                counts[i] = current_count
+                
+            linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
             
-        linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
-        # Plot the corresponding dendrogram
-        hierarchy.dendrogram(linkage_matrix)
+            return linkage_matrix
 
+        # Plot the hierarchical tree dendrogram
+        linkage_matrix = createLinkages()
         distance_matrix = hierarchy.distance.pdist(centroids)
+        #hierarchy.dendrogram(linkage_matrix)
+
+        # Evaluation of this clustering methods
+        print('Statistics on this hiearchical clustering:')
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
+
+        fig, ax = plt.subplots(figsize=(18,7))
+        inconsistency = hierarchy.inconsistent(linkage_matrix)
+        ax.plot(range(1,len(linkage_matrix)+1),list(inconsistency[:,3]),'go-')
+        ax.set_title('Inconsistency Coefficients: indicate where to cut the hierarchy', fontsize=14)
+        ax.set_xlabel('Linkage height', fontsize=12)
+        ax.set_ylabel('Inconsistencies', fontsize=12)
+
+        plt.xticks(np.arange(1, len(linkage_matrix)+1, int(len(linkage_matrix)/10)))
+        plt.show()
+
+        # If and how to save the hierarchical tree 
+        if ax_illustration is not None:
+            R = hierarchy.dendrogram(linkage_matrix, orientation="top",
+                                     labels=sds.xr_dataset[dimension_description].values, ax=ax_illustration, leaf_font_size=14)
+
+            if save_fig is not None:
+
+                pto.plt_savefig(save_name=save_fig)
+        elif save_fig is not None:
+
+            fig, ax = pto.plt.subplots(figsize=(25, 12))
+
+            R = hierarchy.dendrogram(linkage_matrix, orientation="top",
+                                     labels=sds.xr_dataset[dimension_description].values, ax=ax, leaf_font_size=14)
+
+            pto.plt_savefig(fig=fig, save_name=save_fig)
 
         return aggregation_dict
 
@@ -502,7 +547,7 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
 
 
 @tto.timer
-def variables_and_distance_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_illustration=None, save_fig=None, dimension_description='space',weighting=None):
+def variables_and_distance_ensemble_clustering(sds,agg_mode='hierarchical',verbose=False, ax_illustration=None, save_fig=None, dimension_description='space',weighting=None):
     '''Ensemble clustering with basic clusterings from:
         - geographical centroids
         - part_1 of dataset (time seiries data + 1d variables) by various clustering methods
