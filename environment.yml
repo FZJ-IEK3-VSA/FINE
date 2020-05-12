@@ -4,7 +4,6 @@ channels:
 dependencies:
   - dask
   - dask-jobqueue
-  - gdal=2.4.1
   - geopandas
   - jupyter
   - matplotlib
@@ -16,11 +15,8 @@ dependencies:
   - tqdm
   - xarray
   - openpyxl
-  - cartopy
-  - geoviews
   - pip:
       - netcdf4
-      - pvlib
       - pytest-cov
       - scipy
       - sklearn
