@@ -16,6 +16,7 @@ dependencies:
   - tqdm
   - xarray
   - openpyxl
+  - cartopy
   - pip:
       - netcdf4
       - pvlib
