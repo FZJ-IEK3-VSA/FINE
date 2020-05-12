@@ -17,6 +17,7 @@ dependencies:
   - xarray
   - openpyxl
   - cartopy
+  - geoviews
   - pip:
       - netcdf4
       - pvlib
