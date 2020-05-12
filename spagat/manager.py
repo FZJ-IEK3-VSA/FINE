@@ -1,6 +1,5 @@
 import logging
 
-import metis_utils.io_tools as ito
 import spagat.dataset as spd
 import spagat.grouping as spg
 import spagat.representation as spr
@@ -31,11 +30,12 @@ class SpagatManager:
             else:
                 save_path = None
 
-            self.aggregation_dict = spg.distance_based_clustering(self.sds, save_fig=save_path, dimension_description=dimension_description)
+            self.aggregation_dict = spg.distance_based_clustering(
+                self.sds, save_fig=save_path, dimension_description=dimension_description)
 
     def representation(self, number_of_regions):
         self.sds_out = spr.aggregate_based_on_sub_to_sup_region_id_dict(self.sds,
-                                                                        self.aggregation_dict[number_of_regions], 
+                                                                        self.aggregation_dict[number_of_regions],
                                                                         aggregation_function_dict=self.aggregation_function_dict)
 
     def save_data(self, sds_folder, save_initial_sds=True):

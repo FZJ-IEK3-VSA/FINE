@@ -5,11 +5,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from shapely.geometry import LineString
-import os 
+import os
 
-import geokit as gk
-import metis_utils.io_tools as ito
-import metis_utils.time_tools as tto
+import spagat.utils as spu
 import pathlib
 
 logger_dataset = logging.getLogger('spagat_dataset')
@@ -70,7 +68,7 @@ class SpagatDataSet:
                      sds_regions_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):
         '''Reads in both shapefile as well as xarray dataset from a folder to the sds'''
 
-        #gets the complete paths
+        # gets the complete paths
         sds_xr_dataset_path = sds_folder_path / sds_xr_dataset_filename
         sds_regions_path = sds_folder_path / sds_regions_filename
 
@@ -87,7 +85,7 @@ class SpagatDataSet:
         df = self.xr_dataset.space.to_dataframe()
         geometries = self.xr_dataset.gpd_geometries.values
 
-        ito.create_gdf(df=df, geometries=geometries, crs=crs, filepath=shape_output_path)
+        spu.create_gdf(df=df, geometries=geometries, crs=crs, filepath=shape_output_path)
 
     def save_data(self, sds_output_path):
 
@@ -99,17 +97,17 @@ class SpagatDataSet:
         else:
             self.xr_dataset.to_netcdf(sds_output_path)
 
-    @tto.timer
+    @spu.timer
     def save_sds(self, sds_folder_path,
                  sds_region_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):
-        ito.create_dir(sds_folder_path)
+        spu.create_dir(sds_folder_path)
 
         # save geometries
-        shape_output_path =  os.path.join(sds_folder_path, sds_region_filename)  
+        shape_output_path = os.path.join(sds_folder_path, sds_region_filename)
         self.save_sds_regions(shape_output_path)
 
         # TODO: maybe also save grid files here
 
         # save data
-        sds_output_path = os.path.join(sds_folder_path, sds_xr_dataset_filename)  
+        sds_output_path = os.path.join(sds_folder_path, sds_xr_dataset_filename)
         self.save_data(sds_output_path)

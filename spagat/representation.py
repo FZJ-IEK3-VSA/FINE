@@ -8,12 +8,10 @@ import xarray as xr
 from shapely.geometry import LineString
 from shapely.ops import cascaded_union, unary_union
 
-import metis_utils.io_tools as ito
-import metis_utils.time_tools as tto
+import spagat.utils as spu
 import spagat.dataset as spd
 
 logger_representation = logging.getLogger('spagat_representation')
-
 
 
 def add_region_centroids(sds, spatial_dim='space'):
@@ -39,7 +37,7 @@ def add_centroid_distances(sds, spatial_dim='space'):
     sds.xr_dataset['centroid_distances'] = (['space', 'space_2'], xr_data_array_out.values)
 
 
-def aggregate_based_on_sub_to_sup_region_id_dict(sds, sub_to_sup_region_id_dict, aggregation_function_dict=None, 
+def aggregate_based_on_sub_to_sup_region_id_dict(sds, sub_to_sup_region_id_dict, aggregation_function_dict=None,
                                                  spatial_dim='space', time_dim='TimeStep'):
     """Spatially aggregates all variables of the sds.xr_dataset according to sub_to_sup_region_id_dict using aggregation functions defined by aggregation_function_dict"""
 
@@ -51,7 +49,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds, sub_to_sup_region_id_dict,
             aggregation_weight = None
         else:
             if varname in aggregation_function_dict.keys():
-                aggregation_mode = aggregation_function_dict[varname][0] # TODO: implement this properly
+                aggregation_mode = aggregation_function_dict[varname][0]  # TODO: implement this properly
                 aggregation_weight_varname = aggregation_function_dict[varname][1]
                 if aggregation_weight_varname is not None:
                     aggregation_weight = sds.xr_dataset[aggregation_weight_varname].fillna(1)
@@ -64,12 +62,13 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds, sub_to_sup_region_id_dict,
         if varname == 'gpd_geometries':
             shapes_aggregated = aggregate_geometries(sds.xr_dataset[varname], sub_to_sup_region_id_dict)
             sds_2.add_region_data(list(sub_to_sup_region_id_dict.keys()))
-            sds_2.add_objects(description='gpd_geometries', dimension_list=(spatial_dim), object_list=shapes_aggregated)
+            sds_2.add_objects(description='gpd_geometries', dimension_list=(
+                spatial_dim), object_list=shapes_aggregated)
             add_region_centroids(sds_2)
 
         elif varname != 'gpd_centroids':
             if spatial_dim in da.dims and time_dim in da.dims:
-                da = aggregate_time_series(sds.xr_dataset[varname], sub_to_sup_region_id_dict, mode=aggregation_mode, 
+                da = aggregate_time_series(sds.xr_dataset[varname], sub_to_sup_region_id_dict, mode=aggregation_mode,
                                            xr_weight_array=aggregation_weight)
                 sds_2.xr_dataset[varname] = da
 
@@ -112,7 +111,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     return xr_data_array_out
 
 
-def aggregate_time_series(xr_data_array_in, sub_to_sup_region_id_dict, mode='mean', xr_weight_array=None, 
+def aggregate_time_series(xr_data_array_in, sub_to_sup_region_id_dict, mode='mean', xr_weight_array=None,
                           spatial_dim='space', time_dim='TimeStep'):
     """Aggregates all data of a data array containing time series with dimension 'sub_regions' to new data_array with
     dimension 'regions"""
@@ -132,7 +131,7 @@ def aggregate_time_series(xr_data_array_in, sub_to_sup_region_id_dict, mode='mea
 
     data_out_dummy[:] = np.nan
 
-    xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list) 
+    xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
         if mode == 'mean':
@@ -143,7 +142,8 @@ def aggregate_time_series(xr_data_array_in, sub_to_sup_region_id_dict, mode='mea
             weighted_xr_data_array_in = xr_data_array_in * xr_weight_array
 
             # TODO: implement weighted mean aggregation properly
-            xr_data_array_out.loc[dict(space=sup_region_id)] = weighted_xr_data_array_in.sel(space=sub_region_id_list).sum(dim=spatial_dim, skipna=True) / xr_weight_array.sel(space=sub_region_id_list).sum(dim=spatial_dim, skipna=True)
+            xr_data_array_out.loc[dict(space=sup_region_id)] = weighted_xr_data_array_in.sel(space=sub_region_id_list).sum(
+                dim=spatial_dim, skipna=True) / xr_weight_array.sel(space=sub_region_id_list).sum(dim=spatial_dim, skipna=True)
 
         if mode == 'sum':
             xr_data_array_out.loc[dict(space=sup_region_id)] = xr_data_array_in.sel(
@@ -169,7 +169,7 @@ def aggregate_values(xr_data_array_in, sub_to_sup_region_id_dict, mode='mean', o
 
     data_out_dummy = np.zeros(tuple(len(coord) for coord in aggregated_coords.values()))
 
-    xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list) 
+    xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
         if mode == 'mean':
@@ -190,7 +190,7 @@ def aggregate_values(xr_data_array_in, sub_to_sup_region_id_dict, mode='mean', o
         return xr_data_array_out
 
 
-def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='bool', 
+def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='bool',
                           set_diagonal_to_zero=True, spatial_dim='space'):
     """Aggregates all data of a data array containing connections with dimension 'sub_regions' to new data_array with
     dimension 'regions"""
@@ -207,22 +207,21 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='boo
 
     data_out_dummy = np.zeros(tuple(len(coord) for coord in aggregated_coords.values()))
 
-    xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list) 
+    xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
         for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():
             if mode == 'mean':
-                xr_data_array_out.loc[dict(space=sup_region_id, 
-                                           space_2=sup_region_id_2)] = xr_data_array_in.sel(space=sub_region_id_list, 
+                xr_data_array_out.loc[dict(space=sup_region_id,
+                                           space_2=sup_region_id_2)] = xr_data_array_in.sel(space=sub_region_id_list,
                                                                                             space_2=sub_region_id_list_2).mean(dim=['space', 'space_2']).values
             elif mode == 'bool':
                 sum_array = xr_data_array_in.sel(
                     space=sub_region_id_list, space_2=sub_region_id_list_2).sum(dim=['space', 'space_2'])
 
                 xr_data_array_out.loc[dict(space=sup_region_id,
-                                           space_2=sup_region_id_2)] = sum_array.where(sum_array==0, 1)
-                
-                
+                                           space_2=sup_region_id_2)] = sum_array.where(sum_array == 0, 1)
+
             elif mode == 'sum':
                 xr_data_array_out.loc[dict(space=sup_region_id,
                                            space_2=sup_region_id_2)] = xr_data_array_in.sel(
@@ -234,14 +233,14 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode='boo
                 xr_data_array_out.loc[dict(space=sup_region_id,
                                            space_2=sup_region_id_2)] = 0
 
-                # TODO: make sure, that setting NAN values to 0 does not cause troubles 
+                # TODO: make sure, that setting NAN values to 0 does not cause troubles
                 # -> find a better, such that only non-nan diagonal entries are set to zero
 
     return xr_data_array_out
 
 
 # spagat.output:
-def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space', locational_eligibility='2d_locationalEligibility', 
+def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space', locational_eligibility='2d_locationalEligibility',
                           component_name='Transmission, AC cables'):
     # TODO: move this to spr or so
     # TODO: add check, whether gpd_centroids exist
@@ -272,4 +271,4 @@ def create_grid_shapefile(sds, filename='AC_lines.shp', spatial_dim='space', loc
             #      'x': ,
          })
 
-    ito.create_gdf(df, geoms, crs=3035, filepath=filename)
+    spu.create_gdf(df, geoms, crs=3035, filepath=filename)

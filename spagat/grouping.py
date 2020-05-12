@@ -9,13 +9,7 @@ from matplotlib import pyplot as plt
 from scipy.cluster import hierarchy
 
 # import spagat.dataset as spd
-import metis_utils.io_tools as ito
-import metis_utils.plot_tools as pto
-import metis_utils.time_tools as tto
-
-# import pypsa
-# import pypsa.networkclustering as nc
-# from sklearn.cluster import AgglomerativeClustering
+import spagat.utils as spu
 
 logger_grouping = logging.getLogger('spagat_grouping')
 
@@ -36,7 +30,7 @@ def string_based_clustering(regions):
     return sub_to_sup_region_id_dict
 
 
-@tto.timer
+@spu.timer
 def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illustration=None, save_fig=None, dimension_description='space'):
     '''Cluster M regions based on centroid distance, hence closest regions are aggregated to obtain N regions.'''
 
@@ -52,16 +46,16 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
 
             if save_fig is not None:
 
-                pto.plt_savefig(save_name=save_fig)
+                spu.plt_savefig(save_name=save_fig)
 
         elif save_fig is not None:
 
-            fig, ax = pto.plt.subplots(figsize=(25, 12))
+            fig, ax = spu.plt.subplots(figsize=(25, 12))
 
             R = hierarchy.dendrogram(Z, orientation="top",
                                      labels=sds.xr_dataset[dimension_description].values, ax=ax, leaf_font_size=14)
 
-            pto.plt_savefig(fig=fig, save_name=save_fig)
+            spu.plt_savefig(fig=fig, save_name=save_fig)
 
         n_regions = len(Z)
 
@@ -69,7 +63,8 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
 
         regions_dict = {region_id: [region_id] for region_id in list(sds.xr_dataset[dimension_description].values)}
 
-        regions_dict_complete = {region_id: [region_id] for region_id in list(sds.xr_dataset[dimension_description].values)}
+        regions_dict_complete = {region_id: [region_id]
+                                 for region_id in list(sds.xr_dataset[dimension_description].values)}
 
         aggregation_dict[n_regions] = regions_dict.copy()
 
