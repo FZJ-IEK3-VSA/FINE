@@ -1,6 +1,6 @@
 name: SPAGAT
 channels:
-  - conda-forge
+  - conda-metachannel
 dependencies:
   - dask
   - dask-jobqueue
@@ -8,7 +8,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numpy
-  - pandas
+  - pandas=1.0.3
   - pip
   - pytest
   - scikit-learn
