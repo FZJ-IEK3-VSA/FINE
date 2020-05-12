@@ -15,6 +15,7 @@ dependencies:
   - scikit-learn
   - tqdm
   - xarray
+  - openpyxl
   - pip:
       - netcdf4
       - pvlib
