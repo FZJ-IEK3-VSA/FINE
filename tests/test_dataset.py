@@ -1,13 +1,13 @@
 
 import pytest
 
-import metis_utils.io_tools as ito
+import pathlib
 import spagat.dataset as spd
 
 
 def test_read_and_save_sds():
-    sds_folder_path_in = ito.Path('tests/data/input')
-    sds_folder_path_out = ito.Path('tests/data/output')
+    sds_folder_path_in = pathlib.Path('tests/data/input')
+    sds_folder_path_out = pathlib.Path('tests/data/output')
 
     sds = spd.SpagatDataSet()
 

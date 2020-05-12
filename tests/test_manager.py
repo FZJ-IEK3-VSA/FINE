@@ -1,13 +1,14 @@
 import pytest
 
-import metis_utils.io_tools as ito
+import pathlib
 import spagat.manager as spm
+import spagat.utils as spu
 
 
 def test_workflow():
-    sds_folder_path_in = ito.Path('tests/data/input')
-    sds_folder_path_out = ito.Path('tests/data/output/aggregated/33')
-    ito.create_dir(sds_folder_path_out)
+    sds_folder_path_in = pathlib.Path('tests/data/input')
+    sds_folder_path_out = pathlib.Path('tests/data/output/aggregated/33')
+    spu.create_dir(sds_folder_path_out)
 
     n_regions = 33
 

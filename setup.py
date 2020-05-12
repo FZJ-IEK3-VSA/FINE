@@ -6,5 +6,5 @@ setup(
     author='Robin Beer',
     url='http://www.fz-juelich.de/iek/iek-3/EN/Home/home_node.html',
     packages=["spagat"],
-    install_requires=['geokit', 'xarray', 'numpy', 'pandas', 'geopandas', 'dask', 'scipy']
+    install_requires=['xarray', 'numpy', 'pandas', 'geopandas', 'dask', 'scipy']
 )
