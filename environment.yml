@@ -1,6 +1,6 @@
 name: SPAGAT
 channels:
-  - conda-metachannel
+  - conda-forge
 dependencies:
   - dask
   - dask-jobqueue
