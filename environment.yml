@@ -4,17 +4,18 @@ channels:
 dependencies:
   - dask
   - dask-jobqueue
-  - geopandas
-  - jupyter
-  - matplotlib
+  - geopandas=0.7
+  - jupyter=1
+  - matplotlib=3.2
   - numpy
   - pandas=1.0.3
   - pip
-  - pytest
+  - pytest=5.4
   - scikit-learn
   - tqdm
-  - xarray
-  - openpyxl
+  - xarray=0.15
+  - openpyxl=3.0
+  - black=19
   - pip:
       - netcdf4
       - pytest-cov

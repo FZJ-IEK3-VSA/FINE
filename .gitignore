@@ -6,6 +6,8 @@ tests/data/output/
 tests/data/InputData/
 .vscode/
 .pytest_cache/
+spagat.egg-info/
+
 # files
 *.ipynb_checkpoints
 *__pycache__
