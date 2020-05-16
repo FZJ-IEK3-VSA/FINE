@@ -8,4 +8,4 @@ conda:
     - conda info --envs
     - source activate SPAGAT
     - pip install -e .
-    - pytest --cov=spagat tests/
+    - pytest --cov=spagat .
