@@ -49,60 +49,54 @@ def test_dataset1():
 @pytest.fixture()
 def test_dataset2():
      space = ['01_reg','02_reg','03_reg']
-     timestep = ['T0','T1']
+     TimeStep = ['T0','T1']
      space_2 = space.copy()
      component = ['c1','c2','c3','c4']
      Period = [0]
 
-     demand = np.stack([[[[np.nan,np.nan] for i in range(3)],
-                         [[1,    1],
-                          [0.9,  0],
-                          [2,   0.9]],
-                         [[np.nan,np.nan] for i in range(3)],
-                         [[0,   0.3],
-                          [1,    2],
-                          [1,    1]]]])
-     demand = xr.DataArray(demand, coords=[Period,component,space, timestep], dims=['Period','component','space', 'TimeStep'])
+     demand = np.stack([[[[np.nan,np.nan, np.nan] for i in range(2)]],
+                        [[[1, 0.9,  2],
+                          [1, 0,  0.9]]],
+                        [[[np.nan,np.nan, np.nan] for i in range(2)]],
+                        [[[0,   1, 1],
+                          [0.3, 2, 1]]]])
+     demand = xr.DataArray(demand, coords=[component, Period, TimeStep, space], dims=['component', 'Period', 'TimeStep','space'])
      cap_1d = np.stack([[0.9,  1,  0.9],
                         [1,    0,  1],
                         [0.9,  0,  0.9],
                         [np.nan] *3])
-     cap_1d = xr.DataArray(np.array(cap_1d, coords=[component,space], dims=['component','space'])
+     cap_1d = xr.DataArray(cap_1d, coords=[component,space], dims=['component','space'])
      dist_2d = np.stack([[[0,1,2],[1,0,10],[2,10,0]],
                          [[0,0.1,0.2],[0.1,0,1],[0.2,1,0]],
                          [[np.nan] * 3 for i in range(3)],
                          [[np.nan] * 3 for i in range(3)]])
-     dist_2d = xr.DataArray(np.array(dist_2d, coords=[component,space,space_2], dims=['component','space','space_2'])
+     dist_2d = xr.DataArray(dist_2d, coords=[component,space,space_2], dims=['component','space','space_2'])
 
-     ds = xr.Dataset({'operationFixRate': opFix,'1d_capacity': cap_1d,'2d_distance': dist_2d})
+     ds = xr.Dataset({'operationFixRate': demand, '1d_capacity': cap_1d, '2d_distance': dist_2d})
 
      sds = spd.SpagatDataSet()
      sds.xr_dataset = ds
      return sds
 
-def test_all_variable_based_clustering_hierarchical(test_dataset1):
-     clustered_regions1 = spg.all_variable_based_clustering(test_dataset1,agg_mode='hierarchical')
+def test_all_variable_based_clustering_hierarchical(test_dataset2):
+     clustered_regions1 = spg.all_variable_based_clustering(test_dataset2,agg_mode='hierarchical2')
      assert len(clustered_regions1) == 3
      assert clustered_regions1.get(3) == {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']}
      
      dict2 = clustered_regions1.get(2)
      for sup_reg in dict2:
           if len(sup_reg) == 2:
-               assert sorted(sup_reg) == ['01_reg', '02_reg']
+               assert sorted(sup_reg) == ['01_reg', '03_reg']
           if len(sup_reg) == 1:
-               assert sorted(sup_reg) == ['03_reg']
+               assert sorted(sup_reg) == ['02_reg']
 
      dict1 = clustered_regions1.get(1)
      for sup_reg in dict1:
           if len(sup_reg) == 3:
                assert sorted(sup_reg) == ['01_reg', '02_reg', '03_reg']
 
-     clustered_regions2 = spg.all_variable_based_clustering(test_dataset1,agg_mode='hierarchical2')
-     assert len(clustered_regions2) == 3
-     assert clustered_regions2.get(3) == {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']}
-     assert clustered_regions2.get(2) == {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']}
-     assert clustered_regions2.get(1) == {'01_reg_02_reg_03_reg': ['01_reg', '02_reg', '03_reg']}
-
+     
+'''
 def test_all_variable_based_clustering_spectral(test_dataset1):
      # Results depends heavily on the weighting factors of part1 and part2
      clustered_regions1 = spg.all_variable_based_clustering(test_dataset1,agg_mode='spectral',weighting=[5,1])
@@ -120,3 +114,4 @@ def test_all_variable_based_clustering_spectral(test_dataset1):
      for sup_region in dict2_2.values():
           if len(sup_region) == 2:
                assert sorted(sup_region) ==  ['02_reg','03_reg']
+'''

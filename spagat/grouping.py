@@ -74,7 +74,7 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         ax.set_xlabel('Linkage height', fontsize=12)
         ax.set_ylabel('Inconsistencies', fontsize=12)
 
-        plt.xticks(np.arange(1, len(Z)+1, int(len(Z)/10)))
+        plt.xticks(np.arange(1, len(Z)+1, 1))
         plt.show()
         
         # If and how to save the hierarchical tree 
@@ -168,17 +168,26 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
                 sup_region_id = '_'.join(sup_region)
                 regions_dict[sup_region_id] = sup_region.copy()
 
+            if verbose:
+                print(i)
+                print('\t', 'lables:', regions_label_list)
+                for sup_region_id, sup_region_list in regions_dict.items():
+                    print('\t', sup_region_id, ': ', sup_region_list)
+
             aggregation_dict[k] = regions_dict.copy()
 
         # Plotting the rss according to increase of k values, check if there exists an inflection point
-        plt.plot(range(1,n_regions),rss,'go-')
-        plt.title('Impact of k on distortion')
-        plt.xlabel('K (number_of_regions)')
-        plt.ylabel('Distortion')
-
-        plt.savefig('/home/s-xing/code/spagat/output/ClusteringAnalysis/scipy_kmeans_Distortion.png')
+        fig, ax = pto.plt.subplots(figsize=(25, 12))
+        ax.plot(range(1,n_regions),rss,'go-')
+        ax.set_title('Impact of k on distortion')
+        ax.set_xlabel('K (number_of_regions)')
+        ax.set_ylabel('Distortion')
         plt.show()
 
+        path = '/home/s-xing/code/spagat/output/ClusteringAnalysis/'
+        figname = save_fig if save_fig is not None else 'scipy_kmeans_Distortion.png'
+
+        pto.plt_savefig(fig=fig, path=path, save_name=figname)
 
         return aggregation_dict
 
@@ -234,16 +243,26 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
                 sup_region_id = '_'.join(sup_region)
                 regions_dict[sup_region_id] = sup_region.copy()
 
+            if verbose:
+                print(i)
+                print('\t', 'lables:', regions_label_list)
+                for sup_region_id, sup_region_list in regions_dict.items():
+                    print('\t', sup_region_id, ': ', sup_region_list)
+
             aggregation_dict[k] = regions_dict.copy()
 
         # Plotting the rss according to increase of k values, check if there exists an inflection point
-        plt.plot(range(1,n_regions),rss,'go-')
-        plt.title('Within-cluster sum-of-squares')
-        plt.xlabel('K (number_of_regions)')
-        plt.ylabel('Inertia')
-
-        plt.savefig('/home/s-xing/code/spagat/output/ClusteringAnalysis/sklearn_kmeans_Distortion.png')
+        fig, ax = pto.plt.subplots(figsize=(25, 12))
+        ax.plot(range(1,n_regions),rss,'go-')
+        ax.set_title('Within-cluster sum-of-squares')
+        ax.set_xlabel('K (number_of_regions)')
+        ax.set_ylabel('Distortion / Inertia')
         plt.show()
+
+        path = '/home/s-xing/code/spagat/output/ClusteringAnalysis/'
+        figname = save_fig if save_fig is not None else 'sklearn_kmeans_Distortion.png'
+
+        pto.plt_savefig(fig=fig, path=path, save_name=figname)
 
         return aggregation_dict
         
@@ -309,7 +328,7 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         ax.set_xlabel('Linkage height', fontsize=12)
         ax.set_ylabel('Inconsistencies', fontsize=12)
 
-        plt.xticks(np.arange(1, len(linkage_matrix)+1, int(len(linkage_matrix)/10)))
+        plt.xticks(np.arange(1, len(linkage_matrix)+1, 1))
         plt.show()
 
         # If and how to save the hierarchical tree 
@@ -348,6 +367,12 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
                 sup_region_id = '_'.join(sup_region_list)
                 regions_dict[sup_region_id] = sup_region_list.copy()
 
+            if verbose:
+                print(i)
+                print('\t', 'lables:', regions_label_list)
+                for sup_region_id, sup_region_list in regions_dict.items():
+                    print('\t', sup_region_id, ': ', sup_region_list)
+
             aggregation_dict[i] = regions_dict.copy()
         
         return aggregation_dict
@@ -365,17 +390,22 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
     aggregation_dict = {}
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
 
+    ds_ts, ds_1d = gu.preprocessDataset(sds,n_regions)
+
     ''' 1. Using hierarchical clustering for all variables with custom defined distance'''
 
     ## Clustering methods via SciPy.cluster module
     if agg_mode == 'hierarchical':
-        # Dataset after preprocessing as numpy array
-        ds = gu.preprocessDataset(sds,n_regions)
 
         # Apply clustering methods based on the Custom Distance Function
-        Z = hierarchy.linkage(ds,method='average',metric=gu.selfDistance)
 
-        distance_matrix = hierarchy.distance.pdist(ds,gu.selfDistance)
+        # Z = hierarchy.linkage(ds,method='average',metric=gu.selfDistance)
+        #distance_matrix = hierarchy.distance.pdist(ds,gu.selfDistance)
+
+        distance_matrix = hierarchy.distance.squareform(gu.selfDistanceMatrix(ds_ts,n_regions))
+        Z = hierarchy.linkage(distance_matrix, method='centroid')
+
+        
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
         plt.figure(1)
         plt.title('Hierarchical Tree')
@@ -422,19 +452,13 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
                 print('\t', 'sup_region_id_list', sup_region_id_list)
 
             aggregation_dict[n_regions - i - 1] = regions_dict.copy()
+    
 
     ## Clustering methods via Scikit Learn module'''
     if agg_mode == 'hierarchical2':
 
-        # Dataset after preprocessing as numpy array
-        ds = gu.preprocessDataset(sds,n_regions)
-
         # Precompute the distance matrix according to the Custom Distance Function
-        distMatrix = np.zeros((n_regions,n_regions))
-        for i in range(n_regions):
-            for j in range(i+1,n_regions):
-                distMatrix[i,j] = gu.selfDistance(ds[i],ds[j])
-        distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())
+        distMatrix = gu.selfDistanceMatrix(ds_ts, n_regions)
 
         for i in range(1,n_regions):
             # Computing hierarchical clustering
@@ -471,73 +495,75 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
 
         distance_matrix = hierarchy.distance.pdist(distMatrix)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
+    
 
     ''' 2. Using spectral clustering with precomputed affinity matrix'''
-    if agg_mode == 'spectral':
-        '''Spectral clustering applied on the input dataset:
-        If affinity is the adjacency matrix of a graph, this method can be used to find normalized graph cuts.
+    # if agg_mode == 'spectral':
+    #     '''Spectral clustering applied on the input dataset:
+    #     If affinity is the adjacency matrix of a graph, this method can be used to find normalized graph cuts.
 
-            - part_1: given the feature matrix of samples, 
-                - transform it to a graph and obtain its adjacency matrix
-                - ## TO-DO: may need weighting for part_1 OR selecting delta
+    #         - part_1: given the feature matrix of samples, 
+    #             - transform it to a graph and obtain its adjacency matrix
+    #             - ## TO-DO: may need weighting for part_1 OR selecting delta
                 
-            - part_2: the original matrices can be regarded directly as the adjacency matrix of the graph
-                - for each variable and each component: an adjacency matrix
-                - multiple variables & multiple components: need to combine them as one affinity matrix (with weighting factors)
-                - transform the adjacency matrix to affinity matrix:
-                    - firstly get its reciprocal: now it is like a dissimilarity matrix
-                    - then apply rbf kernel to obtain the similarity scores
+    #         - part_2: the original matrices can be regarded directly as the adjacency matrix of the graph
+    #             - for each variable and each component: an adjacency matrix
+    #             - multiple variables & multiple components: need to combine them as one affinity matrix (with weighting factors)
+    #             - transform the adjacency matrix to affinity matrix:
+    #                 - firstly get its reciprocal: now it is like a dissimilarity matrix
+    #                 - then apply rbf kernel to obtain the similarity scores
         
-        If you have an affinity matrix, such as a distance matrix, 
-            - for which 0 means identical elements, 
-            - and high values means very dissimilar elements, 
-        it can be transformed in a similarity matrix that is well suited for the algorithm by applying the Gaussian (RBF, heat) kernel
+    #     If you have an affinity matrix, such as a distance matrix, 
+    #         - for which 0 means identical elements, 
+    #         - and high values means very dissimilar elements, 
+    #     it can be transformed in a similarity matrix that is well suited for the algorithm by applying the Gaussian (RBF, heat) kernel
+    #     '''
+
         
-        '''
 
-        # List of weighting factors for part1 and part2
-        if weighting:
-            weighting = weighting
-        else:
-            weighting = [1,1]
+    #     # List of weighting factors for part1 and part2
+    #     if weighting:
+    #         weighting = weighting
+    #     else:
+    #         weighting = [1,1]
 
-        delta = 1
+    #     delta = 1
 
-        # Obtain affinity matrix for part_1 via RBF kernel applied on distance matrix
+    #     # Obtain affinity matrix for part_1 via RBF kernel applied on distance matrix
 
-        part1 = gu.preprocessDataset(sds,n_regions,obtain='part_1')
-        part1_distance_matrix = hierarchy.distance.squareform(hierarchy.distance.pdist(part1))
+    #     part1 = gu.preprocessDataset(sds,n_regions,obtain='part_1')
+    #     part1_distance_matrix = hierarchy.distance.squareform(hierarchy.distance.pdist(part1))
 
-        affinity_part1 = np.exp(- part1_distance_matrix ** 2 / (2. * delta ** 2))
+    #     affinity_part1 = np.exp(- part1_distance_matrix ** 2 / (2. * delta ** 2))
 
-        # Obtain affinity matrix for part_2
+    #     # Obtain affinity matrix for part_2
         
-        part2_adjacency_matrix = gu.preprocessDataset(sds,n_regions,obtain='part_2')
+    #     part2_adjacency_matrix = gu.preprocessDataset(sds,n_regions,obtain='part_2')
 
-        part2_adjacency_adverse = 1.0 / part2_adjacency_matrix
-        part2_adjacency_adverse[np.isinf(part2_adjacency_adverse)] = 10000
-        np.fill_diagonal(part2_adjacency_adverse,0)
+    #     part2_adjacency_adverse = 1.0 / part2_adjacency_matrix
+    #     part2_adjacency_adverse[np.isinf(part2_adjacency_adverse)] = 10000
+    #     np.fill_diagonal(part2_adjacency_adverse,0)
 
-        affinity_part2 = np.exp(- part2_adjacency_adverse ** 2 / (2. * delta ** 2))
+    #     affinity_part2 = np.exp(- part2_adjacency_adverse ** 2 / (2. * delta ** 2))
 
-        # The precomputed affinity matrix for spectral clustering
-        affinity_matrix = (affinity_part1 * weighting[0] + affinity_part2 * weighting[1]) / (weighting[0] + weighting[1])
+    #     # The precomputed affinity matrix for spectral clustering
+    #     affinity_matrix = (affinity_part1 * weighting[0] + affinity_part2 * weighting[1]) / (weighting[0] + weighting[1])
 
-        for i in range(1,n_regions):
-            # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
-            model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
-            regions_label_list = model.labels_
+    #     for i in range(1,n_regions):
+    #         # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
+    #         model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
+    #         regions_label_list = model.labels_
 
-            # Create a regions dictionary for the aggregated regions
-            regions_dict = {}
-            for label in range(i):
-                # Group the regions of this regions label
-                sup_region_list = list(regions_list[regions_label_list == label])
-                sup_region_id = '_'.join(sup_region_list)
-                regions_dict[sup_region_id] = sup_region_list.copy()
+    #         # Create a regions dictionary for the aggregated regions
+    #         regions_dict = {}
+    #         for label in range(i):
+    #             # Group the regions of this regions label
+    #             sup_region_list = list(regions_list[regions_label_list == label])
+    #             sup_region_id = '_'.join(sup_region_list)
+    #             regions_dict[sup_region_id] = sup_region_list.copy()
 
-            aggregation_dict[i] = regions_dict.copy()
-
+    #         aggregation_dict[i] = regions_dict.copy()
+    
                 
 
         
