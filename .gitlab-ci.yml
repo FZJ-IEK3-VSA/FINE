@@ -28,6 +28,7 @@ conda:
     - conda info --envs
     - source activate FINE
 
+    - conda env update --name FINE --file=spagat/environment.yml
     - pip install -e spagat
 
     - pip install -e .
