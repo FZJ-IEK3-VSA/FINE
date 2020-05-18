@@ -2,24 +2,18 @@ import xarray as xr
 import numpy as np
 
 from sklearn import preprocessing as prep
+from scipy.cluster import hierarchy
 
-def preprocessTimeSeries(vars_dict, n_regions, n_components, weightings=None):
+def preprocessTimeSeries(vars_dict, n_components):
     '''Preprocess the input dictionary of time series variables
         - Input vars_dic: dimensions of each variable value are 'component','space','TimeStep'
-        - weightings: weight factors of each time series variable
         - Output ds_ts: a dictionary containing all variables
             - For each variable: the value is a dictionary containing all its valid components
             - For each variable and each valid component: 
-                - the value is a numpy array of size n_regions*TimeStep         
-                - the array is normalized and weighted by the variable weight factors      
+                - the value is a numpy array of size n_regions * TimeStep         
+                - the array is normalized  ?and weighted by the variable weight factors ?     
     '''
     if not vars_dict: return None
-
-    if weightings:
-        weightings = weightings
-    else:
-        vars_list = list(vars_dict)
-        weightings = dict.fromkeys(vars_list,1)
 
     ds_ts = {}
 
@@ -32,29 +26,22 @@ def preprocessTimeSeries(vars_dict, n_regions, n_components, weightings=None):
         var_mean_df['component_id'] = np.array(range(n_components))
         valid_component_ids = list(var_mean_df[var_mean_df[var].notna()]['component_id'])
 
-        # Concatenate the normalized and weighted matrix for each valid component
-        weight_factor = weightings[var]
+        # Concatenate the normalized matrix for each valid component
         for comp_id in valid_component_ids:
-            ds_ts_var[comp_id] = prep.scale(da[comp_id].values) * weight_factor
+            ds_ts_var[comp_id] = prep.scale(da[comp_id].values) 
 
         ds_ts[var] = ds_ts_var
            
     return ds_ts
 
-def preprocess1dVariables(vars_dict, n_components, weightings=None):
+def preprocess1dVariables(vars_dict, n_components):
     ''' Preprocess 1-dimensional variables
         - return a dictionary containing all 1d variables
-        - each value is of size n_regions * valid_components_of_each_variable, e.g. 96*6 for '1d_capacityFix'
+        - each value is a numpy array of size n_regions * n_valid_components_of_each_variable, e.g. 96*6 for '1d_capacityFix'
     '''
 
     if not vars_dict: return None
 
-    if weightings:
-        weightings = weightings
-    else:
-        vars_list = list(vars_dict)
-        weightings = dict.fromkeys(vars_list,1)
-    
     ds_1d = {}
 
     for var, da in vars_dict.items():
@@ -64,40 +51,122 @@ def preprocess1dVariables(vars_dict, n_components, weightings=None):
         var_mean_df['component_id'] = np.array(range(n_components))
         valid_component_ids = list(var_mean_df[var_mean_df[var].notna()]['component_id'])
         
-        weight_factor = weightings[var]
 
         # Only remain the valid components
         data = da.values[valid_component_ids]
-        ds_1d[var] = prep.scale(data.T) * weight_factor
+        ds_1d[var] = prep.scale(data.T)
 
     return ds_1d
 
-def preprocess2dVariables(dataset,vars_list,handle_mode='extract',weightings=None):
-    ''' Preprocess part_2 with one of the following mode:
-        - Transform part_2 to a distance matrix by transforming the connectivity values to distance meaning
-        - or extracted the matrices of all variables and add them up as one adjacency matrix for spectral clustering
+def preprocess2dVariables(vars_dict, component_list, handle_mode='extract', component_weightings=None):
+    ''' Preprocess matrices of 2d-vars with one of the following mode:
+        - Firstly: Adjust the region order of space_2, i.e. order of columns
+        - Obtain ds_2d: a dictionary containing all variables
+            - For each variable: the value is a dictionary containing all its valid components
+            - For each variable and each valid component: 
+                - the value is a numpy array of size n_regions*n_regions
+                - the matrix is symmetrical. (undirected graph), with zero diagonal values
+                - all the values in the matrices are NON-Negative!
 
-        weightings: the weight factors of each 2d-variable, a dictionary
+        - Return: a dictionary containing a matrix / vector for each 2d var
+            - the single matrix of size n_regions * n_regions
+                - firstly normalize the matrices,
+                - add the matrices together with weight factors for components?
+            - Possible TO-DO: remain separate matrices and process them in parallel later!
+
+        How to handle the matrices:
+            - handle_mode == 'reciprocal': Transform matrices to a distance matrix by transforming the connectivity values to distance meaning
+            - handle_mode='extract': extract the matrices of all variables and add them up as one adjacency matrix for spectral clustering
     '''
 
-    if weightings:
-            weight_factors = weightings
-    else:
-        weight_factors = dict.fromkeys(vars_list,1)
-        
-    ## TO-DO: maybe other transformation methods are possible, e.g. Gaussian (RBF, heat) kernel
-    if handle_mode == 'reciprocal':
-        ''' 2d variables -> Distance Matrix, 
-            - when variables have a POSITIVE relation to the connectivity, 
-                   i.e. higher value means stronger connection (then they are more likely to be grouped!)
-            - the matrix for each variable should be symmetrical or triangular matrix! (undirected graph)
-            - original diagonal values are 0's -> in distance matrix: also 0's!
+    if not vars_dict: return None
 
-            ## TO-DO: how to handle the nan values correctly?
-            ## why need to handle it: need to add the matrices
-            ## but can pre-clean the dataset before process it.
+    # Weighting factors for each component
+    if component_weightings:
+        component_weightings = component_weightings
+    else:
+        component_weightings = dict.fromkeys(component_list,1)
+    
+    n_components = len(component_list)
+
+    # Obtain th dictionary of connectivity matrices for each variable and for its valid component, each of size 96*96 (n_regions)
+    ds_2d = {}
+
+    for var, da in vars_2d.items():
+        
+        ds_2d_var = {}
+        
+        # Different region orders
+        space1 = da.space.values
+        space2 = da.space_2.values
+        
+        # Find the valid components for each variable
+        var_mean_df = ds_extracted[var].mean(dim="space").mean(dim="space_2").to_dataframe()
+        var_mean_df['component_id'] = np.array(range(n_components))
+        valid_component_ids = list(var_mean_df[var_mean_df[var].notna()]['component_id'])
+        
+        # DataArray da for this 2d-variable, component:29 * space:96 * space_2:96
+        for comp_id in valid_component_ids:
+            
+            # Under each component, there is a 96*96 squares matrix to represent the connection features
+            var_matr = da[comp_id].values
+            
+            # Rearrange the columns order --> the regions order of space_2!
+            da_comp_df = pd.DataFrame(data=var_matr,columns=space2)
+            da_comp_df = da_comp_df[space1]
+            
+            ds_2d_var[comp_id] = da_comp_df.to_numpy()
+        
+        ds_2d[var] = ds_2d_var
+
+    # Add the matrices of various valid components to one single matrix for each variable
+
+    ## Possible TO-DO: maybe other transformation methods are possible, e.g. Gaussian (RBF, heat) kernel
+    if handle_mode == 'reciprocal':
+        ''' original symmetric connectivity matrix -> 1-dim Distance Matrix (vector)
+            - higher values for connectivity means: the two regions are more likely to be grouped
+            - can be regarded as smaller distance!
         '''
 
+        # Obtain a dictionary containing one distance vector (1-dim matrix) for each variable
+        ds = {}
+
+        min_max_scaler = prep.MinMaxScaler()
+
+        for var, var_dict in ds_2d.items():
+
+            # The length of the connectivity/distance vector
+            l = (n_regions * (n_regions - 1)) // 2
+            var_vector = np.zeros(l)
+            
+            # Transform the symmetric connectivity matrix to 1-dim distance vector
+            n = 0
+            for c, data in var_dict.items():
+
+                c_weight = component_weightings[c]
+                n += c_weight
+                
+                # Obtain the vector form of this symmetric connectivity matrix
+                vec = hierarchy.distance.squareform(data)
+
+                # Standardize it: keep all the values non-negative! AND keep zeros to be zeros (not change the meaning of connectivity!)
+                # => scale the data to the range [0,1]
+                vec = np.reshape(vec, (-1,1))
+                vec = min_max_scaler.fit_transform(vec)
+                vec = np.reshape(vec, (1,-1))[0]
+                
+                var_vector += vec
+            
+            # Obtain the average connectivity vector of all its valid components: 
+            #   - high values -> strong connection -> smaller distance value!
+            #   - values in the range of [0,1]
+            var_vector = var_vector / n
+
+            # Transform the value of connectivity to distance
+
+            ds[var] = var_vector
+
+        
         ds_part2 = 1.0/dataset[vars_list[0]].values
         ds_part2[np.isinf(ds_part2)] = 100000 
         ds_part2[np.isnan(ds_part2)] = np.nanmean(ds_part2)
@@ -133,7 +202,7 @@ def preprocess2dVariables(dataset,vars_list,handle_mode='extract',weightings=Non
 
         return part2
 
-def preprocessDataset(sds,n_regions,vars='all',dims='all',handle_mode='extract',weightings=None):
+def preprocessDataset(sds,vars='all',dims='all',handle_mode='extract'):
     '''Preprocess the Xarray dataset: Separate the dataset into 3 parts: time series data, 1d-var data, and 2d-var data
         - vars_ts: Time series variables  
             - sub distances based on timesteps and based on components 
@@ -166,63 +235,27 @@ def preprocessDataset(sds,n_regions,vars='all',dims='all',handle_mode='extract',
         if da.dims == ('component','space','space_2'):
             vars_2d[varname] = da
 
-    n_components = len(dataset['component'].values)
+    component_list = list(dataset['component'].values)
 
-    ds_timeseries = preprocessTimeSeries(vars_ts, n_regions,n_components)
-    ds_1d_vars = preprocess1dVariables(vars_1d,n_components)
+    n_regions = len(dataset['space'].values)
+
+    ds_timeseries = preprocessTimeSeries(vars_ts, len(component_list))
+    ds_1d_vars = preprocess1dVariables(vars_1d, len(component_list))
 
     return ds_timeseries, ds_1d_vars
 
-    if obtain == 'complete':
-        if (vars_ts+vars_1d) and vars_2d:
-            # Part 1: time series & 1d variables -> Feature Matrix
-            ds_part1 = preprocessPart1(dataset,vars_ts+vars_1d)
 
-            # Part2:
-            ds_part2 = preprocessPart2(dataset,vars_2d)
-
-            # Concatenate two parts together and save the region ids at index 0, length of part_1 at index 1
-            ds = np.concatenate((np.array([range(n_regions)]).T, np.array([[ds_part1.shape[1]]*n_regions]).T, ds_part1, ds_part2), axis=1)
-            
-            return ds
-        elif (vars_ts+vars_1d) and not vars_2d:
-
-            ds_part1 = preprocessPart1(dataset,vars_ts+vars_1d)
-            ds_part2 = np.full([n_regions,1],np.nan)
-
-            ds = np.concatenate((np.array([range(n_regions)]).T, np.array([[ds_part1.shape[1]]*n_regions]).T, ds_part1, ds_part2), axis=1)
-
-            return ds
-        elif vars_2d and not (vars_ts+vars_1d) :
-
-            ds_part2 = preprocessPart2(dataset,vars_2d)
-
-            ds = np.concatenate((np.array([range(n_regions)]).T, np.array([[0]*n_regions]).T, ds_part2), axis=1)
-
-            return ds
-        else:
-            print('There is no variables in the given dataset!')
-            ds = np.concatenate((np.array([range(n_regions)]).T,np.array([[0]*n_regions]).T, np.full([n_regions,1],np.nan)),axis=1)
-            return ds
-    
-    if obtain == 'part_2':
-        if vars_2d:
-            return preprocessPart2(dataset,vars_2d,handle_mode='extract')
-        else:
-            return np.full([n_regions,1],np.nan)
-
-    if obtain == 'part_1':
-        if  vars_ts+vars_1d:
-            return preprocessPart1(dataset,vars_ts+vars_1d)
-        else:
-            return np.full([n_regions,1],np.nan)
-
-
-# Problem: not valid...
-def selfDistance(ds_ts, a, b):
+# Problem: not valid if considering 2d-vars
+def selfDistance(ds_ts, ds_1d, a, b, var_weightings=None):
     ''' Custom distance function: 
         - parameters a, b: region ids
-        - return: distance between a and b = euclidean distance of part_1 + corresponding value in part_2
+        - return: distance between a and b = distance_ts + distance_1d + distance_2d
+            - distance for time series: dist_var_timestep_component -> value subtraction
+            - distance for 1d vars: sum of euclidean distances for each variable
+            - distance for 2d vars: 
+            - each partial distance need to be divided by sum of variable weight factors, 
+                i.e. number of variables when all weight factors are 1, 
+                to reduce the effect of variables numbers on the final distance.
         ---
         Metric space properties (PROOF):
         - Non-negativity: d(i,j) > 0
@@ -236,24 +269,44 @@ def selfDistance(ds_ts, a, b):
     # distance_part_1 = np.linalg.norm(a[2:2+n]-b[2:2+n]) if n != 0 else 0
     # distance_part_2 = b[n+int(i)+2] if np.isnan(b[2+n]) else 0
 
-    #return distance_part_1 + distance_part_2
+    # Weighting factors of each variable 
+    if var_weightings:
+        var_weightings = var_weightings
+    else:
+        vars_list = list(ds_ts.keys()) + list(ds_1d.keys())
+        var_weightings = dict.fromkeys(vars_list,1)
 
-    distance_ts, l = 0, 0
+    # Distance of Time Series Part
+    distance_ts, l_ts = 0, 0
     for var, var_dict in ds_ts.items():
+
+        var_weight_factor = var_weightings[var]
+
         for component, data in var_dict.items():
             
-            l += data.shape[1]
+            l_ts += data.shape[1] * var_weight_factor
             
             reg_a_vector = data[a]
             reg_b_vector = data[b]
 
-            distance_ts += sum(abs(reg_a_vector-reg_b_vector))
+            distance_ts += sum(abs(reg_a_vector-reg_b_vector)) * var_weight_factor
 
-    distance_ts = distance_ts / l
+    distance_ts = distance_ts / l_ts
 
-    return distance_ts
+    # Distance of 1d Variables Part
+    distance_1d, l_1d = 0, 0
+    for var, data in ds_1d.items():
 
-def selfDistanceMatrix(ds_ts, n_regions):
+        var_weight_factor = var_weightings[var]
+        l_1d += var_weight_factor
+
+        distance_1d += np.linalg.norm(data[a]-data[b]) * var_weight_factor
+    
+    distance_1d = distance_1d / l_1d
+
+    return distance_ts + distance_1d
+
+def selfDistanceMatrix(ds_ts, ds_1d, n_regions):
     ''' Return a n_regions by n_regions symmetric distance matrix X 
     '''
 
@@ -261,7 +314,7 @@ def selfDistanceMatrix(ds_ts, n_regions):
 
     for i in range(n_regions):
         for j in range(i+1,n_regions):
-            distMatrix[i,j] = selfDistance(ds_ts,i,j)
+            distMatrix[i,j] = selfDistance(ds_ts,ds_1d,i,j)
 
     distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())
 

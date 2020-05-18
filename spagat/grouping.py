@@ -390,7 +390,7 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
     aggregation_dict = {}
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
 
-    ds_ts, ds_1d = gu.preprocessDataset(sds,n_regions)
+    ds_ts, ds_1d = gu.preprocessDataset(sds)
 
     ''' 1. Using hierarchical clustering for all variables with custom defined distance'''
 
@@ -402,7 +402,7 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
         # Z = hierarchy.linkage(ds,method='average',metric=gu.selfDistance)
         #distance_matrix = hierarchy.distance.pdist(ds,gu.selfDistance)
 
-        distance_matrix = hierarchy.distance.squareform(gu.selfDistanceMatrix(ds_ts,n_regions))
+        distance_matrix = hierarchy.distance.squareform(gu.selfDistanceMatrix(ds_ts, ds_1d, n_regions))
         Z = hierarchy.linkage(distance_matrix, method='centroid')
 
         
@@ -458,7 +458,7 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
     if agg_mode == 'hierarchical2':
 
         # Precompute the distance matrix according to the Custom Distance Function
-        distMatrix = gu.selfDistanceMatrix(ds_ts, n_regions)
+        distMatrix = gu.selfDistanceMatrix(ds_ts, ds_1d, n_regions)
 
         for i in range(1,n_regions):
             # Computing hierarchical clustering
