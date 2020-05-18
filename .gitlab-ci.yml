@@ -19,7 +19,7 @@ conda:
     - git config --global user.email "r.beer@fz-juelich.de"
     - git config --global user.name "Robin Beer"
 
-    - git clone git@gitlab.version.fz-juelich.de:10022/metis/spagat.git
+    - git clone ssh://git@gitlab.version.fz-juelich.de:10022/metis/spagat.git
 
 
   script:
