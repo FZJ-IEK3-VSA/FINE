@@ -58,7 +58,7 @@ def preprocess1dVariables(vars_dict, n_components):
 
     return ds_1d
 
-def preprocess2dVariables(vars_dict, component_list, handle_mode='extract', component_weightings=None):
+def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarity'):
     ''' Preprocess matrices of 2d-vars with one of the following mode:
         - Firstly: Adjust the region order of space_2, i.e. order of columns
         - Obtain ds_2d: a dictionary containing all variables
@@ -68,25 +68,17 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='extract', comp
                 - the matrix is symmetrical. (undirected graph), with zero diagonal values
                 - all the values in the matrices are NON-Negative!
 
-        - Return: a dictionary containing a matrix / vector for each 2d var
-            - the single matrix of size n_regions * n_regions
-                - firstly normalize the matrices,
-                - add the matrices together with weight factors for components?
-            - Possible TO-DO: remain separate matrices and process them in parallel later!
+        - Return: a dictionary containing a matrix / vector for each 2d var and each component
+            - standardize the vector (rescaling!)
+            - Possible TO-DO: add the matrics together?
 
         How to handle the matrices:
-            - handle_mode == 'reciprocal': Transform matrices to a distance matrix by transforming the connectivity values to distance meaning
+            - handle_mode == 'toDissimilarity': Convert matrices to a distance matrix by transforming the connectivity values to distance meaning
             - handle_mode='extract': extract the matrices of all variables and add them up as one adjacency matrix for spectral clustering
     '''
 
     if not vars_dict: return None
 
-    # Weighting factors for each component
-    if component_weightings:
-        component_weightings = component_weightings
-    else:
-        component_weightings = dict.fromkeys(component_list,1)
-    
     n_components = len(component_list)
 
     # Obtain th dictionary of connectivity matrices for each variable and for its valid component, each of size 96*96 (n_regions)
@@ -119,32 +111,25 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='extract', comp
         
         ds_2d[var] = ds_2d_var
 
-    # Add the matrices of various valid components to one single matrix for each variable
+    # Handle the matrices according to clustering methods
 
     ## Possible TO-DO: maybe other transformation methods are possible, e.g. Gaussian (RBF, heat) kernel
-    if handle_mode == 'reciprocal':
-        ''' original symmetric connectivity matrix -> 1-dim Distance Matrix (vector)
-            - higher values for connectivity means: the two regions are more likely to be grouped
-            - can be regarded as smaller distance!
+    if handle_mode == 'toDissimilarity':
+        ''' Convert similarity matrix (original symmetric connectivity matrix) into dissimilarity matrix (1-dim Distance vector)
+            - higher values for connectivity means: the two regions are more likely to be grouped -> can be regarded as smaller distance!
+            
+            - Rescaling the connectivity matrix to range [0,1], where 1 means maximum similarity
+            - dissim(x) = 1 - sim(x)
         '''
 
-        # Obtain a dictionary containing one distance vector (1-dim matrix) for each variable
-        ds = {}
-
+        # Obtain a dictionary containing one distance vector (1-dim matrix) for each variable and for each valid component
+ 
         min_max_scaler = prep.MinMaxScaler()
 
         for var, var_dict in ds_2d.items():
-
-            # The length of the connectivity/distance vector
-            l = (n_regions * (n_regions - 1)) // 2
-            var_vector = np.zeros(l)
             
             # Transform the symmetric connectivity matrix to 1-dim distance vector
-            n = 0
             for c, data in var_dict.items():
-
-                c_weight = component_weightings[c]
-                n += c_weight
                 
                 # Obtain the vector form of this symmetric connectivity matrix
                 vec = hierarchy.distance.squareform(data)
@@ -154,34 +139,14 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='extract', comp
                 vec = np.reshape(vec, (-1,1))
                 vec = min_max_scaler.fit_transform(vec)
                 vec = np.reshape(vec, (1,-1))[0]
+
+                # Convert the value of connectivity (similarity) to distance (dissimilarity)
+                vec = 1 - vec
                 
-                var_vector += vec
-            
-            # Obtain the average connectivity vector of all its valid components: 
-            #   - high values -> strong connection -> smaller distance value!
-            #   - values in the range of [0,1]
-            var_vector = var_vector / n
-
-            # Transform the value of connectivity to distance
-
-            ds[var] = var_vector
-
-        
-        ds_part2 = 1.0/dataset[vars_list[0]].values
-        ds_part2[np.isinf(ds_part2)] = 100000 
-        ds_part2[np.isnan(ds_part2)] = np.nanmean(ds_part2)
-        np.fill_diagonal(ds_part2,0)
-        ds_part2 = ds_part2 * weight_factors.get(vars_list[0])
-
-        ### For multiple variables -> add their n_region*n_region matrix as the final distance matrix
-        for var in vars_list[1:]:
-            var_matrix = 1.0/dataset[var].values
-            var_matrix[np.isinf(var_matrix)] = 100000
-            var_matrix[np.isna(var_matrix)] = np.nanmean(var_matrix)
-            np.fill_diagonal(var_matrix,0)
-            ds_part2 += var_matrix * weight_factors.get(var)
+                # Distance vector for this 2d variable and this component: 1 means maximum distance!
+                ds_2d[var][c] = vec
   
-        return ds_part2
+        return ds_2d
 
     if handle_mode == 'extract':
         '''2d variables -> Adjacency matrix : 
@@ -257,7 +222,7 @@ def selfDistance(ds_ts, ds_1d, a, b, var_weightings=None):
                 i.e. number of variables when all weight factors are 1, 
                 to reduce the effect of variables numbers on the final distance.
         ---
-        Metric space properties (PROOF):
+        Metric space properties (PROOF):  -> at the same level of data structure! in the same distance space!
         - Non-negativity: d(i,j) > 0
         - Identity of indiscernibles: d(i,i) = 0   ---> diagonal must be 0!
         - Symmetry: d(i,j) = d(j,i)  ---> the part_2 must be Symmetrical!
