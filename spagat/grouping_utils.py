@@ -5,6 +5,11 @@ import pandas as pd
 from sklearn import preprocessing as prep
 from scipy.cluster import hierarchy
 
+def matrix_MinMaxScaler(X, x_min=0, x_max=1):
+    ''' Standardize a numpy matrix to range [0,1], NOT column-wise, but matrix-wise!
+    '''
+    return ((X - np.min(X)) / (np.max(X) - np.min(X))) * (x_max - x_min) + x_min
+
 def preprocessTimeSeries(vars_dict, n_components):
     '''Preprocess the input dictionary of time series variables
         - Input vars_dic: dimensions of each variable value are 'component','space','TimeStep'
@@ -12,7 +17,7 @@ def preprocessTimeSeries(vars_dict, n_components):
             - For each variable: the value is a dictionary containing all its valid components
             - For each variable and each valid component: 
                 - the value is a numpy array of size n_regions * TimeStep         
-                - the array is normalized  ?and weighted by the variable weight factors ?     
+                - the array matrix is normalized to scale [0,1]     
     '''
     if not vars_dict: return None
 
@@ -27,9 +32,10 @@ def preprocessTimeSeries(vars_dict, n_components):
         var_mean_df['component_id'] = np.array(range(n_components))
         valid_component_ids = list(var_mean_df[var_mean_df[var].notna()]['component_id'])
 
-        # Concatenate the normalized matrix for each valid component
         for comp_id in valid_component_ids:
-            ds_ts_var[comp_id] = prep.scale(da[comp_id].values) 
+            # Compute the standardized matrix for each valid component: rescale the matrix value to range [0,1]
+            # -> the values in time series for this component should be in the same scaling: matrix_MinMaxScaler()
+            ds_ts_var[comp_id] = matrix_MinMaxScaler(da[comp_id].values) 
 
         ds_ts[var] = ds_ts_var
            
@@ -37,13 +43,17 @@ def preprocessTimeSeries(vars_dict, n_components):
 
 def preprocess1dVariables(vars_dict, n_components):
     ''' Preprocess 1-dimensional variables
-        - return a dictionary containing all 1d variables
-        - each value is a numpy array of size n_regions * n_valid_components_of_each_variable, e.g. 96*6 for '1d_capacityFix'
+        - return a dictionary containing a numpy matrix for all 1d variables
+        - each value is a numpy array of size n_regions * n_valid_components_of_each_variable, 
+            e.g. 96*6 for '1d_capacityFix'
+        - the numpy arrays are standardized, rescaling to the range [0,1] in column-wise, i.e. rescaling for each component
     '''
 
     if not vars_dict: return None
 
     ds_1d = {}
+
+    min_max_scaler = prep.MinMaxScaler()
 
     for var, da in vars_dict.items():
         
@@ -55,7 +65,7 @@ def preprocess1dVariables(vars_dict, n_components):
 
         # Only remain the valid components
         data = da.values[valid_component_ids]
-        ds_1d[var] = prep.scale(data.T)
+        ds_1d[var] = min_max_scaler.fit_transform(data.T)
 
     return ds_1d
 
