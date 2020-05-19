@@ -1,5 +1,6 @@
 import xarray as xr
 import numpy as np
+import pandas as pd
 
 from sklearn import preprocessing as prep
 from scipy.cluster import hierarchy
@@ -84,7 +85,7 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
     # Obtain th dictionary of connectivity matrices for each variable and for its valid component, each of size 96*96 (n_regions)
     ds_2d = {}
 
-    for var, da in vars_2d.items():
+    for var, da in vars_dict.items():
         
         ds_2d_var = {}
         
@@ -93,7 +94,7 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
         space2 = da.space_2.values
         
         # Find the valid components for each variable
-        var_mean_df = ds_extracted[var].mean(dim="space").mean(dim="space_2").to_dataframe()
+        var_mean_df = da.mean(dim="space").mean(dim="space_2").to_dataframe()
         var_mean_df['component_id'] = np.array(range(n_components))
         valid_component_ids = list(var_mean_df[var_mean_df[var].notna()]['component_id'])
         
@@ -167,7 +168,7 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
 
         return part2
 
-def preprocessDataset(sds,vars='all',dims='all',handle_mode='extract'):
+def preprocessDataset(sds,vars='all',dims='all',handle_mode='toDissimilarity'):
     '''Preprocess the Xarray dataset: Separate the dataset into 3 parts: time series data, 1d-var data, and 2d-var data
         - vars_ts: Time series variables  
             - sub distances based on timesteps and based on components 
@@ -206,23 +207,23 @@ def preprocessDataset(sds,vars='all',dims='all',handle_mode='extract'):
 
     ds_timeseries = preprocessTimeSeries(vars_ts, len(component_list))
     ds_1d_vars = preprocess1dVariables(vars_1d, len(component_list))
+    ds_2d_vars = preprocess2dVariables(vars_2d, component_list, handle_mode='toDissimilarity')
 
-    return ds_timeseries, ds_1d_vars
+    return ds_timeseries, ds_1d_vars, ds_2d_vars
 
 
-# Problem: not valid if considering 2d-vars
-def selfDistance(ds_ts, ds_1d, a, b, var_weightings=None):
+def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None):
     ''' Custom distance function: 
-        - parameters a, b: region ids
+        - parameters a, b: region ids, a < b, a,b in [0, n_regions)
         - return: distance between a and b = distance_ts + distance_1d + distance_2d
-            - distance for time series: dist_var_timestep_component -> value subtraction
-            - distance for 1d vars: sum of euclidean distances for each variable
-            - distance for 2d vars: 
+            - distance for time series: ** dist_var_component_timestep ** -> value subtraction
+            - distance for 1d vars: sum of (value subtraction in ** dist_var_component ** )
+            - distance for 2d vars: corresponding value in ** dist_var_component **
             - each partial distance need to be divided by sum of variable weight factors, 
                 i.e. number of variables when all weight factors are 1, 
                 to reduce the effect of variables numbers on the final distance.
         ---
-        Metric space properties (PROOF):  -> at the same level of data structure! in the same distance space!
+        Metric space properties :  -> at the same level of data structure! in the same distance space!
         - Non-negativity: d(i,j) > 0
         - Identity of indiscernibles: d(i,i) = 0   ---> diagonal must be 0!
         - Symmetry: d(i,j) = d(j,i)  ---> the part_2 must be Symmetrical!
@@ -238,7 +239,7 @@ def selfDistance(ds_ts, ds_1d, a, b, var_weightings=None):
     if var_weightings:
         var_weightings = var_weightings
     else:
-        vars_list = list(ds_ts.keys()) + list(ds_1d.keys())
+        vars_list = list(ds_ts.keys()) + list(ds_1d.keys()) + list(ds_2d.keys())
         var_weightings = dict.fromkeys(vars_list,1)
 
     # Distance of Time Series Part
@@ -263,15 +264,34 @@ def selfDistance(ds_ts, ds_1d, a, b, var_weightings=None):
     for var, data in ds_1d.items():
 
         var_weight_factor = var_weightings[var]
-        l_1d += var_weight_factor
+        l_1d += data.shape[1] * var_weight_factor
 
-        distance_1d += np.linalg.norm(data[a]-data[b]) * var_weight_factor
+        distance_1d += sum(abs(data[a] - data[b])) * var_weight_factor
     
     distance_1d = distance_1d / l_1d
 
-    return distance_ts + distance_1d
+    # Distance of 2d Variables Part
+    distance_2d, l_2d = 0, 0
 
-def selfDistanceMatrix(ds_ts, ds_1d, n_regions):
+    # The index of corresponding value for region[a] and region[b] in the distance vectors
+    index_regA_regB = a * (n_regions - a) + (b - a) -1
+    
+    for var, var_dict in ds_2d.items():
+
+        var_weight_factor = var_weightings[var]
+        l_2d += len(var_dict.keys()) * var_weight_factor
+
+        for component, data in var_dict.items():
+
+            # Find the corresponding distance value for region_a and region_b
+            distance_2d += data[index_regA_regB]
+
+    distance_2d = distance_2d / l_2d
+
+
+    return distance_ts + distance_1d + distance_2d
+
+def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions):
     ''' Return a n_regions by n_regions symmetric distance matrix X 
     '''
 
@@ -279,7 +299,7 @@ def selfDistanceMatrix(ds_ts, ds_1d, n_regions):
 
     for i in range(n_regions):
         for j in range(i+1,n_regions):
-            distMatrix[i,j] = selfDistance(ds_ts,ds_1d,i,j)
+            distMatrix[i,j] = selfDistance(ds_ts,ds_1d, ds_2d, n_regions, i,j)
 
     distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())
 
