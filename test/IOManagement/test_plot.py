@@ -1,4 +1,3 @@
-from FINE.IOManagement.plot import piechart_plot_function
 import pytest
 import geopandas as gpd
 import pathlib
