@@ -19,7 +19,7 @@ conda:
     - git config --global user.name "Robin Beer"
 
     - git clone ssh://git@gitlab.version.fz-juelich.de:10022/metis/spagat.git
-    - git clone https://github.com/FZJ-IEK3-VSA/geokit.git
+    # - git clone https://github.com/FZJ-IEK3-VSA/geokit.git
 
   script:
     - conda env update -q --file=requirements.yml
