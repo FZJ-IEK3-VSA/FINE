@@ -62,7 +62,10 @@ class SpagatManager:
 
         if save_initial_sds:
             spr.create_grid_shapefile(
-                self.sds, filename=sds_folder / "initial_sds_AC_lines.shp"
+                self.sds,
+                filename=sds_folder / "initial_sds_AC_lines.shp",
+                eligibility_variable=eligibility_variable,
+                eligibility_component=eligibility_component,
             )
             self.sds.save_sds(
                 sds_folder,

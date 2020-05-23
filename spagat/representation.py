@@ -343,8 +343,8 @@ def create_grid_shapefile(
     geoms = []
 
     if eligibility_component is not None:
-        eligibility_xr_array = sds.xr_dataset[locational_eligibility].sel(
-            component=component_name
+        eligibility_xr_array = sds.xr_dataset[eligibility_variable].sel(
+            component=eligibility_component
         )
     else:
         eligibility_xr_array = sds.xr_dataset[eligibility_variable]
