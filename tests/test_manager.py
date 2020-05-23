@@ -6,8 +6,8 @@ import spagat.utils as spu
 
 
 def test_workflow():
-    sds_folder_path_in = pathlib.Path("spagat/tests/data/input")
-    sds_folder_path_out = pathlib.Path("spagat/tests/data/output/aggregated/33")
+    sds_folder_path_in = pathlib.Path("tests/data/input")
+    sds_folder_path_out = pathlib.Path("tests/data/output/aggregated/33")
     spu.create_dir(sds_folder_path_out)
 
     n_regions = 33
