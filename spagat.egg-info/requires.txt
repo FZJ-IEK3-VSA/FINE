@@ -1,4 +1,3 @@
-geokit
 xarray
 numpy
 pandas
