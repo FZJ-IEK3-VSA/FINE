@@ -11,7 +11,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-re
 from getData import getData
 import xlrd
 
-import geokit as gk
 import geopandas as gpd
 
 
@@ -574,29 +573,6 @@ def multi_node_test_esM_optimized(scope="session"):
 
 
     return esM
-
-@pytest.fixture
-def multi_node_geokit_shapes(scope="session"):
-    shape_file_path = os.path.join(os.path.join(os.path.dirname(__file__), 
-        "../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
-
-    geokit_shapes = gk.vector.extractFeatures(shape_file_path)
-    geokit_shapes.set_index('index', inplace=True)
-
-    return geokit_shapes
-
-
-@pytest.fixture
-def multi_node_geopandas_shapes(scope="session"):
-
-    shape_file_path = os.path.join(os.path.join(os.path.dirname(__file__), 
-        "../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
-
-    geokit_shapes = gk.vector.extractFeatures(shape_file_path)
-    geokit_shapes.set_index('index', inplace=True)
-
-    return geokit_shapes
-
 
 @pytest.fixture
 def european_model(scope="session"):
