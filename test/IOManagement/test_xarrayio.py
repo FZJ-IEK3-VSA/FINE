@@ -48,10 +48,11 @@ def test_spatial_aggregation_multinode(multi_node_test_esM_init):
 
     esM_aggregated.cluster(numberOfTypicalPeriods=2)
     
-    esM_aggregated.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 crossover=0 method=2 cuts=0')
+    # esM_aggregated.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 crossover=0 method=2 cuts=0')
+    esM_aggregated.optimize(timeSeriesAggregation=True, solver='glpk')
 
 
-# @pytest.mark.skip('not on CAESAR')
+@pytest.mark.skip('not on CAESAR')
 def test_spatial_aggregation_ehighway(european_model):
     '''Test whether spatial aggregation of the EuropeanModel and subsequent optimization works'''
 
@@ -64,5 +65,6 @@ def test_spatial_aggregation_ehighway(european_model):
 
     esM_aggregated.cluster(numberOfTypicalPeriods=2)
     
-    esM_aggregated.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0')
+    # esM_aggregated.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0')
+    esM_aggregated.optimize(timeSeriesAggregation=True, solver='glpk')
 
