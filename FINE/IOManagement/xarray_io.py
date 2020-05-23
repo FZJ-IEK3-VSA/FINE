@@ -54,7 +54,7 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
     # iterate over iteration dicts
     ds = xr.Dataset()
 
-    # get all regional time series (regions, time)
+    # get all regional time series (space, time)
     for variable_description, description_tuple_list in df_iteration_dict.items():
         df_dict = {} # fn.dictionary of multiindex data frames that all contain all data for one variable
         for description_tuple in description_tuple_list:
@@ -79,11 +79,11 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
         df_variable.index.set_names("component", level=0, inplace=True) # ?
 
         ds_component = xr.Dataset()
-        ds_component[variable_description] = df_variable.to_xarray()
+        ds_component[variable_description] = df_variable.sort_index().to_xarray()
 
         ds = xr.merge([ds, ds_component])
 
-    # get all 2d data (regions, regions)
+    # get all 2d data (space, space)
     for variable_description, description_tuple_list in series_iteration_dict.items():
         df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
     
@@ -110,11 +110,11 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
             df_variable.index.set_names("component", level=0, inplace=True) # ?
 
             ds_component = xr.Dataset()
-            ds_component[f"2d_{variable_description}"] = df_variable.to_xarray()
+            ds_component[f"2d_{variable_description}"] = df_variable.sort_index().to_xarray()
 
             ds = xr.merge([ds, ds_component])
 
-    # get all 1d data (regions)
+    # get all 1d data (space)
     for variable_description, description_tuple_list in series_iteration_dict.items():
 
         df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
@@ -137,7 +137,7 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
             df_variable.index.set_names("component", level=0, inplace=True) # ?
 
             ds_component = xr.Dataset()
-            ds_component[f"1d_{variable_description}"] = df_variable.to_xarray()
+            ds_component[f"1d_{variable_description}"] = df_variable.sort_index().to_xarray()
 
             ds = xr.merge([ds, ds_component])
 
@@ -157,7 +157,7 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
             classname, component_description = description_tuple
 
             df_description = f"{classname}, {component_description}"
-            df = xarray_dataset[variable_description].sel(component=df_description).drop("component").to_dataframe().unstack(level=0)
+            df = xarray_dataset[variable_description].sel(component=df_description).drop("component").to_dataframe().unstack(level=2)
             
             if len(df.columns) > 1:
                 df.columns = df.columns.droplevel(0)
@@ -220,7 +220,9 @@ def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
     spagat_manager.grouping(dimension_description='space')
 
     # representation of the clustered regions
-    if aggregation_function_dict is None:
+    if aggregation_function_dict is not None:
+        spagat_manager.aggregation_function_dict = aggregation_function_dict
+    else:
         spagat_manager.aggregation_function_dict = {'operationRateMax': ('mean', None), # ('weighted mean', 'capacityMax')
                                                 'operationRateFix': ('sum', None),
                                                 'locationalEligibility': ('bool', None), 
@@ -240,8 +242,6 @@ def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
                                                 'opexPerChargeOperation': ('mean', None),
                                                 'opexPerDischargeOperation': ('mean', None),
                                             }
-    else:
-        spagat_manager.aggregation_function_dict = aggregation_function_dict
 
     spagat_manager.aggregation_function_dict = {f"{dimension}_{key}": value 
                                                 for key, value in spagat_manager.aggregation_function_dict.items()
