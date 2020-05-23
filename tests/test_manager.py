@@ -3,6 +3,7 @@ import pytest
 import pathlib
 import spagat.manager as spm
 import spagat.utils as spu
+import spagat.representation as spr
 
 
 def test_workflow():
@@ -18,8 +19,17 @@ def test_workflow():
 
     spagat_manager.read_data(sds_folder_path=sds_folder_path_in)
 
+    # TODO: correct test data after naming decision for either 'space' or 'region_ids'
+    spagat_manager.sds.xr_dataset = spagat_manager.sds.xr_dataset.rename(
+        {"region_ids": "space", "region_ids_2": "space_2",}
+    )
+
     spagat_manager.grouping()
 
     spagat_manager.representation(number_of_regions=n_regions)
 
-    spagat_manager.save_data(sds_folder_path_out)
+    spagat_manager.save_data(
+        sds_folder_path_out,
+        eligibility_variable="AC_cable_incidence",
+        eligibility_component=None,
+    )
