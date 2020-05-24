@@ -13,7 +13,7 @@ spagat.dataset
 
    .. autosummary::
    
-      SpagatDataSet
+      SpagatDataset
    
    
 
