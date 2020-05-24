@@ -14,6 +14,8 @@ import os
 import spagat.utils as spu
 import pathlib
 
+from typing import Dict, List
+
 logger_dataset = logging.getLogger("spagat_dataset")
 
 
@@ -22,8 +24,6 @@ class SpagatDataset:
     The SpagatDataset (SDS) contains all the spatially-resolved data that is necessary for Energy System Optimization.
 
     """
-
-    # TODO: maybe inherit xr.Dataset => SpagatDataSet(xr.Dataset())
 
     # dimensions:
     # space: region ids
@@ -40,31 +40,56 @@ class SpagatDataset:
     # - grid incidence, capacity, ...
     # -
 
-    def __init__(self):
-        self.xr_dataset = xr.Dataset()
-        # self.xr_ds_res = None
-        # TODO: add regions etc. already here?
+    # xr_dataset: xr.Dataset
 
-    def add_objects(self, description, dimension_list, object_list):
+    def __init__(self):
+        """Initializes the SpagatDataset (sds)."""
+
+        self.xr_dataset = xr.Dataset()
+
+    def add_objects(
+        self, description: str, dimension_list: List[str], object_list: List[object]
+    ) -> None:
+        """Adds a list of arbitrary (?) objects to the sds.
+        
+        Parameters
+        ----------
+        description: description of the objects
+        dimension_list: list of all sds dimensions the objects live in
+        object_list: list of objects that will be added to the sds
+            
+        """
 
         # TODO: understandtype of pd.Series(object_list).values and transform object_list without pandas to it
 
         self.xr_dataset[description] = (dimension_list, pd.Series(object_list).values)
 
-        # self.xr_dataset[description] = (('space', 'space_2'), grid_data)
+    def add_region_data(self, space: List[object], spatial_dim: str = "space") -> None:
+        """Add space coordinates to the dataset
+        
+        Parameters
+        ----------
+        space: coordinates of the space, for example region names
+        spatial_dim: name of the spatial dimension, e.g. 'space' or 'region_ids'
 
-    def add_region_data(self, space, spatial_dim="space"):
-        """Add the space as coordinates to the dataset"""
+        """
         self.xr_dataset.coords[f"{spatial_dim}"] = space
         self.xr_dataset.coords[f"{spatial_dim}_2"] = space
 
     def read_dataset(
         self,
-        sds_folder_path,
-        sds_regions_filename="sds_regions.shp",
-        sds_xr_dataset_filename="sds_xr_dataset.nc4",
-    ):
-        """Reads in both shapefile as well as xarray dataset from a folder to the sds"""
+        sds_folder_path: str,
+        sds_regions_filename: str = "sds_regions.shp",
+        sds_xr_dataset_filename: str = "sds_xr_dataset.nc4",
+    ) -> None:
+        """Reads in both shapefile as well as xarray dataset from a folder to the sds
+        
+        Parameters
+        ----------
+        sds_folder_path: folder that contains the sds data
+        sds_regions_filename: filename for the region shapefile
+        sds_xr_dataset_filename: filename of the netcdf file containing all information apart from the region shapes
+        """
 
         # gets the complete paths
         sds_xr_dataset_path = sds_folder_path / sds_xr_dataset_filename
