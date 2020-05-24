@@ -1,3 +1,7 @@
+"""Helper functions that serve different modules of SPAGAT.
+
+"""
+
 import geopandas as gpd
 import os
 

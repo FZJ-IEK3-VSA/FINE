@@ -1,3 +1,7 @@
+"""Implementation of the SpagatDataset that contains all spatial data.
+
+"""
+
 import logging
 
 import geopandas as gpd
@@ -10,7 +14,7 @@ import os
 import spagat.utils as spu
 import pathlib
 
-logger_dataset = logging.getLogger('spagat_dataset')
+logger_dataset = logging.getLogger("spagat_dataset")
 
 
 class SpagatDataSet:
@@ -59,14 +63,18 @@ class SpagatDataSet:
 
         # self.xr_dataset[description] = (('space', 'space_2'), grid_data)
 
-    def add_region_data(self, space, spatial_dim='space'):
+    def add_region_data(self, space, spatial_dim="space"):
         """Add the space as coordinates to the dataset"""
-        self.xr_dataset.coords[f'{spatial_dim}'] = space
-        self.xr_dataset.coords[f'{spatial_dim}_2'] = space
+        self.xr_dataset.coords[f"{spatial_dim}"] = space
+        self.xr_dataset.coords[f"{spatial_dim}_2"] = space
 
-    def read_dataset(self, sds_folder_path,
-                     sds_regions_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):
-        '''Reads in both shapefile as well as xarray dataset from a folder to the sds'''
+    def read_dataset(
+        self,
+        sds_folder_path,
+        sds_regions_filename="sds_regions.shp",
+        sds_xr_dataset_filename="sds_xr_dataset.nc4",
+    ):
+        """Reads in both shapefile as well as xarray dataset from a folder to the sds"""
 
         # gets the complete paths
         sds_xr_dataset_path = sds_folder_path / sds_xr_dataset_filename
@@ -75,9 +83,11 @@ class SpagatDataSet:
         self.xr_dataset = xr.open_dataset(sds_xr_dataset_path)
 
         gdf_regions = gpd.read_file(sds_regions_path)
-        self.add_objects(description='gpd_geometries',
-                         dimension_list=['space'],
-                         object_list=gdf_regions.geometry)
+        self.add_objects(
+            description="gpd_geometries",
+            dimension_list=["space"],
+            object_list=gdf_regions.geometry,
+        )
 
     def save_sds_regions(self, shape_output_path, crs=3035):
         """Save regions and geometries from xr_array to shapefile"""
@@ -85,12 +95,17 @@ class SpagatDataSet:
         df = self.xr_dataset.space.to_dataframe()
         geometries = self.xr_dataset.gpd_geometries.values
 
-        spu.create_gdf(df=df, geometries=geometries, crs=crs, filepath=shape_output_path)
+        spu.create_gdf(
+            df=df, geometries=geometries, crs=crs, filepath=shape_output_path
+        )
 
     def save_data(self, sds_output_path):
 
-        drop_list = [variable for variable in ['gpd_geometries', 'gpd_centroids', 'gk_geometries']
-                     if hasattr(self.xr_dataset, variable)]
+        drop_list = [
+            variable
+            for variable in ["gpd_geometries", "gpd_centroids", "gk_geometries"]
+            if hasattr(self.xr_dataset, variable)
+        ]
 
         if len(drop_list) > 0:
             self.xr_dataset.drop(drop_list).to_netcdf(sds_output_path)
@@ -98,8 +113,12 @@ class SpagatDataSet:
             self.xr_dataset.to_netcdf(sds_output_path)
 
     @spu.timer
-    def save_sds(self, sds_folder_path,
-                 sds_region_filename='sds_regions.shp', sds_xr_dataset_filename='sds_xr_dataset.nc4'):
+    def save_sds(
+        self,
+        sds_folder_path,
+        sds_region_filename="sds_regions.shp",
+        sds_xr_dataset_filename="sds_xr_dataset.nc4",
+    ):
         spu.create_dir(sds_folder_path)
 
         # save geometries

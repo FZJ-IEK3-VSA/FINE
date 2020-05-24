@@ -1,3 +1,7 @@
+"""Grouping algorithms to determine how to reduce a number of input regions to fewer regions while minimizing information loss.
+
+"""
+
 import logging
 import os
 
@@ -11,38 +15,58 @@ from scipy.cluster import hierarchy
 # import spagat.dataset as spd
 import spagat.utils as spu
 
-logger_grouping = logging.getLogger('spagat_grouping')
+logger_grouping = logging.getLogger("spagat_grouping")
 
 
 def string_based_clustering(regions):
-    '''Creates a dictionary containing sup_regions and respective lists of sub_regions'''
+    """Creates a dictionary containing sup_regions and respective lists of sub_regions"""
 
     # TODO: this is implemented spefically for the e-id: '01_es' -> generalize this!
-    nation_set = set([region_id.split('_')[1] for region_id in regions])
+    nation_set = set([region_id.split("_")[1] for region_id in regions])
 
     sub_to_sup_region_id_dict = {}
 
     for nation in nation_set:
-        sub_to_sup_region_id_dict[nation] = [region_id
-                                             for region_id in regions
-                                             if region_id.split('_')[1] == nation]
+        sub_to_sup_region_id_dict[nation] = [
+            region_id for region_id in regions if region_id.split("_")[1] == nation
+        ]
 
     return sub_to_sup_region_id_dict
 
 
 @spu.timer
-def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illustration=None, save_fig=None, dimension_description='space'):
-    '''Cluster M regions based on centroid distance, hence closest regions are aggregated to obtain N regions.'''
+def distance_based_clustering(
+    sds,
+    mode="hierarchical",
+    verbose=False,
+    ax_illustration=None,
+    save_fig=None,
+    dimension_description="space",
+):
+    """Cluster M regions based on centroid distance, hence closest regions are aggregated to obtain N regions."""
 
-    if mode == 'hierarchical':
+    if mode == "hierarchical":
 
-        centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000  # km
+        centroids = (
+            np.asarray(
+                [
+                    [point.item().x, point.item().y]
+                    for point in sds.xr_dataset.gpd_centroids
+                ]
+            )
+            / 1000
+        )  # km
 
-        Z = hierarchy.linkage(centroids, 'centroid')
+        Z = hierarchy.linkage(centroids, "centroid")
 
         if ax_illustration is not None:
-            R = hierarchy.dendrogram(Z, orientation="top",
-                                     labels=sds.xr_dataset[dimension_description].values, ax=ax_illustration, leaf_font_size=14)
+            R = hierarchy.dendrogram(
+                Z,
+                orientation="top",
+                labels=sds.xr_dataset[dimension_description].values,
+                ax=ax_illustration,
+                leaf_font_size=14,
+            )
 
             if save_fig is not None:
 
@@ -52,8 +76,13 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
 
             fig, ax = spu.plt.subplots(figsize=(25, 12))
 
-            R = hierarchy.dendrogram(Z, orientation="top",
-                                     labels=sds.xr_dataset[dimension_description].values, ax=ax, leaf_font_size=14)
+            R = hierarchy.dendrogram(
+                Z,
+                orientation="top",
+                labels=sds.xr_dataset[dimension_description].values,
+                ax=ax,
+                leaf_font_size=14,
+            )
 
             spu.plt_savefig(fig=fig, save_name=save_fig)
 
@@ -61,10 +90,15 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
 
         aggregation_dict = {}
 
-        regions_dict = {region_id: [region_id] for region_id in list(sds.xr_dataset[dimension_description].values)}
+        regions_dict = {
+            region_id: [region_id]
+            for region_id in list(sds.xr_dataset[dimension_description].values)
+        }
 
-        regions_dict_complete = {region_id: [region_id]
-                                 for region_id in list(sds.xr_dataset[dimension_description].values)}
+        regions_dict_complete = {
+            region_id: [region_id]
+            for region_id in list(sds.xr_dataset[dimension_description].values)
+        }
 
         aggregation_dict[n_regions] = regions_dict.copy()
 
@@ -84,7 +118,7 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
             sub_region_id_list_2 = value_list[int(Z[i][1])]
 
             # add the new region to the dict by merging the two region_id_lists
-            sup_region_id = f'{key_1}_{key_2}'
+            sup_region_id = f"{key_1}_{key_2}"
 
             sup_region_id_list = sub_region_id_list_1.copy()
             sup_region_id_list.extend(sub_region_id_list_2)
@@ -98,11 +132,11 @@ def distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illust
 
             if verbose:
                 print(i)
-                print('\t', 'keys:', key_1, key_2)
-                print('\t', 'list_1', sub_region_id_list_1)
-                print('\t', 'list_2', sub_region_id_list_2)
-                print('\t', 'sup_region_id', sup_region_id)
-                print('\t', 'sup_region_id_list', sup_region_id_list)
+                print("\t", "keys:", key_1, key_2)
+                print("\t", "list_1", sub_region_id_list_1)
+                print("\t", "list_2", sub_region_id_list_2)
+                print("\t", "sup_region_id", sup_region_id)
+                print("\t", "sup_region_id_list", sup_region_id_list)
 
             aggregation_dict[n_regions - i] = regions_dict.copy()
 

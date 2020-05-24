@@ -1,3 +1,7 @@
+"""Module that manages the other submodules.
+
+"""
+
 import logging
 
 import spagat.dataset as spd
@@ -8,7 +12,15 @@ logger_manager = logging.getLogger("spagat_manager")
 
 
 class SpagatManager:
-    """Spagat Manager manages the spatial aggregation analysis toolchain."""
+    """
+    High-level access point to manage spatial aggregations.
+    
+
+    Examples
+    --------
+
+
+    """
 
     def __init__(self):
         self.sds = spd.SpagatDataSet()

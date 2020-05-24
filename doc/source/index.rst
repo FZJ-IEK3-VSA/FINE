@@ -25,6 +25,8 @@ The SPAGAT framework provides the tools to analyze the impact of spatially aggre
 
 **Citing SPAGAT**
 
+tbd
+
 .. toctree::
     :maxdepth: 1
     :caption: Contents:
@@ -34,9 +36,52 @@ The SPAGAT framework provides the tools to analyze the impact of spatially aggre
     further_reading_doc
     io_doc
 
+Documentation
+-------------
+
+**Getting Started**
+
+* :doc:`faq`
+* :doc:`quick-overview`
+* :doc:`examples`
+* :doc:`installing`
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: Getting Started
+
+   faq
+   quick-overview
+   examples
+   installing
+
+**User Guide**
+
+* :doc:`terminology`
+* :doc:`io`
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: User Guide
+
+   terminology
+   io
+
+**Help & reference**
+
+* :doc:`api`
+* :doc:`contributing`
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: Help & reference
+
+   api
+   contributing
+
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-
-
