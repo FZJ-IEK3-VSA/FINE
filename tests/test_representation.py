@@ -26,7 +26,7 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict():
 
     # read the xr_dataset and manipulate it to obtain a test xarray dataset
 
-    test_sds = spd.SpagatDataSet()
+    test_sds = spd.SpagatDataset()
     test_sds.read_dataset(
         sds_folder_path=pathlib.Path("tests/data/input"),
         sds_regions_filename="sds_regions.shp",

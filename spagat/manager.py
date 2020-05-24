@@ -23,9 +23,9 @@ class SpagatManager:
     """
 
     def __init__(self):
-        self.sds = spd.SpagatDataSet()
+        self.sds = spd.SpagatDataset()
         self.aggregation_dict = None
-        self.sds_out = spd.SpagatDataSet()
+        self.sds_out = spd.SpagatDataset()
         self.analysis_path = None
         self.aggregation_function_dict = None
 

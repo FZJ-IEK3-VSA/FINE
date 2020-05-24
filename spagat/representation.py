@@ -59,7 +59,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
 ):
     """Spatially aggregates all variables of the sds.xr_dataset according to sub_to_sup_region_id_dict using aggregation functions defined by aggregation_function_dict"""
 
-    sds_2 = spd.SpagatDataSet()
+    sds_2 = spd.SpagatDataset()
 
     for varname, da in sds.xr_dataset.data_vars.items():
         if aggregation_function_dict is None:

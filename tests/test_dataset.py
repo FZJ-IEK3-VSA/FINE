@@ -9,7 +9,7 @@ def test_read_and_save_sds():
     sds_folder_path_in = pathlib.Path('tests/data/input')
     sds_folder_path_out = pathlib.Path('tests/data/output')
 
-    sds = spd.SpagatDataSet()
+    sds = spd.SpagatDataset()
 
     sds.read_dataset(sds_folder_path_in)
     sds.save_sds(sds_folder_path_out)

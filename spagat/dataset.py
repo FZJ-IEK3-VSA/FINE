@@ -17,23 +17,13 @@ import pathlib
 logger_dataset = logging.getLogger("spagat_dataset")
 
 
-class SpagatDataSet:
-    # TODO: maybe inherit xr.Dataset => SpagatDataSet(xr.Dataset())
-    """The SpagatDataset (SDS) contains all the data that is necessary for Energy System Optimization.
-    Therefore, it contains:
-    - capacity factors time series (raster or per region)
-    - demand time series (raster or per region)
-    - grid data (incidence, capacity, ...)
-    - region data (shapefiles, ...)
-    - ...
-
-    Idea:
-    - Spagat initializes with a pre-aggregation sds
-    - the aggregated data is written to a post-aggregation sds
-    - both files are saved as netcdf files (if possible)
-    - maybe it makes sense to also keep interim-aggregation sds,
-      when iterative procedure is implemented
+class SpagatDataset:
     """
+    The SpagatDataset (SDS) contains all the spatially-resolved data that is necessary for Energy System Optimization.
+
+    """
+
+    # TODO: maybe inherit xr.Dataset => SpagatDataSet(xr.Dataset())
 
     # dimensions:
     # space: region ids
