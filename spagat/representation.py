@@ -90,7 +90,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
             add_region_centroids(sds_2)
 
         elif varname != "gpd_centroids":
-            if spatial_dim in da.dims and time_dim in da.dims:
+            if spatial_dim in da.dims and time_dim in da.dims: # space-time values
                 da = aggregate_time_series(
                     sds.xr_dataset[varname],
                     sub_to_sup_region_id_dict,
@@ -99,7 +99,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 )
                 sds_2.xr_dataset[varname] = da
 
-            if spatial_dim in da.dims and f"{spatial_dim}_2" not in da.dims:
+            if spatial_dim in da.dims and f"{spatial_dim}_2" not in da.dims: # space values
                 da = aggregate_values(
                     sds.xr_dataset[varname],
                     sub_to_sup_region_id_dict,
@@ -107,7 +107,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 )
                 sds_2.xr_dataset[varname] = da
 
-            if f"{spatial_dim}" in da.dims and f"{spatial_dim}_2" in da.dims:
+            if f"{spatial_dim}" in da.dims and f"{spatial_dim}_2" in da.dims: # space-space values
                 da = aggregate_connections(
                     sds.xr_dataset[varname],
                     sub_to_sup_region_id_dict,
