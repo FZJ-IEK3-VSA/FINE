@@ -6,6 +6,9 @@ Getting started
 Purpose and Vision of SPAGAT
 ******************************
 
+As energy system analyses become more and more complex, computational tractability becomes an issue. 
+
+Therefore, SPAGAT was created to find an optimal compromise between accurately representing the (energy system) data for the model regions and reducing the computational complexity.
 
 ********
 About Us

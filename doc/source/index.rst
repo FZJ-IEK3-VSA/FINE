@@ -33,46 +33,11 @@ tbd
 
     getting_started_doc
     legal_notice_doc
-    further_reading_doc
-    io_doc
-
-Documentation
--------------
-
-**Getting Started**
-
-* :doc:`faq`
-* :doc:`quick-overview`
-* :doc:`examples`
-* :doc:`installing`
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-   :caption: Getting Started
-
-   faq
-   quick-overview
-   examples
-   installing
-
-**User Guide**
-
-* :doc:`terminology`
-* :doc:`io`
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-   :caption: User Guide
-
-   terminology
-   io
+    io
 
 **Help & reference**
 
 * :doc:`api`
-* :doc:`contributing`
 
 .. toctree::
    :maxdepth: 1
@@ -80,8 +45,8 @@ Documentation
    :caption: Help & reference
 
    api
-   contributing
+
+**Indices**
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`

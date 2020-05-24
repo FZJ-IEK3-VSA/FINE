@@ -8,7 +8,7 @@ tests/data/InputData/
 .pytest_cache/
 spagat.egg-info/
 doc/build
-
+doc/source/generated
 # files
 *.ipynb_checkpoints
 *__pycache__
