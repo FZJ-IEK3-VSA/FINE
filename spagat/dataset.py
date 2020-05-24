@@ -54,9 +54,12 @@ class SpagatDataset:
         
         Parameters
         ----------
-        description: description of the objects
-        dimension_list: list of all sds dimensions the objects live in
-        object_list: list of objects that will be added to the sds
+        description
+            description of the objects
+        dimension_list
+            list of all sds dimensions the objects live in
+        object_list
+            list of objects that will be added to the sds
             
         """
 
@@ -69,8 +72,10 @@ class SpagatDataset:
         
         Parameters
         ----------
-        space: coordinates of the space, for example region names
-        spatial_dim: name of the spatial dimension, e.g. 'space' or 'region_ids'
+        space
+            coordinates of the space, for example region names
+        spatial_dim
+            name of the spatial dimension, e.g. 'space' or 'region_ids'
 
         """
         self.xr_dataset.coords[f"{spatial_dim}"] = space
@@ -86,9 +91,12 @@ class SpagatDataset:
         
         Parameters
         ----------
-        sds_folder_path: folder that contains the sds data
-        sds_regions_filename: filename for the region shapefile
-        sds_xr_dataset_filename: filename of the netcdf file containing all information apart from the region shapes
+        sds_folder_path
+            folder that contains the sds data
+        sds_regions_filename
+            filename for the region shapefile
+        sds_xr_dataset_filename
+            filename of the netcdf file containing all information apart from the region shapes
         """
 
         # gets the complete paths

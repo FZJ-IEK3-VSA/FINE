@@ -91,10 +91,10 @@ extensions = [
 # }
 
 autosummary_generate = True
-autodoc_typehints = "none"
+# autodoc_typehints = "none"
 
 numpydoc_class_members_toctree = True
-numpydoc_show_class_members = False
+numpydoc_show_class_members = True
 
 # Napoleon settings
 napoleon_google_docstring = False
@@ -109,11 +109,13 @@ napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = True
 
-# inheritance_graph_attrs = dict(rankdir="LR", size='"26.0, 8.0"',
-#                                fontsize=14, ratio='compress')
+inheritance_graph_attrs = dict(
+    rankdir="LR", size='"26.0, 8.0"', fontsize=14, ratio="compress"
+)
 
-# inheritance_node_attrs = dict(shape='ellipse', fontsize=14, height=0.75,
-#                               color='lightgray', style='filled')
+inheritance_node_attrs = dict(
+    shape="ellipse", fontsize=14, height=0.75, color="lightgray", style="filled"
+)
 
 
 # Add any paths that contain templates here, relative to this directory.
