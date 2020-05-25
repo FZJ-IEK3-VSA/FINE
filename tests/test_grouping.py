@@ -62,8 +62,8 @@ def test_dataset2():
                           [0.3, 2, 1]]]])
      demand = xr.DataArray(demand, coords=[component, Period, TimeStep, space], dims=['component', 'Period', 'TimeStep','space'])
      cap_1d = np.stack([[0.9,  1,  0.9],
-                        [1,    0,  1],
-                        [0.9,  0,  0.9],
+                        [0,    0,  0],
+                        [0.9,  1,  0.9],
                         [np.nan] *3])
      cap_1d = xr.DataArray(cap_1d, coords=[component,space], dims=['component','space'])
      dist_2d = np.stack([[[0,1,2],[1,0,10],[2,10,0]],
@@ -96,22 +96,27 @@ def test_all_variable_based_clustering_hierarchical(test_dataset2):
                assert sorted(sup_reg) == ['01_reg', '02_reg', '03_reg']
 
      
-'''
-def test_all_variable_based_clustering_spectral(test_dataset1):
-     # Results depends heavily on the weighting factors of part1 and part2
-     clustered_regions1 = spg.all_variable_based_clustering(test_dataset1,agg_mode='spectral',weighting=[5,1])
+def test_all_variable_based_clustering_spectral(test_dataset2):
+     clustered_regions1 = spg.all_variable_based_clustering(test_dataset2,agg_mode='spectral',weighting=[10,1])
      assert len(clustered_regions1) == 3
 
-     dict2 = clustered_regions1.get(2)
-     for sup_region in dict2.values():
+     dict1_2 = clustered_regions1.get(2)
+     for sup_region in dict1_2.values():
           if len(sup_region) == 2:
-               assert sorted(sup_region) ==  ['01_reg','02_reg']
+               assert sorted(sup_region) ==  ['01_reg','03_reg']
 
-     clustered_regions2 = spg.all_variable_based_clustering(test_dataset1,agg_mode='spectral',weighting=[1,10])
+     clustered_regions2 = spg.all_variable_based_clustering(test_dataset2,agg_mode='spectral',weighting=[1,10])
      assert len(clustered_regions2) == 3
 
      dict2_2 = clustered_regions2.get(2)
      for sup_region in dict2_2.values():
           if len(sup_region) == 2:
                assert sorted(sup_region) ==  ['02_reg','03_reg']
-'''
+
+     clustered_regions3 = spg.all_variable_based_clustering(test_dataset2,agg_mode='spectral2')
+     assert len(clustered_regions3) == 3
+
+     dict3_2 = clustered_regions3.get(2)
+     for sup_region in dict3_2.values():
+          if len(sup_region) == 2:
+               assert sorted(sup_region) ==  ['02_reg','03_reg']
