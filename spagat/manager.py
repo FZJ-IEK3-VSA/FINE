@@ -23,9 +23,9 @@ class SpagatManager:
         self.sds.read_dataset(sds_folder_path=sds_folder_path)
         spr.add_region_centroids(self.sds)
 
-    def grouping(self, mode='distance based', dimension_description='space'):
+    def grouping(self, mode='all', dimension_description='space'):
         
-        aggregation_mode = 'spectral'
+        aggregation_mode = 'hierarchical'
 
         # Using distanced_based_clustering (geographical distance)
         if mode == 'distance based':

@@ -408,14 +408,33 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
 
         
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
-        plt.figure(1)
-        plt.title('Hierarchical Tree')
-        hierarchy.dendrogram(Z)
-
-        plt.figure(2)
-        plt.title('Inconsistencies')
+        
+        fig, ax = plt.subplots(figsize=(18,7))
         inconsistency = hierarchy.inconsistent(Z)
-        plt.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
+        ax.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
+        ax.set_title('Inconsistency Coefficients: indicate where to cut the hierarchy', fontsize=14)
+        ax.set_xlabel('Linkage height', fontsize=12)
+        ax.set_ylabel('Inconsistencies', fontsize=12)
+
+        plt.xticks(np.arange(1, len(Z)+1, 1))
+        plt.show()
+
+        # If and how to save the hierarchical tree 
+        if ax_illustration is not None:
+            R = hierarchy.dendrogram(Z, orientation="top",
+                                     labels=sds.xr_dataset[dimension_description].values, ax=ax_illustration, leaf_font_size=14)
+
+            if save_fig is not None:
+
+                pto.plt_savefig(save_name=save_fig)
+        elif save_fig is not None:
+
+            fig, ax = pto.plt.subplots(figsize=(25, 12))
+
+            R = hierarchy.dendrogram(Z, orientation="top",
+                                     labels=sds.xr_dataset[dimension_description].values, ax=ax, leaf_font_size=14)
+
+            pto.plt_savefig(fig=fig, save_name=save_fig)
 
         # regions_dict to record the newest region set after each merging step, regions_dict_complete for all regions appearing during clustering
         regions_dict = {region_id: [region_id] for region_id in regions_list}
@@ -502,71 +521,71 @@ def all_variable_based_clustering(sds,agg_mode='hierarchical',verbose=False, ax_
     
 
     ''' 2. Using spectral clustering with precomputed affinity matrix'''
-    # if agg_mode == 'spectral':
-    #     '''Spectral clustering applied on the input dataset:
-    #     If affinity is the adjacency matrix of a graph, this method can be used to find normalized graph cuts.
+    if agg_mode == 'spectral':
+        '''Spectral clustering applied on the input dataset:
+        If affinity is the adjacency matrix of a graph, this method can be used to find normalized graph cuts.
 
-    #         - part_1: given the feature matrix of samples, 
-    #             - transform it to a graph and obtain its adjacency matrix
-    #             - ## TO-DO: may need weighting for part_1 OR selecting delta
+            - part_1: given the feature matrix of samples, 
+                - transform it to a graph and obtain its adjacency matrix
+                - ## TO-DO: may need weighting for part_1 OR selecting delta
                 
-    #         - part_2: the original matrices can be regarded directly as the adjacency matrix of the graph
-    #             - for each variable and each component: an adjacency matrix
-    #             - multiple variables & multiple components: need to combine them as one affinity matrix (with weighting factors)
-    #             - transform the adjacency matrix to affinity matrix:
-    #                 - firstly get its reciprocal: now it is like a dissimilarity matrix
-    #                 - then apply rbf kernel to obtain the similarity scores
+            - part_2: the original matrices can be regarded directly as the adjacency matrix of the graph
+                - for each variable and each component: an adjacency matrix
+                - multiple variables & multiple components: need to combine them as one affinity matrix (with weighting factors)
+                - transform the adjacency matrix to affinity matrix:
+                    - firstly get its reciprocal: now it is like a dissimilarity matrix
+                    - then apply rbf kernel to obtain the similarity scores
         
-    #     If you have an affinity matrix, such as a distance matrix, 
-    #         - for which 0 means identical elements, 
-    #         - and high values means very dissimilar elements, 
-    #     it can be transformed in a similarity matrix that is well suited for the algorithm by applying the Gaussian (RBF, heat) kernel
-    #     '''
+        If you have an affinity matrix, such as a distance matrix, 
+            - for which 0 means identical elements, 
+            - and high values means very dissimilar elements, 
+        it can be transformed in a similarity matrix that is well suited for the algorithm by applying the Gaussian (RBF, heat) kernel
+        '''
 
         
 
-    #     # List of weighting factors for part1 and part2
-    #     if weighting:
-    #         weighting = weighting
-    #     else:
-    #         weighting = [1,1]
+        # List of weighting factors for part1 and part2
+        if weighting:
+            weighting = weighting
+        else:
+            weighting = [1,1]
 
-    #     delta = 1
+        delta = 1
 
-    #     # Obtain affinity matrix for part_1 via RBF kernel applied on distance matrix
+        # Obtain affinity matrix for part_1 via RBF kernel applied on distance matrix
 
-    #     part1 = gu.preprocessDataset(sds,n_regions,obtain='part_1')
-    #     part1_distance_matrix = hierarchy.distance.squareform(hierarchy.distance.pdist(part1))
+        part1 = gu.preprocessDataset(sds,n_regions,obtain='part_1')
+        part1_distance_matrix = hierarchy.distance.squareform(hierarchy.distance.pdist(part1))
 
-    #     affinity_part1 = np.exp(- part1_distance_matrix ** 2 / (2. * delta ** 2))
+        affinity_part1 = np.exp(- part1_distance_matrix ** 2 / (2. * delta ** 2))
 
-    #     # Obtain affinity matrix for part_2
+        # Obtain affinity matrix for part_2
         
-    #     part2_adjacency_matrix = gu.preprocessDataset(sds,n_regions,obtain='part_2')
+        part2_adjacency_matrix = gu.preprocessDataset(sds,n_regions,obtain='part_2')
 
-    #     part2_adjacency_adverse = 1.0 / part2_adjacency_matrix
-    #     part2_adjacency_adverse[np.isinf(part2_adjacency_adverse)] = 10000
-    #     np.fill_diagonal(part2_adjacency_adverse,0)
+        part2_adjacency_adverse = 1.0 / part2_adjacency_matrix
+        part2_adjacency_adverse[np.isinf(part2_adjacency_adverse)] = 10000
+        np.fill_diagonal(part2_adjacency_adverse,0)
 
-    #     affinity_part2 = np.exp(- part2_adjacency_adverse ** 2 / (2. * delta ** 2))
+        affinity_part2 = np.exp(- part2_adjacency_adverse ** 2 / (2. * delta ** 2))
 
-    #     # The precomputed affinity matrix for spectral clustering
-    #     affinity_matrix = (affinity_part1 * weighting[0] + affinity_part2 * weighting[1]) / (weighting[0] + weighting[1])
+        # The precomputed affinity matrix for spectral clustering
+        affinity_matrix = (affinity_part1 * weighting[0] + affinity_part2 * weighting[1]) / (weighting[0] + weighting[1])
 
-    #     for i in range(1,n_regions):
-    #         # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
-    #         model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
-    #         regions_label_list = model.labels_
+        for i in range(1,n_regions):
+            # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
+            model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
+            regions_label_list = model.labels_
 
-    #         # Create a regions dictionary for the aggregated regions
-    #         regions_dict = {}
-    #         for label in range(i):
-    #             # Group the regions of this regions label
-    #             sup_region_list = list(regions_list[regions_label_list == label])
-    #             sup_region_id = '_'.join(sup_region_list)
-    #             regions_dict[sup_region_id] = sup_region_list.copy()
+            # Create a regions dictionary for the aggregated regions
+            regions_dict = {}
+            for label in range(i):
+                # Group the regions of this regions label
+                sup_region_list = list(regions_list[regions_label_list == label])
+                sup_region_id = '_'.join(sup_region_list)
+                regions_dict[sup_region_id] = sup_region_list.copy()
 
-    #         aggregation_dict[i] = regions_dict.copy()
+            aggregation_dict[i] = regions_dict.copy()
     
                 
 
