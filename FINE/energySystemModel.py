@@ -12,6 +12,9 @@ import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
 import warnings
+from FINE.IOManagement import xarray_io as xrio
+import geopandas as gpd
+import os
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -344,7 +347,66 @@ class EnergySystemModel:
             df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def cluster(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical',
+def cluster(
+        self,
+        numberOfTypicalPeriods=7,
+        numberOfTimeStepsPerPeriod=24,
+        temporalClusterMethod="hierarchical",
+        sortValues=True,
+        storeTSAinstance=False,
+        numberOfRegions=None,
+        shapefileFolder=None,
+        spatialClusterMethod="centroid-based",
+        **kwargs
+    ):
+        """"Cluster the data of all components considered in the EnergySystemModel instance and then stores the clustered data in the respective components."""
+
+        # spatially aggregate esM data
+        self.spatial_aggregation(
+            numberOfRegions=numberOfRegions,
+            clusterMethod=spatialClusterMethod,
+            shapefileFolder=shapefileFolder,
+            **kwargs
+        )
+
+        # temporally aggregate esM data
+        self.temporal_aggregation(
+            numberOfTypicalPeriods=numberOfTypicalPeriods,
+            numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+            clusterMethod=temporalClusterMethod,
+            sortValues=sortValues,
+            storeTSAinstance=storeTSAinstance,
+            **kwargs
+        )
+
+    def spatial_aggregation(
+        self,
+        numberOfRegions=10,
+        clusterMethod="centroid-based",
+        shapefileFolder=None,
+        **kwargs
+    ):
+        """Clusters the spatial data of all components considered in the EnergySystemModel instance and returns a new esM instance with the aggregated data."""
+
+        if numberOfRegions is None:
+            pass
+        else:
+            gdf_regions = gpd.read_file(
+                os.path.join(shapefileFolder, "clusteredRegions.shp")
+            )
+
+            esM_aggregated = xrio.spatial_aggregation(
+                self,
+                n_regions=3,
+                gdf_regions=gdf_regions,
+                aggregatedShapefileFolderPath=shapefileFolder,
+            )
+
+            return esM_aggregated
+
+            # TODO: write esM_aggregated back to "self"
+
+    def temporal_aggregation(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical',
                 sortValues=True, storeTSAinstance=False, **kwargs):
         """
         Cluster the time series data of all components considered in the EnergySystemModel instance and then
