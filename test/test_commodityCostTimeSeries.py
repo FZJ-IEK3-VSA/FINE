@@ -24,6 +24,7 @@
 import FINE as fn
 import pandas as pd
 import numpy as np
+import os 
 
 def test_commodityCostTimeSeries(multi_node_test_esM_optimized):
 

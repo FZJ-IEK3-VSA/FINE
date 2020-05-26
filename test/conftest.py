@@ -592,7 +592,8 @@ def european_model(scope="session"):
 
     return esM
 
-def dsm_test_esM():
+@pytest.fixture
+def dsm_test_esM(scope="session"):
     """
     Generate a simple energy system model with one node, two fixed generators and one load time series
     for testing demand side management functionality.
