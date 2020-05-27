@@ -223,20 +223,18 @@ def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=Non
 
         return ds_timeseries, ds_1d_vars, ds_2d_vars
 
+    ############### TO-DO: try negative var_weights for some 2d vars #############################
     if handle_mode == 'toAffinity':
-        ''' Return 2 affinity matrices:
-            - Part1: concatenate two matrix as feature dataframe for observations
-                - timeseries
-                    - add matrices of various components to one feature matrix for each var
-                    - concatenate matrices for different variables
-                    - return one matrix of size: n_regions * (timesteps * n_ts_vars)
-                - 1d vars:
-                    - add columns in one matrices for each var to one matrix of size n_regions * 1
-                    - add matrices of various vars to one matrix
-                    - return the matrix of size: n_regions * n_1d_vars
-            - Part2: one single adjacency matrix
+        ''' Return 3 affinity matrices:
+            - timeseries: one data feature matrix
+                - concatenate matrices for different variables with weighting factors
+                - return one matrix of size: n_regions * columns=(n_ts_vars * n_valid_component_per_var * n_timesteps)
+            - 1d vars: one data feature matrix
+                - concatenate matrices of various vars to one matrix with weighting factor for each var
+                - return the matrix of size: n_regions * columns =(n_1d_vars * n_valid_component_per_var) 
+            - 2d vars: one single adjacency matrix
                 - original matrices as adjacency matrices
-                - add them to one single matrix
+                - add them to one single matrix with weighting factors for each var
                 - from adjacency matrix to affinity matrix
         '''
         # Weighting factors of each variable 
@@ -250,64 +248,44 @@ def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=Non
         matrix_ts = np.array([np.zeros(n_regions)]).T
 
         n_timesteps = len(dataset['TimeStep'].values)
-        for var, var_dict in ds_timeseries.items():
+
+        for var, var_matrix in ds_timeseries.items():
 
             weight = var_weightings[var]
-
-            # Add matrices for each var to one single matrix of size n_regions * timesteps
-            var_matrix = np.zeros((n_regions, n_timesteps))
-            for component, data in var_dict.items():
-                var_matrix += data
-
-            var_matrix = (var_matrix / len(var_dict.keys())) * weight
-
-            # Concatenate the matrix of each var to a single matrix for time series data
-            matrix_ts = np.concatenate((matrix_ts, var_matrix),axis=1)
+            
+            # Concatenate the matrix of this var to the final matrix with its weighting factor
+            matrix_ts = np.concatenate((matrix_ts, var_matrix * weight), axis=1)
         
         matrix_ts = np.delete(matrix_ts,0,1)
 
         ###### For 1d vars: obtain the single matrix - matrix_1d
         matrix_1d = np.array([np.zeros(n_regions)]).T
 
-        for var, data in ds_1d_vars.items():
+        for var, var_matrix in ds_1d_vars.items():
 
             weight = var_weightings[var]
 
-            # Add column vectors for various components -> sum of each rows, and average 
-            var_matr = np.sum(data, axis=1) / (data.shape[1])
-            var_matr = (np.array([var_matr]).T) * weight
-
-            # Concatenate the 1d matrix of different vars to one single 1d matrix
-            matrix_1d = np.concatenate((matrix_1d, var_matr),axis=1)
+            # Concatenate the matrix of this vars to one single 1d matrix with weight factor
+            matrix_1d = np.concatenate((matrix_1d, var_matrix * weight),axis=1)
         
         matrix_1d = np.delete(matrix_1d,0,1)
 
-        ###### Concatenate the two matrices of ts and 1d vars to one single matrix as feature dataframe
-        part1_matrix = np.concatenate((matrix_ts, matrix_1d), axis=1)
+        ###### For 2d vars: obtain a single square matrix of size n_regions*regions
+        matrix_2d = np.zeros((n_regions,n_regions))
 
-        ###### Part 2 of 2d vars: obtain a single square matrix of size n_regions*regions
         ds_2d_vars = preprocess2dVariables(vars_2d, component_list, handle_mode='toAffinity')
 
-        part2_matrix = np.zeros((n_regions,n_regions))
-        l_2d = 0
+        # After adding, the value in matrix_2d is not in the range [0,1] any more
         for var, var_dict in ds_2d_vars.items():
 
             weight = var_weightings[var]
-            l_2d += len(var_dict.keys()) * weight
-
-            var_matrix = np.zeros((n_regions,n_regions))
 
             # Add the matrices of different components for one var to a single matrix
             for component, data in var_dict.items():
-                var_matrix += data
+                matrix_2d += data * weight
 
-            # Add the matrices of different vars to a single matrix with weighting factors
-            part2_matrix += var_matrix * weight
-
-        part2_matrix = part2_matrix / l_2d
-
-        ###### Return two separate matrices
-        return part1_matrix, part2_matrix
+        ###### Return 3 separate matrices
+        return matrix_ts, matrix_1d, matrix_2d
 
 
 def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None):
@@ -377,7 +355,7 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None):
             value_var_c = data[index_regA_regB]
 
             # dist_2d(a,b) = sum_var{var_weight * sum_c( [value_var_c(a,b)]^2 ) }
-            distance_2d += value_var_c * var_weight_factor
+            distance_2d += (value_var_c*value_var_c) * var_weight_factor
 
 
     return distance_ts + distance_1d + distance_2d
