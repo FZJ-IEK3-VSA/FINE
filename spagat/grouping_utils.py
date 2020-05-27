@@ -12,12 +12,13 @@ def matrix_MinMaxScaler(X, x_min=0, x_max=1):
         return X
     return ((X - np.min(X)) / (np.max(X) - np.min(X))) * (x_max - x_min) + x_min
 
-def preprocessTimeSeries(vars_dict, n_components):
+def preprocessTimeSeries(vars_dict, n_regions, n_components):
     '''Preprocess the input dictionary of time series variables
         - Input vars_dic: dimensions of each variable value are 'component','space','TimeStep'
-        - Output ds_ts: a dictionary containing all variables
-            - For each variable: the value is a dictionary containing all its valid components
-            - For each variable and each valid component: 
+        - Output ds_ts: a dictionary containing all 2d variables
+            - For each variable: the value is a flattened data feature matrix based its valid components
+                - size: Row (n_regions) * Column (n_components * n_timesteps)
+            - matrix block for each valid component of one particular variable: 
                 - the value is a numpy array of size n_regions * TimeStep         
                 - the array matrix is normalized to scale [0,1]     
     '''
@@ -25,11 +26,12 @@ def preprocessTimeSeries(vars_dict, n_components):
 
     ds_ts = {}
 
+    # Each variable has a matrix value
     for var, da in vars_dict.items():
 
-        ds_ts_var = {}
+        matrix_var = np.array([np.zeros(n_regions)]).T
 
-        # Find the valid components for each variable
+        # Find the valid components for each variable: valid_component_weight=1, otherwise=0
         var_mean_df = da.mean(dim="space").mean(dim="TimeStep").to_dataframe()
         var_mean_df['component_id'] = np.array(range(n_components))
         valid_component_ids = list(var_mean_df[var_mean_df[var].notna()]['component_id'])
@@ -37,9 +39,14 @@ def preprocessTimeSeries(vars_dict, n_components):
         for comp_id in valid_component_ids:
             # Compute the standardized matrix for each valid component: rescale the matrix value to range [0,1]
             # -> the values in time series for this component should be in the same scaling: matrix_MinMaxScaler()
-            ds_ts_var[comp_id] = matrix_MinMaxScaler(da[comp_id].values) 
+            matrix_var_c = matrix_MinMaxScaler(da[comp_id].values) 
 
-        ds_ts[var] = ds_ts_var
+            # Concatenate this matrix block of one component to the final matrix for this 2d variable
+            matrix_var = np.concatenate((matrix_var, matrix_var_c), axis=1)
+
+        matrix_var = np.delete(matrix_var,0,1)
+
+        ds_ts[var] = matrix_var
            
     return ds_ts
 
@@ -59,7 +66,7 @@ def preprocess1dVariables(vars_dict, n_components):
 
     for var, da in vars_dict.items():
         
-        # Find the valid components for each variable
+        # Find the valid components for each variable: valid_comp_weight=1, otherwise=0
         var_mean_df = da.mean(dim="space").to_dataframe()
         var_mean_df['component_id'] = np.array(range(n_components))
         valid_component_ids = list(var_mean_df[var_mean_df[var].notna()]['component_id'])
@@ -168,12 +175,10 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
 
 def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=None):
     '''Preprocess the Xarray dataset: Separate the dataset into 3 parts: time series data, 1d-var data, and 2d-var data
-        - vars_ts: Time series variables  
-            - sub distances based on timesteps and based on components 
-            - e.g. dist = sum(dist_t0_c1 + dist_t0_c2 + dist_t1_c1 + ...)
-        - vars_1d: 1d variables as features matrix
+        - vars_ts: Time series variables: a feature matrix for each ts variable
+        - vars_1d: a features matrix for each 1d variable
         - vars_2d: 2d variables showing connectivity between regions
-            - Hierarchical: directly transformed as distance matrix (reciprocal of element values) and combine with vars_ts and vats_1d
+            - Hierarchical: directly transformed as distance matrix (values showing dissimilarity) and combine with vars_ts and vats_1d
             - Spectral: extract this part as an affinity matrix for the (un)directed graph (indicating similarity, here using adjacency matrix)
             - handle_mode: decide which method to preprocess vars_2d
 
@@ -203,14 +208,16 @@ def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=Non
 
     n_regions = len(dataset['space'].values)
 
-    ds_timeseries = preprocessTimeSeries(vars_ts, len(component_list))
+    ds_timeseries = preprocessTimeSeries(vars_ts, n_regions, len(component_list))
     ds_1d_vars = preprocess1dVariables(vars_1d, len(component_list))
     
     if handle_mode == 'toDissimilarity':
-        ''' Return 3 (all standardized with minMaxScaler) dictionaries for each category:
-            - timeseries vars: vars * components *  matrix of (regions * timesteps)
-            - 1d vars:   vars * matrix of (regions * components)
-            - 2d vars:   vars * components * 1-dim vector for distance (length = n_regs * (n_regs - 1)/2)
+        ''' Return 3 (all standardized with minMaxScaler) dictionaries for each variable category:
+            - timeseries vars: a dictionary containing one feature matrix for each variable
+            - 1d vars: a dictionary containing one feature matrix for each variable
+            - 2d vars: vectors for each variable and for each valid component  
+                - 1-dim vector indicating dissimilarities between two regions (distance) 
+                - vector length = n_regs * (n_regs - 1) / 2
         '''
         ds_2d_vars = preprocess2dVariables(vars_2d, component_list, handle_mode='toDissimilarity')
 
@@ -320,11 +327,6 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None):
         - Symmetry: d(i,j) = d(j,i)  ---> the part_2 must be Symmetrical!
         - Triangle inequality: d(i,j) <= d(i,k) + d(k,j)  ---> NOT SATISFIED!!!
     '''
-    # i= a[0]
-    # n = int(a[1])
-
-    # distance_part_1 = np.linalg.norm(a[2:2+n]-b[2:2+n]) if n != 0 else 0
-    # distance_part_2 = b[n+int(i)+2] if np.isnan(b[2+n]) else 0
 
     # Weighting factors of each variable 
     if var_weightings:
@@ -334,35 +336,34 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None):
         var_weightings = dict.fromkeys(vars_list,1)
 
     # Distance of Time Series Part
-    distance_ts, l_ts = 0, 0
-    for var, var_dict in ds_ts.items():
+    distance_ts = 0
+    for var, var_matr in ds_ts.items():
 
         var_weight_factor = var_weightings[var]
 
-        for component, data in var_dict.items():
-            
-            l_ts += data.shape[1] * var_weight_factor
-            
-            reg_a_vector = data[a]
-            reg_b_vector = data[b]
+        # Vectors for the two data points (regions), each feature refers to [one valid component & one timestep] for this var
+        reg_a = var_matr[a]
+        reg_b = var_matr[b]
 
-            distance_ts += sum(abs(reg_a_vector-reg_b_vector)) * var_weight_factor
-
-    distance_ts = distance_ts / l_ts
+        # dist_ts(a,b) = sum_var( var_weight * dist_var(a,b) )
+        # dist_var(a,b) = sum_c(sum_t( [value_var_c_t(a) - value_var_c_t(b)]^2 ))
+        distance_ts += sum( np.power((reg_a - reg_b),2) ) * var_weight_factor
 
     # Distance of 1d Variables Part
-    distance_1d, l_1d = 0, 0
-    for var, data in ds_1d.items():
+    distance_1d = 0
+    for var, var_matr in ds_1d.items():
 
         var_weight_factor = var_weightings[var]
-        l_1d += data.shape[1] * var_weight_factor
 
-        distance_1d += sum(abs(data[a] - data[b])) * var_weight_factor
-    
-    distance_1d = distance_1d / l_1d
+        # Vectors for the two data points (regions), each feature refers to one valid component for this var
+        reg_a = var_matr[a]
+        reg_b = var_matr[b]
+
+        # dist_1d(a,b) = sum_var{var_weight * sum_c( [value_var_c(a) - value_var_c(b)]^2 ) }
+        distance_1d += sum(np.power((reg_a - reg_b),2)) * var_weight_factor
 
     # Distance of 2d Variables Part
-    distance_2d, l_2d = 0, 0
+    distance_2d = 0
 
     # The index of corresponding value for region[a] and region[b] in the distance vectors
     index_regA_regB = a * (n_regions - a) + (b - a) -1
@@ -370,14 +371,13 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None):
     for var, var_dict in ds_2d.items():
 
         var_weight_factor = var_weightings[var]
-        l_2d += len(var_dict.keys()) * var_weight_factor
 
         for component, data in var_dict.items():
-
             # Find the corresponding distance value for region_a and region_b
-            distance_2d += data[index_regA_regB]
+            value_var_c = data[index_regA_regB]
 
-    distance_2d = distance_2d / l_2d
+            # dist_2d(a,b) = sum_var{var_weight * sum_c( [value_var_c(a,b)]^2 ) }
+            distance_2d += value_var_c * var_weight_factor
 
 
     return distance_ts + distance_1d + distance_2d
@@ -390,7 +390,7 @@ def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions, var_weightings=None):
 
     for i in range(n_regions):
         for j in range(i+1,n_regions):
-            distMatrix[i,j] = selfDistance(ds_ts,ds_1d, ds_2d, n_regions, i,j, var_weightings=None)
+            distMatrix[i,j] = selfDistance(ds_ts,ds_1d, ds_2d, n_regions, i,j, var_weightings=var_weightings)
 
     distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())
 
