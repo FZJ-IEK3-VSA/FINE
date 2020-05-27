@@ -14,6 +14,7 @@ from scipy.cluster import vq
 # Using Scikit Learn for clustering
 #from sklearn.cluster import KMeans
 import sklearn.cluster as skc
+from sklearn import metrics
 
 # import spagat.dataset as spd
 import metis_utils.io_tools as ito
@@ -185,7 +186,7 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         plt.show()
 
         path = '/home/s-xing/code/spagat/output/ClusteringAnalysis/'
-        figname = save_fig if save_fig is not None else 'scipy_kmeans_Distortion.png'
+        figname = save_fig if save_fig is not None else 'Distance_based_scipy_kmeans_Distortion.png'
 
         pto.plt_savefig(fig=fig, path=path, save_name=figname)
 
@@ -419,6 +420,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         plt.xticks(np.arange(1, len(Z)+1, 1))
         plt.show()
 
+        
         # If and how to save the hierarchical tree 
         if ax_illustration is not None:
             R = hierarchy.dendrogram(Z, orientation="top",
@@ -435,11 +437,12 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
                                      labels=sds.xr_dataset[dimension_description].values, ax=ax, leaf_font_size=14)
 
             pto.plt_savefig(fig=fig, save_name=save_fig)
-
+        
         # regions_dict to record the newest region set after each merging step, regions_dict_complete for all regions appearing during clustering
         regions_dict = {region_id: [region_id] for region_id in regions_list}
         regions_dict_complete = regions_dict.copy()
 
+        #chi = [] # Calinski-Harabasz scores
         # Identify, which regions are merged together (new_merged_region_id_list)
         for i in range(len(Z)):
 
@@ -483,6 +486,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         # Precompute the distance matrix according to the Custom Distance Function
         distMatrix = gu.selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions)
 
+        #chi = [] # Calinski-Harabasz scores
         for i in range(1,n_regions):
             # Computing hierarchical clustering
             model = skc.AgglomerativeClustering(n_clusters=i,affinity='precomputed',linkage='average').fit(distMatrix)
@@ -518,6 +522,16 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
 
         distance_matrix = hierarchy.distance.pdist(distMatrix)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
+        
+        fig, ax = plt.subplots(figsize=(18,7))
+        inconsistency = hierarchy.inconsistent(linkage_matrix)
+        ax.plot(range(1,len(linkage_matrix)+1),list(inconsistency[:,3]),'go-')
+        ax.set_title('Inconsistency Coefficients: indicate where to cut the hierarchy', fontsize=14)
+        ax.set_xlabel('Linkage height', fontsize=12)
+        ax.set_ylabel('Inconsistencies', fontsize=12)
+
+        plt.xticks(np.arange(1, len(linkage_matrix)+1, 1))
+        plt.show()
     
 
     ''' 2. Using spectral clustering with precomputed affinity matrix'''
