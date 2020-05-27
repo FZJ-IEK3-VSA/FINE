@@ -288,7 +288,7 @@ def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=Non
         return matrix_ts, matrix_1d, matrix_2d
 
 
-def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None):
+def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part_weightings=None):
     ''' Custom distance function: 
         - parameters a, b: region ids, a < b, a,b in [0, n_regions)
         - return: distance between a and b = distance_ts + distance_1d + distance_2d
@@ -312,6 +312,12 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None):
     else:
         vars_list = list(ds_ts.keys()) + list(ds_1d.keys()) + list(ds_2d.keys())
         var_weightings = dict.fromkeys(vars_list,1)
+
+    # Weighting factors for 3 var-categories
+    if part_weightings:
+        part_weightings = part_weightings
+    else:
+        part_weightings = [1,1,1]
 
     # Distance of Time Series Part
     distance_ts = 0
@@ -358,7 +364,7 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None):
             distance_2d += (value_var_c*value_var_c) * var_weight_factor
 
 
-    return distance_ts + distance_1d + distance_2d
+    return distance_ts * part_weightings[0] + distance_1d * part_weightings[1] + distance_2d * part_weightings[2]
 
 def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions, var_weightings=None):
     ''' Return a n_regions by n_regions symmetric distance matrix X 
