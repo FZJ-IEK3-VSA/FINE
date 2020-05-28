@@ -237,48 +237,48 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
 
     return esm_dict, component_dict
 
-def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregatedShapefileFolderPath=None, clusterMethod="centroid-based", **kwargs):
-        """Clusters the spatial data of all components considered in the EnergySystemModel instance and returns a new esM instance with the aggregated data.        
-        
-        Additional keyword arguments for the SpatialAggregation instance can be added (facilitated by kwargs). 
-        
-        Please refer to the SPAGAT package documentation for more information.
+def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_function_dict=None, clusterMethod="centroid-based", aggregatedShapefileFolderPath=None, **kwargs):
+    """Clusters the spatial data of all components considered in the EnergySystemModel instance and returns a new esM instance with the aggregated data.        
+    
+    Additional keyword arguments for the SpatialAggregation instance can be added (facilitated by kwargs). 
+    
+    Please refer to the SPAGAT package documentation for more information.
 
-        **Default arguments:**
+    **Default arguments:**
 
-        :param numberOfRegions: states the number of regions into which the spatial data
-            should be clustered.
-            Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
-            information.
-            |br| * the default value is None
-        :type numberOfTypicalPeriods: strictly positive integer, None
+    :param numberOfRegions: states the number of regions into which the spatial data
+        should be clustered.
+        Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
+        information.
+        |br| * the default value is None
+    :type numberOfTypicalPeriods: strictly positive integer, None
 
-        :param gdfRegions: geodataframe containing the shapes of the regions of the energy system model instance
-            |br| * the default value is None
-        :type gdfRegions: geopandas.dataframe
+    :param gdfRegions: geodataframe containing the shapes of the regions of the energy system model instance
+        |br| * the default value is None
+    :type gdfRegions: geopandas.dataframe
 
-        :param aggregatedShapefileFolderPath: indicate the path to the folder were the input and aggregated shapefiles shall be located 
-            |br| * the default value is None
-        :type numberOfTimeStepsPerPeriod: string
+    :param aggregatedShapefileFolderPath: indicate the path to the folder were the input and aggregated shapefiles shall be located 
+        |br| * the default value is None
+    :type numberOfTimeStepsPerPeriod: string
 
-        :param clusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
-            data. Options are for example 'centroid-based'.
-            Note: Please refer to the SPAGAT package documentation of the parameter clusterMethod for more information.
-            |br| * the default value is 'centroid-based'
-        :type clusterMethod: string
+    :param clusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
+        data. Options are for example 'centroid-based'.
+        Note: Please refer to the SPAGAT package documentation of the parameter clusterMethod for more information.
+        |br| * the default value is 'centroid-based'
+    :type clusterMethod: string
 
-        :return: esM_aggregated, spagat_manager.sds_out.xr_dataset - esM instance with spatially aggregated data and xarray dataset containing all spatially resolved data
-        """
+    :return: esM_aggregated - esM instance with spatially aggregated data and xarray dataset containing all spatially resolved data
+    """
 
     # initialize spagat_manager
     spagat_manager = spm.SpagatManager()
     esm_dict, component_dict = fn.dictIO.exportToDict(esM)
     spagat_manager.sds.xr_dataset = dimensional_data_to_xarray_dataset(esm_dict, component_dict)
 
-    if gdf_regions is not None:
+    if gdfRegions is not None:
         spagat_manager.sds.add_objects(description='gpd_geometries',
                                        dimension_list=['space'],
-                                       object_list=gdf_regions.geometry)
+                                       object_list=gdfRegions.geometry)
         spr.add_region_centroids(spagat_manager.sds, spatial_dim='space')
 
     # spatial clustering 
@@ -312,7 +312,7 @@ def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregatedShapefi
                                                 for key, value in spagat_manager.aggregation_function_dict.items()
                                             for dimension in ["1d", "2d"]}
 
-    spagat_manager.representation(number_of_regions=n_regions)
+    spagat_manager.representation(number_of_regions=numberOfRegions)
 
     # create aggregated esM instance
 
@@ -339,5 +339,5 @@ def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregatedShapefi
         aggregated_grid_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_grid.shp')
         # spr.create_grid_shapefile(spagat_manager.sds_out, filename=aggregated_grid_FilePath)
 
-    return esM_aggregated, spagat_manager.sds_out.xr_dataset
+    return esM_aggregated
 

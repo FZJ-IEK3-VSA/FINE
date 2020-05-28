@@ -498,9 +498,9 @@ class EnergySystemModel:
                 self,
                 numberOfRegions=numberOfRegions,
                 gdfRegions=gdfRegions,
-                aggregatedShapefileFolderPath=shapefileFolder,
                 clusterMethod="centroid-based",
-                *kwargs,
+                aggregatedShapefileFolderPath=shapefileFolder,
+                **kwargs,
             )
 
             return esM_aggregated
