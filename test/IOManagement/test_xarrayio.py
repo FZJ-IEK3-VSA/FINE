@@ -37,20 +37,18 @@ def test_dimensional_data_to_xarray_dataset_minimal(minimal_test_esM):
 def test_spatial_aggregation_multinode(multi_node_test_esM_init):
     '''Test whether spatial aggregation of the Multi-Node Energy System Model (from examples) and subsequent optimization works'''
 
-    shapefile_folder = os.path.join(os.path.dirname(__file__), '../../examples/Multi-regional Energy System Workflow/', 
+    shapefileFolder = os.path.join(os.path.dirname(__file__), '../../examples/Multi-regional Energy System Workflow/', 
                                     'InputData/SpatialData/ShapeFiles/')
 
-    locFilePath = os.path.join(shapefile_folder, 'clusteredRegions.shp')
-    gdf_regions = gpd.read_file(locFilePath)
+    inputShapefile = 'clusteredRegions.shp'
 
-    esM_aggregated, xarray_dataset = fn.xarray_io.spatial_aggregation(esM=multi_node_test_esM_init, n_regions=3, 
-                                                                      gdf_regions=gdf_regions)
+    esM_aggregated = multi_node_test_esM_init.spatial_aggregation(numberOfRegions=3, clusterMethod="centroid-based", shapefileFolder=shapefileFolder, inputShapefile=inputShapefile)
 
     esM_aggregated.cluster(numberOfTypicalPeriods=2)
     
-    # esM_aggregated.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 crossover=0 method=2 cuts=0')
     esM_aggregated.optimize(timeSeriesAggregation=True, solver='glpk')
 
+    # TODO: test against results
 
 @pytest.mark.skip('not on CAESAR')
 def test_spatial_aggregation_ehighway(european_model):
