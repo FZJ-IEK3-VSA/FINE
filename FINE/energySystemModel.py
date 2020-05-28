@@ -349,10 +349,14 @@ class EnergySystemModel:
         Cluster the time series data of all components considered in the EnergySystemModel instance and then
         stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
-        days with 24 hours) is assigned. For the clustering itself, the tsam package is used (cf.
-        https://github.com/FZJ-IEK3-VSA/tsam). Additional keyword arguments for the TimeSeriesAggregation instance
-        can be added (facilitated by kwargs). As an example: it might be useful to add extreme periods to the
-        clustered typical periods.
+        days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
+        time steps with an irregular duration using the segmentation option.
+        For the clustering itself, the tsam package is used (cf. https://github.com/FZJ-IEK3-VSA/tsam). Additional
+        keyword arguments for the TimeSeriesAggregation instance can be added (facilitated by kwargs). As an example: it
+        might be useful to add extreme periods to the clustered typical periods.
+        Note: The segmentation option can be freely combined with all subclasses. However, an irregular time step length
+        is not meaningful for the minimumDownTime and minimumUpTime in the conversionDynamic module, because the time
+        would be different for each segment. The same holds true for the DSM module.
 
         **Default arguments:**
 
