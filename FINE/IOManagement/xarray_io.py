@@ -10,7 +10,16 @@ import spagat.representation as spr
 import geopandas as gpd
 
 def generate_iteration_dicts(esm_dict, component_dict):
-    # create iteration dict that indicates all iterators
+    """Creates iteration dictionaries that contain descriptions of all dataframes and series of the dictionaries esm_dict and component_dict.
+    
+    :param esm_dict: dictionary containing information about the esM instance
+    :type esm_dict: dict
+
+    :param component_dict: dictionary containing information about the esM instance's components
+    :type component_dict: dict
+ 
+    :return: df_iteration_dict, series_iteration_dict
+    """
 
     df_iteration_dict = {}
 
@@ -45,7 +54,18 @@ def generate_iteration_dicts(esm_dict, component_dict):
     return df_iteration_dict, series_iteration_dict
 
 def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
-    """Outputs all dimensional data, hence data containing at least one of the dimensions of time and space, to an xarray dataset"""
+    """Outputs all dimensional data to an xarray dataset.
+    
+    Note:  Here, "dimensional data" refers to data containing at least one of the dimensions of time and space.
+
+    :param esm_dict: dictionary containing information about the esM instance
+    :type esm_dict: dict
+
+    :param component_dict: dictionary containing information about the esM instance's components
+    :type component_dict: dict
+ 
+    :return: ds - xarray dataset containing all dimensional data of an esM instance
+    """
 
     locations = list(esm_dict['locations'])
 
@@ -144,7 +164,22 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
     return ds
 
 def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_dataset):
-    """Replaces dimensional data (using aggregated data from xarray_dataset) and respective description in component_dict and esm_dict"""
+    """Replaces dimensional data and respective descriptions in component_dict and esm_dict with spatially aggregated data from xarray_dataset.
+
+    Note:  Here, "dimensional data" refers to data containing at least one of the dimensions of time and space.
+
+    :param esm_dict: dictionary containing information about the esM instance
+    :type esm_dict: dict
+
+    :param component_dict: dictionary containing information about the esM instance's components
+    :type component_dict: dict
+
+    :param xarray_dataset: dataset containing all "dimensional data" of an esM instance
+    :type xarray_dataset: xarray.dataset
+
+    :return: esm_dict, component_dict - updated dictionaries containing spatially aggregated data
+    """
+    
     df_iteration_dict, series_iteration_dict = generate_iteration_dicts(esm_dict, component_dict)
 
     # update esm_dict
@@ -202,8 +237,38 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
 
     return esm_dict, component_dict
 
-def spatial_aggregation(esM, n_regions, aggregation_function_dict=None,
-                        gdf_regions=None, aggregatedShapefileFolderPath=None):
+def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregatedShapefileFolderPath=None, clusterMethod="centroid-based", **kwargs):
+        """Clusters the spatial data of all components considered in the EnergySystemModel instance and returns a new esM instance with the aggregated data.        
+        
+        Additional keyword arguments for the SpatialAggregation instance can be added (facilitated by kwargs). 
+        
+        Please refer to the SPAGAT package documentation for more information.
+
+        **Default arguments:**
+
+        :param numberOfRegions: states the number of regions into which the spatial data
+            should be clustered.
+            Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
+            information.
+            |br| * the default value is None
+        :type numberOfTypicalPeriods: strictly positive integer, None
+
+        :param gdfRegions: geodataframe containing the shapes of the regions of the energy system model instance
+            |br| * the default value is None
+        :type gdfRegions: geopandas.dataframe
+
+        :param aggregatedShapefileFolderPath: indicate the path to the folder were the input and aggregated shapefiles shall be located 
+            |br| * the default value is None
+        :type numberOfTimeStepsPerPeriod: string
+
+        :param clusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
+            data. Options are for example 'centroid-based'.
+            Note: Please refer to the SPAGAT package documentation of the parameter clusterMethod for more information.
+            |br| * the default value is 'centroid-based'
+        :type clusterMethod: string
+
+        :return: esM_aggregated, spagat_manager.sds_out.xr_dataset - esM instance with spatially aggregated data and xarray dataset containing all spatially resolved data
+        """
 
     # initialize spagat_manager
     spagat_manager = spm.SpagatManager()
