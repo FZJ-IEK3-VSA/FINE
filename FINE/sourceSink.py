@@ -359,6 +359,12 @@ class SourceSinkModel(ComponentModel):
         # Declare commodity limitation dictionary
         self.declareYearlyCommodityLimitationDict(pyM)
 
+        # Declare minimum yearly full load hour set
+        self.declareYearlyFullLoadHoursMinSet(pyM)
+
+        # Declare maximum yearly full load hour set
+        self.declareYearlyFullLoadHoursMaxSet(pyM)
+
     ####################################################################################################################
     #                                                Declare variables                                                 #
     ####################################################################################################################
@@ -442,6 +448,10 @@ class SourceSinkModel(ComponentModel):
         self.capacityFix(pyM)
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
+        # Set yearly full load hours minimum limit
+        self.yearlyFullLoadHoursMin(pyM, esM)
+        # Set yearly full load hours maximum limit
+        self.yearlyFullLoadHoursMax(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
