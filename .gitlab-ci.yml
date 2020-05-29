@@ -1,5 +1,8 @@
 image: continuumio/miniconda:latest
 
+tags:
+  - linux
+
 cache:
   paths:
     - .pip
