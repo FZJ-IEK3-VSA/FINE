@@ -1,8 +1,5 @@
 image: continuumio/miniconda:latest
 
-tags:
-  - linux
-
 cache:
   paths:
     - .pip
@@ -15,6 +12,9 @@ before_script:
   - pip install -e .
 
 pages:
+  tags:
+    - linux
+
   script:
     - cd doc
     - sphinx-build -d build/doctrees source build/html
@@ -26,5 +26,8 @@ pages:
   - master
 
 tests:
+  tags:
+    - linux
+
   script:
     - pytest --cov=spagat .
