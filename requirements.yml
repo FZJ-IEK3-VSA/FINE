@@ -1,7 +1,9 @@
 name: FINE
+channels:
+  - conda-forge
+  - defaults
 dependencies:
 - python=3.6
-- conda-forge::gdal=2.4.1
 - conda-forge::geopandas
 - conda-forge::jupyter
 - conda-forge::notebook
@@ -14,6 +16,7 @@ dependencies:
 - pyomo
 - numpy
 - pandas
+- xarray
 - GPyOpt
 - networkx
 - scipy

@@ -172,11 +172,11 @@ class Source(Component):
 
         self.fullCommodityCostTimeSeries = \
             utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries, locationalEligibility)
-        self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
+        self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, self.fullCommodityCostTimeSeries
 
         self.fullCommodityRevenueTimeSeries = \
             utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityRevenueTimeSeries, locationalEligibility)
-        self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
+        self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, self.fullCommodityRevenueTimeSeries
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
         if operationRateMax is not None and operationRateFix is not None:
@@ -186,10 +186,10 @@ class Source(Component):
                               'The operationRateMax time series was set to None.')
 
         self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, locationalEligibility)
-        self.aggregatedOperationRateMax, self.operationRateMax = None, None
+        self.aggregatedOperationRateMax, self.operationRateMax = None, self.fullOperationRateMax
 
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, locationalEligibility)
-        self.aggregatedOperationRateFix, self.operationRateFix = None, None
+        self.aggregatedOperationRateFix, self.operationRateFix = None, self.fullOperationRateFix
 
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:
@@ -267,7 +267,7 @@ class Sink(Source):
     def __init__(self, esM, name, commodity, hasCapacityVariable,
                  capacityVariableDomain='continuous', capacityPerPlantUnit=1,
                  hasIsBuiltBinaryVariable=False, bigM=None,
-                 operationRateMax=None, operationRateFix=None, tsamWeight=1, commodityLimitID=None,
+                 operationRateMax=None, operationRateFix=None, tsaWeight=1, commodityLimitID=None,
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None,
                  sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
@@ -283,11 +283,12 @@ class Sink(Source):
         """
         Source.__init__(self, esM, name, commodity, hasCapacityVariable, capacityVariableDomain,
                         capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix,
-                        tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
+                        tsaWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
                         capacityMax, partLoadMin, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
                         investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries, 
                         commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate, 
                         economicLifetime, technicalLifetime)
+        # TODO: add keyword arguments (maybe as **kwargs)
 
         self.sign = -1
 

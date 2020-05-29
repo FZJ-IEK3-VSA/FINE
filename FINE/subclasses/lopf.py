@@ -38,6 +38,8 @@ class LinearOptimalPowerFlow(Transmission):
                               economicLifetime, technicalLifetime)
 
         self.modelingClass = LOPFModel
+        
+        # self.reactances = utils.preprocess2dimData(reactances, self._mapC) # modification by Leander # TODO: check whether everything works without self._mapC 
 
         self.reactances2dim = reactances
         try:

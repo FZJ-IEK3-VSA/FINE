@@ -1,12 +1,36 @@
 conda:
   image: continuumio/miniconda:latest
-  tags: 
-  - linux
+  tags:
+    - linux
+
+  before_script:
+    - "which ssh-agent || (apt-get update -y && apt-get install openssh-client -y )"
+    - eval $(ssh-agent -s)
+
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+
+    - git config --global user.email "r.beer@fz-juelich.de"
+    - git config --global user.name "Robin Beer"
+
+    - git clone ssh://git@gitlab.version.fz-juelich.de:10022/metis/spagat.git
+    # - git clone https://github.com/FZJ-IEK3-VSA/geokit.git
 
   script:
     - conda env update -q --file=requirements.yml
     - conda env update -q --file=requirements_dev.yml
     - conda info --envs
     - source activate FINE
+
+    # - conda env update --name FINE --file=geokit/requirements.yml
+    # - pip install -e geokit
+    - conda env update --name FINE --file=spagat/environment.yml
+    - pip install -e spagat
+
     - pip install -e .
     - pytest --cov=FINE test/

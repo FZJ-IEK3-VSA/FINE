@@ -23,6 +23,8 @@
 
 import FINE as fn
 import pandas as pd
+import numpy as np
+import os 
 
 def test_miniSystem():
     locations = {'loc1','loc2'}
