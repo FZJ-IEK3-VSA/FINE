@@ -18,7 +18,7 @@ pages:
   script:
     - cd doc
     - sphinx-build -d build/doctrees source build/html
-    - mv _build/html public
+    - mv build/html public
   artifacts:
     paths:
     - public
