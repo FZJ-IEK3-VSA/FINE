@@ -8,7 +8,7 @@ cache:
 before_script:
   - conda env update -q --file=environment.yml
   - conda info --envs
-  - source activate SPAGAT
+  - source activate spagat
   - pip install -e .
 
 pages:
