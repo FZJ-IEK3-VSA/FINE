@@ -1,4 +1,4 @@
-conda:
+tests:
   image: continuumio/miniconda:latest
   tags:
     - linux
@@ -8,4 +8,15 @@ conda:
     - conda info --envs
     - source activate SPAGAT
     - pip install -e .
-    - pytest --cov=spagat .
+    # - pytest --cov=spagat .
+
+pages:
+  script:
+    - cd doc
+    - sphinx-build -d build/doctrees source build/html
+    - mv _build/html public
+  artifacts:
+    paths:
+    - public
+  only:
+  - master
