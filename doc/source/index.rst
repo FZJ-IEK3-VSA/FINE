@@ -33,7 +33,7 @@ tbd
 
     getting_started_doc
     legal_notice_doc
-    io
+    io.md
 
 **Help & reference**
 
@@ -45,8 +45,3 @@ tbd
    :caption: Help & reference
 
    api
-
-**Indices**
-
-* :ref:`genindex`
-* :ref:`modindex`

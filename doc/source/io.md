@@ -1,6 +1,4 @@
-*********************
-Data Input and Output
-*********************
+# Data Input and Output
 
 SPAGAT is build upon [xarray (N-D labeled arrays and datasets in Python)](http://xarray.pydata.org/en/stable/), as energy system data comprises spatiotemporal data for many different energy system components and is thus multi-dimensional.
 
