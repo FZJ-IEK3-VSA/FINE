@@ -1,14 +1,15 @@
-tests:
-  image: continuumio/miniconda:latest
-  tags:
-    - linux
+image: continuumio/miniconda:latest
 
-  script:
-    - conda env update -q --file=environment.yml
-    - conda info --envs
-    - source activate SPAGAT
-    - pip install -e .
-    # - pytest --cov=spagat .
+cache:
+  paths:
+    - .pip
+
+
+before_script:
+  - conda env update -q --file=environment.yml
+  - conda info --envs
+  - source activate SPAGAT
+  - pip install -e .
 
 pages:
   script:
@@ -20,3 +21,7 @@ pages:
     - public
   only:
   - master
+
+tests:
+  script:
+    - pytest --cov=spagat .
