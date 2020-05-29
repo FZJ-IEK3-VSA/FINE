@@ -1,6 +1,5 @@
 import FINE as fn
 import FINE.utils as utils
-from FINE.IOManagement import plot
 import pandas as pd
 import ast
 import inspect
