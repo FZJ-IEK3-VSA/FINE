@@ -34,15 +34,7 @@ with suppress(ImportError):
     matplotlib.use("Agg")
 allowed_failures = set()
 
-# print("python exec:", sys.executable)
-# print("sys.path:", sys.path)
-
-# if "conda" in sys.executable:
-#     print("conda environment:")
-#     subprocess.run(["conda", "list"])
-# else:
-#     print("pip environment:")
-#     subprocess.run(["pip", "list"])
+print("python exec:", sys.executable)
 
 # -- Project information -----------------------------------------------------
 
@@ -65,6 +57,7 @@ author = "Robin Beer"
 # TODO: the extension selection is inspired by both FINE and xarray and might include redundancies concerning functionality
 
 extensions = [
+    "recommonmark",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx_autodoc_typehints",
@@ -82,7 +75,12 @@ extensions = [
     "sphinx.ext.imgmath",
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
+    'sphinx.ext.autosectionlabel',
 ]
+
+# recommonmark config
+autosectionlabel_prefix_document = True
+enable_eval_rst = True
 
 # TODO: add jugit or github links to create issues or merge requests
 # extlinks = {
@@ -171,4 +169,11 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org", None),
     "dask": ("https://docs.dask.org/en/latest", None),
     "xarray": ("http://xarray.pydata.org/en/stable/", None),
+}
+
+
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
 }
