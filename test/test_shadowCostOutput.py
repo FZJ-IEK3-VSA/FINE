@@ -10,7 +10,7 @@ def test_shadowCostOutPut(minimal_test_esM):
 
     esM.optimize(solver='glpk')
 
-    SP = fn.getShadowPrices(esM.pyM, esM.pyM.ConstrOperation4_srcSnk,
+    SP = fn.getShadowPrices(esM, esM.pyM.ConstrOperation4_srcSnk,
                         dualValues=None, hasTimeSeries=True,
                         periodOccurrences=esM.periodOccurrences,
                         periodsOrder=esM.periodsOrder)
@@ -20,7 +20,7 @@ def test_shadowCostOutPut(minimal_test_esM):
     esM.cluster(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
     esM.optimize(timeSeriesAggregation=True, solver='glpk')
 
-    SP = fn.getShadowPrices(esM.pyM, esM.pyM.ConstrOperation4_srcSnk,
+    SP = fn.getShadowPrices(esM, esM.pyM.ConstrOperation4_srcSnk,
                         dualValues=None, hasTimeSeries=True,
                         periodOccurrences=esM.periodOccurrences,
                         periodsOrder=esM.periodsOrder)

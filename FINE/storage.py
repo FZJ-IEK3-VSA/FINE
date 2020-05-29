@@ -3,6 +3,7 @@ from FINE import utils
 import pyomo.environ as pyomo
 import warnings
 import pandas as pd
+import numpy as np
 
 
 class Storage(Component):
@@ -480,10 +481,16 @@ class StorageModel(ComponentModel):
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         def connectSOCs(pyM, loc, compName, p, t):
-            return (SOC[loc, compName, p, t+1] - SOC[loc, compName, p, t] *
-                    (1 - compDict[compName].selfDischarge) ** esM.hoursPerTimeStep ==
-                    chargeOp[loc, compName, p, t] * compDict[compName].chargeEfficiency -
-                    dischargeOp[loc, compName, p, t] / compDict[compName].dischargeEfficiency)
+            if not pyM.hasSegmentation:
+                return (SOC[loc, compName, p, t+1] - SOC[loc, compName, p, t] *
+                        (1 - compDict[compName].selfDischarge) ** esM.hoursPerTimeStep ==
+                        chargeOp[loc, compName, p, t] * compDict[compName].chargeEfficiency -
+                        dischargeOp[loc, compName, p, t] / compDict[compName].dischargeEfficiency)
+            else:
+                return (SOC[loc, compName, p, t+1] - SOC[loc, compName, p, t] *
+                        (1 - compDict[compName].selfDischarge) ** esM.hoursPerSegment.to_dict()[p, t] ==
+                        chargeOp[loc, compName, p, t] * compDict[compName].chargeEfficiency -
+                        dischargeOp[loc, compName, p, t] / compDict[compName].dischargeEfficiency)
         setattr(pyM, 'ConstrConnectSOC_' + abbrvName, pyomo.Constraint(opVarSet, pyM.timeSet, rule=connectSOCs))
 
     def cyclicState(self, pyM, esM):
@@ -563,11 +570,18 @@ class StorageModel(ComponentModel):
         def connectInterSOC(pyM, loc, compName, pInter):
             offsetUp_ = offsetUp[loc, compName, pInter] if (loc, compName, pInter) in offsetUp else 0
             offsetDown_ = offsetDown[loc, compName, pInter] if (loc, compName, pInter) in offsetDown else 0
-            return SOCInter[loc, compName, pInter + 1] == \
-                SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
-                ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
-                SOC[loc, compName, esM.periodsOrder[pInter], esM.timeStepsPerPeriod[-1] + 1] + \
-                (offsetUp_ - offsetDown_)
+            if not esM.pyM.hasSegmentation:
+                return SOCInter[loc, compName, pInter + 1] == \
+                    SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
+                    ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
+                    SOC[loc, compName, esM.periodsOrder[pInter], esM.timeStepsPerPeriod[-1] + 1] + \
+                    (offsetUp_ - offsetDown_)
+            else:
+                return SOCInter[loc, compName, pInter + 1] == \
+                    SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
+                    ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
+                    SOC[loc, compName, esM.periodsOrder[pInter], esM.segmentsPerPeriod[-1] + 1] + \
+                    (offsetUp_ - offsetDown_)
         setattr(pyM, 'ConstrInterSOC_' + abbrvName, pyomo.Constraint(opVarSet, esM.periods, rule=connectInterSOC))
 
     def intraSOCstart(self, pyM, esM):
@@ -725,10 +739,17 @@ class StorageModel(ComponentModel):
 
         def SOCMaxPrecise(pyM, loc, compName, pInter, t):
             if compDict[compName].doPreciseTsaModeling:
-                return (SOCinter[loc, compName, pInter] *
-                        ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
-                        SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName] * compDict[compName].stateOfChargeMax)
+                if not pyM.hasSegmentation:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            <= capVar[loc, compName] * compDict[compName].stateOfChargeMax)
+                else:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) **
+                            (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            <= capVar[loc, compName] * compDict[compName].stateOfChargeMax)
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise_' + abbrvName,
@@ -752,13 +773,25 @@ class StorageModel(ComponentModel):
 
         def SOCMinPrecise(pyM, loc, compName, pInter, t):
             if compDict[compName].hasCapacityVariable:
-                return (SOCinter[loc, compName, pInter] * ((1 - compDict[compName].selfDischarge) **
-                        (t * esM.hoursPerTimeStep)) + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        >= capVar[loc, compName] * compDict[compName].stateOfChargeMin)
+                if not pyM.hasSegmentation:
+                    return (SOCinter[loc, compName, pInter] * ((1 - compDict[compName].selfDischarge) **
+                            (t * esM.hoursPerTimeStep)) + SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            >= capVar[loc, compName] * compDict[compName].stateOfChargeMin)
+                else:
+                    return (SOCinter[loc, compName, pInter] * ((1 - compDict[compName].selfDischarge) **
+                            (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            >= capVar[loc, compName] * compDict[compName].stateOfChargeMin)
             else:
-                return (SOCinter[loc, compName, pInter] * ((1 - compDict[compName].selfDischarge) **
-                        (t * esM.hoursPerTimeStep)) + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        >= compDict[compName].stateOfChargeMin)
+                if not pyM.hasSegmentation:
+                    return (SOCinter[loc, compName, pInter] * ((1 - compDict[compName].selfDischarge) **
+                            (t * esM.hoursPerTimeStep)) + SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            >= compDict[compName].stateOfChargeMin)
+                else:
+                    return (SOCinter[loc, compName, pInter] * ((1 - compDict[compName].selfDischarge) **
+                            (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            >= compDict[compName].stateOfChargeMin)
         setattr(pyM, 'ConstrSOCMinPrecise_' + abbrvName,
                 pyomo.Constraint(preciseSet, esM.periods, esM.timeStepsPerPeriod, rule=SOCMinPrecise))
 
@@ -972,7 +1005,8 @@ class StorageModel(ComponentModel):
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
 
         # * charge variables and contributions
-        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                esM=esM)
         self.chargeOperationVariablesOptimum = optVal
 
         if optVal is not None:
@@ -985,7 +1019,7 @@ class StorageModel(ComponentModel):
 
         # * discharge variables and contributions
         optVal = utils.formatOptimizationOutput(dischargeOp.get_values(), 'operationVariables', '1dim',
-                                                esM.periodsOrder)
+                                                esM.periodsOrder, esM=esM)
         self.dischargeOperationVariablesOptimum = optVal
 
         if optVal is not None:
@@ -998,7 +1032,8 @@ class StorageModel(ComponentModel):
 
         # * set state of charge variables
         if not pyM.hasTSA:
-            optVal = utils.formatOptimizationOutput(SOC.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+            optVal = utils.formatOptimizationOutput(SOC.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                    esM=esM)
             # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
             # other)
             optVal = optVal.loc[:, :len(optVal.columns) - 2]
@@ -1019,7 +1054,21 @@ class StorageModel(ComponentModel):
                 # Get rid of the unnecessary 0 level
                 stateOfChargeIntra.columns = stateOfChargeIntra.columns.droplevel()
                 stateOfChargeInter.columns = stateOfChargeInter.columns.droplevel()
-                # Concat data
+                # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
+                # time steps first
+                if esM.segmentation:
+                    dataAllPeriods = []
+                    for p in esM.typicalPeriods:
+                        # Repeat each segment in each period as often as time steps are represented by the corresponding
+                        # segment
+                        repList = esM.timeStepsPerSegment.loc[p, :].tolist()
+                        dataPeriod = pd.DataFrame(np.repeat(stateOfChargeIntra.loc[p].loc[:, :esM.segmentsPerPeriod[-1]].values, repList, axis=1),
+                                                  index=stateOfChargeIntra.xs(p, level=0, drop_level=False).index)
+                        dataAllPeriods.append(dataPeriod)
+                    # Concat data to multiindex dataframe with periods, components and locations as indices and inner-
+                    # period time steps as columns
+                    stateOfChargeIntra = pd.concat(dataAllPeriods, axis=0)
+                # Concat data according to periods order to cover the full time horizon
                 data = []
                 for count, p in enumerate(esM.periodsOrder):
                     data.append((stateOfChargeInter.loc[:, count] +
