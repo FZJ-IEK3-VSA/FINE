@@ -166,8 +166,8 @@ html_last_updated_fmt = today_fmt
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
-    "numpy": ("https://docs.scipy.org/doc/numpy", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
+    # "numpy": ("https://docs.scipy.org/doc/numpy", None),
+    # "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
     "matplotlib": ("https://matplotlib.org", None),
     "dask": ("https://docs.dask.org/en/latest", None),
     "xarray": ("http://xarray.pydata.org/en/stable/", None),
