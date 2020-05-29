@@ -113,3 +113,7 @@ sphinx-build -d build/doctrees source build/html
 You can then inspect the documentation for example by running it locally using the [VS Code Extension Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer).
 
 Therefore, install VS code and the extension, right-click on the `index.html` and select `Open with Live Server`.
+
+Voilà, your documentation should appear on your webbrowser.
+
+PS: This documentation is built using [Sphinx](https://www.sphinx-doc.org/en/master/), with the extensions [sphinx-autodoc-typehints](https://pypi.org/project/sphinx-autodoc-typehints/) to derive types from type annotations and [sphinx.ext.napoleon](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html) to enable NumPy style.
