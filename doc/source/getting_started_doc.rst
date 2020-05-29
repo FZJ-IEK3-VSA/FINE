@@ -91,3 +91,25 @@ or install directly via python as
 Install FINE, to enable energy system optimization...
 
 tbd
+
+************
+Documentation
+************
+
+In order to contribute to the documentation you can simply install spagat and activate the conda environment as described above.
+
+Then, you can make the html documentation locally by changing directory from the spagat root directory to `doc`:
+
+```
+cd doc
+```
+
+Finally, run sphinx to create the html files in `doc/build/html`:
+
+```
+sphinx-build -d build/doctrees source build/html
+```
+
+You can then inspect the documentation for example by running it locally using the [VS Code Extension Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer).
+
+Therefore, install VS code and the extension, right-click on the `index.html` and select `Open with Live Server`.
