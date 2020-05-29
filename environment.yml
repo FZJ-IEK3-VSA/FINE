@@ -1,4 +1,4 @@
-name: SPAGAT
+name: spagat
 channels:
   - conda-forge
 dependencies:
@@ -22,3 +22,5 @@ dependencies:
       - scipy
       - sklearn
       - statsmodels
+      - sphinx-autodoc-typehints
+      - sphinx_rtd_theme

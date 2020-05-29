@@ -1,0 +1,18 @@
+image: python:3.8-slim
+
+pages:
+  script:
+    - cd ..
+    - conda env update -q --file=environment.yml
+    - conda info --envs
+    - source activate spagat
+    - pip install -e .
+
+    - cd doc
+    - sphinx-build -d build/doctrees source build/html
+    - mv _build/html public
+  artifacts:
+    paths:
+    - public
+  only:
+  - master
