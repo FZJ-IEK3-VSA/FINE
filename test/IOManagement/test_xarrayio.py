@@ -50,19 +50,3 @@ def test_spatial_aggregation_multinode(multi_node_test_esM_init):
 
     # TODO: test against results
 
-@pytest.mark.skip('not on CAESAR')
-def test_spatial_aggregation_ehighway(european_model):
-    '''Test whether spatial aggregation of the EuropeanModel and subsequent optimization works'''
-
-    input_shape_path = '/home/r-beer/code/spagatti/bin/output/analysis_merra_2019-09-28_16_22_30_nocrossover_30d/initial_96/supregions.shp'
-    gdf_regions = gpd.read_file(input_shape_path)
-
-
-    esM_aggregated, xarray_dataset = fn.xarray_io.spatial_aggregation(esM=european_model, n_regions=3, 
-                                                                      gdf_regions=gdf_regions)
-
-    esM_aggregated.cluster(numberOfTypicalPeriods=2)
-    
-    # esM_aggregated.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0')
-    esM_aggregated.optimize(timeSeriesAggregation=True, solver='glpk')
-
