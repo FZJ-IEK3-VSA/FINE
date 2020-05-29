@@ -4,10 +4,13 @@ import FINE as fn
 import numpy as np
 import pandas as pd
 import os
+import warnings
 
-import spagat.manager as spm
-import spagat.representation as spr
-import geopandas as gpd
+try:
+    import spagat.manager as spm
+    import spagat.representation as spr
+except ImportError:
+    warnings.warn('The Spagat python package could not be imported.')
 
 # TODO: declare private functions (and methods) with pre underscore
 
