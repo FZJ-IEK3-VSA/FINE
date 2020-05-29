@@ -37,7 +37,7 @@ def test_dimensional_data_to_xarray_dataset_minimal(minimal_test_esM):
 def test_spatial_aggregation_multinode(multi_node_test_esM_init):
     '''Test whether spatial aggregation of the Multi-Node Energy System Model (from examples) and subsequent optimization works'''
 
-    shapefileFolder = os.path.join(os.path.dirname(__file__), '../../examples/Multi-regional Energy System Workflow/', 
+    shapefileFolder = os.path.join(os.path.dirname(__file__), '../../examples/Multi-regional_Energy_System_Workflow/', 
                                     'InputData/SpatialData/ShapeFiles/')
 
     inputShapefile = 'clusteredRegions.shp'

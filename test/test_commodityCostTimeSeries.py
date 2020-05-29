@@ -30,7 +30,7 @@ def test_commodityCostTimeSeries(multi_node_test_esM_optimized):
 
     # read in original results
     expected_results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples',
-                                       'Multi-regional Energy System Workflow', 'totalBiogasPurchase.csv'),
+                                       'Multi-regional_Energy_System_Workflow', 'totalBiogasPurchase.csv'),
                           index_col=0, header=None, squeeze=True)
 
     # test if here solved fits with original results

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional Energy System Workflow'))
+sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional_Energy_System_Workflow'))
 from getData import getData
 import xlrd
 
@@ -86,9 +86,9 @@ def multi_node_test_esM_init(scope="session"):
     data = getData()
 
     # read in original results
-    results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples',
-                                       'Multi-regional Energy System Workflow', 'totalBiogasPurchase.csv'),
-                          index_col=0, header=None, squeeze=True)
+    # results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples',
+    #                                    'Multi-regional_Energy_System_Workflow', 'totalBiogasPurchase.csv'),
+    #                       index_col=0, header=None, squeeze=True)
 
     # 2. Create an energy system model instance
     locations = {'cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'}
@@ -333,9 +333,9 @@ def multi_node_test_esM_optimized(scope="session"):
     data = getData()
 
     # read in original results
-    results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples',
-                                       'Multi-regional Energy System Workflow', 'totalBiogasPurchase.csv'),
-                          index_col=0, header=None, squeeze=True)
+    # results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples',
+    #                                    'Multi-regional_Energy_System_Workflow', 'totalBiogasPurchase.csv'),
+    #                       index_col=0, header=None, squeeze=True)
 
     # 2. Create an energy system model instance
     locations = {'cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'}
