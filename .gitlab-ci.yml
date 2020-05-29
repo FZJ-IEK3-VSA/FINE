@@ -6,7 +6,7 @@ conda:
   before_script:
     - "which ssh-agent || (apt-get update -y && apt-get install openssh-client -y )"
     - eval $(ssh-agent -s)
-    - "$SSH_PRIVATE_KEY"
+    - $SSH_PRIVATE_KEY
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
 
     - mkdir -p ~/.ssh
