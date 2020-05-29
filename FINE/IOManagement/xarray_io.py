@@ -9,6 +9,8 @@ import spagat.manager as spm
 import spagat.representation as spr
 import geopandas as gpd
 
+# TODO: declare private functions (and methods) with pre underscore
+
 def generate_iteration_dicts(esm_dict, component_dict):
     """Creates iteration dictionaries that contain descriptions of all dataframes and series of the dictionaries esm_dict and component_dict.
     
@@ -244,14 +246,18 @@ def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_funct
     
     Please refer to the SPAGAT package documentation for more information.
 
-    **Default arguments:**
+    :param esM: energy system model instance 
+        |br| * the default value is None
+    :type esM: energySystemModelInstance
 
     :param numberOfRegions: states the number of regions into which the spatial data
         should be clustered.
         Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
         information.
         |br| * the default value is None
-    :type numberOfTypicalPeriods: strictly positive integer, None
+    :type numberOfRegions: strictly positive integer, None
+
+    **Default arguments:**
 
     :param gdfRegions: geodataframe containing the shapes of the regions of the energy system model instance
         |br| * the default value is None
@@ -259,7 +265,7 @@ def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_funct
 
     :param aggregatedShapefileFolderPath: indicate the path to the folder were the input and aggregated shapefiles shall be located 
         |br| * the default value is None
-    :type numberOfTimeStepsPerPeriod: string
+    :type aggregatedShapefileFolderPath: string
 
     :param clusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
         data. Options are for example 'centroid-based'.

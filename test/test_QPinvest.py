@@ -5,7 +5,7 @@ import pytest
 
 from pyomo.opt import SolverFactory
 
-@pytest.mark.skipif(not SolverFactory('gurobi').available(), reason="QP solver required")
+@pytest.mark.skipif(not SolverFactory('gurobi').available(), reason="QP solver required (check for license)")
 def test_LPinvest(minimal_test_esM):
     '''
     Get the minimal test system, and check if invest of Electrolyzer without quadratic approach is unchanged.
@@ -21,7 +21,7 @@ def test_LPinvest(minimal_test_esM):
 
     assert invest == 8571428
 
-@pytest.mark.skipif(not SolverFactory('gurobi').available(), reason="QP solver required")
+@pytest.mark.skipif(not SolverFactory('gurobi').available(), reason="QP solver required (check for license")
 def test_QPinvest():
 
     numberOfTimeSteps = 4
