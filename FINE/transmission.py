@@ -327,10 +327,16 @@ class TransmissionModel(ComponentModel):
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet1 = getattr(pyM, constrSetName + '1_' + abbrvName)
 
-        def op1(pyM, loc, compName, p, t):
-            return opVar[loc, compName, p, t] + opVar[compDict[compName]._mapI[loc], compName, p, t] <= \
-                   capVar[loc, compName] * esM.hoursPerTimeStep
-        setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+        if not pyM.hasSegmentation:
+            def op1(pyM, loc, compName, p, t):
+                return opVar[loc, compName, p, t] + opVar[compDict[compName]._mapI[loc], compName, p, t] <= \
+                       capVar[loc, compName] * esM.hoursPerTimeStep
+            setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+        else:
+            def op1(pyM, loc, compName, p, t):
+                return opVar[loc, compName, p, t] + opVar[compDict[compName]._mapI[loc], compName, p, t] <= \
+                       capVar[loc, compName] * esM.hoursPerSegment.to_dict()[p,t]
+            setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -462,9 +468,10 @@ class TransmissionModel(ComponentModel):
                 optSummaryBasic.loc[compName, cost] = (data).values
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                esM=esM)
         optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', esM.periodsOrder,
-                                                 compDict=compDict)
+                                                 compDict=compDict, esM=esM)
         self.operationVariablesOptimum = optVal_
 
         props = ['operation', 'opexOp']

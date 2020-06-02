@@ -548,7 +548,8 @@ class SourceSinkModel(ComponentModel):
         optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'commodityUnit')
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                esM=esM)
         self.operationVariablesOptimum = optVal
 
         props = ['operation', 'opexOp', 'commodCosts', 'commodRevenues']
@@ -577,17 +578,19 @@ class SourceSinkModel(ComponentModel):
             for compName in compDict.keys():
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
-                    calcCostTD = utils.buildFullTimeSeries(compDict[compName].commodityCostTimeSeries, 
-                                                           esM.periodsOrder, axis=0)
+                    calcCostTD = utils.buildFullTimeSeries(
+                        compDict[compName].commodityCostTimeSeries.unstack(level=1).stack(level=0),
+                        esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total cost
-                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD).sum(axis=0)
+                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
 
                 if not compDict[compName].commodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
-                    calcRevenueTD = utils.buildFullTimeSeries(compDict[compName].commodityRevenueTimeSeries,
-                                                              esM.periodsOrder, axis=0)
+                    calcRevenueTD = utils.buildFullTimeSeries(
+                        compDict[compName].commodityRevenueTimeSeries.unstack(level=1).stack(level=0),
+                        esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
-                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD).sum(axis=0)
+                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
                         
             optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cCostTD.values + cCost.values)/esM.numberOfYears
