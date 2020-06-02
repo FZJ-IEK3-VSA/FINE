@@ -112,8 +112,17 @@ class SpagatDataset:
             object_list=gdf_regions.geometry,
         )
 
-    def save_sds_regions(self, shape_output_path, crs=3035):
-        """Save regions and geometries from xr_array to shapefile"""
+    def save_sds_regions(self, shape_output_path : str, crs : int = 3035):
+        """Save regions and geometries from xr_array to shapefile
+        
+        Parameters
+        ----------
+        shape_output_path
+            path to which the shapefile shall be saved
+        
+        crs
+            coordinate reference system in which to save the shapefiles
+        """
 
         df = self.xr_dataset.space.to_dataframe()
         geometries = self.xr_dataset.gpd_geometries.values
@@ -122,7 +131,15 @@ class SpagatDataset:
             df=df, geometries=geometries, crs=crs, filepath=shape_output_path
         )
 
-    def save_data(self, sds_output_path):
+    def save_data(self, sds_output_path : str) -> None:
+        """Save all data of the dataset apart from the shapes.
+
+        Parameters
+        ----------
+        sds_output_path
+            folder to which to save the sds data
+                
+        """
 
         drop_list = [
             variable
@@ -138,10 +155,21 @@ class SpagatDataset:
     @spu.timer
     def save_sds(
         self,
-        sds_folder_path,
-        sds_region_filename="sds_regions.shp",
-        sds_xr_dataset_filename="sds_xr_dataset.nc4",
-    ):
+        sds_folder_path: str,
+        sds_region_filename: str ="sds_regions.shp",
+        sds_xr_dataset_filename: str ="sds_xr_dataset.nc4",
+    ) -> None:
+        """Save all data of the sds in a netcdf and a shapefile.
+
+        Parameters
+        ----------
+        sds_folder_path
+            folder to which to save the sds data       
+        sds_region_filename
+            filename to which to save the shapefile       
+        sds_xr_dataset_filename
+            filename to which to save the sds data       
+        """
         spu.create_dir(sds_folder_path)
 
         # save geometries
