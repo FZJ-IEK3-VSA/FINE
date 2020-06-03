@@ -9,8 +9,10 @@ import time
 
 import matplotlib.pyplot as plt
 
+from typing import Dict, List
 
-def plt_savefig(save_name=None, path=None, fig=None, bbox_inches=None):
+
+def plt_savefig(save_name : str = None, path : str = None, fig=None, bbox_inches=None):
     if fig is None:
         fig = plt.gcf()
 
