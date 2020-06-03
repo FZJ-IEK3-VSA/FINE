@@ -25,23 +25,6 @@ class SpagatDataset:
 
     """
 
-    # dimensions:
-    # space: region ids
-    # time: time steps
-    # technology: technology-dependent
-
-    # data:
-    # 1d:
-    # - region shapes
-    # - region centroids, area, ...
-    #
-    # 2d:
-    # - time series for each region
-    # - grid incidence, capacity, ...
-    # -
-
-    # xr_dataset: xr.Dataset
-
     def __init__(self):
         """Initializes the SpagatDataset (sds)."""
 
