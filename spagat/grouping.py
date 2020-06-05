@@ -402,7 +402,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         # Apply clustering methods based on the Custom Distance Function
 
         distance_matrix = hierarchy.distance.squareform(gu.selfDistanceMatrix(dict_ts, dict_1d, dict_2d, n_regions))
-        Z = hierarchy.linkage(distance_matrix, method='centroid')
+        Z = hierarchy.linkage(distance_matrix, method='average')
 
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
         
@@ -520,7 +520,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         # Plot the corresponding dendrogram
         #hierarchy.dendrogram(linkage_matrix)
 
-        distance_matrix = hierarchy.distance.pdist(distMatrix)
+        distance_matrix = hierarchy.distance.squareform(distMatrix)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
         
         fig, ax = plt.subplots(figsize=(18,7))
