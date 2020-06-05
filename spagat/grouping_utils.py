@@ -1,6 +1,7 @@
 import xarray as xr
 import numpy as np
 import pandas as pd
+import geopandas
 
 from sklearn import preprocessing as prep
 from scipy.cluster import hierarchy
@@ -379,3 +380,23 @@ def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions, var_weightings=None):
     distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())
 
     return distMatrix
+
+
+def adjacencyMatrixForNerghboringRegions(file, n_regions):
+
+    # Obtain the neighboring information from the AClines file
+    aclines_df = geopandas.GeoDataFrame.from_file(file)[['bus0','bus1']]
+
+    # Generate a symmetric adjacencyMatrix, 1 means the two regions are neighboring to each other
+    adjacencyMatrix = np.zeros((n_regions,n_regions))
+
+    for index, row in aclines_df.iterrows():
+        p1 = int(row['bus0'].split('_')[1])
+        p2 = int(row['bus1'].split('_')[1])
+    
+        adjacencyMatrix[p1][p2] = 1
+        
+    adjacencyMatrix += adjacencyMatrix.T - np.diag(adjacencyMatrix.diagonal())
+
+    return adjacencyMatrix
+

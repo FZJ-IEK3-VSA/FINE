@@ -409,13 +409,17 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         fig, ax = plt.subplots(figsize=(18,7))
         inconsistency = hierarchy.inconsistent(Z)
         ax.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
-        ax.set_title('Inconsistency Coefficients: indicate where to cut the hierarchy', fontsize=14)
-        ax.set_xlabel('Linkage height', fontsize=12)
-        ax.set_ylabel('Inconsistencies', fontsize=12)
+        ax.set_title('Inconsistency of each Link with the Links Below', fontsize=14)
+        ax.set_xlabel('Number of disjoint clusters under this link', fontsize=12)
+        ax.set_ylabel('Inconsistency Coefficients', fontsize=12)
 
-        plt.xticks(np.arange(1, len(Z)+1, 1))
+        plt.xticks(range(1,len(Z)+1), np.arange(len(Z)+1,1, -1))
         plt.show()
 
+        # fig2, ax2 = plt.subplots(figsize=(15,7))
+        # R = hierarchy.dendrogram(Z, orientation="top",
+        #                              labels=sds.xr_dataset[dimension_description].values,leaf_font_size=10)
+        # plt.show()
         
         # If and how to save the hierarchical tree 
         if ax_illustration is not None:
@@ -514,7 +518,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
             
         linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
         # Plot the corresponding dendrogram
-        hierarchy.dendrogram(linkage_matrix)
+        #hierarchy.dendrogram(linkage_matrix)
 
         distance_matrix = hierarchy.distance.pdist(distMatrix)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
@@ -522,12 +526,13 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         fig, ax = plt.subplots(figsize=(18,7))
         inconsistency = hierarchy.inconsistent(linkage_matrix)
         ax.plot(range(1,len(linkage_matrix)+1),list(inconsistency[:,3]),'go-')
-        ax.set_title('Inconsistency Coefficients: indicate where to cut the hierarchy', fontsize=14)
-        ax.set_xlabel('Linkage height', fontsize=12)
+        ax.set_title('Inconsistency of each Link with the Links Below', fontsize=14)
+        ax.set_xlabel('Number of disjoint clusters under this link', fontsize=12)
         ax.set_ylabel('Inconsistencies', fontsize=12)
 
-        plt.xticks(np.arange(1, len(linkage_matrix)+1, 1))
+        plt.xticks(range(1,len(linkage_matrix)+1), np.arange(len(linkage_matrix)+1,1, -1))
         plt.show()
+
     
 
     ''' 2. Using spectral clustering with precomputed affinity matrix'''
