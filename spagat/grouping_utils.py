@@ -118,10 +118,10 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
         var_mean_df['component_id'] = np.array(range(n_components))
         valid_component_ids = list(var_mean_df[var_mean_df[var].notna()]['component_id'])
         
-        # DataArray da for this 2d-variable, component:29 * space:96 * space_2:96
+        # DataArray da for this 2d-variable, component * space * space_2
         for comp_id in valid_component_ids:
             
-            # Under each component, there is a 96*96 squares matrix to represent the connection features
+            # Under each component, there is a (e.g. 96*96) squares matrix to represent the connection features
             var_matr = da[comp_id].values
             
             # Rearrange the columns order --> the regions order of space_2!
@@ -382,21 +382,47 @@ def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions, var_weightings=None):
     return distMatrix
 
 
-def adjacencyMatrixForNerghboringRegions(file, n_regions):
+def generateConnectivityMatrix(sds):
+    ''' Generate an adjacency matrix to show the neighboring structure
+        - For every index pair of regions, as long as they have a non-zero 2d-variable value, they are regarded as connected.
+        - 1 means connected, otherwise o
+    '''
+    ds_extracted = sds.xr_dataset
 
-    # Obtain the neighboring information from the AClines file
-    aclines_df = geopandas.GeoDataFrame.from_file(file)[['bus0','bus1']]
+    vars_2d = {}
 
-    # Generate a symmetric adjacencyMatrix, 1 means the two regions are neighboring to each other
+    for varname, da in ds_extracted.data_vars.items():
+        if da.dims == ('component','space','space_2'):
+            vars_2d[varname] = da
+
+    n_regions = len(ds_extracted['space'].values)
+    component_list = list(ds_extracted['component'].values)
+    n_components = len(component_list)
+
+    ds_2d = preprocess2dVariables(vars_2d, component_list, handle_mode='toAffinity')
+
+    pipelines = []
+    for i in range(len(component_list)):
+        if 'pipeline' in component_list[i].lower():
+            pipelines.append(i)
+
     adjacencyMatrix = np.zeros((n_regions,n_regions))
 
-    for index, row in aclines_df.iterrows():
-        p1 = int(row['bus0'].split('_')[1])
-        p2 = int(row['bus1'].split('_')[1])
-    
-        adjacencyMatrix[p1][p2] = 1
-        
+    # Check each index pair of regions to verify, if the two regions are connected to each other
+    for i in range(n_regions):
+        for j in range(i+1,n_regions):
+            if checkConnectivity(i,j, ds_2d, pipelines):
+                adjacencyMatrix[i,j] = 1
+
     adjacencyMatrix += adjacencyMatrix.T - np.diag(adjacencyMatrix.diagonal())
 
     return adjacencyMatrix
 
+def checkConnectivity(i,j, ds_2d, pipelines):
+    
+    for var, var_dict in ds_2d.items():
+        for c, data in var_dict.items():
+            if (c in pipelines) and (data[i,j] != 0):
+                return True
+            
+    return False

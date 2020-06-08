@@ -486,10 +486,13 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         # Precompute the distance matrix according to the Custom Distance Function
         distMatrix = gu.selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions)
 
+        # Connectivity matrix for neighboring structure
+        connectMatrix = gu.generateConnectivityMatrix(sds)
+
         #chi = [] # Calinski-Harabasz scores
         for i in range(1,n_regions):
             # Computing hierarchical clustering
-            model = skc.AgglomerativeClustering(n_clusters=i,affinity='precomputed',linkage='average').fit(distMatrix)
+            model = skc.AgglomerativeClustering(n_clusters=i,affinity='precomputed',linkage='average',connectivity=connectMatrix).fit(distMatrix)
             regions_label_list = model.labels_
 
             # Create a regions dictionary for the aggregated regions
@@ -503,7 +506,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
             aggregation_dict[i] = regions_dict.copy()
 
         # Plot the hierarchical tree dendrogram
-        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(distMatrix)
+        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None, affinity='precomputed', linkage='average',connectivity=connectMatrix).fit(distMatrix)
         # Create the counts of samples under each node
         counts = np.zeros(clustering_tree.children_.shape[0])
         n_samples = len(clustering_tree.labels_)
