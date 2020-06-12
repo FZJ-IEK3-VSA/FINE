@@ -12,6 +12,8 @@ import metis_utils.io_tools as ito
 import metis_utils.time_tools as tto
 import spagat.dataset as spd
 
+import copy
+
 logger_representation = logging.getLogger('spagat_representation')
 
 
@@ -88,21 +90,28 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds, sub_to_sup_region_id_dict,
 def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     """Aggregates shapes given in a xr_data_array based on the dictionary"""
     space = list(sub_to_sup_region_id_dict.keys())
-
+    
     # multipolygon_dimension = [0, 1, 2, 3]
     # TODO: maybe iteratively add increasing buffer size to avoid multipolygons
 
     shape_list = []
+    
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
-
+        
         temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values)
-
+        
         shape_union = cascaded_union(temp_shape_list)
-
+        
         shape_list.append(shape_union)
 
-    data = np.array(shape_list)
-
+    #import pdb;pdb.set_trace()
+    # TODO: why the convertion to numpy array results in a list of polygons when n_regions = 1 ???
+    data = None
+    if len(shape_list) == 1:
+        data = np.array([shapely.geometry.asMultiPolygon(x) for x in shape_list])
+    else:
+        data = np.array(shape_list)
+    
     # TODO: understand the multipolygon_dimension's origin: Why does shapely do these four polygons instead of one?
     # xr_data_array_out = xr.DataArray(data, coords=[space, multipolygon_dimension],
     #                                  dims=['space', 'multipolygon_dimension'])
