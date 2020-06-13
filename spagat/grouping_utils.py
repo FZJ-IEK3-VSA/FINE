@@ -384,8 +384,9 @@ def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions, var_weightings=None):
 
 def generateConnectivityMatrix(sds):
     ''' Generate an adjacency matrix to show the neighboring structure
-        - For every index pair of regions, as long as they have a non-zero 2d-variable value, they are regarded as connected.
-        - 1 means connected, otherwise o
+        - For every index pair of regions, as long as they have a non-zero 2d-variable value, related to pipeline component, they are regarded as connected.
+        - 1 means connected, otherwise 0
+        - If no component related to pipeline, then consider all other components
     '''
     ds_extracted = sds.xr_dataset
 
@@ -399,30 +400,40 @@ def generateConnectivityMatrix(sds):
     component_list = list(ds_extracted['component'].values)
     n_components = len(component_list)
 
+    # Square matrices for each 2d variable and each valid component
     ds_2d = preprocess2dVariables(vars_2d, component_list, handle_mode='toAffinity')
 
-    pipelines = []
+    # The neighboring information is based on the 2d vars with components related to pipeline
+    connect_components = []
     for i in range(len(component_list)):
         if 'pipeline' in component_list[i].lower():
-            pipelines.append(i)
+            connect_components.append(i)
+
+    # If there is no components related to pipelines, then consider all existing components.
+    if not connect_components:
+        connect_components = list(range(len(component_list)))
 
     adjacencyMatrix = np.zeros((n_regions,n_regions))
 
     # Check each index pair of regions to verify, if the two regions are connected to each other
     for i in range(n_regions):
         for j in range(i+1,n_regions):
-            if checkConnectivity(i,j, ds_2d, pipelines):
+            if checkConnectivity(i,j, ds_2d, connect_components):
                 adjacencyMatrix[i,j] = 1
 
     adjacencyMatrix += adjacencyMatrix.T - np.diag(adjacencyMatrix.diagonal())
 
     return adjacencyMatrix
 
-def checkConnectivity(i,j, ds_2d, pipelines):
+def checkConnectivity(i,j, ds_2d, connect_components):
+    '''Check if region i is neighboring to region j, based on the components related to pipelines.
+        - as 1 if there exists at least one non-zero value in any matrix at the position [i,j]
+        - if no components related to pipelines, then the connect_components is the list of all existing components.
+    '''
     
     for var, var_dict in ds_2d.items():
         for c, data in var_dict.items():
-            if (c in pipelines) and (data[i,j] != 0):
+            if (c in connect_components) and (data[i,j] != 0):
                 return True
             
     return False

@@ -391,8 +391,12 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
     aggregation_dict = {}
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
 
-    ''' 1. Using hierarchical clustering for all variables with custom defined distance'''
-
+    ''' 1. Using hierarchical clustering for all variables with custom defined distance
+        - precomputed distance matrix using selfDistanceMatrix() function
+        - linkage method: average
+        - hierarchy clustering method of SciPy having spatial contiguity problem
+        - hierarchy clustering method of Scikit learn solve spatial contiguity with additional connectivity matrix.
+    '''
     ## Clustering methods via SciPy.cluster module
     if agg_mode == 'hierarchical':
 
@@ -538,7 +542,10 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
 
     
 
-    ''' 2. Using spectral clustering with precomputed affinity matrix'''
+    ''' 2. Using spectral clustering with precomputed affinity matrix
+        - precomputed affinity matrix by conversation from distance matrices to similarity matrix using RBF kernel
+        - spatial contiguity problem?
+        '''
     ## Affinity matrix: combine two matrices of part_1 and part_2 to one
     if agg_mode == 'spectral':
         '''Spectral clustering applied on the input dataset:
