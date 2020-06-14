@@ -423,6 +423,9 @@ def generateConnectivityMatrix(sds):
 
     adjacencyMatrix += adjacencyMatrix.T - np.diag(adjacencyMatrix.diagonal())
 
+    # Set the diagonal values as 1
+    np.fill_diagonal(adjacencyMatrix, 1)
+
     return adjacencyMatrix
 
 def checkConnectivity(i,j, ds_2d, connect_components):

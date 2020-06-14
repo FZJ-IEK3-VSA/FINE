@@ -544,32 +544,35 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
 
     ''' 2. Using spectral clustering with precomputed affinity matrix
         - precomputed affinity matrix by conversation from distance matrices to similarity matrix using RBF kernel
-        - spatial contiguity problem?
-        '''
-    ## Affinity matrix: combine two matrices of part_1 and part_2 to one
+        - also having spatial contiguity problem due to the created complete graph
+        - solve it by considering the additional connectivity matrix to cut some edges
+    '''
+    ## Affinity matrix: combine three matrices of ts_vars, 1d_vars and 2d_vars to one single precomputed affinity matrix
     if agg_mode == 'spectral':
         '''Spectral clustering applied on the input dataset:
-        If affinity is the adjacency matrix of a graph, this method can be used to find normalized graph cuts.
-
-            - part_1: given the feature matrix of samples, 
+            - affinity matrices for 1d-Vars and 2d-Vars: 
+                - given the feature matrix of samples, 
                 - obtain its distance matrix based on the features
                 - transform the distance matrix to a similarity matrix
                 
-            - part_2: the original matrices can be regarded directly as the adjacency matrix of the graph
+            - affinity matrix for 2d-Vars: 
+                - the original matrices can be regarded directly as the adjacency matrix of the graph
                 - for each variable and each component: an adjacency matrix
                 - multiple variables & multiple components: need to combine them as one affinity matrix (with weighting factors)
                 - transform the adjacency matrix to affinity matrix:
                     - firstly get its reciprocal: now it is like a dissimilarity matrix
                     - then apply rbf kernel to obtain the similarity scores
         
-        If you have an affinity matrix, such as a distance matrix, 
-            - for which 0 means identical elements, 
-            - and high value means very dissimilar elements, 
-        it can be transformed in a similarity matrix that is well suited for the algorithm by applying the Gaussian (RBF, heat) kernel
+            - If affinity is the adjacency matrix of a graph, this method can be used to find normalized graph cuts.
+
+            - If you have an affinity matrix, such as a distance matrix, 
+                - for which 0 means identical elements, 
+                - and high value means very dissimilar elements, 
+            it can be transformed in a similarity matrix that is well suited for the algorithm by applying the Gaussian (RBF, heat) kernel
         
-        Affinity matrix for spectral clusteirng input:
-            - 1 means identical elements
-            - high value means more similar elements (stronger connections)
+            - Affinity matrix for spectral clustering input: a kind of similarity matrix
+                - 1 means identical elements
+                - high value means more similar elements (stronger connections)
         '''
 
         # Obtain the matrices for three var categories after preprocessing
@@ -608,6 +611,12 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         ##### The precomputed affinity matrix for spectral clustering
         affinity_matrix = (affinity_ts * weighting[0] + affinity_1d * weighting[1] + affinity_2d * weighting[2]) 
 
+        ##### Solve the spatial contiguity problem with the connectivity condition
+        # Connectivity matrix for neighboring structure
+        connectMatrix = gu.generateConnectivityMatrix(sds)
+        # Cut down the edges that have zero value in connectivity matrix
+        affinity_matrix[connectMatrix==0] = 0
+
         for i in range(1,n_regions):
             # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
             model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
@@ -631,10 +640,18 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
 
         # Precompute the distance matrix according to the Custom Distance Function
         distMatrix = gu.selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions)
+        # Rescaling the matrix in order to generate valid affinity_matrix
+        distMatrix = gu.matrix_MinMaxScaler(distMatrix)
 
         # Obtain affinity matrix for part_1 via RBF kernel applied on distance matrix
         delta = 1
         affinity_matrix = np.exp(- distMatrix ** 2 / (2. * delta ** 2))
+
+        #import pdb;pdb.set_trace()
+        # Connectivity matrix for neighboring structure
+        connectMatrix = gu.generateConnectivityMatrix(sds)
+        # Cut down the edges that have zero value in connectivity matrix
+        affinity_matrix[connectMatrix==0] = 0
 
         for i in range(1,n_regions):
             # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
