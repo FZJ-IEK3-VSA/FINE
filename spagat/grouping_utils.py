@@ -440,3 +440,34 @@ def checkConnectivity(i,j, ds_2d, connect_components):
                 return True
             
     return False
+
+def computeModularity(adjacency, regions_label_list):
+    ''' Compute the modularity of the partitioned graph
+        - graph's weighted adjacency matrix with entries defined by the edge weights
+        - regions_label_list to show the graph partition
+    '''
+
+    np.fill_diagonal(adjacency, 0)
+    n_regions = len(regions_label_list)
+
+    # Values in the adjacency matrix as edge weights
+    edge_weights_sum = np.sum(adjacency)
+
+    modularity = 0
+
+    for v in range(n_regions):
+        for w in range(v+1, n_regions):
+
+            # The weighted degree of nodes: sum of node's incident edge weights
+            d_v = np.sum(adjacency[v])
+            d_w = np.sum(adjacency[w])
+
+            # If the two nodes belong to the same cluster
+            delta = 1 if regions_label_list[v] == regions_label_list[w] else 0
+
+            # Sum up the actual fraction of the edges minus the expected fraction of edges inside of each cluster
+            modularity += (adjacency[v,w] - (d_v * d_w) / (2 * edge_weights_sum)) * delta
+
+    modularity = modularity / (2 * edge_weights_sum)
+
+    return modularity
