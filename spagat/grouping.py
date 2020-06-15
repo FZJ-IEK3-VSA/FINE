@@ -667,10 +667,16 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         # Cut down the edges that have zero value in connectivity matrix
         affinity_matrix[connectMatrix==0] = 0
 
+        modularities = []
+
         for i in range(1,n_regions):
             # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
             model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
             regions_label_list = model.labels_
+
+            # Compute the modularity for evaluation, using affinity matrix as adjacency matrix of a graph
+            modularity = gu.computeModularity(affinity_matrix, regions_label_list)
+            modularities.append(modularity)
 
             # Create a regions dictionary for the aggregated regions
             regions_dict = {}
@@ -681,6 +687,14 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
                 regions_dict[sup_region_id] = sup_region_list.copy()
 
             aggregation_dict[i] = regions_dict.copy()
+
+        # Plotting the modularites according to increase of k values, check if there exists an inflection point
+        fig, ax = pto.plt.subplots(figsize=(25, 12))
+        ax.plot(range(1,n_regions),modularities,'go-')
+        ax.set_title('Impact of aggregated regions on modularity')
+        ax.set_xlabel('number of aggregated regions')
+        ax.set_ylabel('Modularity')
+        plt.show()
 
     return aggregation_dict
 
