@@ -404,12 +404,12 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         dict_ts, dict_1d, dict_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')
 
         # Apply clustering methods based on the Custom Distance Function
-
-        distance_matrix = hierarchy.distance.squareform(gu.selfDistanceMatrix(dict_ts, dict_1d, dict_2d, n_regions))
+        squared_dist_matrix = gu.selfDistanceMatrix(dict_ts, dict_1d, dict_2d, n_regions)
+        distance_matrix = hierarchy.distance.squareform(squared_dist_matrix)
         Z = hierarchy.linkage(distance_matrix, method='average')
 
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
-        
+       
         fig, ax = plt.subplots(figsize=(18,7))
         inconsistency = hierarchy.inconsistent(Z)
         ax.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
@@ -420,10 +420,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         plt.xticks(range(1,len(Z)+1), np.arange(len(Z)+1,1, -1))
         plt.show()
 
-        # fig2, ax2 = plt.subplots(figsize=(15,7))
-        # R = hierarchy.dendrogram(Z, orientation="top",
-        #                              labels=sds.xr_dataset[dimension_description].values,leaf_font_size=10)
-        # plt.show()
+        #print(list(inconsistency[:,3]))
         
         # If and how to save the hierarchical tree 
         if ax_illustration is not None:
@@ -446,7 +443,6 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         regions_dict = {region_id: [region_id] for region_id in regions_list}
         regions_dict_complete = regions_dict.copy()
 
-        #chi = [] # Calinski-Harabasz scores
         # Identify, which regions are merged together (new_merged_region_id_list)
         for i in range(len(Z)):
 
@@ -480,6 +476,9 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
 
             aggregation_dict[n_regions - i - 1] = regions_dict.copy()
     
+        # Silhouette Coefficient scores
+        silhouette_scores = gu.computeSilhouetteCoefficient(list(regions_list), squared_dist_matrix, aggregation_dict)
+        print(silhouette_scores)
 
     ## Clustering methods via Scikit Learn module'''
     if agg_mode == 'hierarchical2':
@@ -488,16 +487,23 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         ds_ts, ds_1d, ds_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')
 
         # Precompute the distance matrix according to the Custom Distance Function
-        distMatrix = gu.selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions)
+        squared_distMatrix = gu.selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions)
 
         # Connectivity matrix for neighboring structure
         connectMatrix = gu.generateConnectivityMatrix(sds)
 
-        #chi = [] # Calinski-Harabasz scores
+        # Silhouette Coefficient scores
+        silhouette_scores = []
+
         for i in range(1,n_regions):
             # Computing hierarchical clustering
-            model = skc.AgglomerativeClustering(n_clusters=i,affinity='precomputed',linkage='average',connectivity=connectMatrix).fit(distMatrix)
+            model = skc.AgglomerativeClustering(n_clusters=i,affinity='precomputed',linkage='average',connectivity=connectMatrix).fit(squared_distMatrix)
             regions_label_list = model.labels_
+
+            # Silhouette Coefficient score for this clustering results
+            if i != 1:
+                s = metrics.silhouette_score(squared_distMatrix, regions_label_list, metric='precomputed')
+                silhouette_scores.append(s)
 
             # Create a regions dictionary for the aggregated regions
             regions_dict = {}
@@ -510,7 +516,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
             aggregation_dict[i] = regions_dict.copy()
 
         # Plot the hierarchical tree dendrogram
-        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None, affinity='precomputed', linkage='average',connectivity=connectMatrix).fit(distMatrix)
+        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None, affinity='precomputed', linkage='average',connectivity=connectMatrix).fit(squared_distMatrix)
         # Create the counts of samples under each node
         counts = np.zeros(clustering_tree.children_.shape[0])
         n_samples = len(clustering_tree.labels_)
@@ -527,20 +533,23 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         # Plot the corresponding dendrogram
         #hierarchy.dendrogram(linkage_matrix)
 
-        distance_matrix = hierarchy.distance.squareform(distMatrix)
+        distance_matrix = hierarchy.distance.squareform(squared_distMatrix)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
         
-        fig, ax = plt.subplots(figsize=(18,7))
+        #fig, ax = plt.subplots(figsize=(18,7))
         inconsistency = hierarchy.inconsistent(linkage_matrix)
-        ax.plot(range(1,len(linkage_matrix)+1),list(inconsistency[:,3]),'go-')
-        ax.set_title('Inconsistency of each Link with the Links Below', fontsize=14)
-        ax.set_xlabel('Number of disjoint clusters under this link', fontsize=12)
-        ax.set_ylabel('Inconsistencies', fontsize=12)
+        print('Inconsistencies:',list(inconsistency[:,3]))
+        # ax.plot(range(1,len(linkage_matrix)+1),list(inconsistency[:,3]),'go-')
+        # ax.set_title('Inconsistency of each Link with the Links Below', fontsize=14)
+        # ax.set_xlabel('Number of disjoint clusters under this link', fontsize=12)
+        # ax.set_ylabel('Inconsistencies', fontsize=12)
 
-        plt.xticks(range(1,len(linkage_matrix)+1), np.arange(len(linkage_matrix)+1,1, -1))
-        plt.show()
+        # plt.xticks(range(1,len(linkage_matrix)+1), np.arange(len(linkage_matrix)+1,1, -1))
+        # plt.show()
 
-    
+        print('Silhouette scores: ',silhouette_scores)
+
+        
 
     ''' 2. Using spectral clustering with precomputed affinity matrix
         - precomputed affinity matrix by conversation from distance matrices to similarity matrix using RBF kernel
@@ -611,12 +620,13 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         ##### The precomputed affinity matrix for spectral clustering
         affinity_matrix = (affinity_ts * weighting[0] + affinity_1d * weighting[1] + affinity_2d * weighting[2]) 
 
-        ##### Solve the spatial contiguity problem with the connectivity condition
-        # Connectivity matrix for neighboring structure
-        connectMatrix = gu.generateConnectivityMatrix(sds)
-        # Cut down the edges that have zero value in connectivity matrix
-        affinity_matrix[connectMatrix==0] = 0
+        # ##### Solve the spatial contiguity problem with the connectivity condition
+        # # Connectivity matrix for neighboring structure
+        # connectMatrix = gu.generateConnectivityMatrix(sds)
+        # # Cut down the edges that have zero value in connectivity matrix
+        # affinity_matrix[connectMatrix==0] = 0
 
+        # Evaluation indicators
         modularities = []
 
         for i in range(1,n_regions):
@@ -639,12 +649,20 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
             aggregation_dict[i] = regions_dict.copy()
     
         # Plotting the modularites according to increase of k values, check if there exists an inflection point
-        fig, ax = pto.plt.subplots(figsize=(25, 12))
-        ax.plot(range(1,n_regions),modularities,'go-')
-        ax.set_title('Impact of aggregated regions on modularity')
-        ax.set_xlabel('number of aggregated regions')
-        ax.set_ylabel('Modularity')
-        plt.show()
+        # fig, ax = pto.plt.subplots(figsize=(25, 12))
+        # ax.plot(range(1,n_regions),modularities,'go-')
+        # ax.set_title('Impact of aggregated regions on modularity')
+        # ax.set_xlabel('number of aggregated regions')
+        # ax.set_ylabel('Modularity')
+        # plt.show()
+
+        print('Modularities',modularities)
+
+        # Silhouette Coefficient scores
+        ds_ts, ds_1d, ds_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')
+        distances = gu.selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions)
+        silhouette_scores = gu.computeSilhouetteCoefficient(list(regions_list), distances, aggregation_dict)
+        print('Silhouette scores: ',silhouette_scores)
 
     ## Affinity matrix: construct a distance matrix based on selfDistanceMatrix function, transform it to similarity matrix
     if agg_mode =='spectral2':
@@ -661,13 +679,16 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         delta = 1
         affinity_matrix = np.exp(- distMatrix ** 2 / (2. * delta ** 2))
 
-        #import pdb;pdb.set_trace()
-        # Connectivity matrix for neighboring structure
-        connectMatrix = gu.generateConnectivityMatrix(sds)
-        # Cut down the edges that have zero value in connectivity matrix
-        affinity_matrix[connectMatrix==0] = 0
+        # # Connectivity matrix for neighboring structure
+        # connectMatrix = gu.generateConnectivityMatrix(sds)
+        # # Cut down the edges that have zero value in connectivity matrix
+        # affinity_matrix[connectMatrix==0] = 0
 
+        # Evaluation indicators
         modularities = []
+
+        # Silhouette Coefficient scores
+        silhouette_scores = []
 
         for i in range(1,n_regions):
             # Perform the spectral clustering with the precomputed affinity matrix (adjacency matrix)
@@ -677,6 +698,11 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
             # Compute the modularity for evaluation, using affinity matrix as adjacency matrix of a graph
             modularity = gu.computeModularity(affinity_matrix, regions_label_list)
             modularities.append(modularity)
+
+            # Silhouette Coefficient score for this clustering results
+            if i != 1:
+                s = metrics.silhouette_score(distMatrix, regions_label_list, metric='precomputed')
+                silhouette_scores.append(s)
 
             # Create a regions dictionary for the aggregated regions
             regions_dict = {}
@@ -689,12 +715,16 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
             aggregation_dict[i] = regions_dict.copy()
 
         # Plotting the modularites according to increase of k values, check if there exists an inflection point
-        fig, ax = pto.plt.subplots(figsize=(25, 12))
-        ax.plot(range(1,n_regions),modularities,'go-')
-        ax.set_title('Impact of aggregated regions on modularity')
-        ax.set_xlabel('number of aggregated regions')
-        ax.set_ylabel('Modularity')
-        plt.show()
+        # fig, ax = pto.plt.subplots(figsize=(25, 12))
+        # ax.plot(range(1,n_regions),modularities,'go-')
+        # ax.set_title('Impact of aggregated regions on modularity')
+        # ax.set_xlabel('number of aggregated regions')
+        # ax.set_ylabel('Modularity')
+        # plt.show()
+
+        print('Modularites: ',modularities)
+
+        print('Silhouette scores: ',silhouette_scores)
 
     return aggregation_dict
 

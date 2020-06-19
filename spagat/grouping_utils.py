@@ -5,6 +5,7 @@ import geopandas
 
 from sklearn import preprocessing as prep
 from scipy.cluster import hierarchy
+from sklearn import metrics
 
 def matrix_MinMaxScaler(X, x_min=0, x_max=1):
     ''' Standardize a numpy matrix to range [0,1], NOT column-wise, but matrix-wise!
@@ -471,3 +472,33 @@ def computeModularity(adjacency, regions_label_list):
     modularity = modularity / (2 * edge_weights_sum)
 
     return modularity
+
+def computeSilhouetteCoefficient(regions_list, distanceMatrix, aggregation_dict):
+
+    n_regions = len(regions_list)
+
+    # Silhouette Coefficient scores
+    scores = [0 for i in range(1, n_regions-1)]
+
+    # Labels for each region object
+    labels = [0 for i in range(n_regions)]
+
+    for k, regions_dict in aggregation_dict.items():
+
+        if k == 1 or k == n_regions:
+            continue
+
+        # Obtain labels list for this clustering results
+        label = 0
+        for sup_region in regions_dict.values():
+            for reg in sup_region:
+                ind = regions_list.index(reg)
+                labels[ind] = label
+            
+            label += 1
+        
+        # Silhouette score of this clustering
+        s = metrics.silhouette_score(distanceMatrix, labels, metric='precomputed')
+        scores[k-2] = s
+
+    return scores
