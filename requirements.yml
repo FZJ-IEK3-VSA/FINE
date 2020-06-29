@@ -11,7 +11,7 @@ dependencies:
 - openpyxl
 - matplotlib
 - xlrd
-- pyomo = 5.6
+- pyomo
 - numpy
 - pandas
 - GPyOpt
