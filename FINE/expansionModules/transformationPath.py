@@ -9,11 +9,24 @@ from FINE.IOManagement import standardIO
 import pandas as pd 
 import copy
 
-def optimizeSimpleMyopic(esM, startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None,
-                    timeSeriesAggregation=True, numberOfTypicalPeriods = 7, numberOfTimeStepsPerPeriod=24,
-                    logFileName='', threads=3, solver='gurobi', timeLimit=None, 
-                    optimizationSpecs='', warmstart=False, 
-                    CO2Reference=366, CO2ReductionTargets=None, saveResults=True, trackESMs=True):
+def optimizeSimpleMyopic(esM, 
+                         startYear, 
+                         endYear=None, 
+                         nbOfSteps=None, 
+                         nbOfRepresentedYears=None, 
+                         timeSeriesAggregation=True, 
+                         numberOfTypicalPeriods = 7, 
+                         numberOfTimeStepsPerPeriod=24, 
+                         logFileName='', 
+                         threads=3, 
+                         solver='gurobi', 
+                         timeLimit=None, 
+                         optimizationSpecs='', 
+                         warmstart=False, 
+                         CO2Reference=366, 
+                         CO2ReductionTargets=None, 
+                         saveResults=True, 
+                         trackESMs=True):
     """
     Optimization function for myopic approach. For each optimization run, the newly installed capacities
     will be given as a stock (with capacityFix) to the next optimization run.
