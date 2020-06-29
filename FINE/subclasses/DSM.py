@@ -20,8 +20,20 @@ class DemandSideManagementBETA(Sink):
     A DemandSideManagement component. Allows to shift demands (of Sink components) forwards and backwards in time.
     Initializes a Sink component and multiple Storage components which are aggregated after optimization.
     """
-    def __init__(self, esM, name, commodity, hasCapacityVariable, tFwd, tBwd, operationRateFix,
-        opexShift=1e-6, shiftUpMax=None, shiftDownMax=None, socOffsetDown=-1, socOffsetUp=-1, **kwargs):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 commodity, 
+                 hasCapacityVariable, 
+                 tFwd, 
+                 tBwd, 
+                 operationRateFix, 
+                 opexShift=1e-6, 
+                 shiftUpMax=None, 
+                 shiftDownMax=None, 
+                 socOffsetDown=-1, 
+                 socOffsetUp=-1, 
+                 **kwargs):
         """
         Constructor for creating an DemandSideManagement class instance.
         Note: the DemandSideManagement class inherits from the Sink class; kwargs provide input arguments
@@ -125,8 +137,13 @@ class DemandSideManagementBETA(Sink):
         else:
             self.shiftDownMax = shiftDownMax
 
-        Sink.__init__(self, esM, name, commodity, hasCapacityVariable,
-            operationRateFix=operationRateFix, **kwargs)
+        Sink.__init__(self, 
+                      esM, 
+                      name, 
+                      commodity, 
+                      hasCapacityVariable, 
+                      operationRateFix=operationRateFix, 
+                      **kwargs)
 
         self.modelingClass = DSMModel
 

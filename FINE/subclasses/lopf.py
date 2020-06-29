@@ -10,14 +10,37 @@ class LinearOptimalPowerFlow(Transmission):
     linearized power flow (i.e. for AC lines). The LinearOptimalPowerFlow class inherits from the Transmission
     class.
     """
-    def __init__(self, esM, name, commodity, reactances, losses=0, distances=None,
-                 hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, bigM=None,
-                 operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None,
-                 capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 commodity, 
+                 reactances, 
+                 losses=0, 
+                 distances=None,
+                 hasCapacityVariable=True, 
+                 capacityVariableDomain='continuous', 
+                 capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False, 
+                 bigM=None,
+                 operationRateMax=None, 
+                 operationRateFix=None, 
+                 tsaWeight=1,
+                 locationalEligibility=None, 
+                 capacityMin=None, 
+                 capacityMax=None, 
+                 partLoadMin=None, 
+                 sharedPotentialID=None,
+                 capacityFix=None, 
+                 isBuiltFix=None,
+                 investPerCapacity=0, 
+                 investIfBuilt=0, 
+                 opexPerOperation=0, 
+                 opexPerCapacity=0,
+                 opexIfBuilt=0, 
+                 QPcostScale=0, 
+                 interestRate=0.08, 
+                 economicLifetime=10, 
+                 technicalLifetime=None):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.
         The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
@@ -30,12 +53,36 @@ class LinearOptimalPowerFlow(Transmission):
         :type reactances: Pandas DataFrame. The row and column indices of the DataFrame have to equal
             the in the energy system model specified locations.
         """
-        Transmission.__init__(self, esM, name, commodity, losses, distances, hasCapacityVariable,
-                              capacityVariableDomain, capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM,
-                              operationRateMax, operationRateFix, tsaWeight, locationalEligibility, capacityMin,
-                              capacityMax, partLoadMin, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
-                              investIfBuilt, opexPerOperation, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate,
-                              economicLifetime, technicalLifetime)
+        Transmission.__init__(self, 
+                              esM, 
+                              name, 
+                              commodity, 
+                              losses, 
+                              distances, 
+                              hasCapacityVariable,
+                              capacityVariableDomain, 
+                              capacityPerPlantUnit, 
+                              hasIsBuiltBinaryVariable, 
+                              bigM,
+                              operationRateMax, 
+                              operationRateFix, 
+                              tsaWeight, 
+                              locationalEligibility, 
+                              capacityMin,
+                              capacityMax, 
+                              partLoadMin, 
+                              sharedPotentialID, 
+                              capacityFix, 
+                              isBuiltFix, 
+                              investPerCapacity,
+                              investIfBuilt, 
+                              opexPerOperation, 
+                              opexPerCapacity, 
+                              opexIfBuilt, 
+                              QPcostScale, 
+                              interestRate,
+                              economicLifetime, 
+                              technicalLifetime)
 
         self.modelingClass = LOPFModel
 
