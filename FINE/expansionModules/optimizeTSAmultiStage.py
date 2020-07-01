@@ -8,10 +8,18 @@ from FINE import utils
 import FINE as fn
 import numpy as np
 
-def optimizeTSAmultiStage(esM, declaresOptimizationProblem=True, relaxIsBuiltBinary=False,
-                            numberOfTypicalPeriods=30, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical', 
-                            logFileName='', threads=3, solver='gurobi', timeLimit=None, 
-                            optimizationSpecs='', warmstart=False):
+def optimizeTSAmultiStage(esM, 
+                          declaresOptimizationProblem=True, 
+                          relaxIsBuiltBinary=False, 
+                          numberOfTypicalPeriods=30, 
+                          numberOfTimeStepsPerPeriod=24, 
+                          clusterMethod='hierarchical', 
+                          logFileName='', 
+                          threads=3, 
+                          solver='gurobi', 
+                          timeLimit=None, 
+                          optimizationSpecs='', 
+                          warmstart=False):
     """
     Call the optimize function for a temporally aggregated MILP (so the model has to include
     hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again

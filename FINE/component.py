@@ -12,12 +12,31 @@ class Component(metaclass=ABCMeta):
     components inherits from the Component class. 
 
     """
-    def __init__(self, esM, name, dimension,
-                 hasCapacityVariable, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, bigM=None, locationalEligibility=None,
-                 capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None, capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0,
-                 interestRate=0.08, economicLifetime=10, technicalLifetime=None, yearlyFullLoadHoursMin=None, 
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 dimension,
+                 hasCapacityVariable, 
+                 capacityVariableDomain='continuous', 
+                 capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False, 
+                 bigM=None, 
+                 locationalEligibility=None,
+                 capacityMin=None, 
+                 capacityMax=None, 
+                 partLoadMin=None, 
+                 sharedPotentialID=None, 
+                 capacityFix=None, 
+                 isBuiltFix=None,
+                 investPerCapacity=0, 
+                 investIfBuilt=0, 
+                 opexPerCapacity=0, 
+                 opexIfBuilt=0, 
+                 QPcostScale=0,
+                 interestRate=0.08, 
+                 economicLifetime=10, 
+                 technicalLifetime=None, 
+                 yearlyFullLoadHoursMin=None, 
                  yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Component class instance.

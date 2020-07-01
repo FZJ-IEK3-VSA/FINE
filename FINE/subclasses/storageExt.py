@@ -11,8 +11,16 @@ class StorageExtBETA(Storage):
     A StorageExt component shows the behavior of a Storage component but it is additionally possible to set a
     state of charge time series. The StorageExt class inherits from the Storage class.
     """
-    def __init__(self, esM, name, commodity, stateOfChargeOpRateMax=None, stateOfChargeOpRateFix=None,
-        opexPerChargeOpTimeSeries=None, stateOfChargeTsaWeight=1, opexChargeOpTsaWeight=1, **kwargs):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 commodity, 
+                 stateOfChargeOpRateMax=None, 
+                 stateOfChargeOpRateFix=None, 
+                 opexPerChargeOpTimeSeries=None, 
+                 stateOfChargeTsaWeight=1, 
+                 opexChargeOpTsaWeight=1, 
+                 **kwargs):
         """
         Constructor for creating an StorageExt class instance.
         The StorageExt component specific input arguments are described below. The Storage component specific
@@ -48,7 +56,12 @@ class StorageExtBETA(Storage):
             |br| * the default value is 1
         :type stateOfChargeTsaWeight: positive (>= 0) float
         """
-        Storage.__init__(self, esM, name, commodity, **kwargs)
+        Storage.__init__(self, 
+                         esM, 
+                         name, 
+                         commodity, 
+                         **kwargs)
+                         
         self.modelingClass = StorageExtModel
 
         # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
