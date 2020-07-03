@@ -19,7 +19,7 @@ class Storage(Component):
                  dischargeOpRateMax=None, dischargeOpRateFix=None, dischargeTsaWeight=1,
                  isPeriodicalStorage=False,
                  locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None,
-                 linkedQuantiyID=None, capacityFix=None, isBuiltFix=None,
+                 linkedQuantityID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerChargeOperation=0,
                  opexPerDischargeOperation=0, opexPerCapacity=0, opexIfBuilt=0, interestRate=0.08, economicLifetime=10,
                  technicalLifetime=None, socOffsetDown=-1, socOffsetUp=-1):

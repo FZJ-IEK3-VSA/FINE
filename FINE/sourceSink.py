@@ -269,7 +269,7 @@ class Sink(Source):
                  hasIsBuiltBinaryVariable=False, bigM=None,
                  operationRateMax=None, operationRateFix=None, tsamWeight=1, commodityLimitID=None,
                  yearlyLimit=None, locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None,
-                 sharedPotentialID=None, linkedQantityID=None, capacityFix=None, isBuiltFix=None,
+                 sharedPotentialID=None, linkedQuantityID=None, capacityFix=None, isBuiltFix=None,
                  investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, commodityCost=0,
                  commodityRevenue=0, commodityCostTimeSeries=None, commodityRevenueTimeSeries=None, 
                  opexPerCapacity=0, opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10,
@@ -284,8 +284,7 @@ class Sink(Source):
         Source.__init__(self, esM, name, commodity, hasCapacityVariable, capacityVariableDomain,
                         capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM, operationRateMax, operationRateFix,
                         tsamWeight, commodityLimitID, yearlyLimit, locationalEligibility, capacityMin,
-                        capacityMax, partLoadMin, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
-                        capacityMax, sharedPotentialID, linkedQuantityID, capacityFix, isBuiltFix, investPerCapacity,
+                        partLoadMin, capacityMax, sharedPotentialID, linkedQuantityID, capacityFix, isBuiltFix, investPerCapacity,
                         investIfBuilt, opexPerOperation, commodityCost, commodityRevenue, commodityCostTimeSeries,
                         commodityRevenueTimeSeries, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate,
                         economicLifetime, technicalLifetime)
