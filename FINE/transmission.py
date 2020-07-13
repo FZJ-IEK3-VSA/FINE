@@ -12,15 +12,37 @@ class Transmission(Component):
     Last edited: November 28, 2018
     |br| @author: Lara Welder
     """
-    def __init__(self, esM, name, commodity, losses=0, distances=None,
-                 hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, bigM=None,
-                 operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, partLoadMin=None, sharedPotentialID=None,
+    def __init__(self,
+                 esM,
+                 name,
+                 commodity,
+                 losses=0,
+                 distances=None,
+                 hasCapacityVariable=True,
+                 capacityVariableDomain='continuous',
+                 capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False,
+                 bigM=None,
+                 operationRateMax=None,
+                 operationRateFix=None,
+                 tsaWeight=1,
+                 locationalEligibility=None,
+                 capacityMin=None,
+                 capacityMax=None,
+                 partLoadMin=None,
+                 sharedPotentialID=None,
                  linkedQuantityID=None,
-                 capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
+                 capacityFix=None,
+                 isBuiltFix=None,
+                 investPerCapacity=0,
+                 investIfBuilt=0,
+                 opexPerOperation=0,
+                 opexPerCapacity=0,
+                 opexIfBuilt=0,
+                 QPcostScale=0,
+                 interestRate=0.08,
+                 economicLifetime=10,
+                 technicalLifetime=None):
         """
         Constructor for creating an Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
@@ -126,17 +148,31 @@ class Transmission(Component):
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
 
-        Component. __init__(self, esM, name, dimension='2dim', hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
-                            locationalEligibility=self.locationalEligibility, capacityMin=self.capacityMin,
-                            capacityMax=self.capacityMax, partLoadMin=partLoadMin, sharedPotentialID=sharedPotentialID,
+        Component. __init__(self,
+                            esM,
+                            name,
+                            dimension='2dim',
+                            hasCapacityVariable=hasCapacityVariable,
+                            capacityVariableDomain=capacityVariableDomain,
+                            capacityPerPlantUnit=capacityPerPlantUnit,
+                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
+                            bigM=bigM,
+                            locationalEligibility=self.locationalEligibility,
+                            capacityMin=self.capacityMin,
+                            capacityMax=self.capacityMax,
+                            partLoadMin=partLoadMin,
+                            sharedPotentialID=sharedPotentialID,
                             linkedQuantityID=linkedQuantityID,
-                            capacityFix=self.capacityFix, isBuiltFix=self.isBuiltFix,
-                            investPerCapacity=self.investPerCapacity, investIfBuilt=self.investIfBuilt,
-                            opexPerCapacity=self.opexPerCapacity, opexIfBuilt=self.opexIfBuilt,
-                            interestRate=self.interestRate, QPcostScale=QPcostScale,
-                            economicLifetime=self.economicLifetime, technicalLifetime=self.technicalLifetime)
+                            capacityFix=self.capacityFix,
+                            isBuiltFix=self.isBuiltFix,
+                            investPerCapacity=self.investPerCapacity,
+                            investIfBuilt=self.investIfBuilt,
+                            opexPerCapacity=self.opexPerCapacity,
+                            opexIfBuilt=self.opexIfBuilt,
+                            interestRate=self.interestRate,
+                            QPcostScale=QPcostScale,
+                            economicLifetime=self.economicLifetime,
+                            technicalLifetime=self.technicalLifetime)
 
         # Set general component data
         utils.checkCommodities(esM, {commodity})
@@ -146,13 +182,13 @@ class Transmission(Component):
         self.distances = utils.checkAndSetDistances(self.distances, self.locationalEligibility, esM)
         self.losses = utils.checkAndSetTransmissionLosses(self.losses, self.distances, self.locationalEligibility)
         self.modelingClass = TransmissionModel
-
+        
         # Set distance related costs data
         self.investPerCapacity *= (self.distances * 0.5)
         self.investIfBuilt *= (self.distances * 0.5)
         self.opexPerCapacity *= (self.distances * 0.5)
         self.opexIfBuilt *= (self.distances * 0.5)
-
+        
         # Set additional economic data
         self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',
                                                                self.locationalEligibility)

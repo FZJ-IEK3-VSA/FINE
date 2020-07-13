@@ -18,8 +18,14 @@ class ConversionPartLoad(Conversion):
     visually to verify that the accuracy meets the desired requirements.
     The ConversionPartLoad class inherits from the Conversion class.
     """
-    def __init__(self, esM, name, physicalUnit, commodityConversionFactors, 
-                 commodityConversionFactorsPartLoad, nSegments=None, **kwargs):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 physicalUnit, 
+                 commodityConversionFactors, 
+                 commodityConversionFactorsPartLoad, 
+                 nSegments=None, 
+                 **kwargs):
 
         """
         Constructor for creating an ConversionPartLoad class instance. Capacities are given in the physical unit
@@ -50,7 +56,12 @@ class ConversionPartLoad(Conversion):
         :type **kwargs:
             * Check Conversion Class documentation.
         """
-        Conversion.__init__(self, esM, name, physicalUnit, commodityConversionFactors, **kwargs)
+        Conversion.__init__(self, 
+                            esM, 
+                            name, 
+                            physicalUnit, 
+                            commodityConversionFactors, 
+                            **kwargs)
 
         self.modelingClass = ConversionPartLoadModel
 

@@ -59,8 +59,15 @@ class EnergySystemModel:
     |br| @author: Lara Welder
     """
 
-    def __init__(self, locations, commodities, commodityUnitsDict, numberOfTimeSteps=8760, hoursPerTimeStep=1,
-                 costUnit='1e9 Euro', lengthUnit='km', verboseLogLevel=0):
+    def __init__(self, 
+                 locations, 
+                 commodities, 
+                 commodityUnitsDict, 
+                 numberOfTimeSteps=8760, 
+                 hoursPerTimeStep=1,
+                 costUnit='1e9 Euro', 
+                 lengthUnit='km', 
+                 verboseLogLevel=0):
         """
         Constructor for creating an EnergySystemModel class instance
 
@@ -342,8 +349,14 @@ class EnergySystemModel:
             df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def cluster(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, segmentation=False,
-                numberOfSegmentsPerPeriod=24, clusterMethod='hierarchical', sortValues=True, storeTSAinstance=False,
+    def cluster(self, 
+                numberOfTypicalPeriods=7, 
+                numberOfTimeStepsPerPeriod=24, 
+                segmentation=False,
+                numberOfSegmentsPerPeriod=24, 
+                clusterMethod='hierarchical', 
+                sortValues=True, 
+                storeTSAinstance=False,
                 **kwargs):
         """
         Cluster the time series data of all components considered in the EnergySystemModel instance and then
@@ -789,8 +802,16 @@ class EnergySystemModel:
         # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
-    def optimize(self, declaresOptimizationProblem=True, relaxIsBuiltBinary=False, timeSeriesAggregation=False,
-                 logFileName='', threads=3, solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
+    def optimize(self, 
+                 declaresOptimizationProblem=True, 
+                 relaxIsBuiltBinary=False, 
+                 timeSeriesAggregation=False,
+                 logFileName='', 
+                 threads=3, 
+                 solver='gurobi', 
+                 timeLimit=None, 
+                 optimizationSpecs='', 
+                 warmstart=False):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
         A pyomo instance is optimized with the specified inputs, and the optimization results are further

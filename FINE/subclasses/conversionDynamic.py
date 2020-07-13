@@ -10,8 +10,16 @@ class ConversionDynamic(Conversion):
     """
     Extension of the conversion class with more specific ramping behavior
     """
-    def __init__(self, esM, name, physicalUnit, commodityConversionFactors, downTimeMin=None, 
-                 upTimeMin=None, rampUpMax =None, rampDownMax=None, **kwargs):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 physicalUnit, 
+                 commodityConversionFactors, 
+                 downTimeMin=None, 
+                 upTimeMin=None, 
+                 rampUpMax =None, 
+                 rampDownMax=None, 
+                 **kwargs):
         """
         Constructor for creating a ConversionDynamic class instance.
         The ConversionDynamic component specific input arguments are described below. The Conversion
@@ -47,7 +55,12 @@ class ConversionDynamic(Conversion):
         :type kwargs:
             * Check Conversion Class documentation.
         """
-        Conversion.__init__(self, esM, name, physicalUnit, commodityConversionFactors, **kwargs)
+        Conversion.__init__(self, 
+                            esM, 
+                            name, 
+                            physicalUnit, 
+                            commodityConversionFactors, 
+                            **kwargs)
 
         self.modelingClass = ConversionDynamicModel
         self.downTimeMin = downTimeMin
