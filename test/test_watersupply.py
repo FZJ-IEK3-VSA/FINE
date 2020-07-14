@@ -10,8 +10,8 @@ import FINE as fn
 def test_watersupply():
 
     # read in original results
-    results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples', 'WaterSupplySystem',
-                                       'totalTransmission.csv'),
+    results = pd.read_csv(os.path.join(os.path.dirname(__file__), '_testInputFiles', 
+                                       'waterSupplySystem_totalTransmission.csv'),
                           index_col=[0, 1, 2], header=None, squeeze=True)
 
 
