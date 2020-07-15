@@ -26,7 +26,7 @@ def test_linkedQuantityID(minimal_test_esM):
     )
 
     # make electrolyzer sizing discrete
-    electrolyzer.capacityPerPlantUnit = 0.001
+    electrolyzer.capacityPerPlantUnit = 1
     electrolyzer.linkedQuantityID = "test"
     electrolyzer.opexPerCapacity = pd.Series(1, index=esM.locations)
 
