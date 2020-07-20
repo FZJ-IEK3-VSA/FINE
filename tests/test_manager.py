@@ -1,14 +1,14 @@
 import pytest
 
-import pathlib
 import spagat.manager as spm
 import spagat.utils as spu
 import spagat.representation as spr
 
+import os
 
 def test_workflow():
-    sds_folder_path_in = pathlib.Path("tests/data/input")
-    sds_folder_path_out = pathlib.Path("tests/data/output/aggregated/33")
+    sds_folder_path_in = os.path.join(os.path.dirname(os.path.abspath(__file__)),"data","input")
+    sds_folder_path_out = os.path.join(os.path.dirname(os.path.abspath(__file__)),"data","output","aggregated","33")
     spu.create_dir(sds_folder_path_out)
 
     n_regions = 33
@@ -33,3 +33,7 @@ def test_workflow():
         eligibility_variable="AC_cable_incidence",
         eligibility_component=None,
     )
+
+
+if __name__ == "__main__":
+    test_workflow()

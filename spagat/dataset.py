@@ -83,8 +83,8 @@ class SpagatDataset:
         """
 
         # gets the complete paths
-        sds_xr_dataset_path = sds_folder_path / sds_xr_dataset_filename
-        sds_regions_path = sds_folder_path / sds_regions_filename
+        sds_xr_dataset_path = os.path.join(sds_folder_path, sds_xr_dataset_filename)
+        sds_regions_path = os.path.join(sds_folder_path, sds_regions_filename)
 
         self.xr_dataset = xr.open_dataset(sds_xr_dataset_path)
 

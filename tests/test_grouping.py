@@ -41,7 +41,7 @@ def test_dataset1():
 
      ds = xr.Dataset({'operationFixRate': opFix,'1d_capacity': cap_1d,'2d_distance': dist_2d})
 
-     sds = spd.SpagatDataSet()
+     sds = spd.SpagatDataset()
      sds.xr_dataset = ds
      return sds
 
@@ -74,7 +74,7 @@ def test_dataset2():
 
      ds = xr.Dataset({'operationFixRate': demand, '1d_capacity': cap_1d, '2d_distance': dist_2d})
 
-     sds = spd.SpagatDataSet()
+     sds = spd.SpagatDataset()
      sds.xr_dataset = ds
      return sds
 

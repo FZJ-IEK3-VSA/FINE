@@ -206,6 +206,8 @@ def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=Non
         if da.dims == ('component','space','space_2'):
             vars_2d[varname] = da
 
+    import pdb; pdb.set_trace()
+
     component_list = list(dataset['component'].values)
 
     n_regions = len(dataset['space'].values)

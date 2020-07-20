@@ -3,6 +3,7 @@
 """
 
 import logging
+import os
 
 import spagat.dataset as spd
 import spagat.grouping as spg
@@ -41,7 +42,7 @@ class SpagatManager:
         # Using distanced_based_clustering (geographical distance)
         if mode == 'distance based':
             if self.analysis_path is not None:
-                save_path = self.analysis_path / "cluster_dendrogram"
+                save_path = os.path.join( self.analysis_path, "cluster_dendrogram")
             else:
                 save_path = None
 
@@ -50,7 +51,7 @@ class SpagatManager:
         # Using clustering methods based on all variables
         if mode == 'all':
             if self.analysis_path is not None:
-                save_path = self.analysis_path / 'cluster_dendrogram'
+                save_path = os.path.join( self.analysis_path, "cluster_dendrogram")
             else:
                 save_path = None
 
