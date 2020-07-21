@@ -75,22 +75,9 @@ class SpagatManager:
 
         spr.create_grid_shapefile(
             self.sds_out,
-            filename=sds_folder / "sds_AC_lines.shp",
+            filename= os.path.join(sds_folder , "sds_grid_shape.shp"),
             eligibility_variable=eligibility_variable,
             eligibility_component=eligibility_component,
         )
 
         self.sds_out.save_sds(sds_folder)
-
-        if save_initial_sds:
-            spr.create_grid_shapefile(
-                self.sds,
-                filename=sds_folder / "initial_sds_AC_lines.shp",
-                eligibility_variable=eligibility_variable,
-                eligibility_component=eligibility_component,
-            )
-            self.sds.save_sds(
-                sds_folder,
-                sds_region_filename=f"initial_sds_regions.shp",
-                sds_xr_dataset_filename=f"initial_sds_xr_dataset.nc4",
-            )

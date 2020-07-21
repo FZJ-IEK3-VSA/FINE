@@ -147,7 +147,6 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         
         shape_list.append(shape_union)
 
-    #import pdb;pdb.set_trace()
     # TODO: why the convertion to numpy array results in a list of polygons when n_regions = 1 ???
     data = None
     if len(shape_list) == 1:

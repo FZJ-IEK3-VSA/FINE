@@ -11,7 +11,7 @@ def test_workflow():
     sds_folder_path_out = os.path.join(os.path.dirname(os.path.abspath(__file__)),"data","output","aggregated","33")
     spu.create_dir(sds_folder_path_out)
 
-    n_regions = 33
+    n_regions = 2
 
     spagat_manager = spm.SpagatManager()
 
@@ -19,19 +19,14 @@ def test_workflow():
 
     spagat_manager.read_data(sds_folder_path=sds_folder_path_in)
 
-    # TODO: correct test data after naming decision for either 'space' or 'region_ids'
-    spagat_manager.sds.xr_dataset = spagat_manager.sds.xr_dataset.rename(
-        {"region_ids": "space", "region_ids_2": "space_2",}
-    )
-
     spagat_manager.grouping()
 
     spagat_manager.representation(number_of_regions=n_regions)
 
     spagat_manager.save_data(
         sds_folder_path_out,
-        eligibility_variable="AC_cable_incidence",
-        eligibility_component=None,
+        eligibility_variable="2d_locationalEligibility",
+        eligibility_component="Transmission, h2pipeline",
     )
 
 

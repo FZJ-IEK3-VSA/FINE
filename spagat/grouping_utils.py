@@ -2,6 +2,7 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import geopandas
+import warnings
 
 from sklearn import preprocessing as prep
 from scipy.cluster import hierarchy
@@ -103,7 +104,7 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
 
     n_components = len(component_list)
 
-    # Obtain th dictionary of connectivity matrices for each variable and for its valid component, each of size 96*96 (n_regions)
+    # Obtain th dictionary of connectivity matrices for each variable and for its valid component, each of size n_regions*n_regions (n_regions)
     ds_2d = {}
 
     for var, da in vars_dict.items():
@@ -156,7 +157,8 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
             for c, data in var_dict.items():
                 
                 # Obtain the vector form of this symmetric connectivity matrix, in the range [0,1]
-                vec = hierarchy.distance.squareform(data)
+                # Deactivate checks since small numerical errors can be in the dataset
+                vec = hierarchy.distance.squareform(data, checks=False)
 
                 # Convert the value of connectivity (similarity) to distance (dissimilarity)
                 vec = 1 - vec
@@ -195,18 +197,20 @@ def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=Non
     vars_2d = {}
 
     for varname, da in dataset.data_vars.items():
-        if da.dims == ('component','Period','TimeStep', 'space'):
+        # sort the dimensions
+        if sorted(da.dims) == sorted(('component','Period','TimeStep', 'space')):
             # Do not have to consider the Period --> ToDo: consider the Period dimension.
             da = da.transpose('Period','component','space','TimeStep')[0]  
             vars_ts[varname] = da
 
-        if da.dims == ('component','space'):
+        elif sorted(da.dims) == sorted(('component','space')):
             vars_1d[varname] = da
 
-        if da.dims == ('component','space','space_2'):
+        elif sorted(da.dims) == sorted(('component','space','space_2')):
             vars_2d[varname] = da
 
-    import pdb; pdb.set_trace()
+        else:
+            warnings.warn("Variable '" + varname + "' has dimensions + '" + str(da.dims) + "' which are not considered for spatial aggregation.")
 
     component_list = list(dataset['component'].values)
 
@@ -361,12 +365,12 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part
         var_weight_factor = var_weightings[var]
 
         for component, data in var_dict.items():
-            # Find the corresponding distance value for region_a and region_b
+            # Find the corresponding distance value for region_a and region_b 
             value_var_c = data[index_regA_regB]
 
-            # dist_2d(a,b) = sum_var{var_weight * sum_c( [value_var_c(a,b)]^2 ) }
-            distance_2d += (value_var_c*value_var_c) * var_weight_factor
-
+            if not np.isnan(value_var_c):
+                # dist_2d(a,b) = sum_var{var_weight * sum_c( [value_var_c(a,b)]^2 ) }
+                distance_2d += (value_var_c*value_var_c) * var_weight_factor
 
     return distance_ts * part_weightings[0] + distance_1d * part_weightings[1] + distance_2d * part_weightings[2]
 
