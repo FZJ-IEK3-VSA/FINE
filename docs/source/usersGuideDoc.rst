@@ -1,8 +1,8 @@
 ###########
-Users Guide
+User Guide
 ###########
 
-ToDo: introduction to section
+You want to dig deeper into our framework and 
 
 .. toctree::
     :maxdepth: 1

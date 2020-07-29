@@ -1,0 +1,22 @@
+name: FINE
+dependencies:
+- python=3.6
+- conda-forge::gdal=2.4.1
+- conda-forge::geopandas
+- conda-forge::jupyter
+- conda-forge::notebook
+- pip
+- descartes
+- glpk
+- openpyxl
+- matplotlib
+- xlrd
+- pyomo
+- numpy
+- pandas
+- networkx
+- scipy
+- pip:
+  - FINE
+  - https://github.com/FZJ-IEK3-VSA/geokit/archive/master.zip
+  - https://github.com/FZJ-IEK3-VSA/glaes/archive/master.zip
