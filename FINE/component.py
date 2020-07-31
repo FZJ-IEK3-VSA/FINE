@@ -340,9 +340,6 @@ class Component(metaclass=ABCMeta):
         self.bigM = bigM
         self.partLoadMin = partLoadMin
         
-       
- 
-            
         # Set economic data
         elig = locationalEligibility
         self.investPerCapacity = utils.checkAndSetCostParameter(esM, name, investPerCapacity, dimension, elig)
@@ -368,8 +365,8 @@ class Component(metaclass=ABCMeta):
         utils.checkLocationSpecficDesignInputParams(self, esM)
         
         # Set quadratic capacity bounds and residual cost scale (1-cost scale)
-        self.QPbound = utils.getQPbound(esM, self.capacityMax, self.capacityMin)
-        self.QPcostDev = utils.getQPcostDev(esM, self.QPcostScale)
+        self.QPbound = utils.getQPbound(self.QPcostScale, self.capacityMax, self.capacityMin)
+        self.QPcostDev = utils.getQPcostDev(self.QPcostScale)
 
         #
         # # Variables at optimum (set after optimization)
