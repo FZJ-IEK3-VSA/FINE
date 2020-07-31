@@ -263,18 +263,25 @@ def castToSeries(data, esM):
     isPositiveNumber(data)
     return pd.Series(data, index=list(esM.locations))
 
-def getQPbound(esM, capacityMax, capacityMin):
+
+def getQPbound(QPcostScale, capacityMax, capacityMin):
     """ Compute and return lower and upper capacity bounds. """
-    index=list(esM.locations)
-    QPbound = pd.Series([np.inf] * len(esM.locations), index)
+    index=QPcostScale.index
+    QPbound = pd.Series([np.inf] * len(index), index)
 
     if capacityMin is not None and capacityMax is not None:
         minS=pd.Series(capacityMin.isna(), index)
         maxS=pd.Series(capacityMax.isna(), index)
-        for x in list(esM.locations):
+        for x in index:
             if not minS.loc[x] and not maxS.loc[x]:
                 QPbound.loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
     return QPbound
+
+
+def getQPcostDev(QPcostScale):
+    QPcostDev = 1 - QPcostScale
+    return QPcostDev
+
 
 def checkLocationSpecficDesignInputParams(comp, esM):
     if len(esM.locations) == 1:
@@ -451,13 +458,6 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
             raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
         if rampDownMax > 1:
             raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
-        
-
-
-
-def getQPcostDev(esM, QPcostScale):
-    QPcostDev = 1 - QPcostScale
-    return QPcostDev
 
 def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFix, isBuiltFix,
                              hasCapacityVariable, operationTimeSeries, dimension='1dim'):
