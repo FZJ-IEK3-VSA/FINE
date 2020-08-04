@@ -9,7 +9,6 @@ You want to dig deeper into our framework and
     :caption: Contents:
 
     componentsIntroDoc
-    mathematicalBackgroundDoc
     structureOfFINEDoc
     tutorialDoc
     IODoc
