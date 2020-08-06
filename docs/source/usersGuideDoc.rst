@@ -11,4 +11,3 @@ You want to dig deeper into our framework and
     componentsIntroDoc
     structureOfFINEDoc
     tutorialDoc
-    IODoc
