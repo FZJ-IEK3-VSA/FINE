@@ -17,7 +17,12 @@ install:
   - conda env update -q -n FINE --file=requirements.yml
   - conda env update -q -n FINE --file=requirements_dev.yml
   - source activate FINE
-  - pip install --no-cache-dir .
+  - pip install codecov
+  - pip install --no-cache-dir -e .
 
 script:
-  - pytest
+  - source activate FINE
+  - pytest --cov=./FINE
+
+after_success:
+  - codecov
