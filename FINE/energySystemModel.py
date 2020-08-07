@@ -59,8 +59,15 @@ class EnergySystemModel:
     |br| @author: Lara Welder
     """
 
-    def __init__(self, locations, commodities, commodityUnitsDict, numberOfTimeSteps=8760, hoursPerTimeStep=1,
-                 costUnit='1e9 Euro', lengthUnit='km', verboseLogLevel=0):
+    def __init__(self, 
+                 locations, 
+                 commodities, 
+                 commodityUnitsDict, 
+                 numberOfTimeSteps=8760, 
+                 hoursPerTimeStep=1,
+                 costUnit='1e9 Euro', 
+                 lengthUnit='km', 
+                 verboseLogLevel=0):
         """
         Constructor for creating an EnergySystemModel class instance
 
@@ -342,16 +349,27 @@ class EnergySystemModel:
             df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def cluster(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, clusterMethod='hierarchical',
-                sortValues=True, storeTSAinstance=False, **kwargs):
+    def cluster(self, 
+                numberOfTypicalPeriods=7, 
+                numberOfTimeStepsPerPeriod=24, 
+                segmentation=False,
+                numberOfSegmentsPerPeriod=24, 
+                clusterMethod='hierarchical', 
+                sortValues=True, 
+                storeTSAinstance=False,
+                **kwargs):
         """
         Cluster the time series data of all components considered in the EnergySystemModel instance and then
         stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
-        days with 24 hours) is assigned. For the clustering itself, the tsam package is used (cf.
-        https://github.com/FZJ-IEK3-VSA/tsam). Additional keyword arguments for the TimeSeriesAggregation instance
-        can be added (facilitated by kwargs). As an example: it might be useful to add extreme periods to the
-        clustered typical periods.
+        days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
+        time steps with an irregular duration using the segmentation option.
+        For the clustering itself, the tsam package is used (cf. https://github.com/FZJ-IEK3-VSA/tsam). Additional
+        keyword arguments for the TimeSeriesAggregation instance can be added (facilitated by kwargs). As an example: it
+        might be useful to add extreme periods to the clustered typical periods.
+        Note: The segmentation option can be freely combined with all subclasses. However, an irregular time step length
+        is not meaningful for the minimumDownTime and minimumUpTime in the conversionDynamic module, because the time
+        would be different for each segment. The same holds true for the DSM module.
 
         **Default arguments:**
 
@@ -366,6 +384,14 @@ class EnergySystemModel:
         :param numberOfTimeStepsPerPeriod: states the number of time steps per period
             |br| * the default value is 24
         :type numberOfTimeStepsPerPeriod: strictly positive integer
+
+        :param segmentation: states whether the typical periods should be further segmented to fewer time steps
+            |br| * the default value is False
+        :type segmentation: boolean
+
+        :param numberOfSegmentsPerPeriod: states the number of segments per period
+            |br| * the default value is 24
+        :type numberOfSegmentsPerPeriod:  strictly positive integer
 
         :param clusterMethod: states the method which is used in the tsam package for clustering the time series
             data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
@@ -386,17 +412,29 @@ class EnergySystemModel:
             |br| * the default value is False
         :type storeTSAinstance: boolean
 
-        Last edited: August 10, 2018
-        |br| @author: Lara Welder
+        Last edited: March 26, 2020
+        |br| @author: Lara Welder, Maximilian Hoffmann
         """
 
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps))
+        if segmentation:
+            if numberOfSegmentsPerPeriod > numberOfTimeStepsPerPeriod:
+                if self.verbose < 2:
+                    warnings.warn('The chosen number of segments per period exceeds the number of time steps per' 
+                                  'period. The number of segments per period is set to the number of time steps per '
+                                  'period.')
+                numberOfSegmentsPerPeriod = numberOfTimeStepsPerPeriod
         hoursPerPeriod = int(numberOfTimeStepsPerPeriod*self.hoursPerTimeStep)
 
         timeStart = time.time()
-        utils.output('\nClustering time series data with ' + str(numberOfTypicalPeriods) + ' typical periods and '
-                     + str(numberOfTimeStepsPerPeriod) + ' time steps per period...', self.verbose, 0)
+        if segmentation:
+            utils.output('\nClustering time series data with ' + str(numberOfTypicalPeriods) + ' typical periods and '
+                         + str(numberOfTimeStepsPerPeriod) + ' time steps per period \nfurther clustered to '
+                         + str(numberOfSegmentsPerPeriod) + ' segments per period...', self.verbose, 0)
+        else:
+            utils.output('\nClustering time series data with ' + str(numberOfTypicalPeriods) + ' typical periods and '
+                         + str(numberOfTimeStepsPerPeriod) + ' time steps per period...', self.verbose, 0)
 
         # Format data to fit the input requirements of the tsam package:
         # (a) append the time series data from all components stored in all initialized modeling classes to a pandas
@@ -414,16 +452,29 @@ class EnergySystemModel:
                                              freq=(str(self.hoursPerTimeStep) + 'H'), tz='Europe/Berlin')
 
         # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
-        # call)
+        # call) depending on whether segmentation is activated or not
         timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
-        clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
-                                             hoursPerPeriod=hoursPerPeriod,
-                                             clusterMethod=clusterMethod, sortValues=sortValues, weightDict=weightDict,
-                                             **kwargs)
-
-        # Convert the clustered data to a pandas DataFrame and store the respective clustered time series data in the
-        # associated components
-        data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+        if segmentation:
+            clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
+                                                 segmentation=segmentation, noSegments=numberOfSegmentsPerPeriod,
+                                                 hoursPerPeriod=hoursPerPeriod,
+                                                 clusterMethod=clusterMethod, sortValues=sortValues,
+                                                 weightDict=weightDict, **kwargs)
+            # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
+            # second index as segment number per typical period.
+            data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict).reset_index(level=2, drop=True)
+            # Get the length of each segment in each typical period with the first index as typical period number and
+            # the second index as segment number per typical period.
+            timeStepsPerSegment = pd.DataFrame.from_dict(clusterClass.segmentDurationDict)['Segment Duration']
+        else:
+            clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
+                                                 hoursPerPeriod=hoursPerPeriod,
+                                                 clusterMethod=clusterMethod, sortValues=sortValues,
+                                                 weightDict=weightDict, **kwargs)
+            # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
+            # second index as time step number per typical period.
+            data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+        # Store the respective clustered time series data in the associated components
         for mdlName, mdl in self.componentModelingDict.items():
             for compName, comp in mdl.componentsDict.items():
                 comp.setAggregatedTimeSeriesData(data)
@@ -433,6 +484,18 @@ class EnergySystemModel:
             self.tsaInstance = clusterClass
         self.typicalPeriods = clusterClass.clusterPeriodIdx
         self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
+        self.segmentation = segmentation
+        if segmentation:
+            self.segmentsPerPeriod = list(range(numberOfSegmentsPerPeriod))
+            self.timeStepsPerSegment = timeStepsPerSegment
+            self.hoursPerSegment = self.hoursPerTimeStep * self.timeStepsPerSegment
+            # Define start time hour of each segment in each typical period
+            segmentStartTime = self.hoursPerSegment.groupby(level=0).cumsum()
+            segmentStartTime.index = segmentStartTime.index.set_levels(segmentStartTime.index.levels[1] + 1, level=1)
+            lvl0, lvl1 = segmentStartTime.index.levels
+            segmentStartTime = segmentStartTime.reindex(pd.MultiIndex.from_product([lvl0, [0, *lvl1]]))
+            segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
+            self.segmentStartTime = segmentStartTime
         self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
         self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
         self.periodsOrder = clusterClass.clusterOrder
@@ -442,7 +505,7 @@ class EnergySystemModel:
         self.isTimeSeriesDataClustered = True
         utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", self.verbose, 0)
 
-    def declareTimeSets(self, pyM, timeSeriesAggregation):
+    def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """
         Set and initialize basic time parameters and sets.
 
@@ -455,11 +518,19 @@ class EnergySystemModel:
             (b) clustered time series data (True).
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
+
+        :param segmentation: states if the optimization of the energy system model based on clustered time series data
+            should be done with
+            (a) aggregated typical periods with the original time step length (False) or
+            (b) aggregated typical periods with further segmented time steps (True).
+            |br| * the default value is False
+        :type segmentation: boolean
         """
 
         # Store the information if aggregated time series data is considered for modeling the energy system in the pyomo
         # model instance and set the time series which is again considered for modeling in all components accordingly
         pyM.hasTSA = timeSeriesAggregation
+        pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
             for comp in mdl.componentsDict.values():
                 comp.setTimeSeriesData(pyM.hasTSA)
@@ -489,17 +560,31 @@ class EnergySystemModel:
             def initInterTimeStepsSet(pyM):
                 return ((p, t) for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1))
         else:
-            utils.output('Time series aggregation specifications:\n'
-                         'Number of typical periods:' + str(len(self.typicalPeriods)) +
-                         ', number of time steps per periods:' + str(len(self.timeStepsPerPeriod)) + '\n',
-                         self.verbose, 0)
+            if not pyM.hasSegmentation:
+                utils.output('Time series aggregation specifications:\n'
+                             'Number of typical periods:' + str(len(self.typicalPeriods)) +
+                             ', number of time steps per period:' + str(len(self.timeStepsPerPeriod)) + '\n',
+                             self.verbose, 0)
 
-            # Define sets
-            def initTimeSet(pyM):
-                return ((p, t) for p in self.typicalPeriods for t in self.timeStepsPerPeriod)
+                # Define sets
+                def initTimeSet(pyM):
+                    return ((p, t) for p in self.typicalPeriods for t in self.timeStepsPerPeriod)
 
-            def initInterTimeStepsSet(pyM):
-                return ((p, t) for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1))
+                def initInterTimeStepsSet(pyM):
+                    return ((p, t) for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1))
+            else:
+                utils.output('Time series aggregation specifications:\n'
+                             'Number of typical periods:' + str(len(self.typicalPeriods)) +
+                             ', number of time steps per period:' + str(len(self.timeStepsPerPeriod)) +
+                             ', number of segments per period:' + str(len(self.segmentsPerPeriod)) + '\n',
+                             self.verbose, 0)
+
+                # Define sets
+                def initTimeSet(pyM):
+                    return ((p, t) for p in self.typicalPeriods for t in self.segmentsPerPeriod)
+
+                def initInterTimeStepsSet(pyM):
+                    return ((p, t) for p in self.typicalPeriods for t in range(len(self.segmentsPerPeriod) + 1))
 
         # Initialize sets
         pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
@@ -580,7 +665,7 @@ class EnergySystemModel:
             return TAC
         pyM.Obj = pyomo.Objective(rule=objective)
 
-    def declareOptimizationProblem(self, timeSeriesAggregation=False, relaxIsBuiltBinary=False):
+    def declareOptimizationProblem(self, timeSeriesAggregation=False, segmentation=False, relaxIsBuiltBinary=False):
         """
         Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
         instance is built and filled with
@@ -597,8 +682,20 @@ class EnergySystemModel:
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
-        Last edited: November 10, 2018
-        |br| @author: Lara Welder
+        :param segmentation: states if the optimization of the energy system model based on clustered time series data
+            should be done with
+            (a) aggregated typical periods with the original time step length (False) or
+            (b) aggregated typical periods with further segmented time steps (True).
+            |br| * the default value is False
+        :type segmentation: boolean
+
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
+            bound of the problem.
+            |br| * the default value is False
+        :type declaresOptimizationProblem: boolean
+
+        Last edited: March 26, 2020
+        |br| @author: Lara Welder, Maximilian Hoffmann
         """
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -619,7 +716,7 @@ class EnergySystemModel:
         pyM.dual = pyomo.Suffix(direction=pyomo.Suffix.IMPORT)
 
         # Set time sets for the model instance
-        self.declareTimeSets(pyM, timeSeriesAggregation)
+        self.declareTimeSets(pyM, timeSeriesAggregation, segmentation)
 
         ################################################################################################################
         #                         Declare component specific sets, variables and constraints                           #
@@ -659,8 +756,16 @@ class EnergySystemModel:
         # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
-    def optimize(self, declaresOptimizationProblem=True, relaxIsBuiltBinary=False, timeSeriesAggregation=False,
-                 logFileName='', threads=3, solver='gurobi', timeLimit=None, optimizationSpecs='', warmstart=False):
+    def optimize(self, 
+                 declaresOptimizationProblem=True, 
+                 relaxIsBuiltBinary=False, 
+                 timeSeriesAggregation=False,
+                 logFileName='', 
+                 threads=3, 
+                 solver='gurobi', 
+                 timeLimit=None, 
+                 optimizationSpecs='', 
+                 warmstart=False):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
         A pyomo instance is optimized with the specified inputs, and the optimization results are further
@@ -684,6 +789,13 @@ class EnergySystemModel:
             (b) clustered time series data (True).
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
+
+        :param segmentation: states if the optimization of the energy system model based on clustered time series data
+            should be done with
+            (a) aggregated typical periods with the original time step length (False) or
+            (b) aggregated typical periods with further segmented time steps (True).
+            |br| * the default value is False
+        :type segmentation: boolean
 
         :param logFileName: logFileName is used for naming the log file of the optimization solver output
             if gurobi is used as the optimization solver.
@@ -723,11 +835,15 @@ class EnergySystemModel:
             |br| * the default value is False
         :type warmstart: boolean
 
-        Last edited: August 10, 2018
-        |br| @author: Lara Welder
+        Last edited: March 26, 2020
+        |br| @author: Lara Welder, Maximilian Hoffmann
         """
+        if not timeSeriesAggregation:
+            self.segmentation = False
+
         if declaresOptimizationProblem:
-            self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation, relaxIsBuiltBinary=relaxIsBuiltBinary)
+            self.declareOptimizationProblem(timeSeriesAggregation=timeSeriesAggregation, segmentation=self.segmentation,
+                                            relaxIsBuiltBinary=relaxIsBuiltBinary)
         else:
             if self.pyM is None:
                 raise TypeError('The optimization problem is not declared yet. Set the argument declaresOptimization'

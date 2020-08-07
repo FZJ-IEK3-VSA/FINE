@@ -20,8 +20,20 @@ class DemandSideManagementBETA(Sink):
     A DemandSideManagement component. Allows to shift demands (of Sink components) forwards and backwards in time.
     Initializes a Sink component and multiple Storage components which are aggregated after optimization.
     """
-    def __init__(self, esM, name, commodity, hasCapacityVariable, tFwd, tBwd, operationRateFix,
-        opexShift=1e-6, shiftUpMax=None, shiftDownMax=None, socOffsetDown=-1, socOffsetUp=-1, **kwargs):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 commodity, 
+                 hasCapacityVariable, 
+                 tFwd, 
+                 tBwd, 
+                 operationRateFix, 
+                 opexShift=1e-6, 
+                 shiftUpMax=None, 
+                 shiftDownMax=None, 
+                 socOffsetDown=-1, 
+                 socOffsetUp=-1, 
+                 **kwargs):
         """
         Constructor for creating an DemandSideManagement class instance.
         Note: the DemandSideManagement class inherits from the Sink class; kwargs provide input arguments
@@ -125,8 +137,13 @@ class DemandSideManagementBETA(Sink):
         else:
             self.shiftDownMax = shiftDownMax
 
-        Sink.__init__(self, esM, name, commodity, hasCapacityVariable,
-            operationRateFix=operationRateFix, **kwargs)
+        Sink.__init__(self, 
+                      esM, 
+                      name, 
+                      commodity, 
+                      hasCapacityVariable, 
+                      operationRateFix=operationRateFix, 
+                      **kwargs)
 
         self.modelingClass = DSMModel
 
@@ -326,7 +343,8 @@ class DSMModel(SourceSinkModel):
 
         # Set optimal operation variables and append optimization summary
         chargeOp = getattr(pyM, 'chargeOp_storExt')
-        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                esM=esM)
 
         def groupStor(x):
             ix = optVal.loc[x].name
@@ -365,17 +383,19 @@ class DSMModel(SourceSinkModel):
             for compName in compDict.keys():
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
-                    calcCostTD = utils.buildFullTimeSeries(compDict[compName].commodityCostTimeSeries, 
-                                                           esM.periodsOrder, axis=0)
+                    calcCostTD = utils.buildFullTimeSeries(
+                        compDict[compName].commodityCostTimeSeries.unstack(level=1).stack(level=0),
+                        esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total cost
-                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD).sum(axis=0)
+                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
 
                 if not compDict[compName].commodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
-                    calcRevenueTD = utils.buildFullTimeSeries(compDict[compName].commodityRevenueTimeSeries,
-                                                              esM.periodsOrder, axis=0)
+                    calcRevenueTD = utils.buildFullTimeSeries(
+                        compDict[compName].commodityRevenueTimeSeries.unstack(level=1).stack(level=0),
+                        esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
-                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD).sum(axis=0)
+                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
                         
             optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cCostTD.values + cCost.values)/esM.numberOfYears
