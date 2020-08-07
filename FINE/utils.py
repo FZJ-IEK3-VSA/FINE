@@ -263,18 +263,25 @@ def castToSeries(data, esM):
     isPositiveNumber(data)
     return pd.Series(data, index=list(esM.locations))
 
-def getQPbound(esM, capacityMax, capacityMin):
+
+def getQPbound(QPcostScale, capacityMax, capacityMin):
     """ Compute and return lower and upper capacity bounds. """
-    index=list(esM.locations)
-    QPbound = pd.Series([np.inf] * len(esM.locations), index)
+    index=QPcostScale.index
+    QPbound = pd.Series([np.inf] * len(index), index)
 
     if capacityMin is not None and capacityMax is not None:
         minS=pd.Series(capacityMin.isna(), index)
         maxS=pd.Series(capacityMax.isna(), index)
-        for x in list(esM.locations):
+        for x in index:
             if not minS.loc[x] and not maxS.loc[x]:
                 QPbound.loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
     return QPbound
+
+
+def getQPcostDev(QPcostScale):
+    QPcostDev = 1 - QPcostScale
+    return QPcostDev
+
 
 def checkLocationSpecficDesignInputParams(comp, esM):
     if len(esM.locations) == 1:
@@ -451,13 +458,6 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
             raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
         if rampDownMax > 1:
             raise ValueError('rampDownMax for ' + name +  ' needs to be a float in the intervall ]0,1].')
-        
-
-
-
-def getQPcostDev(esM, QPcostScale):
-    QPcostDev = 1 - QPcostScale
-    return QPcostDev
 
 def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFix, isBuiltFix,
                              hasCapacityVariable, operationTimeSeries, dimension='1dim'):
@@ -763,14 +763,37 @@ def setFormattedTimeSeries(timeSeries):
         return data.set_index(['Period', 'TimeStep'])
 
 
-def buildFullTimeSeries(df, periodsOrder, axis=1):
+def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
+    # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
+    # time steps first
+    if esM is not None and esM.segmentation:
+        dataAllPeriods = []
+        for p in esM.typicalPeriods:
+            # Repeat each segment in each period as often as time steps are represented by the corresponding
+            # segment
+            repList = esM.timeStepsPerSegment.loc[p, :].tolist()
+            # if divide is set to True, the values are divided when being unravelled, e.g. in order to fit provided
+            # energy per segment provided energy per time step
+            if divide:
+                dataPeriod = pd.DataFrame(np.repeat(np.divide(df.loc[p].values, repList), repList, axis=1),
+                                          index=df.xs(p, level=0, drop_level=False).index)
+            # if divide is set to Frue, the values are not divided when being unravelled e.g. in case of time-
+            # independent costs
+            else:
+                dataPeriod = pd.DataFrame(np.repeat(df.loc[p].values, repList, axis=1),
+                                          index=df.xs(p, level=0, drop_level=False).index)
+            dataAllPeriods.append(dataPeriod)
+        # Concat data to multiindex dataframe with periods, components and locations as indices and inner-
+        # period time steps as columns
+        df = pd.concat(dataAllPeriods, axis=0)
+    # Concat data according to periods order to cover the full time horizon
     data = []
     for p in periodsOrder:
         data.append(df.loc[p])
     return pd.concat(data, axis=axis, ignore_index=True)
 
 
-def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDict=None):
+def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDict=None, esM=None):
     # If data is an empty dictionary (because no variables of that type were declared) return None
     if not data:
         return None
@@ -812,7 +835,7 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
         df.columns = df.columns.droplevel()
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
-        return buildFullTimeSeries(df, periodsOrder)
+        return buildFullTimeSeries(df, periodsOrder, esM=esM)
     elif varType == 'operationVariables' and dimension == '2dim':
         # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
         # regions and sort the index
@@ -830,7 +853,7 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
         df.columns = df.columns.droplevel()
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
-        return buildFullTimeSeries(df, periodsOrder)
+        return buildFullTimeSeries(df, periodsOrder, esM=esM)
     else:
         raise ValueError('The varType parameter has to be either \'designVariables\' or \'operationVariables\'\n' +
                          'and the dimension parameter has to be either \'1dim\' or \'2dim\'.')

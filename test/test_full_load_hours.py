@@ -28,25 +28,33 @@ def test_fullloadhours_max(minimal_test_esM):
     # modify full load hour limit
     esM = minimal_test_esM
 
-    # get the electolyzer
+    # get components
     electrolyzer = esM.getComponent('Electrolyzers')
+    market = esM.getComponent("Electricity market")
 
     # set fullloadhour limit
-    electrolyzer.yearlyFullLoadHoursMax = pd.Series(3000., index = esM.locations)
+    electrolyzer.yearlyFullLoadHoursMax = pd.Series(100., index = esM.locations)
+    market.hasCapacityVariable = True
+    market.yearlyFullLoadHoursMax = pd.Series(3000., index = esM.locations)
 
     # optimize
     esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
 
     # get cumulative operation
     operationSum = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs('Electrolyzers').sum().sum()
+    operationSumMarket = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs(
+        'Electricity market').sum().sum()
 
     # get capacity
     capacitySum = esM.componentModelingDict["ConversionModel"].capacityVariablesOptimum.xs('Electrolyzers').sum()
+    capacitySumMarket = esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum.xs('Electricity market').sum()
 
     # calculate fullloadhours
-    fullloadhours = operationSum/capacitySum
+    fullloadhours = (operationSum/capacitySum) / esM.numberOfYears
+    fullloadhoursMarket = (operationSumMarket/capacitySumMarket) / esM.numberOfYears
 
-    assert fullloadhours < 3000.01
+    assert fullloadhours < 100.1
+    assert fullloadhoursMarket < 3000.1
 
 
 def test_fullloadhours_min(minimal_test_esM):
@@ -57,25 +65,34 @@ def test_fullloadhours_min(minimal_test_esM):
     # modify full load hour limit
     esM = minimal_test_esM
 
-    # get the electolyzer
+    # get components
     electrolyzer = esM.getComponent('Electrolyzers')
+    market = esM.getComponent("Electricity market")
 
     # set fullloadhour limit
     electrolyzer.yearlyFullLoadHoursMin = pd.Series(5000., index = esM.locations)
+    market.hasCapacityVariable = True
+    market.yearlyFullLoadHoursMin = pd.Series(3000., index = esM.locations)
 
     # optimize
     esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
 
     # get cumulative operation
     operationSum = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs('Electrolyzers').sum().sum()
+    operationSumMarket = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs(
+        'Electricity market').sum().sum()
 
     # get capacity
     capacitySum = esM.componentModelingDict["ConversionModel"].capacityVariablesOptimum.xs('Electrolyzers').sum()
+    capacitySumMarket = esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum.xs('Electricity market').sum()
 
     # calculate fullloadhours
-    fullloadhours = operationSum/capacitySum
+    fullloadhours = (operationSum/capacitySum) / esM.numberOfYears
+    fullloadhoursMarket = (operationSumMarket/capacitySumMarket) / esM.numberOfYears
 
     assert fullloadhours > 4999.99
+    assert fullloadhoursMarket > 3000.1
+
 
 def test_init_full_load_hours(minimal_test_esM):
     import FINE as fn
