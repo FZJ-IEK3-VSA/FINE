@@ -6,8 +6,6 @@ import xarray as xr
 import json
 import geopandas as gpd
 
-import metis_utils.io_tools as ito
-
 
 def test_dimensional_data_to_xarray_dataset_multinode(multi_node_test_esM_init):
 

@@ -1,5 +1,11 @@
 import numpy as np
-import geokit as gk
+
+
+try:
+    import geokit as gk
+except ImportError:
+    print("Geokit not available.")
+
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 import pandas as pd
@@ -9,7 +15,7 @@ colors = ['yellowGreen','#4d6619', 'gold','darkOrange','purple', 'skyBlue','stee
 
 
 def piechart_plot_function(shapes, pieDataframe, 
-    transmission_dataframe=None, pieColors=None, piechart_locations=None, ax=None, plot_settings=None, srs=gk.srs.EPSG3035):
+    transmission_dataframe=None, pieColors=None, piechart_locations=None, ax=None, plot_settings=None, srs=None):
     """    Plot the data of a component for each location.
 
     **Required arguments:**
@@ -68,6 +74,8 @@ def piechart_plot_function(shapes, pieDataframe,
     if 'lineWidthScaling' not in plot_settings.keys(): plot_settings['lineWidthScaling']=1/1.5
     if 'bbox_to_anchor' not in plot_settings.keys(): plot_settings['bbox_to_anchor']=(0.4,.93)
     if 'fontSize' not in plot_settings.keys(): plot_settings['fontSize']=16
+
+    if srs is None: srs = gk.srs.EPSG3035
 
     if ax is None: fig, ax = plt.subplots()
     if pieColors is None: pieColors = colors

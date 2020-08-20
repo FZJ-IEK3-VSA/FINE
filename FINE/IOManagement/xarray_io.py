@@ -5,9 +5,8 @@ import numpy as np
 import pandas as pd
 import os
 
-import spagat.manager as spm
-import spagat.representation as spr
-import metis_utils.io_tools as ito
+#import spagat.manager as spm
+#import spagat.representation as spr
 import geopandas as gpd
 
 def generate_iteration_dicts(esm_dict, component_dict):

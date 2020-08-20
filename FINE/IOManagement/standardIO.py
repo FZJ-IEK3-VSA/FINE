@@ -7,7 +7,11 @@ import inspect
 import time
 import warnings
 
-import geokit as gk
+
+try:
+    import geokit as gk
+except ImportError:
+    print("Geokit not available.")
 
 
 try:

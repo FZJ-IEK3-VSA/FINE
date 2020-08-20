@@ -2,16 +2,29 @@ from FINE.IOManagement.plot import piechart_plot_function
 import pytest
 import geopandas as gpd
 import pathlib
-import geokit as gk
+
+try:
+    import geokit as gk
+except ImportError:
+    print("Geokit not available.")
+
+
 import os
 import numpy as np
 import pandas as pd
 
 
-def test_piecharts_geokit(multi_node_geokit_shapes):
+def test_piecharts_geokit():
     """Tests whether abstract piechart function works"""
 
-    shapes = multi_node_geokit_shapes
+    shape_file_path = os.path.join(os.path.join(os.path.dirname(__file__), 
+        "../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
+
+    geokit_shapes = gk.vector.extractFeatures(shape_file_path)
+    geokit_shapes.set_index('index', inplace=True)
+
+    
+    shapes = geokit_shapes
 
     columns = ['a', 'b', 'c']
 
@@ -24,6 +37,12 @@ def test_piecharts_geokit(multi_node_geokit_shapes):
 @pytest.mark.skip("Function not yet implemented")
 def test_piecharts_gpd(multi_node_geopandas_shapes):
     """Tests whether abstract piechart function works"""
+
+    shape_file_path = os.path.join(os.path.join(os.path.dirname(__file__), 
+        "../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
+
+    geokit_shapes = gpd.read_file(shape_file_path)
+    geokit_shapes.set_index('index', inplace=True)
 
     shapes = multi_node_geopandas_shapes
 

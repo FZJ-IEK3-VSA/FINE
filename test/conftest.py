@@ -11,10 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-re
 from getData import getData
 import xlrd
 
-import geokit as gk
 import geopandas as gpd
-
-from dilmod import OptimizationManager
 
 
 @pytest.fixture
@@ -577,27 +574,7 @@ def multi_node_test_esM_optimized(scope="session"):
 
     return esM
 
-@pytest.fixture
-def multi_node_geokit_shapes(scope="session"):
-    shape_file_path = os.path.join(os.path.join(os.path.dirname(__file__), 
-        "../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
 
-    geokit_shapes = gk.vector.extractFeatures(shape_file_path)
-    geokit_shapes.set_index('index', inplace=True)
-
-    return geokit_shapes
-
-
-@pytest.fixture
-def multi_node_geopandas_shapes(scope="session"):
-
-    shape_file_path = os.path.join(os.path.join(os.path.dirname(__file__), 
-        "../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
-
-    geokit_shapes = gk.vector.extractFeatures(shape_file_path)
-    geokit_shapes.set_index('index', inplace=True)
-
-    return geokit_shapes
 
 
 @pytest.fixture
@@ -615,6 +592,8 @@ def european_model(scope="session"):
     esM = om.setup(timeSeriesAggregation=False, numberOfTypicalPeriods=typday, roundOutput=5, output=output)
 
     return esM
+
+
 def dsm_test_esM():
     """
     Generate a simple energy system model with one node, two fixed generators and one load time series
