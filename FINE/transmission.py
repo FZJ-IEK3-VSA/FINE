@@ -520,7 +520,7 @@ class TransmissionModel(ComponentModel):
 
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation, axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
