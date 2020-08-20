@@ -13,15 +13,38 @@ class Conversion(Component):
     |br| @author: Lara Welder
     """
 
-    def __init__(self, esM, name, physicalUnit, commodityConversionFactors, hasCapacityVariable=True,
-                 capacityVariableDomain='continuous', capacityPerPlantUnit=1, linkedConversionCapacityID=None,
-                 hasIsBuiltBinaryVariable=False, bigM=None,
-                 operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
-                 capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None,
-                 yearlyFullLoadHoursMin=None, yearlyFullLoadHoursMax=None):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 physicalUnit, 
+                 commodityConversionFactors, 
+                 hasCapacityVariable=True,
+                 capacityVariableDomain='continuous', 
+                 capacityPerPlantUnit=1, 
+                 linkedConversionCapacityID=None,
+                 hasIsBuiltBinaryVariable=False, 
+                 bigM=None,
+                 operationRateMax=None, 
+                 operationRateFix=None, 
+                 tsaWeight=1,
+                 locationalEligibility=None, 
+                 capacityMin=None, 
+                 capacityMax=None, 
+                 partLoadMin=None, 
+                 sharedPotentialID=None,
+                 capacityFix=None, 
+                 isBuiltFix=None,
+                 investPerCapacity=0, 
+                 investIfBuilt=0, 
+                 opexPerOperation=0, 
+                 opexPerCapacity=0,
+                 opexIfBuilt=0, 
+                 QPcostScale=0, 
+                 interestRate=0.08, 
+                 economicLifetime=10, 
+                 technicalLifetime=None,
+                 yearlyFullLoadHoursMin=None, 
+                 yearlyFullLoadHoursMax=None):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
         """
@@ -95,14 +118,31 @@ class Conversion(Component):
         :type opexPerOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
         """
-        Component. __init__(self, esM, name, dimension='1dim', hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
-                            locationalEligibility=locationalEligibility, capacityMin=capacityMin,
-                            capacityMax=capacityMax, sharedPotentialID=sharedPotentialID, capacityFix=capacityFix,
-                            isBuiltFix=isBuiltFix, investPerCapacity=investPerCapacity, investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, opexIfBuilt=opexIfBuilt, QPcostScale=QPcostScale, interestRate=interestRate,
-                            economicLifetime=economicLifetime, technicalLifetime=technicalLifetime, yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
+        Component. __init__(self, 
+                            esM, 
+                            name, 
+                            dimension='1dim', 
+                            hasCapacityVariable=hasCapacityVariable,
+                            capacityVariableDomain=capacityVariableDomain, 
+                            capacityPerPlantUnit=capacityPerPlantUnit,
+                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
+                            bigM=bigM,
+                            locationalEligibility=locationalEligibility, 
+                            capacityMin=capacityMin,
+                            capacityMax=capacityMax, 
+                            partLoadMin=partLoadMin, 
+                            sharedPotentialID=sharedPotentialID, 
+                            capacityFix=capacityFix,
+                            isBuiltFix=isBuiltFix, 
+                            investPerCapacity=investPerCapacity, 
+                            investIfBuilt=investIfBuilt,
+                            opexPerCapacity=opexPerCapacity, 
+                            opexIfBuilt=opexIfBuilt, 
+                            QPcostScale=QPcostScale, 
+                            interestRate=interestRate,
+                            economicLifetime=economicLifetime, 
+                            technicalLifetime=technicalLifetime, 
+                            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
                             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
         # Set general conversion data: commodityConversionFactors, physicalUnit, linkedConversionCapacityID
@@ -131,6 +171,14 @@ class Conversion(Component):
 
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, locationalEligibility)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
+
+        if self.partLoadMin is not None:
+            if self.fullOperationRateMax is not None:
+                if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
+                    raise ValueError('"operationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+            if self.fullOperationRateFix is not None:
+                if ((self.fullOperationRateFix > 0) & (self.fullOperationRateFix < self.partLoadMin)).any().any():
+                    raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
@@ -246,8 +294,9 @@ class ConversionModel(ComponentModel):
         self.declareDiscreteDesignVarSet(pyM)
         self.declareDesignDecisionVarSet(pyM)
 
-        # Declare operation variable set
+        # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
+        self.declareOperationBinarySet(pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -286,6 +335,8 @@ class ConversionModel(ComponentModel):
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [physicalUnit*hour]
         self.declareOperationVars(pyM, 'op')
+        # Operation of component as binary [1/0]
+        self.declareOperationBinaryVars(pyM, 'op_bin')
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -356,6 +407,8 @@ class ConversionModel(ComponentModel):
         self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
         # Operation [physicalUnit*h] is limited by the operation time series [physicalUnit*h]
         self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        # Operation [physicalUnit*h] is limited by minimum part Load
+        self.additionalMinPartLoad(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op', 'op_bin', 'cap')
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
@@ -423,7 +476,8 @@ class ConversionModel(ComponentModel):
         optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'physicalUnit')
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                esM=esM)
         self.operationVariablesOptimum = optVal
 
         props = ['operation', 'opexOp']

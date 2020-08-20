@@ -39,6 +39,7 @@ LinearOptimalPowerFlow + LOPFModel class inherit from the Transmission and Trans
    :maxdepth: 1
 
    conversionPartLoadClassDoc
+   conversionDynamicClassDoc
    lopfClassDoc
    DSMClassDoc
    storageExtClassDoc

@@ -10,14 +10,37 @@ class LinearOptimalPowerFlow(Transmission):
     linearized power flow (i.e. for AC lines). The LinearOptimalPowerFlow class inherits from the Transmission
     class.
     """
-    def __init__(self, esM, name, commodity, reactances, losses=0, distances=None,
-                 hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, bigM=None,
-                 operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
-                 capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 commodity, 
+                 reactances, 
+                 losses=0, 
+                 distances=None,
+                 hasCapacityVariable=True, 
+                 capacityVariableDomain='continuous', 
+                 capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False, 
+                 bigM=None,
+                 operationRateMax=None, 
+                 operationRateFix=None, 
+                 tsaWeight=1,
+                 locationalEligibility=None, 
+                 capacityMin=None, 
+                 capacityMax=None, 
+                 partLoadMin=None, 
+                 sharedPotentialID=None,
+                 capacityFix=None, 
+                 isBuiltFix=None,
+                 investPerCapacity=0, 
+                 investIfBuilt=0, 
+                 opexPerOperation=0, 
+                 opexPerCapacity=0,
+                 opexIfBuilt=0, 
+                 QPcostScale=0, 
+                 interestRate=0.08, 
+                 economicLifetime=10, 
+                 technicalLifetime=None):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.
         The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
@@ -30,18 +53,45 @@ class LinearOptimalPowerFlow(Transmission):
         :type reactances: Pandas DataFrame. The row and column indices of the DataFrame have to equal
             the in the energy system model specified locations.
         """
-        Transmission.__init__(self, esM, name, commodity, losses, distances, hasCapacityVariable,
-                              capacityVariableDomain, capacityPerPlantUnit, hasIsBuiltBinaryVariable, bigM,
-                              operationRateMax, operationRateFix, tsaWeight, locationalEligibility, capacityMin,
-                              capacityMax, sharedPotentialID, capacityFix, isBuiltFix, investPerCapacity,
-                              investIfBuilt, opexPerOperation, opexPerCapacity, opexIfBuilt, QPcostScale, interestRate,
-                              economicLifetime, technicalLifetime)
+        Transmission.__init__(self, 
+                              esM, 
+                              name, 
+                              commodity, 
+                              losses=losses, 
+                              distances=distances, 
+                              hasCapacityVariable=hasCapacityVariable,
+                              capacityVariableDomain=capacityVariableDomain, 
+                              capacityPerPlantUnit=capacityPerPlantUnit, 
+                              hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
+                              bigM=bigM,
+                              operationRateMax=operationRateMax, 
+                              operationRateFix=operationRateFix, 
+                              tsaWeight=tsaWeight, 
+                              locationalEligibility=locationalEligibility, 
+                              capacityMin=capacityMin,
+                              capacityMax=capacityMax, 
+                              partLoadMin=partLoadMin, 
+                              sharedPotentialID=sharedPotentialID, 
+                              capacityFix=capacityFix, 
+                              isBuiltFix=isBuiltFix, 
+                              investPerCapacity=investPerCapacity,
+                              investIfBuilt=investIfBuilt, 
+                              opexPerOperation=opexPerOperation, 
+                              opexPerCapacity=opexPerCapacity, 
+                              opexIfBuilt=opexIfBuilt, 
+                              QPcostScale=QPcostScale, 
+                              interestRate=interestRate,
+                              economicLifetime=economicLifetime, 
+                              technicalLifetime=technicalLifetime)
 
         self.modelingClass = LOPFModel
-        
-        self.reactances = utils.preprocess2dimData(reactances, self._mapC) # modification by Leander
-        # self.reactances = reactances
-        # self._reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances[loc[0]][loc[1]])
+
+        self.reactances2dim = reactances
+        try:
+            self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
+            self.reactances = utils.preprocess2dimData(reactances, self._mapC) # modification by Leander
+        except:
+            self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
     def addToEnergySystemModel(self, esM):
         """
@@ -108,6 +158,7 @@ class LOPFModel(TransmissionModel):
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
+        self.declareOperationBinarySet(pyM)
 
         # Declare operation variable set
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -147,6 +198,8 @@ class LOPFModel(TransmissionModel):
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Flow over the edges of the components [commodityUnit]
         self.declareOperationVars(pyM, 'op')
+        # Operation of component as binary [1/0]
+        self.declareOperationBinaryVars(pyM, 'op_bin')
         # Operation of component [commodityUnit]
         self.declarePhaseAngleVariables(pyM)
 
@@ -212,42 +265,6 @@ class LOPFModel(TransmissionModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Get contributions to shared location potential. """
-        return super().getSharedPotentialContribution(pyM, key, loc)
-
-    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if the commodity´s transfer between a given location and the other locations of the energy system model
-        is eligible.
-
-        :param esM: EnergySystemModel in which the LinearOptimalPowerFlow components have been added to.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
-
-        :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
-        :param commod: string
-        """
-        return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
-
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
-        return super().getCommodityBalanceContribution(pyM, commod, loc, p, t)
-
-    def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
-        """
-        return super().getObjectiveFunctionContribution(esM, pyM)
-
     def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
@@ -265,7 +282,7 @@ class LOPFModel(TransmissionModel):
         phaseAngleVar = getattr(pyM, 'phaseAngle_' + abbrvName)
 
         optVal_ = utils.formatOptimizationOutput(phaseAngleVar.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder)
+                                                 esM.periodsOrder, esM=esM)
         self.phaseAngleVariablesOptimum = optVal_
 
     def getOptimalValues(self, name='all'):

@@ -11,8 +11,16 @@ class StorageExtBETA(Storage):
     A StorageExt component shows the behavior of a Storage component but it is additionally possible to set a
     state of charge time series. The StorageExt class inherits from the Storage class.
     """
-    def __init__(self, esM, name, commodity, stateOfChargeOpRateMax=None, stateOfChargeOpRateFix=None,
-        opexPerChargeOpTimeSeries=None, stateOfChargeTsaWeight=1, opexChargeOpTsaWeight=1, **kwargs):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 commodity, 
+                 stateOfChargeOpRateMax=None, 
+                 stateOfChargeOpRateFix=None, 
+                 opexPerChargeOpTimeSeries=None, 
+                 stateOfChargeTsaWeight=1, 
+                 opexChargeOpTsaWeight=1, 
+                 **kwargs):
         """
         Constructor for creating an StorageExt class instance.
         The StorageExt component specific input arguments are described below. The Storage component specific
@@ -48,7 +56,12 @@ class StorageExtBETA(Storage):
             |br| * the default value is 1
         :type stateOfChargeTsaWeight: positive (>= 0) float
         """
-        Storage.__init__(self, esM, name, commodity, **kwargs)
+        Storage.__init__(self, 
+                         esM, 
+                         name, 
+                         commodity, 
+                         **kwargs)
+                         
         self.modelingClass = StorageExtModel
 
         # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
@@ -225,10 +238,17 @@ class StorageExtModel(StorageModel):
 
         def SOCMaxPrecise1(pyM, loc, compName, pInter, t):
             if compDict[compName].doPreciseTsaModeling:
-                return (SOCinter[loc, compName, pInter] *
-                        ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
-                        SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName] * compDict[compName].stateOfChargeMax)
+                if not pyM.hasSegmentation:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            <= capVar[loc, compName] * compDict[compName].stateOfChargeMax)
+                else:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) **
+                            (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            <= capVar[loc, compName] * compDict[compName].stateOfChargeMax)
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise1_' + abbrvName,
@@ -252,11 +272,19 @@ class StorageExtModel(StorageModel):
 
         def SOCMaxPrecise2(pyM, loc, compName, pInter, t):
             if compDict[compName].doPreciseTsaModeling:
-                return (SOCinter[loc, compName, pInter] *
-                        ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
-                        SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        == capVar[loc, compName] *
-                        compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
+                if not pyM.hasSegmentation:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            == capVar[loc, compName] *
+                            compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
+                else:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) **
+                            (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            == capVar[loc, compName] *
+                            compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise2_' + abbrvName,
@@ -280,11 +308,19 @@ class StorageExtModel(StorageModel):
 
         def SOCMaxPrecise3(pyM, loc, compName, pInter, t):
             if compDict[compName].doPreciseTsaModeling:
-                return (SOCinter[loc, compName, pInter] *
-                        ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
-                        SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName] *
-                        compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
+                if not pyM.hasSegmentation:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            <= capVar[loc, compName] *
+                            compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
+                else:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) **
+                            (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            <= capVar[loc, compName] *
+                            compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise3_' + abbrvName,
@@ -308,10 +344,17 @@ class StorageExtModel(StorageModel):
 
         def SOCMaxPrecise4(pyM, loc, compName, pInter, t):
             if compDict[compName].doPreciseTsaModeling:
-                return (SOCinter[loc, compName, pInter] *
-                        ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
-                        SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        == compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
+                if not pyM.hasSegmentation:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            == compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
+                else:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) **
+                            (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            == compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise4_' + abbrvName,
@@ -335,10 +378,17 @@ class StorageExtModel(StorageModel):
 
         def SOCMaxPrecise5(pyM, loc, compName, pInter, t):
             if compDict[compName].doPreciseTsaModeling:
-                return (SOCinter[loc, compName, pInter] *
-                        ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
-                        SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
+                if not pyM.hasSegmentation:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            <= compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
+                else:
+                    return (SOCinter[loc, compName, pInter] *
+                            ((1 - compDict[compName].selfDischarge) **
+                            (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
+                            SOC[loc, compName, esM.periodsOrder[pInter], t]
+                            <= compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise5_' + abbrvName,

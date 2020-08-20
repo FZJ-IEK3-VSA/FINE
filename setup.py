@@ -7,9 +7,9 @@ with open(os.path.join(dir_path, 'README.md'), "r") as fh:
 
 setuptools.setup(
     name='FINE',
-    version='1.1.0',
-    author='Lara Welder',
-    author_email='l.welder@fz-juelich.de',
+    version='2.1.0',
+    author='FINE Developer Team',
+    author_email='t.gross@fz-juelich.de, lara.welder@rwth-aachen.de',
     description='Framework for integrated energy systems assessment',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -27,8 +27,6 @@ setuptools.setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Software Development :: Libraries :: Python Modules'],

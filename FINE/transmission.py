@@ -12,14 +12,36 @@ class Transmission(Component):
     Last edited: November 28, 2018
     |br| @author: Lara Welder
     """
-    def __init__(self, esM, name, commodity, losses=0, distances=None,
-                 hasCapacityVariable=True, capacityVariableDomain='continuous', capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, bigM=None,
-                 operationRateMax=None, operationRateFix=None, tsaWeight=1,
-                 locationalEligibility=None, capacityMin=None, capacityMax=None, sharedPotentialID=None,
-                 capacityFix=None, isBuiltFix=None,
-                 investPerCapacity=0, investIfBuilt=0, opexPerOperation=0, opexPerCapacity=0,
-                 opexIfBuilt=0, QPcostScale=0, interestRate=0.08, economicLifetime=10, technicalLifetime=None):
+    def __init__(self, 
+                 esM, 
+                 name, 
+                 commodity, 
+                 losses=0, 
+                 distances=None,
+                 hasCapacityVariable=True, 
+                 capacityVariableDomain='continuous', 
+                 capacityPerPlantUnit=1,
+                 hasIsBuiltBinaryVariable=False, 
+                 bigM=None,
+                 operationRateMax=None, 
+                 operationRateFix=None, 
+                 tsaWeight=1,
+                 locationalEligibility=None, 
+                 capacityMin=None, 
+                 capacityMax=None, 
+                 partLoadMin=None, 
+                 sharedPotentialID=None,
+                 capacityFix=None, 
+                 isBuiltFix=None,
+                 investPerCapacity=0, 
+                 investIfBuilt=0, 
+                 opexPerOperation=0, 
+                 opexPerCapacity=0,
+                 opexIfBuilt=0, 
+                 QPcostScale=0, 
+                 interestRate=0.08, 
+                 economicLifetime=10, 
+                 technicalLifetime=None):
         """
         Constructor for creating an Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
@@ -95,7 +117,7 @@ class Transmission(Component):
         # TODO add unit checks
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
-        self.capacityMax = utils.preprocess2dimData(capacityMax)
+        self.capacityMax = utils.preprocess2dimData(capacityMax, locationalEligibility=locationalEligibility)
         self.capacityFix = utils.preprocess2dimData(capacityFix)
         self.isBuiltFix = utils.preprocess2dimData(isBuiltFix)
 
@@ -121,7 +143,7 @@ class Transmission(Component):
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + '_' + loc2})
                     self._mapI.update({loc1 + '_' + loc2: loc2 + '_' + loc1})
 
-        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC)
+        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC, locationalEligibility)
         self.investPerCapacity = utils.preprocess2dimData(investPerCapacity, self._mapC)
         self.investIfBuilt = utils.preprocess2dimData(investIfBuilt, self._mapC)
         self.opexPerCapacity = utils.preprocess2dimData(opexPerCapacity, self._mapC)
@@ -130,16 +152,30 @@ class Transmission(Component):
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
 
-        Component. __init__(self, esM, name, dimension='2dim', hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain, capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, bigM=bigM,
-                            locationalEligibility=self.locationalEligibility, capacityMin=self.capacityMin,
-                            capacityMax=self.capacityMax, sharedPotentialID=sharedPotentialID,
-                            capacityFix=self.capacityFix, isBuiltFix=self.isBuiltFix,
-                            investPerCapacity=self.investPerCapacity, investIfBuilt=self.investIfBuilt,
-                            opexPerCapacity=self.opexPerCapacity, opexIfBuilt=self.opexIfBuilt,
-                            interestRate=self.interestRate, QPcostScale=QPcostScale, 
-                            economicLifetime=self.economicLifetime, technicalLifetime=self.technicalLifetime)
+        Component. __init__(self, 
+                            esM, 
+                            name, 
+                            dimension='2dim', 
+                            hasCapacityVariable=hasCapacityVariable,
+                            capacityVariableDomain=capacityVariableDomain, 
+                            capacityPerPlantUnit=capacityPerPlantUnit,
+                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
+                            bigM=bigM,
+                            locationalEligibility=self.locationalEligibility, 
+                            capacityMin=self.capacityMin,
+                            capacityMax=self.capacityMax, 
+                            partLoadMin=partLoadMin, 
+                            sharedPotentialID=sharedPotentialID,
+                            capacityFix=self.capacityFix, 
+                            isBuiltFix=self.isBuiltFix,
+                            investPerCapacity=self.investPerCapacity, 
+                            investIfBuilt=self.investIfBuilt,
+                            opexPerCapacity=self.opexPerCapacity, 
+                            opexIfBuilt=self.opexIfBuilt,
+                            interestRate=self.interestRate, 
+                            QPcostScale=QPcostScale, 
+                            economicLifetime=self.economicLifetime, 
+                            technicalLifetime=self.technicalLifetime)
 
         # Set general component data
         utils.checkCommodities(esM, {commodity})
@@ -172,6 +208,14 @@ class Transmission(Component):
 
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, self.locationalEligibility)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
+
+        if self.partLoadMin is not None:
+            if self.fullOperationRateMax is not None:
+                if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
+                    raise ValueError('"fullOperationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+            if self.fullOperationRateFix is not None:
+                if ((self.fullOperationRateFix > 0) & (self.fullOperationRateFix < self.partLoadMin)).any().any():
+                    raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
@@ -254,6 +298,7 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
+        self.declareOperationBinarySet(pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
@@ -283,6 +328,8 @@ class TransmissionModel(ComponentModel):
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [commodityUnit]
         self.declareOperationVars(pyM, 'op')
+        # Operation of component as binary [1/0]
+        self.declareOperationBinaryVars(pyM, 'op_bin')
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -321,10 +368,16 @@ class TransmissionModel(ComponentModel):
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
         constrSet1 = getattr(pyM, constrSetName + '1_' + abbrvName)
 
-        def op1(pyM, loc, compName, p, t):
-            return opVar[loc, compName, p, t] + opVar[compDict[compName]._mapI[loc], compName, p, t] <= \
-                   capVar[loc, compName] * esM.hoursPerTimeStep
-        setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+        if not pyM.hasSegmentation:
+            def op1(pyM, loc, compName, p, t):
+                return opVar[loc, compName, p, t] + opVar[compDict[compName]._mapI[loc], compName, p, t] <= \
+                       capVar[loc, compName] * esM.hoursPerTimeStep
+            setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+        else:
+            def op1(pyM, loc, compName, p, t):
+                return opVar[loc, compName, p, t] + opVar[compDict[compName]._mapI[loc], compName, p, t] <= \
+                       capVar[loc, compName] * esM.hoursPerSegment.to_dict()[p,t]
+            setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -373,6 +426,8 @@ class TransmissionModel(ComponentModel):
         self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
         # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        # Operation [physicalUnit*h] is limited by minimum part Load
+        self.additionalMinPartLoad(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op', 'op_bin', 'cap')
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
@@ -454,9 +509,10 @@ class TransmissionModel(ComponentModel):
                 optSummaryBasic.loc[compName, cost] = (data).values
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder)
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+                                                esM=esM)
         optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', esM.periodsOrder,
-                                                 compDict=compDict)
+                                                 compDict=compDict, esM=esM)
         self.operationVariablesOptimum = optVal_
 
         props = ['operation', 'opexOp']
