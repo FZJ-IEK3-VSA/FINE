@@ -7,7 +7,7 @@ def test_plotLocationalPieMap(multi_node_test_esM_optimized):
     compNames = ['Wind (onshore)', 'Wind (offshore)', 'PV', ]
 
     locationsShapeFileName = os.path.join(os.path.join(os.path.dirname(__file__), 
-        "../../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
+        "../../examples/Multi-regional_Energy_System_Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
 
     plot_settings = {}
     plot_settings['markerScaling'] = 1/4

@@ -14,11 +14,12 @@ import numpy as np
 import pandas as pd
 
 
+@pytest.mark.skip("Function not yet implemented")
 def test_piecharts_geokit():
     """Tests whether abstract piechart function works"""
 
     shape_file_path = os.path.join(os.path.join(os.path.dirname(__file__), 
-        "../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
+        "../examples/Multi-regional_Energy_System_Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
 
     geokit_shapes = gk.vector.extractFeatures(shape_file_path)
     geokit_shapes.set_index('index', inplace=True)
@@ -39,7 +40,7 @@ def test_piecharts_gpd(multi_node_geopandas_shapes):
     """Tests whether abstract piechart function works"""
 
     shape_file_path = os.path.join(os.path.join(os.path.dirname(__file__), 
-        "../examples/Multi-regional Energy System Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
+        "../examples/Multi-regional_Energy_System_Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"))
 
     geokit_shapes = gpd.read_file(shape_file_path)
     geokit_shapes.set_index('index', inplace=True)
