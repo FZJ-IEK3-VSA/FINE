@@ -7,7 +7,7 @@ import pytest
 
 @pytest.fixture(scope="package")
 def sds():
-    sds_folder_path_in = pathlib.Path("tests/data/input")
+    sds_folder_path_in = pathlib.Path("test/spagat/data/input")
     sds = spd.SpagatDataset()
     sds.read_dataset(sds_folder_path_in)
     spr.add_region_centroids(sds)
