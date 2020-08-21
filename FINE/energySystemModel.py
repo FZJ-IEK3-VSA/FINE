@@ -12,6 +12,9 @@ import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
 import warnings
+from FINE.IOManagement import xarray_io as xrio
+import geopandas as gpd
+import os
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -352,18 +355,181 @@ class EnergySystemModel:
             df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def cluster(self, 
-                numberOfTypicalPeriods=7, 
-                numberOfTimeStepsPerPeriod=24, 
+    def cluster(
+        self,
+        numberOfTypicalPeriods=7,
+        numberOfTimeStepsPerPeriod=24,
+        clusterMethod="hierarchical",
+        sortValues=True,
+        storeTSAinstance=False,
+        numberOfRegions=None,
+        shapefileFolder=None,
+        inputShapefile=None,
+        spatialClusterMethod="centroid-based",
+        **kwargs,
+    ):
+        """
+        Clusters the data of all considered components of the EnergySystemModel instance and stores the clustered data in the respective components.
+
+        Depending on the input parameters, both temporal aggregation using the tsam package (cf.
+        https://github.com/FZJ-IEK3-VSA/tsam) as well as spatial aggregation using the SPAGAT package can be conducted. 
+        
+        Additional keyword arguments for the TimeSeriesAggregation and SpatialAggregation instance
+        can be added (facilitated by kwargs). As an example: it might be useful to add extreme periods to the
+        clustered typical periods.
+
+        Further information on the temporal and spatial aggregation can be found in the respective methods in this EnergySystemModel.
+
+        **Default arguments:**
+
+        :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
+            should be clustered. The number of time steps per period must be an integer multiple of the total
+            number of considered time steps in the energy system.
+            Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
+            information.
+            |br| * the default value is 7
+        :type numberOfTypicalPeriods: strictly positive integer
+
+        :param numberOfTimeStepsPerPeriod: states the number of time steps per period
+            |br| * the default value is 24
+        :type numberOfTimeStepsPerPeriod: strictly positive integer
+
+        :param temporalClusterMethod: states the method which is used in the tsam package for clustering the time series
+            data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
+            Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+            |br| * the default value is 'hierarchical'
+        :type temporalClusterMethod: string
+
+        :param sortValues: states if the algorithm in the tsam package should use
+            (a) the sorted duration curves (-> True) or
+            (b) the original profiles (-> False)
+            of the time series data within a period for clustering.
+            Note: Please refer to the tsam package documentation of the parameter sortValues for more information.
+            |br| * the default value is True
+        :type sortValues: boolean
+
+        :param storeTSAinstance: states if the TimeSeriesAggregation instance created during clustering should be
+            stored in the EnergySystemModel instance.
+            |br| * the default value is False
+        :type storeTSAinstance: boolean
+
+        :param numberOfRegions: states the number of regions into which the spatial data
+            should be clustered.
+            Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
+            information.
+            |br| * the default value is None
+        :type numberOfTypicalPeriods: strictly positive integer, None
+
+        :param shapefileFolder: indicate the path to the folder where the input and aggregated shapefiles shall be located 
+            |br| * the default value is None
+        :type shapefileFolder: string
+
+        :param inputShapefile: indicate the filename of the input shapefile located in the shapefileFolder 
+            |br| * the default value is None
+        :type inputShapefile: string
+
+        :param spatialClusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
+            data. Options are for example 'centroid-based'.
+            Note: Please refer to the SPAGAT package documentation of the parameter clusterMethod for more information.
+            |br| * the default value is 'centroid-based'
+        :type spatialClusterMethod: string
+
+
+        Last edited: August 10, 2018
+        |br| @author: Lara Welder
+        """
+
+        # spatially aggregate esM data
+        if numberOfRegions is None:
+            pass
+        else:
+            self.spatial_aggregation(
+                numberOfRegions=numberOfRegions,
+                clusterMethod=spatialClusterMethod,
+                shapefileFolder=shapefileFolder,
+                inputShapefile=inputShapefile,
+                **kwargs,
+            )
+
+        # temporally aggregate esM data
+        if numberOfTypicalPeriods is None:
+            # currently, numberOfTypicalPeriods is set to 7 by default due to backwards compatibility reasons
+            # TODO: set default value to None and check, which examples fail / take longer
+            pass
+        else:
+            self.temporal_aggregation(
+                numberOfTypicalPeriods=numberOfTypicalPeriods,
+                numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+                clusterMethod=clusterMethod,
+                sortValues=sortValues,
+                storeTSAinstance=storeTSAinstance,
+                **kwargs,
+            )
+
+    def spatial_aggregation(
+        self,
+        numberOfRegions,
+        clusterMethod="centroid-based",
+        shapefileFolder=None,
+        inputShapefile="clusteredRegions.shp",
+        **kwargs,
+    ): 
+        """Clusters the spatial data of all components considered in the EnergySystemModel instance and returns a new esM instance with the aggregated data.        
+        
+        Additional keyword arguments for the SpatialAggregation instance can be added (facilitated by kwargs). 
+        
+        Please refer to the SPAGAT package documentation for more information.
+
+        :param numberOfRegions: states the number of regions into which the spatial data
+            should be clustered.
+            Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
+            information.
+            |br| * the default value is None
+        :type numberOfRegions: strictly positive integer, None
+
+        **Default arguments:**
+
+        :param shapefileFolder: indicate the path to the folder where the input and aggregated shapefiles shall be located 
+            |br| * the default value is None
+        :type shapefileFolder: string
+
+        :param inputShapefile: indicate the filename of the input shapefile located in the shapefileFolder 
+            |br| * the default value is None
+        :type inputShapefile: string
+
+        :param spatialClusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
+            data. Options are for example 'centroid-based'.
+            Note: Please refer to the SPAGAT package documentation of the parameter clusterMethod for more information.
+            |br| * the default value is 'centroid-based'
+        :type spatialClusterMethod: string
+        """
+
+        shapefilePath = os.path.join(shapefileFolder, inputShapefile)
+        gdfRegions = gpd.read_file(shapefilePath)
+
+        esM_aggregated = xrio.spatial_aggregation(
+            self,
+            numberOfRegions=numberOfRegions,
+            gdfRegions=gdfRegions,
+            clusterMethod="centroid-based",
+            aggregatedShapefileFolderPath=shapefileFolder,
+            **kwargs,
+        )
+
+        return esM_aggregated
+
+        # TODO: write esM_aggregated back to "self" instead of returning a new esM_aggregated instance
+
+    def temporal_aggregation(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, 
                 segmentation=False,
                 numberOfSegmentsPerPeriod=24, 
-                clusterMethod='hierarchical', 
-                sortValues=True, 
-                storeTSAinstance=False,
-                **kwargs):
+                clusterMethod='hierarchical',
+                sortValues=True, storeTSAinstance=False, **kwargs):
         """
         Cluster the time series data of all components considered in the EnergySystemModel instance and then
-        stores the clustered data in the respective components. For this, the time series data is broken down
+        stores the clustered data in the respective components. 
+        
+        For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
         days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
         time steps with an irregular duration using the segmentation option.

@@ -327,10 +327,6 @@ def multi_node_test_esM_optimized(scope="session"):
     cwd = os.getcwd()
     data = getData()
 
-    # read in original results
-    results = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'examples',
-                                       'Multi-regional_Energy_System_Workflow', 'totalBiogasPurchase.csv'),
-                          index_col=0, header=None, squeeze=True)
 
     # 2. Create an energy system model instance
     locations = {'cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'}
@@ -569,27 +565,26 @@ def multi_node_test_esM_optimized(scope="session"):
 
     return esM
 
-
-
-
 @pytest.fixture
 def european_model(scope="session"):
     """Returns minimal instance of esM"""
+
+    dm = pytest.importorskip("dilmod")
 
     # TODO: create smaller version for GitLab version control
 
     output= '/home/r-beer/code/EuropeanModel/DGC_EuropeanScenario_ch5_sec1.nc'
 
     typday=2
-    om = OptimizationManager(output,commodityUnitsDict={'electricity': 'GW_el', 'hydrogen': 'GW_h2', 'water': 'GW_wt', 
+    om = dm.OptimizationManager(output,commodityUnitsDict={'electricity': 'GW_el', 'hydrogen': 'GW_h2', 'water': 'GW_wt', 
                                                         'waterRes':'GW_wt', 'biomass':'GW_bio'})
 
     esM = om.setup(timeSeriesAggregation=False, numberOfTypicalPeriods=typday, roundOutput=5, output=output)
 
     return esM
 
-
-def dsm_test_esM():
+@pytest.fixture
+def dsm_test_esM(scope="session"):
     """
     Generate a simple energy system model with one node, two fixed generators and one load time series
     for testing demand side management functionality.

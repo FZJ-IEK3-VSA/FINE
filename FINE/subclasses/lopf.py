@@ -87,9 +87,9 @@ class LinearOptimalPowerFlow(Transmission):
         self.modelingClass = LOPFModel
 
         self.reactances2dim = reactances
+
         try:
             self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
-            self.reactances = utils.preprocess2dimData(reactances, self._mapC) # modification by Leander
         except:
             self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
