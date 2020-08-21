@@ -5,9 +5,9 @@ import pytest
 import numpy as np
 import xarray as xr
 
-import spagat.representation as spr
-import spagat.grouping as spg
-import spagat.dataset as spd
+import FINE.spagat.representation as spr
+import FINE.spagat.grouping as spg
+import FINE.spagat.dataset as spd
 
 import pathlib
 

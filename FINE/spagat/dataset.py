@@ -11,7 +11,7 @@ import xarray as xr
 from shapely.geometry import LineString
 import os
 
-import spagat.utils as spu
+import FINE.spagat.utils as spu
 import pathlib
 
 from typing import Dict, List

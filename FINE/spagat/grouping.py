@@ -20,9 +20,9 @@ from scipy.cluster import vq
 import sklearn.cluster as skc
 from sklearn import metrics
 
-import spagat.utils as spu
+import FINE.spagat.utils as spu
 
-import spagat.grouping_utils as gu
+import FINE.spagat.grouping_utils as gu
 
 logger_grouping = logging.getLogger("spagat_grouping")
 

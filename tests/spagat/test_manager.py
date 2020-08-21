@@ -1,8 +1,8 @@
 import pytest
 
-import spagat.manager as spm
-import spagat.utils as spu
-import spagat.representation as spr
+import FINE.spagat.manager as spm
+import FINE.spagat.utils as spu
+import FINE.spagat.representation as spr
 
 import os
 

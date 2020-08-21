@@ -1,5 +1,5 @@
-import spagat.dataset as spd
-import spagat.representation as spr
+import FINE.spagat.dataset as spd
+import FINE.spagat.representation as spr
 
 import pathlib
 import pytest

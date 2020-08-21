@@ -4,9 +4,9 @@ import geopandas
 import numpy as np
 import pandas as pd
 
-import spagat.representation as spr
-import spagat.grouping as spg
-import spagat.dataset as spd
+import FINE.spagat.representation as spr
+import FINE.spagat.grouping as spg
+import FINE.spagat.dataset as spd
 
 @pytest.mark.parametrize("string_list, expected", 
                          [(['01_es', '02_es', '01_de', '02_de', '03_de'], ['es', 'de']),

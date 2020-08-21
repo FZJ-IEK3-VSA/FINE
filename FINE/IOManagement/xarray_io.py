@@ -7,8 +7,8 @@ import os
 import warnings
 
 try:
-    import spagat.manager as spm
-    import spagat.representation as spr
+    import FINE.spagat.manager as spm
+    import FINE.spagat.representation as spr
 except ImportError:
     warnings.warn('The Spagat python package could not be imported.')
 

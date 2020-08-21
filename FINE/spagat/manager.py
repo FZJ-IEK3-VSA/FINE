@@ -5,9 +5,9 @@
 import logging
 import os
 
-import spagat.dataset as spd
-import spagat.grouping as spg
-import spagat.representation as spr
+import FINE.spagat.dataset as spd
+import FINE.spagat.grouping as spg
+import FINE.spagat.representation as spr
 
 logger_manager = logging.getLogger("spagat_manager")
 

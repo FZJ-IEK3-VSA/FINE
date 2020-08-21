@@ -2,7 +2,7 @@ import os
 import pytest
 
 import pathlib
-import spagat.dataset as spd
+import FINE.spagat.dataset as spd
 
 
 def test_read_and_save_sds():

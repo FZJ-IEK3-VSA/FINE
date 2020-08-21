@@ -11,8 +11,8 @@ import xarray as xr
 from shapely.geometry import LineString
 from shapely.ops import cascaded_union, unary_union
 
-import spagat.utils as spu
-import spagat.dataset as spd
+import FINE.spagat.utils as spu
+import FINE.spagat.dataset as spd
 
 import copy
 
