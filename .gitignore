@@ -20,5 +20,4 @@ __pycache__/
 *.lp
 *.glp
 *.mps
-*.shp
 .coverage
