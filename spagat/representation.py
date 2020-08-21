@@ -4,7 +4,6 @@
 
 import logging
 
-import dask
 import numpy as np
 import pandas as pd
 import shapely
