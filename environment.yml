@@ -2,8 +2,6 @@ name: spagat
 channels:
   - conda-forge
 dependencies:
-  - dask
-  - dask-jobqueue
   - geopandas=0.7
   - jupyter=1
   - matplotlib=3.2
@@ -16,12 +14,3 @@ dependencies:
   - xarray=0.15
   - openpyxl=3.0
   - black=19
-  - pip:
-      - netcdf4
-      - pytest-cov
-      - scipy
-      - sklearn
-      - statsmodels
-      - sphinx-autodoc-typehints
-      - sphinx_rtd_theme
-      - nbsphinx
