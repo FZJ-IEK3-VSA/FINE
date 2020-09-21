@@ -838,6 +838,7 @@ class EnergySystemModel:
         Last edited: March 26, 2020
         |br| @author: Lara Welder, Maximilian Hoffmann
         """
+
         if not timeSeriesAggregation:
             self.segmentation = False
 
@@ -926,3 +927,5 @@ class EnergySystemModel:
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
+        
+
