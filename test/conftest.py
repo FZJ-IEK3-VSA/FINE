@@ -14,6 +14,14 @@ import xlrd
 import geopandas as gpd
 
 
+
+@pytest.fixture
+def solver():
+    """Global variable for solver - glpk or gurobi"""
+    return 'gurobi'
+
+Solver = 'gurobi' # can't use fixture on another fixture - multi_node_test_esM_optimized
+
 @pytest.fixture
 def minimal_test_esM(scope="session"):
     """Returns minimal instance of esM"""
@@ -317,7 +325,7 @@ def multi_node_test_esM_init(scope="session"):
 
     # esM.cluster(numberOfTypicalPeriods=3)
 
-    # esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
+    # esM.optimize(timeSeriesAggregation=True, solver = solver)
 
 
     return esM
@@ -560,7 +568,7 @@ def multi_node_test_esM_optimized(scope="session"):
 
     esM.cluster(numberOfTypicalPeriods=3)
 
-    esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
+    esM.optimize(timeSeriesAggregation=True, solver = Solver)
 
 
     return esM
@@ -603,3 +611,6 @@ def dsm_test_esM(scope="session"):
                       operationRateMax=pd.Series(1000, index=t_index), opexPerOperation=1000))
 
     return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
+
+
+
