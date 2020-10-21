@@ -397,7 +397,7 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
 @spu.timer
 def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=None, save_fig=None, dimension_description='space',weighting=None):
     
-    '''Original region list'''
+    # Original region list
     regions_list = sds.xr_dataset['space'].values
     n_regions = len(regions_list)
 
