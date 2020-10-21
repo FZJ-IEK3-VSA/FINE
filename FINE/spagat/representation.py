@@ -148,7 +148,7 @@ def aggregate_time_series(
 def aggregate_values(
     xr_data_array_in, sub_to_sup_region_id_dict, mode="mean", output_unit="GW"
 ):
-    """Aggregates all data of a data array containing time series with dimension 'sub_regions' to new data_array with
+    """Aggregates all data of a data array containing capacities corresponding to time series with dimension 'sub_regions' to new data_array with
     dimension 'regions"""
     # TODO: maybe add this to SpagatDataset as method?
     # TODO: add unit information to xr_data_array_out
@@ -281,14 +281,10 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
             aggregation_weight = None
         else:
             if varname in aggregation_function_dict.keys():
-                aggregation_mode = aggregation_function_dict[varname][
-                    0
-                ]  # TODO: implement this properly
+                aggregation_mode = aggregation_function_dict[varname][0]  # TODO: implement this properly
                 aggregation_weight_varname = aggregation_function_dict[varname][1]
                 if aggregation_weight_varname is not None:
-                    aggregation_weight = sds.xr_dataset[
-                        aggregation_weight_varname
-                    ].fillna(1)
+                    aggregation_weight = sds.xr_dataset[aggregation_weight_varname].fillna(1)
                 else:
                     aggregation_weight = None
             else:
