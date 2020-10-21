@@ -1,0 +1,150 @@
+
+Gurobi 9.0.1 (win64) logging started 10/15/20 16:10:00
+
+Changed value of parameter logfile to secondStage
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 103 rows, 69 columns and 239 nonzeros
+Model fingerprint: 0x7005d07b
+Variable types: 63 continuous, 6 integer (6 binary)
+Coefficient statistics:
+  Matrix range     [3e-01, 3e+07]
+  Objective range  [7e-03, 3e+04]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 103 rows and 69 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.01 seconds
+Thread count was 1 (of 8 available processors)
+
+Solution count 1: 4.3611e+06 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.361095252251e+06, best bound 4.361095252251e+06, gap 0.0000%
+
+Gurobi 9.0.1 (win64) logging started 10/15/20 16:17:23
+
+Changed value of parameter logfile to secondStage
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 103 rows, 69 columns and 239 nonzeros
+Model fingerprint: 0x7005d07b
+Variable types: 63 continuous, 6 integer (6 binary)
+Coefficient statistics:
+  Matrix range     [3e-01, 3e+07]
+  Objective range  [7e-03, 3e+04]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 103 rows and 69 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.00 seconds
+Thread count was 1 (of 8 available processors)
+
+Solution count 1: 4.3611e+06 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.361095252251e+06, best bound 4.361095252251e+06, gap 0.0000%
+
+Gurobi 9.0.1 (win64) logging started 10/15/20 17:21:40
+
+Changed value of parameter logfile to secondStage
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 103 rows, 69 columns and 239 nonzeros
+Model fingerprint: 0x7005d07b
+Variable types: 63 continuous, 6 integer (6 binary)
+Coefficient statistics:
+  Matrix range     [3e-01, 3e+07]
+  Objective range  [7e-03, 3e+04]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 103 rows and 69 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.00 seconds
+Thread count was 1 (of 8 available processors)
+
+Solution count 1: 4.3611e+06 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.361095252251e+06, best bound 4.361095252251e+06, gap 0.0000%
+
+Gurobi 9.0.1 (win64) logging started 10/20/20 10:14:21
+
+Changed value of parameter logfile to secondStage
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 103 rows, 69 columns and 239 nonzeros
+Model fingerprint: 0x7005d07b
+Variable types: 63 continuous, 6 integer (6 binary)
+Coefficient statistics:
+  Matrix range     [3e-01, 3e+07]
+  Objective range  [7e-03, 3e+04]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 103 rows and 69 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.00 seconds
+Thread count was 1 (of 8 available processors)
+
+Solution count 1: 4.3611e+06 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.361095252251e+06, best bound 4.361095252251e+06, gap 0.0000%
+
+Gurobi 9.0.1 (win64) logging started 10/21/20 10:01:58
+
+Changed value of parameter logfile to secondStage
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 103 rows, 69 columns and 239 nonzeros
+Model fingerprint: 0x7005d07b
+Variable types: 63 continuous, 6 integer (6 binary)
+Coefficient statistics:
+  Matrix range     [3e-01, 3e+07]
+  Objective range  [7e-03, 3e+04]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 103 rows and 69 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.00 seconds
+Thread count was 1 (of 8 available processors)
+
+Solution count 1: 4.3611e+06 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.361095252251e+06, best bound 4.361095252251e+06, gap 0.0000%

@@ -26,7 +26,7 @@ import pandas as pd
 import numpy as np
 import os 
 
-def test_miniSystem():
+def test_miniSystem(solver):
     locations = {'loc1','loc2'}
     numberOfTimeSteps = 365
     hoursPerTimeStep = 24
@@ -52,7 +52,7 @@ def test_miniSystem():
     esM.add(fn.Sink(esM=esM, name='Electricity demand', commodity='electricity',operationRateFix=demandTS,
             hasCapacityVariable=False, commodityRevenueTimeSeries=costTS))
 
-    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
+    esM.optimize(timeSeriesAggregation=False, solver = solver)
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
     assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc1'] == 730
@@ -62,7 +62,7 @@ def test_miniSystem():
 
     esM.cluster(numberOfTypicalPeriods=5, numberOfTimeStepsPerPeriod=1)
 
-    esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
+    esM.optimize(timeSeriesAggregation=True, solver = solver)
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
     assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc1'] == 730

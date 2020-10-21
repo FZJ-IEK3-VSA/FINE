@@ -25,10 +25,10 @@ import FINE as fn
 import numpy as np
 import pandas as pd
 
-def test_miniSystem(minimal_test_esM):
+def test_miniSystem(minimal_test_esM, solver):
 
 
-    minimal_test_esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
+    minimal_test_esM.optimize(timeSeriesAggregation=False, solver = solver)
 
     # test if solve fits to the original results
     testresults = minimal_test_esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Electricity market')

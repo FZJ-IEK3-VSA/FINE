@@ -11,7 +11,7 @@ import numpy as np
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional_Energy_System_Workflow'))
 
-def test_rampDownMax():
+def test_rampDownMax(solver):
     # read in original results
     results = [ 10.0,  5.0,  0.0,  0.0,  4.0,  5.0,  5.0,  0.0,  0.0,  10.0 , 10.0,  5.0,  4.0,  0.0,  4.0,  5.0,  5.0,  0.0,  0.0,  4.0]
 
@@ -58,7 +58,7 @@ def test_rampDownMax():
     data_demand_df = pd.DataFrame(data= data_demand)
     esM.add(fn.Sink(esM=esM, name='Electricity demand', commodity='electricity',
                     hasCapacityVariable=False, operationRateFix=data_demand_df))
-    esM.optimize(timeSeriesAggregation=False, solver = 'glpk') 
+    esM.optimize(timeSeriesAggregation=False, solver = solver) 
 
     print('restricted dispatch:\n')
     print(esM.componentModelingDict['ConversionDynamicModel'].operationVariablesOptimum.xs('restricted'))

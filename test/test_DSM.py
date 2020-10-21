@@ -2,7 +2,7 @@ import pandas as pd
 import FINE as fn
 import numpy as np
 
-def test_DSM(dsm_test_esM):
+def test_DSM(dsm_test_esM, solver):
     """
     Given a one-node system with two generators, check whether the load and generation is shifted correctly in both
     directions with and without demand side management.
@@ -13,7 +13,7 @@ def test_DSM(dsm_test_esM):
     esM_without.add(fn.Sink(esM=esM_without, name='load', commodity='electricity',
                             hasCapacityVariable=False, operationRateFix=load_without_dsm))
 
-    esM_without.optimize(timeSeriesAggregation=False, solver='glpk')  # without dsm
+    esM_without.optimize(timeSeriesAggregation=False, solver=solver)  # without dsm
 
     generator_outputs = esM_without.componentModelingDict['SourceSinkModel'].operationVariablesOptimum
 
@@ -40,7 +40,7 @@ def test_DSM(dsm_test_esM):
                                         shiftDownMax=shiftMax, shiftUpMax=shiftMax,
                                         socOffsetDown=-1, socOffsetUp=-1))
 
-    esM_with.optimize(timeSeriesAggregation=False, solver='glpk', optimizationSpecs= 'LogToConsole=0')
+    esM_with.optimize(timeSeriesAggregation=False, solver=solver, optimizationSpecs= 'LogToConsole=0')
 
     generator_outputs = esM_with.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
     esM_load_with_DSM = esM_with.componentModelingDict['DSMModel'].operationVariablesOptimum
@@ -69,7 +69,7 @@ def test_DSM(dsm_test_esM):
     pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand', 'location')], load_with_dsm)
 
     esM_with.cluster(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)
-    esM_with.optimize(timeSeriesAggregation=True, solver='glpk', optimizationSpecs='LogToConsole=0')
+    esM_with.optimize(timeSeriesAggregation=True, solver=solver, optimizationSpecs='LogToConsole=0')
 
     # benchmark generation and load with dsm
     expensive_with_dsm = expensive_without_dsm.copy()
@@ -95,7 +95,7 @@ def test_DSM(dsm_test_esM):
     pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand', 'location')], load_with_dsm)
 
     esM_with.cluster(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)
-    esM_with.optimize(timeSeriesAggregation=True, solver='glpk', optimizationSpecs='LogToConsole=0')
+    esM_with.optimize(timeSeriesAggregation=True, solver=solver, optimizationSpecs='LogToConsole=0')
 
     # benchmark generation and load with dsm
     expensive_with_dsm = expensive_without_dsm.copy()

@@ -7,7 +7,7 @@ import numpy as np
 import FINE as fn
 
 
-def test_watersupply():
+def test_watersupply(solver):
 
     # read in original results
     results = pd.read_csv(os.path.join(os.path.dirname(__file__), '_testInputFiles', 
@@ -133,7 +133,7 @@ def test_watersupply():
 
     # # Optimize the system
     esM.cluster(numberOfTypicalPeriods=7)
-    esM.optimize(timeSeriesAggregation=True, solver = 'glpk', optimizationSpecs='LogToConsole=1 OptimalityTol=1e-6 crossover=1')
+    esM.optimize(timeSeriesAggregation=True, solver = solver, optimizationSpecs='LogToConsole=1 OptimalityTol=1e-6 crossover=1')
 
 
     # # Selected results output

@@ -12,7 +12,7 @@ def test_read_and_save_sds():
     sds = spd.SpagatDataset()
 
     sds.read_dataset(sds_folder_path_in)
-    sds.save_sds(sds_folder_path_out)
+    sds.save_sds(sds_folder_path_out)   # TODO: Maybe a way to have an assert statement here 
 
 @pytest.mark.skip('not implemented')
 def test_add_time_series_from_csv():

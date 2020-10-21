@@ -4,7 +4,7 @@ import pandas as pd
 
 np.random.seed(42)        # Sets a "seed" to produce the same random input data in each model run
 
-def test_exceededLifetime():
+def test_exceededLifetime(solver):
     # load a minimal test system
     """Returns minimal instance of esM"""
 
@@ -61,13 +61,13 @@ def test_exceededLifetime():
     setattr(esM.componentModelingDict['ConversionModel'].componentsDict['Electrolyzers'], 'technicalLifetime', pd.Series([7], index=['OneLocation']))
 
     results = fn.optimizeSimpleMyopic(esM, startYear=2020, endYear=2030, nbOfRepresentedYears=5, timeSeriesAggregation=False, 
-                                        solver='glpk', saveResults=False, trackESMs=True)
+                                        solver=solver, saveResults=False, trackESMs=True)
 
     # Check if electrolyzers which are installed in 2020 are not included in the system of 2030 due to the exceeded lifetime
     assert 'Electrolyzers_stock_2020' not in results['ESM_2030'].componentNames.keys()
 
 
-def test_CO2ReductionTargets():
+def test_CO2ReductionTargets(solver):
     locations = {'regionN', 'regionS'}
     commodityUnitDict = {'electricity': r'GW$_{el}$', 'naturalGas': r'GW$_{CH_{4},LHV}$',
                         'CO2': r'Mio. t$_{CO_2}$/h'}
@@ -184,7 +184,7 @@ def test_CO2ReductionTargets():
 
     # Optimize the system with simple myopic approach
     results = fn.optimizeSimpleMyopic(esM, startYear=2020, nbOfSteps=2, nbOfRepresentedYears=5, CO2Reference=366, CO2ReductionTargets=[25,50,100], 
-                                        saveResults=False, trackESMs=True, numberOfTypicalPeriods=3, solver='glpk')
+                                        saveResults=False, trackESMs=True, numberOfTypicalPeriods=3, solver=solver)
 
     assert results['ESM_2025'].getOptimizationSummary('SourceSinkModel').loc['CO2 to environment'].loc['operation'].values.sum() < 183
 

@@ -21,6 +21,94 @@ def test_add_region_centroids_and_distances(sds):
     spr.add_region_centroids(sds)
     spr.add_centroid_distances(sds)
 
+@pytest.mark.skip(reason="test not yet implemented")
+def test_aggregate_geometries():
+    pass
+
+
+# TODO: rename and correctly set testdata
+testdata = [
+    ("mean", np.array([[0.0, 0.5, 0.5], [0.5, 0.0, 0.0], [0.5, 0.0, 0.0],])),
+    ("sum", np.array([[0, 1, 2], [1, 0, 0], [2, 0, 0],])),
+    ("bool", np.array([[0, 1, 1], [1, 0, 0], [1, 0, 0],])),
+]
+#@pytest.mark.parametrize("mode, expected", testdata)
+@pytest.mark.skip(reason="TOOO: Wrong data set set.")
+def test_aggregate_connections(mode, expected):
+
+    # TODO: improve test data (component dimension needs to be added)
+    ds = xr.open_dataset("test/spagat/data/input/sds_xr_dataset.nc4")
+    ds_reduced = ds.isel(region_ids=range(5), region_ids_2=range(5))
+
+    xr_data_array_in = ds_reduced["AC_cable_capacity"]
+    xr_data_array_in = xr_data_array_in.rename(
+        {"region_ids": "space", "region_ids_2": "space_2",}
+    )
+    data = np.array(
+        [
+            [0, 0, 1, 0, 0],  # es-pt
+            [0, 0, 0, 1, 1],  # es-nl, es-de
+            [1, 0, 0, 0, 0],  # pt-es
+            [0, 1, 0, 0, 0],  # nl-es
+            [0, 1, 0, 0, 0],  # de-es
+        ]
+    )
+    # sum: es-others: 2, es-pt: 1, pt-others: 0
+    # mean: 1, 1, 0
+    # bool: 1, 1, 0
+
+    sub_to_sup_region_id_dict = {
+        "es": ["06_es", "11_es"],
+        "pt": ["13_pt"],
+        "others": ["30_nl", "31_de"],
+    }
+
+    sub_to_sup_region_id_dict = {
+        "es": ["06_es", "11_es"],
+        "pt": ["13_pt"],
+        "others": ["30_nl", "31_de"],
+    }
+
+    xr_data_array_in.data = data
+    # TODO: rename test data properly OR implement a check, whether coords are called space or not and change if not
+
+    ds_reduced_aggregated = spr.aggregate_connections(
+        xr_data_array_in,
+        sub_to_sup_region_id_dict,
+        mode=mode,
+        set_diagonal_to_zero=True,
+    )
+
+    assert np.array_equal(ds_reduced_aggregated.data, expected)
+
+
+
+testdata = [("mean", 5), ("weighted mean", 5), ("sum", 25)]
+#@pytest.mark.parametrize("mode, expected", testdata)
+@pytest.mark.skip(reason="TOOO: Wrong data set set.")
+def test_aggregate_time_series(mode, expected):
+    ds = xr.open_dataset("test/spagat/data/input/sds_xr_dataset.nc4")
+
+    # get the dictionary output by string_based_clustering function
+    dict_ds = spg.string_based_clustering(ds["region_ids"].values)
+
+    # A test_xr_DataArray is created with dummy values, coordinates and dimensions being region_ids and time
+    region_ids = ds["region_ids"].values
+    time = ds["time"].values
+    temp_num = 60 * 8760
+    xr_DataArray_values = np.ones(temp_num) * 5  # create array of 5s
+    xr_DataArray_values = np.reshape(xr_DataArray_values, (60, 8760))
+
+    test_xr_DataArray = xr.DataArray(
+        xr_DataArray_values, coords=[region_ids, time], dims=["space", "time"]
+    )
+    time_series_aggregated = spr.aggregate_time_series(
+        test_xr_DataArray, dict_ds, mode=mode, xr_weight_array=test_xr_DataArray
+    )
+    # assert function
+    assert time_series_aggregated.sel(time=4, space="de").values == expected
+
+    
 
 @pytest.mark.skip(reason="TOOO: Wrong data set set.")
 def test_aggregate_based_on_sub_to_sup_region_id_dict():
@@ -81,95 +169,7 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict():
     assert test_output_sds.xr_dataset["wind capacity"].loc["de"].item() == 5.0
 
 
-@pytest.mark.skip(reason="test not yet implemented")
-def test_aggregate_geometries():
-    pass
 
-
-# TODO: rename and correctly set testdata
-testdata = [
-    ("mean", np.array([[0.0, 0.5, 0.5], [0.5, 0.0, 0.0], [0.5, 0.0, 0.0],])),
-    ("sum", np.array([[0, 1, 2], [1, 0, 0], [2, 0, 0],])),
-    ("bool", np.array([[0, 1, 1], [1, 0, 0], [1, 0, 0],])),
-]
-
-
-#@pytest.mark.parametrize("mode, expected", testdata)
-@pytest.mark.skip(reason="TOOO: Wrong data set set.")
-def test_aggregate_connections(mode, expected):
-
-    # TODO: improve test data (component dimension needs to be added)
-    ds = xr.open_dataset("test/spagat/data/input/sds_xr_dataset.nc4")
-    ds_reduced = ds.isel(region_ids=range(5), region_ids_2=range(5))
-
-    xr_data_array_in = ds_reduced["AC_cable_capacity"]
-    xr_data_array_in = xr_data_array_in.rename(
-        {"region_ids": "space", "region_ids_2": "space_2",}
-    )
-    data = np.array(
-        [
-            [0, 0, 1, 0, 0],  # es-pt
-            [0, 0, 0, 1, 1],  # es-nl, es-de
-            [1, 0, 0, 0, 0],  # pt-es
-            [0, 1, 0, 0, 0],  # nl-es
-            [0, 1, 0, 0, 0],  # de-es
-        ]
-    )
-    # sum: es-others: 2, es-pt: 1, pt-others: 0
-    # mean: 1, 1, 0
-    # bool: 1, 1, 0
-
-    sub_to_sup_region_id_dict = {
-        "es": ["06_es", "11_es"],
-        "pt": ["13_pt"],
-        "others": ["30_nl", "31_de"],
-    }
-
-    sub_to_sup_region_id_dict = {
-        "es": ["06_es", "11_es"],
-        "pt": ["13_pt"],
-        "others": ["30_nl", "31_de"],
-    }
-
-    xr_data_array_in.data = data
-    # TODO: rename test data properly OR implement a check, whether coords are called space or not and change if not
-
-    ds_reduced_aggregated = spr.aggregate_connections(
-        xr_data_array_in,
-        sub_to_sup_region_id_dict,
-        mode=mode,
-        set_diagonal_to_zero=True,
-    )
-
-    assert np.array_equal(ds_reduced_aggregated.data, expected)
-
-
-testdata = [("mean", 5), ("weighted mean", 5), ("sum", 25)]
-
-
-#@pytest.mark.parametrize("mode, expected", testdata)
-@pytest.mark.skip(reason="TOOO: Wrong data set set.")
-def test_aggregate_time_series(mode, expected):
-    ds = xr.open_dataset("test/spagat/data/input/sds_xr_dataset.nc4")
-
-    # get the dictionary output by string_based_clustering function
-    dict_ds = spg.string_based_clustering(ds["region_ids"].values)
-
-    # A test_xr_DataArray is created with dummy values, coordinates and dimensions being region_ids and time
-    region_ids = ds["region_ids"].values
-    time = ds["time"].values
-    temp_num = 60 * 8760
-    xr_DataArray_values = np.ones(temp_num) * 5  # create array of 5s
-    xr_DataArray_values = np.reshape(xr_DataArray_values, (60, 8760))
-
-    test_xr_DataArray = xr.DataArray(
-        xr_DataArray_values, coords=[region_ids, time], dims=["space", "time"]
-    )
-    time_series_aggregated = spr.aggregate_time_series(
-        test_xr_DataArray, dict_ds, mode=mode, xr_weight_array=test_xr_DataArray
-    )
-    # assert function
-    assert time_series_aggregated.sel(time=4, space="de").values == expected
 
 
 # spagat.output
