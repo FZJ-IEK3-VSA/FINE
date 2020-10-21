@@ -52,83 +52,6 @@ def add_centroid_distances(sds, spatial_dim="space"):
     )
 
 
-def aggregate_based_on_sub_to_sup_region_id_dict(
-    sds,
-    sub_to_sup_region_id_dict,
-    aggregation_function_dict=None,
-    spatial_dim="space",
-    time_dim="TimeStep",
-):
-    """Spatially aggregates all variables of the sds.xr_dataset according to sub_to_sup_region_id_dict using aggregation functions defined by aggregation_function_dict"""
-
-    sds_2 = spd.SpagatDataset()
-
-    for varname, da in sds.xr_dataset.data_vars.items():
-        if aggregation_function_dict is None:
-            aggregation_mode = "sum"
-            aggregation_weight = None
-        else:
-            if varname in aggregation_function_dict.keys():
-                aggregation_mode = aggregation_function_dict[varname][
-                    0
-                ]  # TODO: implement this properly
-                aggregation_weight_varname = aggregation_function_dict[varname][1]
-                if aggregation_weight_varname is not None:
-                    aggregation_weight = sds.xr_dataset[
-                        aggregation_weight_varname
-                    ].fillna(1)
-                else:
-                    aggregation_weight = None
-            else:
-                aggregation_mode = "sum"
-                aggregation_weight = None
-
-        if varname == "gpd_geometries":
-            shapes_aggregated = aggregate_geometries(
-                sds.xr_dataset[varname], sub_to_sup_region_id_dict
-            )
-            sds_2.add_region_data(list(sub_to_sup_region_id_dict.keys()))
-            sds_2.add_objects(
-                description="gpd_geometries",
-                dimension_list=(spatial_dim),
-                object_list=shapes_aggregated,
-            )
-            add_region_centroids(sds_2)
-
-        elif varname != "gpd_centroids":
-            if spatial_dim in da.dims and time_dim in da.dims:  # space-time values
-                da = aggregate_time_series(
-                    sds.xr_dataset[varname],
-                    sub_to_sup_region_id_dict,
-                    mode=aggregation_mode,
-                    xr_weight_array=aggregation_weight,
-                )
-                sds_2.xr_dataset[varname] = da
-
-            if (
-                spatial_dim in da.dims and f"{spatial_dim}_2" not in da.dims
-            ):  # space values
-                da = aggregate_values(
-                    sds.xr_dataset[varname],
-                    sub_to_sup_region_id_dict,
-                    mode=aggregation_mode,
-                )
-                sds_2.xr_dataset[varname] = da
-
-            if (
-                f"{spatial_dim}" in da.dims and f"{spatial_dim}_2" in da.dims
-            ):  # space-space values
-                da = aggregate_connections(
-                    sds.xr_dataset[varname],
-                    sub_to_sup_region_id_dict,
-                    mode=aggregation_mode,
-                )
-
-                sds_2.xr_dataset[varname] = da
-
-    return sds_2
-
-
 def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     """Aggregates shapes given in a xr_data_array based on the dictionary"""
     space = list(sub_to_sup_region_id_dict.keys())
@@ -159,7 +82,6 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     xr_data_array_out = xr.DataArray(data, coords=[space], dims=["space"])
 
     return xr_data_array_out
-
 
 def aggregate_time_series(
     xr_data_array_in,
@@ -339,6 +261,84 @@ def aggregate_connections(
                 # -> find a better, such that only non-nan diagonal entries are set to zero
 
     return xr_data_array_out
+
+
+
+def aggregate_based_on_sub_to_sup_region_id_dict(
+    sds,
+    sub_to_sup_region_id_dict,
+    aggregation_function_dict=None,
+    spatial_dim="space",
+    time_dim="TimeStep",
+):
+    """Spatially aggregates all variables of the sds.xr_dataset according to sub_to_sup_region_id_dict using aggregation functions defined by aggregation_function_dict"""
+
+    sds_2 = spd.SpagatDataset()
+
+    for varname, da in sds.xr_dataset.data_vars.items():
+        if aggregation_function_dict is None:
+            aggregation_mode = "sum"
+            aggregation_weight = None
+        else:
+            if varname in aggregation_function_dict.keys():
+                aggregation_mode = aggregation_function_dict[varname][
+                    0
+                ]  # TODO: implement this properly
+                aggregation_weight_varname = aggregation_function_dict[varname][1]
+                if aggregation_weight_varname is not None:
+                    aggregation_weight = sds.xr_dataset[
+                        aggregation_weight_varname
+                    ].fillna(1)
+                else:
+                    aggregation_weight = None
+            else:
+                aggregation_mode = "sum"
+                aggregation_weight = None
+
+        if varname == "gpd_geometries":
+            shapes_aggregated = aggregate_geometries(
+                sds.xr_dataset[varname], sub_to_sup_region_id_dict
+            )
+            sds_2.add_region_data(list(sub_to_sup_region_id_dict.keys()))
+            sds_2.add_objects(
+                description="gpd_geometries",
+                dimension_list=(spatial_dim),
+                object_list=shapes_aggregated,
+            )
+            add_region_centroids(sds_2)
+
+        elif varname != "gpd_centroids":
+            if spatial_dim in da.dims and time_dim in da.dims:  # space-time values
+                da = aggregate_time_series(
+                    sds.xr_dataset[varname],
+                    sub_to_sup_region_id_dict,
+                    mode=aggregation_mode,
+                    xr_weight_array=aggregation_weight,
+                )
+                sds_2.xr_dataset[varname] = da
+
+            if (
+                spatial_dim in da.dims and f"{spatial_dim}_2" not in da.dims
+            ):  # space values
+                da = aggregate_values(
+                    sds.xr_dataset[varname],
+                    sub_to_sup_region_id_dict,
+                    mode=aggregation_mode,
+                )
+                sds_2.xr_dataset[varname] = da
+
+            if (
+                f"{spatial_dim}" in da.dims and f"{spatial_dim}_2" in da.dims
+            ):  # space-space values
+                da = aggregate_connections(
+                    sds.xr_dataset[varname],
+                    sub_to_sup_region_id_dict,
+                    mode=aggregation_mode,
+                )
+
+                sds_2.xr_dataset[varname] = da
+
+    return sds_2
 
 
 # spagat.output:
