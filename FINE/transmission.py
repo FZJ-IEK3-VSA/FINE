@@ -203,10 +203,10 @@ class Transmission(Component):
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
 
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, self.locationalEligibility)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, self.locationalEligibility)
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         if self.partLoadMin is not None:

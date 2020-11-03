@@ -322,7 +322,7 @@ class Component(metaclass=ABCMeta):
 
         :param modelingClass: to the Component connected modeling class.
             |br| * the default value is ModelingClass
-        :type modelingClass: a class inherting from ComponentModeling
+        :type modelingClass: a class inheriting from ComponentModeling
         """
         # Set general component data
         utils.isEnergySystemModelInstance(esM)

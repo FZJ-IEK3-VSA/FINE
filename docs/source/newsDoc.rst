@@ -2,11 +2,20 @@
 FINE's News Feed
 ################
 
+*********************
+Release version 2.1.1
+*********************
+
+FINE release (2.1.1) provides some minor changes in code including bug fixes for 
+
+* Missing labels (for newer pandas versions) 
+* setting operationRateFix or operationRateMax for transmission components
+
 *******************
 Release version 2.1
 *******************
 
-In FINE latest release (2.1) the following functionalities were included, for example: 
+In FINE release (2.1) the following functionalities were included, for example: 
 
 * New time series aggregation method: Segmentation of time series
 * Bug Fix: TAC of transmission components within the optimization summary is fixed
