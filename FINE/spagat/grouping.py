@@ -51,18 +51,17 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
     regions_list = sds.xr_dataset[dimension_description].values
     n_regions = len(regions_list)
 
-    '''Clustering methods via SciPy.cluster module'''
+    '''Clustering methods via SciPy.cluster module, options - hierarchical and kmeans'''
+    #TODO: change the agggregation modes to something like scipy_hierarchical and sklean_hierarchical.... 
 
     if agg_mode == 'hierarchical':
 
         distance_matrix = hierarchy.distance.pdist(centroids)
 
-        # Various methods, e.g. 'average', 'weighted', 'centroid' -> representation of new clusters 
-        Z = hierarchy.linkage(distance_matrix, 'centroid')
+        Z = hierarchy.linkage(distance_matrix, 'centroid') #Possibilities - 'centroid','average','weighted'
 
-        # Evaluation of this clustering methods
+        #Evaluation 
         print('Statistics on this hiearchical clustering:')
-        
         print('The cophentic correlation distance is ', hierarchy.cophenet(Z, distance_matrix)[0])
         
         fig, ax = plt.subplots(figsize=(18,7))
@@ -75,7 +74,7 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         plt.xticks(np.arange(1, len(Z)+1, 1))
         plt.show()
         
-        # If and how to save the hierarchical tree 
+        # If and how to save the hierarchical tree #TODO: Check how the figures work and if it is really required 
         if ax_illustration is not None:
             R = hierarchy.dendrogram(
                 Z,
@@ -86,11 +85,10 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
             )
 
             if save_fig is not None:
-
                 spu.plt_savefig(save_name=save_fig)
-        elif save_fig is not None:
 
-            fig, ax = spu.plt.subplots(figsize=(25, 12))
+        elif save_fig is not None:
+            fig, ax = plt.subplots(figsize=(25, 12))
 
             R = hierarchy.dendrogram(
                 Z,
@@ -102,25 +100,23 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
 
             spu.plt_savefig(fig=fig, save_name=save_fig)
 
-        #n_regions = len(Z)
-
+        
         aggregation_dict = {}
 
         regions_dict = {
             region_id: [region_id]
-            for region_id in list(sds.xr_dataset[dimension_description].values)
+            for region_id in list(sds.xr_dataset[dimension_description].values)  #TODO: maybe change the list to region_id_list declared above
         }
 
-        regions_dict_complete = {
+        regions_dict_complete = {                                                #TODO: maybe copy regions_dict instead of repeating the whole thing
             region_id: [region_id]
-            for region_id in list(sds.xr_dataset[dimension_description].values)
+            for region_id in list(sds.xr_dataset[dimension_description].values) 
         }
 
         aggregation_dict[n_regions] = regions_dict.copy()
 
-        all_region_id_list = []
-
-        # identify, which regions are merged together (new_merged_region_id_list)
+        
+        # identify which regions are merged together (new_merged_region_id_list)
         for i in range(len(Z)):
 
             # identify the keys of the sub regions that will be merged
@@ -156,10 +152,10 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
 
             aggregation_dict[n_regions - i - 1] = regions_dict.copy()
 
-        return aggregation_dict
+        
 
     if agg_mode == 'kmeans':   
-        # The input observations of kmeans must be "whitened"
+        # The input observations of kmeans must be normalized
         centroids_whitened = vq.whiten(centroids)
 
         aggregation_dict = {}
@@ -167,7 +163,7 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         
         rss = [] # RSS (distortion) for different k values - in vq.kmeans: average euclidean distance
 
-        for k in range(1,n_regions):
+        for k in range(1, n_regions):
             # Perform k-means on the original centroids to obtained k centroids of aggregated regions
             aggregation_centroids, distortion = vq.kmeans(centroids_whitened, k)
             
@@ -198,14 +194,14 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         ax.set_ylabel('Distortion')
         plt.show()
 
-        path = '/home/s-xing/code/spagat/output/ClusteringAnalysis/'
+        path = '/home/s-xing/code/spagat/output/ClusteringAnalysis/' #FIXME: relative path 
         figname = save_fig if save_fig is not None else 'Distance_based_scipy_kmeans_Distortion.png'
 
         spu.plt_savefig(fig=fig, path=path, save_name=figname)
 
-        return aggregation_dict
+    
 
-    # The selection of initialization is also available in sklearn.KMeans!
+    # The selection of initialization is also available in sklearn.KMeans!  #TODO: maybe delete this 
     '''
     if mode == 'kmeans2':
         regions_list = sds.xr_dataset[dimension_description].values
@@ -232,8 +228,8 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         return aggregation_dict
     '''
 
-
-    '''Clustering methods via Scikit Learn module'''
+    '''Clustering methods via Scikit Learn module, options - kmeans, hierarchical, and spectral '''
+    
 
     if agg_mode == 'kmeans2':
 
@@ -266,19 +262,19 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
             aggregation_dict[k] = regions_dict.copy()
 
         # Plotting the rss according to increase of k values, check if there exists an inflection point
-        fig, ax = spu.plt.subplots(figsize=(25, 12))
+        fig, ax = plt.subplots(figsize=(25, 12))
         ax.plot(range(1,n_regions),rss,'go-')
         ax.set_title('Within-cluster sum-of-squares')
         ax.set_xlabel('K (number_of_regions)')
         ax.set_ylabel('Distortion / Inertia')
         plt.show()
 
-        path = '/home/s-xing/code/spagat/output/ClusteringAnalysis/'
+        path = '/home/s-xing/code/spagat/output/ClusteringAnalysis/'   #FIXME: relative path 
         figname = save_fig if save_fig is not None else 'sklearn_kmeans_Distortion.png'
 
         spu.plt_savefig(fig=fig, path=path, save_name=figname)
 
-        return aggregation_dict
+        
         
     if agg_mode == 'hierarchical2':
 
@@ -308,7 +304,7 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
             aggregation_dict[i] = regions_dict.copy()
 
         # Create linkage matrix for dendrogram
-        def createLinkages():
+        def createLinkages():                       #TODO: function within a function does not make sense. Maybe put this in grouping_utils.py
             clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(centroids)
             # Create the counts of samples under each node
             counts = np.zeros(clustering_tree.children_.shape[0])
@@ -329,9 +325,9 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         # Plot the hierarchical tree dendrogram
         linkage_matrix = createLinkages()
         distance_matrix = hierarchy.distance.pdist(centroids)
-        #hierarchy.dendrogram(linkage_matrix)
+        
 
-        # Evaluation of this clustering methods
+        # Evaluation 
         print('Statistics on this hiearchical clustering:')
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
 
@@ -345,24 +341,31 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
         plt.xticks(np.arange(1, len(linkage_matrix)+1, 1))
         plt.show()
 
-        # If and how to save the hierarchical tree 
+        # If and how to save the hierarchical tree #TODO: Check how the figures work and if it is really required 
         if ax_illustration is not None:
-            R = hierarchy.dendrogram(linkage_matrix, orientation="top",
-                                     labels=sds.xr_dataset[dimension_description].values, ax=ax_illustration, leaf_font_size=14)
+            R = hierarchy.dendrogram(linkage_matrix, 
+                                    orientation="top",
+                                    labels=sds.xr_dataset[dimension_description].values, 
+                                    ax=ax_illustration, 
+                                    leaf_font_size=14
+                                    )
 
             if save_fig is not None:
-
                 spu.plt_savefig(save_name=save_fig)
+
         elif save_fig is not None:
+            fig, ax = plt.subplots(figsize=(25, 12))
 
-            fig, ax = spu.plt.subplots(figsize=(25, 12))
-
-            R = hierarchy.dendrogram(linkage_matrix, orientation="top",
-                                     labels=sds.xr_dataset[dimension_description].values, ax=ax, leaf_font_size=14)
+            R = hierarchy.dendrogram(linkage_matrix, 
+                                    orientation="top",
+                                    labels=sds.xr_dataset[dimension_description].values, 
+                                    ax=ax, 
+                                    leaf_font_size=14
+                                    )
 
             spu.plt_savefig(fig=fig, save_name=save_fig)
 
-        return aggregation_dict
+        
 
     if agg_mode == 'spectral':
         aggregation_dict = {}
@@ -389,16 +392,15 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
 
             aggregation_dict[i] = regions_dict.copy()
         
-        return aggregation_dict
-
+    return aggregation_dict
 
 
 
 @spu.timer
-def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=None, save_fig=None, dimension_description='space',weighting=None):
+def all_variable_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None, save_fig=None, dimension_description='space', weighting=None):
     
     # Original region list
-    regions_list = sds.xr_dataset['space'].values
+    regions_list = sds.xr_dataset[dimension_description].values
     n_regions = len(regions_list)
 
     aggregation_dict = {}
@@ -410,6 +412,9 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         - hierarchy clustering method of SciPy having spatial contiguity problem
         - hierarchy clustering method of Scikit learn solve spatial contiguity with additional connectivity matrix.
     '''
+
+    #TODO: rename different agg_modes to something more intuitive
+
     ## Clustering methods via SciPy.cluster module
     if agg_mode == 'hierarchical':
 
@@ -437,18 +442,25 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         
         # If and how to save the hierarchical tree 
         if ax_illustration is not None:
-            R = hierarchy.dendrogram(Z, orientation="top",
-                                     labels=sds.xr_dataset[dimension_description].values, ax=ax_illustration, leaf_font_size=14)
+            R = hierarchy.dendrogram(Z, 
+                                    orientation="top",
+                                    labels=sds.xr_dataset[dimension_description].values, 
+                                    ax=ax_illustration, 
+                                    leaf_font_size=14
+                                    )
 
             if save_fig is not None:
-
                 spu.plt_savefig(save_name=save_fig)
-        elif save_fig is not None:
 
+        elif save_fig is not None:
             fig, ax = spu.plt.subplots(figsize=(25, 12))
 
-            R = hierarchy.dendrogram(Z, orientation="top",
-                                     labels=sds.xr_dataset[dimension_description].values, ax=ax, leaf_font_size=14)
+            R = hierarchy.dendrogram(Z, 
+                                    orientation="top",
+                                    labels=sds.xr_dataset[dimension_description].values, 
+                                    ax=ax, 
+                                    leaf_font_size=14
+                                    )
 
             spu.plt_savefig(fig=fig, save_name=save_fig)
         
@@ -529,7 +541,11 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
             aggregation_dict[i] = regions_dict.copy()
 
         # Plot the hierarchical tree dendrogram
-        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None, affinity='precomputed', linkage='average',connectivity=connectMatrix).fit(squared_distMatrix)
+        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, 
+                                                      n_clusters=None, 
+                                                      affinity='precomputed', 
+                                                      linkage='average',
+                                                      connectivity=connectMatrix).fit(squared_distMatrix)
         # Create the counts of samples under each node
         counts = np.zeros(clustering_tree.children_.shape[0])
         n_samples = len(clustering_tree.labels_)
@@ -565,7 +581,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         
 
     ''' 2. Using spectral clustering with precomputed affinity matrix
-        - precomputed affinity matrix by conversation from distance matrices to similarity matrix using RBF kernel
+        - precomputed affinity matrix by converting distance matrices to similarity matrix using RBF kernel
         - also having spatial contiguity problem due to the created complete graph
         - solve it by considering the additional connectivity matrix to cut some edges
     '''
@@ -603,7 +619,7 @@ def all_variable_based_clustering(sds,agg_mode,verbose=False, ax_illustration=No
         # List of weighting factors for 3 categories
         if weighting:
             weighting = weighting
-        else:
+        else:                          #TODO: reduce these lines to 1 line (IF not weighting)
             weighting = [1,1,1]
 
         # Using RBF kernel to construct affinity matrix

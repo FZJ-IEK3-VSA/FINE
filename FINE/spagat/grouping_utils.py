@@ -19,7 +19,7 @@ def preprocessTimeSeries(vars_dict, n_regions, n_components):
     '''Preprocess the input dictionary of time series variables
         - Input vars_dic: dimensions of each variable value are 'component','space','TimeStep'
         - Output ds_ts: a dictionary containing all 2d variables
-            - For each variable: the value is a flattened data feature matrix based its valid components
+            - For each variable: the value is a flattened data feature matrix based on its valid components
                 - size: Row (n_regions) * Column (n_components * n_timesteps)
             - matrix block for each valid component of one particular variable: 
                 - the value is a numpy array of size n_regions * TimeStep         
@@ -75,7 +75,7 @@ def preprocess1dVariables(vars_dict, n_components):
         valid_component_ids = list(var_mean_df[var_mean_df[var].notna()]['component_id'])
         
 
-        # Only remain the valid components
+        # Retain only the valid components
         data = da.values[valid_component_ids]
         ds_1d[var] = min_max_scaler.fit_transform(data.T)
 
@@ -149,7 +149,7 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
 
         # Obtain a dictionary containing one distance vector (1-dim matrix) for each variable and for each valid component
  
-        min_max_scaler = prep.MinMaxScaler()
+        min_max_scaler = prep.MinMaxScaler() #TODO: remove the (unused) line
 
         for var, var_dict in ds_2d.items():
             
@@ -177,12 +177,12 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
         '''
         return ds_2d
 
-def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=None):
+def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=None):
     '''Preprocess the Xarray dataset: Separate the dataset into 3 parts: time series data, 1d-var data, and 2d-var data
         - vars_ts: Time series variables: a feature matrix for each ts variable
         - vars_1d: a features matrix for each 1d variable
         - vars_2d: 2d variables showing connectivity between regions
-            - Hierarchical: directly transformed as distance matrix (values showing dissimilarity) and combine with vars_ts and vats_1d
+            - Hierarchical: directly transformed as distance matrix (values showing dissimilarity) and combine with vars_ts and vars_1d
             - Spectral: extract this part as an affinity matrix for the (un)directed graph (indicating similarity, here using adjacency matrix)
             - handle_mode: decide which method to preprocess vars_2d
 
@@ -198,8 +198,8 @@ def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=Non
 
     for varname, da in dataset.data_vars.items():
         # sort the dimensions
-        if sorted(da.dims) == sorted(('component','Period','TimeStep', 'space')):
-            # Do not have to consider the Period --> ToDo: consider the Period dimension.
+        if sorted(da.dims) == sorted(('component','Period','TimeStep', 'space')):   #TODO: maybe space should be generalized with additional variable - dimension_description ?
+            # Period is not considered -> TODO: consider the Period dimension.
             da = da.transpose('Period','component','space','TimeStep')[0]  
             vars_ts[varname] = da
 
@@ -231,7 +231,7 @@ def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=Non
 
         return ds_timeseries, ds_1d_vars, ds_2d_vars
 
-    ############### TO-DO: try negative var_weights for some 2d vars #############################
+    #TODO: try negative var_weights for some 2d vars 
     if handle_mode == 'toAffinity':
         ''' Return 3 affinity matrices:
             - timeseries: one data feature matrix
@@ -296,9 +296,9 @@ def preprocessDataset(sds,handle_mode, vars='all',dims='all', var_weightings=Non
         return matrix_ts, matrix_1d, matrix_2d
 
 
-def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part_weightings=None):
+def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part_weightings=None):  #TODO: Change a and b to something more intuitive 
     ''' Custom distance function: 
-        - parameters a, b: region ids, a < b, a,b in [0, n_regions)
+        - parameters a, b: region ids, a < b, a,b in [0, n_regions) 
         - return: distance between a and b = distance_ts + distance_1d + distance_2d
             - distance for time series: ** dist_var_component_timestep ** -> value subtraction
             - distance for 1d vars: sum of (value subtraction in ** dist_var_component ** )
@@ -315,16 +315,16 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part
     '''
 
     # Weighting factors of each variable 
-    if var_weightings:
+    if var_weightings:                       
         var_weightings = var_weightings
-    else:
+    else:                                    #TODO: Skip the if statement and "if not var_weightings" here
         vars_list = list(ds_ts.keys()) + list(ds_1d.keys()) + list(ds_2d.keys())
         var_weightings = dict.fromkeys(vars_list,1)
 
     # Weighting factors for 3 var-categories
     if part_weightings:
         part_weightings = part_weightings
-    else:
+    else:                              #TODO: similar to the above change
         part_weightings = [1,1,1]
 
     # Distance of Time Series Part
