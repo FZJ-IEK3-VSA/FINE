@@ -8,7 +8,7 @@ import geopandas as gpd
 
 def test_dimensional_data_to_xarray_dataset_multinode(multi_node_test_esM_init):
 
-    nc_path = os.path.join(os.path.dirname(__file__), '../data/ds_multinode.nc4')
+    nc_path = os.path.join(os.path.dirname(__file__), '../data/ds_multinode.nc4')  #FIXME: unused line, also dataset ds_multinode.nc4 does not exist.
 
     esm_dict, component_dict = fn.dictIO.exportToDict(multi_node_test_esM_init)
 
@@ -22,7 +22,7 @@ def test_dimensional_data_to_xarray_dataset_multinode(multi_node_test_esM_init):
 
 def test_dimensional_data_to_xarray_dataset_minimal(minimal_test_esM):
 
-    nc_path = os.path.join(os.path.dirname(__file__), '../data/ds_minimal.nc4')
+    nc_path = os.path.join(os.path.dirname(__file__), '../data/ds_minimal.nc4') #FIXME: unused line, 
 
     esm_dict, component_dict = fn.dictIO.exportToDict(minimal_test_esM)
 
@@ -42,7 +42,7 @@ def test_spatial_aggregation_multinode(multi_node_test_esM_init, solver):
 
     inputShapefile = 'clusteredRegions.shp'
 
-    esM_aggregated = multi_node_test_esM_init.spatial_aggregation(numberOfRegions=3, clusterMethod="centroid-based", shapefileFolder=shapefileFolder, inputShapefile=inputShapefile)
+    esM_aggregated = multi_node_test_esM_init.spatial_aggregation(numberOfRegions=3, clusterMethod="centroid-based", shapefileFolder=shapefileFolder, inputShapefile=inputShapefile)   #TODO: after fixing the spatial_aggregation function, rewrite this test
 
     esM_aggregated.cluster(numberOfTypicalPeriods=2)
     

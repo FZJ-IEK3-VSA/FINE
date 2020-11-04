@@ -355,17 +355,17 @@ class EnergySystemModel:
             df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def cluster(
+    def cluster(                          #NOTE: Your entrypoint in FINE 
         self,
         numberOfTypicalPeriods=7,
         numberOfTimeStepsPerPeriod=24,
-        clusterMethod="hierarchical",
+        clusterMethod="hierarchical",   #TODO: rename it to temporalClusterMethod (just like mentioned in the docstring below!)
         sortValues=True,
         storeTSAinstance=False,
         numberOfRegions=None,
         shapefileFolder=None,
         inputShapefile=None,
-        spatialClusterMethod="centroid-based",
+        spatialClusterMethod="centroid-based",  
         **kwargs,
     ):
         """
@@ -466,7 +466,7 @@ class EnergySystemModel:
                 **kwargs,
             )
 
-    def spatial_aggregation(
+    def spatial_aggregation(                                      
         self,
         numberOfRegions,
         clusterMethod="centroid-based",

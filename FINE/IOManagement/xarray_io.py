@@ -27,7 +27,7 @@ def generate_iteration_dicts(esm_dict, component_dict):
  
     :return: df_iteration_dict, series_iteration_dict
     """
-
+    #TODO: its taking esm_dict but it is not using it anywhere. Maybe only pass component_dict as agrument
     df_iteration_dict = {}
 
     for classname in component_dict:
@@ -43,7 +43,7 @@ def generate_iteration_dicts(esm_dict, component_dict):
                     else:
                         df_iteration_dict[variable_description].append(description_tuple)
 
-    series_iteration_dict = {}
+    series_iteration_dict = {} #NOTE: transmission components are series in component_dict (example index - cluster_0_cluster_2)
 
     for classname in component_dict:
 
@@ -123,7 +123,7 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
 
             if isinstance(data, pd.Series):
 
-                if classname in ['Transmission', 'LinearOptimalPowerFlow']:
+                if classname in ['Transmission', 'LinearOptimalPowerFlow']:    #NOTE: only ['Transmission', 'LinearOptimalPowerFlow'] are 2d classes 
                     # TODO: which one of transmission's components are 2d and which 1d or dimensionless
 
                     df = utils.transform1dSeriesto2dDataFrame(data, locations)
@@ -137,7 +137,7 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
             df_variable.index.set_names("component", level=0, inplace=True) # ?
 
             ds_component = xr.Dataset()
-            ds_component[f"2d_{variable_description}"] = df_variable.sort_index().to_xarray()
+            ds_component[f"2d_{variable_description}"] = df_variable.sort_index().to_xarray()  #NOTE: prefix 2d and 1d are added in this function
 
             ds = xr.merge([ds, ds_component])
 
@@ -244,7 +244,7 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
 
     return esm_dict, component_dict
 
-def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_function_dict=None, clusterMethod="centroid-based", aggregatedShapefileFolderPath=None, **kwargs):
+def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_function_dict=None, clusterMethod="centroid-based", aggregatedShapefileFolderPath=None, **kwargs): #FIXME: **kwargs are not passed to any function in spagat manager. 
     """Clusters the spatial data of all components considered in the EnergySystemModel instance and returns a new esM instance with the aggregated data.        
     
     Additional keyword arguments for the SpatialAggregation instance can be added (facilitated by kwargs). 
@@ -293,8 +293,9 @@ def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_funct
         spr.add_region_centroids(spagat_manager.sds, spatial_dim='space')
 
     # spatial clustering 
-    spagat_manager.grouping(dimension_description='space')
-
+    spagat_manager.grouping(dimension_description='space')    #FIXME: clusterMethod is not used here, not is there an option in manager.grouping()
+                                                              # also, centroid-based in not a method for grouping at all -> distance_based_clustering is 
+                                                              #TODO: fix the grouping function in grouping.manager and use it here more apporpriately
     # representation of the clustered regions
     if aggregation_function_dict is not None:
         spagat_manager.aggregation_function_dict = aggregation_function_dict
