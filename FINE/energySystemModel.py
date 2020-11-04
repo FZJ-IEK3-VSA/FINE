@@ -3,6 +3,8 @@ Last edited: July 27 2018
 |br| @author: Lara Welder
 """
 
+from FINE.transmission import TransmissionModel
+from FINE.sourceSink import SourceSinkModel
 from FINE.component import Component, ComponentModel
 from FINE import utils
 from tsam.timeseriesaggregation import TimeSeriesAggregation
@@ -59,15 +61,16 @@ class EnergySystemModel:
     |br| @author: Lara Welder
     """
 
-    def __init__(self, 
-                 locations, 
-                 commodities, 
-                 commodityUnitsDict, 
-                 numberOfTimeSteps=8760, 
+    def __init__(self,
+                 locations,
+                 commodities,
+                 commodityUnitsDict,
+                 numberOfTimeSteps=8760,
                  hoursPerTimeStep=1,
-                 costUnit='1e9 Euro', 
-                 lengthUnit='km', 
-                 verboseLogLevel=0):
+                 costUnit='1e9 Euro',
+                 lengthUnit='km',
+                 verboseLogLevel=0,
+                 autarkyLimit=None):
         """
         Constructor for creating an EnergySystemModel class instance
 
@@ -127,6 +130,10 @@ class EnergySystemModel:
             |br| * the default value is 0
         :type verboseLogLevel: integer (0, 1 or 2)
 
+        :param autarkyLimit: defines the autarky constraint for specific regions. Can be specified by nested
+            dictionary, the limit is specified in the commodities' unit. Possible included components are
+            SourceSinkModel (e.g.: Purchase) and TransmissionModel (i.e.: exchange with other regions).
+            (i.e.: {ID: {Region1: Limit1, Region2: Limit2}}). Example: {'electricity': 'Region1': 100000}
         """
 
         # Check correctness of inputs
@@ -141,8 +148,11 @@ class EnergySystemModel:
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
+        # The autarkyLimit can be used to limit certain autarkyIDs defined in the components.
         self.locations, self.lengthUnit = locations, lengthUnit
         self.numberOfTimeSteps = numberOfTimeSteps
+        self.autarkyLimit = autarkyLimit
+
         ################################################################################################################
         #                                            Time series parameters                                            #
         ################################################################################################################
@@ -263,9 +273,9 @@ class EnergySystemModel:
 
         :returns: dictionary with the removed componentName and component instance if track is set to True else None.
         :rtype: dict or None
-        """       
+        """
 
-        # Test if component exists 
+        # Test if component exists
         if componentName not in self.componentNames.keys():
             raise ValueError('The component ' + componentName + ' cannot be found in the energy system model.\n' +
                              'The components considered in the model are: ' + str(self.componentNames.keys()))
@@ -349,13 +359,13 @@ class EnergySystemModel:
             df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def cluster(self, 
-                numberOfTypicalPeriods=7, 
-                numberOfTimeStepsPerPeriod=24, 
+    def cluster(self,
+                numberOfTypicalPeriods=7,
+                numberOfTimeStepsPerPeriod=24,
                 segmentation=False,
-                numberOfSegmentsPerPeriod=24, 
-                clusterMethod='hierarchical', 
-                sortValues=True, 
+                numberOfSegmentsPerPeriod=24,
+                clusterMethod='hierarchical',
+                sortValues=True,
                 storeTSAinstance=False,
                 **kwargs):
         """
@@ -421,7 +431,7 @@ class EnergySystemModel:
         if segmentation:
             if numberOfSegmentsPerPeriod > numberOfTimeStepsPerPeriod:
                 if self.verbose < 2:
-                    warnings.warn('The chosen number of segments per period exceeds the number of time steps per' 
+                    warnings.warn('The chosen number of segments per period exceeds the number of time steps per'
                                   'period. The number of segments per period is set to the number of time steps per '
                                   'period.')
                 numberOfSegmentsPerPeriod = numberOfTimeStepsPerPeriod
@@ -590,6 +600,30 @@ class EnergySystemModel:
         pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
         pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
 
+    def declareNetAutarkyConstraint(self, pyM):
+        """
+        Declare net autarky constraint.
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
+        """
+        autarkyDict = {}
+        for mdl_type, mdl in self.componentModelingDict.items():
+            if mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel":
+                for compName, comp in mdl.componentsDict.items():
+                    if comp.autarkyID is not None:
+                        [autarkyDict.setdefault((comp.autarkyID, loc), []).append(compName)
+                         for loc in self.locations]
+        setattr(pyM, "autarkyDict", autarkyDict)
+        def autarkyConstraint(pyM, ID, loc):
+            return sum(mdl.getAutarkyContribution(esM=self, pyM=pyM, ID=ID, loc=loc)
+                for mdl_type, mdl in self.componentModelingDict.items() if (
+                    mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel")
+                    ) <= self.autarkyLimit[ID][loc]
+        pyM.NetAutarkyConstraint = \
+            pyomo.Constraint(pyM.autarkyDict.keys(), rule=autarkyConstraint)
+
     def declareSharedPotentialConstraints(self, pyM):
         """
         Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
@@ -744,6 +778,11 @@ class EnergySystemModel:
         self.declareCommodityBalanceConstraints(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
+        # Declare constraint for autarky
+        _t = time.time()
+        self.declareNetAutarkyConstraint(pyM)
+        utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
+
         ################################################################################################################
         #                                         Declare objective function                                           #
         ################################################################################################################
@@ -756,15 +795,15 @@ class EnergySystemModel:
         # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
-    def optimize(self, 
-                 declaresOptimizationProblem=True, 
-                 relaxIsBuiltBinary=False, 
+    def optimize(self,
+                 declaresOptimizationProblem=True,
+                 relaxIsBuiltBinary=False,
                  timeSeriesAggregation=False,
-                 logFileName='', 
-                 threads=3, 
-                 solver='gurobi', 
-                 timeLimit=None, 
-                 optimizationSpecs='', 
+                 logFileName='',
+                 threads=3,
+                 solver='gurobi',
+                 timeLimit=None,
+                 optimizationSpecs='',
                  warmstart=False):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.

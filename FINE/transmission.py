@@ -12,36 +12,37 @@ class Transmission(Component):
     Last edited: November 28, 2018
     |br| @author: Lara Welder
     """
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
-                 losses=0, 
+    def __init__(self,
+                 esM,
+                 name,
+                 commodity,
+                 losses=0,
                  distances=None,
-                 hasCapacityVariable=True, 
-                 capacityVariableDomain='continuous', 
+                 hasCapacityVariable=True,
+                 capacityVariableDomain='continuous',
                  capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
+                 hasIsBuiltBinaryVariable=False,
                  bigM=None,
-                 operationRateMax=None, 
-                 operationRateFix=None, 
+                 operationRateMax=None,
+                 operationRateFix=None,
                  tsaWeight=1,
-                 locationalEligibility=None, 
-                 capacityMin=None, 
-                 capacityMax=None, 
-                 partLoadMin=None, 
+                 locationalEligibility=None,
+                 capacityMin=None,
+                 capacityMax=None,
+                 partLoadMin=None,
                  sharedPotentialID=None,
-                 capacityFix=None, 
+                 capacityFix=None,
                  isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
-                 opexPerOperation=0, 
+                 investPerCapacity=0,
+                 investIfBuilt=0,
+                 opexPerOperation=0,
                  opexPerCapacity=0,
-                 opexIfBuilt=0, 
-                 QPcostScale=0, 
-                 interestRate=0.08, 
-                 economicLifetime=10, 
-                 technicalLifetime=None):
+                 opexIfBuilt=0,
+                 QPcostScale=0,
+                 interestRate=0.08,
+                 economicLifetime=10,
+                 technicalLifetime=None,
+                 autarkyID=None):
         """
         Constructor for creating an Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
@@ -113,6 +114,11 @@ class Transmission(Component):
         :type opexPerOperation: positive (>=0) float or Pandas DataFrame with positive (>=0) values.
             The row and column indices of the DataFrame have to equal the in the energy system model
             specified locations.
+
+        :param autarkyID: ID for the autarky limit specified in the esM, if the TransmissionModel is
+            supposed to be included in the autarky analysis. If the commodity is going out of the region,
+            it is counted as a positive
+        :type autarkyID: string
         """
         # TODO add unit checks
         # Preprocess two-dimensional data
@@ -146,30 +152,31 @@ class Transmission(Component):
         self.interestRate = utils.preprocess2dimData(interestRate, self._mapC)
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
+        self.autarkyID = autarkyID
 
-        Component. __init__(self, 
-                            esM, 
-                            name, 
-                            dimension='2dim', 
+        Component. __init__(self,
+                            esM,
+                            name,
+                            dimension='2dim',
                             hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain, 
+                            capacityVariableDomain=capacityVariableDomain,
                             capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
+                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
                             bigM=bigM,
-                            locationalEligibility=self.locationalEligibility, 
+                            locationalEligibility=self.locationalEligibility,
                             capacityMin=self.capacityMin,
-                            capacityMax=self.capacityMax, 
-                            partLoadMin=partLoadMin, 
+                            capacityMax=self.capacityMax,
+                            partLoadMin=partLoadMin,
                             sharedPotentialID=sharedPotentialID,
-                            capacityFix=self.capacityFix, 
+                            capacityFix=self.capacityFix,
                             isBuiltFix=self.isBuiltFix,
-                            investPerCapacity=self.investPerCapacity, 
+                            investPerCapacity=self.investPerCapacity,
                             investIfBuilt=self.investIfBuilt,
-                            opexPerCapacity=self.opexPerCapacity, 
+                            opexPerCapacity=self.opexPerCapacity,
                             opexIfBuilt=self.opexIfBuilt,
-                            interestRate=self.interestRate, 
-                            QPcostScale=QPcostScale, 
-                            economicLifetime=self.economicLifetime, 
+                            interestRate=self.interestRate,
+                            QPcostScale=QPcostScale,
+                            economicLifetime=self.economicLifetime,
                             technicalLifetime=self.technicalLifetime)
 
         # Set general component data
@@ -180,13 +187,13 @@ class Transmission(Component):
         self.distances = utils.checkAndSetDistances(self.distances, self.locationalEligibility, esM)
         self.losses = utils.checkAndSetTransmissionLosses(self.losses, self.distances, self.locationalEligibility)
         self.modelingClass = TransmissionModel
-        
+
         # Set distance related costs data
         self.investPerCapacity *= (self.distances * 0.5)
         self.investIfBuilt *= (self.distances * 0.5)
         self.opexPerCapacity *= (self.distances * 0.5)
         self.opexIfBuilt *= (self.distances * 0.5)
-        
+
         # Set additional economic data
         self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',
                                                                self.locationalEligibility)
@@ -466,6 +473,41 @@ class TransmissionModel(ComponentModel):
                    for loc_ in opVarDictOut[loc].keys()
                    for compName in opVarDictOut[loc][loc_]
                    if commod in compDict[compName].commodity)
+
+    def getAutarkyContribution(self, esM, pyM, ID, loc):
+        """
+        Get contribution to autarky constraint.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param ID: ID of the regarded autarky constraint
+        :param ID: string
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
+        opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
+        limitDict = getattr(pyM, 'autarkyDict')
+        aut = \
+            sum(opVar[loc_ + "_" + loc, compName, p, t] *
+                         esM.periodOccurrences[p]/esM.numberOfYears
+                         for loc_ in opVarDictIn[loc].keys()
+                         for compName in opVarDictIn[loc][loc_]
+                         for p in esM.periods
+                         for t in esM.totalTimeSteps) - \
+            sum(opVar[loc + "_" + loc_, compName, p, t] *
+                         esM.periodOccurrences[p]/esM.numberOfYears
+                         for loc_ in opVarDictIn[loc].keys()
+                         for compName in opVarDictIn[loc][loc_]
+                         for p in esM.periods
+                         for t in esM.totalTimeSteps)
+        return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """

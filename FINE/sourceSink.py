@@ -10,42 +10,43 @@ class Source(Component):
     A Source component can transfer a commodity over the energy system boundary into the system.
     """
 
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
+    def __init__(self,
+                 esM,
+                 name,
+                 commodity,
                  hasCapacityVariable,
-                 capacityVariableDomain='continuous', 
+                 capacityVariableDomain='continuous',
                  capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
+                 hasIsBuiltBinaryVariable=False,
                  bigM=None,
-                 operationRateMax=None, 
-                 operationRateFix=None, 
-                 tsaWeight=1, 
+                 operationRateMax=None,
+                 operationRateFix=None,
+                 tsaWeight=1,
                  commodityLimitID=None,
-                 yearlyLimit=None, 
-                 locationalEligibility=None, 
-                 capacityMin=None, 
-                 capacityMax=None, 
+                 yearlyLimit=None,
+                 locationalEligibility=None,
+                 capacityMin=None,
+                 capacityMax=None,
                  partLoadMin=None,
-                 sharedPotentialID=None, 
-                 capacityFix=None, 
+                 sharedPotentialID=None,
+                 capacityFix=None,
                  isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
-                 opexPerOperation=0, 
+                 investPerCapacity=0,
+                 investIfBuilt=0,
+                 opexPerOperation=0,
                  commodityCost=0,
-                 commodityRevenue=0, 
-                 commodityCostTimeSeries=None, 
-                 commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, 
-                 opexIfBuilt=0, 
-                 QPcostScale=0, 
-                 interestRate=0.08, 
-                 economicLifetime=10, 
-                 technicalLifetime=None, 
-                 yearlyFullLoadHoursMin=None, 
-                 yearlyFullLoadHoursMax=None):
+                 commodityRevenue=0,
+                 commodityCostTimeSeries=None,
+                 commodityRevenueTimeSeries=None,
+                 opexPerCapacity=0,
+                 opexIfBuilt=0,
+                 QPcostScale=0,
+                 interestRate=0.08,
+                 economicLifetime=10,
+                 technicalLifetime=None,
+                 yearlyFullLoadHoursMin=None,
+                 yearlyFullLoadHoursMax=None,
+                 autarkyID=None):
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -87,7 +88,7 @@ class Source(Component):
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
         :param commodityCostTimeSeries: if specified, indicates commodity cost rates for each location and each
-            time step by a positive float. The values are given as specific values relative to the commodityUnit 
+            time step by a positive float. The values are given as specific values relative to the commodityUnit
             for each time step.
             |br| * the default value is None
         :type commodityCostTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
@@ -167,33 +168,37 @@ class Source(Component):
             |br| * the default value is 0
         :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
+
+        :param autarkyID: ID for the autarky limit specified in the esM, if the SourceSinkModel is
+            supposed to be included in the autarky analysis.
+        :type autarkyID: string
         """
 
-        Component. __init__(self, 
-                            esM, 
-                            name, 
-                            dimension='1dim', 
+        Component. __init__(self,
+                            esM,
+                            name,
+                            dimension='1dim',
                             hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain, 
+                            capacityVariableDomain=capacityVariableDomain,
                             capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
+                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
                             bigM=bigM,
-                            locationalEligibility=locationalEligibility, 
+                            locationalEligibility=locationalEligibility,
                             capacityMin=capacityMin,
-                            capacityMax=capacityMax, 
-                            partLoadMin=partLoadMin, 
-                            sharedPotentialID=sharedPotentialID, 
+                            capacityMax=capacityMax,
+                            partLoadMin=partLoadMin,
+                            sharedPotentialID=sharedPotentialID,
                             capacityFix=capacityFix,
-                            isBuiltFix=isBuiltFix, 
-                            investPerCapacity=investPerCapacity, 
+                            isBuiltFix=isBuiltFix,
+                            investPerCapacity=investPerCapacity,
                             investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, 
-                            opexIfBuilt=opexIfBuilt, 
-                            QPcostScale=QPcostScale, 
+                            opexPerCapacity=opexPerCapacity,
+                            opexIfBuilt=opexIfBuilt,
+                            QPcostScale=QPcostScale,
                             interestRate=interestRate,
-                            economicLifetime=economicLifetime, 
-                            technicalLifetime=None, 
-                            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin, 
+                            economicLifetime=economicLifetime,
+                            technicalLifetime=None,
+                            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
                             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
         # Set general source/sink data: ID and yearly limit
@@ -201,6 +206,7 @@ class Source(Component):
         self.commodity, self.commodityUnit = commodity, esM.commodityUnitsDict[commodity]
         # TODO check value and type correctness
         self.commodityLimitID, self.yearlyLimit = commodityLimitID, yearlyLimit
+        self.autarkyID = autarkyID
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
@@ -307,39 +313,39 @@ class Sink(Source):
     A Sink component can transfer a commodity over the energy system boundary out of the system.
     """
 
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
+    def __init__(self,
+                 esM,
+                 name,
+                 commodity,
                  hasCapacityVariable,
-                 capacityVariableDomain='continuous', 
+                 capacityVariableDomain='continuous',
                  capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
+                 hasIsBuiltBinaryVariable=False,
                  bigM=None,
-                 operationRateMax=None, 
-                 operationRateFix=None, 
-                 tsaWeight=1, 
+                 operationRateMax=None,
+                 operationRateFix=None,
+                 tsaWeight=1,
                  commodityLimitID=None,
-                 yearlyLimit=None, 
-                 locationalEligibility=None, 
-                 capacityMin=None, 
-                 capacityMax=None, 
+                 yearlyLimit=None,
+                 locationalEligibility=None,
+                 capacityMin=None,
+                 capacityMax=None,
                  partLoadMin=None,
-                 sharedPotentialID=None, 
-                 capacityFix=None, 
+                 sharedPotentialID=None,
+                 capacityFix=None,
                  isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
-                 opexPerOperation=0, 
+                 investPerCapacity=0,
+                 investIfBuilt=0,
+                 opexPerOperation=0,
                  commodityCost=0,
-                 commodityRevenue=0, 
-                 commodityCostTimeSeries=None, 
-                 commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, 
-                 opexIfBuilt=0, 
-                 QPcostScale=0, 
-                 interestRate=0.08, 
-                 economicLifetime=10, 
+                 commodityRevenue=0,
+                 commodityCostTimeSeries=None,
+                 commodityRevenueTimeSeries=None,
+                 opexPerCapacity=0,
+                 opexIfBuilt=0,
+                 QPcostScale=0,
+                 interestRate=0.08,
+                 economicLifetime=10,
                  technicalLifetime=None):
         """
         Constructor for creating an Sink class instance.
@@ -348,39 +354,39 @@ class Sink(Source):
         (see Source class for the parameter description) and differ in the sign
         parameter, which is equal to -1 for Sink objects and +1 for Source objects.
         """
-        Source.__init__(self, 
-                        esM, 
-                        name, 
-                        commodity=commodity, 
-                        hasCapacityVariable=hasCapacityVariable, 
+        Source.__init__(self,
+                        esM,
+                        name,
+                        commodity=commodity,
+                        hasCapacityVariable=hasCapacityVariable,
                         capacityVariableDomain=capacityVariableDomain,
-                        capacityPerPlantUnit=capacityPerPlantUnit, 
-                        hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
-                        bigM=bigM, 
-                        operationRateMax=operationRateMax, 
+                        capacityPerPlantUnit=capacityPerPlantUnit,
+                        hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
+                        bigM=bigM,
+                        operationRateMax=operationRateMax,
                         operationRateFix=operationRateFix,
-                        tsaWeight=tsaWeight, 
-                        commodityLimitID=commodityLimitID, 
-                        yearlyLimit=yearlyLimit, 
-                        locationalEligibility=locationalEligibility, 
+                        tsaWeight=tsaWeight,
+                        commodityLimitID=commodityLimitID,
+                        yearlyLimit=yearlyLimit,
+                        locationalEligibility=locationalEligibility,
                         capacityMin=capacityMin,
-                        capacityMax=capacityMax, 
-                        partLoadMin=partLoadMin, 
-                        sharedPotentialID=sharedPotentialID, 
-                        capacityFix=capacityFix, 
-                        isBuiltFix=isBuiltFix, 
+                        capacityMax=capacityMax,
+                        partLoadMin=partLoadMin,
+                        sharedPotentialID=sharedPotentialID,
+                        capacityFix=capacityFix,
+                        isBuiltFix=isBuiltFix,
                         investPerCapacity=investPerCapacity,
-                        investIfBuilt=investIfBuilt, 
-                        opexPerOperation=opexPerOperation, 
-                        commodityCost=commodityCost, 
-                        commodityRevenue=commodityRevenue, 
-                        commodityCostTimeSeries=commodityCostTimeSeries, 
-                        commodityRevenueTimeSeries=commodityRevenueTimeSeries, 
-                        opexPerCapacity=opexPerCapacity, 
-                        opexIfBuilt=opexIfBuilt, 
-                        QPcostScale=QPcostScale, 
-                        interestRate=interestRate, 
-                        economicLifetime=economicLifetime, 
+                        investIfBuilt=investIfBuilt,
+                        opexPerOperation=opexPerOperation,
+                        commodityCost=commodityCost,
+                        commodityRevenue=commodityRevenue,
+                        commodityCostTimeSeries=commodityCostTimeSeries,
+                        commodityRevenueTimeSeries=commodityRevenueTimeSeries,
+                        opexPerCapacity=opexPerCapacity,
+                        opexIfBuilt=opexIfBuilt,
+                        QPcostScale=QPcostScale,
+                        interestRate=interestRate,
+                        economicLifetime=economicLifetime,
                         technicalLifetime=technicalLifetime)
 
         self.sign = -1
@@ -593,6 +599,30 @@ class SourceSinkModel(ComponentModel):
         return any([comp.commodity == commod and comp.locationalEligibility[loc] == 1
                     for comp in self.componentsDict.values()])
 
+    def getAutarkyContribution(self, esM, pyM, ID, loc):
+        """
+        Get contribution to autarky constraint.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param ID: ID of the regarded autarky constraint
+        :param ID: string
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
+        limitDict = getattr(pyM, 'autarkyDict')
+        aut = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+                  esM.periodOccurrences[p]/esM.numberOfYears
+                  for _loc, compName, p, t in opVar if (compName in [limitDict[key] for key in limitDict.keys()][0] and _loc == loc))
+        return aut
+
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
         """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -659,12 +689,12 @@ class SourceSinkModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
             cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[op.index], axis=1)
             cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[op.index], axis=1)
-            
+
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values/esM.numberOfYears
-            
+
             # get empty datframe for resulting time dependent (TD) cost sum
             cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
             cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
@@ -685,13 +715,13 @@ class SourceSinkModel(ComponentModel):
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
                     cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
-                        
+
             optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cCostTD.values + cCost.values)/esM.numberOfYears
 
             optSummary.loc[[(ix, 'commodRevenues', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cRevenueTD.values + cRevenue.values)/esM.numberOfYears
-        
+
         # get discounted investment cost as total annual cost (TAC)
         optSummary = optSummary.append(optSummaryBasic).sort_index()
 
