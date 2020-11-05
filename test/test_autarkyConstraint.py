@@ -10,7 +10,7 @@ import numpy as np
 #    'Wind turbines', 'PV', 'Batteries', 'AC cables'
 # 'Electricity purchase' and 'AC cables' are included in the autarky analysis
 # 4. The random autarky percentage ('perNetAutarky') is compared to the outcome of the model
-#   Net Autarky = (1 - (Purchase + Ac cables_in - Ac cables_out)/Demand) 
+#   Net Autarky = (1 - (Purchase + Ac cables_in - Ac cables_out)/Demand)
 def test_autarkyConstraint():
     locations = {"Region1",
                 "Region2"
@@ -100,7 +100,7 @@ def test_autarkyConstraint():
         distances=distances, losses=losses, autarkyID="el"))
     
     ## Optimize model
-    esM.optimize(timeSeriesAggregation=False, solver='gurobi')
+    esM.optimize(timeSeriesAggregation=False, solver='glpk')
     res_source = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
     res_transmission = esM.getOptimizationSummary("TransmissionModel", outputLevel=2)
     for i, loc in enumerate(esM.locations):
