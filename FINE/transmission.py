@@ -496,17 +496,19 @@ class TransmissionModel(ComponentModel):
         limitDict = getattr(pyM, 'autarkyDict')
         aut = \
             sum(opVar[loc_ + "_" + loc, compName, p, t] *
-                         esM.periodOccurrences[p]/esM.numberOfYears
-                         for loc_ in opVarDictIn[loc].keys()
-                         for compName in opVarDictIn[loc][loc_]
-                         for p in esM.periods
-                         for t in esM.totalTimeSteps) - \
+                (1 - compDict[compName].losses[loc_ + '_' + loc] * 
+                 compDict[compName].distances[loc_ + '_' + loc]) *
+                esM.periodOccurrences[p]/esM.numberOfYears
+                for loc_ in opVarDictIn[loc].keys()
+                for compName in opVarDictIn[loc][loc_]
+                for p in esM.periods
+                for t in esM.totalTimeSteps) - \
             sum(opVar[loc + "_" + loc_, compName, p, t] *
-                         esM.periodOccurrences[p]/esM.numberOfYears
-                         for loc_ in opVarDictIn[loc].keys()
-                         for compName in opVarDictIn[loc][loc_]
-                         for p in esM.periods
-                         for t in esM.totalTimeSteps)
+                esM.periodOccurrences[p]/esM.numberOfYears
+                for loc_ in opVarDictIn[loc].keys()
+                for compName in opVarDictIn[loc][loc_]
+                for p in esM.periods
+                for t in esM.totalTimeSteps)
         return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):

@@ -134,6 +134,7 @@ class EnergySystemModel:
             dictionary, the limit is specified in the commodities' unit. Possible included components are
             SourceSinkModel (e.g.: Purchase) and TransmissionModel (i.e.: exchange with other regions).
             (i.e.: {ID: {Region1: Limit1, Region2: Limit2}}). Example: {'electricity': 'Region1': 100000}
+        :type autarkyLimit: dictionary
         """
 
         # Check correctness of inputs
