@@ -14,23 +14,23 @@ import FINE.spagat.dataset as spd
                          (['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'])]) 
 def test_string_based_clustering(string_list, expected):
      clustered_regions = spg.string_based_clustering(string_list)
-     assert list(clustered_regions.keys()).sort() == expected.sort()
+     assert list(clustered_regions.keys()).sort() == expected.sort()   #INFO: instead of unpermute, you can use .sort() 
             
 
-def test_distance_based_clustering(sds):
+def test_distance_based_clustering(sds):    #TODO: implement the test (hint for dataset -> makeblobs)
     #spg.distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illustration=None, save_fig=None)
     pass
 
-
+@pytest.mark.skip(reason="TEST no implemented correctly")
 def test_all_variable_based_clustering_hierarchical(test_dataset2):
      clustered_regions1 = spg.all_variable_based_clustering(test_dataset2,agg_mode='hierarchical2')
      assert len(clustered_regions1) == 3
      assert clustered_regions1.get(3) == {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']}
      
      dict2 = clustered_regions1.get(2)
-     for sup_reg in dict2:
+     for sup_reg in dict2:                            #TODO: this is totally wrong. it's not asserting anything as len(sup_reg) is 13 and 6, use key, value in dict.items to iterate
           if len(sup_reg) == 2:
-               assert sorted(sup_reg) == ['01_reg', '03_reg']
+               assert sorted(sup_reg) == ['01_reg', '03_reg']  #TODO: assert the whole item, not just key or value
           if len(sup_reg) == 1:
                assert sorted(sup_reg) == ['02_reg']
 
@@ -44,7 +44,7 @@ def test_all_variable_based_clustering_spectral(test_dataset2):
      assert len(clustered_regions1) == 3
 
      dict1_2 = clustered_regions1.get(2)
-     for sup_region in dict1_2.values():
+     for sup_region in dict1_2.values():            #TODO: assert the whole item, not just key or value
           if len(sup_region) == 2:
                assert sorted(sup_region) ==  ['01_reg','03_reg']
 

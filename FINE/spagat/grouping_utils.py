@@ -25,7 +25,7 @@ def preprocessTimeSeries(vars_dict, n_regions, n_components):
                 - the value is a numpy array of size n_regions * TimeStep         
                 - the array matrix is normalized to scale [0,1]     
     '''
-    if not vars_dict: return None
+    if not vars_dict: return None #TODO: is this line really necessary ?? 
 
     ds_ts = {}
 
@@ -61,7 +61,7 @@ def preprocess1dVariables(vars_dict, n_components):
         - the numpy arrays are standardized, rescaling to the range [0,1] in column-wise, i.e. rescaling for each component
     '''
 
-    if not vars_dict: return None
+    if not vars_dict: return None #TODO: is this line really necessary ?? 
 
     ds_1d = {}
 
@@ -81,7 +81,7 @@ def preprocess1dVariables(vars_dict, n_components):
 
     return ds_1d
 
-def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarity'):
+def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarity'):  #TODO: component_list is not required. take n_components as argument instead 
     ''' Preprocess matrices of 2d-vars with one of the following mode:
         - Firstly: Adjust the region order of space_2, i.e. order of columns
         - Obtain ds_2d: a dictionary containing all variables
@@ -102,7 +102,7 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
 
     if not vars_dict: return None
 
-    n_components = len(component_list)
+    n_components = len(component_list)   
 
     # Obtain th dictionary of connectivity matrices for each variable and for its valid component, each of size n_regions*n_regions (n_regions)
     ds_2d = {}
@@ -127,7 +127,7 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
             var_matr = da[comp_id].values
             
             # Rearrange the columns order --> the regions order of space_2!
-            da_comp_df = pd.DataFrame(data=var_matr,columns=space2)
+            da_comp_df = pd.DataFrame(data=var_matr,columns=space2)            #INFO: This is to make sure order of space and space2 is the same
             da_comp_df = da_comp_df[space1]
             
             # Standardize the matrix: keep all the values non-negative! AND keep zeros to be zeros (not change the meaning of connectivity!)
@@ -158,7 +158,9 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
                 
                 # Obtain the vector form of this symmetric connectivity matrix, in the range [0,1]
                 # Deactivate checks since small numerical errors can be in the dataset
-                vec = hierarchy.distance.squareform(data, checks=False)
+                vec = hierarchy.distance.squareform(data, checks=False)    #INFO: [[0.  0.1 0.2]
+                                                                           #       [0.1 0.  1. ]       -->  [0.1 0.2 1. ]   (only the elements from upper or lower triangle 
+                                                                           #       [0.2 1.  0. ]]                            as the other is always redundant in a dist matrix )
 
                 # Convert the value of connectivity (similarity) to distance (dissimilarity)
                 vec = 1 - vec
@@ -168,16 +170,17 @@ def preprocess2dVariables(vars_dict, component_list, handle_mode='toDissimilarit
   
         return ds_2d
 
-    if handle_mode == 'toAffinity':
+    if handle_mode == 'toAffinity':    
         '''Original matrices as Adjacency matrices : 
             - adjacency matrix: 0 means identical elements; high values means very similar elements
             - adjacency matrix of a graph: symmetric, diagonals = 0
             - add all matrices of different components for each variable 
             
         '''
-        return ds_2d
+        return ds_2d   #TODO: add return statement only once in the end and remove "if handle_mode == 'toAffinity':"
 
-def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=None):
+def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=None):   #TODO: a lot of refactoring required in this function. refer to the corresponding 
+                                                                                        # jupyter notebook for steps and MAKE THIS BETTER!
     '''Preprocess the Xarray dataset: Separate the dataset into 3 parts: time series data, 1d-var data, and 2d-var data
         - vars_ts: Time series variables: a feature matrix for each ts variable
         - vars_1d: a features matrix for each 1d variable
@@ -192,6 +195,7 @@ def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=N
     dataset = sds.xr_dataset
 
     # Traverse all variables in the dataset, and put them in separate categories
+    #NOTE: dicts of variables and their corresponding dataArrays
     vars_ts = {}
     vars_1d = {}
     vars_2d = {}
@@ -200,7 +204,7 @@ def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=N
         # sort the dimensions
         if sorted(da.dims) == sorted(('component','Period','TimeStep', 'space')):   #TODO: maybe space should be generalized with additional variable - dimension_description ?
             # Period is not considered -> TODO: consider the Period dimension.
-            da = da.transpose('Period','component','space','TimeStep')[0]  
+            da = da.transpose('Period','component','space','TimeStep')[0]  #NOTE: eg. (component: 4, Period: 1, TimeStep: 2, space: 3) converted to (component: 4, space: 3, TimeStep: 2) (in coordinates period is still shown without *)
             vars_ts[varname] = da
 
         elif sorted(da.dims) == sorted(('component','space')):
@@ -213,7 +217,6 @@ def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=N
             warnings.warn("Variable '" + varname + "' has dimensions + '" + str(da.dims) + "' which are not considered for spatial aggregation.")
 
     component_list = list(dataset['component'].values)
-
     n_regions = len(dataset['space'].values)
 
     ds_timeseries = preprocessTimeSeries(vars_ts, n_regions, len(component_list))
@@ -246,16 +249,16 @@ def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=N
                 - from adjacency matrix to affinity matrix
         '''
         # Weighting factors of each variable 
-        if var_weightings:
-            var_weightings = var_weightings
+        if var_weightings:                                 
+            var_weightings = var_weightings               #TODO: reduce the lines here by using 'if var_weightings is None' 
         else:
             vars_list = list(vars_ts.keys()) + list(vars_1d.keys()) + list(vars_2d.keys())
-            var_weightings = dict.fromkeys(vars_list,1)
+            var_weightings = dict.fromkeys(vars_list,1)                  #NOTE: For now var_weightings is always {'operationFixRate': 1, '1d_capacity': 1, '2d_distance': 1} (There is no option for user to change) ??
 
         ###### For Time series vars: obtain the single matrix - matrix_ts
         matrix_ts = np.array([np.zeros(n_regions)]).T
 
-        n_timesteps = len(dataset['TimeStep'].values)
+        n_timesteps = len(dataset['TimeStep'].values)  #TODO: remove this (unused) line
 
         for var, var_matrix in ds_timeseries.items():
 
@@ -264,10 +267,10 @@ def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=N
             # Concatenate the matrix of this var to the final matrix with its weighting factor
             matrix_ts = np.concatenate((matrix_ts, var_matrix * weight), axis=1)
         
-        matrix_ts = np.delete(matrix_ts,0,1)
-
+        matrix_ts = np.delete(matrix_ts,0,1)     #NOTE: if var_weightings is default, this matrix should be the same as ds_timeseries.values()
+                                                 #TODO: check if it is the same. If yes, reduce these lines (add to previous if statement)
         ###### For 1d vars: obtain the single matrix - matrix_1d
-        matrix_1d = np.array([np.zeros(n_regions)]).T
+        matrix_1d = np.array([np.zeros(n_regions)]).T   
 
         for var, var_matrix in ds_1d_vars.items():
 
@@ -279,7 +282,7 @@ def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=N
         matrix_1d = np.delete(matrix_1d,0,1)
 
         ###### For 2d vars: obtain a single square matrix of size n_regions*regions
-        matrix_2d = np.zeros((n_regions,n_regions))
+        matrix_2d = np.zeros((n_regions,n_regions))   #TODO: Move this line to after the loop
 
         ds_2d_vars = preprocess2dVariables(vars_2d, component_list, handle_mode='toAffinity')
 
@@ -296,7 +299,7 @@ def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=N
         return matrix_ts, matrix_1d, matrix_2d
 
 
-def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part_weightings=None):  #TODO: Change a and b to something more intuitive 
+def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part_weightings=None):  #TODO: Change a and b to something more intuitive (eg. region_n and region_m). notice that both are ints !
     ''' Custom distance function: 
         - parameters a, b: region ids, a < b, a,b in [0, n_regions) 
         - return: distance between a and b = distance_ts + distance_1d + distance_2d
@@ -339,7 +342,8 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part
 
         # dist_ts(a,b) = sum_var( var_weight * dist_var(a,b) )
         # dist_var(a,b) = sum_c(sum_t( [value_var_c_t(a) - value_var_c_t(b)]^2 ))
-        distance_ts += sum( np.power((reg_a - reg_b),2) ) * var_weight_factor
+        distance_ts += sum(np.power((reg_a - reg_b),2)) * var_weight_factor    #INFO: reg_a and reg_b are vectors, subtract the vectors, square each element and add all elements. 
+                                                                               #       (notice subtraction happens per time step, per component)
 
     # Distance of 1d Variables Part
     distance_1d = 0
@@ -352,14 +356,14 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part
         reg_b = var_matr[b]
 
         # dist_1d(a,b) = sum_var{var_weight * sum_c( [value_var_c(a) - value_var_c(b)]^2 ) }
-        distance_1d += sum(np.power((reg_a - reg_b),2)) * var_weight_factor
+        distance_1d += sum(np.power((reg_a - reg_b),2)) * var_weight_factor  #INFO: same as previous but subtraction happens per component
 
     # Distance of 2d Variables Part
     distance_2d = 0
 
     # The index of corresponding value for region[a] and region[b] in the distance vectors
-    index_regA_regB = a * (n_regions - a) + (b - a) -1
-    
+    index_regA_regB = a * (n_regions - a) + (b - a) -1                #INFO: since it's a condensed matrix, we have to get dist. corresponding to the two given regions
+                                                                      
     for var, var_dict in ds_2d.items():
 
         var_weight_factor = var_weightings[var]
@@ -368,14 +372,15 @@ def selfDistance(ds_ts, ds_1d, ds_2d, n_regions, a, b, var_weightings=None, part
             # Find the corresponding distance value for region_a and region_b 
             value_var_c = data[index_regA_regB]
 
-            if not np.isnan(value_var_c):
+            if not np.isnan(value_var_c):                              #INFO: if the regions are not connected the value will be na
                 # dist_2d(a,b) = sum_var{var_weight * sum_c( [value_var_c(a,b)]^2 ) }
                 distance_2d += (value_var_c*value_var_c) * var_weight_factor
 
     return distance_ts * part_weightings[0] + distance_1d * part_weightings[1] + distance_2d * part_weightings[2]
 
 def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions, var_weightings=None):
-    ''' Return a n_regions by n_regions symmetric distance matrix X 
+    ''' Return a n_regions by n_regions symmetric distance matrix X #TODO: better description => for every region combination, calculates the custom distance (by calling selfDistance())
+                                                                                                 Returns a n_regions by n_regions symmetric distance matrix 
     '''
 
     distMatrix = np.zeros((n_regions,n_regions))
@@ -384,7 +389,7 @@ def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions, var_weightings=None):
         for j in range(i+1,n_regions):
             distMatrix[i,j] = selfDistance(ds_ts,ds_1d, ds_2d, n_regions, i,j, var_weightings=var_weightings)
 
-    distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())
+    distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())  #INFO: only upper triangle has values, reflects these values in lower triangle to make it a hollow, symmetric matrix
 
     return distMatrix
 
@@ -480,30 +485,34 @@ def computeModularity(adjacency, regions_label_list):
     return modularity
 
 def computeSilhouetteCoefficient(regions_list, distanceMatrix, aggregation_dict):
+    '''
+    Obtain Silhouette score for all intermediate levels in the hierarchy  #TODO: make this better 
+    '''
 
     n_regions = len(regions_list)
 
-    # Silhouette Coefficient scores
-    scores = [0 for i in range(1, n_regions-1)]
+    
+    scores = [0 for i in range(1, n_regions-1)]   #NOTE: Silhouette Coefficient can only be computed for 2 to n_samples - 1 (inclusive)
+                                                  #       first and last level in the hierarchy (first is original and last is one region) are to be eliminated
 
-    # Labels for each region object
-    labels = [0 for i in range(n_regions)]
+    labels = [0 for i in range(n_regions)]    
 
     for k, regions_dict in aggregation_dict.items():
 
+        #STEP 1. Check if k is an intermediate level in the hierarchy
         if k == 1 or k == n_regions:
-            continue
+            continue                         #NOTE: again, eliminate computing for first and last level 
 
-        # Obtain labels list for this clustering results
+        #STEP 2. Assign labels to each group of regions (starting from 0)
         label = 0
-        for sup_region in regions_dict.values():
+        for sup_region in regions_dict.values():  #TODO: change sup_region to sub_regions_list 
             for reg in sup_region:
                 ind = regions_list.index(reg)
                 labels[ind] = label
             
             label += 1
         
-        # Silhouette score of this clustering
+        #STEP 3. Get Silhouette Coefficient for current level in the hierarchy 
         s = metrics.silhouette_score(distanceMatrix, labels, metric='precomputed')
         scores[k-2] = s
 

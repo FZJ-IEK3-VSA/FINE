@@ -34,7 +34,7 @@ def test_dimensional_data_to_xarray_dataset_minimal(minimal_test_esM):
     assert actual_number_of_locations == expected_number_of_locations
 
 
-def test_spatial_aggregation_multinode(multi_node_test_esM_init, solver):
+def test_spatial_aggregation_multinode(multi_node_test_esM_init, solver):   #TODO: after fixing the spatial_aggregation function, rewrite this test WITH ASSERT STATEMENT 
     '''Test whether spatial aggregation of the Multi-Node Energy System Model (from examples) and subsequent optimization works'''
 
     shapefileFolder = os.path.join(os.path.dirname(__file__), '../../examples/Multi-regional_Energy_System_Workflow/', 
@@ -42,7 +42,7 @@ def test_spatial_aggregation_multinode(multi_node_test_esM_init, solver):
 
     inputShapefile = 'clusteredRegions.shp'
 
-    esM_aggregated = multi_node_test_esM_init.spatial_aggregation(numberOfRegions=3, clusterMethod="centroid-based", shapefileFolder=shapefileFolder, inputShapefile=inputShapefile)   #TODO: after fixing the spatial_aggregation function, rewrite this test
+    esM_aggregated = multi_node_test_esM_init.spatial_aggregation(numberOfRegions=3, clusterMethod="centroid-based", shapefileFolder=shapefileFolder, inputShapefile=inputShapefile)   
 
     esM_aggregated.cluster(numberOfTypicalPeriods=2)
     

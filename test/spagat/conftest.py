@@ -17,7 +17,7 @@ def sds():
     return sds
 
 @pytest.fixture()
-def test_dataset1():
+def test_dataset1():    #TODO: rename this fixture to something more descriptive #NOTE: this dataset is not used anywhere in tests!
     """
     Create a simple Test Xarray Dataset containing three variables (without component): opFix(time series var), 1d_cap, 2d_dist
     """
@@ -43,7 +43,7 @@ def test_dataset1():
 
 
 @pytest.fixture()
-def test_dataset2():
+def test_dataset2():   #TODO: rename this fixture to something more descriptive 
     """
     Create a Test Xarray Dataset: each variable has several components
     """

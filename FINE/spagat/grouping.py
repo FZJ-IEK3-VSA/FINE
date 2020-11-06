@@ -398,13 +398,13 @@ def distance_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None
 
 @spu.timer
 def all_variable_based_clustering(sds, agg_mode, verbose=False, ax_illustration=None, save_fig=None, dimension_description='space', weighting=None):
-    
+    #TODO: save_fig should be an str and is taken as name of the figure. change it to save_name for clarity
     # Original region list
     regions_list = sds.xr_dataset[dimension_description].values
     n_regions = len(regions_list)
 
     aggregation_dict = {}
-    aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
+    aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}  #NOTE: for 3 regions looks like -> {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']}}. Notice that it is dict within dict
 
     ''' 1. Using hierarchical clustering for all variables with custom defined distance
         - precomputed distance matrix using selfDistanceMatrix() function
@@ -441,7 +441,7 @@ def all_variable_based_clustering(sds, agg_mode, verbose=False, ax_illustration=
         #print(list(inconsistency[:,3]))
         
         # If and how to save the hierarchical tree 
-        if ax_illustration is not None:
+        if ax_illustration is not None:                        #TODO: ax can be passed like axes[1] if the figure is a subplot of a plot. check how helpful this is. based on it maybe simplify or eliminate this
             R = hierarchy.dendrogram(Z, 
                                     orientation="top",
                                     labels=sds.xr_dataset[dimension_description].values, 
@@ -466,7 +466,7 @@ def all_variable_based_clustering(sds, agg_mode, verbose=False, ax_illustration=
         
         # regions_dict to record the newest region set after each merging step, regions_dict_complete for all regions appearing during clustering
         regions_dict = {region_id: [region_id] for region_id in regions_list}
-        regions_dict_complete = regions_dict.copy()
+        regions_dict_complete = regions_dict.copy()                  #INFO: you can't assign regions_dict directly to regions_dict_complete in Python. You have to copy it. else manipulating one will change the other
 
         # Identify, which regions are merged together (new_merged_region_id_list)
         for i in range(len(Z)):
