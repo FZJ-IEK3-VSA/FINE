@@ -2,7 +2,8 @@
 User Guide
 ###########
 
-You want to dig deeper into our framework and 
+In the following sections you can find general information about energy systems modeling, and 
+the detailed description of the classes, methods and functionalities of FINE. 
 
 .. toctree::
     :maxdepth: 1
