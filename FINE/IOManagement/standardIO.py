@@ -692,9 +692,9 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
         |br| * the default value is 'epsg:3035'
     :type crs: string
 
-    :param variableName: name of the operation time series. Checkout the component model class to see which options
-        are available.
-        |br| * the default value is 'capacityVariables'
+    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation 
+        ('operationVariablesOptimum'). 
+        |br| * the default value is 'capacityVariablesOptimum'
     :type variableName: string
 
     :param color: color of the transmission line
@@ -783,7 +783,7 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
 def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, perArea=True, areaFactor=1e3,
                            crs='epsg:3035', variableName='capacityVariablesOptimum', doSum=False, cmap='viridis', vmin=0,
                            vmax=-1, zlabel='Installed capacity\nper kilometer\n', figsize=(6, 6), fontsize=12, save=False,
-                           fileName='', dpi=200, **kwargs):
+                           fileName='capacity.png', dpi=200, **kwargs):
     """
     Plot the data of a component for each location.
 
@@ -815,9 +815,9 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
         |br| * the default value is 'epsg:3035'
     :type crs: string
 
-    :param variableName: name of the operation time series. Checkout the component model class to see which options
-        are available.
-        |br| * the default value is 'operationVariablesOptimum'
+    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation 
+        ('operationVariablesOptimum'). In case of plotting the operation, set the parameter doSum to True.
+        |br| * the default value is 'capacityVariablesOptimum'
     :type variableName: string
 
     :param doSum: indicates if the variable has to be summarized for the location (e.g. for operation
@@ -854,7 +854,7 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     :type save: boolean
 
     :param fileName: output file name
-        |br| * the default value is 'operation.png'
+        |br| * the default value is 'capacity.png'
     :type fileName: string
 
     :param dpi: resolution in dots per inch

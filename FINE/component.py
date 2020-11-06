@@ -1637,8 +1637,8 @@ class ComponentModel(metaclass=ABCMeta):
         Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
+        * 'capacityVariablesOptimum',
+        * 'isBuiltVariablesOptimum',
         * 'operationVariablesOptimum',
         * 'all' or another input: all variables are returned.\n
         :type name: string
