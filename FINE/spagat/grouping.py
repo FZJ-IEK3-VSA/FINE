@@ -419,7 +419,7 @@ def all_variable_based_clustering(sds, agg_mode, verbose=False, ax_illustration=
     if agg_mode == 'hierarchical':
 
         # Obtain the data dictionaries for three var categories after preprocessing
-        dict_ts, dict_1d, dict_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')
+        dict_ts, dict_1d, dict_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')  #TODO: this is a common step for all agg_modes, put it only once before if statements (keep in mind that the handle modes are different for different agg_modes)
 
         # Apply clustering methods based on the Custom Distance Function
         squared_dist_matrix = gu.selfDistanceMatrix(dict_ts, dict_1d, dict_2d, n_regions)
@@ -506,7 +506,7 @@ def all_variable_based_clustering(sds, agg_mode, verbose=False, ax_illustration=
         print(silhouette_scores)
 
     ## Clustering methods via Scikit Learn module'''
-    if agg_mode == 'hierarchical2':
+    if agg_mode == 'hierarchical2':  
 
         # Obtain the data dictionaries for three var categories after preprocessing
         ds_ts, ds_1d, ds_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')
@@ -520,7 +520,10 @@ def all_variable_based_clustering(sds, agg_mode, verbose=False, ax_illustration=
         # Silhouette Coefficient scores
         silhouette_scores = []
 
-        for i in range(1,n_regions):
+        for i in range(1,n_regions):           #NOTE: each level in the hierarchy shows one merge. Looks like her it does not. 
+                                                #Hence, for loop is used to perform clustering for every number of desired regions 
+                                                #TODO: maybe investigate this?
+
             # Computing hierarchical clustering
             model = skc.AgglomerativeClustering(n_clusters=i,affinity='precomputed',linkage='average',connectivity=connectMatrix).fit(squared_distMatrix)
             regions_label_list = model.labels_
@@ -622,11 +625,12 @@ def all_variable_based_clustering(sds, agg_mode, verbose=False, ax_illustration=
         else:                          #TODO: reduce these lines to 1 line (IF not weighting)
             weighting = [1,1,1]
 
-        # Using RBF kernel to construct affinity matrix
+        # delta value for RBF kernel -> to construct affinity matrix
         delta = 1
 
         ##### Obtain affinity matrix for TimeSeries part via RBF kernel applied on distance matrix
-        distance_matrix_ts = hierarchy.distance.squareform(hierarchy.distance.pdist(feature_matrix_ts))
+        distance_matrix_ts = hierarchy.distance.squareform(hierarchy.distance.pdist(feature_matrix_ts))  #NOTE: pdist finds euclidean distance between regions,
+                                                                                                         # here, hierarchy.distance.squareform converts this condensed matrix (rather a list) to a symmetric, hollow matrix
 
         affinity_ts = np.exp(- distance_matrix_ts ** 2 / (2. * delta ** 2))
 
@@ -637,11 +641,11 @@ def all_variable_based_clustering(sds, agg_mode, verbose=False, ax_illustration=
 
         ##### Obtain affinity matrix for 2d-Vars
 
-        # Convert the adjacency matrix to a dissimilarity matrix similar to a distance matrix: high value=more dissimilarity, 0=identical elements
-        adjacency_2d_adverse = 1.0 / adjacency_matrix_2d
-        max_value = adjacency_2d_adverse[np.isfinite(adjacency_2d_adverse)].max()
-        adjacency_2d_adverse[np.isinf(adjacency_2d_adverse)] = max_value + 10
-        np.fill_diagonal(adjacency_2d_adverse,0)
+        # Convert the adjacency matrix to a dissimilarity matrix similar to a distance matrix: high value=more dissimilarity, 0=identical elements  #TODO: why is this required?? what cant we set handle mode to dissimilarity directly??
+        adjacency_2d_adverse = 1.0 / adjacency_matrix_2d   #NOTE: #adjacency_matrix_2d is affinity matrix, convert it into distance matrix by taking it's reciprocal
+        max_value = adjacency_2d_adverse[np.isfinite(adjacency_2d_adverse)].max()  #NOTE: find the maximum value which is not infinity
+        adjacency_2d_adverse[np.isinf(adjacency_2d_adverse)] = max_value + 10  #NOTE: infinity = max value + 10 (meant for non-connected regions)
+        np.fill_diagonal(adjacency_2d_adverse,0)                   #NOTE: set diagonal values to 0 (meant for same region pair in the matrix)       
 
         # Construct the affinity matrix by applying RBF on the dissimilarity matrix
         affinity_2d = np.exp(- adjacency_2d_adverse ** 2 / (2. * delta ** 2))

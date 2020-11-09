@@ -417,30 +417,30 @@ def generateConnectivityMatrix(sds):
 
     # The neighboring information is based on the 2d vars with components related to pipeline
     connect_components = []
-    for i in range(len(component_list)):
+    for i in range(len(component_list)):            #TODO: n_components instead of len(component_list)
         if 'pipeline' in component_list[i].lower():
             connect_components.append(i)
 
     # If there is no components related to pipelines, then consider all existing components.
     if not connect_components:
-        connect_components = list(range(len(component_list)))
+        connect_components = list(range(len(component_list)))  #TODO: n_components instead of len(component_list)
 
     adjacencyMatrix = np.zeros((n_regions,n_regions))
 
     # Check each index pair of regions to verify, if the two regions are connected to each other
     for i in range(n_regions):
         for j in range(i+1,n_regions):
-            if checkConnectivity(i,j, ds_2d, connect_components):
+            if checkConnectivity(i,j, ds_2d, connect_components):  #NOTE: checkConnectivity returns true or false 
                 adjacencyMatrix[i,j] = 1
 
-    adjacencyMatrix += adjacencyMatrix.T - np.diag(adjacencyMatrix.diagonal())
+    adjacencyMatrix += adjacencyMatrix.T - np.diag(adjacencyMatrix.diagonal())  #NOTE: adjacencyMatrix is upper triangular. so, take transpose, subtract the diagonal elements and add it back to adjacencyMatrix. Now, it is symmetrical
 
     # Set the diagonal values as 1
-    np.fill_diagonal(adjacencyMatrix, 1)
+    np.fill_diagonal(adjacencyMatrix, 1)  
 
     return adjacencyMatrix
 
-def checkConnectivity(i,j, ds_2d, connect_components):
+def checkConnectivity(i,j, ds_2d, connect_components):   #TODO: change i, j to something more meaningful 
     '''Check if region i is neighboring to region j, based on the components related to pipelines.
         - as 1 if there exists at least one non-zero value in any matrix at the position [i,j]
         - if no components related to pipelines, then the connect_components is the list of all existing components.
@@ -450,7 +450,7 @@ def checkConnectivity(i,j, ds_2d, connect_components):
         for c, data in var_dict.items():
             if (c in connect_components) and (data[i,j] != 0):
                 return True
-            
+                                 #TODO: to make it more transparent add else statement here and return False
     return False
 
 def computeModularity(adjacency, regions_label_list):
