@@ -76,3 +76,12 @@ def test_dataset2():   #TODO: rename this fixture to something more descriptive
     sds = spd.SpagatDataset()
     sds.xr_dataset = ds
     return sds
+
+
+  
+
+
+
+
+
+

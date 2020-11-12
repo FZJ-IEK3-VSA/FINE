@@ -18,9 +18,9 @@ import geopandas as gpd
 @pytest.fixture
 def solver():
     """Global variable for solver - glpk or gurobi"""
-    return 'gurobi'
+    return 'glpk'
 
-Solver = 'gurobi' # can't use fixture on another fixture - multi_node_test_esM_optimized
+Solver = 'glpk' # can't use fixture on another fixture - multi_node_test_esM_optimized
 
 @pytest.fixture
 def minimal_test_esM(scope="session"):
