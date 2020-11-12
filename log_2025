@@ -310,3 +310,107 @@ Iteration    Objective       Primal Inf.    Dual Inf.      Time
 
 Solved in 1533 iterations and 0.08 seconds
 Optimal objective  3.081144720e+04
+
+Gurobi 9.0.1 (win64) logging started 11/12/20 09:40:50
+
+Changed value of parameter logfile to log_2025
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 73 rows, 51 columns and 175 nonzeros
+Model fingerprint: 0xd962e722
+Coefficient statistics:
+  Matrix range     [3e-01, 2e+03]
+  Objective range  [1e-02, 9e+01]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 44 rows and 24 columns
+Presolve time: 0.00s
+Presolved: 29 rows, 27 columns, 100 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0   -1.9537280e+07   4.639671e+08   0.000000e+00      0s
+Extra one simplex iteration after uncrush
+      19    3.8832062e+06   0.000000e+00   0.000000e+00      0s
+
+Solved in 19 iterations and 0.00 seconds
+Optimal objective  3.883206206e+06
+
+Gurobi 9.0.1 (win64) logging started 11/12/20 09:41:07
+
+Changed value of parameter logfile to log_2025
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 7606 rows, 3989 columns and 21245 nonzeros
+Model fingerprint: 0x12559d50
+Coefficient statistics:
+  Matrix range     [3e-04, 5e+02]
+  Objective range  [1e+00, 1e+02]
+  Bounds range     [1e+02, 4e+02]
+  RHS range        [7e-01, 2e+02]
+Presolve removed 2961 rows and 2357 columns
+Presolve time: 0.02s
+Presolved: 4645 rows, 1632 columns, 18956 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+    1533    3.0811447e+04   0.000000e+00   0.000000e+00      0s
+
+Solved in 1533 iterations and 0.13 seconds
+Optimal objective  3.081144720e+04
+
+Gurobi 9.0.1 (win64) logging started 11/12/20 16:49:12
+
+Changed value of parameter logfile to log_2025
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 73 rows, 51 columns and 175 nonzeros
+Model fingerprint: 0xd962e722
+Coefficient statistics:
+  Matrix range     [3e-01, 2e+03]
+  Objective range  [1e-02, 9e+01]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 44 rows and 24 columns
+Presolve time: 0.00s
+Presolved: 29 rows, 27 columns, 100 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0   -1.9537280e+07   4.639671e+08   0.000000e+00      0s
+Extra one simplex iteration after uncrush
+      19    3.8832062e+06   0.000000e+00   0.000000e+00      0s
+
+Solved in 19 iterations and 0.00 seconds
+Optimal objective  3.883206206e+06
+
+Gurobi 9.0.1 (win64) logging started 11/12/20 16:49:21
+
+Changed value of parameter logfile to log_2025
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 7606 rows, 3989 columns and 21245 nonzeros
+Model fingerprint: 0x12559d50
+Coefficient statistics:
+  Matrix range     [3e-04, 5e+02]
+  Objective range  [1e+00, 1e+02]
+  Bounds range     [1e+02, 4e+02]
+  RHS range        [7e-01, 2e+02]
+Presolve removed 2961 rows and 2357 columns
+Presolve time: 0.02s
+Presolved: 4645 rows, 1632 columns, 18956 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+    1533    3.0811447e+04   0.000000e+00   0.000000e+00      0s
+
+Solved in 1533 iterations and 0.10 seconds
+Optimal objective  3.081144720e+04

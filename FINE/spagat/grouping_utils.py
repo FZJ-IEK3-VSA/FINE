@@ -448,17 +448,19 @@ def checkConnectivity(i,j, ds_2d, connect_components):   #TODO: change i, j to s
     
     for var, var_dict in ds_2d.items():
         for c, data in var_dict.items():
-            if (c in connect_components) and (data[i,j] != 0):
-                return True
-                                 #TODO: to make it more transparent add else statement here and return False
-    return False
+            if (c in connect_components) and (data[i,j] != 0):  
+                return True                              #INFO: checks for each var, each component. 
+                                                         #      Returns TRUE if atleast one var, component pair has non-zero value.
+                                                         # 
+                                                         #
+    return False                                         # After checking for all, returns false if none had non-zero value
 
 def computeModularity(adjacency, regions_label_list):
     ''' Compute the modularity of the partitioned graph
         - graph's weighted adjacency matrix with entries defined by the edge weights
         - regions_label_list to show the graph partition
     '''
-
+     #INFO: bounds -> [-0.5; 1). Higher the score, the better the partition 
     np.fill_diagonal(adjacency, 0)
     n_regions = len(regions_label_list)
 
@@ -488,6 +490,7 @@ def computeSilhouetteCoefficient(regions_list, distanceMatrix, aggregation_dict)
     '''
     Obtain Silhouette score for all intermediate levels in the hierarchy  #TODO: make this better 
     '''
+    #INFO: score is bounded between -1 and +1. The higher the score, the better the clustering.
 
     n_regions = len(regions_list)
 
