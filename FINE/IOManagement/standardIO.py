@@ -506,14 +506,12 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
     """
     isStorage=False
 
-    if (isinstance(type(esM.getComponent(compName)), fn.Conversion) |
-        issubclass(type(esM.getComponent(compName)), fn.Conversion)):
+    if isinstance(esM.getComponent(compName), fn.Conversion):
         unit = esM.getComponent(compName).physicalUnit
     else:
         unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
 
-    if (isinstance(type(esM.getComponent(compName)), fn.Storage) |
-        issubclass(type(esM.getComponent(compName)), fn.Storage)):
+    if isinstance(esM.getComponent(compName), fn.Storage):
         isStorage=True
         unit = unit + '*h'
 
