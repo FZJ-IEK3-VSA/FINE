@@ -1,6 +1,6 @@
 """
-Last edited: July 27 2018
-|br| @author: Lara Welder
+Last edited: November 12 2020
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
 from FINE.component import Component, ComponentModel
@@ -55,8 +55,8 @@ class EnergySystemModel:
       available.
     * getting components and their attributes (**getComponent, getCompAttr, getOptimizationSummary**)
 
-    Last edited: July 27, 2018
-    |br| @author: Lara Welder
+    Last edited: November 12 2020
+    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
     def __init__(self, 
@@ -412,8 +412,8 @@ class EnergySystemModel:
             |br| * the default value is False
         :type storeTSAinstance: boolean
 
-        Last edited: March 26, 2020
-        |br| @author: Lara Welder, Maximilian Hoffmann
+        Last edited: November 12 2020
+        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
 
         # Check input arguments which have to fit the temporal representation of the energy system
@@ -695,7 +695,7 @@ class EnergySystemModel:
         :type declaresOptimizationProblem: boolean
 
         Last edited: March 26, 2020
-        |br| @author: Lara Welder, Maximilian Hoffmann
+        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -836,7 +836,7 @@ class EnergySystemModel:
         :type warmstart: boolean
 
         Last edited: March 26, 2020
-        |br| @author: Lara Welder, Maximilian Hoffmann
+        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
         if not timeSeriesAggregation:
             self.segmentation = False

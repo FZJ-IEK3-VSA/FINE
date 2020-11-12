@@ -1,7 +1,7 @@
 """
 Last edited: January 20 2020
 
-@author: Lara Welder, Johannes Thürauf \n\n
+|br| @author: FINE Developer Team (FZJ IEK-3) \n\n
 The approaches used are described in
 Robinius et. al. (2019) "Robust Optimal Discrete Arc Sizing for Tree-Shaped Potential Networks"
 and they are further developed with the help of
@@ -2368,4 +2368,3 @@ def plotOptimizedNetwork(gdf_pipes, figsize=(4,4), nodesColumn='nodes', diamColu
     plt.show()
 
     return fig, ax
-

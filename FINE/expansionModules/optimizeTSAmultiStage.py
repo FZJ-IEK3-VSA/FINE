@@ -1,7 +1,7 @@
 """
 Last edited: February 20, 2020
 
-@author: Theresa Gross, Max Hoffmann, Bismark Singh
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
 from FINE import utils
@@ -101,7 +101,7 @@ def optimizeTSAmultiStage(esM,
     :type warmstart: boolean
 
     Last edited: February 20, 2020
-    |br| @author: Theresa Gross, Max Hoffmann
+    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     lowerBound=None
 
@@ -142,7 +142,7 @@ def fixBinaryVariables(esM):
     :type esM: EnergySystemModel instance from the FINE package
 
     Last edited: February 20, 2020
-    |br| @author: Theresa Gross, Max Hoffmann
+    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     for mdl in esM.componentModelingDict.keys():
         compValues = esM.componentModelingDict[mdl].getOptimalValues('isBuiltVariablesOptimum')['values']

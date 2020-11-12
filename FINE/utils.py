@@ -1,7 +1,7 @@
 """
 Last edited: February 21, 2020
 
-@author: Lara Welder, Theresa Gross
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 import warnings
 import pandas as pd
