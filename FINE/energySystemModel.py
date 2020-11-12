@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import pyomo.environ as pyomo
 import pyomo.opt as opt
+from pyomo.opt import SolverFactory
 import time
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -762,7 +763,7 @@ class EnergySystemModel:
                  timeSeriesAggregation=False,
                  logFileName='', 
                  threads=3, 
-                 solver='gurobi', 
+                 solver='None', 
                  timeLimit=None, 
                  optimizationSpecs='', 
                  warmstart=False):
@@ -860,6 +861,44 @@ class EnergySystemModel:
         self.solverSpecs['logFileName'], self.solverSpecs['threads'] = logFileName, threads
         self.solverSpecs['solver'], self.solverSpecs['timeLimit'] = solver, timeLimit
         self.solverSpecs['optimizationSpecs'], self.solverSpecs['hasTSA'] = optimizationSpecs, timeSeriesAggregation
+
+        # Check which solvers are available and choose default solver if no solver is specified explicitely
+        # Order of possible solvers in solverList defines the priority of chosen default solver.
+        solverList = ['gurobi', 'coincbc', 'glpk']
+        
+        # No solver specified in optimization settings
+        if solver == 'None':
+            for i in solverList:
+                if solver == 'None':
+                    try:
+                        SolverFactory(i).available()
+                        solver = i
+                        utils.output(str(i) + ' is set as solver as no solver was specified explicitely.', self.verbose, 0)
+                    except:
+                        break
+        
+        # Check if specified solver is set. If not, other solvers are used if possible.
+        else:
+            try:
+                SolverFactory(solver).available()
+            
+            except:
+                if solver != 'None':
+                    utils.output('Specified solver (' + str(solver) + ') not available.', self.verbose, 0)
+                solver = 'None'
+                for i in solverList:
+                    if solver == 'None':
+                        try:
+                            SolverFactory(i).available()
+                            solver = i
+                            utils.output(str(i) + ' is set as solver.', self.verbose, 0)
+                        except:
+                            break
+
+        if solver == 'None':
+            raise TypeError('At least one solver must be installed.'
+                            ' Have a look at the FINE documentation to see how to install possible solvers.'
+                            ' https://vsa-fine.readthedocs.io/en/latest/')
 
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #
