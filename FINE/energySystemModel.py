@@ -15,7 +15,6 @@ import warnings
 import logging
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
-logging.getLogger('pyomo.core').setLevel(logging.ERROR)
 
 
 class EnergySystemModel:
