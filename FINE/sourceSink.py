@@ -618,9 +618,14 @@ class SourceSinkModel(ComponentModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
         limitDict = getattr(pyM, 'autarkyDict')
+        # aut = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+        #           esM.periodOccurrences[p]/esM.numberOfYears
+        #           for _loc, compName, p, t in opVar if (compName in [limitDict[key] for key in limitDict.keys()][0] and _loc == loc))
         aut = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
-                  esM.periodOccurrences[p]/esM.numberOfYears
-                  for _loc, compName, p, t in opVar if (compName in [limitDict[key] for key in limitDict.keys()][0] and _loc == loc))
+                  esM.periodOccurrences[p]
+                  for compName in compDict.keys() if compName in limitDict[(ID, loc)]
+                  for p in esM.periods
+                  for t in esM.totalTimeSteps)
         return aut
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
