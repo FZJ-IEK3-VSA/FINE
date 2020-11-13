@@ -10,11 +10,12 @@ import pandas as pd
 import numpy as np
 import pyomo.environ as pyomo
 import pyomo.opt as opt
-from pyomo.opt import SolverFactory
 import time
 import warnings
+import logging
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
+logging.getLogger('pyomo.core').setLevel(logging.ERROR)
 
 
 class EnergySystemModel:
@@ -866,34 +867,20 @@ class EnergySystemModel:
         # Order of possible solvers in solverList defines the priority of chosen default solver.
         solverList = ['gurobi', 'coincbc', 'glpk']
         
-        # No solver specified in optimization settings
-        if solver == 'None':
-            for i in solverList:
-                if solver == 'None':
-                    try:
-                        SolverFactory(i).available()
-                        solver = i
-                        utils.output(str(i) + ' is set as solver as no solver was specified explicitely.', self.verbose, 0)
-                    except:
-                        break
-        
-        # Check if specified solver is set. If not, other solvers are used if possible.
-        else:
+        if solver != 'None':
             try:
-                SolverFactory(solver).available()
-            
+                opt.SolverFactory(solver).available()
             except:
-                if solver != 'None':
-                    utils.output('Specified solver (' + str(solver) + ') not available.', self.verbose, 0)
                 solver = 'None'
-                for i in solverList:
-                    if solver == 'None':
-                        try:
-                            SolverFactory(i).available()
-                            solver = i
-                            utils.output(str(i) + ' is set as solver.', self.verbose, 0)
-                        except:
-                            break
+
+        if solver == 'None':
+            for nSolver in solverList:
+                try:
+                    opt.SolverFactory(nSolver).available()
+                    solver = nSolver
+                    utils.output('Either no selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
+                except:
+                    pass
 
         if solver == 'None':
             raise TypeError('At least one solver must be installed.'
