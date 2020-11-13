@@ -4,9 +4,11 @@ conda:
   - linux
 
   script:
-    - conda env update -q --file=requirements.yml
-    - conda env update -q --file=requirements_dev.yml
-    - conda info --envs
+    - conda install mamba -c conda-forge
+    - mamba create -n fine python=3.6
+    - mamba env update -n fine --file=requirements.yml
+    - mamba env update -n fine --file=requirements_dev.yml
+    - mamba info --envs
     - source activate FINE
-    - pip install -e .
-    - pytest --cov=FINE test/
+    - python -m pip install -e .
+    - python -m pytest --cov=FINE test/
