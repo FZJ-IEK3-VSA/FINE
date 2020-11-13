@@ -12,7 +12,6 @@ import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
 import warnings
-import logging
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -874,12 +873,13 @@ class EnergySystemModel:
 
         if solver == 'None':
             for nSolver in solverList:
-                try:
-                    opt.SolverFactory(nSolver).available()
-                    solver = nSolver
-                    utils.output('Either no selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
-                except:
-                    pass
+                if solver == 'None':
+                    try:
+                        opt.SolverFactory(nSolver).available()
+                        solver = nSolver
+                        utils.output('Either solver not selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
+                    except:
+                        pass
 
         if solver == 'None':
             raise TypeError('At least one solver must be installed.'
