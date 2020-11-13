@@ -5,7 +5,7 @@ conda:
 
   script:
     - conda install mamba -c conda-forge
-    - mamba create -n fine python=3.6
+    - mamba create -n fine python=3.6 -y
     - mamba env update -n fine --file=requirements.yml
     - mamba env update -n fine --file=requirements_dev.yml
     - mamba info --envs
