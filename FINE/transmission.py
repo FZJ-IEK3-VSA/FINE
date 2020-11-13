@@ -498,15 +498,15 @@ class TransmissionModel(ComponentModel):
             sum(opVar[loc_ + "_" + loc, compName, p, t] *
                 (1 - compDict[compName].losses[loc_ + '_' + loc] * 
                  compDict[compName].distances[loc_ + '_' + loc]) *
-                esM.periodOccurrences[p]/esM.numberOfYears
+                esM.periodOccurrences[p]
                 for loc_ in opVarDictIn[loc].keys()
-                for compName in opVarDictIn[loc][loc_]
+                for compName in opVarDictIn[loc][loc_] if compName in limitDict[(ID, loc)]
                 for p in esM.periods
                 for t in esM.totalTimeSteps) - \
             sum(opVar[loc + "_" + loc_, compName, p, t] *
-                esM.periodOccurrences[p]/esM.numberOfYears
-                for loc_ in opVarDictIn[loc].keys()
-                for compName in opVarDictIn[loc][loc_]
+                esM.periodOccurrences[p]
+                for loc_ in opVarDictOut[loc].keys()
+                for compName in opVarDictOut[loc][loc_] if compName in limitDict[(ID, loc)]
                 for p in esM.periods
                 for t in esM.totalTimeSteps)
         return aut
