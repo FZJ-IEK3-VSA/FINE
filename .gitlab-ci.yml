@@ -4,11 +4,7 @@ conda:
   - linux
 
   script:
-    - conda update -n base -c defaults conda
-    - conda config --add channels conda-forge
-    - conda config --set channel_priority strict
     - conda install mamba -c conda-forge
-    - mamba create -y -n fine python=3.6.9
     - mamba env update -n fine --file=requirements.yml
     - mamba env update -n fine --file=requirements_dev.yml
     - mamba info --envs
