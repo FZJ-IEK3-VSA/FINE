@@ -296,7 +296,7 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
                   color="k", fontsize=12, save=False, fileName='operation.png', dpi=200, **kwargs):
     """
     Plot operation time series of a component at a location.
-
+    
     **Required arguments:**
 
     :param esM: considered energy system model
@@ -506,14 +506,12 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
     """
     isStorage=False
 
-    if (isinstance(esM.getComponent(compName), fn.Conversion) |
-        issubclass(esM.getComponent(compName), fn.Conversion)):
+    if isinstance(esM.getComponent(compName), fn.Conversion):
         unit = esM.getComponent(compName).physicalUnit
     else:
         unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
 
-    if (isinstance(esM.getComponent(compName), fn.Storage) |
-        issubclass(esM.getComponent(compName), fn.Storage)):
+    if isinstance(esM.getComponent(compName), fn.Storage):
         isStorage=True
         unit = unit + '*h'
 
@@ -525,7 +523,12 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
         timeSeries = data['values'].loc[(compName, loc, locTrans)].values
     timeSeries = timeSeries/esM.hoursPerTimeStep if not isStorage else timeSeries
 
-    timeSeries = timeSeries.reshape(nbPeriods, nbTimeStepsPerPeriod).T
+    try:
+        timeSeries = timeSeries.reshape(nbPeriods, nbTimeStepsPerPeriod).T
+    except ValueError as e:
+        raise ValueError("Could not reshape array. Your timeSeries has {} values and it is therefore not possible".format(len(timeSeries)) +
+              " to reshape it to ({}, {}). Please correctly specify nbPeriods".format(nbPeriods, nbTimeStepsPerPeriod) +
+              " and nbTimeStepsPerPeriod The error was: {}.".format(e))
     vmax = timeSeries.max() if vmax == -1 else vmax
 
     fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
