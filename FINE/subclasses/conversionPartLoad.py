@@ -1,6 +1,6 @@
 """
 Last edited: February 20, 2020
-|br| @author: Jan Priesmann, Michael Zier
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
 from FINE.conversion import Conversion, ConversionModel
@@ -37,7 +37,7 @@ class ConversionPartLoad(Conversion):
         **Required arguments:**
         
         :param commodityConversionFactorsPartLoad: Function or data set describing (nonlinear) part load behavior.
-        :type commodityConversionFactorsPartLoad: Lambda function or Pandas DataFrame with to columns for the x-axis 
+        :type commodityConversionFactorsPartLoad: Lambda function or Pandas DataFrame with two columns for the x-axis 
             and the y-axis.
 
         **Default arguments:**
@@ -65,9 +65,12 @@ class ConversionPartLoad(Conversion):
 
         self.modelingClass = ConversionPartLoadModel
 
+        # TODO: Make compatible with conversion
+        utils.checkNumberOfConversionFactors(commodityConversionFactors)
+                                       
         if type(commodityConversionFactorsPartLoad) == dict:
             #TODO: Multiple conversionPartLoads
-            utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad.keys())
+            utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad)
             utils.checkCommodities(esM, set(commodityConversionFactorsPartLoad.keys()))
             utils.checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad.values())
             self.commodityConversionFactorsPartLoad = commodityConversionFactorsPartLoad
@@ -356,8 +359,7 @@ class ConversionPartLoadModel(ConversionModel):
 
         def partLoadOperationOutput(pyM, loc, compName, p, t):        
             nPoints = compDict[compName].nSegments+1
-            ### TODO Store the part load levels seperately and do not use 
-            # print(list(compDict[compName].discretizedPartLoad.keys()))
+
             return opVar[loc, compName, p, t] == sum(discretizationPointConVar[loc, compName, discretStep, p, t] * \
                                                  compDict[compName].discretizedPartLoad[list(compDict[compName].discretizedPartLoad.keys())[0]]['xSegments'][discretStep] \
                                                  for discretStep in range(nPoints))

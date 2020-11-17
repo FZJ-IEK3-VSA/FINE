@@ -1,7 +1,7 @@
 """
 Last edited: February 06, 2020
 
-@author: Lara Welder
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 from .energySystemModel import EnergySystemModel
 from .sourceSink import Source, Sink

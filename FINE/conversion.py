@@ -9,8 +9,8 @@ class Conversion(Component):
     """
     A Conversion component converts commodities into each other.
 
-    Last edited: July 27, 2018
-    |br| @author: Lara Welder
+    Last edited: November 12 2020
+    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
     def __init__(self,
