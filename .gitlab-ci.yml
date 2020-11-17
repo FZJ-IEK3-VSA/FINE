@@ -1,12 +1,13 @@
 conda:
-  image: continuumio/miniconda:latest
+  image: continuumio/miniconda3:latest
   tags: 
   - linux
 
   script:
-    - conda env update -q --file=requirements.yml
-    - conda env update -q --file=requirements_dev.yml
-    - conda info --envs
-    - source activate FINE
-    - pip install -e .
-    - pytest --cov=FINE test/
+    - conda install mamba -c conda-forge
+    - mamba env update -n fine --file=requirements.yml
+    - mamba env update -n fine --file=requirements_dev.yml
+    - mamba info --envs
+    - source activate fine
+    - python -m pip install -e .
+    - python -m pytest --cov=FINE test/
