@@ -1,7 +1,7 @@
 """
 Last edited: May 15 2018
 
-@author: Lara Welder
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 from .lopf import LinearOptimalPowerFlow
 from .conversionDynamic import ConversionDynamic
