@@ -1,6 +1,6 @@
 """
 Last edited: February 20, 2020
-|br| @author: Jan Priesmann, Michael Zier
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
 from FINE.conversion import Conversion, ConversionModel

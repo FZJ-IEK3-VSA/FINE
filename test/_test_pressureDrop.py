@@ -1,7 +1,7 @@
 """
 Last edited: January 22 2020
 
-@author: Johannes Thürauf
+|br| @author: FINE Developer Team (FZJ IEK-3)
 # here we provide unit tests of our main functions in robustPipelineSizing
 """
 from FINE.expansionModules import robustPipelineSizing
