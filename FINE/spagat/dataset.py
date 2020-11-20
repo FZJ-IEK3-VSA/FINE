@@ -46,9 +46,12 @@ class SpagatDataset:
             
         """
 
-        # TODO: understandtype of pd.Series(object_list).values and transform object_list without pandas to it
+        #TODO: If only one dimension is passed then dimension_list is unnessary. Check the functions use in representation.py
+        # and simplify this method.  
 
-        self.xr_dataset[description] = (dimension_list, pd.Series(object_list).values)
+        # TODO: understandtype of pd.Series(object_list).values and transform object_list without pandas to it
+               # the dtype is array with int64, list works fine but with int32 (Should not be a problem). use object list directly here 
+        self.xr_dataset[description] = (dimension_list, pd.Series(object_list).values)  
 
     def add_region_data(self, space: List[object], spatial_dim: str = "space") -> None:
         """Add space coordinates to the dataset
@@ -95,13 +98,13 @@ class SpagatDataset:
             object_list=gdf_regions.geometry,
         )
 
-    def save_sds_regions(self, shape_output_path : str, crs : int = 3035):
+    def save_sds_regions(self, shape_output_path : str, shape_output_files_name : str = 'sds_regions', crs : int = 3035):
         """Save regions and geometries from xr_array to shapefile
         
         Parameters
         ----------
         shape_output_path
-            path to which the shapefile shall be saved
+            path to which the shapefile shall be saved #TODO: update parameters
         
         crs
             coordinate reference system in which to save the shapefiles
@@ -110,9 +113,10 @@ class SpagatDataset:
         df = self.xr_dataset.space.to_dataframe()
         geometries = self.xr_dataset.gpd_geometries.values
 
-        spu.create_gdf(
-            df=df, geometries=geometries, crs=crs, filepath=shape_output_path
-        )
+        spu.create_gdf(df=df, geometries=geometries, crs=crs, 
+                       file_path=shape_output_path,
+                       files_name = shape_output_files_name
+                      )
 
     def save_data(self, sds_output_path : str) -> None:
         """Save all data of the dataset apart from the shapes.

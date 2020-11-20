@@ -296,9 +296,9 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 sds.xr_dataset[varname], sub_to_sup_region_id_dict
             )
             sds_2.add_region_data(list(sub_to_sup_region_id_dict.keys()))
-            sds_2.add_objects(
+            sds_2.add_objects(                 #TODO: based on the current and possible future use of add_objects() simplify the method
                 description="gpd_geometries",
-                dimension_list=(spatial_dim),
+                dimension_list=(spatial_dim),  #TODO: check why the brackets are necessary
                 object_list=shapes_aggregated,
             )
             add_region_centroids(sds_2)
