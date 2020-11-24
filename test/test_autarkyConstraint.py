@@ -32,20 +32,12 @@ def test_autarkyConstraint():
                                 for day in range(ndays) for u in dailyProfileSimple],
                                index=range(nhours), columns=['Region1', 'Region2']).round(2)
     ## Define Autarky constraint in relation to demand in regions
-    perNetAutarky = round(np.random.random(), 2)
+    input_autarky = pd.DataFrame(columns=['Region1', 'Region2'], index=["el", "heat"])
     perNetAutarky = 0.75
-    _autarkyConstraint = (1 - perNetAutarky) * demand.sum()
-    autarkyConstraint = {}
-    for i, val in _autarkyConstraint.iteritems():
-        autarkyConstraint[i] = val
-    _autarkyConstraintHeat = (1 - perNetAutarky) * heat_demand.sum()
-    autarkyConstraintHeat = {}
-    for i, val in _autarkyConstraint.iteritems():
-        autarkyConstraint[i] = val
-    for i, val in _autarkyConstraintHeat.iteritems():
-        autarkyConstraintHeat[i] = val
-    autarkyLimit = {"el": autarkyConstraint,
-                    "heat": autarkyConstraintHeat}
+    perNetAutarky_h = 0.9
+    input_autarky.loc["el"] = (1 - perNetAutarky) * demand.sum()
+    input_autarky.loc["heat"] = (1 - perNetAutarky_h) * heat_demand.sum()
+    print(input_autarky)
 
     ## Initialize esM with two regions
     esM = fn.EnergySystemModel(locations=locations,
@@ -54,7 +46,7 @@ def test_autarkyConstraint():
                                commodityUnitsDict=commodityUnitDict,
                                hoursPerTimeStep=1, costUnit='1e6 Euro',
                                lengthUnit='km', verboseLogLevel=2,
-                               autarkyLimit=autarkyLimit)
+                               autarkyLimit=input_autarky)
     ## Add el. demand
     esM.add(fn.Sink(esM=esM, name='Electricity demand', commodity='electricity',
                     hasCapacityVariable=False,
@@ -193,4 +185,4 @@ def test_autarkyConstraint():
         tolerance = 0.0001
         ## Compare modelled autarky to limit set in constraint.
         assert netAutarky > (perNetAutarky - tolerance)
-        assert netAutarky_h > (perNetAutarky - tolerance)
+        assert netAutarky_h > (perNetAutarky_h - tolerance)

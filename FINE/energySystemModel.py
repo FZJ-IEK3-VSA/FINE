@@ -130,11 +130,11 @@ class EnergySystemModel:
             |br| * the default value is 0
         :type verboseLogLevel: integer (0, 1 or 2)
 
-        :param autarkyLimit: defines the autarky constraint for specific regions. Can be specified by nested
-            dictionary, the limit is specified in the commodities' unit. Possible included components are
+        :param autarkyLimit: defines the autarky constraint for specific regions. Can be specified by a pd.Dataframe,
+            the limit is specified in the commodities' unit. Possible included components are
             SourceSinkModel (e.g.: Purchase) and TransmissionModel (i.e.: exchange with other regions).
-            (i.e.: {ID: {Region1: Limit1, Region2: Limit2}}). Example: {'electricity': 'Region1': 100000}
-        :type autarkyLimit: dictionary
+            Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
+        :type autarkyLimit: pd.DataFrame
         """
 
         # Check correctness of inputs
@@ -621,7 +621,7 @@ class EnergySystemModel:
             return sum(mdl.getAutarkyContribution(esM=self, pyM=pyM, ID=ID, loc=loc)
                 for mdl_type, mdl in self.componentModelingDict.items() if (
                     mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel")
-                    ) <= self.autarkyLimit[ID][loc]
+                    ) <= self.autarkyLimit.loc[ID, loc]
         pyM.NetAutarkyConstraint = \
             pyomo.Constraint(pyM.autarkyDict.keys(), rule=autarkyConstraint)
 
