@@ -48,12 +48,14 @@ def create_dir(directory):
         os.makedirs(directory)
 
 
-def create_gdf(df, geometries, crs, file_path=None, files_name = 'sds_regions'):
+def create_gdf(df, geometries, crs=3035, file_path=None, files_name = 'sds_regions'):
+    
     gdf = gpd.GeoDataFrame(df, geometry=geometries) 
     gdf.crs = {"init": f"epsg:{crs}"}  # TODO: check whether this works correctly
                                        #NOTE: gdf = gpd.GeoDataFrame(df, geometry=geometries, crs=f"EPSG:{crs}") format is more recent
 
-    if file_path is not None:
-        gdf["geometry"].to_file(file_path, layer = files_name)
+    if file_path is not None:  
+        gdf["geometry"].to_file(file_path, layer = files_name) #TODO: check if it is required anywhere to save files 
+                                                                # with different extensions or .shp is enough
 
     return gdf
