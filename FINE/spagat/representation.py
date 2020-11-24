@@ -9,7 +9,7 @@ import pandas as pd
 import shapely
 import xarray as xr
 from shapely.geometry import LineString
-from shapely.ops import cascaded_union, unary_union
+from shapely.ops import cascaded_union, unary_union   #unary_union is not used anywhere 
 
 import FINE.spagat.utils as spu
 import FINE.spagat.dataset as spd
@@ -47,7 +47,7 @@ def add_centroid_distances(sds, spatial_dim="space"):
             )  # distances in km
 
     sds.xr_dataset["centroid_distances"] = (
-        ["space", "space_2"],
+        ["space", "space_2"],     #TODO: Use spatial_dim instead ??
         xr_data_array_out.values,
     )
 
@@ -98,7 +98,7 @@ def aggregate_time_series(
 
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
-    aggregated_coords = {
+    aggregated_coords = {  #TODO: directly copy it with .copy()? 
         key: value.values for key, value in xr_data_array_in.coords.items()
     }
 
@@ -197,7 +197,7 @@ def aggregate_connections(
     sub_to_sup_region_id_dict,
     mode="bool",
     set_diagonal_to_zero=True,
-    spatial_dim="space",
+    spatial_dim="space"
 ):
     """Aggregates all data of a data array containing connections with dimension 'sub_regions' to new data_array with
     dimension 'regions"""
@@ -219,7 +219,7 @@ def aggregate_connections(
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
-        for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():
+        for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():  #TODO: aggregates both ways (ex. sum -> (a+b) + (b+a)), is this required ? maybe it is for birectional connections
             if mode == "mean":
                 xr_data_array_out.loc[
                     dict(space=sup_region_id, space_2=sup_region_id_2)
@@ -269,8 +269,8 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     sub_to_sup_region_id_dict,
     aggregation_function_dict=None,
     spatial_dim="space",
-    time_dim="TimeStep",
-):
+    time_dim="TimeStep" ):
+
     """Spatially aggregates all variables of the sds.xr_dataset according to sub_to_sup_region_id_dict using aggregation functions defined by aggregation_function_dict"""
 
     sds_2 = spd.SpagatDataset()
@@ -340,14 +340,15 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
 # spagat.output:
 def create_grid_shapefile(
     sds,
-    filename="AC_lines.shp",
+    file_path, 
+    files_name = "AC_lines",
     spatial_dim="space",
     eligibility_variable="2d_locationalEligibility",
-    eligibility_component=None,
+    eligibility_component=None   
 ):
     # TODO: move this to spr or so
-    # TODO: add check, whether gpd_centroids exist
-
+    
+    
     add_region_centroids(sds)
 
     buses_0 = []
@@ -359,11 +360,12 @@ def create_grid_shapefile(
             component=eligibility_component
         )
     else:
-        eligibility_xr_array = sds.xr_dataset[eligibility_variable]
+        eligibility_xr_array = sds.xr_dataset[eligibility_variable]  
 
     for region_id_1 in sds.xr_dataset[f"{spatial_dim}"].values:
         for region_id_2 in sds.xr_dataset[f"{spatial_dim}_2"].values:
-            if eligibility_xr_array.sel(space=region_id_1, space_2=region_id_2).values:
+            if eligibility_xr_array.sel(space=region_id_1, space_2=region_id_2).values: #TODO: if eligibility_component is not specified, an error is raised here. 
+                                                                                        # either make eligibility_component nondefault or change this line to look for at least one non nan value 
                 buses_0.append(region_id_1)
                 buses_1.append(region_id_2)
 
@@ -383,4 +385,6 @@ def create_grid_shapefile(
         }
     )
 
-    spu.create_gdf(df, geoms, crs=3035, filepath=filename)
+    spu.create_gdf(df, geoms, crs=3035, file_path=file_path, files_name=files_name)
+
+    
