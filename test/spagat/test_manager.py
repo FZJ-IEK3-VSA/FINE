@@ -6,6 +6,7 @@ import FINE.spagat.representation as spr
 
 import os
 
+@pytest.mark.skip("reason: changes required")
 def test_workflow():
     sds_folder_path_in = os.path.join(os.path.dirname(os.path.abspath(__file__)),"data","input")
     sds_folder_path_out = os.path.join(os.path.dirname(os.path.abspath(__file__)),"data","output","aggregated","33")
