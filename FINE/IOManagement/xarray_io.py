@@ -293,7 +293,7 @@ def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_funct
         spr.add_region_centroids(spagat_manager.sds, spatial_dim='space')
 
     # spatial clustering 
-    spagat_manager.grouping(dimension_description='space')    #FIXME: clusterMethod is not used here, not is there an option in manager.grouping()
+    spagat_manager.grouping(dimension_description='space')    #FIXME: clusterMethod is not used here, nor is there an option in manager.grouping()
                                                               # also, centroid-based in not a method for grouping at all -> distance_based_clustering is 
                                                               #TODO: fix the grouping function in grouping.manager and use it here more apporpriately
     # representation of the clustered regions
@@ -320,7 +320,7 @@ def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_funct
                                                 'opexPerDischargeOperation': ('mean', None),
                                             }
 
-    spagat_manager.aggregation_function_dict = {f"{dimension}_{key}": value 
+    spagat_manager.aggregation_function_dict = {f"{dimension}_{key}": value    #TODO: find out why this is required. 
                                                 for key, value in spagat_manager.aggregation_function_dict.items()
                                             for dimension in ["1d", "2d"]}
 
