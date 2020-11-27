@@ -101,16 +101,8 @@ def checkTimeSeriesIndex(esM, data):
     Necessary if the data rows represent the time-dependent data:
     Check if the row-indices of the data match the time indices of the energy system model.
     """
-    if isinstance(data.index,pd.MultiIndex):
-        dataindex = data.index.get_level_values('TimeStep')
-        data.index = dataindex
-    else:
-        dataindex = data.index
-    if list(dataindex) != esM.totalTimeSteps:
-        raise ValueError('Time indices do not match the one of the specified energy system model.\n' +
-                         'Data indices: ' + str(set(data.index)) + '\n' +
-                         'Energy system model time steps: ' + str(esM.totalTimeSteps))
-    return data
+    if list(data.index) != esM.totalTimeSteps:
+        raise ValueError('Time indices do not match the one of the specified energy system model.')
 
 
 def checkRegionalColumnTitles(esM, data):
