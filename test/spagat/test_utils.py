@@ -12,16 +12,20 @@ import FINE.spagat.utils as spu
 
 
 def test_plt_savefig():
+    path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/')  
     #TEST PLOT 
     x = [1, 2, 3, 4]
     plt.plot(x, x)
     
-    spu.plt_savefig()  #NOTE: only testing for default arguments 
+    #FUNCTION CALL 
+    spu.plt_savefig(path = path_to_test_dir)  
 
-    assert os.path.isfile('test.png') 
+    #ASSERTION
+    expected_file = os.path.join(path_to_test_dir, 'test.png')
+    assert os.path.isfile(expected_file) 
     
     #Delete test plot
-    os.remove('test.png')
+    os.remove(expected_file)
 
 
 
