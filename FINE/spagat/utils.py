@@ -12,18 +12,15 @@ import matplotlib.pyplot as plt
 from typing import Dict, List
 
 
-def plt_savefig(save_name : str = None, path : str = None, fig=None, bbox_inches=None):
-    if fig is None:
-        fig = plt.gcf()
+def plt_savefig(fig=None, save_name : str = "test", path : str = None,  bbox_inches=None): 
+
+    if fig is None: fig = plt.gcf()
 
     if path is not None:
         save_name = os.path.join(path, save_name)
-        print(f"{save_name}")
+        print(f" Your figure is here -> {save_name}")
 
-    if save_name is None:
-        plt.savefig("test.png", format="png")
-    else:
-        plt.savefig(f"{save_name}.png", format="png", bbox_inches="tight", dpi=200)
+    plt.savefig(f"{save_name}.png", format="png", bbox_inches="tight", dpi=200)
 
 
 def timer(func):
