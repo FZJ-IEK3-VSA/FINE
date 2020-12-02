@@ -1,12 +1,17 @@
+import os
 import pytest
-import xarray as xr 
-import geopandas
-import numpy as np
-import pandas as pd
 
-import FINE.spagat.representation as spr
-import FINE.spagat.grouping as spg
+import numpy as np
+import xarray as xr
+from shapely.geometry import Point
+from sklearn.datasets import make_blobs
+
 import FINE.spagat.dataset as spd
+import FINE.spagat.grouping as spg
+
+path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/')  
+file_name = 'test_fig'
+expected_file = os.path.join(path_to_test_dir, f'{file_name}.png')
 
 @pytest.mark.parametrize("string_list, expected", 
                          [(['01_es', '02_es', '01_de', '02_de', '03_de'], ['es', 'de']),
@@ -17,49 +22,119 @@ def test_string_based_clustering(string_list, expected):
      assert list(clustered_regions.keys()).sort() == expected.sort()   #INFO: instead of unpermute, you can use .sort() 
             
 
-def test_distance_based_clustering(sds):    #TODO: implement the test (hint for dataset -> makeblobs)
-    #spg.distance_based_clustering(sds, mode='hierarchical', verbose=False, ax_illustration=None, save_fig=None)
-    pass
+@pytest.mark.parametrize("mode", ['sklearn_kmeans', 'sklearn_hierarchical', 'sklearn_spectral', 'scipy_kmeans', 'scipy_hierarchical'])
+def test_distance_based_clustering(mode):    
+     #TEST DATA
+     component_list = ['c1','c2']  
+     space_list = ['01_reg','02_reg','03_reg','04_reg','05_reg']
+     TimeStep_list = ['T0','T1']
+     Period_list = [0]
 
-@pytest.mark.skip(reason="TEST no implemented correctly")
-def test_all_variable_based_clustering_hierarchical(test_dataset2):
-     clustered_regions1 = spg.all_variable_based_clustering(test_dataset2,agg_mode='hierarchical2')
-     assert len(clustered_regions1) == 3
-     assert clustered_regions1.get(3) == {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']}
+     dummy_data = np.array([[ [[np.nan for i in range(5)] for i in range(2)] ],
+                              [ [[np.nan for i in range(5)] for i in range(2)] ]
+                           ])
+
+     dummy_DataArray = xr.DataArray(dummy_data, 
+                                   coords=[component_list, Period_list, TimeStep_list, space_list], 
+                                   dims=['component', 'Period', 'TimeStep','space'])    
+
+     dummy_ds = xr.Dataset({'var': dummy_DataArray}) 
+
+     sds = spd.SpagatDataset()
+     sds.xr_dataset = dummy_ds       
+
+     sample_data, sample_labels = make_blobs(n_samples=5, centers=3, n_features=2, random_state=0)
      
-     dict2 = clustered_regions1.get(2)
-     for sup_reg in dict2:                            #TODO: this is totally wrong. it's not asserting anything as len(sup_reg) is 13 and 6, use key, value in dict.items to iterate
-          if len(sup_reg) == 2:
-               assert sorted(sup_reg) == ['01_reg', '03_reg']  #TODO: assert the whole item, not just key or value
-          if len(sup_reg) == 1:
-               assert sorted(sup_reg) == ['02_reg']
+     test_centroids = [np.nan for i in range(5)]
+     for i, data_point in enumerate(sample_data):
+          test_centroids[i] = Point(data_point)
+     
+     sds.add_objects(description ='gpd_centroids',   
+                dimension_list =['space'], 
+                object_list = test_centroids)
 
-     dict1 = clustered_regions1.get(1)
-     for sup_reg in dict1:
-          if len(sup_reg) == 3:
-               assert sorted(sup_reg) == ['01_reg', '02_reg', '03_reg']
+     
+     #FUNCTION CALL 
+     output_dict = spg.distance_based_clustering(sds, agg_mode = mode, save_path = path_to_test_dir, fig_name=file_name)  
+     
 
-def test_all_variable_based_clustering_spectral(test_dataset2):
-     clustered_regions1 = spg.all_variable_based_clustering(test_dataset2,agg_mode='spectral',weighting=[10,1,1])
-     assert len(clustered_regions1) == 3
+     #ASSERTION 
+     ## Results for number of aggregated regions = 3 can be checked, because test data has 3 centers 
+     #NOTE: 1 and 5 can also be tested but permutation is making it difficult to test these
+     assert output_dict.get(3) == {'01_reg': ['01_reg'],                    ## Based on sample_labels ([2, 0, 0, 1, 1])       
+                              '02_reg_03_reg': ['02_reg', '03_reg'],
+                              '04_reg_05_reg': ['04_reg', '05_reg']}  
+     
+     if mode is not 'sklearn_spectral':
+          assert os.path.isfile(expected_file) 
+          os.remove(expected_file)
+     
+     
 
-     dict1_2 = clustered_regions1.get(2)
-     for sup_region in dict1_2.values():            #TODO: assert the whole item, not just key or value
-          if len(sup_region) == 2:
-               assert sorted(sup_region) ==  ['01_reg','03_reg']
+@pytest.mark.parametrize("mode", ['scipy_hierarchical', 'sklearn_hierarchical', 'sklearn_spectral1', 'sklearn_spectral2'])
+def test_all_variable_based_clustering(mode):
+     #TEST DATA     
+     component_list = ['c1','c2', 'c3']  
+     space_list = ['01_reg','02_reg','03_reg']
+     TimeStep_list = ['T0','T1']
+     Period_list = [0]
 
-     clustered_regions2 = spg.all_variable_based_clustering(test_dataset2,agg_mode='spectral',weighting=[1,1,10])
-     assert len(clustered_regions2) == 3
+     ## time series variable data
+     sample_ts_data, sample_ts_labels = make_blobs(n_samples=3, centers=2, n_features=2, random_state=0)
+     var_ts_data = np.array([ [sample_ts_data.T],
+                              [sample_ts_data.T], 
+                              [[[np.nan]*3 for i in range(2)]]  ])
 
-     dict2_2 = clustered_regions2.get(2)
-     for sup_region in dict2_2.values():
-          if len(sup_region) == 2:
-               assert sorted(sup_region) ==  ['02_reg','03_reg']
+     var_ts_DataArray = xr.DataArray(var_ts_data, 
+                                   coords=[component_list, Period_list, TimeStep_list, space_list], 
+                                   dims=['component', 'Period', 'TimeStep','space'])
+     
+     
+     ## 1d variable data
+     var_1d_data = np.array([ [1, 1, 2],
+                              [1, 1, 2],
+                              [np.nan]*3 ])
 
-     clustered_regions3 = spg.all_variable_based_clustering(test_dataset2,agg_mode='spectral2')
-     assert len(clustered_regions3) == 3
+     var_1d_DataArray = xr.DataArray(var_1d_data, 
+                                        coords=[component_list, space_list], 
+                                        dims=['component', 'space'])
+     
+     ## 2d variable data
+     var_2d_data = np.array([ [[0, 2, 1], 
+                              [2, 0, 1], 
+                              [1, 1, 0]],
+                              [[0, 2, 1], 
+                              [2, 0, 1], 
+                              [1, 1, 0]],
+                         [[np.nan]*3 for i in range(3)]])
 
-     dict3_2 = clustered_regions3.get(2)
-     for sup_region in dict3_2.values():
-          if len(sup_region) == 2:
-               assert sorted(sup_region) ==  ['01_reg','03_reg']
+     var_2d_DataArray = xr.DataArray(var_2d_data, 
+                                        coords=[component_list, space_list, space_list], 
+                                        dims=['component', 'space', 'space_2'])
+     
+     ds = xr.Dataset({'var_ts': var_ts_DataArray,
+                    'var_1d': var_1d_DataArray,  
+                    'var_2d': var_2d_DataArray}) 
+
+     sds = spd.SpagatDataset()
+     sds.xr_dataset = ds
+     
+     #FUNCTION CALL
+     output_dict = spg.all_variable_based_clustering(sds, agg_mode=mode, 
+                                                  dimension_description='space',
+                                                  ax_illustration=None, 
+                                                  save_path=path_to_test_dir, 
+                                                  fig_name=file_name,  
+                                                  verbose=False,
+                                                  weighting=None)  #TODO: test for weights ?
+     
+     #ASSERTION
+     for key, value in output_dict.get(2).items():     #sample labels array([0, 0, 1])
+          if len(value)==2:                            #NOTE: required to assert separately, because they are permuted
+               assert (key == '01_reg_02_reg') & (value == ['01_reg', '02_reg'])
+          else:
+               assert (key == '03_reg') & (value == ['03_reg'] )
+
+     if mode == 'scipy_hierarchical':
+          assert os.path.isfile(expected_file) 
+          os.remove(expected_file) 
