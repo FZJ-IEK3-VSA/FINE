@@ -8,7 +8,7 @@ def exportToDict(esM):
     """
     Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
 
-    :param esM: EnergySystemModel instance in which the optimized model is hold
+    :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
     """
 
