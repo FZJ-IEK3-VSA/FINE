@@ -808,7 +808,7 @@ class EnergySystemModel:
                  timeSeriesAggregation=False,
                  logFileName='', 
                  threads=3, 
-                 solver='gurobi', 
+                 solver='None', 
                  timeLimit=None, 
                  optimizationSpecs='', 
                  warmstart=False):
@@ -906,6 +906,31 @@ class EnergySystemModel:
         self.solverSpecs['logFileName'], self.solverSpecs['threads'] = logFileName, threads
         self.solverSpecs['solver'], self.solverSpecs['timeLimit'] = solver, timeLimit
         self.solverSpecs['optimizationSpecs'], self.solverSpecs['hasTSA'] = optimizationSpecs, timeSeriesAggregation
+
+        # Check which solvers are available and choose default solver if no solver is specified explicitely
+        # Order of possible solvers in solverList defines the priority of chosen default solver.
+        solverList = ['gurobi', 'coincbc', 'glpk']
+        
+        if solver != 'None':
+            try:
+                opt.SolverFactory(solver).available()
+            except:
+                solver = 'None'
+
+        if solver == 'None':
+            for nSolver in solverList:
+                if solver == 'None':
+                    try:
+                        opt.SolverFactory(nSolver).available()
+                        solver = nSolver
+                        utils.output('Either solver not selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
+                    except:
+                        pass
+
+        if solver == 'None':
+            raise TypeError('At least one solver must be installed.'
+                            ' Have a look at the FINE documentation to see how to install possible solvers.'
+                            ' https://vsa-fine.readthedocs.io/en/latest/')
 
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #
