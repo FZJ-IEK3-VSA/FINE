@@ -270,10 +270,10 @@ class Storage(Component):
                 warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
                               'The chargeOpRateMax time series was set to None.')
 
-        self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, chargeOpRateMax, locationalEligibility)
+        self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
         self.aggregatedChargeOpRateMax, self.chargeOpRateMax = None, None
 
-        self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, chargeOpRateFix, locationalEligibility)
+        self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix, locationalEligibility)
         self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, None
 
         
@@ -296,10 +296,10 @@ class Storage(Component):
                 warnings.warn('If dischargeOpRateFix is specified, the dischargeOpRateMax parameter is not required.\n'
                               + 'The dischargeOpRateMax time series was set to None.')
 
-        self.fullDischargeOpRateMax = utils.checkAndSetTimeSeries(esM, dischargeOpRateMax, locationalEligibility)
+        self.fullDischargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax, locationalEligibility)
         self.aggregatedDischargeOpRateMax, self.dischargeOpRateMax = None, None
 
-        self.fullDischargeOpRateFix = utils.checkAndSetTimeSeries(esM, dischargeOpRateFix, locationalEligibility)
+        self.fullDischargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix, locationalEligibility)
         self.aggregatedDischargeOpRateFix, self.dischargeOpRateFix = None, None
 
         utils.isPositiveNumber(dischargeTsaWeight)
