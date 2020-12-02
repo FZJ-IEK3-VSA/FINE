@@ -318,8 +318,7 @@ def test_preprocessDataset(handle_mode):
 
     var_1d_1_DataArray = xr.DataArray(var_1d_1_data, 
                                         coords=[component_list, space_list], 
-                                        dims=['component', 'space'],
-                                        name = 'var1')
+                                        dims=['component', 'space'])
 
 
     var_1d_2_data = np.array([ [0,  8,  10],
@@ -329,8 +328,7 @@ def test_preprocessDataset(handle_mode):
 
     var_1d_2_DataArray = xr.DataArray(var_1d_2_data, 
                                         coords=[component_list, space_list], 
-                                        dims=['component', 'space'],
-                                        name = 'var1')
+                                        dims=['component', 'space'])
 
     ## 2d variable data
     var_2d_1_data = np.array([ [[ 0,  1,  10],
@@ -347,8 +345,7 @@ def test_preprocessDataset(handle_mode):
 
     var_2d_1_DataArray = xr.DataArray(var_2d_1_data, 
                                         coords=[component_list, space_list, space_list], 
-                                        dims=['component', 'space', 'space_2'],
-                                        name = 'var1')
+                                        dims=['component', 'space', 'space_2'])
 
     var_2d_2_data = np.array([ [[np.nan] * 3 for i in range(3)],
                             
@@ -364,8 +361,7 @@ def test_preprocessDataset(handle_mode):
 
     var_2d_2_DataArray = xr.DataArray(var_2d_2_data, 
                                         coords=[component_list, space_list, space_list], 
-                                        dims=['component', 'space', 'space_2'],
-                                        name = 'var1')
+                                        dims=['component', 'space', 'space_2'])
     
     ds = xr.Dataset({'var_ts_1': var_ts_1_DataArray, 
                     'var_ts_2': var_ts_2_DataArray,
