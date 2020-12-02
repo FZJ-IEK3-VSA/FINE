@@ -686,66 +686,6 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     return _data
 
 
-def checkAndSetTimeSeriesCostParameter(esM, name, data, locationalEligibility, dimension = 1):
-    if data is not None:
-        if not isinstance(data, pd.DataFrame):
-            if len(esM.locations) == 1:
-                if isinstance(data, pd.Series):
-                    data = pd.DataFrame(data.values, index=data.index, columns=list(esM.locations))
-                else:
-                    raise TypeError('Type error in ' + name + ' detected.\n' +
-                            'Economic time series parameters have to be a pandas DataFrame.')
-            else:
-                raise TypeError('Type error in ' + name + ' detected.\n' +
-                            'Economic time series parameters have to be a pandas DataFrame.')
-        checkTimeSeriesIndex(esM, data)
-
-        if dimension == '1dim':
-            checkRegionalColumnTitles(esM, data)
-
-            if locationalEligibility is not None and data is not None:
-                auxiliary = data.copy().sum()
-                auxiliary[auxiliary > 0] = 1
-                if (auxiliary > locationalEligibility).any().any():
-                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
-                                     ' eligibilities.')
-        elif dimension == '2dim':
-            keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations}
-            columns = set(data.columns)
-            if not columns <= keys:
-                raise ValueError('False column index detected in ' + name + ' time series. ' +
-                                 'The indicies have to be in the format \'loc1_loc2\' ' +
-                                 'with loc1 and loc2 being locations in the energy system model.')
-
-            for loc1 in esM.locations:
-                for loc2 in esM.locations:
-                    if loc1 + '_' + loc2 in columns and not loc2 + '_' + loc1 in columns:
-                        raise ValueError('Missing data in ' + name + ' time series DataFrame of a location \n' +
-                                         'connecting component. If the flow is specified from loc1 to loc2, \n' +
-                                         'then it must also be specified from loc2 to loc1.\n')
-
-            if locationalEligibility is not None and data is not None:
-                keys = set(locationalEligibility.index)
-                if not columns == keys:
-                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
-                                     ' eligibilities.')
-
-        _data = data.astype(float)
-        if _data.isnull().any().any():
-            raise ValueError('Value error in ' + name + ' detected.\n' +
-                             'An economic parameter contains values which are not numbers.')
-        if (_data < 0).any().any():
-            raise ValueError('Value error in ' + name + ' detected.\n' +
-                             'All entries in economic parameter series have to be positive.\n' +
-                             'Time series containing positive and negative values can be split into \n' +
-                             'seperate time series with absolute values for costs and revenues.')
-        _data = _data.copy()		
-        _data["Period"], _data["TimeStep"] = 0, _data.index		
-        return _data.set_index(['Period', 'TimeStep'])
-
-    else:
-        return None
-
 def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalEligibility):
     if data is None:
         return None
