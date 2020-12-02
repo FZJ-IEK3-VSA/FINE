@@ -216,11 +216,11 @@ class Source(Component):
                                                                locationalEligibility)
 
         self.fullCommodityCostTimeSeries = \
-            utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries, locationalEligibility)
+            utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries, locationalEligibility, costParameter = True)
         self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
 
         self.fullCommodityRevenueTimeSeries = \
-            utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityRevenueTimeSeries, locationalEligibility)
+            utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries, locationalEligibility, costParameter = True)
         self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
@@ -230,10 +230,10 @@ class Source(Component):
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
 
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, locationalEligibility)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
         self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, locationalEligibility)
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         if self.partLoadMin is not None:

@@ -91,16 +91,16 @@ class StorageExtBETA(Storage):
                               'If the stateOfChargeOpRateFix parameter is specified, the storage\n' +
                               'is set to isPeriodicalStorage).')
 
-        self.fullStateOfChargeOpRateMax = utils.checkAndSetTimeSeries(esM, stateOfChargeOpRateMax,
+        self.fullStateOfChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateMax,
                                                                       self.locationalEligibility)
         self.aggregatedStateOfChargeOpRateMax, self.stateOfChargeOpRateMax = None, None
 
-        self.fullStateOfChargeOpRateFix = utils.checkAndSetTimeSeries(esM, stateOfChargeOpRateFix,
+        self.fullStateOfChargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateFix,
                                                                       self.locationalEligibility)
         self.aggregatedStateOfChargeOpRateFix, self.stateOfChargeOpRateFix = None, None
 
         self.fullOpexPerChargeOpTimeSeries = \
-            utils.checkAndSetTimeSeriesCostParameter(esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility)
+            utils.checkAndSetTimeSeries(esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility, costParameter=True)
         self.aggregatedOpexPerChargeOpTimeSeries, self.opexPerChargeOpTimeSeries = None, None
 
         utils.isPositiveNumber(stateOfChargeTsaWeight), utils.isPositiveNumber(opexChargeOpTsaWeight)

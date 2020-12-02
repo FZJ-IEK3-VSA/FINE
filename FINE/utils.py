@@ -548,7 +548,7 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
             return data
 
 
-def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimension='1dim'):
+def checkAndSetTimeSeries(esM, name, operationTimeSeries, locationalEligibility, costParameter = False, dimension='1dim'):
     if operationTimeSeries is not None:
         if not isinstance(operationTimeSeries, pd.DataFrame):
             if len(esM.locations) == 1:
@@ -556,49 +556,68 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
                     operationTimeSeries = pd.DataFrame(operationTimeSeries.values, index=operationTimeSeries.index,
                                                        columns=list(esM.locations))
                 else:
-                    raise TypeError('The operation time series data type has to be a pandas DataFrame or Series')
+                    raise TypeError('Type error in ' + name + ' detected.\n' +
+                            'operationTimeSeries parameters have to be a pandas DataFrame.')
             else:
-                raise TypeError('The operation time series data type has to be a pandas DataFrame')
+                raise TypeError('Type error in ' + name + ' detected.\n' +
+                            'operationTimeSeries parameters have to be a pandas DataFrame.')
         checkTimeSeriesIndex(esM, operationTimeSeries)
 
         if dimension == '1dim':
             checkRegionalColumnTitles(esM, operationTimeSeries)
 
-            if locationalEligibility is not None and operationTimeSeries is not None:
+            if locationalEligibility is not None:
                 # Check if given capacities indicate the same eligibility
                 data = operationTimeSeries.copy().sum()
                 data[data > 0] = 1
                 if (data > locationalEligibility).any().any():
-                    raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
+                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
                                      ' eligibilities.')
         elif dimension == '2dim':
             keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations}
             columns = set(operationTimeSeries.columns)
             if not columns <= keys:
-                raise ValueError('False column index detected in time series. ' +
+                raise ValueError('False column index detected in' + name + ' time series. ' +
                                  'The indicies have to be in the format \'loc1_loc2\' ' +
                                  'with loc1 and loc2 being locations in the energy system model.')
 
             for loc1 in esM.locations:
                 for loc2 in esM.locations:
                     if loc1 + '_' + loc2 in columns and not loc2 + '_' + loc1 in columns:
-                        raise ValueError('Missing data in time series DataFrame of a location connecting \n' +
+                        raise ValueError('Missing data in ' + name + ' time series DataFrame of a location connecting \n' +
                                          'component. If the flow is specified from loc1 to loc2, \n' +
                                          'then it must also be specified from loc2 to loc1.\n')
 
-            if locationalEligibility is not None and operationTimeSeries is not None:
+            if locationalEligibility is not None:
                 # Check if given capacities indicate the same eligibility
                 keys = set(locationalEligibility.index)
                 if not columns == keys:
-                    raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
+                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
                                      ' eligibilities.')
 
-        if (operationTimeSeries < 0).any().any():
-            raise ValueError('operationTimeSeries values smaller than 0 were detected.')
+        if costParameter == True:
+            _operationTimeSeries = operationTimeSeries.astype(float)
+            if _operationTimeSeries.isnull().any().any():
+                raise ValueError('Value error in ' + name + ' detected.\n' +
+                                'An economic parameter contains values which are not numbers.')
+            if (_operationTimeSeries < 0).any().any():
+                raise ValueError('Value error in ' + name + ' detected.\n' +
+                                'All entries in economic parameter series have to be positive.\n' +
+                                'Time series containing positive and negative values can be split into \n' +
+                                'seperate time series with absolute values for costs and revenues.')
+            _operationTimeSeries = _operationTimeSeries.copy()		
+            _operationTimeSeries["Period"], _operationTimeSeries["TimeStep"] = 0, _operationTimeSeries.index		
+            return _operationTimeSeries.set_index(['Period', 'TimeStep'])
+        
+        elif costParameter == False:
+            if (operationTimeSeries < 0).any().any():
+                raise ValueError('Value error in ' + name + ' detected.\n' +
+                                 'operationTimeSeries values smaller than 0 were detected.')
 
-        operationTimeSeries = operationTimeSeries.copy()
-        operationTimeSeries["Period"], operationTimeSeries["TimeStep"] = 0, operationTimeSeries.index
-        return operationTimeSeries.set_index(['Period', 'TimeStep'])
+            operationTimeSeries = operationTimeSeries.copy()
+            operationTimeSeries["Period"], operationTimeSeries["TimeStep"] = 0, operationTimeSeries.index
+            return operationTimeSeries.set_index(['Period', 'TimeStep'])
+    
     else:
         return None
 
