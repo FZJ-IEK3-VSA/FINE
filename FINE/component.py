@@ -328,7 +328,7 @@ class Component(metaclass=ABCMeta):
 
         :param modelingClass: to the Component connected modeling class.
             |br| * the default value is ModelingClass
-        :type modelingClass: a class inherting from ComponentModeling
+        :type modelingClass: a class inheriting from ComponentModeling
         """
         # Set general component data
         utils.isEnergySystemModelInstance(esM)
@@ -346,9 +346,6 @@ class Component(metaclass=ABCMeta):
         self.bigM = bigM
         self.partLoadMin = partLoadMin
         
-       
- 
-            
         # Set economic data
         elig = locationalEligibility
         self.investPerCapacity = utils.checkAndSetCostParameter(esM, name, investPerCapacity, dimension, elig)
@@ -375,8 +372,8 @@ class Component(metaclass=ABCMeta):
         utils.checkLocationSpecficDesignInputParams(self, esM)
         
         # Set quadratic capacity bounds and residual cost scale (1-cost scale)
-        self.QPbound = utils.getQPbound(esM, self.capacityMax, self.capacityMin)
-        self.QPcostDev = utils.getQPcostDev(esM, self.QPcostScale)
+        self.QPbound = utils.getQPbound(self.QPcostScale, self.capacityMax, self.capacityMin)
+        self.QPcostDev = utils.getQPcostDev(self.QPcostScale)
 
         #
         # # Variables at optimum (set after optimization)
@@ -1592,17 +1589,17 @@ class ComponentModel(metaclass=ABCMeta):
                                   'or equal to the chosen Big M. Consider rerunning the simulation with a higher' +
                                   ' Big M.')
 
-            i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] 
-            + (compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
-            / (compDict[cap.name].QPbound[cap.index]) 
+            i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity * compDict[cap.name].QPcostDev
+            + (compDict[cap.name].investPerCapacity * compDict[cap.name].QPcostScale
+            / (compDict[cap.name].QPbound)
             * cap * cap), axis=1)
-            cx = optVal.apply(lambda cap: (cap * compDict[cap.name].investPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] / compDict[cap.name].CCF[cap.index]) 
-            + (compDict[cap.name].investPerCapacity[cap.index] / compDict[cap.name].CCF[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
-            / (compDict[cap.name].QPbound[cap.index]) 
+            cx = optVal.apply(lambda cap: (cap * compDict[cap.name].investPerCapacity * compDict[cap.name].QPcostDev / compDict[cap.name].CCF)
+            + (compDict[cap.name].investPerCapacity / compDict[cap.name].CCF * compDict[cap.name].QPcostScale
+            / (compDict[cap.name].QPbound)
             * cap * cap), axis=1)
-            ox = optVal.apply(lambda cap: cap * compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].QPcostDev[cap.index] 
-            + (compDict[cap.name].opexPerCapacity[cap.index] * compDict[cap.name].QPcostScale[cap.index] 
-            / (compDict[cap.name].QPbound[cap.index]) 
+            ox = optVal.apply(lambda cap: cap * compDict[cap.name].opexPerCapacity * compDict[cap.name].QPcostDev
+            + (compDict[cap.name].opexPerCapacity * compDict[cap.name].QPcostScale
+            / (compDict[cap.name].QPbound)
             * cap * cap), axis=1)                
 
 
@@ -1621,10 +1618,10 @@ class ComponentModel(metaclass=ABCMeta):
         self.isBuiltVariablesOptimum = optVal_
 
         if optVal is not None:
-            i = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt[dec.index], axis=1)
-            cx = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt[dec.index] /
-                              compDict[dec.name].CCF[dec.index], axis=1)
-            ox = optVal.apply(lambda dec: dec * compDict[dec.name].opexIfBuilt[dec.index], axis=1)
+            i = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt, axis=1)
+            cx = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt /
+                              compDict[dec.name].CCF, axis=1)
+            ox = optVal.apply(lambda dec: dec * compDict[dec.name].opexIfBuilt, axis=1)
             optSummary.loc[[(ix, 'isBuilt', '[-]') for ix in optVal.index], optVal.columns] = optVal.values
             optSummary.loc[[(ix, 'invest', '[' + esM.costUnit + ']') for ix in cx.index], cx.columns] += \
                 i.values
@@ -1647,8 +1644,8 @@ class ComponentModel(metaclass=ABCMeta):
         Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
+        * 'capacityVariablesOptimum',
+        * 'isBuiltVariablesOptimum',
         * 'operationVariablesOptimum',
         * 'all' or another input: all variables are returned.\n
         :type name: string

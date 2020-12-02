@@ -9,8 +9,8 @@ class Transmission(Component):
     """
     A Transmission component can transmit a commodity between locations of the energy system.
 
-    Last edited: November 28, 2018
-    |br| @author: Lara Welder
+    Last edited: November 12, 2020
+    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     def __init__(self,
                  esM,
@@ -200,10 +200,10 @@ class Transmission(Component):
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
 
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, self.locationalEligibility)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, self.locationalEligibility)
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         if self.partLoadMin is not None:
@@ -522,7 +522,7 @@ class TransmissionModel(ComponentModel):
 
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation, axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
