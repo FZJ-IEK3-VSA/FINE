@@ -548,7 +548,7 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
             return data
 
 
-def checkAndSetTimeSeries(esM, name, operationTimeSeries, locationalEligibility, costParameter = False, dimension='1dim'):
+def checkAndSetTimeSeries(esM, name, operationTimeSeries, locationalEligibility, dimension='1dim'):
     if operationTimeSeries is not None:
         if not isinstance(operationTimeSeries, pd.DataFrame):
             if len(esM.locations) == 1:
@@ -595,29 +595,18 @@ def checkAndSetTimeSeries(esM, name, operationTimeSeries, locationalEligibility,
                     raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
                                      ' eligibilities.')
 
-        if costParameter == True:
-            _operationTimeSeries = operationTimeSeries.astype(float)
-            if _operationTimeSeries.isnull().any().any():
-                raise ValueError('Value error in ' + name + ' detected.\n' +
-                                'An economic parameter contains values which are not numbers.')
-            if (_operationTimeSeries < 0).any().any():
-                raise ValueError('Value error in ' + name + ' detected.\n' +
-                                'All entries in economic parameter series have to be positive.\n' +
-                                'Time series containing positive and negative values can be split into \n' +
-                                'seperate time series with absolute values for costs and revenues.')
-            _operationTimeSeries = _operationTimeSeries.copy()		
-            _operationTimeSeries["Period"], _operationTimeSeries["TimeStep"] = 0, _operationTimeSeries.index		
-            return _operationTimeSeries.set_index(['Period', 'TimeStep'])
-        
-        elif costParameter == False:
-            if (operationTimeSeries < 0).any().any():
-                raise ValueError('Value error in ' + name + ' detected.\n' +
-                                 'operationTimeSeries values smaller than 0 were detected.')
+        _operationTimeSeries = operationTimeSeries.astype(float)
+        if _operationTimeSeries.isnull().any().any():
+            raise ValueError('Value error in ' + name + ' detected.\n' +
+                            'An operationTimeSeries parameter contains values which are not numbers.')
+        if (_operationTimeSeries < 0).any().any():
+            raise ValueError('Value error in ' + name + ' detected.\n' +
+                            'All entries in operationTimeSeries parameter series have to be positive.')
 
-            operationTimeSeries = operationTimeSeries.copy()
-            operationTimeSeries["Period"], operationTimeSeries["TimeStep"] = 0, operationTimeSeries.index
-            return operationTimeSeries.set_index(['Period', 'TimeStep'])
-    
+        _operationTimeSeries = _operationTimeSeries.copy()		
+        _operationTimeSeries["Period"], _operationTimeSeries["TimeStep"] = 0, _operationTimeSeries.index		
+        return _operationTimeSeries.set_index(['Period', 'TimeStep'])
+            
     else:
         return None
 

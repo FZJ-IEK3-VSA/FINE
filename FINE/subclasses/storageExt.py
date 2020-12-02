@@ -100,7 +100,7 @@ class StorageExtBETA(Storage):
         self.aggregatedStateOfChargeOpRateFix, self.stateOfChargeOpRateFix = None, None
 
         self.fullOpexPerChargeOpTimeSeries = \
-            utils.checkAndSetTimeSeries(esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility, costParameter=True)
+            utils.checkAndSetTimeSeries(esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility)
         self.aggregatedOpexPerChargeOpTimeSeries, self.opexPerChargeOpTimeSeries = None, None
 
         utils.isPositiveNumber(stateOfChargeTsaWeight), utils.isPositiveNumber(opexChargeOpTsaWeight)

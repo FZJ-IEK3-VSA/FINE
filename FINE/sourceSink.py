@@ -216,11 +216,11 @@ class Source(Component):
                                                                locationalEligibility)
 
         self.fullCommodityCostTimeSeries = \
-            utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries, locationalEligibility, costParameter = True)
+            utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries, locationalEligibility)
         self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
 
         self.fullCommodityRevenueTimeSeries = \
-            utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries, locationalEligibility, costParameter = True)
+            utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries, locationalEligibility)
         self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
