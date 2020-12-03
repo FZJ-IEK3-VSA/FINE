@@ -1068,15 +1068,14 @@ class StorageModel(ComponentModel):
         self.dischargeOperationVariablesOptimum = optVal
         # Check if there are time steps, at which a storage component is both charging and discharging
         for compName in self.componentsDict.keys():
-            for region in self.chargeOperationVariablesOptimum.loc[compName].index:
-                ts = pd.DataFrame()
-                ts["charge"] = self.chargeOperationVariablesOptimum.loc[compName, region]
-                ts["discharge"] = self.dischargeOperationVariablesOptimum.loc[compName, region]
-                if len(ts[ts["charge"] > 0][ts["discharge"] > 0]) > 0:
-                    if esM.verbose < 2:
-                        print("Charge and discharge at the same time in {} for component {}".format(region, compName))
-                        # warnings.warn(
-                        #     "Charge and discharge at the same time in {} for component {}".format(region, compName))
+            ts = pd.concat([self.chargeOperationVariablesOptimum.loc[compName].T,
+                            self.dischargeOperationVariablesOptimum.loc[compName].T],
+                           axis=1)
+            if any([len(ts[reg][ts[reg] > 0].dropna()) > 0 for reg in set(ts.columns.values)]):
+                if esM.verbose < 2:
+                    print("Charge and discharge at the same time for component {}".format(compName))
+                    # warnings.warn(
+                    #     "Charge and discharge at the same time for component {}".format(compName))
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerDischargeOperation[op.index], axis=1)
