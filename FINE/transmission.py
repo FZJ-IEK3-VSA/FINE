@@ -12,35 +12,36 @@ class Transmission(Component):
     Last edited: November 12, 2020
     |br| @author: FINE Developer Team (FZJ IEK-3)
     """
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
-                 losses=0, 
+    def __init__(self,
+                 esM,
+                 name,
+                 commodity,
+                 losses=0,
                  distances=None,
-                 hasCapacityVariable=True, 
-                 capacityVariableDomain='continuous', 
+                 hasCapacityVariable=True,
+                 capacityVariableDomain='continuous',
                  capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
+                 hasIsBuiltBinaryVariable=False,
                  bigM=None,
-                 operationRateMax=None, 
-                 operationRateFix=None, 
+                 operationRateMax=None,
+                 operationRateFix=None,
                  tsaWeight=1,
-                 locationalEligibility=None, 
-                 capacityMin=None, 
-                 capacityMax=None, 
-                 partLoadMin=None, 
+                 locationalEligibility=None,
+                 capacityMin=None,
+                 capacityMax=None,
+                 partLoadMin=None,
                  sharedPotentialID=None,
-                 capacityFix=None, 
+                 linkedQuantityID=None,
+                 capacityFix=None,
                  isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
-                 opexPerOperation=0, 
+                 investPerCapacity=0,
+                 investIfBuilt=0,
+                 opexPerOperation=0,
                  opexPerCapacity=0,
-                 opexIfBuilt=0, 
-                 QPcostScale=0, 
-                 interestRate=0.08, 
-                 economicLifetime=10, 
+                 opexIfBuilt=0,
+                 QPcostScale=0,
+                 interestRate=0.08,
+                 economicLifetime=10,
                  technicalLifetime=None):
         """
         Constructor for creating an Transmission class instance.
@@ -152,29 +153,30 @@ class Transmission(Component):
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
 
-        Component. __init__(self, 
-                            esM, 
-                            name, 
-                            dimension='2dim', 
+        Component. __init__(self,
+                            esM,
+                            name,
+                            dimension='2dim',
                             hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain, 
+                            capacityVariableDomain=capacityVariableDomain,
                             capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
+                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
                             bigM=bigM,
-                            locationalEligibility=self.locationalEligibility, 
+                            locationalEligibility=self.locationalEligibility,
                             capacityMin=self.capacityMin,
-                            capacityMax=self.capacityMax, 
-                            partLoadMin=partLoadMin, 
+                            capacityMax=self.capacityMax,
+                            partLoadMin=partLoadMin,
                             sharedPotentialID=sharedPotentialID,
-                            capacityFix=self.capacityFix, 
+                            linkedQuantityID=linkedQuantityID,
+                            capacityFix=self.capacityFix,
                             isBuiltFix=self.isBuiltFix,
-                            investPerCapacity=self.investPerCapacity, 
+                            investPerCapacity=self.investPerCapacity,
                             investIfBuilt=self.investIfBuilt,
-                            opexPerCapacity=self.opexPerCapacity, 
+                            opexPerCapacity=self.opexPerCapacity,
                             opexIfBuilt=self.opexIfBuilt,
-                            interestRate=self.interestRate, 
-                            QPcostScale=QPcostScale, 
-                            economicLifetime=self.economicLifetime, 
+                            interestRate=self.interestRate,
+                            QPcostScale=QPcostScale,
+                            economicLifetime=self.economicLifetime,
                             technicalLifetime=self.technicalLifetime)
 
         # Set general component data
@@ -203,10 +205,10 @@ class Transmission(Component):
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
 
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, self.locationalEligibility, self.dimension)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, self.locationalEligibility, self.dimension)
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         if self.partLoadMin is not None:
