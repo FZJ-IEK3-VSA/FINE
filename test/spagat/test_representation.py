@@ -37,7 +37,10 @@ def test_add_region_centroids_and_distances():
     assert np.array_equal(output_centroid_distances, expected_centroid_distances)
 
 
-def test_aggregate_geometries(sub_to_sup_region_id_dict, sds_for_basic_representation):
+def test_aggregate_geometries(sds_and_dict_for_basic_representation):
+
+    sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
+    
     test_xarray = sds_for_basic_representation.xr_dataset['gpd_geometries']
 
     #FUNCTION CALL 
@@ -56,10 +59,12 @@ def test_aggregate_geometries(sub_to_sup_region_id_dict, sds_for_basic_represent
 
 
 @pytest.mark.parametrize("mode, expected", [("mean", 5), ("weighted mean", 5), ("sum", 10)])
-def test_aggregate_time_series(sds_for_basic_representation, 
-                               sub_to_sup_region_id_dict, 
+def test_aggregate_time_series(sds_and_dict_for_basic_representation, 
                                mode, 
                                expected):
+
+    sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
+
     test_xarray = sds_for_basic_representation.xr_dataset['var_ts']
     
     #FUNCTION CALL
@@ -79,7 +84,9 @@ def test_aggregate_time_series(sds_for_basic_representation,
 
 
 @pytest.mark.parametrize("mode", ["mean", "sum", "bool"])       
-def test_aggregate_values(sub_to_sup_region_id_dict, sds_for_basic_representation, mode):
+def test_aggregate_values(sds_and_dict_for_basic_representation, mode):
+    sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
+
     test_xarray = sds_for_basic_representation.xr_dataset['var_1d']
     
     #FUNCTION CALL 
@@ -104,11 +111,11 @@ def test_aggregate_values(sub_to_sup_region_id_dict, sds_for_basic_representatio
 
 @pytest.mark.parametrize("set_diagonal_to_zero", [True, False])
 @pytest.mark.parametrize("mode", ["mean", "sum", "bool"])
-
-def test_aggregate_connections(sub_to_sup_region_id_dict, 
-                               sds_for_basic_representation, 
+def test_aggregate_connections(sds_and_dict_for_basic_representation,
                                set_diagonal_to_zero,
                                mode):
+
+    sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
     
     test_xarray = sds_for_basic_representation.xr_dataset['var_2d']
 
@@ -167,12 +174,12 @@ test_data = [(None, 10, 10, np.array([ [0, 20], [20, 0] ]) ),
             ]  #TODO: test with weighted mean also
 
 @pytest.mark.parametrize("aggregation_function_dict, expected_ts, expected_1d, expected_2d", test_data)
-def test_aggregate_based_on_sub_to_sup_region_id_dict(sds_for_basic_representation,
-                                                      sub_to_sup_region_id_dict,
+def test_aggregate_based_on_sub_to_sup_region_id_dict(sds_and_dict_for_basic_representation,
                                                       aggregation_function_dict, 
                                                       expected_ts, 
                                                       expected_1d, 
                                                       expected_2d):  
+    sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
 
     output_sds = spr.aggregate_based_on_sub_to_sup_region_id_dict(sds_for_basic_representation,
                                                                   sub_to_sup_region_id_dict,
@@ -208,7 +215,9 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict(sds_for_basic_representati
 
 
 # spagat.output
-def test_create_grid_shapefile(sds_for_basic_representation):
+def test_create_grid_shapefile(sds_and_dict_for_basic_representation):
+    sds_for_basic_representation = sds_and_dict_for_basic_representation.sds
+
     
     path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output')
     files_name="test_ac_lines"
