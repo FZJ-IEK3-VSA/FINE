@@ -9,8 +9,8 @@ class Transmission(Component):
     """
     A Transmission component can transmit a commodity between locations of the energy system.
 
-    Last edited: November 28, 2018
-    |br| @author: Lara Welder
+    Last edited: November 12, 2020
+    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     def __init__(self,
                  esM,
@@ -31,6 +31,7 @@ class Transmission(Component):
                  capacityMax=None,
                  partLoadMin=None,
                  sharedPotentialID=None,
+                 linkedQuantityID=None,
                  capacityFix=None,
                  isBuiltFix=None,
                  investPerCapacity=0,
@@ -168,6 +169,7 @@ class Transmission(Component):
                             capacityMax=self.capacityMax,
                             partLoadMin=partLoadMin,
                             sharedPotentialID=sharedPotentialID,
+                            linkedQuantityID=linkedQuantityID,
                             capacityFix=self.capacityFix,
                             isBuiltFix=self.isBuiltFix,
                             investPerCapacity=self.investPerCapacity,
@@ -205,10 +207,10 @@ class Transmission(Component):
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
 
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, self.locationalEligibility, self.dimension)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, self.locationalEligibility, self.dimension)
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         if self.partLoadMin is not None:

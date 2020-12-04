@@ -29,6 +29,7 @@ class Source(Component):
                  capacityMax=None,
                  partLoadMin=None,
                  sharedPotentialID=None,
+                 linkedQuantityID=None,
                  capacityFix=None,
                  isBuiltFix=None,
                  investPerCapacity=0,
@@ -47,6 +48,7 @@ class Source(Component):
                  yearlyFullLoadHoursMin=None,
                  yearlyFullLoadHoursMax=None,
                  autarkyID=None):
+
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -188,6 +190,7 @@ class Source(Component):
                             capacityMax=capacityMax,
                             partLoadMin=partLoadMin,
                             sharedPotentialID=sharedPotentialID,
+                            linkedQuantityID=linkedQuantityID,
                             capacityFix=capacityFix,
                             isBuiltFix=isBuiltFix,
                             investPerCapacity=investPerCapacity,
@@ -220,11 +223,11 @@ class Source(Component):
                                                                locationalEligibility)
 
         self.fullCommodityCostTimeSeries = \
-            utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries, locationalEligibility)
+            utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries, locationalEligibility)
         self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
 
         self.fullCommodityRevenueTimeSeries = \
-            utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityRevenueTimeSeries, locationalEligibility)
+            utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries, locationalEligibility)
         self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
@@ -234,10 +237,10 @@ class Source(Component):
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
 
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, locationalEligibility)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
         self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, locationalEligibility)
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         if self.partLoadMin is not None:
@@ -332,6 +335,7 @@ class Sink(Source):
                  capacityMax=None,
                  partLoadMin=None,
                  sharedPotentialID=None,
+                 linkedQuantityID=None,
                  capacityFix=None,
                  isBuiltFix=None,
                  investPerCapacity=0,
@@ -373,6 +377,7 @@ class Sink(Source):
                         capacityMax=capacityMax,
                         partLoadMin=partLoadMin,
                         sharedPotentialID=sharedPotentialID,
+                        linkedQuantityID=linkedQuantityID,
                         capacityFix=capacityFix,
                         isBuiltFix=isBuiltFix,
                         investPerCapacity=investPerCapacity,
@@ -703,7 +708,7 @@ class SourceSinkModel(ComponentModel):
             # get empty datframe for resulting time dependent (TD) cost sum
             cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
             cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
-
+            
             for compName in compDict.keys():
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series

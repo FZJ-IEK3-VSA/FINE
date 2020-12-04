@@ -12,31 +12,32 @@ class Component(metaclass=ABCMeta):
     components inherits from the Component class. 
 
     """
-    def __init__(self, 
-                 esM, 
-                 name, 
+    def __init__(self,
+                 esM,
+                 name,
                  dimension,
-                 hasCapacityVariable, 
-                 capacityVariableDomain='continuous', 
+                 hasCapacityVariable,
+                 capacityVariableDomain='continuous',
                  capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
-                 bigM=None, 
+                 hasIsBuiltBinaryVariable=False,
+                 bigM=None,
                  locationalEligibility=None,
-                 capacityMin=None, 
-                 capacityMax=None, 
-                 partLoadMin=None, 
-                 sharedPotentialID=None, 
-                 capacityFix=None, 
+                 capacityMin=None,
+                 capacityMax=None,
+                 partLoadMin=None,
+                 sharedPotentialID=None,
+                 linkedQuantityID=None,
+                 capacityFix=None,
                  isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
-                 opexPerCapacity=0, 
-                 opexIfBuilt=0, 
+                 investPerCapacity=0,
+                 investIfBuilt=0,
+                 opexPerCapacity=0,
+                 opexIfBuilt=0,
                  QPcostScale=0,
-                 interestRate=0.08, 
-                 economicLifetime=10, 
-                 technicalLifetime=None, 
-                 yearlyFullLoadHoursMin=None, 
+                 interestRate=0.08,
+                 economicLifetime=10,
+                 technicalLifetime=None,
+                 yearlyFullLoadHoursMin=None,
                  yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Component class instance.
@@ -158,6 +159,11 @@ class Component(metaclass=ABCMeta):
             |br| * the default value is None
         :type sharedPotentialID: string
 
+        :param linkedQuantityID: if specified, indicates that the components with the same ID are built with the same number.
+            (e.g. if a vehicle with an engine is built also a storage needs to be built)
+            |br| * the default value is None
+        :type linkedQuantityID: string
+
         :param capacityFix: if specified, indicates the fixed capacities. The type of this parameter
             depends on the dimension of the component: If dimension=1dim, it has to be a Pandas Series.
             If dimension=2dim, it has to be a Pandas Series or DataFrame.
@@ -256,9 +262,9 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations.
 
         :param QPcostScale: describes the absolute deviation of the minimum or maximum cost value from
-            the average or weighted average cost value. For further information see 
-            Lopion et al. (2019): "Cost Uncertainties in Energy System Optimization Models: 
-            A Quadratic Programming Approach for Avoiding Penny Switching Effects". 
+            the average or weighted average cost value. For further information see
+            Lopion et al. (2019): "Cost Uncertainties in Energy System Optimization Models:
+            A Quadratic Programming Approach for Avoiding Penny Switching Effects".
             |br| * the default value is 0, i.e. the problem is not quadratic.
         :type QPcostScale:
             * float between 0 and 1
@@ -359,6 +365,7 @@ class Component(metaclass=ABCMeta):
         self.capacityMin = utils.castToSeries(capacityMin, esM)
         self.capacityMax = utils.castToSeries(capacityMax, esM)
         self.capacityFix = utils.castToSeries(capacityFix, esM)
+        self.linkedQuantityID = linkedQuantityID
         self.yearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMin, dimension, elig)
         self.yearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(esM, name, yearlyFullLoadHoursMax, dimension, elig)
         self.isBuiltFix = isBuiltFix
@@ -1637,8 +1644,8 @@ class ComponentModel(metaclass=ABCMeta):
         Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
+        * 'capacityVariablesOptimum',
+        * 'isBuiltVariablesOptimum',
         * 'operationVariablesOptimum',
         * 'all' or another input: all variables are returned.\n
         :type name: string

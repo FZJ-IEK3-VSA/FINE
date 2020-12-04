@@ -1,6 +1,6 @@
 """
-Last edited: July 27 2018
-|br| @author: Lara Welder
+Last edited: November 12 2020
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
 from FINE.transmission import TransmissionModel
@@ -57,8 +57,8 @@ class EnergySystemModel:
       available.
     * getting components and their attributes (**getComponent, getCompAttr, getOptimizationSummary**)
 
-    Last edited: July 27, 2018
-    |br| @author: Lara Welder
+    Last edited: November 12 2020
+    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
     def __init__(self,
@@ -423,8 +423,8 @@ class EnergySystemModel:
             |br| * the default value is False
         :type storeTSAinstance: boolean
 
-        Last edited: March 26, 2020
-        |br| @author: Lara Welder, Maximilian Hoffmann
+        Last edited: November 12 2020
+        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
 
         # Check input arguments which have to fit the temporal representation of the energy system
@@ -655,6 +655,47 @@ class EnergySystemModel:
                        for mdl in self.componentModelingDict.values()) <= 1
         pyM.ConstraintSharedPotentials = \
             pyomo.Constraint(pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint)
+    
+    def declareComponentLinkedQuantityConstraints(self, pyM):
+        """
+        Declare linked component quantity constraint, e.g. if an engine (E-Motor) is built also a storage (Battery)
+        and a vehicle body (e.g. BEV Car) needs to be built. Not the capacity of the components, but the number of
+        the components is linked.
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel     
+        """
+        utils.output('Declaring linked component quantity constraint...', self.verbose, 0)
+
+        compDict = {}
+        for mdl in self.componentModelingDict.values():
+            for compName, comp in mdl.componentsDict.items():
+                if comp.linkedQuantityID is not None:
+                    [compDict.setdefault((comp.linkedQuantityID, loc), []).append(compName)
+                    for loc in comp.locationalEligibility.index]
+        pyM.linkedQuantityDict = compDict
+       
+        def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2):
+            abbrvName1 = self.componentModelingDict[self.componentNames[compName1]].abbrvName
+            abbrvName2 = self.componentModelingDict[self.componentNames[compName2]].abbrvName
+            capVar1 = getattr(pyM, 'cap_' + abbrvName1)
+            capVar2 = getattr(pyM, 'cap_' + abbrvName2)
+            capPPU1 = self.componentModelingDict[self.componentNames[compName1]].componentsDict[compName1].capacityPerPlantUnit
+            capPPU2 = self.componentModelingDict[self.componentNames[compName2]].componentsDict[compName2].capacityPerPlantUnit
+            return capVar1[loc, compName1] / capPPU1 == capVar2[loc, compName2] / capPPU2
+
+
+        for (i,j) in pyM.linkedQuantityDict.keys():
+            linkedQuantityList = []
+            linkedQuantityList.append((i, j))
+            
+            setattr(pyM, 'ConstraintLinkedQuantity_' + str(i) + '_' + str(j),\
+                pyomo.Constraint(\
+                    linkedQuantityList,\
+                    pyM.linkedQuantityDict[i, j],\
+                    pyM.linkedQuantityDict[i, j],\
+                    rule=linkedQuantityConstraint))
 
     def declareCommodityBalanceConstraints(self, pyM):
         """
@@ -730,7 +771,7 @@ class EnergySystemModel:
         :type declaresOptimizationProblem: boolean
 
         Last edited: March 26, 2020
-        |br| @author: Lara Welder, Maximilian Hoffmann
+        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -774,6 +815,11 @@ class EnergySystemModel:
         self.declareSharedPotentialConstraints(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
+        # Declare constraints for linked quantities
+        _t = time.time()
+        self.declareComponentLinkedQuantityConstraints(pyM)
+        utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
+
         # Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
         _t = time.time()
         self.declareCommodityBalanceConstraints(pyM)
@@ -800,10 +846,10 @@ class EnergySystemModel:
                  declaresOptimizationProblem=True,
                  relaxIsBuiltBinary=False,
                  timeSeriesAggregation=False,
-                 logFileName='',
-                 threads=3,
-                 solver='gurobi',
-                 timeLimit=None,
+                 logFileName='', 
+                 threads=3, 
+                 solver='None', 
+                 timeLimit=None, 
                  optimizationSpecs='',
                  warmstart=False):
         """
@@ -876,7 +922,7 @@ class EnergySystemModel:
         :type warmstart: boolean
 
         Last edited: March 26, 2020
-        |br| @author: Lara Welder, Maximilian Hoffmann
+        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
         if not timeSeriesAggregation:
             self.segmentation = False
@@ -900,6 +946,31 @@ class EnergySystemModel:
         self.solverSpecs['logFileName'], self.solverSpecs['threads'] = logFileName, threads
         self.solverSpecs['solver'], self.solverSpecs['timeLimit'] = solver, timeLimit
         self.solverSpecs['optimizationSpecs'], self.solverSpecs['hasTSA'] = optimizationSpecs, timeSeriesAggregation
+
+        # Check which solvers are available and choose default solver if no solver is specified explicitely
+        # Order of possible solvers in solverList defines the priority of chosen default solver.
+        solverList = ['gurobi', 'coincbc', 'glpk']
+        
+        if solver != 'None':
+            try:
+                opt.SolverFactory(solver).available()
+            except:
+                solver = 'None'
+
+        if solver == 'None':
+            for nSolver in solverList:
+                if solver == 'None':
+                    try:
+                        opt.SolverFactory(nSolver).available()
+                        solver = nSolver
+                        utils.output('Either solver not selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
+                    except:
+                        pass
+
+        if solver == 'None':
+            raise TypeError('At least one solver must be installed.'
+                            ' Have a look at the FINE documentation to see how to install possible solvers.'
+                            ' https://vsa-fine.readthedocs.io/en/latest/')
 
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #

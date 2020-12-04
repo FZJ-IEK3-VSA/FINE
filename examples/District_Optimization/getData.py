@@ -1,7 +1,7 @@
 """
 Created on Thu Nov  8 10:02:46 2018
 
-@author: a.schmitt
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
 import pandas as pd
