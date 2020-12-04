@@ -358,3 +358,83 @@ Solution count 1: 4.3611e+06
 
 Optimal solution found (tolerance 1.00e-04)
 Best objective 4.361095252251e+06, best bound 4.361095252251e+06, gap 0.0000%
+
+Gurobi 9.0.1 (win64) logging started 12/04/20 09:04:02
+
+Changed value of parameter logfile to firstStage
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 85 rows, 65 columns and 209 nonzeros
+Model fingerprint: 0xb8714b57
+Variable types: 59 continuous, 6 integer (6 binary)
+Coefficient statistics:
+  Matrix range     [3e-01, 3e+07]
+  Objective range  [7e-03, 3e+04]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 41 rows and 35 columns
+Presolve time: 0.01s
+Presolved: 44 rows, 30 columns, 116 nonzeros
+Variable types: 26 continuous, 4 integer (4 binary)
+
+Root relaxation: objective 4.332128e+06, 15 iterations, 0.00 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 4332127.53    0    2          - 4332127.53      -     -    0s
+H    0     0                    4361095.2523 4332127.53  0.66%     -    0s
+     0     0     cutoff    0      4361095.25 4361095.25  0.00%     -    0s
+
+Explored 1 nodes (16 simplex iterations) in 0.03 seconds
+Thread count was 3 (of 8 available processors)
+
+Solution count 1: 4.3611e+06 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.361095252251e+06, best bound 4.361095252251e+06, gap 0.0000%
+
+Gurobi 9.0.1 (win64) logging started 12/04/20 09:52:26
+
+Changed value of parameter logfile to firstStage
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 85 rows, 65 columns and 209 nonzeros
+Model fingerprint: 0xb8714b57
+Variable types: 59 continuous, 6 integer (6 binary)
+Coefficient statistics:
+  Matrix range     [3e-01, 3e+07]
+  Objective range  [7e-03, 3e+04]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 41 rows and 35 columns
+Presolve time: 0.00s
+Presolved: 44 rows, 30 columns, 116 nonzeros
+Variable types: 26 continuous, 4 integer (4 binary)
+
+Root relaxation: objective 4.332128e+06, 15 iterations, 0.00 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 4332127.53    0    2          - 4332127.53      -     -    0s
+H    0     0                    4361095.2523 4332127.53  0.66%     -    0s
+     0     0     cutoff    0      4361095.25 4361095.25  0.00%     -    0s
+
+Explored 1 nodes (16 simplex iterations) in 0.01 seconds
+Thread count was 3 (of 8 available processors)
+
+Solution count 1: 4.3611e+06 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.361095252251e+06, best bound 4.361095252251e+06, gap 0.0000%
