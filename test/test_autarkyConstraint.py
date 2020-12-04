@@ -34,10 +34,9 @@ def test_autarkyConstraint():
     ## Define Autarky constraint in relation to demand in regions
     input_autarky = pd.DataFrame(columns=['Region1', 'Region2'], index=["el", "heat"])
     perNetAutarky = 0.75
-    perNetAutarky_h = 0.9
+    perNetAutarky_h = 1
     input_autarky.loc["el"] = (1 - perNetAutarky) * demand.sum()
     input_autarky.loc["heat"] = (1 - perNetAutarky_h) * heat_demand.sum()
-    print(input_autarky)
 
     ## Initialize esM with two regions
     esM = fn.EnergySystemModel(locations=locations,
@@ -136,53 +135,28 @@ def test_autarkyConstraint():
 
     ## Optimize model
     esM.optimize(timeSeriesAggregation=False, solver='glpk')
-    res_source = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
-    res_transmission = esM.getOptimizationSummary("TransmissionModel", outputLevel=2)
+
     for i, loc in enumerate(esM.locations):
         # Get Electricity Purchase for location
-        if ("Electricity purchase", "operation") in res_source[loc].index:
-            el_purchase = \
-                res_source.loc["Electricity purchase", "operation"][loc].values[0]
-        else:
-            el_purchase = 0
-        if ("Heat purchase", "operation") in res_source[loc].index:
-            heat_purchase = \
-                res_source.loc["Heat purchase", "operation"][loc].values[0]
-        else:
-            heat_purchase = 0
-        # Get Electricity demand for location
-        el_demand = res_source.loc["Electricity demand"][loc].values[0]
-        heat_demand = res_source.loc["Heat demand"][loc].values[0]
+        el_purchase = \
+            esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.loc[
+                "Electricity purchase", loc].sum()
+        heat_purchase = \
+            esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.loc[
+                "Heat purchase", loc].sum()
         # Get Exchange going into region and out of region
-        cables = res_transmission.loc["AC cables"]
-        pipes = res_transmission.loc["Heat pipes"]
+        cables = esM.componentModelingDict["TransmissionModel"].operationVariablesOptimum.loc["AC cables"]
+        pipes = esM.componentModelingDict["TransmissionModel"].operationVariablesOptimum.loc["Heat pipes"]
         for j, loc_ in enumerate(esM.locations):
             if loc != loc_:
-                try:
-                    exch_in = cables.loc["operation", "[MW$_{el}$*h/a]", loc_][loc] * \
-                              (1 - losses * distances.loc[loc_, loc])
-                    exch_in_h = pipes.loc["operation", "[MW$_{el}$*h/a]", loc_][loc] * \
-                                (1 - losses * distances.loc[loc_, loc])
-                except:
-                    exch_in = 0
-                    exch_in_h = 0
-                try:
-                    exch_out = cables.loc["operation", "[MW$_{el}$*h/a]", loc][loc_]
-                    exch_out_h = pipes.loc["operation", "[MW$_{el}$*h/a]", loc][loc_]
-                except:
-                    exch_out = 0
-                    exch_out_h = 0
-        if np.isnan(exch_out):
-            exch_out = 0
-        if np.isnan(exch_out_h):
-            exch_out_h = 0
-        if np.isnan(exch_in):
-            exch_in = 0
-        if np.isnan(exch_in_h):
-            exch_in_h = 0
-        netAutarky = (1 - (el_purchase + exch_in - exch_out) / el_demand)
-        netAutarky_h = (1 - (heat_purchase + exch_in_h - exch_out_h) / heat_demand)
-        tolerance = 0.0001
+                exch_in = (cables.loc[loc_, loc] *
+                           (1 - losses * distances.loc[loc_, loc])).T.sum()
+                exch_in_h = (pipes.loc[loc_, loc] *
+                             (1 - losses * distances.loc[loc_, loc])).T.sum()
+                exch_out = cables.loc[loc, loc_].T.sum()
+                exch_out_h = pipes.loc[loc, loc_].T.sum()
+
+        tolerance = 0.001
         ## Compare modelled autarky to limit set in constraint.
-        assert netAutarky > (perNetAutarky - tolerance)
-        assert netAutarky_h > (perNetAutarky_h - tolerance)
+        assert el_purchase + exch_in - exch_out + tolerance > input_autarky.loc["el", loc]
+        assert heat_purchase + exch_in_h - exch_out_h + tolerance > input_autarky.loc["heat", loc]
