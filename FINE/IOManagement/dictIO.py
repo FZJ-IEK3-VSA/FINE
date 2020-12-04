@@ -52,14 +52,6 @@ def exportToDict(esM):
 
     return esmDict, compDict
 
-def exportToJSON(esM, filename):
-    esmDict, compDict = exportToDict(esM)
-
-    entireEsmDict = {'esmDict': esmDict, 'compDict': compDict}
-
-    with open(filename, 'w') as fp:
-        json.dump(entireEsmDict, fp)
-
 def importFromDict(esmDict, compDict, esM=None):
     """
     Writes the dictionaries created by the exportToDict function to an EnergySystemModel.
@@ -86,11 +78,25 @@ def importFromDict(esmDict, compDict, esM=None):
 
     return esM
 
-def importFromJSON(filename):
+#NOTE: Writing the dicts to a json file throws error because there are some "set" type objects within these dicts which 
+# are not json serializable. Only other way is to use pickle or cPickle package and save .txt files. However, this is 
+# also throwing error at the moment
+#TODO: check if it is absolutely necessary to save these dicts, if yes, try again with the above mentioned packages
+# otherwise, just delete the functions!
 
-    with open(filename, 'r') as fp:
-        entireEsmDict = json.load(fp)
+# def exportToJSON(esM, filename):
+#     esmDict, compDict = exportToDict(esM)
 
-    esM = importFromDict(entireEsmDict['esmDict'], entireEsmDict['compDict'])
+#     entireEsmDict = {'esmDict': esmDict, 'compDict': compDict}
 
-    return esM
+#     with open(filename, 'w') as fp:
+#         json.dump(entireEsmDict, fp)
+
+# def importFromJSON(filename):
+
+#     with open(filename, 'r') as fp:
+#         entireEsmDict = json.load(fp)
+
+#     esM = importFromDict(entireEsmDict['esmDict'], entireEsmDict['compDict'])
+
+#     return esM
