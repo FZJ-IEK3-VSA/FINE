@@ -2,7 +2,7 @@ import FINE as fn
 import pandas as pd
 import numpy as np
 
-def test_conversionPartLoad():
+def test_conversionPartLoad(solver):
 
     # Set up energy system model instance
     locations = {'GlassProductionSite'}
@@ -132,7 +132,7 @@ def test_conversionPartLoad():
     ### Optimization ###
     # Input parameters
     timeSeriesAggregation=False
-    solver='glpk'  
+    solver=solver  
     # Code
     esM.optimize(timeSeriesAggregation=timeSeriesAggregation, solver=solver)
 
