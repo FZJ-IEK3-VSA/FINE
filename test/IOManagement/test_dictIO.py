@@ -1,78 +1,127 @@
-import FINE 
-import numpy as np
-import os
 import pytest
+import os
+import sys
+
+import numpy as np
 import xarray as xr
+import pandas as pd 
 import json
 
+import FINE as fn
 from FINE.IOManagement import dictIO
 
+sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional_Energy_System_Workflow'))
+from getData import getData
+
 def test_export_to_dict_minimal(minimal_test_esM):
-    '''
-    Export esM class to file
-    '''
+    #EXPECTED 
+    test_locations={'ElectrolyzerLocation', 'IndustryLocation'} 
+    test_commodities={'electricity', 'hydrogen'}
+    test_commodityUnitsDict={'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'}
+    n_TimeSteps= 4
+    n_hours= 2190 
+    costUnit='1 Euro' 
+    lengthUnit='km'
+    verboseLogLevel=2
 
-    esm_dict, comp_dict = dictIO.exportToDict(minimal_test_esM)
+    expected_esm_dict = dict(zip(('locations','commodities',
+                              'commodityUnitsDict',
+                              'numberOfTimeSteps', 'hoursPerTimeStep',
+                              'costUnit', 'lengthUnit',
+                             'verboseLogLevel'), 
+                            (test_locations,test_commodities, 
+                            test_commodityUnitsDict,
+                            n_TimeSteps, n_hours,
+                            costUnit, lengthUnit,
+                            verboseLogLevel)))
 
-    # TODO: test against expected values
+    expected_comp_subvalue = pd.Series([500, 500], index=list(test_locations))
+    
+    #FUNCTION CALL 
+    output_esm_dict, output_comp_dict = dictIO.exportToDict(minimal_test_esM)
+
+    #ASSERTION
+    assert output_esm_dict == expected_esm_dict
+    assert expected_comp_subvalue.eq(output_comp_dict.get('Conversion').get('Electrolyzers').get('investPerCapacity')).all()
+   
+    #TODO: Check why values like operationRateMax, and operationRateFix (basically time series) are None in the comp_dict
+    # assert for Source and Sink values also.
+
 
 def test_export_to_dict_multinode(multi_node_test_esM_init):
-    # TODO: use parametrization instead of repeating the test
-    '''
-    Export esM class to file
-    '''
+    data = getData()
+    #EXPECTED 
+    test_locations = {'cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'}
+    test_commodities = {'electricity', 'hydrogen', 'methane', 'biogas', 'CO2'}
+    test_commodityUnitsDict = {'electricity': r'GW$_{el}$', 'methane': r'GW$_{CH_{4},LHV}$', 'biogas': r'GW$_{biogas,LHV}$',
+                        'CO2': r'Mio. t$_{CO_2}$/h', 'hydrogen': r'GW$_{H_{2},LHV}$'}
+    n_TimeSteps = 8760
+    n_hours = 1
+    costUnit='1e9 Euro'
+    lengthUnit='km'
+    verboseLogLevel=0
 
-    esm_dict, comp_dict = dictIO.exportToDict(multi_node_test_esM_init)
+    expected_esm_dict = dict(zip(('locations','commodities',
+                            'commodityUnitsDict',
+                            'numberOfTimeSteps', 'hoursPerTimeStep',
+                            'costUnit', 'lengthUnit',
+                            'verboseLogLevel'), 
+                            (test_locations,test_commodities, 
+                            test_commodityUnitsDict,
+                            n_TimeSteps, n_hours,
+                            costUnit, lengthUnit,
+                            verboseLogLevel)))
+    
+    expected_comp_subvalue = data['Wind (onshore), capacityMax']
 
-    # TODO: test against expected values
+    #FUNCTION CALL
+    output_esm_dict, output_comp_dict = dictIO.exportToDict(multi_node_test_esM_init)
 
-def test_import_from_dict_minimal(minimal_test_esM, solver):
+    #ASSERTION
+    assert output_esm_dict == expected_esm_dict
+    assert expected_comp_subvalue.eq(output_comp_dict.get('Source').get('Wind (onshore)').get('capacityMax')).all()
 
-    '''
-    Get a dictionary of a esM class and write it to another esM
-    '''
-    esm_dict, comp_dict = dictIO.exportToDict(minimal_test_esM)
+# @pytest.mark.parametrize("test_esM_fixture", "expected_locations", "expected_commodityUnitsDict", 
+#                               [( 'minimal_test_esM', 
+#                                  {'ElectrolyzerLocation', 'IndustryLocation'}, 
+#                                  {'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'} 
+#                                  ),
+#                                ( 'multi_node_test_esM_init', 
+#                                  {'cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 
+#                                   'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'},
+#                                  {'electricity': r'GW$_{el}$', 'methane': r'GW$_{CH_{4},LHV}$', 
+#                                  'biogas': r'GW$_{biogas,LHV}$','CO2': r'Mio. t$_{CO_2}$/h', 
+#                                  'hydrogen': r'GW$_{H_{2},LHV}$'}
+#                                  )
+#                               ]
+#                             )
+#TODO: check how to pass fixtures and other parameters at the same time. if it's possible use the above
+@pytest.mark.parametrize("test_esM_fixture", ['minimal_test_esM', 'multi_node_test_esM_init'])
+# def test_import_from_dict_minimal(test_esM_fixture, expected_locations, expected_commodityUnitsDict, request):
+def test_import_from_dict_minimal(test_esM_fixture, request):
+    test_esM = request.getfixturevalue(test_esM_fixture)
+    esm_dict, comp_dict = dictIO.exportToDict(test_esM)
 
-    # modify log level
-    esm_dict['verboseLogLevel'] = 0
+    # FUNCTION CALL 
+    output_esM = dictIO.importFromDict(esm_dict, comp_dict)
 
-    # write a new FINE model from it
-    new_esM = dictIO.importFromDict(esm_dict, comp_dict)
+    if test_esM_fixture == 'minimal_test_esM':
+        expected_locations = {'ElectrolyzerLocation', 'IndustryLocation'}
+        expected_commodityUnitsDict = {'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'}
+    else:
+        expected_locations = {'cluster_0', 'cluster_1', 'cluster_2', 'cluster_3',
+                              'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'}
+        expected_commodityUnitsDict = {'electricity': r'GW$_{el}$', 'methane': r'GW$_{CH_{4},LHV}$', 
+                                       'biogas': r'GW$_{biogas,LHV}$', 'CO2': r'Mio. t$_{CO_2}$/h',
+                                       'hydrogen': r'GW$_{H_{2},LHV}$'}
+        
+    #ASSERTION
+    assert output_esM.locations == expected_locations
+    assert output_esM.commodityUnitsDict == expected_commodityUnitsDict
+    #TODO: assert some values from comp_dict also. You'll need mates' OutputManager to access values from esM instance 
 
-    new_esM.optimize(timeSeriesAggregation=False, solver = solver)
 
-    # test if solve fits to the original results
-    testresults = new_esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Electricity market')
 
-    np.testing.assert_array_almost_equal(testresults.values, [np.array([1.877143e+07,  3.754286e+07,  0.0,  1.877143e+07]),],decimal=-3)
 
-def test_import_from_dict_multinode(multi_node_test_esM_init, multi_node_test_esM_optimized, solver):
-    # TODO: use parametrization instead of repeating the test
-    '''
-    Get a dictionary of a esM class and write it to another esM
-    '''
-    esm_dict, comp_dict = dictIO.exportToDict(multi_node_test_esM_init)
+    
 
-    # modify log level
-    esm_dict['verboseLogLevel'] = 0
-
-    # write a new FINE model from it
-    esM_imported_from_dict = dictIO.importFromDict(esm_dict, comp_dict)
-
-    esM_imported_from_dict.cluster(numberOfTypicalPeriods=3)
-
-    esM_imported_from_dict.optimize(timeSeriesAggregation=True, solver = solver)
-
-    # test if solve fits to the original results
-    expected_results = multi_node_test_esM_optimized.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Biogas purchase')
-    test_results = esM_imported_from_dict.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Biogas purchase')
-
-    np.testing.assert_array_almost_equal(test_results.values, expected_results.values,decimal=-3)
-
-@pytest.mark.skip('function not yet implmented correctly')
-def test_export_to_json(minimal_test_esM):
-    dictIO.exportToJSON(minimal_test_esM, filename="minimal_esM.json")
-
-@pytest.mark.skip('function not yet implmented correctly')
-def test_import_from_json(minimal_test_esM):
-    esM = dictIO.importFromJSON("minimal_esM.json")
