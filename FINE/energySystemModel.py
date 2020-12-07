@@ -656,7 +656,7 @@ class EnergySystemModel:
         """
         lowerLimitDict = {}
         for mdl_type, mdl in self.componentModelingDict.items():
-            if mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel":
+            if mdl_type=="SourceSinkModel":
                 for compName, comp in mdl.componentsDict.items():
                     if comp.lowerLimitID is not None:
                         [lowerLimitDict.setdefault((comp.lowerLimitID, loc), []).append(compName)
