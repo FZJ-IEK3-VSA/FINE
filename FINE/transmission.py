@@ -476,7 +476,7 @@ class TransmissionModel(ComponentModel):
                    for compName in opVarDictOut[loc][loc_]
                    if commod in compDict[compName].commodity)
 
-    def getAutarkyContribution(self, esM, pyM, ID, loc):
+    def getAutarkyContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
         """
         Get contribution to autarky constraint.
 
@@ -491,11 +491,23 @@ class TransmissionModel(ComponentModel):
 
         :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
         :type loc: string
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+            |br| * the default value is False
+        :type timeSeriesAggregation: boolean
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
         opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
         limitDict = getattr(pyM, 'autarkyDict')
+        if timeSeriesAggregation:
+            periods = esM.typicalPeriods
+            timeSteps = esM.timeStepsPerPeriod
+        else:
+            periods = esM.periods
+            timeSteps = esM.totalTimeSteps
         aut = \
             sum(opVar[loc_ + "_" + loc, compName, p, t] *
                 (1 - compDict[compName].losses[loc_ + '_' + loc] * 
@@ -503,14 +515,14 @@ class TransmissionModel(ComponentModel):
                 esM.periodOccurrences[p]
                 for loc_ in opVarDictIn[loc].keys()
                 for compName in opVarDictIn[loc][loc_] if compName in limitDict[(ID, loc)]
-                for p in esM.periods
-                for t in esM.totalTimeSteps) - \
+                for p in periods
+                for t in timeSteps) - \
             sum(opVar[loc + "_" + loc_, compName, p, t] *
                 esM.periodOccurrences[p]
                 for loc_ in opVarDictOut[loc].keys()
                 for compName in opVarDictOut[loc][loc_] if compName in limitDict[(ID, loc)]
-                for p in esM.periods
-                for t in esM.totalTimeSteps)
+                for p in periods
+                for t in timeSteps)
         return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):

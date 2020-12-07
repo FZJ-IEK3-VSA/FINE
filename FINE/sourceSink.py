@@ -47,7 +47,8 @@ class Source(Component):
                  technicalLifetime=None,
                  yearlyFullLoadHoursMin=None,
                  yearlyFullLoadHoursMax=None,
-                 autarkyID=None):
+                 autarkyID=None,
+                 lowerLimitID=None):
 
         """
         Constructor for creating an Source class instance.
@@ -174,6 +175,10 @@ class Source(Component):
         :param autarkyID: ID for the autarky limit specified in the esM, if the SourceSinkModel is
             supposed to be included in the autarky analysis.
         :type autarkyID: string
+
+        :param lowerLimitID: ID for the lower limit specified in the esM, if the SourceSinkModel is
+            supposed to be included in the lower limit analysis.
+        :type lowerLimitID: string
         """
 
         Component. __init__(self,
@@ -210,6 +215,7 @@ class Source(Component):
         # TODO check value and type correctness
         self.commodityLimitID, self.yearlyLimit = commodityLimitID, yearlyLimit
         self.autarkyID = autarkyID
+        self.lowerLimitID = lowerLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
@@ -350,7 +356,9 @@ class Sink(Source):
                  QPcostScale=0,
                  interestRate=0.08,
                  economicLifetime=10,
-                 technicalLifetime=None):
+                 technicalLifetime=None,
+                 autarkyID=None,
+                 lowerLimitID=None):
         """
         Constructor for creating an Sink class instance.
 
@@ -392,7 +400,9 @@ class Sink(Source):
                         QPcostScale=QPcostScale,
                         interestRate=interestRate,
                         economicLifetime=economicLifetime,
-                        technicalLifetime=technicalLifetime)
+                        technicalLifetime=technicalLifetime,
+                        autarkyID=autarkyID,
+                        lowerLimitID=lowerLimitID)
 
         self.sign = -1
 
@@ -604,7 +614,7 @@ class SourceSinkModel(ComponentModel):
         return any([comp.commodity == commod and comp.locationalEligibility[loc] == 1
                     for comp in self.componentsDict.values()])
 
-    def getAutarkyContribution(self, esM, pyM, ID, loc):
+    def getAutarkyContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
         """
         Get contribution to autarky constraint.
 
@@ -619,6 +629,11 @@ class SourceSinkModel(ComponentModel):
 
         :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
         :type loc: string
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+        :type timeSeriesAggregation: boolean
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
@@ -626,12 +641,56 @@ class SourceSinkModel(ComponentModel):
         # aut = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
         #           esM.periodOccurrences[p]/esM.numberOfYears
         #           for _loc, compName, p, t in opVar if (compName in [limitDict[key] for key in limitDict.keys()][0] and _loc == loc))
+
+        if timeSeriesAggregation:
+            periods = esM.typicalPeriods
+            timeSteps = esM.timeStepsPerPeriod
+        else:
+            periods = esM.periods
+            timeSteps = esM.totalTimeSteps
         aut = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
                   esM.periodOccurrences[p]
                   for compName in compDict.keys() if compName in limitDict[(ID, loc)]
-                  for p in esM.periods
-                  for t in esM.totalTimeSteps)
+                  for p in periods
+                  for t in timeSteps)
         return aut
+
+    def getLowerLimtContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
+        """
+        Get contribution to autarky constraint.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param ID: ID of the regarded autarky constraint
+        :param ID: string
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+        :type timeSeriesAggregation: boolean
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
+        limitDict = getattr(pyM, 'lowerLimitDict')
+        if timeSeriesAggregation:
+            periods = esM.typicalPeriods
+            timeSteps = esM.timeStepsPerPeriod
+        else:
+            periods = esM.periods
+            timeSteps = esM.totalTimeSteps
+        lowLimit = sum(opVar[loc, compName, p, t] *
+                       esM.periodOccurrences[p]
+                       for compName in compDict.keys() if compName in limitDict[(ID, loc)]
+                       for p in periods
+                       for t in timeSteps)
+        return lowLimit
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
         """ Get contribution to a commodity balance. """

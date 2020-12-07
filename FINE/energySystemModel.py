@@ -70,7 +70,8 @@ class EnergySystemModel:
                  costUnit='1e9 Euro',
                  lengthUnit='km',
                  verboseLogLevel=0,
-                 autarkyLimit=None):
+                 autarkyLimit=None,
+                 lowerLimit=None):
         """
         Constructor for creating an EnergySystemModel class instance
 
@@ -135,6 +136,12 @@ class EnergySystemModel:
             SourceSinkModel (e.g.: Purchase) and TransmissionModel (i.e.: exchange with other regions).
             Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
         :type autarkyLimit: pd.DataFrame
+
+        :param lowerLimit: defines the lower limit constraint for specific regions. Can be specified by a pd.Dataframe,
+            the limit is specified in the commodities' unit. Possible included components are
+            SourceSinkModel (e.g.: PV, Wind or Demand).
+            Example: pd.DataFrame(columns=["Region1"], index=["Renewables"], data=[1000])
+        :type autarkyLimit: pd.DataFrame
         """
 
         # Check correctness of inputs
@@ -153,6 +160,7 @@ class EnergySystemModel:
         self.locations, self.lengthUnit = locations, lengthUnit
         self.numberOfTimeSteps = numberOfTimeSteps
         self.autarkyLimit = autarkyLimit
+        self.lowerLimit = lowerLimit
 
         ################################################################################################################
         #                                            Time series parameters                                            #
@@ -601,13 +609,19 @@ class EnergySystemModel:
         pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
         pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
 
-    def declareNetAutarkyConstraint(self, pyM):
+    def declareNetAutarkyConstraint(self, pyM, timeSeriesAggregation):
         """
         Declare net autarky constraint.
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+            |br| * the default value is False
+        :type timeSeriesAggregation: boolean
         """
         autarkyDict = {}
         for mdl_type, mdl in self.componentModelingDict.items():
@@ -618,12 +632,44 @@ class EnergySystemModel:
                          for loc in self.locations]
         setattr(pyM, "autarkyDict", autarkyDict)
         def autarkyConstraint(pyM, ID, loc):
-            return sum(mdl.getAutarkyContribution(esM=self, pyM=pyM, ID=ID, loc=loc)
+            return sum(mdl.getAutarkyContribution(esM=self, pyM=pyM, ID=ID, loc=loc,
+                                                  timeSeriesAggregation=timeSeriesAggregation)
                 for mdl_type, mdl in self.componentModelingDict.items() if (
                     mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel")
                     ) <= self.autarkyLimit.loc[ID, loc]
         pyM.NetAutarkyConstraint = \
             pyomo.Constraint(pyM.autarkyDict.keys(), rule=autarkyConstraint)
+
+    def declareLowerLimitConstraint(self, pyM, timeSeriesAggregation):
+        """
+        Declare lower limit constraint.
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+            |br| * the default value is False
+        :type timeSeriesAggregation: boolean
+        """
+        lowerLimitDict = {}
+        for mdl_type, mdl in self.componentModelingDict.items():
+            if mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel":
+                for compName, comp in mdl.componentsDict.items():
+                    if comp.lowerLimitID is not None:
+                        [lowerLimitDict.setdefault((comp.lowerLimitID, loc), []).append(compName)
+                         for loc in self.locations]
+        setattr(pyM, "lowerLimitDict", lowerLimitDict)
+        def lowerLimitConstraint(pyM, ID, loc):
+            return sum(mdl.getLowerLimtContribution(esM=self, pyM=pyM, ID=ID, loc=loc,
+                                                    timeSeriesAggregation=timeSeriesAggregation)
+                for mdl_type, mdl in self.componentModelingDict.items() if (
+                    mdl_type=="SourceSinkModel")
+                    ) >= self.lowerLimit.loc[ID, loc]
+        pyM.LowerLimitConstraint = \
+            pyomo.Constraint(pyM.lowerLimitDict.keys(), rule=lowerLimitConstraint)
 
     def declareSharedPotentialConstraints(self, pyM):
         """
@@ -827,7 +873,12 @@ class EnergySystemModel:
 
         # Declare constraint for autarky
         _t = time.time()
-        self.declareNetAutarkyConstraint(pyM)
+        self.declareNetAutarkyConstraint(pyM, timeSeriesAggregation)
+        utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
+
+        # Declare constraint for lowerLimit
+        _t = time.time()
+        self.declareLowerLimitConstraint(pyM, timeSeriesAggregation)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
         ################################################################################################################
