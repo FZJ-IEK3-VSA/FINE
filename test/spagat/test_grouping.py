@@ -18,9 +18,9 @@ expected_file = os.path.join(path_to_test_dir, f'{file_name}.png')
                          (['01_es', '02_es', '01_de', '02_de', '03_de', '01_nl'], ['es', 'de', 'nl']),
                          (['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'])]) 
 def test_string_based_clustering(string_list, expected):
-     clustered_regions = spg.string_based_clustering(string_list)
-     assert list(clustered_regions.keys()).sort() == expected.sort()   #INFO: instead of unpermute, you can use .sort() 
-            
+     clustered_regions_dict = spg.string_based_clustering(string_list)
+     assert list(clustered_regions_dict.keys()).sort() == expected.sort()   #INFO: instead of unpermute, you can use .sort() 
+      #TODO: check values also       
 
 @pytest.mark.parametrize("mode", ['sklearn_kmeans', 'sklearn_hierarchical', 'sklearn_spectral', 'scipy_kmeans', 'scipy_hierarchical'])
 def test_distance_based_clustering(mode):    
