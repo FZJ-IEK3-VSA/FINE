@@ -170,6 +170,8 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
 
     return ds
 
+#TODO: This function is at the moment not used anywhere. 
+# Check the usefulness of this function.
 def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_dataset):
     """Replaces dimensional data and respective descriptions in component_dict and esm_dict with spatially aggregated data from xarray_dataset.
 
