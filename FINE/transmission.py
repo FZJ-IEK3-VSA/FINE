@@ -206,10 +206,10 @@ class Transmission(Component):
                               'The operationRateMax time series was set to None.')
 
         self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, self.locationalEligibility, self.dimension)
-        self.aggregatedOperationRateMax, self.operationRateMax = None, None
+        self.aggregatedOperationRateMax, self.operationRateMax = None, self.fullOperationRateMax
 
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, self.locationalEligibility, self.dimension)
-        self.aggregatedOperationRateFix, self.operationRateFix = None, None
+        self.aggregatedOperationRateFix, self.operationRateFix = None, self.fullOperationRateFix
 
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:

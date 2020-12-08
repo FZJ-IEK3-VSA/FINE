@@ -169,10 +169,10 @@ class Conversion(Component):
                               'The operationRateMax time series was set to None.')
 
         self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
-        self.aggregatedOperationRateMax, self.operationRateMax = None, None
+        self.aggregatedOperationRateMax, self.operationRateMax = None, self.fullOperationRateMax
 
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
-        self.aggregatedOperationRateFix, self.operationRateFix = None, None
+        self.aggregatedOperationRateFix, self.operationRateFix = None, self.fullOperationRateFix
 
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:

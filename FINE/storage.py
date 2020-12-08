@@ -271,10 +271,10 @@ class Storage(Component):
                               'The chargeOpRateMax time series was set to None.')
 
         self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
-        self.aggregatedChargeOpRateMax, self.chargeOpRateMax = None, None
+        self.aggregatedChargeOpRateMax, self.chargeOpRateMax = None, self.fullChargeOpRateMax
 
         self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix, locationalEligibility)
-        self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, None
+        self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, self.fullChargeOpRateFix
 
         
         if self.partLoadMin is not None:
@@ -297,10 +297,10 @@ class Storage(Component):
                               + 'The dischargeOpRateMax time series was set to None.')
 
         self.fullDischargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax, locationalEligibility)
-        self.aggregatedDischargeOpRateMax, self.dischargeOpRateMax = None, None
+        self.aggregatedDischargeOpRateMax, self.dischargeOpRateMax = None, self.fullDischargeOpRateMax
 
         self.fullDischargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix, locationalEligibility)
-        self.aggregatedDischargeOpRateFix, self.dischargeOpRateFix = None, None
+        self.aggregatedDischargeOpRateFix, self.dischargeOpRateFix = None, self.fullDischargeOpRateFix
 
         utils.isPositiveNumber(dischargeTsaWeight)
         self.dischargeTsaWeight = dischargeTsaWeight
