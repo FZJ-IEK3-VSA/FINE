@@ -4,14 +4,28 @@ import pytest
 import numpy as np
 import xarray as xr
 import geopandas as gpd
-import json
 
 import FINE as fn
 
 
-@pytest.mark.skip('Yet to be implemented')
-def test_generate_iteration_dicts():
-    pass 
+
+def test_generate_iteration_dicts(minimal_test_esM):
+    esm_dict, component_dict = fn.dictIO.exportToDict(minimal_test_esM)
+    output_df_dict, output_series_dict = fn.xarray_io.generate_iteration_dicts(esm_dict, component_dict)
+
+    # output_df_dict is empty  #TODO: is this a bug is fn.EnergySystemModel()? 
+
+    assert output_series_dict.get('locationalEligibility') == [('Source', 'Electricity market'), 
+                                                                ('Sink', 'Industry site'), 
+                                                                ('Conversion', 'Electrolyzers'),
+                                                                ('Storage', 'Pressure tank'),
+                                                                ('Transmission', 'Pipelines')]
+
+    assert output_series_dict.get('commodityRevenue') == [('Source', 'Electricity market'), 
+                                                            ('Sink', 'Industry site')]
+
+    assert output_series_dict.get('opexPerChargeOperation') == [('Storage', 'Pressure tank')]
+     
 
 def test_dimensional_data_to_xarray_dataset_multinode(multi_node_test_esM_init):
 
