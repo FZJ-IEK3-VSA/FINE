@@ -1,18 +1,20 @@
-import xarray as xr
-from FINE import utils
-import FINE as fn
-import numpy as np
-import pandas as pd
 import os
 import warnings
 
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+import xarray as xr
+
+from FINE import utils
+import FINE as fn
 try:
-    import FINE.spagat.manager as spm
-    import FINE.spagat.representation as spr
+    import FINE.spagat.dataset as spd
+    import FINE.spagat.grouping as spg
+    import FINE.spagat.representation as spr 
 except ImportError:
     warnings.warn('The Spagat python package could not be imported.')
 
-import geopandas as gpd
 
 # TODO: declare private functions (and methods) with pre underscore
 
@@ -246,112 +248,212 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
 
     return esm_dict, component_dict
 
-def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_function_dict=None, clusterMethod="centroid-based", aggregatedShapefileFolderPath=None, **kwargs): #FIXME: **kwargs are not passed to any function in spagat manager. 
-    """Clusters the spatial data of all components considered in the EnergySystemModel instance and returns a new esM instance with the aggregated data.        
+def spatial_aggregation(esM, 
+                        gdfRegions, 
+                        grouping_mode = 'string_based', # options -'string_based', distance_based, all_variable_based
+                        nRegionsForRepresentation = 2,
+                        aggregatedResultsPath=None,
+                        **kwargs): 
+    # STEP 1. Obtain xr dataset from esM 
+    sds = spd.SpagatDataset()
+    esm_dict, comp_dict = fn.dictIO.exportToDict(esM)
+    sds.xr_dataset = dimensional_data_to_xarray_dataset(esm_dict, comp_dict)
     
-    Additional keyword arguments for the SpatialAggregation instance can be added (facilitated by kwargs). 
+    # STEP 2. Add shapefile information to sds
+    sds.add_objects(description='gpd_geometries',
+                    dimension_list=['space'],
+                    object_list=gdfRegions.geometry)
+    spr.add_region_centroids(sds, spatial_dim='space')
     
-    Please refer to the SPAGAT package documentation for more information.
+    # STEP 3. Spatial grouping
+    if grouping_mode == 'string_based':
+        locations = sds.xr_dataset.space.values
+        aggregation_dict = spg.string_based_clustering(locations)
 
-    :param esM: energy system model instance 
-        |br| * the default value is None
-    :type esM: energySystemModelInstance
+    elif grouping_mode == 'distance_based':
+        agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical')  #TODO: some of the parameters and their default values are repeating in
+        dimension_description = kwargs.get('dimension_description', 'space') # 'all_variable_based'. Maybe make it common 
+        ax_illustration = kwargs.get('ax_illustration', None) 
+        save_path = kwargs.get('save_path', None) 
+        fig_name = kwargs.get('fig_name', None)
+        verbose = kwargs.get('verbose', False)
 
-    :param numberOfRegions: states the number of regions into which the spatial data
-        should be clustered.
-        Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
-        information.
-        |br| * the default value is None
-    :type numberOfRegions: strictly positive integer, None
+        aggregation_dict = spg.distance_based_clustering(sds, 
+                                      agg_mode, 
+                                      dimension_description, 
+                                      ax_illustration, 
+                                      save_path,
+                                      fig_name, 
+                                      verbose)
 
-    **Default arguments:**
+    elif grouping_mode == 'all_variable_based':
+        agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical') 
+        dimension_description = kwargs.get('dimension_description', 'space') 
+        ax_illustration = kwargs.get('ax_illustration', None) 
+        save_path = kwargs.get('save_path', None) 
+        fig_name = kwargs.get('fig_name', None)
+        verbose = kwargs.get('verbose', False)
+        weighting = kwargs.get('weighting', None)
 
-    :param gdfRegions: geodataframe containing the shapes of the regions of the energy system model instance
-        |br| * the default value is None
-    :type gdfRegions: geopandas.dataframe
-
-    :param aggregatedShapefileFolderPath: indicate the path to the folder were the input and aggregated shapefiles shall be located 
-        |br| * the default value is None
-    :type aggregatedShapefileFolderPath: string
-
-    :param clusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
-        data. Options are for example 'centroid-based'.
-        Note: Please refer to the SPAGAT package documentation of the parameter clusterMethod for more information.
-        |br| * the default value is 'centroid-based'
-    :type clusterMethod: string
-
-    :return: esM_aggregated - esM instance with spatially aggregated data and xarray dataset containing all spatially resolved data
-    """
-
-    # initialize spagat_manager
-    spagat_manager = spm.SpagatManager()
-    esm_dict, component_dict = fn.dictIO.exportToDict(esM)
-    spagat_manager.sds.xr_dataset = dimensional_data_to_xarray_dataset(esm_dict, component_dict)
-
-    if gdfRegions is not None:
-        spagat_manager.sds.add_objects(description='gpd_geometries',
-                                       dimension_list=['space'],
-                                       object_list=gdfRegions.geometry)
-        spr.add_region_centroids(spagat_manager.sds, spatial_dim='space')
-
-    # spatial clustering 
-    spagat_manager.grouping(dimension_description='space')    #FIXME: clusterMethod is not used here, nor is there an option in manager.grouping()
-                                                              # also, centroid-based in not a method for grouping at all -> distance_based_clustering is 
-                                                              #TODO: fix the grouping function in grouping.manager and use it here more apporpriately
-    # representation of the clustered regions
-    if aggregation_function_dict is not None:
-        spagat_manager.aggregation_function_dict = aggregation_function_dict
+        aggregation_dict = spg.all_variable_based_clustering(sds, 
+                                          agg_mode,
+                                            dimension_description,
+                                            ax_illustration, 
+                                            save_path, 
+                                            fig_name,  
+                                            verbose,
+                                            weighting)
+        
+    # STEP 4. Representation of the new regions
+    if grouping_mode == 'string_based':
+        sub_to_sup_region_id_dict = aggregation_dict #NOTE: Not a nested dict for different #regions
     else:
-        spagat_manager.aggregation_function_dict = {'operationRateMax': ('mean', None), # ('weighted mean', 'capacityMax')
-                                                'operationRateFix': ('sum', None),
-                                                'locationalEligibility': ('bool', None), 
-                                                'capacityMax': ('sum', None),
-                                                'investPerCapacity': ('sum', None), # ?
-                                                'investIfBuilt': ('sum', None), # ? 
-                                                'opexPerOperation': ('sum', None), # ?
-                                                'opexPerCapacity': ('sum', None), # ?
-                                                'opexIfBuilt': ('sum', None), # ?
-                                                'interestRate': ('mean', None), # ?
-                                                'economicLifetime': ('mean', None), # ?
-                                                'capacityFix': ('sum', None),
-                                                'losses': ('mean', None), # ?
-                                                'distances': ('mean', None), # weighted mean ?
-                                                'commodityCost': ('mean', None), # ?
-                                                'commodityRevenue': ('mean', None), # ?
-                                                'opexPerChargeOperation': ('mean', None),
-                                                'opexPerDischargeOperation': ('mean', None),
-                                            }
-
-    spagat_manager.aggregation_function_dict = {f"{dimension}_{key}": value    #TODO: find out why this is required. 
-                                                for key, value in spagat_manager.aggregation_function_dict.items()
-                                            for dimension in ["1d", "2d"]}
-
-    spagat_manager.representation(number_of_regions=numberOfRegions)
-
-    # create aggregated esM instance
-
-    esmDict, compDict = update_dicts_based_on_xarray_dataset(esm_dict, component_dict, 
-                                                             xarray_dataset=spagat_manager.sds_out.xr_dataset)
+        sub_to_sup_region_id_dict = aggregation_dict[nRegionsForRepresentation]
     
-    esM_aggregated = fn.dictIO.importFromDict(esmDict, compDict)
+    if 'aggregation_function_dict' not in kwargs:
+        aggregation_function_dict = None
+    else: 
+        print('aggregation_function_dict found in kwargs')
+        aggregation_function_dict = kwargs.get('aggregation_function_dict')
+        aggregation_function_dict = {f"{dimension}_{key}": value      #NOTE: xarray dataset has prefix 1d_ and 2d_. Therefore, in order to match that,the prefix is added here for each variable  
+                                                for key, value in aggregation_function_dict.items()
+                                            for dimension in ["1d", "2d"]}
+    
+    spatial_dim = kwargs.get('spatial_dim', 'space')
+    time_dim = kwargs.get('time_dim', 'TimeStep')
+    
+    aggregated_sds = spr.aggregate_based_on_sub_to_sup_region_id_dict(sds,
+                                                                sub_to_sup_region_id_dict,
+                                                                aggregation_function_dict,
+                                                                spatial_dim,        #TODO: check how useful these parameters would be, 
+                                                                time_dim)       # if you decide to keep them, make it uniform, 
+                                                                                            # ex.: in grouping functions, spatial_dim is called dimension_description
+    
+    # STEP 5. Obtain aggregated esM
+    new_esm_dict, new_comp_dict = update_dicts_based_on_xarray_dataset(esm_dict, comp_dict, 
+                                                                  xarray_dataset=aggregated_sds.xr_dataset)
+    
+    aggregated_esM = fn.dictIO.importFromDict(new_esm_dict, new_comp_dict)
+    
+    # STEP 6. Save shapefiles if user chooses
+    if aggregatedResultsPath is not None:
+        sds_region_filename = kwargs.get('sds_region_filename', 'sds_regions.shp') 
+        sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')
+        
+        aggregated_sds.save_sds(aggregatedResultsPath,
+                    sds_region_filename,
+                    sds_xr_dataset_filename)
+        
 
-    if aggregatedShapefileFolderPath is not None:
+    return aggregated_esM
 
-        # create region shape file
-        aggregated_regions_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_regions.shp')
+#TODO: maybe copy and adapt the docstring and then delete this function 
+# def spatial_aggregation(esM, numberOfRegions, gdfRegions=None, aggregation_function_dict=None, clusterMethod="centroid-based", aggregatedShapefileFolderPath=None, **kwargs): #FIXME: **kwargs are not passed to any function in spagat manager. 
+#     """Clusters the spatial data of all components considered in the EnergySystemModel instance and returns a new esM instance with the aggregated data.        
+    
+#     Additional keyword arguments for the SpatialAggregation instance can be added (facilitated by kwargs). 
+    
+#     Please refer to the SPAGAT package documentation for more information.
 
-        spagat_manager.sds_out.save_sds_regions(aggregated_regions_FilePath)
+#     :param esM: energy system model instance 
+#         |br| * the default value is None
+#     :type esM: energySystemModelInstance
 
-        # df_aggregated = spagat_manager.sds_out.xr_dataset.gpd_geometries.to_dataframe(
-        #     ).reset_index(level=0).rename(columns={'space':'index', 'gpd_geometries': 'geometry'})
+#     :param numberOfRegions: states the number of regions into which the spatial data
+#         should be clustered.
+#         Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
+#         information.
+#         |br| * the default value is None
+#     :type numberOfRegions: strictly positive integer, None
 
-        # gdf_aggregated = gpd.GeoDataFrame(df_aggregated)
-        # gdf_aggregated.crs = {'init' :'epsg:3035'}
+#     **Default arguments:**
+
+#     :param gdfRegions: geodataframe containing the shapes of the regions of the energy system model instance
+#         |br| * the default value is None
+#     :type gdfRegions: geopandas.dataframe
+
+#     :param aggregatedShapefileFolderPath: indicate the path to the folder were the input and aggregated shapefiles shall be located 
+#         |br| * the default value is None
+#     :type aggregatedShapefileFolderPath: string
+
+#     :param clusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
+#         data. Options are for example 'centroid-based'.
+#         Note: Please refer to the SPAGAT package documentation of the parameter clusterMethod for more information.
+#         |br| * the default value is 'centroid-based'
+#     :type clusterMethod: string
+
+#     :return: esM_aggregated - esM instance with spatially aggregated data and xarray dataset containing all spatially resolved data
+#     """
+
+#     # initialize spagat_manager
+#     spagat_manager = spm.SpagatManager()
+#     esm_dict, component_dict = fn.dictIO.exportToDict(esM)
+#     spagat_manager.sds.xr_dataset = dimensional_data_to_xarray_dataset(esm_dict, component_dict)
+
+#     if gdfRegions is not None:
+#         spagat_manager.sds.add_objects(description='gpd_geometries',
+#                                        dimension_list=['space'],
+#                                        object_list=gdfRegions.geometry)
+#         spr.add_region_centroids(spagat_manager.sds, spatial_dim='space')
+
+#     # spatial clustering 
+#     spagat_manager.grouping(dimension_description='space')    #FIXME: clusterMethod is not used here, nor is there an option in manager.grouping()
+#                                                               # also, centroid-based in not a method for grouping at all -> distance_based_clustering is 
+#                                                               #TODO: fix the grouping function in grouping.manager and use it here more apporpriately
+#     # representation of the clustered regions
+#     if aggregation_function_dict is not None:
+#         spagat_manager.aggregation_function_dict = aggregation_function_dict
+#     else:
+#         spagat_manager.aggregation_function_dict = {'operationRateMax': ('mean', None), # ('weighted mean', 'capacityMax')
+#                                                 'operationRateFix': ('sum', None),
+#                                                 'locationalEligibility': ('bool', None), 
+#                                                 'capacityMax': ('sum', None),
+#                                                 'investPerCapacity': ('sum', None), # ?
+#                                                 'investIfBuilt': ('sum', None), # ? 
+#                                                 'opexPerOperation': ('sum', None), # ?
+#                                                 'opexPerCapacity': ('sum', None), # ?
+#                                                 'opexIfBuilt': ('sum', None), # ?
+#                                                 'interestRate': ('mean', None), # ?
+#                                                 'economicLifetime': ('mean', None), # ?
+#                                                 'capacityFix': ('sum', None),
+#                                                 'losses': ('mean', None), # ?
+#                                                 'distances': ('mean', None), # weighted mean ?
+#                                                 'commodityCost': ('mean', None), # ?
+#                                                 'commodityRevenue': ('mean', None), # ?
+#                                                 'opexPerChargeOperation': ('mean', None),
+#                                                 'opexPerDischargeOperation': ('mean', None),
+#                                             }
+
+#     spagat_manager.aggregation_function_dict = {f"{dimension}_{key}": value    #TODO: find out why this is required. 
+#                                                 for key, value in spagat_manager.aggregation_function_dict.items()
+#                                             for dimension in ["1d", "2d"]}
+
+#     spagat_manager.representation(number_of_regions=numberOfRegions)
+
+#     # create aggregated esM instance
+
+#     esmDict, compDict = update_dicts_based_on_xarray_dataset(esm_dict, component_dict, 
+#                                                              xarray_dataset=spagat_manager.sds_out.xr_dataset)
+    
+#     esM_aggregated = fn.dictIO.importFromDict(esmDict, compDict)
+
+#     if aggregatedShapefileFolderPath is not None:
+
+#         # create region shape file
+#         aggregated_regions_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_regions.shp')
+
+#         spagat_manager.sds_out.save_sds_regions(aggregated_regions_FilePath)
+
+#         # df_aggregated = spagat_manager.sds_out.xr_dataset.gpd_geometries.to_dataframe(
+#         #     ).reset_index(level=0).rename(columns={'space':'index', 'gpd_geometries': 'geometry'})
+
+#         # gdf_aggregated = gpd.GeoDataFrame(df_aggregated)
+#         # gdf_aggregated.crs = {'init' :'epsg:3035'}
 
 
-        # create grid shape file
-        aggregated_grid_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_grid.shp')
-        # spr.create_grid_shapefile(spagat_manager.sds_out, filename=aggregated_grid_FilePath)
+#         # create grid shape file
+#         aggregated_grid_FilePath = os.path.join(aggregatedShapefileFolderPath, 'aggregated_grid.shp')
+#         # spr.create_grid_shapefile(spagat_manager.sds_out, filename=aggregated_grid_FilePath)
 
-    return esM_aggregated
+#     return esM_aggregated
 
