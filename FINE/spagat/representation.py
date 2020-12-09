@@ -274,7 +274,8 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     """Spatially aggregates all variables of the sds.xr_dataset according to sub_to_sup_region_id_dict using aggregation functions defined by aggregation_function_dict"""
 
     sds_2 = spd.SpagatDataset()
-
+    #TODO: locationalEligibility variable should always have value 1 or 0. Therefore, only bool mode makes sense 
+    # for this. change the function to take this mode as default when varname is 1d_ or 2_d locationalEligibility
     for varname, da in sds.xr_dataset.data_vars.items():
         if aggregation_function_dict is None:
             aggregation_mode = "sum"
