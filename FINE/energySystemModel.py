@@ -146,7 +146,7 @@ class EnergySystemModel:
 
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numberOfTimeSteps,
-                                          hoursPerTimeStep, costUnit, lengthUnit)
+                                          hoursPerTimeStep, costUnit, lengthUnit, autarkyLimit, lowerLimit)
 
         ################################################################################################################
         #                                        Spatial resolution parameters                                         #
