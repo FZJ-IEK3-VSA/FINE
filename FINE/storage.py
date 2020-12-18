@@ -1073,9 +1073,8 @@ class StorageModel(ComponentModel):
                 tsDischarge=self.dischargeOperationVariablesOptimum.loc[compName])
             if simultaneousChargeDischarge:
                 if esM.verbose < 2:
-                    print("Charge and discharge at the same time for component {}".format(compName))
-                    # warnings.warn(
-                    #     "Charge and discharge at the same time for component {}".format(compName))
+                    warnings.warn(
+                        "Charge and discharge at the same time for component {}".format(compName), UserWarning)
 
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
