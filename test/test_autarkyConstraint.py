@@ -56,17 +56,11 @@ def test_autarkyConstraint():
                     operationRateFix=heat_demand))
 
     ## Define Cheap purchase, which incentives to purchase, but is limited because of autarky
-    purchaseRate = pd.DataFrame([[1000, 1000] for t in range(nhours)],
-                                index=range(nhours), columns=["Region1", "Region2"])
     esM.add(fn.Source(esM=esM, name='Electricity purchase',
                       commodity='electricity', hasCapacityVariable=False,
-                      operationRateMax=purchaseRate,
                       commodityCost=0.001, autarkyID="el"))
-    purchaseRate = pd.DataFrame([[1000, 1000] for t in range(nhours)],
-                                index=range(nhours), columns=["Region1", "Region2"])
     esM.add(fn.Source(esM=esM, name='Heat purchase',
                       commodity='heat', hasCapacityVariable=False,
-                      operationRateMax=purchaseRate,
                       commodityCost=0.001, autarkyID="heat"))
     ## Heat pump
     esM.add(fn.Conversion(esM=esM, name='heatpump',
