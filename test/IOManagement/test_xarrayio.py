@@ -124,7 +124,7 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init,
                                                        ('all_variable_based', 'sklearn_spectral1'),
                                                        ('all_variable_based', 'sklearn_spectral2')
                                                     ])
-@pytest.mark.parametrize("n_regions", [5, 8]) #TODO: check why there is an error for 1 region
+@pytest.mark.parametrize("n_regions", [5, 8, 3]) #TODO: check why there is an error for 1 region
 def test_spatial_aggregation(multi_node_test_esM_init, 
                             solver, 
                             grouping_mode, 
@@ -150,6 +150,8 @@ def test_spatial_aggregation(multi_node_test_esM_init,
     # Additional check - if the optimization runs through
     aggregated_esM.cluster(numberOfTypicalPeriods=2)
     aggregated_esM.optimize(timeSeriesAggregation=True, solver=solver)
+
+
 
     
 
