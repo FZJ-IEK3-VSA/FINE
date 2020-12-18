@@ -507,9 +507,9 @@ class SourceSinkModel(ComponentModel):
         limitDict = getattr(pyM, 'yearlyCommodityLimitationDict_' + abbrvName)
 
         def yearlyLimitationConstraint(pyM, key):
-            sumEx = -sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+            sumEx = -sum(opVar[loc, compName, p, t, ip] * compDict[compName].sign *
                          esM.periodOccurrences[p]/esM.numberOfYears
-                         for loc, compName, p, t in opVar if compName in limitDict[key][1])
+                         for loc, compName, p, t, ip in opVar if compName in limitDict[key][1])
             sign = limitDict[key][0]/abs(limitDict[key][0]) if limitDict[key][0] != 0 else 1
             return sign * sumEx <= sign * limitDict[key][0]
         setattr(pyM, 'ConstrYearlyLimitation_' + abbrvName,
@@ -593,11 +593,11 @@ class SourceSinkModel(ComponentModel):
         return any([comp.commodity == commod and comp.locationalEligibility[loc] == 1
                     for comp in self.componentsDict.values()])
 
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t, ip):
         """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
-        return sum(opVar[loc, compName, p, t] * compDict[compName].sign
+        return sum(opVar[loc, compName, p, t, ip] * compDict[compName].sign
                    for compName in opVarDict[loc] if compDict[compName].commodity == commod)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
@@ -653,16 +653,17 @@ class SourceSinkModel(ComponentModel):
                           if x[1] == 'operation' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
-
+# To-Do: Perfect Foresight - Continue here
+# fix: output only first column
+# expand: use for loop to replace 0 with index i --> get all columns
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
-            cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[op.index], axis=1)
-            cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[op.index], axis=1)
-            
-            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
+            ox = opSum.apply(lambda op: op * compDict[op.name[0]].opexPerOperation[op.index], axis=1)
+            cCost = opSum.apply(lambda op: op * compDict[op.name[0]].commodityCost[op.index], axis=1)
+            cRevenue = opSum.apply(lambda op: op * compDict[op.name[0]].commodityRevenue[op.index], axis=1)
+            optSummary.loc[[(ix[0], 'operation', '[' + compDict[ix[0]].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
-            optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+            optSummary.loc[[(ix[0], 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values/esM.numberOfYears
             
             # get empty datframe for resulting time dependent (TD) cost sum
@@ -676,20 +677,20 @@ class SourceSinkModel(ComponentModel):
                         compDict[compName].commodityCostTimeSeries.unstack(level=1).stack(level=0),
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total cost
-                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
 
+                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).loc[0,:].T.mul(calcCostTD.T).sum(axis=0)
                 if not compDict[compName].commodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
                     calcRevenueTD = utils.buildFullTimeSeries(
                         compDict[compName].commodityRevenueTimeSeries.unstack(level=1).stack(level=0),
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
-                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
+                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).loc[0,:].T.mul(calcRevenueTD.T).sum(axis=0)
                         
-            optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+            optSummary.loc[[(ix[0], 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cCostTD.values + cCost.values)/esM.numberOfYears
 
-            optSummary.loc[[(ix, 'commodRevenues', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+            optSummary.loc[[(ix[0], 'commodRevenues', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cRevenueTD.values + cRevenue.values)/esM.numberOfYears
         
         # get discounted investment cost as total annual cost (TAC)

@@ -64,7 +64,7 @@ def isEnergySystemModelInstance(esM):
 
 
 def checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numberOfTimeSteps, hoursPerTimeStep,
-                                costUnit, lengthUnit):
+                                numberOfInvestmentPeriods, yearsPerInvestmentPeriod, costUnit, lengthUnit):
     """ Check input arguments of an EnergySystemModel instance for value/type correctness. """
 
     # Locations and commodities have to be sets
@@ -80,6 +80,9 @@ def checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numb
 
     # The numberOfTimeSteps and the hoursPerTimeStep have to be strictly positive numbers
     isStrictlyPositiveInt(numberOfTimeSteps), isStrictlyPositiveNumber(hoursPerTimeStep)
+
+    # The investmentPerdios and yearsPerInvestmentPeriod have to be strictly positive integers
+    isStrictlyPositiveInt(numberOfInvestmentPeriods), isStrictlyPositiveNumber(yearsPerInvestmentPeriod)
 
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
