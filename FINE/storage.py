@@ -10,48 +10,49 @@ class Storage(Component):
     """
     A Storage component can store a commodity and thus transfers it between time steps.
     """
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
-                 chargeRate=1, 
+    def __init__(self,
+                 esM,
+                 name,
+                 commodity,
+                 chargeRate=1,
                  dischargeRate=1,
-                 chargeEfficiency=1, 
-                 dischargeEfficiency=1, 
-                 selfDischarge=0, 
+                 chargeEfficiency=1,
+                 dischargeEfficiency=1,
+                 selfDischarge=0,
                  cyclicLifetime=None,
-                 stateOfChargeMin=0, 
+                 stateOfChargeMin=0,
                  stateOfChargeMax=1,
-                 hasCapacityVariable=True, 
-                 capacityVariableDomain='continuous', 
+                 hasCapacityVariable=True,
+                 capacityVariableDomain='continuous',
                  capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
-                 bigM=None, 
-                 doPreciseTsaModeling=False, 
-                 chargeOpRateMax=None, 
-                 chargeOpRateFix=None, 
+                 hasIsBuiltBinaryVariable=False,
+                 bigM=None,
+                 doPreciseTsaModeling=False,
+                 chargeOpRateMax=None,
+                 chargeOpRateFix=None,
                  chargeTsaWeight=1,
-                 dischargeOpRateMax=None, 
-                 dischargeOpRateFix=None, 
+                 dischargeOpRateMax=None,
+                 dischargeOpRateFix=None,
                  dischargeTsaWeight=1,
                  isPeriodicalStorage=False,
-                 locationalEligibility=None, 
-                 capacityMin=None, 
-                 capacityMax=None, 
-                 partLoadMin=None, 
+                 locationalEligibility=None,
+                 capacityMin=None,
+                 capacityMax=None,
+                 partLoadMin=None,
                  sharedPotentialID=None,
-                 capacityFix=None, 
+                 linkedQuantityID=None,
+                 capacityFix=None,
                  isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
+                 investPerCapacity=0,
+                 investIfBuilt=0,
                  opexPerChargeOperation=0,
-                 opexPerDischargeOperation=0, 
-                 opexPerCapacity=0, 
-                 opexIfBuilt=0, 
-                 interestRate=0.08, 
+                 opexPerDischargeOperation=0,
+                 opexPerCapacity=0,
+                 opexIfBuilt=0,
+                 interestRate=0.08,
                  economicLifetime=10,
-                 technicalLifetime=None, 
-                 socOffsetDown=-1, 
+                 technicalLifetime=None,
+                 socOffsetDown=-1,
                  socOffsetUp=-1):
         """
         Constructor for creating an Storage class instance.
@@ -213,28 +214,29 @@ class Storage(Component):
             |br| * the default value is -1
         :type socOffsetUp: float
         """
-        Component. __init__(self, 
-                            esM, 
-                            name, 
-                            dimension='1dim', 
+        Component. __init__(self,
+                            esM,
+                            name,
+                            dimension='1dim',
                             hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain, 
+                            capacityVariableDomain=capacityVariableDomain,
                             capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
+                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
                             bigM=bigM,
-                            locationalEligibility=locationalEligibility, 
+                            locationalEligibility=locationalEligibility,
                             capacityMin=capacityMin,
-                            capacityMax=capacityMax, 
-                            partLoadMin=partLoadMin, 
-                            sharedPotentialID=sharedPotentialID, 
+                            capacityMax=capacityMax,
+                            partLoadMin=partLoadMin,
+                            sharedPotentialID=sharedPotentialID,
+                            linkedQuantityID=linkedQuantityID,
                             capacityFix=capacityFix,
-                            isBuiltFix=isBuiltFix, 
-                            investPerCapacity=investPerCapacity, 
+                            isBuiltFix=isBuiltFix,
+                            investPerCapacity=investPerCapacity,
                             investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, 
-                            opexIfBuilt=opexIfBuilt, 
+                            opexPerCapacity=opexPerCapacity,
+                            opexIfBuilt=opexIfBuilt,
                             interestRate=interestRate,
-                            economicLifetime=economicLifetime, 
+                            economicLifetime=economicLifetime,
                             technicalLifetime=technicalLifetime)
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,
@@ -268,10 +270,10 @@ class Storage(Component):
                 warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
                               'The chargeOpRateMax time series was set to None.')
 
-        self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, chargeOpRateMax, locationalEligibility)
+        self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
         self.aggregatedChargeOpRateMax, self.chargeOpRateMax = None, None
 
-        self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, chargeOpRateFix, locationalEligibility)
+        self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix, locationalEligibility)
         self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, None
 
         
@@ -294,10 +296,10 @@ class Storage(Component):
                 warnings.warn('If dischargeOpRateFix is specified, the dischargeOpRateMax parameter is not required.\n'
                               + 'The dischargeOpRateMax time series was set to None.')
 
-        self.fullDischargeOpRateMax = utils.checkAndSetTimeSeries(esM, dischargeOpRateMax, locationalEligibility)
+        self.fullDischargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax, locationalEligibility)
         self.aggregatedDischargeOpRateMax, self.dischargeOpRateMax = None, None
 
-        self.fullDischargeOpRateFix = utils.checkAndSetTimeSeries(esM, dischargeOpRateFix, locationalEligibility)
+        self.fullDischargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix, locationalEligibility)
         self.aggregatedDischargeOpRateFix, self.dischargeOpRateFix = None, None
 
         utils.isPositiveNumber(dischargeTsaWeight)
