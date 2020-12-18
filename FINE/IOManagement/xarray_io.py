@@ -267,11 +267,14 @@ def spatial_aggregation(esM,
     
     # STEP 3. Spatial grouping
     if grouping_mode == 'string_based':
+        print('Performing string-based clustering on the regions')
         locations = sds.xr_dataset.space.values
         aggregation_dict = spg.string_based_clustering(locations)
 
     elif grouping_mode == 'distance_based':
         agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical')  #TODO: some of the parameters and their default values are repeating in
+        print(f'Performing distance-based clustering on the regions. Clustering mode: {agg_mode}')
+
         dimension_description = kwargs.get('dimension_description', 'space') # 'all_variable_based'. Maybe make it common 
         ax_illustration = kwargs.get('ax_illustration', None) 
         save_path = kwargs.get('save_path', None) 
@@ -279,15 +282,17 @@ def spatial_aggregation(esM,
         verbose = kwargs.get('verbose', False)
 
         aggregation_dict = spg.distance_based_clustering(sds, 
-                                      agg_mode, 
-                                      dimension_description, 
-                                      ax_illustration, 
-                                      save_path,
-                                      fig_name, 
-                                      verbose)
+                                                        agg_mode, 
+                                                        dimension_description, 
+                                                        ax_illustration, 
+                                                        save_path,
+                                                        fig_name, 
+                                                        verbose)
 
     elif grouping_mode == 'all_variable_based':
         agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical') 
+        print(f'Performing all variable-based clustering on the regions. Clustering mode: {agg_mode}')
+
         dimension_description = kwargs.get('dimension_description', 'space') 
         ax_illustration = kwargs.get('ax_illustration', None) 
         save_path = kwargs.get('save_path', None) 
@@ -296,14 +301,14 @@ def spatial_aggregation(esM,
         weighting = kwargs.get('weighting', None)
 
         aggregation_dict = spg.all_variable_based_clustering(sds, 
-                                          agg_mode,
-                                            dimension_description,
-                                            ax_illustration, 
-                                            save_path, 
-                                            fig_name,  
-                                            verbose,
-                                            weighting)
-        
+                                                            agg_mode,
+                                                            dimension_description,
+                                                            ax_illustration, 
+                                                            save_path, 
+                                                            fig_name,  
+                                                            verbose,
+                                                            weighting)
+    print(aggregation_dict)  
     # STEP 4. Representation of the new regions
     if grouping_mode == 'string_based':
         sub_to_sup_region_id_dict = aggregation_dict #NOTE: Not a nested dict for different #regions
@@ -316,7 +321,7 @@ def spatial_aggregation(esM,
         print('aggregation_function_dict found in kwargs')
         aggregation_function_dict = kwargs.get('aggregation_function_dict')
         aggregation_function_dict = {f"{dimension}_{key}": value      #NOTE: xarray dataset has prefix 1d_ and 2d_. Therefore, in order to match that,the prefix is added here for each variable  
-                                                for key, value in aggregation_function_dict.items()
+                                        for key, value in aggregation_function_dict.items()
                                             for dimension in ["1d", "2d"]}
     
     spatial_dim = kwargs.get('spatial_dim', 'space')
@@ -335,7 +340,7 @@ def spatial_aggregation(esM,
     
     aggregated_esM = fn.dictIO.importFromDict(new_esm_dict, new_comp_dict)
     
-    # STEP 6. Save shapefiles if user chooses
+    # STEP 6. Save shapefiles and aggregated data if user chooses
     if aggregatedResultsPath is not None:
         sds_region_filename = kwargs.get('sds_region_filename', 'sds_regions.shp') 
         sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')

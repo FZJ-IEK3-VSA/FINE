@@ -783,7 +783,7 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
 
 
 
-@spu.timer
+@spu.timer  #TODO: remove this!
 def variables_and_distance_ensemble_clustering(sds,agg_mode='hierarchical',verbose=False, ax_illustration=None, save_fig=None, dimension_description='space',weighting=None):
     '''Ensemble clustering with basic clusterings from:
         - geographical centroids

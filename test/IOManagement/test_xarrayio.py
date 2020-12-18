@@ -94,21 +94,62 @@ def test_update_dicts_based_on_xarray_dataset(multi_node_test_esM_init):
     assert output_locations == expected_locations
     assert output_opexPerCapacity_Windoffshore == expected_opexPerCapacity_Windoffshore
      
-
-@pytest.mark.skip('Needs to be adapted to changes in the corresponding function')
-def test_spatial_aggregation_multinode(multi_node_test_esM_init, solver):   #TODO: after fixing the spatial_aggregation function, rewrite this test WITH ASSERT STATEMENT 
-    '''Test whether spatial aggregation of the Multi-Node Energy System Model (from examples) and subsequent optimization works'''
-
-    shapefileFolder = os.path.join(os.path.dirname(__file__), '../../examples/Multi-regional_Energy_System_Workflow/', 
-                                    'InputData/SpatialData/ShapeFiles/')
-
-    inputShapefile = 'clusteredRegions.shp'
-
-    esM_aggregated = multi_node_test_esM_init.spatial_aggregation(numberOfRegions=3, clusterMethod="centroid-based", shapefileFolder=shapefileFolder, inputShapefile=inputShapefile)   
-
-    esM_aggregated.cluster(numberOfTypicalPeriods=2)
+def test_spatial_aggregation_string_based(multi_node_test_esM_init, 
+                                          solver):   
     
-    esM_aggregated.optimize(timeSeriesAggregation=True, solver=solver)
+    SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
+        '../../examples/Multi-regional_Energy_System_Workflow/', 
+            'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
+    regions_gdf = gpd.read_file(SHAPEFILE_PATH)
 
-    # TODO: test against results
+    #FUNCTION CALL 
+    aggregated_esM = xrio.spatial_aggregation(esM = multi_node_test_esM_init, 
+                                            gdfRegions = regions_gdf, 
+                                            grouping_mode = 'string_based', 
+                                            aggregation_function_dict = {'locationalEligibility': ('bool', None)}, #TODO: this is a temp bug fix,                                      
+                                            aggregatedResultsPath=None,                       # remove it after the bug is fixed in representation 
+                                            agg_mode='sklearn_spectral2')   
+
+    #ASSERTION 
+    assert len(aggregated_esM.locations) == 8
+    # Additional check - if the optimization runs through
+    aggregated_esM.cluster(numberOfTypicalPeriods=2)
+    aggregated_esM.optimize(timeSeriesAggregation=True, solver=solver)
+
+    
+@pytest.mark.parametrize("grouping_mode, agg_mode", [('distance_based', 'sklearn_kmeans'), 
+                                                       ('distance_based', 'sklearn_spectral'),
+                                                       ('distance_based', 'scipy_hierarchical'),
+                                                       ('all_variable_based', 'scipy_hierarchical'),
+                                                       ('all_variable_based', 'sklearn_spectral1'),
+                                                       ('all_variable_based', 'sklearn_spectral2')
+                                                    ])
+@pytest.mark.parametrize("n_regions", [5, 8]) #TODO: check why there is an error for 1 region
+def test_spatial_aggregation(multi_node_test_esM_init, 
+                            solver, 
+                            grouping_mode, 
+                            agg_mode,
+                            n_regions):   
+    
+    SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
+        '../../examples/Multi-regional_Energy_System_Workflow/', 
+            'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
+    regions_gdf = gpd.read_file(SHAPEFILE_PATH)
+
+    #FUNCTION CALL 
+    aggregated_esM = xrio.spatial_aggregation(esM = multi_node_test_esM_init, 
+                                            gdfRegions = regions_gdf, 
+                                            grouping_mode = grouping_mode, 
+                                            aggregation_function_dict = {'locationalEligibility': ('bool', None)}, #TODO: this is a temp bug fix,                                      
+                                            nRegionsForRepresentation = n_regions,                                         # remove it after the bug is fixed in representation 
+                                            aggregatedResultsPath=None,
+                                            agg_mode=agg_mode)   
+
+    #ASSERTION 
+    assert len(aggregated_esM.locations) == n_regions
+    # Additional check - if the optimization runs through
+    aggregated_esM.cluster(numberOfTypicalPeriods=2)
+    aggregated_esM.optimize(timeSeriesAggregation=True, solver=solver)
+
+    
 
