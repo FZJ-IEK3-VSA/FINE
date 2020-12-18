@@ -1,7 +1,7 @@
 conda:
   image: continuumio/miniconda3:latest
-  tags: 
-  - linux
+  # tags: 
+  # - linux
 
   script:
     - conda install mamba -c conda-forge
