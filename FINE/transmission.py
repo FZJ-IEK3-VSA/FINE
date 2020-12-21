@@ -480,6 +480,11 @@ class TransmissionModel(ComponentModel):
         """
         Get contribution to autarky constraint.
 
+        Net Autarky or balanced Autarky is regarded (further read in the EnergySystemModel definition), therefore the
+        operation of a Tranmission component is summed up as the autarky contribution as follows:
+        - If commodity is transferred out of region a negative sign is used.
+        - If commodity is transferred into region a positive sign is used and losses are considered.
+
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 

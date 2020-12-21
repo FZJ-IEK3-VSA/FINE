@@ -132,13 +132,13 @@ class EnergySystemModel:
         :type verboseLogLevel: integer (0, 1 or 2)
 
         :param autarkyLimit: defines the autarky constraint for specific regions. Can be specified by a pd.Dataframe,
-            the limit is specified in the commodities' unit. Possible included components are
+            the limit is given in the commodities' unit. Possible included components are
             SourceSinkModel (e.g.: Purchase) and TransmissionModel (i.e.: exchange with other regions).
             Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
         :type autarkyLimit: pd.DataFrame
 
         :param lowerLimit: defines the lower limit constraint for specific regions. Can be specified by a pd.Dataframe,
-            the limit is specified in the commodities' unit. Possible included components are
+            the limit is given in the commodities' unit. Possible included components are
             SourceSinkModel (e.g.: PV, Wind or Demand).
             Example: pd.DataFrame(columns=["Region1"], index=["Renewables"], data=[1000])
         :type autarkyLimit: pd.DataFrame
@@ -611,7 +611,11 @@ class EnergySystemModel:
 
     def declareNetAutarkyConstraint(self, pyM, timeSeriesAggregation):
         """
-        Declare net autarky constraint.
+        Declare net autarky (or balanced autarky) constraint.
+
+        Net autarky constraint or balanced autarky refers to a concept in which sold and purchased commodities are
+        considered with the following equation: E_purchase - E_sold + E_exchange,out - E_exchange,in <= E_lim.
+        The netAutarkyConstraint is defined for specific regions.
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -642,7 +646,11 @@ class EnergySystemModel:
 
     def declareLowerLimitConstraint(self, pyM, timeSeriesAggregation):
         """
-        Declare lower limit constraint.
+        Declare lower limit constraint for SourceSink Components.
+
+        A lower limit for SourceSink components can be set, in such a way that they have to be operated until the
+        lower limit is met. Example usages: Lower limit for renewable production or hydrogen production in
+        a year. The lowerLimitConstraint is defined for specific regions.
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.

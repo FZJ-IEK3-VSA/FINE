@@ -618,6 +618,11 @@ class SourceSinkModel(ComponentModel):
         """
         Get contribution to autarky constraint.
 
+        Net Autarky or balanced Autarky is regarded (further read in the EnergySystemModel definition), therefore the
+        sum of the operation of a SourceSink component is used as the autarky contribution:
+        - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
+        - A Sink contributes with a negative sign. Example: Sale of electricity
+
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
@@ -654,7 +659,11 @@ class SourceSinkModel(ComponentModel):
 
     def getLowerLimtContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
         """
-        Get contribution to autarky constraint.
+        Get contribution to lowerLimit constraint.
+
+        The lower limit contribution is calculated as the sum of the operation of a component with a positive sign for
+        both sources and sinks. Therefore, sinks and sources should only be grouped together with an ID.
+        (Further read in the EnergySystemModel).
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
