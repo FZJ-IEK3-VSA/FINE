@@ -2,16 +2,15 @@ import FINE as fn
 import pandas as pd
 import numpy as np
 
-
 # Test autarky constraint
 # In this test the following steps are performed:
-# 1. Define autarky limit dependent on the demand
+# 1. Define autarky limit dependent on the electricity and heat demand
 # 2. Initialize EnergySystemModel with two Regions ('Region1', 'Region2')
-# 3. Components are added: 'Electricity demand', 'Electricity purchase', 
-#    'Wind turbines', 'PV', 'Batteries', 'AC cables'
+# 3. Components are added: 'Electricity demand', 'Heat demand', 'Electricity purchase', 'Heat purchase', 'Heat pump',
+#    'Wind turbines', 'PV', 'Batteries', 'AC cables', 'Heat pipes'
 # 'Electricity purchase' and 'AC cables' are included in the autarky analysis
-# 4. The random autarky percentage ('perNetAutarky') is compared to the outcome of the model
-#   Net Autarky = (1 - (Purchase + Ac cables_in - Ac cables_out)/Demand)
+# 4. The autarky limit is compared to the outcome of the model
+#   purchase + exchange_in - exchange_out <= autarkyLimit
 def test_autarkyConstraint():
     locations = {"Region1",
                  "Region2"
@@ -152,5 +151,5 @@ def test_autarkyConstraint():
 
         tolerance = 0.001
         ## Compare modelled autarky to limit set in constraint.
-        assert el_purchase + exch_in - exch_out + tolerance > input_autarky.loc["el", loc]
-        assert heat_purchase + exch_in_h - exch_out_h + tolerance > input_autarky.loc["heat", loc]
+        assert el_purchase + exch_in - exch_out - tolerance < input_autarky.loc["el", loc]
+        assert heat_purchase + exch_in_h - exch_out_h - tolerance < input_autarky.loc["heat", loc]
