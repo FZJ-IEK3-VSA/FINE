@@ -10,41 +10,42 @@ class Source(Component):
     A Source component can transfer a commodity over the energy system boundary into the system.
     """
 
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
+    def __init__(self,
+                 esM,
+                 name,
+                 commodity,
                  hasCapacityVariable,
-                 capacityVariableDomain='continuous', 
+                 capacityVariableDomain='continuous',
                  capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
+                 hasIsBuiltBinaryVariable=False,
                  bigM=None,
-                 operationRateMax=None, 
-                 operationRateFix=None, 
-                 tsaWeight=1, 
+                 operationRateMax=None,
+                 operationRateFix=None,
+                 tsaWeight=1,
                  commodityLimitID=None,
-                 yearlyLimit=None, 
-                 locationalEligibility=None, 
-                 capacityMin=None, 
-                 capacityMax=None, 
+                 yearlyLimit=None,
+                 locationalEligibility=None,
+                 capacityMin=None,
+                 capacityMax=None,
                  partLoadMin=None,
-                 sharedPotentialID=None, 
-                 capacityFix=None, 
+                 sharedPotentialID=None,
+                 linkedQuantityID=None,
+                 capacityFix=None,
                  isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
-                 opexPerOperation=0, 
+                 investPerCapacity=0,
+                 investIfBuilt=0,
+                 opexPerOperation=0,
                  commodityCost=0,
-                 commodityRevenue=0, 
-                 commodityCostTimeSeries=None, 
-                 commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, 
-                 opexIfBuilt=0, 
-                 QPcostScale=0, 
-                 interestRate=0.08, 
-                 economicLifetime=10, 
-                 technicalLifetime=None, 
-                 yearlyFullLoadHoursMin=None, 
+                 commodityRevenue=0,
+                 commodityCostTimeSeries=None,
+                 commodityRevenueTimeSeries=None,
+                 opexPerCapacity=0,
+                 opexIfBuilt=0,
+                 QPcostScale=0,
+                 interestRate=0.08,
+                 economicLifetime=10,
+                 technicalLifetime=None,
+                 yearlyFullLoadHoursMin=None,
                  yearlyFullLoadHoursMax=None):
         """
         Constructor for creating an Source class instance.
@@ -169,31 +170,32 @@ class Source(Component):
             The indices of the series have to equal the in the energy system model specified locations.
         """
 
-        Component. __init__(self, 
-                            esM, 
-                            name, 
-                            dimension='1dim', 
+        Component. __init__(self,
+                            esM,
+                            name,
+                            dimension='1dim',
                             hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain, 
+                            capacityVariableDomain=capacityVariableDomain,
                             capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
+                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
                             bigM=bigM,
-                            locationalEligibility=locationalEligibility, 
+                            locationalEligibility=locationalEligibility,
                             capacityMin=capacityMin,
-                            capacityMax=capacityMax, 
-                            partLoadMin=partLoadMin, 
-                            sharedPotentialID=sharedPotentialID, 
+                            capacityMax=capacityMax,
+                            partLoadMin=partLoadMin,
+                            sharedPotentialID=sharedPotentialID,
+                            linkedQuantityID=linkedQuantityID,
                             capacityFix=capacityFix,
-                            isBuiltFix=isBuiltFix, 
-                            investPerCapacity=investPerCapacity, 
+                            isBuiltFix=isBuiltFix,
+                            investPerCapacity=investPerCapacity,
                             investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity, 
-                            opexIfBuilt=opexIfBuilt, 
-                            QPcostScale=QPcostScale, 
+                            opexPerCapacity=opexPerCapacity,
+                            opexIfBuilt=opexIfBuilt,
+                            QPcostScale=QPcostScale,
                             interestRate=interestRate,
-                            economicLifetime=economicLifetime, 
-                            technicalLifetime=None, 
-                            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin, 
+                            economicLifetime=economicLifetime,
+                            technicalLifetime=None,
+                            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
                             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
 
         # Set general source/sink data: ID and yearly limit
@@ -214,11 +216,11 @@ class Source(Component):
                                                                locationalEligibility)
 
         self.fullCommodityCostTimeSeries = \
-            utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityCostTimeSeries, locationalEligibility)
+            utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries, locationalEligibility)
         self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
 
         self.fullCommodityRevenueTimeSeries = \
-            utils.checkAndSetTimeSeriesCostParameter(esM, name, commodityRevenueTimeSeries, locationalEligibility)
+            utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries, locationalEligibility)
         self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
@@ -228,10 +230,10 @@ class Source(Component):
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
 
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, locationalEligibility)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
         self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, locationalEligibility)
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         if self.partLoadMin is not None:
@@ -307,39 +309,40 @@ class Sink(Source):
     A Sink component can transfer a commodity over the energy system boundary out of the system.
     """
 
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
+    def __init__(self,
+                 esM,
+                 name,
+                 commodity,
                  hasCapacityVariable,
-                 capacityVariableDomain='continuous', 
+                 capacityVariableDomain='continuous',
                  capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
+                 hasIsBuiltBinaryVariable=False,
                  bigM=None,
-                 operationRateMax=None, 
-                 operationRateFix=None, 
-                 tsaWeight=1, 
+                 operationRateMax=None,
+                 operationRateFix=None,
+                 tsaWeight=1,
                  commodityLimitID=None,
-                 yearlyLimit=None, 
-                 locationalEligibility=None, 
-                 capacityMin=None, 
-                 capacityMax=None, 
+                 yearlyLimit=None,
+                 locationalEligibility=None,
+                 capacityMin=None,
+                 capacityMax=None,
                  partLoadMin=None,
-                 sharedPotentialID=None, 
-                 capacityFix=None, 
+                 sharedPotentialID=None,
+                 linkedQuantityID=None,
+                 capacityFix=None,
                  isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
-                 opexPerOperation=0, 
+                 investPerCapacity=0,
+                 investIfBuilt=0,
+                 opexPerOperation=0,
                  commodityCost=0,
-                 commodityRevenue=0, 
-                 commodityCostTimeSeries=None, 
-                 commodityRevenueTimeSeries=None, 
-                 opexPerCapacity=0, 
-                 opexIfBuilt=0, 
-                 QPcostScale=0, 
-                 interestRate=0.08, 
-                 economicLifetime=10, 
+                 commodityRevenue=0,
+                 commodityCostTimeSeries=None,
+                 commodityRevenueTimeSeries=None,
+                 opexPerCapacity=0,
+                 opexIfBuilt=0,
+                 QPcostScale=0,
+                 interestRate=0.08,
+                 economicLifetime=10,
                  technicalLifetime=None):
         """
         Constructor for creating an Sink class instance.
@@ -348,39 +351,40 @@ class Sink(Source):
         (see Source class for the parameter description) and differ in the sign
         parameter, which is equal to -1 for Sink objects and +1 for Source objects.
         """
-        Source.__init__(self, 
-                        esM, 
-                        name, 
-                        commodity=commodity, 
-                        hasCapacityVariable=hasCapacityVariable, 
+        Source.__init__(self,
+                        esM,
+                        name,
+                        commodity=commodity,
+                        hasCapacityVariable=hasCapacityVariable,
                         capacityVariableDomain=capacityVariableDomain,
-                        capacityPerPlantUnit=capacityPerPlantUnit, 
-                        hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
-                        bigM=bigM, 
-                        operationRateMax=operationRateMax, 
+                        capacityPerPlantUnit=capacityPerPlantUnit,
+                        hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
+                        bigM=bigM,
+                        operationRateMax=operationRateMax,
                         operationRateFix=operationRateFix,
-                        tsaWeight=tsaWeight, 
-                        commodityLimitID=commodityLimitID, 
-                        yearlyLimit=yearlyLimit, 
-                        locationalEligibility=locationalEligibility, 
+                        tsaWeight=tsaWeight,
+                        commodityLimitID=commodityLimitID,
+                        yearlyLimit=yearlyLimit,
+                        locationalEligibility=locationalEligibility,
                         capacityMin=capacityMin,
-                        capacityMax=capacityMax, 
-                        partLoadMin=partLoadMin, 
-                        sharedPotentialID=sharedPotentialID, 
-                        capacityFix=capacityFix, 
-                        isBuiltFix=isBuiltFix, 
+                        capacityMax=capacityMax,
+                        partLoadMin=partLoadMin,
+                        sharedPotentialID=sharedPotentialID,
+                        linkedQuantityID=linkedQuantityID,
+                        capacityFix=capacityFix,
+                        isBuiltFix=isBuiltFix,
                         investPerCapacity=investPerCapacity,
-                        investIfBuilt=investIfBuilt, 
-                        opexPerOperation=opexPerOperation, 
-                        commodityCost=commodityCost, 
-                        commodityRevenue=commodityRevenue, 
-                        commodityCostTimeSeries=commodityCostTimeSeries, 
-                        commodityRevenueTimeSeries=commodityRevenueTimeSeries, 
-                        opexPerCapacity=opexPerCapacity, 
-                        opexIfBuilt=opexIfBuilt, 
-                        QPcostScale=QPcostScale, 
-                        interestRate=interestRate, 
-                        economicLifetime=economicLifetime, 
+                        investIfBuilt=investIfBuilt,
+                        opexPerOperation=opexPerOperation,
+                        commodityCost=commodityCost,
+                        commodityRevenue=commodityRevenue,
+                        commodityCostTimeSeries=commodityCostTimeSeries,
+                        commodityRevenueTimeSeries=commodityRevenueTimeSeries,
+                        opexPerCapacity=opexPerCapacity,
+                        opexIfBuilt=opexIfBuilt,
+                        QPcostScale=QPcostScale,
+                        interestRate=interestRate,
+                        economicLifetime=economicLifetime,
                         technicalLifetime=technicalLifetime)
 
         self.sign = -1
@@ -668,7 +672,7 @@ class SourceSinkModel(ComponentModel):
             # get empty datframe for resulting time dependent (TD) cost sum
             cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
             cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
-
+            
             for compName in compDict.keys():
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
