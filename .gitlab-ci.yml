@@ -9,3 +9,4 @@ conda:
     - source activate fine
     - python -m pip install -e .
     - python -m pytest --cov=FINE test/
+
