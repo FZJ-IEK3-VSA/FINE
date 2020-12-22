@@ -17,3 +17,9 @@ dependencies:
 - GPyOpt
 - networkx
 - scipy
+- pwlf
+- pyDOE
+- sphinx_rtd_theme
+- scikit-learn
+- pip:
+    - tsam
