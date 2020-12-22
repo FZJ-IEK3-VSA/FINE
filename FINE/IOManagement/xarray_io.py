@@ -308,7 +308,7 @@ def spatial_aggregation(esM,
                                                             fig_name,  
                                                             verbose,
                                                             weighting)
-    print(aggregation_dict)  
+    
     # STEP 4. Representation of the new regions
     if grouping_mode == 'string_based':
         sub_to_sup_region_id_dict = aggregation_dict #NOTE: Not a nested dict for different #regions
@@ -341,7 +341,7 @@ def spatial_aggregation(esM,
     aggregated_esM = fn.dictIO.importFromDict(new_esm_dict, new_comp_dict)
     
     # STEP 6. Save shapefiles and aggregated data if user chooses
-    if aggregatedResultsPath is not None:
+    if aggregatedResultsPath is not None:   #TODO: test if they are saved as intented 
         sds_region_filename = kwargs.get('sds_region_filename', 'sds_regions.shp') 
         sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')
         

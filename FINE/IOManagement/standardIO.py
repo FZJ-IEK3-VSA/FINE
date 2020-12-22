@@ -872,9 +872,14 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
         data = data.sum(axis=1)
     gdf = gpd.read_file(locationsShapeFileName).to_crs({'init': crs})
 
-    # sort data and shapes in the same order
+    # Make sure the data and gdf indices match 
+    ## 1. Sort the indices to obtain same order 
     data.sort_index(inplace=True)
     gdf.sort_values(indexColumn, inplace=True)
+
+    ## 2. Take first 20 characters of the string for matching. (In gdfs usually long strings are cut in the end)
+    gdf[indexColumn] = gdf[indexColumn].apply(lambda x: x[:20]) 
+    data.index = data.index.str[:20]
 
     if perArea:
         gdf.loc[gdf[indexColumn] == data.index, "data"] = \
