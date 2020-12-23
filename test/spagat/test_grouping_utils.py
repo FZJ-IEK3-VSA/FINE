@@ -83,7 +83,7 @@ def test_preprocessTimeSeries():
     expected_dict['var1'] = np.concatenate((c1_matrix, c2_matrix), axis=1)
 
 
-    c3_matrix = 0.1 * np.array([ [ 0,  8],           #NOTE: some of the numbers like 6 and 3 should assertion error due to difference in resulting floating values
+    c3_matrix = 0.1 * np.array([ [ 0,  8],           #NOTE: some of the numbers like 6 and 3 throw assertion error due to difference in resulting floating values
                                 [ 8,  8],
                                 [ 8,  10]])
     

@@ -105,35 +105,6 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
         
         plt.show(block=False)
 
-        
-        # The selection of initialization is also available in sklearn.KMeans!  #TODO: maybe delete this 
-    '''
-    if mode == 'kmeans2':
-        regions_list = sds.xr_dataset[dimension_description].values
-        centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000
-        n_regions = len(centroids)
-
-        aggregation_dict = {}
-        aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
-        
-        for k in range(1,n_regions):
-            # minit can be changed to other initialization method!
-            regions_label_list = vq.kmeans2(centroids,k, minit='points')[1]
-
-            # Create a regions dictionary for the aggregated regions
-            regions_dict = {}
-            for label in range(k):
-                # Group the regions of this regions label
-                sup_region = regions_list[regions_label_list == label]
-                sup_region_id = '_'.join(sup_region)
-                regions_dict[sup_region_id] = sup_region.copy()
-
-            aggregation_dict[k] = regions_dict.copy()
-        
-        return aggregation_dict
-    '''
-
-    
     ########################### SKLEARN - HIERARCHICAL #####################################
 
     if agg_mode == 'sklearn_hierarchical':
@@ -161,26 +132,22 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
             aggregation_dict[i] = regions_dict.copy()
 
         # Create linkage matrix for dendrogram
-        def createLinkages():                       #TODO: function within a function does not make sense. Maybe put this in grouping_utils.py
-            clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(centroids)
-            # Create the counts of samples under each node
-            counts = np.zeros(clustering_tree.children_.shape[0])
-            n_samples = len(clustering_tree.labels_)
-            for i, merge in enumerate(clustering_tree.children_):
-                current_count = 0
-                for child_idx in merge:
-                    if child_idx < n_samples:
-                        current_count += 1  # leaf node
-                    else:
-                        current_count += counts[child_idx - n_samples]
-                counts[i] = current_count
-                
-            linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
+        clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(centroids)
+        ## Create the counts of samples under each node
+        counts = np.zeros(clustering_tree.children_.shape[0])
+        n_samples = len(clustering_tree.labels_)
+        for i, merge in enumerate(clustering_tree.children_):
+            current_count = 0
+            for child_idx in merge:
+                if child_idx < n_samples:
+                    current_count += 1  # leaf node
+                else:
+                    current_count += counts[child_idx - n_samples]
+            counts[i] = current_count
             
-            return linkage_matrix
-
+        linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
+            
         # Plot the hierarchical tree dendrogram
-        linkage_matrix = createLinkages()
         distance_matrix = hierarchy.distance.pdist(centroids)
         
 
@@ -422,14 +389,14 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
 
     if agg_mode == 'scipy_hierarchical':
 
-        #### STEP 1.  Preprocess the whole dataset (grouping_utils - preprocessDataset())
+        #STEP 1.  Preprocess the whole dataset (grouping_utils - preprocessDataset())
         dict_ts, dict_1d, dict_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')  #TODO: this is a common step for all agg_modes, put it only once before if statements (keep in mind that the handle modes are different for different agg_modes)
 
-        #### STEP 2.  Calculate the overall distance between each region pair (uses custom distance)
+        #STEP 2.  Calculate the overall distance between each region pair (uses custom distance)
         squared_dist_matrix = gu.selfDistanceMatrix(dict_ts, dict_1d, dict_2d, n_regions)
 
-        #### STEP 3. Clustering
-        #### STEP 3a.  Hierarchical clustering with average linkage
+        #STEP 3. Clustering
+        #STEP 3a.  Hierarchical clustering with average linkage
         distance_matrix = hierarchy.distance.squareform(squared_dist_matrix)
         Z = hierarchy.linkage(distance_matrix, method='average')
 
@@ -447,9 +414,8 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
         plt.show(block=False)  #INFO: block = False lets the computation continute during tests
                                # TODO: maybe save both figures and don't show them
 
-        #print(list(inconsistency[:,3]))
         
-        #### STEP 3c.  If specified, figure for resulting dendrogram
+        #STEP 3c.  If specified, figure for resulting dendrogram
         if fig_name is None: fig_name = 'scipy_hierarchical_dendrogram'
         if ax_illustration is not None:                        #TODO: ax can be passed like axes[1] if the figure is a subplot of a plot. check how helpful this is. based on it maybe simplify or eliminate this
             R = hierarchy.dendrogram(Z, 
@@ -474,7 +440,7 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
             
             spu.plt_savefig(save_name=fig_name, path=save_path)
         
-        #### STEP 4.  Find the sub_to_sup_region_id_dict for every level in the hierarchy
+        #STEP 4.  Find the sub_to_sup_region_id_dict for every level in the hierarchy
         regions_dict = {region_id: [region_id] for region_id in regions_list}
         regions_dict_complete = regions_dict.copy()                  #INFO: you can't assign regions_dict directly to regions_dict_complete in Python. You have to copy it. else manipulating one will change the other
 
@@ -511,7 +477,7 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
 
             aggregation_dict[n_regions - i - 1] = regions_dict.copy()
     
-        #### STEP 5.  Get Silhouette Coefficient scores
+        #STEP 5.  Get Silhouette Coefficient scores
         silhouette_scores = gu.computeSilhouetteCoefficient(list(regions_list), squared_dist_matrix, aggregation_dict)
         print(silhouette_scores)
 
@@ -520,19 +486,19 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
 
     if agg_mode == 'sklearn_hierarchical':  
 
-        #### STEP 1.  Preprocess the whole dataset (grouping_utils - preprocessDataset())
+        #STEP 1.  Preprocess the whole dataset (grouping_utils - preprocessDataset())
         ds_ts, ds_1d, ds_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')
 
-        #### STEP 2.  Calculate the overall distance between each region pair (uses custom distance)
+        #STEP 2.  Calculate the overall distance between each region pair (uses custom distance)
         squared_distMatrix = gu.selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions)
 
-        #### STEP 3.  Obtain a matrix where 1 means two regions are connected and 0 means not 
+        #STEP 3.  Obtain a matrix where 1 means two regions are connected and 0 means not 
         # (any one of the component and any one of it's 2d variable has to have a positive value)
         connectMatrix = gu.generateConnectivityMatrix(sds)
 
         silhouette_scores = []
 
-        #### STEP 3. Clustering for every number of regions from 1 to one less than n_regions 
+        #STEP 3. Clustering for every number of regions from 1 to one less than n_regions 
         for i in range(1,n_regions):           #NOTE: each level in the hierarchy shows one merge. Looks like her it does not. 
                                                 #Hence, for loop is used to perform clustering for every number of desired regions 
                                                 #TODO: maybe investigate this?
@@ -556,14 +522,14 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
 
             aggregation_dict[i] = regions_dict.copy()
 
-        #### STEP 4. Plot the hierarchical tree dendrogram
+        #STEP 4. Plot the hierarchical tree dendrogram
         clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, 
                                                       n_clusters=None, 
                                                       affinity='precomputed', 
                                                       linkage='average',
                                                       connectivity=connectMatrix).fit(squared_distMatrix)
 
-        #### STEP 4. Cophenetic correlation coefficient                                              
+        #STEP 4. Cophenetic correlation coefficient                                              
         # Create the counts of samples under each node
         counts = np.zeros(clustering_tree.children_.shape[0])
         n_samples = len(clustering_tree.labels_)
@@ -583,7 +549,7 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
         distance_matrix = hierarchy.distance.squareform(squared_distMatrix)
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
         
-        #### STEP 5. Check for inconsistency 
+        #STEP 5. Check for inconsistency 
         #fig, ax = plt.subplots(figsize=(18,7))
         inconsistency = hierarchy.inconsistent(linkage_matrix)
         print('Inconsistencies:',list(inconsistency[:,3]))
@@ -595,7 +561,7 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
         # plt.xticks(range(1,len(linkage_matrix)+1), np.arange(len(linkage_matrix)+1,1, -1))
         # plt.show()
 
-        #### STEP 5. Print Silhouette scores 
+        #STEP 6. Print Silhouette scores 
         print('Silhouette scores: ',silhouette_scores)
 
 
@@ -637,7 +603,7 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
                 - high value means more similar elements (stronger connections)
         '''
 
-        #### STEP 1.  Preprocess the whole dataset (grouping_utils - preprocessDataset())
+        #STEP 1.  Preprocess the whole dataset (grouping_utils - preprocessDataset())
         feature_matrix_ts, feature_matrix_1d, adjacency_matrix_2d = gu.preprocessDataset(sds, handle_mode='toAffinity')
 
         # List of weighting factors for 3 categories
@@ -646,28 +612,28 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
         # delta value for RBF kernel -> to construct affinity matrix
         delta = 1
 
-        #### STEP 2a. (i) Obtain distance matrix for time series variable set (used pdist, which in turn uses default euclidean distance)
+        #STEP 2a. (i) Obtain distance matrix for time series variable set (used pdist, which in turn uses default euclidean distance)
         distance_matrix_ts = hierarchy.distance.squareform(hierarchy.distance.pdist(feature_matrix_ts))  #NOTE: pdist finds euclidean distance between regions,
                                                                                                          # here, hierarchy.distance.squareform converts this condensed matrix (rather a list) to a symmetric, hollow matrix
-        #### STEP 2a. (ii) Use RBF kernel to construct affinity matrix based on distance matrix of time series variable set
+        #STEP 2a. (ii) Use RBF kernel to construct affinity matrix based on distance matrix of time series variable set
         affinity_ts = np.exp(- distance_matrix_ts ** 2 / (2. * delta ** 2))
 
-        #### STEP 2b. (i) Obtain distance matrix for 1d variable set (used pdist, which in turn uses default euclidean distance)
+        #STEP 2b. (i) Obtain distance matrix for 1d variable set (used pdist, which in turn uses default euclidean distance)
         distance_matrix_1d = hierarchy.distance.squareform(hierarchy.distance.pdist(feature_matrix_1d))
-        #### STEP 2b. (ii) Use RBF kernel to construct affinity matrix based on distance matrix of 1d variable set
+        #STEP 2b. (ii) Use RBF kernel to construct affinity matrix based on distance matrix of 1d variable set
         affinity_1d = np.exp(- distance_matrix_1d ** 2 / (2. * delta ** 2))
 
-        #### STEP 2c. (i) Obtain distance matrix for 2d variable set (used pdist, which in turn uses default euclidean distance)
+        #STEP 2c. (i) Obtain distance matrix for 2d variable set (used pdist, which in turn uses default euclidean distance)
         # Convert the adjacency matrix to a dissimilarity matrix similar to a distance matrix: high value=more dissimilarity, 0=identical elements  #TODO: why is this required?? why cant we set handle mode to dissimilarity directly??
         adjacency_2d_adverse = 1.0 / adjacency_matrix_2d   #NOTE: #adjacency_matrix_2d is affinity matrix, convert it into distance matrix by taking it's reciprocal
         max_value = adjacency_2d_adverse[np.isfinite(adjacency_2d_adverse)].max()  #NOTE: find the maximum value which is not infinity
         adjacency_2d_adverse[np.isinf(adjacency_2d_adverse)] = max_value + 10  #NOTE: infinity = max value + 10 (meant for non-connected regions)
         np.fill_diagonal(adjacency_2d_adverse,0)                   #NOTE: set diagonal values to 0 (meant for same region pair in the matrix)       
 
-        ##### STEP 2c. (ii) Use RBF kernel to construct affinity matrix based on distance matrix of 2d variable set
+        #STEP 2c. (ii) Use RBF kernel to construct affinity matrix based on distance matrix of 2d variable set
         affinity_2d = np.exp(- adjacency_2d_adverse ** 2 / (2. * delta ** 2))
 
-        #### STEP 3. Compute a single affinity matrix
+        #STEP 3. Compute a single affinity matrix
         affinity_matrix = (affinity_ts * weighting[0] + affinity_1d * weighting[1] + affinity_2d * weighting[2]) 
 
         # ##### Solve the spatial contiguity problem with the connectivity condition
@@ -678,17 +644,17 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
 
         # Evaluation indicators
         modularities = []
-        #### STEP 4. For 1 to one less than n regions: Perform the following sub steps
+        #STEP 4. For 1 to one less than n regions: Perform the following sub steps
         for i in range(1,n_regions):
-            #### STEP 4a. clustering
+            #STEP 4a. clustering
             model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
             regions_label_list = model.labels_
 
-            #### STEP 4b. compute modulatiy (calls computeModularity() )
+            #STEP 4b. compute modulatiy (calls computeModularity() )
             modularity = gu.computeModularity(affinity_matrix, regions_label_list)
             modularities.append(modularity)
 
-            #### STEP 4c. form resulting sub_to_sup_region_id_dict 
+            #STEP 4c. form resulting sub_to_sup_region_id_dict 
             regions_dict = {}
             for label in range(i):
                 # Group the regions of this regions label
@@ -719,16 +685,16 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
     ## Affinity matrix: construct a distance matrix based on selfDistanceMatrix function, transform it to similarity matrix
     if agg_mode =='sklearn_spectral2':
 
-        #### STEP 1.  Preprocess the whole dataset (grouping_utils - preprocessDataset())
+        #STEP 1.  Preprocess the whole dataset (grouping_utils - preprocessDataset())
         ds_ts, ds_1d, ds_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')
 
-        #### STEP 2.  Calculate the overall distance between each region pair (uses custom distance)
+        #STEP 2.  Calculate the overall distance between each region pair (uses custom distance)
         distMatrix = gu.selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions)
 
-        #### STEP 3. Scale the distance matrix between 0 and 1
+        #STEP 3. Scale the distance matrix between 0 and 1
         distMatrix = gu.matrix_MinMaxScaler(distMatrix)
 
-        #### STEP 4. Use RBF kernel to construct affinity matrix based on distance matrix
+        #STEP 4. Use RBF kernel to construct affinity matrix based on distance matrix
         delta = 1
         affinity_matrix = np.exp(- distMatrix ** 2 / (2. * delta ** 2))
 
@@ -742,22 +708,22 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
         # Silhouette Coefficient scores
         silhouette_scores = []
 
-        #### STEP 5. For 1 to one less than n regions: Perform the following sub steps 
+        #STEP 5. For 1 to one less than n regions: Perform the following sub steps 
         for i in range(1,n_regions):
-            #### STEP 5a. clustering
+            #STEP 5a. clustering
             model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
             regions_label_list = model.labels_
 
-            #### STEP 5b. compute modulatiy (calls computeModularity() )
+            #STEP 5b. compute modulatiy (calls computeModularity() )
             modularity = gu.computeModularity(affinity_matrix, regions_label_list)
             modularities.append(modularity)
 
-            #### STEP 5c. Obtain Silhouette Coefficient score (skip for n_region=1 as this score can be computed only n_regions = 2 : n-1 regions)
+            #STEP 5c. Obtain Silhouette Coefficient score (skip for n_region=1 as this score can be computed only n_regions = 2 : n-1 regions)
             if i != 1:
                 s = metrics.silhouette_score(distMatrix, regions_label_list, metric='precomputed')
                 silhouette_scores.append(s)
 
-            #### STEP 5d. form resulting sub_to_sup_region_id_dict 
+            #STEP 5d. form resulting sub_to_sup_region_id_dict 
             regions_dict = {}
             for label in range(i):
                 # Group the regions of this regions label
@@ -782,13 +748,4 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
     return aggregation_dict
 
 
-
-@spu.timer  #TODO: remove this!
-def variables_and_distance_ensemble_clustering(sds,agg_mode='hierarchical',verbose=False, ax_illustration=None, save_fig=None, dimension_description='space',weighting=None):
-    '''Ensemble clustering with basic clusterings from:
-        - geographical centroids
-        - part_1 of dataset (time seiries data + 1d variables) by various clustering methods
-        - part_2 of dataset (2d variables) as (un)directed graph
-    '''
-    return None
 
