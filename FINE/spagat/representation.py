@@ -389,3 +389,10 @@ def create_grid_shapefile(
     spu.create_gdf(df, geoms, crs=3035, file_path=file_path, files_name=files_name)
 
     
+
+################################################################################################################
+###########                        REPRESENTATION OF RE TIME SERIES                              ###############
+################################################################################################################
+
+def represent_re_time_series():
+    pass
