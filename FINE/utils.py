@@ -103,12 +103,9 @@ def checkTimeSeriesIndex(esM, data):
     """
     #----
     #NOTE: this part only specific to spatial aggregation, 
-    # therefore at the moment only present in spatial_aggregation branch
-    if isinstance(data.index,pd.MultiIndex):
-        dataindex = data.index.get_level_values('TimeStep')
-        data.index = dataindex
-    else:
-        dataindex = data.index
+    # therefore at the moment only present in spatial_aggregation branch 
+    if isinstance(data.index, pd.MultiIndex):
+        data.index = data.index.droplevel() # Removes "Period" index level
     #------
     if list(data.index) != esM.totalTimeSteps:
         raise ValueError('Time indices do not match the one of the specified energy system model.')
@@ -119,6 +116,12 @@ def checkRegionalColumnTitles(esM, data):
     Necessary if the data columns represent the location-dependent data:
     Check if the columns indices match the location indices of the energy system model.
     """
+    #----
+    #NOTE: this part only specific to spatial aggregation, 
+    # therefore at the moment only present in spatial_aggregation branch
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.droplevel() # Removes <data's name> column level
+    #------
     if set(data.columns) != esM.locations:
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data columns: ' + str(set(data.columns)) + '\n' +

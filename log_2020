@@ -716,3 +716,54 @@ Iteration    Objective       Primal Inf.    Dual Inf.      Time
 
 Solved in 1452 iterations and 0.11 seconds
 Optimal objective  3.081171732e+04
+
+Gurobi 9.0.1 (win64) logging started 12/23/20 12:45:05
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 44 rows, 30 columns and 95 nonzeros
+Model fingerprint: 0x5c10cb7a
+Coefficient statistics:
+  Matrix range     [3e-01, 2e+03]
+  Objective range  [1e-02, 9e+01]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [1e+00, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 19 rows and 15 columns
+Presolve time: 0.00s
+Presolved: 25 rows, 15 columns, 76 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    0.0000000e+00   1.084050e+08   0.000000e+00      0s
+      12    3.8832062e+06   0.000000e+00   0.000000e+00      0s
+
+Solved in 12 iterations and 0.00 seconds
+Optimal objective  3.883206206e+06
+
+Gurobi 9.0.1 (win64) logging started 12/23/20 12:45:08
+
+Changed value of parameter logfile to log_2020
+   Prev:   Default: 
+Gurobi Optimizer version 9.0.1 build v9.0.1rc0 (win64)
+Optimize a model with 4088 rows, 2211 columns and 10979 nonzeros
+Model fingerprint: 0x07969210
+Coefficient statistics:
+  Matrix range     [3e-04, 5e+02]
+  Objective range  [2e+00, 1e+02]
+  Bounds range     [1e+02, 4e+02]
+  RHS range        [1e+00, 3e+02]
+Presolve removed 1375 rows and 1289 columns
+Presolve time: 0.01s
+Presolved: 2713 rows, 922 columns, 10776 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                          0s
+    1452    3.0811717e+04   0.000000e+00   0.000000e+00      0s
+
+Solved in 1452 iterations and 0.07 seconds
+Optimal objective  3.081171732e+04
