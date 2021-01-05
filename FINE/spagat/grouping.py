@@ -56,19 +56,20 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
 
     #================= SKLEARN - KMEANS =================#
-
     if agg_mode == 'sklearn_kmeans':
-
         rss = [] # RSS (distortion) for different k values, in sklearn: inertia / within-cluster sum-of-squares
 
-        for i in range(1,n_regions):
+        #STEP 1. Clustering for each number of regions from 1 to total number present in the original resolution
+        for i in range(1, n_regions):
 
-            # Compute K-Means clustering: configurations can be modified, e.g. init
+            #STEP 1a. Compute K-Means clustering
             kmeans = skc.KMeans(n_clusters=i).fit(centroids)
             regions_label_list = kmeans.predict(centroids)
+
+            #STEP 1b. Save rss value
             rss.append(kmeans.inertia_)
 
-            # Create a regions dictionary for the aggregated regions
+            #STEP 1c. Create a regions dictionary for the aggregated regions
             regions_dict = {}
             for label in range(i):
                 # Group the regions of this regions label
@@ -82,15 +83,17 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
                 for sup_region_id, sub_regions_list in regions_dict.items():
                     print('\t', sup_region_id, ': ', sub_regions_list)
 
+            #STEP 1d. Append the dict to main dict 
             aggregation_dict[i] = regions_dict.copy()
 
-        # Plotting the rss according to increase of k values, check if there exists an inflection point
+        #STEP 2. Plot rss values (check if there exists an inflection point) #TODO: indicate this inflection point on the diagram, del the text in brackets
         fig, ax = plt.subplots(figsize=(25, 12))
         ax.plot(range(1,n_regions),rss,'go-')
         ax.set_title('Within-cluster sum-of-squares')
         ax.set_xlabel('K (number_of_regions)')
         ax.set_ylabel('Distortion / Inertia')
 
+        #STEP 3. Save fig if user specifies 
         if save_path is not None:           #NOTE: fig saved before show() to avoid saving blanks 
             if fig_name is None: fig_name = 'sklearn_kmeans_distortion'
             spu.plt_savefig(path=save_path, save_name=fig_name)
@@ -98,16 +101,16 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
         plt.show(block=False)
 
     #================= SKLEARN - HIERARCHICAL =================#
-
     if agg_mode == 'sklearn_hierarchical':
 
-        for i in range(1,n_regions):
+        #STEP 1. Clustering for each number of regions from 1 to total number present in the original resolution
+        for i in range(1, n_regions):
 
-            # Computing hierarchical clustering
+            #STEP 1a. Compute hierarchical clustering
             model = skc.AgglomerativeClustering(n_clusters=i).fit(centroids)
             regions_label_list = model.labels_
 
-            # Create a regions dictionary for the aggregated regions
+            #STEP 1b. Create a regions dictionary for the aggregated regions
             regions_dict = {}
             for label in range(i):
                 # Group the regions of this regions label
@@ -121,11 +124,14 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
                 for sup_region_id, sub_regions_list in regions_dict.items():
                     print('\t', sup_region_id, ': ', sub_regions_list)
 
+            #STEP 1c. Append the dict to main dict 
             aggregation_dict[i] = regions_dict.copy()
 
-        # Create linkage matrix for dendrogram
+        #STEP 2. Create linkage matrix 
+        #STEP 2a. Obtain clustering tree
         clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(centroids)
-        ## Create the counts of samples under each node
+
+        #STEP 2b. Create the counts of samples under each node
         counts = np.zeros(clustering_tree.children_.shape[0])
         n_samples = len(clustering_tree.labels_)
         for i, merge in enumerate(clustering_tree.children_):
@@ -136,28 +142,11 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
                 else:
                     current_count += counts[child_idx - n_samples]
             counts[i] = current_count
-            
+
+        #STEP 2c. Obtain linkage matrix    
         linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
-            
-        # Plot the hierarchical tree dendrogram
-        distance_matrix = hierarchy.distance.pdist(centroids)
         
-
-        # Evaluation 
-        print('Statistics on this hiearchical clustering:')
-        print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
-
-        fig, ax = plt.subplots(figsize=(18,7))
-        inconsistency = hierarchy.inconsistent(linkage_matrix)
-        ax.plot(range(1,len(linkage_matrix)+1),list(inconsistency[:,3]),'go-')
-        ax.set_title('Inconsistency Coefficients: indicate where to cut the hierarchy', fontsize=14)
-        ax.set_xlabel('Linkage height', fontsize=12)
-        ax.set_ylabel('Inconsistencies', fontsize=12)
-
-        plt.xticks(np.arange(1, len(linkage_matrix)+1, 1))
-        plt.show(block=False)
-
-        # If and how to save the hierarchical tree 
+        #STEP 3. Create and save dendrogram (from linkage matrix) if user specifies 
         if fig_name is None: fig_name = 'sklearn_hierarchical_dendrogram'
 
         if ax_illustration is not None:
@@ -182,18 +171,38 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
                                     )
 
             spu.plt_savefig(save_name=fig_name, path=save_path)
+        
+        #STEP 3. Obtain distance matrix
+        distance_matrix = hierarchy.distance.pdist(centroids)
 
+        #STEP 4. Evaluation 
+        print('Statistics on this hiearchical clustering:')
+
+        #STEP 4a. Cophenetic correlation coefficients
+        cophenetic_correlation_coefficient = hierarchy.cophenet(linkage_matrix, distance_matrix)[0]
+        print('The cophenetic correlation coefficient is ', cophenetic_correlation_coefficient)
+
+        #STEP 4b. Inconsistency coefficients (in a plot)
+        fig, ax = plt.subplots(figsize=(18,7))
+        inconsistency = hierarchy.inconsistent(linkage_matrix)
+        ax.plot(range(1,len(linkage_matrix)+1),list(inconsistency[:,3]),'go-')
+        ax.set_title('Inconsistency Coefficients: indicate where to cut the hierarchy', fontsize=14)
+        ax.set_xlabel('Linkage height', fontsize=12)
+        ax.set_ylabel('Inconsistencies', fontsize=12)
+
+        plt.xticks(np.arange(1, len(linkage_matrix)+1, 1))
+        plt.show(block=False)
 
     #================= SKLEARN - SPECTRAL =================#    
-
     if agg_mode == 'sklearn_spectral':
 
+        #STEP 1. Clustering for each number of regions from 1 to total number present in the original resolution
         for i in range(1,n_regions):
-            # Computing spectral clustering
+            #STEP 1a. Compute spectral clustering 
             model = skc.SpectralClustering(n_clusters=i).fit(centroids)
             regions_label_list = model.labels_
 
-            # Create a regions dictionary for the aggregated regions
+            #STEP 1b. Create a regions dictionary for the aggregated regions
             regions_dict = {}
             for label in range(i):
                 # Group the regions of this regions label
@@ -206,26 +215,28 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
                 print('\t', 'lables:', regions_label_list)
                 for sup_region_id, sub_regions_list in regions_dict.items():
                     print('\t', sup_region_id, ': ', sub_regions_list)
-
+            
+            #STEP 1c. Append the dict to main dict 
             aggregation_dict[i] = regions_dict.copy()
 
 
     #================= SCIPY - KMEANS =================#  
-
     if agg_mode == 'scipy_kmeans':   
-        # The input observations of kmeans must be normalized
+        #STEP 1. Normalize input observations (required to run kmeans)
         centroids_whitened = vq.whiten(centroids)
 
         rss = [] # RSS (distortion) for different k values - in vq.kmeans: average euclidean distance
 
+        #STEP 1. Clustering for each number of regions from 1 to total number present in the original resolution
         for i in range(1, n_regions):
-            # Perform k-means on the original centroids to obtained k centroids of aggregated regions
+            #STEP 1a. Compute kmeans clustering
             aggregation_centroids, distortion = vq.kmeans(centroids_whitened, i)
-            
-            rss.append(distortion)
             regions_label_list = vq.vq(centroids_whitened, aggregation_centroids)[0]
+
+            #STEP 1b. Save rss value
+            rss.append(distortion)
             
-            # Create a regions dictionary for the aggregated regions
+            #STEP 1c. Create a regions dictionary for the aggregated regions
             regions_dict = {}
             for label in range(i):
                 # Group the regions of this regions label
@@ -239,38 +250,41 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
                 for sup_region_id, sub_regions_list in regions_dict.items():
                     print('\t', sup_region_id, ': ', sub_regions_list)
 
+            #STEP 1d. Append the dict to main dict 
             aggregation_dict[i] = regions_dict.copy()
 
-        # Plotting the rss according to increase of k values, check if there exists an inflection point
+        #STEP 2. Plot rss values (check if there exists an inflection point) #TODO: indicate this inflection point on the diagram, del the text in brackets
         fig, ax = spu.plt.subplots(figsize=(25, 12))
         ax.plot(range(1,n_regions),rss,'go-')
         ax.set_title('Impact of k on distortion')
         ax.set_xlabel('K (number_of_regions)')
         ax.set_ylabel('Distortion')
 
+        #STEP 3. Save fig if user specifies
         if save_path is not None:
             if fig_name is None: fig_name = 'scipy_kmeans_distortion'
             spu.plt_savefig(path=save_path, save_name=fig_name) 
 
         plt.show(block=False)
         
-        
 
     #================= SCIPY - HIERARCHICAL =================# 
-
     if agg_mode == 'scipy_hierarchical':
-
+        #STEP 1. Compute hieracical clustering
         distance_matrix = hierarchy.distance.pdist(centroids)
-
-        Z = hierarchy.linkage(distance_matrix, 'centroid') #Possibilities - 'centroid','average','weighted'
+        Z = hierarchy.linkage(distance_matrix, 'centroid') 
         
         #TODO: are the figures really required ? If yes, the function is misleading-> 
         # Inconsistency is plotted, dendrogram is saved. make this clearer
 
-        #Evaluation 
+        #STEP 2. Evaluation 
         print('Statistics on this hiearchical clustering:')
-        print('The cophentic correlation distance is ', hierarchy.cophenet(Z, distance_matrix)[0])
+
+        #STEP 2a. Cophenetic correlation coefficient
+        cophenetic_correlation_coefficient = hierarchy.cophenet(Z, distance_matrix)[0]
+        print('The cophenetic correlation coefficient is ', cophenetic_correlation_coefficient)
         
+        #STEP 2b. Inconsistency coefficients (in a plot)
         fig, ax = plt.subplots(figsize=(18,7))
         inconsistency = hierarchy.inconsistent(Z)
         ax.plot(range(1,len(Z)+1),list(inconsistency[:,3]),'go-')
@@ -281,7 +295,7 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
         plt.xticks(np.arange(1, len(Z)+1, 1))
         plt.show(block=False)
         
-        # If and how to save the hierarchical tree 
+        #STEP 3. Create and save dendrogram (from linkage matrix) if user specifies 
         if fig_name is None: fig_name = 'scipy_hierarchical_dendrogram'
 
         if ax_illustration is not None:   #TODO: is ax_illustration thing really necessary?
@@ -309,24 +323,24 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
 
             spu.plt_savefig(save_name=fig_name, path=save_path)
 
-        
+        #STEP 4. Create resuting aggregation dict for all levels of hierarchy
         regions_dict = {region_id: [region_id] for region_id in regions_list}
         regions_dict_complete = regions_dict.copy()
 
-        # identify which regions are merged together (new_merged_region_id_list)
+        ## Identify which regions are merged in each level of the hierarchy 
         for i in range(len(Z)):
 
-            # identify the keys of the sub regions that will be merged
+            ### Identify the keys of the sub regions that will be merged
             key_list = list(regions_dict_complete.keys())
             key_1 = key_list[int(Z[i][0])]
             key_2 = key_list[int(Z[i][1])]
 
-            # get the region_id_list_s of the sub regions
+            ### Get the region_id_list_s of the sub regions
             value_list = list(regions_dict_complete.values())
             sub_region_id_list_1 = value_list[int(Z[i][0])]
             sub_region_id_list_2 = value_list[int(Z[i][1])]
 
-            # add the new region to the dict by merging the two region_id_lists
+            ### Add the new region to the dict by merging the two region_id_lists
             sup_region_id = f"{key_1}_{key_2}"
 
             sup_region_id_list = sub_region_id_list_1.copy()
