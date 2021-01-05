@@ -121,8 +121,8 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init,
                                                        ('distance_based', 'sklearn_spectral'),
                                                        ('distance_based', 'scipy_hierarchical'),
                                                        ('all_variable_based', 'scipy_hierarchical'),
-                                                       ('all_variable_based', 'sklearn_spectral1'),
-                                                       ('all_variable_based', 'sklearn_spectral2')
+                                                       ('all_variable_based', 'spectral_with_precomputedAffinity'),
+                                                       ('all_variable_based', 'spectral_with_RBFaffinity')
                                                     ])
 @pytest.mark.parametrize("n_regions", [1, 3, 8]) 
 def test_spatial_aggregation(multi_node_test_esM_init, 
