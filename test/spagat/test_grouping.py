@@ -71,7 +71,10 @@ def test_distance_based_clustering(mode):
      
      
 
-@pytest.mark.parametrize("mode", ['scipy_hierarchical', 'sklearn_hierarchical', 'sklearn_spectral1', 'sklearn_spectral2'])
+@pytest.mark.parametrize("mode", ['scipy_hierarchical', 
+                                   'sklearn_hierarchical', 
+                                   'spectral_with_precomputedAffinity', 
+                                   'spectral_with_RBFaffinity'])
 def test_all_variable_based_clustering(mode):
      #TEST DATA     
      component_list = ['c1','c2', 'c3']  
