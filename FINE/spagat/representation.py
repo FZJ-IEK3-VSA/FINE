@@ -6,18 +6,16 @@ import logging
 
 import numpy as np
 import pandas as pd
+import copy
 import shapely
 import xarray as xr
 from shapely.geometry import LineString
-from shapely.ops import cascaded_union, unary_union   #unary_union is not used anywhere 
+from shapely.ops import cascaded_union
 
 import FINE.spagat.utils as spu
 import FINE.spagat.dataset as spd
 
-import copy
-
 logger_representation = logging.getLogger('spagat_representation')
-
 
 
 def add_region_centroids(sds, spatial_dim="space"):

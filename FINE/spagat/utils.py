@@ -1,16 +1,12 @@
 """Helper functions that serve different modules of SPAGAT.
 
 """
-
-import geopandas as gpd
 import os
-
 import time
 
+import geopandas as gpd
 import matplotlib.pyplot as plt
-
 from typing import Dict, List
-
 
 def plt_savefig(fig=None, save_name : str = "test", path : str = None,  bbox_inches=None): 
 
