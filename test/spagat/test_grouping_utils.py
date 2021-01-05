@@ -24,7 +24,6 @@ def test_matrix_MinMaxScaler():
 
 
 def test_preprocessTimeSeries():
-    
     #TEST DATA 
     test_dict = {}
 
@@ -223,7 +222,7 @@ def test_preprocess2dVariables(handle_mode):
         expected_dict['var2'] = {1: var2_c2_matrix, 3: var2_c4_matrix}
 
         #FUNCTION CALL 
-        output_dict = gu.preprocess2dVariables(test_dict, component_list, handle_mode=handle_mode)
+        output_dict = gu.preprocess2dVariables(test_dict, len(component_list), handle_mode=handle_mode)
 
         #ASSERTION 
         for (output_var, output_comp_dict), (expected_var, expected_comp_dict) in zip(output_dict.items(), expected_dict.items()):
@@ -252,10 +251,9 @@ def test_preprocess2dVariables(handle_mode):
         expected_dict['var2'] = {1: var2_c2_array, 3: var2_c4_array}
 
         #FUNCTION CALL 
-        output_dict = gu.preprocess2dVariables(test_dict, component_list, handle_mode=handle_mode)
+        output_dict = gu.preprocess2dVariables(test_dict, len(component_list), handle_mode=handle_mode)
 
-        #ASSERTION 
-        #ASSERTION 
+        #ASSERTION  
         for (output_var, output_comp_dict), (expected_var, expected_comp_dict) in zip(output_dict.items(), expected_dict.items()):
             assert output_var == expected_var
             
