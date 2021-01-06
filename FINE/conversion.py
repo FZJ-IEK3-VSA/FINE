@@ -483,10 +483,14 @@ class ConversionModel(ComponentModel):
         self.operationVariablesOptimum = optVal
 
         props = ['operation', 'opexOp']
-        units = ['[-]', '[' + esM.costUnit + '/a]']
-        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
-        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].physicalUnit + '*h/a]')
-                      if x[1] == 'operation' else x, tuples))
+        # Unit dict: Specify units for props
+        units = {props[0]: ['[-*h]', '[-*h/a]'],
+                 props[1]: ['[' + esM.costUnit + '/a]']}
+        # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
+        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop in props for unit in units[prop]]
+        # Replace placeholder with correct unit of component
+        tuples = list(map(lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].physicalUnit))
+            if x[1] == 'operation' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
 
@@ -495,6 +499,8 @@ class ConversionModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h/a]') for ix in opSum.index],
                            opSum.columns] = opSum.values/esM.numberOfYears
+            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h]') for ix in opSum.index],
+                           opSum.columns] = opSum.values
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values/esM.numberOfYears
 

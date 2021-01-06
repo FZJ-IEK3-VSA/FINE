@@ -1042,12 +1042,18 @@ class StorageModel(ComponentModel):
 
         # Set optimal operation variables and append optimization summary
         props = ['operationCharge', 'operationDischarge', 'opexCharge', 'opexDischarge']
-        units = ['[-]', '[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
-        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
-        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].commodityUnit + '*h/a]')
-                          if x[1] == 'operationCharge' else x, tuples))
-        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].commodityUnit + '*h/a]')
-                          if x[1] == 'operationDischarge' else x, tuples))
+        # Unit dict: Specify units for props
+        units = {props[0]: ['[-*h]', '[-*h/a]'],
+                 props[1]: ['[-*h]', '[-*h/a]'],
+                 props[2]: ['[' + esM.costUnit + '/a]'],
+                 props[3]: ['[' + esM.costUnit + '/a]']}
+        # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
+        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop in props for unit in units[prop]]
+        # Replace placeholder with correct unit of component
+        tuples = list(map(lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+            if x[1] == 'operationCharge' else x, tuples))
+        tuples = list(map(lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+            if x[1] == 'operationDischarge' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
 
@@ -1061,6 +1067,8 @@ class StorageModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerChargeOperation[op.index], axis=1)
             optSummary.loc[[(ix, 'operationCharge', '[' + compDict[ix].commodityUnit + '*h/a]')
                              for ix in opSum.index], opSum.columns] = opSum.values/esM.numberOfYears
+            optSummary.loc[[(ix, 'operationCharge', '[' + compDict[ix].commodityUnit + '*h]')
+                            for ix in opSum.index], opSum.columns] = opSum.values
             optSummary.loc[[(ix, 'opexCharge', '[' + esM.costUnit + '/a]') for ix in ox.index],
                             ox.columns] = ox.values/esM.numberOfYears
 
@@ -1083,6 +1091,8 @@ class StorageModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerDischargeOperation[op.index], axis=1)
             optSummary.loc[[(ix, 'operationDischarge', '[' + compDict[ix].commodityUnit + '*h/a]')
                              for ix in opSum.index], opSum.columns] = opSum.values/esM.numberOfYears
+            optSummary.loc[[(ix, 'operationDischarge', '[' + compDict[ix].commodityUnit + '*h]')
+                            for ix in opSum.index], opSum.columns] = opSum.values
             optSummary.loc[[(ix, 'opexDischarge', '[' + esM.costUnit + '/a]') for ix in ox.index],
                             ox.columns] = ox.values/esM.numberOfYears
 
