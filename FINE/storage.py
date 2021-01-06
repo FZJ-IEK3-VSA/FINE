@@ -1068,6 +1068,15 @@ class StorageModel(ComponentModel):
         optVal = utils.formatOptimizationOutput(dischargeOp.get_values(), 'operationVariables', '1dim',
                                                 esM.periodsOrder, esM=esM)
         self.dischargeOperationVariablesOptimum = optVal
+        # Check if there are time steps, at which a storage component is both charging and discharging
+        for compName in self.componentsDict.keys():
+            simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
+                tsCharge=self.chargeOperationVariablesOptimum.loc[compName],
+                tsDischarge=self.dischargeOperationVariablesOptimum.loc[compName])
+            if simultaneousChargeDischarge:
+                if esM.verbose < 2:
+                    warnings.warn(
+                        "Charge and discharge at the same time for component {}".format(compName), UserWarning)
 
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
