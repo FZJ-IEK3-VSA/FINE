@@ -106,8 +106,8 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init,
     aggregated_esM = xrio.spatial_aggregation(esM = multi_node_test_esM_init, 
                                             gdfRegions = regions_gdf, 
                                             grouping_mode = 'string_based', 
-                                            aggregation_function_dict = {'locationalEligibility': ('bool', None)}, #TODO: this is a temp bug fix,                                      
-                                            aggregatedResultsPath=None,                       # remove it after the bug is fixed in representation 
+                                            aggregation_function_dict = None,                             
+                                            aggregatedResultsPath=None,                        
                                             agg_mode='sklearn_spectral2')   
 
     #ASSERTION 
@@ -140,8 +140,8 @@ def test_spatial_aggregation(multi_node_test_esM_init,
     aggregated_esM = xrio.spatial_aggregation(esM = multi_node_test_esM_init, 
                                             gdfRegions = regions_gdf, 
                                             grouping_mode = grouping_mode, 
-                                            aggregation_function_dict = {'locationalEligibility': ('bool', None)}, #TODO: this is a temp bug fix,                                      
-                                            nRegionsForRepresentation = n_regions,                                         # remove it after the bug is fixed in representation 
+                                            nRegionsForRepresentation = n_regions, 
+                                            aggregation_function_dict = None, 
                                             aggregatedResultsPath=None,
                                             agg_mode=agg_mode)   
 
