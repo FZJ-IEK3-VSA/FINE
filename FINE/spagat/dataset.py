@@ -30,9 +30,10 @@ class SpagatDataset:
 
         self.xr_dataset = xr.Dataset()
 
-    def add_objects(
-        self, description: str, dimension_list: List[str], object_list: List[object]
-    ) -> None:
+    def add_objects(self, 
+                    description: str, 
+                    dimension_list: List[str], 
+                    object_list: List[object]) -> None:
         """Adds a list of arbitrary (?) objects to the sds.
         
         Parameters
@@ -53,7 +54,9 @@ class SpagatDataset:
                # the dtype is array with int64, list works fine but with int32 (Should not be a problem). use object list directly here 
         self.xr_dataset[description] = (dimension_list, pd.Series(object_list).values)  
 
-    def add_region_data(self, space: List[object], spatial_dim: str = "space") -> None:
+    def add_region_data(self, 
+                        space: List[object], 
+                        spatial_dim: str = "space") -> None:
         """Add space coordinates to the dataset
         
         Parameters
@@ -67,12 +70,10 @@ class SpagatDataset:
         self.xr_dataset.coords[f"{spatial_dim}"] = space
         self.xr_dataset.coords[f"{spatial_dim}_2"] = space
 
-    def read_dataset(
-        self,
-        sds_folder_path: str,
-        sds_regions_filename: str = "sds_regions.shp",
-        sds_xr_dataset_filename: str = "sds_xr_dataset.nc4",
-    ) -> None:
+    def read_dataset(self,
+                    sds_folder_path: str,
+                    sds_regions_filename: str = "sds_regions.shp",
+                    sds_xr_dataset_filename: str = "sds_xr_dataset.nc4") -> None:
         """Reads in both shapefile as well as xarray dataset from a folder to the sds
         
         Parameters
@@ -98,7 +99,10 @@ class SpagatDataset:
             object_list=gdf_regions.geometry,
         )
 
-    def save_sds_regions(self, shape_output_path : str, shape_output_files_name : str = 'sds_regions', crs : int = 3035):
+    def save_sds_regions(self, 
+                        shape_output_path : str, 
+                        shape_output_files_name : str = 'sds_regions', 
+                        crs : int = 3035):
         """Save regions and geometries from xr_array to shapefile
         
         Parameters
@@ -140,12 +144,10 @@ class SpagatDataset:
             self.xr_dataset.to_netcdf(sds_output_path)
 
     @spu.timer
-    def save_sds(
-        self,
-        sds_folder_path: str,
-        sds_region_filename: str ="sds_regions.shp",
-        sds_xr_dataset_filename: str ="sds_xr_dataset.nc4",
-    ) -> None:
+    def save_sds(self,
+                sds_folder_path: str,
+                sds_region_filename: str ="sds_regions.shp",
+                sds_xr_dataset_filename: str ="sds_xr_dataset.nc4") -> None:
         """Save all data of the sds in a netcdf and a shapefile.
 
         Parameters

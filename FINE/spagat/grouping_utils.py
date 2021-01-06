@@ -168,11 +168,11 @@ def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=N
 
         - Return: the three parts separately 
     '''
-    dataset = sds.xr_dataset
+    ds_extracted = sds.xr_dataset
 
-    component_list = list(dataset['component'].values)
+    component_list = list(ds_extracted['component'].values)
     n_components = len(component_list)
-    n_regions = len(dataset['space'].values)
+    n_regions = len(ds_extracted['space'].values)
 
     #STEP 0. Traverse all variables in the dataset, and put them in separate categories
     #NOTE: vars_ts, vars_1d, vars_2d -> dicts of variables and their corresponding dataArrays
@@ -180,7 +180,7 @@ def preprocessDataset(sds, handle_mode, vars='all', dims='all', var_weightings=N
     vars_1d = {}
     vars_2d = {}
 
-    for varname, da in dataset.data_vars.items():
+    for varname, da in ds_extracted.data_vars.items():
         
         if sorted(da.dims) == sorted(('component','Period','TimeStep', 'space')):   #TODO: maybe space should be generalized with additional variable - dimension_description ?
             da = da.transpose('Period','component','space','TimeStep')[0]  #NOTE: eg. (component: 4, Period: 1, TimeStep: 2, space: 3) converted to (component: 4, space: 3, TimeStep: 2) (in coordinates period is still shown without *)
@@ -341,7 +341,7 @@ def selfDistance(ds_ts, ds_1d, ds_2d,
                 # Calculate the distance 
                 distance_2d += (value_var_c*value_var_c) * var_weight_factor
 
-    #### STEP 4. Add all three distances with part_weightings of each category
+    #STEP 4. Add all three distances with part_weightings of each category
     return distance_ts * part_weightings[0] + distance_1d * part_weightings[1] + distance_2d * part_weightings[2]
 
 def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions, var_weightings=None):
@@ -351,11 +351,13 @@ def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions, var_weightings=None):
 
     distMatrix = np.zeros((n_regions,n_regions))
 
+    #STEP 1. For every region pair, calculate the distance 
     for i in range(n_regions):
         for j in range(i+1,n_regions):
             distMatrix[i,j] = selfDistance(ds_ts,ds_1d, ds_2d, n_regions, i,j, var_weightings=var_weightings)
 
-    distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())  #INFO: only upper triangle has values, reflects these values in lower triangle to make it a hollow, symmetric matrix
+    #STEP 2. Only upper triangle has values, reflect these values in lower triangle to make it a hollow, symmetric matrix
+    distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())  
 
     return distMatrix
 
@@ -378,43 +380,49 @@ def generateConnectivityMatrix(sds):
     component_list = list(ds_extracted['component'].values)
     n_components = len(component_list)
 
-    # Square matrices for each 2d variable and each valid component
+    #STEP 1. Preprocess 2d variables #TODO: why is this required again? isn't this done initially ?
     ds_2d = preprocess2dVariables(vars_2d, n_components, handle_mode='toAffinity')
 
-    # The neighboring information is based on the 2d vars with components related to pipeline
+    #STEP 2. First check if a component called 'pipeline' exists.
+    # If it does, take it as connect_components
     connect_components = []
     for i in range(n_components):            
         if 'pipeline' in component_list[i].lower():
             connect_components.append(i)
 
-    # If there is no components related to pipelines, then consider all existing components.
+    #STEP 3. If 'pipeline' does not exist, consider all existing components.
     if not connect_components:
         connect_components = list(range(n_components))  
 
     adjacencyMatrix = np.zeros((n_regions,n_regions))
-
-    # Check each index pair of regions to verify, if the two regions are connected to each other
+    # For each region pair checkConnectivity (call the function)
     for i in range(n_regions):
         for j in range(i+1,n_regions):
-            if checkConnectivity(i,j, ds_2d, connect_components):  #NOTE: checkConnectivity returns true or false 
+            if checkConnectivity(i,j, ds_2d, connect_components):  #INFO: checkConnectivity returns true or false 
                 adjacencyMatrix[i,j] = 1
 
-    adjacencyMatrix += adjacencyMatrix.T - np.diag(adjacencyMatrix.diagonal())  #NOTE: adjacencyMatrix is upper triangular. so, take transpose, subtract the diagonal elements and add it back to adjacencyMatrix. Now, it is symmetrical
+    #STEP 4. adjacencyMatrix is upper triangular. 
+    # so, take transpose, subtract the diagonal elements and add it back to adjacencyMatrix. 
+    # Now, it is symmetrical
+    adjacencyMatrix += adjacencyMatrix.T - np.diag(adjacencyMatrix.diagonal())  
 
-    # Set the diagonal values as 1
+    #STEP 5. Set the diagonal values to 1
     np.fill_diagonal(adjacencyMatrix, 1)  
 
     return adjacencyMatrix
 
-def checkConnectivity(i,j, ds_2d, connect_components):   #TODO: change i, j to something more meaningful 
+def checkConnectivity(region_index_x, 
+                    region_index_y,
+                    ds_2d, 
+                    connect_components):   
     '''Check if region i is neighboring to region j, based on the components related to pipelines.
         - as 1 if there exists at least one non-zero value in any matrix at the position [i,j]
         - if no components related to pipelines, then the connect_components is the list of all existing components.
     '''
     
-    for var, var_dict in ds_2d.items():
+    for var_dict in ds_2d.values():
         for c, data in var_dict.items():
-            if (c in connect_components) and (data[i,j] != 0):  
+            if (c in connect_components) and (data[region_index_x, region_index_y] != 0):  
                 return True                              #INFO: checks for each var, each component. 
                                                          #      Returns TRUE if atleast one var, component pair has non-zero value.
                                                          # 
@@ -426,26 +434,27 @@ def computeModularity(adjacency, regions_label_list):
         - graph's weighted adjacency matrix with entries defined by the edge weights
         - regions_label_list to show the graph partition
     '''
-     #INFO: bounds -> [-0.5; 1). Higher the score, the better the partition 
+    #INFO: bounds -> [-0.5; 1). Higher the score, the better the partition 
     np.fill_diagonal(adjacency, 0)
     n_regions = len(regions_label_list)
 
-    # Values in the adjacency matrix as edge weights
+    #STEP 1. Take values in the adjacency matrix as edge weights
     edge_weights_sum = np.sum(adjacency)
 
     modularity = 0
 
+    #STEP 2. For each region pair...
     for v in range(n_regions):
         for w in range(v+1, n_regions):
 
-            # The weighted degree of nodes: sum of node's incident edge weights
+            #STEP 2a. Obtain the weighted degree of nodes: sum of node's incident edge weights
             d_v = np.sum(adjacency[v])
             d_w = np.sum(adjacency[w])
 
-            # If the two nodes belong to the same cluster
+            #STEP 2b. Set delta -> If both nodes belong to the same cluster 1, else 0
             delta = 1 if regions_label_list[v] == regions_label_list[w] else 0
 
-            # Sum up the actual fraction of the edges minus the expected fraction of edges inside of each cluster
+            #STEP 2c. Calculate modularity
             modularity += (adjacency[v,w] - (d_v * d_w) / (2 * edge_weights_sum)) * delta
 
     modularity = modularity / (2 * edge_weights_sum)
@@ -459,7 +468,7 @@ def computeSilhouetteCoefficient(regions_list, distanceMatrix, aggregation_dict)
     #INFO: score is bounded between -1 and +1. The higher the score, the better the clustering.
 
     n_regions = len(regions_list)
-    scores = [0 for i in range(1, n_regions-1)]   #NOTE: Silhouette Coefficient can only be computed for 2 to n_samples - 1 (inclusive)
+    scores = [0 for i in range(1, n_regions-1)]   #INFO: Silhouette Coefficient can only be computed for 2 to n_samples - 1 (inclusive)
                                                   #       first and last level in the hierarchy (first is original and last is one region) are to be eliminated
     labels = [0 for i in range(n_regions)]    
 
@@ -467,13 +476,13 @@ def computeSilhouetteCoefficient(regions_list, distanceMatrix, aggregation_dict)
 
         #STEP 1. Check if k is an intermediate level in the hierarchy
         if k == 1 or k == n_regions:
-            continue                         #NOTE: again, eliminate computing for first and last level 
+            continue                         #INFO: again, eliminate computing for first and last level 
 
         #STEP 2. Assign labels to each group of regions (starting from 0)
         label = 0
-        for sup_region in regions_dict.values():  #TODO: change sup_region to sub_regions_list 
-            for reg in sup_region:
-                ind = regions_list.index(reg)
+        for sub_regions_list in regions_dict.values():  
+            for region in sub_regions_list:
+                ind = regions_list.index(region)
                 labels[ind] = label
             
             label += 1

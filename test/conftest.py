@@ -15,9 +15,9 @@ from getData import getData
 @pytest.fixture
 def solver():
     """Global variable for solver - glpk or gurobi"""
-    return 'glpk'
+    return 'gurobi'
 
-Solver = 'glpk' # can't use fixture on another fixture - multi_node_test_esM_optimized
+Solver = 'gurobi' # can't use fixture on another fixture - multi_node_test_esM_optimized
 
 @pytest.fixture
 def minimal_test_esM(scope="session"):
