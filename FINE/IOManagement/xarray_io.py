@@ -254,18 +254,18 @@ def spatial_aggregation(esM,
                         nRegionsForRepresentation = 2,
                         aggregatedResultsPath=None,
                         **kwargs): 
-    # STEP 1. Obtain xr dataset from esM 
+    #STEP 1. Obtain xr dataset from esM 
     sds = spd.SpagatDataset()
     esm_dict, comp_dict = fn.dictIO.exportToDict(esM)
     sds.xr_dataset = dimensional_data_to_xarray_dataset(esm_dict, comp_dict)
     
-    # STEP 2. Add shapefile information to sds
+    #STEP 2. Add shapefile information to sds
     sds.add_objects(description='gpd_geometries',
                     dimension_list=['space'],
                     object_list=gdfRegions.geometry)
     spr.add_region_centroids(sds, spatial_dim='space')
     
-    # STEP 3. Spatial grouping
+    #STEP 3. Spatial grouping
     if grouping_mode == 'string_based':
         print('Performing string-based clustering on the regions')
         locations = sds.xr_dataset.space.values
@@ -320,9 +320,10 @@ def spatial_aggregation(esM,
     else: 
         print('aggregation_function_dict found in kwargs')
         aggregation_function_dict = kwargs.get('aggregation_function_dict')
-        aggregation_function_dict = {f"{dimension}_{key}": value      #NOTE: xarray dataset has prefix 1d_ and 2d_. Therefore, in order to match that,the prefix is added here for each variable  
-                                        for key, value in aggregation_function_dict.items()
-                                            for dimension in ["1d", "2d"]}
+        if aggregation_function_dict != None:
+            aggregation_function_dict = {f"{dimension}_{key}": value      #NOTE: xarray dataset has prefix 1d_ and 2d_. Therefore, in order to match that,the prefix is added here for each variable  
+                                            for key, value in aggregation_function_dict.items()
+                                                for dimension in ["1d", "2d"]}
     
     spatial_dim = kwargs.get('spatial_dim', 'space')
     time_dim = kwargs.get('time_dim', 'TimeStep')
