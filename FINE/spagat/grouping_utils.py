@@ -379,7 +379,7 @@ def generateConnectivityMatrix(sds):
     n_components = len(component_list)
 
     # Square matrices for each 2d variable and each valid component
-    ds_2d = preprocess2dVariables(vars_2d, component_list, handle_mode='toAffinity')
+    ds_2d = preprocess2dVariables(vars_2d, n_components, handle_mode='toAffinity')
 
     # The neighboring information is based on the 2d vars with components related to pipeline
     connect_components = []
