@@ -10,7 +10,7 @@ dependencies:
 - glpk
 - openpyxl
 - matplotlib
-- xlrd
+- xlrd==1.2.0
 - pyomo
 - numpy
 - pandas
