@@ -20,7 +20,7 @@ def minimal_test_esM():
                                 commodityUnitsDict={'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'},
                                 hoursPerTimeStep=hoursPerTimeStep, costUnit='1 Euro', 
                                 lengthUnit='km', 
-                                verboseLogLevel=2)
+                                verboseLogLevel=1)
 
     # time step length [h]
     timeStepLength = numberOfTimeSteps * hoursPerTimeStep

@@ -12,9 +12,10 @@ import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
 import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
 
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("always", category=UserWarning)
 
 class EnergySystemModel:
     """
