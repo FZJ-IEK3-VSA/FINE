@@ -66,6 +66,8 @@ class EnergySystemModel:
                  commodityUnitsDict, 
                  numberOfTimeSteps=8760, 
                  hoursPerTimeStep=1,
+                 numberOfInvestmentPeriods=1,
+                 yearsPerInvestmentPeriod=1,
                  costUnit='1e9 Euro', 
                  lengthUnit='km', 
                  verboseLogLevel=0):
@@ -101,6 +103,16 @@ class EnergySystemModel:
             |br| * the default value is 1
         :type hoursPerTimeStep: strictly positive float
 
+        :param numberOfInvestmentPeriods: number of investment periods of transformation
+            path analysis (perfect foresight)
+            |br| * the default value is 1
+        : type numberOfInvestmentPeriods: strictly positive integer
+
+        :param yearsPerInvestmentPeriod: years per investment period of transformation
+            path analysis (perfect foresight)
+            |br| * the default value is 1
+        : type yearsPerInvestmentPeriod: strictly positive integer
+
         :param costUnit: cost unit of all cost related values in the energy system. This argument sets the unit of
             all cost parameters which are given as an input to the EnergySystemModel instance (e.g. for the
             invest per capacity or the cost per operation).
@@ -132,6 +144,7 @@ class EnergySystemModel:
 
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numberOfTimeSteps,
+                                        numberOfInvestmentPeriods, yearsPerInvestmentPeriod,
                                           hoursPerTimeStep, costUnit, lengthUnit)
 
         ################################################################################################################
@@ -153,8 +166,13 @@ class EnergySystemModel:
         # validating time series data input and for setting other time series parameters when modeling a full temporal
         # resolution. The hoursPerTimeStep parameter (float > 0) refers to the temporal length of a time step in the
         # totalTimeSteps. From the numberOfTimeSteps and the hoursPerTimeStep the numberOfYears parameter is computed.
+        # ToDo: Explain parameters for perfect foresight
         self.totalTimeSteps, self.hoursPerTimeStep = list(range(numberOfTimeSteps)), hoursPerTimeStep
         self.numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
+        self.numberOfInvestmentPeriods=numberOfInvestmentPeriods
+        self.investmentPeriods = list(range(numberOfInvestmentPeriods))
+        self.yearsPerInvestmentPeriod=yearsPerInvestmentPeriod
+
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
         # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents
@@ -556,10 +574,10 @@ class EnergySystemModel:
 
             # Define sets
             def initTimeSet(pyM):
-                return ((p, t) for p in self.periods for t in self.timeStepsPerPeriod)
+                return ((p, t, ip) for p in self.periods for t in self.timeStepsPerPeriod for ip in self.investmentPeriods)
 
             def initInterTimeStepsSet(pyM):
-                return ((p, t) for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1))
+                return ((p, t, ip) for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1) for ip in self.investmentPeriods)
         else:
             if not pyM.hasSegmentation:
                 utils.output('Time series aggregation specifications:\n'
@@ -568,11 +586,12 @@ class EnergySystemModel:
                              self.verbose, 0)
 
                 # Define sets
+                # To-Do: Add explanation perfect foresight
                 def initTimeSet(pyM):
-                    return ((p, t) for p in self.typicalPeriods for t in self.timeStepsPerPeriod)
+                    return ((p, t, ip) for p in self.typicalPeriods for t in self.timeStepsPerPeriod for ip in self.investmentPeriods)
 
                 def initInterTimeStepsSet(pyM):
-                    return ((p, t) for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1))
+                    return ((p, t, ip) for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1) for ip in self.investmentPeriods)
             else:
                 utils.output('Time series aggregation specifications:\n'
                              'Number of typical periods:' + str(len(self.typicalPeriods)) +
@@ -582,14 +601,14 @@ class EnergySystemModel:
 
                 # Define sets
                 def initTimeSet(pyM):
-                    return ((p, t) for p in self.typicalPeriods for t in self.segmentsPerPeriod)
+                    return ((p, t, ip) for p in self.typicalPeriods for t in self.segmentsPerPeriod for ip in self.investmentPeriods)
 
                 def initInterTimeStepsSet(pyM):
-                    return ((p, t) for p in self.typicalPeriods for t in range(len(self.segmentsPerPeriod) + 1))
+                    return ((p, t, ip) for p in self.typicalPeriods for t in range(len(self.segmentsPerPeriod) + 1) for ip in self.investmentPeriods)
 
         # Initialize sets
-        pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
-        pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
+        pyM.timeSet = pyomo.Set(dimen=3, initialize=initTimeSet)
+        pyM.interTimeStepsSet = pyomo.Set(dimen=3, initialize=initInterTimeStepsSet)
 
     def declareSharedPotentialConstraints(self, pyM):
         """
@@ -684,8 +703,9 @@ class EnergySystemModel:
         # Declare and initialize commodity balance constraints by checking for each location and commodity in the
         # locationCommoditySet and for each period and time step within the period if the commodity source and sink
         # terms add up to zero. For this, get the contribution to commodity balance from each modeling class.
-        def commodityBalanceConstraint(pyM, loc, commod, p, t):
-            return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, p, t)
+        # To-Do: Perfect Foresight Explanation
+        def commodityBalanceConstraint(pyM, loc, commod, p, t, ip):
+            return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, p, t, ip)
                        for mdl in self.componentModelingDict.values()) == 0
         pyM.commodityBalanceConstraint = pyomo.Constraint(pyM.locationCommoditySet, pyM.timeSet,
                                                           rule=commodityBalanceConstraint)
