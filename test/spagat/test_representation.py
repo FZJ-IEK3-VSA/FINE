@@ -239,6 +239,10 @@ def test_create_grid_shapefile(sds_and_dict_for_basic_representation):
         assert os.path.isfile(expected_file)
 
         os.remove(expected_file)
+
+
+def test_represent_RE_technology():
+    pass 
     
 
     
