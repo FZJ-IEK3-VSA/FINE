@@ -186,6 +186,6 @@ def test_CO2ReductionTargets(solver):
     results = fn.optimizeSimpleMyopic(esM, startYear=2020, nbOfSteps=2, nbOfRepresentedYears=5, CO2Reference=366, CO2ReductionTargets=[25,50,100], 
                                         saveResults=False, trackESMs=True, numberOfTypicalPeriods=3, solver=solver)
 
-    assert results['ESM_2025'].getOptimizationSummary('SourceSinkModel').loc['CO2 to environment'].loc['operation'].values.sum() < 183
+    assert results['ESM_2025'].getOptimizationSummary('SourceSinkModel').loc['CO2 to environment'].loc["operation", "[Mio. t$_{CO_2}$/h*h/a]"].sum() < 183
 
-    assert results['ESM_2030'].getOptimizationSummary('SourceSinkModel').loc['CO2 to environment'].loc['operation'].values.sum() == 0
+    assert results['ESM_2030'].getOptimizationSummary('SourceSinkModel').loc['CO2 to environment'].loc["operation", "[Mio. t$_{CO_2}$/h*h/a]"].sum() == 0

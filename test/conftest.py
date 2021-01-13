@@ -33,7 +33,7 @@ def minimal_test_esM(scope="session"):
                                 commodityUnitsDict={'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'},
                                 hoursPerTimeStep=hoursPerTimeStep, costUnit='1 Euro', 
                                 lengthUnit='km', 
-                                verboseLogLevel=2)
+                                verboseLogLevel=1)
 
     ### Buy electricity at the electricity market
     costs = pd.DataFrame([np.array([ 0.05, 0., 0.1, 0.051,]),np.array([0., 0., 0., 0.,])],
