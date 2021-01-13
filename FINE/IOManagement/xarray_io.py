@@ -18,7 +18,7 @@ except ImportError:
 
 # TODO: declare private functions (and methods) with pre underscore
 
-def generate_iteration_dicts(esm_dict, component_dict):
+def generate_iteration_dicts(component_dict):
     """Creates iteration dictionaries that contain descriptions of all dataframes and series of the dictionaries esm_dict and component_dict.
     
     :param esm_dict: dictionary containing information about the esM instance
@@ -29,7 +29,7 @@ def generate_iteration_dicts(esm_dict, component_dict):
  
     :return: df_iteration_dict, series_iteration_dict
     """
-    #TODO: its taking esm_dict but it is not using it anywhere. Maybe only pass component_dict as agrument
+    
     df_iteration_dict = {}
 
     for classname in component_dict:
@@ -78,7 +78,7 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
 
     locations = list(esm_dict['locations'])
 
-    df_iteration_dict, series_iteration_dict = generate_iteration_dicts(esm_dict, component_dict)
+    df_iteration_dict, series_iteration_dict = generate_iteration_dicts(component_dict)
 
     # iterate over iteration dicts
     ds = xr.Dataset()
@@ -172,8 +172,7 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
 
     return ds
 
-#TODO: This function is at the moment not used anywhere. 
-# Check the usefulness of this function.
+ 
 def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_dataset):
     """Replaces dimensional data and respective descriptions in component_dict and esm_dict with spatially aggregated data from xarray_dataset.
 
@@ -191,7 +190,7 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
     :return: esm_dict, component_dict - updated dictionaries containing spatially aggregated data
     """
     
-    df_iteration_dict, series_iteration_dict = generate_iteration_dicts(esm_dict, component_dict)
+    df_iteration_dict, series_iteration_dict = generate_iteration_dicts(component_dict)
 
     # update esm_dict
     esm_dict['locations'] = set(str(value) for value in xarray_dataset.space.values)
@@ -309,9 +308,9 @@ def spatial_aggregation(esM,
                                                             verbose,
                                                             weighting)
     
-    # STEP 4. Representation of the new regions
+    #STEP 4. Representation of the new regions
     if grouping_mode == 'string_based':
-        sub_to_sup_region_id_dict = aggregation_dict #NOTE: Not a nested dict for different #regions
+        sub_to_sup_region_id_dict = aggregation_dict #INFO: Not a nested dict for different #regions
     else:
         sub_to_sup_region_id_dict = aggregation_dict[nRegionsForRepresentation]
     
@@ -321,7 +320,7 @@ def spatial_aggregation(esM,
         print('aggregation_function_dict found in kwargs')
         aggregation_function_dict = kwargs.get('aggregation_function_dict')
         if aggregation_function_dict != None:
-            aggregation_function_dict = {f"{dimension}_{key}": value      #NOTE: xarray dataset has prefix 1d_ and 2d_. Therefore, in order to match that,the prefix is added here for each variable  
+            aggregation_function_dict = {f"{dimension}_{key}": value      #INFO: xarray dataset has prefix 1d_ and 2d_. Therefore, in order to match that,the prefix is added here for each variable  
                                             for key, value in aggregation_function_dict.items()
                                                 for dimension in ["1d", "2d"]}
     
@@ -335,13 +334,13 @@ def spatial_aggregation(esM,
                                                                 time_dim)       # if you decide to keep them, make it uniform, 
                                                                                             # ex.: in grouping functions, spatial_dim is called dimension_description
     
-    # STEP 5. Obtain aggregated esM
+    #STEP 5. Obtain aggregated esM
     new_esm_dict, new_comp_dict = update_dicts_based_on_xarray_dataset(esm_dict, comp_dict, 
                                                                   xarray_dataset=aggregated_sds.xr_dataset)
     
     aggregated_esM = fn.dictIO.importFromDict(new_esm_dict, new_comp_dict)
     
-    # STEP 6. Save shapefiles and aggregated data if user chooses
+    #STEP 6. Save shapefiles and aggregated data if user chooses
     if aggregatedResultsPath is not None:   #TODO: test if they are saved as intented 
         sds_region_filename = kwargs.get('sds_region_filename', 'sds_regions.shp') 
         sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')

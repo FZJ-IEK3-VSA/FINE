@@ -28,8 +28,6 @@ def test_plt_savefig():
     os.remove(expected_file)
 
 
-
-
 @pytest.mark.skip(reason="Not implemented.")
 def test_timer():
     pass #NOTE: does it make sense to implement this ? 
@@ -57,11 +55,11 @@ def test_create_gdf():
     df = pd.DataFrame({'space': ['reg_01', 'reg_02']})
 
     crs=3035
-    path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/test_dir')  #TODO: maybe create directly in output 
-    files_name = 'test_file'
+    path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/test_dir')   
+    file_name = 'test_file'
 
     #FUNCTION CALL 
-    spu.create_gdf(df, geometries, crs, file_path=path_to_test_dir, files_name = files_name)
+    spu.create_gdf(df, geometries, crs, file_path=path_to_test_dir, files_name = file_name)
     
     #EXPECTED 
     ## File extensions 
@@ -69,7 +67,7 @@ def test_create_gdf():
 
     #ASSERTION
     for file_extension in file_extensions_list:
-        expected_file_path = os.path.join(path_to_test_dir, f'{files_name}{file_extension}')
+        expected_file_path = os.path.join(path_to_test_dir, f'{file_name}.shp')
         assert os.path.isfile(expected_file_path)
 
     #Delete test_dir 

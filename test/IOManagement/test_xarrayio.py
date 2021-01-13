@@ -16,7 +16,7 @@ import FINE.spagat.representation as spr
 
 def test_generate_iteration_dicts(minimal_test_esM):
     esm_dict, component_dict = dictIO.exportToDict(minimal_test_esM)
-    output_df_dict, output_series_dict = xrio.generate_iteration_dicts(esm_dict, component_dict)
+    output_df_dict, output_series_dict = xrio.generate_iteration_dicts(component_dict)
 
     assert output_series_dict.get('locationalEligibility') == [('Source', 'Electricity market'), 
                                                                 ('Sink', 'Industry site'), 
@@ -150,6 +150,7 @@ def test_spatial_aggregation(multi_node_test_esM_init,
     # Additional check - if the optimization runs through
     aggregated_esM.cluster(numberOfTypicalPeriods=2)
     aggregated_esM.optimize(timeSeriesAggregation=True, solver=solver)
+    #TODO: add test to check if optimization summary is available
 
 
 

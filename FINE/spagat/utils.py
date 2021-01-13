@@ -46,7 +46,6 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name = 'sds_regio
     gdf = gpd.GeoDataFrame(df, geometry=geometries, crs=f'epsg:{crs}') 
 
     if file_path is not None:  
-        gdf['geometry'].to_file(file_path, layer = files_name) #TODO: check if it is required anywhere to save files 
-                                                                # with different extensions or .shp is enough
+        gdf['geometry'].to_file(file_path, layer = f'{files_name}') 
 
     return gdf
