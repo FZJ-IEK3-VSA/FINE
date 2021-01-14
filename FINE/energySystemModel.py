@@ -222,9 +222,14 @@ class EnergySystemModel:
         # timeLimit (positive float or None, if specified, indicates the maximum allowed runtime of the solver),
         # threads (positive int, number of threads used for optimization, can depend on solver), logFileName
         # (string, name of logfile).
+        # The objectiveValue parameter is None when the EnergySystemModel is initialized. After calling the 
+        # optimize function, the objective value (i.e. TAC of the analyzed energy system) is stored in the 
+        # objectiveValue parameter for easier access.
+
         self.pyM = None
         self.solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'buildtime': 0, 'solvetime': 0,
                             'runtime': 0, 'timeLimit': None, 'threads': 0, 'logFileName': ''}
+        self.objectiveValue = None
 
         ################################################################################################################
         #                                           General model parameters                                           #
@@ -998,3 +1003,8 @@ class EnergySystemModel:
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
+
+        # Store the objective value in the EnergySystemModel instance.
+        self.objectiveValue = self.pyM.Obj()
+
+        
