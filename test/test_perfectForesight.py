@@ -41,11 +41,12 @@ def test_perfectForesight():
                             index = ['PerfectLand']).T
     revenues = pd.DataFrame([np.array([ 0., 0., 0., 0.,])],
                             index = ['PerfectLand']).T
-    maxpurchase = pd.DataFrame([np.array([4e3, 4e3, 4e3, 4e3,])],
+    maxpurchase = pd.DataFrame([np.array([0.5e3, 0.5e3, 4e3, 4e3,])],
                             index = ['PerfectLand']).T
     esM.add(fn.Source(esM=esM, name='Electricity market', commodity='electricity', 
                         hasCapacityVariable=False, operationRateMax = maxpurchase,
-                        commodityCostTimeSeries = costs,  
+                        #commodityCostTimeSeries = costs,  
+                        commodityCost= 1, 
                         commodityRevenueTimeSeries = revenues,  
                         )) # eur/kWh
 
@@ -56,6 +57,7 @@ def test_perfectForesight():
                   operationRateMax=PVoperationRateMax,
                   capacityMax=4e6,
                   investPerCapacity=2*2190, opexPerCapacity=0, interestRate=0,
+                  opexPerOperation=0.01,
                   economicLifetime=1))
 
     # Sinks

@@ -511,9 +511,9 @@ class SourceSinkModel(ComponentModel):
         limitDict = getattr(pyM, 'yearlyCommodityLimitationDict_' + abbrvName)
 
         def yearlyLimitationConstraint(pyM, key):
-            sumEx = -sum(opVar[loc, compName, p, t, ip] * compDict[compName].sign *
+            sumEx = -sum(opVar[loc, compName, ip, p, t] * compDict[compName].sign *
                          esM.periodOccurrences[p]/esM.numberOfYears
-                         for loc, compName, p, t, ip in opVar if compName in limitDict[key][1])
+                         for loc, compName, ip, p, t in opVar if compName in limitDict[key][1])
             sign = limitDict[key][0]/abs(limitDict[key][0]) if limitDict[key][0] != 0 else 1
             return sign * sumEx <= sign * limitDict[key][0]
         setattr(pyM, 'ConstrYearlyLimitation_' + abbrvName,
@@ -597,11 +597,11 @@ class SourceSinkModel(ComponentModel):
         return any([comp.commodity == commod and comp.locationalEligibility[loc] == 1
                     for comp in self.componentsDict.values()])
 
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t, ip):
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
-        return sum(opVar[loc, compName, p, t, ip] * compDict[compName].sign
+        return sum(opVar[loc, compName, ip, p, t] * compDict[compName].sign
                    for compName in opVarDict[loc] if compDict[compName].commodity == commod)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
@@ -666,16 +666,42 @@ class SourceSinkModel(ComponentModel):
 # To-Do: Perfect Foresight - Continue here
 # fix: output only first column
 # expand: use for loop to replace 0 with index i --> get all columns
+# print commands just for testing purposes
         if optVal is not None:
+            print("optVal")
+            print(optVal)
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name[0]].opexPerOperation[op.index], axis=1)
-            cCost = opSum.apply(lambda op: op * compDict[op.name[0]].commodityCost[op.index], axis=1)
-            cRevenue = opSum.apply(lambda op: op * compDict[op.name[0]].commodityRevenue[op.index], axis=1)
+            print("opSum")
+            print(opSum)
+            
+            print("ox")
+            ox = opSum.apply(lambda op: op * compDict[op.name[0]].opexPerOperation[op.index[0]], axis=1)           
+            print(ox)
+            cCost = opSum.apply(lambda op: op * compDict[op.name[0]].commodityCost[op.index[0]], axis=1)
+            cCost = opSum.apply(lambda op: op * compDict[op.name[0]].commodityCost['PerfectLand'], axis=1)
+            cRevenue = opSum.apply(lambda op: op * compDict[op.name[0]].commodityRevenue[op.index[0]], axis=1)
+            print("cCost")
+            print(cCost)
+            print("cRevenue")
+            print(cRevenue)
+            print('index')
+            print(opSum.index)
+            print('columns')
+            print(opSum.columns)
+            print('optSummary')
+            print(optSummary)
+
             optSummary.loc[[(ix[0], 'operation', '[' + compDict[ix[0]].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
+<<<<<<< Updated upstream
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],
                            opSum.columns] = opSum.values
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+=======
+            optSummary.loc[[(ix[0], 'operation', '[' + compDict[ix[0]].commodityUnit + '*h]') for ix in opSum.index],
+                           opSum.columns] = opSum.values
+            optSummary.loc[[(ix[0], 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+>>>>>>> Stashed changes
                 ox.values/esM.numberOfYears
 
             # get empty datframe for resulting time dependent (TD) cost sum
@@ -691,6 +717,10 @@ class SourceSinkModel(ComponentModel):
                     # multiply with operation values to get the total cost
 
                     cCostTD.loc[compName,:] = optVal.xs(compName, level=0).loc[0,:].T.mul(calcCostTD.T).sum(axis=0)
+
+                print('cCostTD')
+                print(cCostTD)
+
                 if not compDict[compName].commodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
                     calcRevenueTD = utils.buildFullTimeSeries(
@@ -698,6 +728,9 @@ class SourceSinkModel(ComponentModel):
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
                     cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).loc[0,:].T.mul(calcRevenueTD.T).sum(axis=0)
+                
+                print('cRevenueTD')
+                print(cRevenueTD)
                         
             optSummary.loc[[(ix[0], 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cCostTD.values + cCost.values)/esM.numberOfYears

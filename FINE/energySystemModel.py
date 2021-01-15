@@ -574,10 +574,10 @@ class EnergySystemModel:
 
             # Define sets
             def initTimeSet(pyM):
-                return ((p, t, ip) for p in self.periods for t in self.timeStepsPerPeriod for ip in self.investmentPeriods)
+                return ((ip, p, t) for ip in self.investmentPeriods for p in self.periods for t in self.timeStepsPerPeriod)
 
             def initInterTimeStepsSet(pyM):
-                return ((p, t, ip) for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1) for ip in self.investmentPeriods)
+                return ((ip, p, t) for ip in self.investmentPeriods for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1))
         else:
             if not pyM.hasSegmentation:
                 utils.output('Time series aggregation specifications:\n'
@@ -588,10 +588,10 @@ class EnergySystemModel:
                 # Define sets
                 # To-Do: Add explanation perfect foresight
                 def initTimeSet(pyM):
-                    return ((p, t, ip) for p in self.typicalPeriods for t in self.timeStepsPerPeriod for ip in self.investmentPeriods)
+                    return ((ip, p, t) for ip in self.investmentPeriods for p in self.typicalPeriods for t in self.timeStepsPerPeriod)
 
                 def initInterTimeStepsSet(pyM):
-                    return ((p, t, ip) for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1) for ip in self.investmentPeriods)
+                    return ((ip, p, t) for ip in self.investmentPeriods for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1))
             else:
                 utils.output('Time series aggregation specifications:\n'
                              'Number of typical periods:' + str(len(self.typicalPeriods)) +
@@ -601,10 +601,10 @@ class EnergySystemModel:
 
                 # Define sets
                 def initTimeSet(pyM):
-                    return ((p, t, ip) for p in self.typicalPeriods for t in self.segmentsPerPeriod for ip in self.investmentPeriods)
+                    return ((ip, p, t) for ip in self.investmentPeriods for p in self.typicalPeriods for t in self.segmentsPerPeriod)
 
                 def initInterTimeStepsSet(pyM):
-                    return ((p, t, ip) for p in self.typicalPeriods for t in range(len(self.segmentsPerPeriod) + 1) for ip in self.investmentPeriods)
+                    return ((ip, p, t) for ip in self.investmentPeriods for p in self.typicalPeriods for t in range(len(self.segmentsPerPeriod) + 1))
 
         # Initialize sets
         pyM.timeSet = pyomo.Set(dimen=3, initialize=initTimeSet)
@@ -704,8 +704,8 @@ class EnergySystemModel:
         # locationCommoditySet and for each period and time step within the period if the commodity source and sink
         # terms add up to zero. For this, get the contribution to commodity balance from each modeling class.
         # To-Do: Perfect Foresight Explanation
-        def commodityBalanceConstraint(pyM, loc, commod, p, t, ip):
-            return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, p, t, ip)
+        def commodityBalanceConstraint(pyM, loc, commod, ip, p, t):
+            return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, ip, p, t)
                        for mdl in self.componentModelingDict.values()) == 0
         pyM.commodityBalanceConstraint = pyomo.Constraint(pyM.locationCommoditySet, pyM.timeSet,
                                                           rule=commodityBalanceConstraint)

@@ -607,7 +607,7 @@ def checkAndSetTimeSeries(esM, name, operationTimeSeries, locationalEligibility,
                             'All entries in operationTimeSeries parameter series have to be positive.')
 
         _operationTimeSeries = _operationTimeSeries.copy()		
-        _operationTimeSeries["Period"], _operationTimeSeries["TimeStep"] = 0, _operationTimeSeries.index		
+        _operationTimeSeries["Period"], _operationTimeSeries["TimeStep"] = 0, _operationTimeSeries.index	
         return _operationTimeSeries.set_index(['Period', 'TimeStep'])
             
     else:
@@ -831,7 +831,12 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
     elif varType == 'operationVariables' and dimension == '1dim':
         # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
         # Results in a one dimensional DataFrame
-        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-2).sort_index()
+        print('data:')
+        print(data)
+        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-3).sort_index() #swap location with periods --> periods is first column
+        dfTest = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-3).sort_index()
+        print('dfTest:')
+        print(dfTest)
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level
