@@ -84,11 +84,11 @@ def checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numb
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
 
-    # autarkyLimit has to be DataFrame with locations as columns
+    # autarkyLimit has to be DataFrame with locations as columns or Series, if valid for whole model
     if autarkyLimit is not None:
-        if not type(autarkyLimit) == pd.DataFrame:
+        if not type(autarkyLimit) == pd.DataFrame and not type(autarkyLimit) == pd.Series:
             raise TypeError("The autarkyLimit input argument has to be a pandas.DataFrame")
-        if set(autarkyLimit.columns) != locations:
+        if type(autarkyLimit) == pd.DataFrame and set(autarkyLimit.columns) != locations:
             raise ValueError('Location indices in the autarkyLimit do not match the input locations.\n' +
                              'autarkyLimit columns: ' + str(set(autarkyLimit.columns)) + '\n' +
                              'Input regions: ' + str(locations))

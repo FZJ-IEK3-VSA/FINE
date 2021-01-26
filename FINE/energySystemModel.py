@@ -628,19 +628,33 @@ class EnergySystemModel:
         :type timeSeriesAggregation: boolean
         """
         autarkyDict = {}
-        for mdl_type, mdl in self.componentModelingDict.items():
-            if mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel":
-                for compName, comp in mdl.componentsDict.items():
-                    if comp.autarkyID is not None:
-                        [autarkyDict.setdefault((comp.autarkyID, loc), []).append(compName)
-                         for loc in self.locations]
-        setattr(pyM, "autarkyDict", autarkyDict)
-        def autarkyConstraint(pyM, ID, loc):
-            return sum(mdl.getAutarkyContribution(esM=self, pyM=pyM, ID=ID, loc=loc,
-                                                  timeSeriesAggregation=timeSeriesAggregation)
-                for mdl_type, mdl in self.componentModelingDict.items() if (
-                    mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel")
-                    ) <= self.autarkyLimit.loc[ID, loc]
+        if type(self.autarkyLimit) == pd.DataFrame:
+            for mdl_type, mdl in self.componentModelingDict.items():
+                if mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel":
+                    for compName, comp in mdl.componentsDict.items():
+                        if comp.autarkyID is not None:
+                            [autarkyDict.setdefault((comp.autarkyID, loc), []).append(compName)
+                             for loc in self.locations]
+            setattr(pyM, "autarkyDict", autarkyDict)
+            def autarkyConstraint(pyM, ID, loc):
+                return sum(mdl.getAutarkyContribution(esM=self, pyM=pyM, ID=ID, loc=loc,
+                                                      timeSeriesAggregation=timeSeriesAggregation)
+                    for mdl_type, mdl in self.componentModelingDict.items() if (
+                        mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel")
+                        ) <= self.autarkyLimit.loc[ID, loc]
+        else:
+            for mdl_type, mdl in self.componentModelingDict.items():
+                if mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel":
+                    for compName, comp in mdl.componentsDict.items():
+                        if comp.autarkyID is not None:
+                            autarkyDict.setdefault((comp.autarkyID), []).append(compName)
+            setattr(pyM, "autarkyDict", autarkyDict)
+            # TODO: will fail if component is not available in all locs
+            def autarkyConstraint(pyM, ID):
+                return sum(mdl.getAutarkyContribution(esM=self, pyM=pyM, ID=ID,
+                                                      timeSeriesAggregation=timeSeriesAggregation)
+                    for mdl_type, mdl in self.componentModelingDict.items() if (
+                        mdl_type=="SourceSinkModel")) <= self.autarkyLimit.loc[ID]
         pyM.NetAutarkyConstraint = \
             pyomo.Constraint(pyM.autarkyDict.keys(), rule=autarkyConstraint)
 

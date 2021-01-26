@@ -614,7 +614,7 @@ class SourceSinkModel(ComponentModel):
         return any([comp.commodity == commod and comp.locationalEligibility[loc] == 1
                     for comp in self.componentsDict.values()])
 
-    def getAutarkyContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
+    def getAutarkyContribution(self, esM, pyM, ID, timeSeriesAggregation, loc=None):
         """
         Get contribution to autarky constraint.
 
@@ -650,11 +650,19 @@ class SourceSinkModel(ComponentModel):
         else:
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
-        aut = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
-                  esM.periodOccurrences[p]
-                  for compName in compDict.keys() if compName in limitDict[(ID, loc)]
-                  for p in periods
-                  for t in timeSteps)
+        if loc is None:
+            aut = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+                      esM.periodOccurrences[p]
+                      for compName in compDict.keys() if compName in limitDict[ID]
+                      for p in periods
+                      for t in timeSteps
+                      for loc in esM.locations)
+        else:
+            aut = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+                      esM.periodOccurrences[p]
+                      for compName in compDict.keys() if compName in limitDict[(ID, loc)]
+                      for p in periods
+                      for t in timeSteps)
         return aut
 
     def getLowerLimtContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
