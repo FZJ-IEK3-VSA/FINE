@@ -1,5 +1,5 @@
-"""Representation algorithms to represent region data for a reduced set of regions.
-
+"""Representation algorithms to represent region data for a reduced set 
+of regions obtained as a result of spatial grouping of regions. 
 """
 
 import logging
@@ -12,14 +12,29 @@ import shapely
 import xarray as xr
 from shapely.geometry import LineString
 from shapely.ops import cascaded_union
+from typing import Dict, List, Tuple
 
 import FINE.spagat.utils as spu
 import FINE.spagat.dataset as spd
 
 logger_representation = logging.getLogger('spagat_representation')
 
-
+#TODO: standardize all dimension descriptions and pass only once. spatial_dim here and 
+#  dimension_description in grouping.py refer to the same thing. 
 def add_region_centroids(sds, spatial_dim="space"):
+    """Calculates centroid of region and adds this to the data. 
+
+    Parameters
+    ----------
+    sds : Instance of SpagatDataset
+        Refer to SpagatDataset class in dataset.py for more information 
+    spatial_dim : str, optional (default='space')
+        The name/description of the dimension in the sds data that corresponds to regions 
+    
+    Notes
+    -----
+    The addition of region centroids is Inplace. Therefore, nothing is returned. 
+    """
     gpd_centroids = pd.Series(
         [geom.centroid for geom in sds.xr_dataset.gpd_geometries.values]
     )
@@ -27,6 +42,19 @@ def add_region_centroids(sds, spatial_dim="space"):
 
 
 def add_centroid_distances(sds, spatial_dim="space"):
+    """Calculates distance between centroids and add this to the data.  
+
+    Parameters
+    ----------
+    sds : Instance of SpagatDataset
+        Refer to SpagatDataset class in dataset.py for more information 
+    spatial_dim : str, optional (default='space')
+        The name/description of the dimension in the sds data that corresponds to regions 
+    
+    Notes
+    -----
+    The addition of region centroid distances is Inplace. Therefore, nothing is returned.  
+    """
     data_out_dummy = np.zeros(
         (len(sds.xr_dataset[spatial_dim]), len(sds.xr_dataset[spatial_dim]))
     )
@@ -52,7 +80,23 @@ def add_centroid_distances(sds, spatial_dim="space"):
 
 
 def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
-    """Aggregates shapes given in a xr_data_array based on the dictionary"""
+    """For each region group, aggregates their geometries to form one super geometry.  
+
+    Parameters
+    ----------
+    xr_data_array_in :  xr.DataArray 
+        subset of the sds data that corresponds to geometry variable
+    sub_to_sup_region_id_dict : Dict[str, List[str]]
+        Dictionary new regions' ids and their corresponding group of regions 
+        Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
+             '03_reg_04_reg': ['03_reg','04_reg']}
+    Returns
+    -------
+    xr_data_array_out :  xr.DataArray 
+        Contains new geometries as values
+        Coordinates correspond to new regions 
+        (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
+    """
     space = list(sub_to_sup_region_id_dict.keys())
     
     # multipolygon_dimension = [0, 1, 2, 3]
@@ -62,7 +106,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     
     for sub_region_id_list in sub_to_sup_region_id_dict.values():
         
-        temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values)
+        temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values) #TODO: spatial_dim generalization!
         
         shape_union = cascaded_union(temp_shape_list)
         
@@ -88,8 +132,33 @@ def aggregate_time_series(xr_data_array_in,
                         xr_weight_array=None,
                         spatial_dim="space",
                         time_dim="TimeStep"):
-    """Aggregates all data of a data array containing time series with dimension 'sub_regions' to new data_array with
-    dimension 'regions"""
+    """For each region group, aggregates the given time series variable. 
+
+    Parameters
+    ----------
+    xr_data_array_in :  xr.DataArray 
+        subset of the sds data that corresponds to a time series variable
+    sub_to_sup_region_id_dict :  Dict[str, List[str]]
+        Dictionary new regions' ids and their corresponding group of regions 
+        Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
+             '03_reg_04_reg': ['03_reg','04_reg']}
+    mode : {"mean", "weighted mean", "sum"}, optional
+        Specifies how the time series should be aggregated 
+    xr_weight_array : xr.DataArray
+        Required if `mode` is "weighted mean". `xr_weight_array` in this case would provide weights. 
+        The dimensions and coordinates of it should be same as `xr_data_array_in`
+    spatial_dim : str, optional (default='space')
+        The name/description of the dimension in the sds data that corresponds to regions 
+    time_dim : str, optional (default='TimeStep')
+        The name/description of the dimension in the sds data that corresponds to time  
+
+    Returns
+    -------
+    xr_data_array_out :  xr.DataArray 
+        Contains aggregated time series as values
+        Coordinates correspond to new regions 
+        (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
+    """
     # TODO: maybe add this to SpagatDataset as method?
     # TODO: generalize dims -> 'space' could be replaced by sth more general such as 'locs'
 
@@ -145,9 +214,28 @@ def aggregate_values(xr_data_array_in,
                     sub_to_sup_region_id_dict, 
                     mode="mean", 
                     output_unit="GW"):
-    """Aggregates all data of a data array containing capacities corresponding 
-    to time series with dimension 'sub_regions' to new data_array with
-    dimension 'regions"""
+    """For each region group, aggregates the given 1d variable.
+
+    Parameters
+    ----------
+    xr_data_array_in : xr.DataArray 
+        subset of the sds data that corresponds to a 1d variable
+    sub_to_sup_region_id_dict :  Dict[str, List[str]]
+        Dictionary new regions' ids and their corresponding group of regions 
+        Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
+             '03_reg_04_reg': ['03_reg','04_reg']}
+    mode : {"mean", "sum", "bool"}, optional
+        Specifies how the values should be aggregated 
+    output_unit : {"GW", "KW"}, optional
+        Unit of the values. Values are normally capacities. 
+    
+    Returns
+    -------
+    xr_data_array_out :  xr.DataArray 
+        Contains aggregated 1d variable as values
+        Coordinates correspond to new regions 
+        (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
+    """
     # TODO: maybe add this to SpagatDataset as method?
     # TODO: add unit information to xr_data_array_out
 
@@ -184,7 +272,7 @@ def aggregate_values(xr_data_array_in,
                 'Please select one of the modes "mean", "bool" or "sum"'
             )
 
-    if output_unit == "GW":
+    if output_unit == "GW": #TODO: show a warning if it is differnt and just return it!
         return xr_data_array_out
     elif output_unit == "KW":
         return xr_data_array_out
@@ -195,8 +283,30 @@ def aggregate_connections(xr_data_array_in,
                         mode="bool",
                         set_diagonal_to_zero=True,
                         spatial_dim="space"):
-    """Aggregates all data of a data array containing connections with dimension 'sub_regions' to new data_array with
-    dimension 'regions"""
+    """For each region group, aggregates the given 2d variable.
+
+    Parameters
+    ----------
+    xr_data_array_in : xr.DataArray 
+        subset of the sds data that corresponds to a 2d variable
+    sub_to_sup_region_id_dict :  Dict[str, List[str]]
+        Dictionary new regions' ids and their corresponding group of regions 
+        Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
+             '03_reg_04_reg': ['03_reg','04_reg']}
+    mode : {"bool", "mean", "sum"}, optional
+        Specifies how the connections should be aggregated 
+    set_diagonal_to_zero : bool, optional (default=True)
+        If True, the diagonal values (a region's connection to itself) are set to 0
+    spatial_dim : str, optional (default='space')
+        The name/description of the dimension in the sds data that corresponds to regions
+    
+    Returns
+    -------
+    xr_data_array_out :  xr.DataArray 
+        Contains aggregated 2d variable as values
+        Coordinates correspond to new regions 
+        (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
+    """
     # TODO: make sure that region and region_2 ids don't get confused
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
@@ -265,11 +375,34 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
                                                 aggregation_function_dict=None,
                                                 spatial_dim="space",
                                                 time_dim="TimeStep" ):
+    """After spatial grouping, for each region group, spatially aggregates the data. 
 
-    """Spatially aggregates all variables of the sds.xr_dataset according to 
-    sub_to_sup_region_id_dict using aggregation functions defined by 
-    aggregation_function_dict"""
-
+    Parameters
+    ----------
+    sds : Instance of SpagatDataset
+        Refer to SpagatDataset class in dataset.py for more information 
+    sub_to_sup_region_id_dict :  Dict[str, List[str]]
+        Dictionary new regions' ids and their corresponding group of regions 
+        Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
+             '03_reg_04_reg': ['03_reg','04_reg']}
+    aggregation_function_dict : Dict[str, Tuple(str, None/xr.DataArray)]
+        - Contains information regarding the mode (sum, mean, bool, etc.) of aggregation for each individual variable. 
+        - Format of the dictionary - {<variable_name>: (<mode_of_aggregation>, <weights>), 
+                                      <variable_name>: (<mode_of_aggregation>, None)} 
+          <weights>, which is a xr.DataArray, is required only if <mode_of_aggregation> is 
+          'weighted mean'. Can be None otherwise. 
+    spatial_dim : str, optional (default='space')
+        The name/description of the dimension in the sds data that corresponds to regions 
+    time_dim : str, optional (default='TimeStep')
+        The name/description of the dimension in the sds data that corresponds to time  
+    
+    Returns
+    -------
+    aggregated_sds :  Instance of SpagatDataset
+        New sds with aggregated information 
+        Coordinates correspond to new regions 
+        (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
+    """
     aggregated_sds = spd.SpagatDataset()
     
     
@@ -354,11 +487,30 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
 
 # spagat.output:
 def create_grid_shapefile(sds,
+                        variable_description,
+                        component_description,
                         file_path, 
-                        files_name = "AC_lines",
-                        spatial_dim="space",
-                        eligibility_variable="2d_locationalEligibility",
-                        eligibility_component=None):
+                        files_name="AC_lines",
+                        spatial_dim="space"):
+    """Creates a geodataframe which indicates whether two regions are connected for the 
+    given variable-component pair. 
+
+    Parameters
+    ----------
+    sds : Instance of SpagatDataset
+        Refer to SpagatDataset class in dataset.py for more information 
+    variable_description :  str
+        Variable in sds that should be considered 
+    component_description :  str
+        Component in sds that should be considered
+    file_path : str
+        The path to which to save the geodataframe
+    files_name : str, optional (default="AC_lines")
+        The name of the saved geodataframe
+    spatial_dim : str, optional (default='space')
+        The name/description of the dimension in the sds data that corresponds to regions 
+    
+    """
     # TODO: dataset class
     
     add_region_centroids(sds)
@@ -367,16 +519,11 @@ def create_grid_shapefile(sds,
     buses_1 = []
     geoms = []
 
-    if eligibility_component is not None:
-        eligibility_xr_array = sds.xr_dataset[eligibility_variable].sel(
-            component=eligibility_component)
-    else:
-        eligibility_xr_array = sds.xr_dataset[eligibility_variable]  
-
+    eligibility_xr_array = sds.xr_dataset[variable_description].sel(component=component_description)
+    
     for region_id_1 in sds.xr_dataset[f"{spatial_dim}"].values:
         for region_id_2 in sds.xr_dataset[f"{spatial_dim}_2"].values:
-            if eligibility_xr_array.sel(space=region_id_1, space_2=region_id_2).values: #TODO: if eligibility_component is not specified, an error is raised here. 
-                                                                                        # either make eligibility_component nondefault or change this line to look for at least one non nan value 
+            if eligibility_xr_array.sel(space=region_id_1, space_2=region_id_2).values: 
                 buses_0.append(region_id_1)
                 buses_1.append(region_id_2)
 

@@ -1,5 +1,5 @@
-"""Grouping algorithms to determine how to reduce a number of input regions to fewer regions while minimizing information loss.
-
+"""Grouping algorithms determine how to reduce a number of input regions to 
+fewer regions while minimizing information loss.
 """
 import os
 import logging
@@ -13,6 +13,7 @@ from scipy.cluster import hierarchy
 from sklearn import metrics
 from scipy.cluster import vq
 import sklearn.cluster as skc
+from typing import Dict, List
 
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping_utils as gu
@@ -21,8 +22,21 @@ logger_grouping = logging.getLogger("spagat_grouping")
 
 
 def string_based_clustering(regions):
-    """Creates a dictionary containing sup_regions and respective lists of sub_regions"""
+    """Groups regions based on their names/ids.
 
+    Parameters
+    ----------
+    regions : List[str] or np.array(str)
+        List or array of region names 
+        Ex.: ['01_es', '02_es', '01_de', '02_de', '03_de']
+
+    Returns
+    -------
+    sub_to_sup_region_id_dict : Dict[str, List[str]]
+        Dictionary new regions' ids and their corresponding group of regions 
+        Ex. {'es' : ['01_es', '02_es'] , 
+             'de' : ['01_de', '02_de', '03_de']}
+    """
     # TODO: this is implemented spefically for the e-id: '01_es' -> generalize this!
     nation_set = set([region_id.split("_")[1] for region_id in regions])
 
@@ -43,9 +57,41 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
                             save_path = None, 
                             fig_name=None, 
                             verbose=False):
-    '''Cluster M regions based on centroid distance, hence closest regions are aggregated to obtain N regions.
-    agg_modes -> 'sklearn_kmeans', 'sklearn_hierarchical', 'sklearn_spectral', 'scipy_kmeans', 'scipy_hierarchical'
-    '''
+    """Groups regions based on the regions' centroid distances. 
+
+    Parameters
+    ----------
+    sds : Instance of SpagatDataset
+        Refer to SpagatDataset class in dataset.py for more information 
+    agg_mode : {'sklearn_hierarchical', 'sklearn_kmeans', 'sklearn_spectral', 'scipy_kmeans', 'scipy_hierarchical'}, optional 
+        Specifies which python package and which clustering method to choose for grouping 
+    dimension_description : str, optional (default='space')
+        The name/description of the dimension in the sds data that corresponds to regions 
+    ax_illustration : Axis
+        Provide axis to an existing figure, to include the generated plots to the same figure 
+    save_path :  str, optional (default=None)
+        The path to which to save the figures. 
+        If default None, figure is not saved
+    fig_name : str, optional (default=None)
+        Name of the saved figure. 
+        Valid only if `save_path` is not None. 
+        If default None, a default name is chosen based on the chosen `agg_mode`:
+            - 'sklearn_hierarchical' -> 'sklearn_hierarchical_dendrogram'
+            - 'sklearn_kmeans' -> 'sklearn_kmeans_distortion'
+            - 'sklearn_spectral' -> NO FIGURE IS SAVED IN THIS MODE 
+            - 'scipy_kmeans' -> 'scipy_kmeans_distortion'
+            - 'scipy_hierarchical' -> 'scipy_hierarchical_dendrogram'
+    verbose : bool, optional (default=False)
+        If True, the grouping results are printed. Supressed if False 
+
+    Returns
+    -------
+    aggregation_dict : Dict[int, Dict[str, List[str]]]
+        A nested dictionary containing results of spatial grouping at various levels/number of groups
+        - Ex. {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},
+               2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
+               1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
+    """
     #TODO: maybe scipy can be dropped ?
 
     centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000  # km
@@ -376,7 +422,96 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
                                 fig_name=None,  
                                 verbose=False,
                                 weighting=None):
+    """Groups regions based on the Energy System Model instance's data. 
+
+    Parameters
+    ----------
+    sds : Instance of SpagatDataset
+        Refer to SpagatDataset class in dataset.py for more information 
+    agg_mode : {'scipy_hierarchical', 'sklearn_hierarchical', 
+                'spectral_with_precomputedAffinity', 'spectral_with_RBFaffinity'}, optional 
+        Specifies which python package and which clustering method to choose for grouping 
+    dimension_description : str, optional (default='space')
+        The name/description of the dimension in the sds data that corresponds to regions 
+    ax_illustration : Axis
+        Provide axis to an existing figure, to include the generated plots to the same figure 
+    save_path :  str, optional (default=None)
+        The path to which to save the figure. 
+        Valid only if `agg_mode` is 'scipy_hierarchical'
+        If default None, figure is not saved
+    fig_name : str, optional (default=None)
+        Name of the saved figure. 
+        Valid only if `save_path` is not None. 
+        If default None, the figure is saved under the name 'scipy_hierarchical_dendrogram'    
+    verbose : bool, optional (default=False)
+        If True, the grouping results are printed. Supressed if False 
+    weighting : List[int], optional (default=None)
+        List containing weights for each part i.e., time series, 1d and 2d variables 
+        If default None, each part has same weight of 1
+        
+    Returns
+    -------
+    aggregation_dict : Dict[int, Dict[str, List[str]]]
+        A nested dictionary containing results of spatial grouping at various levels/number of groups
+        - Ex. {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},
+               2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
+               1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
     
+    Notes
+    -----
+    * Various functions from grouping_utils module are employed here depending on the `agg_mode`. 
+    * While clustering/grouping regions, it is important to make sure that the regions 
+      are spatially contiguous. Different `agg_mode`s handle this problem differently. 
+
+    Information regarding each `agg_mode` can be found below:
+    1. 'scipy_hierarchical' 
+        - Preprocessing data -> preprocessDataset() with handle_mode='toDissimilarity'
+        - Custom distance -> selfDistanceMatrix()
+        - Clustering method -> scipy's agglomerative hierarchical clustering with average linkage 
+        - Spatial contiguity -> Clustering method internally handles spatial contiguity problem #TODO: verify this 
+        - Figures -> (a) Inconsistencies are displayed in a plot. 
+                         However, it is not saved!
+                     (b) A dendrogram is directly saved if `save_path` is specified. 
+                         However, it is not displayed! 
+        - Additional accuracy indicators -> (a) Cophenetic correlation coefficients are printed 
+                                           (b) Silhouette scores are computed and printed. 
+
+    2. 'sklearn_hierarchical'
+        - Preprocessing data -> preprocessDataset() with handle_mode='toDissimilarity'
+        - Custom distance -> selfDistanceMatrix()
+        - Clustering method -> sklearn's agglomerative hierarchical clustering with average linkage  
+        - Spatial contiguity -> Connectivity matrix is passed to the clustering method. 
+                                generateConnectivityMatrix() to obtain Connectivity matrix.
+        - Accuracy indicators -> (a) Cophenetic correlation coefficients are printed
+                                (b) Inconsistencies are printed. 
+                                (c) Silhouette scores are printed. 
+
+    3. 'spectral_with_precomputedAffinity'
+        - Preprocessing data -> preprocessDataset() with handle_mode='toAffinity'
+        - Clustering method -> sklearn's spectral clustering 
+        - Affinity calculation -> - Clustering method requires affinity matrix. 
+                                  - Constructed using RBF kernel, separately for all 
+                                    3 parts i.e., time series, 1d and 2d variables. 
+                                    This takes as it's input the results from Preprocessing step.
+                                  - `weighting` is used to weight the 3 affinity parts and all parts 
+                                    are then added.
+        - Spatial contiguity -> Clustering method internally handles spatial contiguity problem 
+        - Accuracy indicators -> (a) Modularites are computed and printed. 
+                                 (b) Silhouette scores are computed and printed. 
+        
+    4. 'spectral_with_RBFaffinity'
+        - Preprocessing data -> preprocessDataset() with handle_mode='toDissimilarity'
+        - Custom distance -> selfDistanceMatrix()
+        - Clustering method -> sklearn's spectral clustering
+        - Affinity calculation -> Clustering method requires affinity matrix. 
+                                  Constructed using RBF kernel. This takes as it's input 
+                                  the scaled Custom distance. 
+        - Spatial contiguity -> Clustering method internally handles spatial contiguity problem 
+        - Accuracy indicators -> (a) Modularites are computed and printed. 
+                                 (b) Silhouette scores are printed. 
+    
+    For more information, please refer to the Master Thesis of Shu Xing -> https://fz-juelich.sciebo.de/s/Cy7gIdoNjqShmzz
+    """
     # Original region list
     regions_list = sds.xr_dataset[dimension_description].values
     n_regions = len(regions_list)
@@ -398,13 +533,6 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
         #STEP 0a. Preprocess the whole dataset with handle_mode='toAffinity'
         feature_matrix_ts, feature_matrix_1d, adjacency_matrix_2d = gu.preprocessDataset(sds, handle_mode='toAffinity')
 
-
-    ''' 1. Using hierarchical clustering for all variables with custom defined distance
-        - precomputed distance matrix using selfDistanceMatrix() function
-        - linkage method: average
-        - hierarchy clustering method of SciPy having spatial contiguity problem
-        - hierarchy clustering method of Scikit learn solve spatial contiguity with additional connectivity matrix.
-    '''
     #============================ SCIPY - HIERARCHICAL ============================#
     if agg_mode == 'scipy_hierarchical':
 
@@ -567,40 +695,7 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
 
     #======================== SPECTRAL with precomputed affinity matrix ========================#
     
-    ''' 2. Using spectral clustering with precomputed affinity matrix
-        - precomputed affinity matrix by converting distance matrices to similarity matrix using RBF kernel
-        - also having spatial contiguity problem due to the created complete graph
-        - solve it by considering the additional connectivity matrix to cut some edges
-    '''
-
     if agg_mode == 'spectral_with_precomputedAffinity':  
-
-        '''Spectral clustering applied on the input dataset:
-            - affinity matrices for 1d-Vars and 2d-Vars: 
-                - given the feature matrix of samples, 
-                - obtain its distance matrix based on the features
-                - transform the distance matrix to a similarity matrix
-                
-            - affinity matrix for 2d-Vars: 
-                - the original matrices can be regarded directly as the adjacency matrix of the graph
-                - for each variable and each component: an adjacency matrix
-                - multiple variables & multiple components: need to combine them as one affinity matrix (with weighting factors)
-                - transform the adjacency matrix to affinity matrix:
-                    - firstly get its reciprocal: now it is like a dissimilarity matrix
-                    - then apply rbf kernel to obtain the similarity scores
-        
-            - If affinity is the adjacency matrix of a graph, this method can be used to find normalized graph cuts.
-
-            - If you have an affinity matrix, such as a distance matrix, 
-                - for which 0 means identical elements, 
-                - and high value means very dissimilar elements, 
-            it can be transformed in a similarity matrix that is well suited for the algorithm by applying the Gaussian (RBF, heat) kernel
-        
-            - Affinity matrix for spectral clustering input: a kind of similarity matrix
-                - 1 means identical elements
-                - high value means more similar elements (stronger connections)
-        '''
-
         # List of weighting factors for 3 categories
         if weighting is None: weighting = [1, 1, 1]
                                       
@@ -608,7 +703,7 @@ def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical',
         delta = 1
 
         #STEP 1a. (i) Obtain distance matrix for time series variable set (used pdist, which in turn uses default euclidean distance)
-        distance_matrix_ts = hierarchy.distance.squareform(hierarchy.distance.pdist(feature_matrix_ts))  #NOTE: pdist finds euclidean distance between regions,
+        distance_matrix_ts = hierarchy.distance.squareform(hierarchy.distance.pdist(feature_matrix_ts))  #INFO: pdist finds euclidean distance between regions,
                                                                                                          # here, hierarchy.distance.squareform converts this condensed matrix (rather a list) to a symmetric, hollow matrix
         #STEP 1a. (ii) Use RBF kernel to construct affinity matrix based on distance matrix of time series variable set
         affinity_ts = np.exp(- distance_matrix_ts ** 2 / (2. * delta ** 2))

@@ -14,7 +14,7 @@ def test_matrix_MinMaxScaler():
 
     expected_matrix = 0.1 * test_matrix
 
-    output_matrix = gu.matrix_MinMaxScaler(test_matrix, x_min=0, x_max=1)
+    output_matrix = gu.matrix_MinMaxScaler(test_matrix, scaled_min=0, scaled_max=1)
 
     #floating points need to be converted to decimals, otherwise they do not match 
     output_matrix = np.round(output_matrix, 1)
@@ -419,9 +419,7 @@ def test_preprocessDataset(handle_mode):
         
         #FUNCTION CALL 
         output_ts_dict, output_1d_dict, output_2d_dict = gu.preprocessDataset(sds, 
-                                                                        handle_mode, 
-                                                                        vars='all', 
-                                                                        dims='all', 
+                                                                        handle_mode,
                                                                         var_weightings=None) #TODO: test with different var_weightings
     
         
@@ -510,9 +508,7 @@ def test_preprocessDataset(handle_mode):
 
         #FUNCTION CALL 
         output_ts_matrix, output_1d_matrix, output_2d_matrix = gu.preprocessDataset(sds, 
-                                                                                    handle_mode, 
-                                                                                    vars='all', 
-                                                                                    dims='all', 
+                                                                                    handle_mode,
                                                                                     var_weightings=None) #TODO: test with different var_weightings
 
 

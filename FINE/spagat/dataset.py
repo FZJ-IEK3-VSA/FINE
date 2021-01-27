@@ -1,6 +1,3 @@
-"""Implementation of the SpagatDataset that contains all spatial data.
-
-"""
 import os
 import logging
 import pathlib
@@ -10,8 +7,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from shapely.geometry import LineString
-from typing import Dict, List
-
+from typing import List
 
 import FINE.spagat.utils as spu
 
@@ -19,7 +15,7 @@ logger_dataset = logging.getLogger("spagat_dataset")
 
 class SpagatDataset:
     """
-    The SpagatDataset (SDS) contains all the spatially-resolved data that is necessary for Energy System Optimization.
+    The SpagatDataset (sds) contains all the spatially-resolved data that is necessary for Energy System Optimization.
 
     """
 
@@ -32,7 +28,7 @@ class SpagatDataset:
                     description: str, 
                     dimension_list: List[str], 
                     object_list: List[object]) -> None:
-        """Adds a list of arbitrary (?) objects to the sds.
+        """Adds a list of objects to the sds.
         
         Parameters
         ----------
@@ -52,7 +48,7 @@ class SpagatDataset:
     def add_region_data(self, 
                         space: List[object], 
                         spatial_dim: str = "space") -> None:
-        """Add space coordinates to the dataset
+        """Add space coordinates to the dataset.
         
         Parameters
         ----------
@@ -69,25 +65,26 @@ class SpagatDataset:
                     sds_folder_path: str,
                     sds_regions_filename: str = "sds_regions.shp",
                     sds_xr_dataset_filename: str = "sds_xr_dataset.nc4") -> None:
-        """Reads in both shapefile as well as xarray dataset from a folder to the sds
+        """Reads in both shapefile as well as xarray dataset from a folder to the sds.
         
         Parameters
         ----------
         sds_folder_path
-            folder that contains the sds data
+            path to folder that contains the sds data
         sds_regions_filename
             filename for the region shapefile
         sds_xr_dataset_filename
-            filename of the netcdf file containing all information apart from the region shapes
+            filename of the netcdf file containing all information except the region shapes
         """
 
-        # gets the complete paths
+        # gets the complete paths #TODO: what if the files are in different folder? Get the whole path for file names directly
         sds_xr_dataset_path = os.path.join(sds_folder_path, sds_xr_dataset_filename)
         sds_regions_path = os.path.join(sds_folder_path, sds_regions_filename)
 
         self.xr_dataset = xr.open_dataset(sds_xr_dataset_path)
 
         gdf_regions = gpd.read_file(sds_regions_path)
+
         self.add_objects(description="gpd_geometries",
                         dimension_list=["space"],
                         object_list=gdf_regions.geometry)
@@ -95,16 +92,17 @@ class SpagatDataset:
     def save_sds_regions(self, 
                         shape_output_path : str, 
                         shape_output_files_name : str = 'sds_regions', 
-                        crs : int = 3035):
-        """Save regions and geometries from xr_array to shapefile
+                        crs : int = 3035) -> None:
+        """Save regions and their geometries from xarray to a shapefile.
         
         Parameters
         ----------
         shape_output_path
-            path to which the shapefile shall be saved #TODO: update parameters
-        
+            path to folder in which to save the shapefile
+        shape_output_files_name
+            name to be given to the saved files 
         crs
-            coordinate reference system in which to save the shapefiles
+            coordinate reference system (crs) in which to save the shapefiles
         """
 
         df = self.xr_dataset.space.to_dataframe()
@@ -117,12 +115,12 @@ class SpagatDataset:
                        files_name = shape_output_files_name)
 
     def save_data(self, sds_output_path : str) -> None:
-        """Save all data of the dataset apart from the shapes.
+        """Save all data of the dataset except the region shapes.
 
         Parameters
         ----------
         sds_output_path
-            folder to which to save the sds data
+            path to folder in which to save the sds data
                 
         """
 
@@ -147,12 +145,13 @@ class SpagatDataset:
         Parameters
         ----------
         sds_folder_path
-            folder to which to save the sds data       
+            path to folder in which to save the sds data       
         sds_region_filename
-            filename to which to save the shapefile       
+            name to be given to the saved shapefile       
         sds_xr_dataset_filename
-            filename to which to save the sds data       
+            name to be given to the saved sds data       
         """
+        #TODO: what if the files are to be saved in different folder? Get the whole path for file names directly
         spu.create_dir(sds_folder_path)
 
         # save geometries

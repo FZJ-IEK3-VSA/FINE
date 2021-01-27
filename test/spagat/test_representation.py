@@ -223,11 +223,11 @@ def test_create_grid_shapefile(sds_and_dict_for_basic_representation):
     files_name="test_ac_lines"
 
     spr.create_grid_shapefile(sds_for_basic_representation,
-                          file_path=path_to_test_dir,
-                          files_name=files_name,
-                          spatial_dim="space",
-                          eligibility_variable="var_2d",
-                          eligibility_component='c1')
+                            variable_description="var_2d",
+                            component_description='c1',
+                            file_path=path_to_test_dir,
+                            files_name=files_name,
+                            spatial_dim="space")
     
     #EXPECTED 
     ## File extensions 
