@@ -1,0 +1,225 @@
+# # Test case for perfect foresight approach
+
+# Status: Working with FINE w/o Perfect Foresight
+# Status: No errors with perfect foresight version, but output not working correctly --> sourceSink.py (line 650+)
+# Status: Obviously not doing perfect foresight yet, required expansions will come in the future
+
+# 1. Import required packages and set input data path
+
+import FINE as fn
+import numpy as np
+import pandas as pd
+
+def test_perfectForesight():
+    numberOfTimeSteps = 4
+    hoursPerTimeStep = 2190
+    numberOfInvestmentPeriods = 1
+    yearsPerInvestmentPeriod=1
+
+    # Create an energy system model instance 
+    esM = fn.EnergySystemModel(locations={'PerfectLand'}, 
+                                commodities={'electricity'}, 
+                                numberOfTimeSteps=numberOfTimeSteps,
+                                commodityUnitsDict={'electricity': r'kW$_{el}$'},
+                                hoursPerTimeStep=hoursPerTimeStep, costUnit='1 Euro', 
+                                #numberOfInvestmentPeriods=numberOfInvestmentPeriods,
+                                #yearsPerInvestmentPeriod=yearsPerInvestmentPeriod,
+                                lengthUnit='km', 
+                                verboseLogLevel=2)
+               
+    # time step length [h]
+    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
+
+    
+    # Sources
+
+    # Electricity market
+    costs = pd.DataFrame([np.array([ 1,1,1,1,])],
+                            index = ['PerfectLand']).T
+    revenues = pd.DataFrame([np.array([ 0., 0., 0., 0.,])],
+                            index = ['PerfectLand']).T
+    maxpurchase = pd.DataFrame([np.array([0.5e3, 0.5e3, 4e3, 4e3,])],
+                            index = ['PerfectLand']).T
+    esM.add(fn.Source(esM=esM, name='Electricity market', commodity='electricity', 
+                        hasCapacityVariable=False, operationRateMax = maxpurchase,
+                        commodityCostTimeSeries = costs,  
+                        #commodityCost= 1, 
+                        commodityRevenueTimeSeries = revenues,  
+                        )) # eur/kWh
+
+    # Photovoltaic
+    PVoperationRateMax = pd.DataFrame([np.array([0.4, 0.4, 0.6, 0.6,])],
+                            index = ['PerfectLand']).T
+    esM.add(fn.Source(esM=esM, name='PV', commodity='electricity', hasCapacityVariable=True,
+                  operationRateMax=PVoperationRateMax,
+                  capacityMax=4e6,
+                  investPerCapacity=2*2190, opexPerCapacity=0, interestRate=0,
+                  opexPerOperation=0.01,
+                  economicLifetime=1))
+
+    # Sinks
+
+    ### Industry site
+    demand = pd.DataFrame([np.array([2e3, 1e3, 1e3, 1e3,])],
+                    index = ['PerfectLand']).T
+    esM.add(fn.Sink(esM=esM, name='EDemand', commodity='electricity', hasCapacityVariable=False,
+                    operationRateFix = demand,
+                    ))
+
+    # Optimize energy system model    
+    
+    #esM.cluster(numberOfTypicalPeriods=4, numberOfTimeStepsPerPeriod=1)
+
+    esM.optimize(timeSeriesAggregation=False, solver = 'gurobi')
+    print(esM.pyM.Obj())
+    print('Electricity Market:')
+    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Electricity market'))
+
+    print('Photovoltaic:')
+    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('PV'))
+
+    print('Demand:')
+    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('EDemand'))
+
+
+
+if __name__ == "__main__":
+    test_perfectForesight()
+
+
+
+###### Output ######
+
+
+Using license file Cgurobigurobi.lic
+Academic license - for non-commercial use only
+Read LP format model from file CUsersS2226~1.KRAAppDataLocalTemptmpgl9o_dc4.pyomo.lp
+Reading time = 0.00 seconds
+x27 18 rows, 15 columns, 31 nonzeros
+Changed value of parameter QCPDual to 1
+   Prev 0  Min 0  Max 1  Default 0
+Changed value of parameter Threads to 3
+   Prev 0  Min 0  Max 1024  Default 0
+Parameter logfile unchanged
+   Value   Default
+optVal
+                                     0       1       2       3
+EDemand            PerfectLand  2000.0  1000.0  1000.0  1000.0
+Electricity market PerfectLand   500.0     0.0     0.0     0.0
+PV                 PerfectLand  1500.0  1000.0  1000.0  1000.0
+opSum
+                    PerfectLand
+EDemand                  5000.0
+Electricity market        500.0
+PV                       4500.0
+cCost
+                    PerfectLand
+EDemand                     0.0
+Electricity market          0.0
+PV                          0.0
+cRevenue
+                    PerfectLand
+EDemand                     0.0
+Electricity market          0.0
+PV                          0.0
+index
+Index(['EDemand', 'Electricity market', 'PV'], dtype='object')
+columns
+Index(['PerfectLand'], dtype='object')
+optSummary
+                                                  PerfectLand
+Component          Property       Unit
+EDemand            commodCosts    [1 Euroa]              NaN
+                   commodRevenues [1 Euroa]              NaN
+                   operation      [kW$_{el}$ha]         NaN
+                   opexOp         [1 Euroa]              NaN
+Electricity market commodCosts    [1 Euroa]              NaN
+                   commodRevenues [1 Euroa]              NaN
+                   operation      [kW$_{el}$ha]         NaN
+                   opexOp         [1 Euroa]              NaN
+PV                 commodCosts    [1 Euroa]              NaN
+                   commodRevenues [1 Euroa]              NaN
+                   operation      [kW$_{el}$ha]         NaN
+                   opexOp         [1 Euroa]              NaN
+cCostTD
+                    PerfectLand
+Electricity market        500.0
+PV                          0.0
+EDemand                     0.0
+calcRevenueTD
+               0    1    2    3
+PerfectLand  0.0  0.0  0.0  0.0
+cRevenueTD
+                    PerfectLand
+Electricity market          0.0
+PV                          0.0
+EDemand                     0.0
+cCostTD
+                    PerfectLand
+Electricity market        500.0
+PV                          0.0
+EDemand                     0.0
+cRevenueTD
+                    PerfectLand
+Electricity market          0.0
+PV                          0.0
+EDemand                     0.0
+cCostTD
+                    PerfectLand
+Electricity market        500.0
+PV                          0.0
+EDemand                     0.0
+cRevenueTD
+                    PerfectLand
+Electricity market          0.0
+PV                          0.0
+EDemand                     0.0
+optSummaryFinal
+                                                  PerfectLand
+Component          Property       Unit
+EDemand            TAC            [1 Euroa]              500
+                   capacity       [kW$_{el}$]             NaN
+                   capexCap       [1 Euroa]              NaN
+                   capexIfBuilt   [1 Euroa]              NaN
+                   commodCosts    [1 Euroa]              500
+                   commodRevenues [1 Euroa]                0
+                   invest         [1 Euro]                NaN
+                   isBuilt        [-]                     NaN
+                   operation      [kW$_{el}$ha]        5000
+                   opexCap        [1 Euroa]              NaN
+                   opexIfBuilt    [1 Euroa]              NaN
+                   opexOp         [1 Euroa]                0
+Electricity market TAC            [1 Euroa]                0
+                   capacity       [kW$_{el}$]             NaN
+                   capexCap       [1 Euroa]              NaN
+                   capexIfBuilt   [1 Euroa]              NaN
+                   commodCosts    [1 Euroa]                0
+                   commodRevenues [1 Euroa]                0
+                   invest         [1 Euro]                NaN
+                   isBuilt        [-]                     NaN
+                   operation      [kW$_{el}$ha]         500
+                   opexCap        [1 Euroa]              NaN
+                   opexIfBuilt    [1 Euroa]              NaN
+                   opexOp         [1 Euroa]                0
+PV                 TAC            [1 Euroa]             7545
+                   capacity       [kW$_{el}$]         1.71233
+                   capexCap       [1 Euroa]             7500
+                   capexIfBuilt   [1 Euroa]              NaN
+                   commodCosts    [1 Euroa]                0
+                   commodRevenues [1 Euroa]                0
+                   invest         [1 Euro]               7500
+                   isBuilt        [-]                     NaN
+                   operation      [kW$_{el}$ha]        4500
+                   opexCap        [1 Euroa]                0
+                   opexIfBuilt    [1 Euroa]              NaN
+                   opexOp         [1 Euroa]               45
+8045.0
+Electricity Market
+                 0    1    2    3
+PerfectLand  500.0  0.0  0.0  0.0
+Photovoltaic
+                  0       1       2       3
+PerfectLand  1500.0  1000.0  1000.0  1000.0
+Demand
+                  0       1       2       3
+PerfectLand  2000.0  1000.0  1000.0  1000.0

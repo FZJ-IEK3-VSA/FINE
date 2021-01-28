@@ -831,12 +831,12 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
     elif varType == 'operationVariables' and dimension == '1dim':
         # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
         # Results in a one dimensional DataFrame
-        print('data:')
-        print(data)
+        #print('data:')
+        #print(data)
         df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-3).sort_index() #swap location with periods --> periods is first column
-        dfTest = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-3).sort_index()
-        print('dfTest:')
-        print(dfTest)
+        # dfTest = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-3).sort_index()
+        # print('dfTest:')
+        # print(dfTest)
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level

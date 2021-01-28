@@ -1008,6 +1008,8 @@ class EnergySystemModel:
             utils.output("\nProcessing optimization output...", self.verbose, 0)
             # Declare component specific sets, variables and constraints
             w = str(len(max(self.componentModelingDict.keys()))+6)
+            # ToDo: 
+            # For Schleife über investmentperiods --> output für einzelne invperiods
             for key, mdl in self.componentModelingDict.items():
                 __t = time.time()
                 mdl.setOptimalValues(self, self.pyM)

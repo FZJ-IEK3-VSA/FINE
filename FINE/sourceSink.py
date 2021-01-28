@@ -235,7 +235,7 @@ class Source(Component):
 
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
-
+        
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:
                 if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
@@ -668,41 +668,29 @@ class SourceSinkModel(ComponentModel):
 # expand: use for loop to replace 0 with index i --> get all columns
 # print commands just for testing purposes
         if optVal is not None:
+            idx = pd.IndexSlice
+            optVal = optVal.loc[idx[:,:,0],:] # 0 must be set to variable ip
+            optVal = optVal.droplevel([2])
             print("optVal")
             print(optVal)
             opSum = optVal.sum(axis=1).unstack(-1)
             print("opSum")
             print(opSum)
-            
-            print("ox")
-            ox = opSum.apply(lambda op: op * compDict[op.name[0]].opexPerOperation[op.index[0]], axis=1)           
-            print(ox)
-            cCost = opSum.apply(lambda op: op * compDict[op.name[0]].commodityCost[op.index[0]], axis=1)
-            cCost = opSum.apply(lambda op: op * compDict[op.name[0]].commodityCost['PerfectLand'], axis=1)
-            cRevenue = opSum.apply(lambda op: op * compDict[op.name[0]].commodityRevenue[op.index[0]], axis=1)
-            print("cCost")
-            print(cCost)
-            print("cRevenue")
-            print(cRevenue)
-            print('index')
-            print(opSum.index)
-            print('columns')
-            print(opSum.columns)
-            print('optSummary')
-            print(optSummary)
 
-            optSummary.loc[[(ix[0], 'operation', '[' + compDict[ix[0]].commodityUnit + '*h/a]') for ix in opSum.index],
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)           
+            cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[op.index], axis=1)
+            cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost['PerfectLand'], axis=1)
+            cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[op.index], axis=1)
+
+
+            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
-<<<<<<< Updated upstream
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],
                            opSum.columns] = opSum.values
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
-=======
-            optSummary.loc[[(ix[0], 'operation', '[' + compDict[ix[0]].commodityUnit + '*h]') for ix in opSum.index],
-                           opSum.columns] = opSum.values
-            optSummary.loc[[(ix[0], 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
->>>>>>> Stashed changes
                 ox.values/esM.numberOfYears
+            # print('optSummary')
+            # print(optSummary)
 
             # get empty datframe for resulting time dependent (TD) cost sum
             cRevenueTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)
@@ -716,10 +704,11 @@ class SourceSinkModel(ComponentModel):
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total cost
 
-                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).loc[0,:].T.mul(calcCostTD.T).sum(axis=0)
+                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
 
-                print('cCostTD')
-                print(cCostTD)
+
+
+
 
                 if not compDict[compName].commodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
@@ -727,12 +716,10 @@ class SourceSinkModel(ComponentModel):
                         compDict[compName].commodityRevenueTimeSeries.unstack(level=1).stack(level=0),
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
-                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).loc[0,:].T.mul(calcRevenueTD.T).sum(axis=0)
+                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
                 
-                print('cRevenueTD')
-                print(cRevenueTD)
                         
-            optSummary.loc[[(ix[0], 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
+            optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cCostTD.values + cCost.values)/esM.numberOfYears
             optSummary.loc[[(ix, 'commodRevenues', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cRevenueTD.values + cRevenue.values)/esM.numberOfYears
@@ -746,6 +733,9 @@ class SourceSinkModel(ComponentModel):
                            (optSummary.index.get_level_values(1) == 'opexOp') |
                            (optSummary.index.get_level_values(1) == 'commodCosts')].groupby(level=0).sum().values \
             - optSummary.loc[(optSummary.index.get_level_values(1) == 'commodRevenues')].groupby(level=0).sum().values
+        
+        print('optSummaryFinal')
+        print(optSummary)
 
         self.optSummary = optSummary
 

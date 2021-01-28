@@ -4,7 +4,7 @@
 # # Test case for perfect foresight approach
 
 # Status: Working with FINE w/o Perfect Foresight
-# Status: No errors with perfect foresight version, but output not working correctly --> sourceSink.py (line 650+)
+# Status: No errors with perfect foresight version, results identical with developed FINE version
 # Status: Obviously not doing perfect foresight yet, required expansions will come in the future
 
 # 1. Import required packages and set input data path
@@ -29,7 +29,7 @@ def test_perfectForesight():
                                 yearsPerInvestmentPeriod=yearsPerInvestmentPeriod,
                                 lengthUnit='km', 
                                 verboseLogLevel=2)
-               
+    
     # time step length [h]
     timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
@@ -45,8 +45,8 @@ def test_perfectForesight():
                             index = ['PerfectLand']).T
     esM.add(fn.Source(esM=esM, name='Electricity market', commodity='electricity', 
                         hasCapacityVariable=False, operationRateMax = maxpurchase,
-                        #commodityCostTimeSeries = costs,  
-                        commodityCost= 1, 
+                        commodityCostTimeSeries = costs,  
+                        #commodityCost= 1, 
                         commodityRevenueTimeSeries = revenues,  
                         )) # eur/kWh
 
@@ -63,7 +63,7 @@ def test_perfectForesight():
     # Sinks
 
     ### Industry site
-    demand = pd.DataFrame([np.array([1e3, 1e3, 1e3, 1e3,])],
+    demand = pd.DataFrame([np.array([2e3, 1e3, 1e3, 1e3,])],
                     index = ['PerfectLand']).T
     esM.add(fn.Sink(esM=esM, name='EDemand', commodity='electricity', hasCapacityVariable=False,
                     operationRateFix = demand,
@@ -74,15 +74,16 @@ def test_perfectForesight():
     #esM.cluster(numberOfTypicalPeriods=4, numberOfTimeStepsPerPeriod=1)
 
     esM.optimize(timeSeriesAggregation=False, solver = 'gurobi')
-    print(esM.pyM.Obj())
+    print('Objective value:')
+    print(esM.pyM.Obj()) ### 8045
     print('Electricity Market:')
-    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Electricity market'))
+    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Electricity market')) ### [500,0,0,0]
 
     print('Photovoltaic:')
-    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('PV'))
+    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('PV')) ### [1500,1000,1000,1000]
 
     print('Demand:')
-    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('EDemand'))
+    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('EDemand')) ### [2000,2000,2000,2000]
 
 
 
