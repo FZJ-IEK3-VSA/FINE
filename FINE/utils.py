@@ -64,7 +64,7 @@ def isEnergySystemModelInstance(esM):
 
 
 def checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numberOfTimeSteps, hoursPerTimeStep,
-                                costUnit, lengthUnit, autarkyLimit, lowerLimit):
+                                costUnit, lengthUnit, flowLimit):
     """ Check input arguments of an EnergySystemModel instance for value/type correctness. """
 
     # Locations and commodities have to be sets
@@ -84,22 +84,13 @@ def checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numb
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
 
-    # autarkyLimit has to be DataFrame with locations as columns or Series, if valid for whole model
-    if autarkyLimit is not None:
-        if not type(autarkyLimit) == pd.DataFrame and not type(autarkyLimit) == pd.Series:
-            raise TypeError("The autarkyLimit input argument has to be a pandas.DataFrame")
-        if type(autarkyLimit) == pd.DataFrame and set(autarkyLimit.columns) != locations:
-            raise ValueError('Location indices in the autarkyLimit do not match the input locations.\n' +
-                             'autarkyLimit columns: ' + str(set(autarkyLimit.columns)) + '\n' +
-                             'Input regions: ' + str(locations))
-
-    # lowerLimit has to be DataFrame with locations as columns
-    if lowerLimit is not None:
-        if not type(lowerLimit) == pd.DataFrame:
-            raise TypeError("The lowerLimit input argument has to be a pandas.DataFrame")
-        if set(lowerLimit.columns) != locations:
-            raise ValueError('Location indices in the lowerLimit do not match the input locations.\n' +
-                             'lowerLimit columns: ' + str(set(lowerLimit.columns)) + '\n' +
+    # flowLimit has to be DataFrame with locations as columns or Series, if valid for whole model
+    if flowLimit is not None:
+        if not type(flowLimit) == pd.DataFrame and not type(flowLimit) == pd.Series:
+            raise TypeError("The flowLimit input argument has to be a pandas.DataFrame")
+        if type(flowLimit) == pd.DataFrame and set(flowLimit.columns) != locations:
+            raise ValueError('Location indices in the flowLimit do not match the input locations.\n' +
+                             'flowLimit columns: ' + str(set(flowLimit.columns)) + '\n' +
                              'Input regions: ' + str(locations))
 
 def checkTimeUnit(timeUnit):
