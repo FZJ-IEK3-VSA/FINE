@@ -27,6 +27,9 @@ def matrix_MinMaxScaler(matrix, scaled_min = 0, scaled_max = 1):
         Scaled matrix 
     """
 
+    if np.max(matrix) == np.min(matrix): 
+        return matrix
+
     return ((matrix - np.min(matrix)) / (np.max(matrix) - np.min(matrix))) * (scaled_max - scaled_min) + scaled_min
 
 def preprocessTimeSeries(vars_dict, n_regions, n_components):
