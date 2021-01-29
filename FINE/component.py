@@ -428,7 +428,9 @@ class Component(metaclass=ABCMeta):
         :return: data
         :rtype: Pandas DataFrame
         """
-        data_ = rateFix if rateFix is not None else rateMax
+        data_ = rateFix if rateFix is not None else rateMax #INFO: A component can have either rateFix or rateMax. 
+                                                            # Which is unknown before, So it's checked here.
+
         if data_ is not None:
             data_ = data_.copy()
             uniqueIdentifiers = [self.name + rateName + loc for loc in data_.columns]
