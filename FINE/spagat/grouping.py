@@ -415,7 +415,7 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
 
 
 @spu.timer
-def all_variable_based_clustering(sds, agg_mode='scipy_hierarchical', 
+def all_variable_based_clustering(sds, agg_mode='sklearn_hierarchical', 
                                 dimension_description='space',
                                 ax_illustration=None, 
                                 save_path=None, 
