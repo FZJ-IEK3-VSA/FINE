@@ -515,7 +515,7 @@ class EnergySystemModel:
         return aggregated_esM
             # TODO: write esM_aggregated back to "self" instead of returning a new esM_aggregated instance
 
-    def aggregateTemporally(self, 
+    def cluster(self,                #TODO: change this to 'aggregateTemporally', then change it everywhere it is called 
                 numberOfTypicalPeriods=7, 
                 numberOfTimeStepsPerPeriod=24, 
                 segmentation=False,
