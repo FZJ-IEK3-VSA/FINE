@@ -18,7 +18,15 @@ from FINE import utils
 from FINE.component import Component, ComponentModel
 
 from tsam.timeseriesaggregation import TimeSeriesAggregation
+
+from FINE.IOManagement import dictIO 
 from FINE.IOManagement import xarray_io as xrio
+try:
+    import FINE.spagat.dataset as spd
+    import FINE.spagat.grouping as spg
+    import FINE.spagat.representation as spr 
+except ImportError:
+    warnings.warn('The Spagat python package could not be imported.')
 
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -366,181 +374,159 @@ class EnergySystemModel:
             df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def cluster(                          #NOTE: Your entrypoint in FINE 
-        self,
-        numberOfTypicalPeriods=7,
-        numberOfTimeStepsPerPeriod=24,
-        clusterMethod="hierarchical",   #TODO: rename it to temporalClusterMethod (just like mentioned in the docstring below!)
-        sortValues=True,
-        storeTSAinstance=False,
-        numberOfRegions=None,
-        shapefileFolder=None,
-        inputShapefile=None,
-        spatialClusterMethod="centroid-based",  
-        **kwargs,
-    ):
-        """
-        Clusters the data of all considered components of the EnergySystemModel instance and stores the clustered data in the respective components.
 
-        Depending on the input parameters, both temporal aggregation using the tsam package (cf.
-        https://github.com/FZJ-IEK3-VSA/tsam) as well as spatial aggregation using the SPAGAT package can be conducted. 
+    def aggregateSpatially(self, 
+                        shapefilePath, 
+                        grouping_mode='all_variable_based', 
+                        nRegionsForRepresentation=2,
+                        aggregatedResultsPath=None,
+                        **kwargs): 
+        """Spatially clusters the data of all components considered in the Energy System Model (esM) instance 
+        and returns a new esM instance with the aggregated data. 
+
+        :param shapefilePath: Indicates FULL path to the shapefile 
+        :type shapefileFolder: string   
+
+        **Default arguments:**   
         
-        Additional keyword arguments for the TimeSeriesAggregation and SpatialAggregation instance
-        can be added (facilitated by kwargs). As an example: it might be useful to add extreme periods to the
-        clustered typical periods.
+        :param grouping_mode: Defines how to spatially group the regions. 
+        Refer to grouping.py for more information.
+            |br| * the default value is 'all_variable_based'
+        :type grouping_mode: string, Options - 'string_based', 'distance_based', 'all_variable_based'
 
-        Further information on the temporal and spatial aggregation can be found in the respective methods in this EnergySystemModel.
+        :param nRegionsForRepresentation: Indicates the number of regions chosen for representation of data. 
+        If 'distance_based' or 'all_variable_based' is chosen for `grouping_mode`, grouping is performed for 
+        1 to number of regions initially present in the `esM`. Here, the number of groups finally chosen for 
+        representation of data is to be specified. This parameter is irrelevant if `grouping_mode` is 
+        'string_based'.
+            |br| * the default value is 2
+        :type nRegionsForRepresentation: strictly positive integer, None
 
-        **Default arguments:**
-
-        :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
-            should be clustered. The number of time steps per period must be an integer multiple of the total
-            number of considered time steps in the energy system.
-            Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
-            information.
-            |br| * the default value is 7
-        :type numberOfTypicalPeriods: strictly positive integer
-
-        :param numberOfTimeStepsPerPeriod: states the number of time steps per period
-            |br| * the default value is 24
-        :type numberOfTimeStepsPerPeriod: strictly positive integer
-
-        :param temporalClusterMethod: states the method which is used in the tsam package for clustering the time series
-            data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
-            Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.
-            |br| * the default value is 'hierarchical'
-        :type temporalClusterMethod: string
-
-        :param sortValues: states if the algorithm in the tsam package should use
-            (a) the sorted duration curves (-> True) or
-            (b) the original profiles (-> False)
-            of the time series data within a period for clustering.
-            Note: Please refer to the tsam package documentation of the parameter sortValues for more information.
-            |br| * the default value is True
-        :type sortValues: boolean
-
-        :param storeTSAinstance: states if the TimeSeriesAggregation instance created during clustering should be
-            stored in the EnergySystemModel instance.
-            |br| * the default value is False
-        :type storeTSAinstance: boolean
-
-        :param numberOfRegions: states the number of regions into which the spatial data
-            should be clustered.
-            Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
-            information.
+        :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved. 
+        If None, results are not saved.  
             |br| * the default value is None
-        :type numberOfTypicalPeriods: strictly positive integer, None
+        :type shapefileFolder: string, None
 
-        :param shapefileFolder: indicate the path to the folder where the input and aggregated shapefiles shall be located 
-            |br| * the default value is None
-        :type shapefileFolder: string
+        Additional keyword arguments can be added passed via kwargs.
 
-        :param inputShapefile: indicate the filename of the input shapefile located in the shapefileFolder 
-            |br| * the default value is None
-        :type inputShapefile: string
-
-        :param spatialClusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
-            data. Options are for example 'centroid-based'.
-            Note: Please refer to the SPAGAT package documentation of the parameter clusterMethod for more information.
-            |br| * the default value is 'centroid-based'
-        :type spatialClusterMethod: string
-
-
-        Last edited: August 10, 2018
-        |br| @author: Lara Welder
-        """
-
-        # spatially aggregate esM data
-        if numberOfRegions is None:
-            pass
-        else:
-            self.spatial_aggregation(
-                numberOfRegions=numberOfRegions,
-                clusterMethod=spatialClusterMethod,
-                shapefileFolder=shapefileFolder,
-                inputShapefile=inputShapefile,
-                **kwargs,
-            )
-
-        # temporally aggregate esM data
-        if numberOfTypicalPeriods is None:
-            # currently, numberOfTypicalPeriods is set to 7 by default due to backwards compatibility reasons
-            # TODO: set default value to None and check, which examples fail / take longer
-            pass
-        else:
-            self.temporal_aggregation(
-                numberOfTypicalPeriods=numberOfTypicalPeriods,
-                numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
-                clusterMethod=clusterMethod,
-                sortValues=sortValues,
-                storeTSAinstance=storeTSAinstance,
-                **kwargs,
-            )
-
-    def spatial_aggregation(                                      
-        self,
-        numberOfRegions,
-        clusterMethod="centroid-based",
-        shapefileFolder=None,
-        inputShapefile="clusteredRegions.shp",
-        **kwargs,
-    ): 
-        """Clusters the spatial data of all components considered in the EnergySystemModel instance and returns a new esM instance with the aggregated data.        
-        
-        Additional keyword arguments for the SpatialAggregation instance can be added (facilitated by kwargs). 
-        
-        Please refer to the SPAGAT package documentation for more information.
-
-        :param numberOfRegions: states the number of regions into which the spatial data
-            should be clustered.
-            Note: Please refer to the SPAGAT package documentation of the parameter numberOfRegions for more
-            information.
-            |br| * the default value is None
-        :type numberOfRegions: strictly positive integer, None
-
-        **Default arguments:**
-
-        :param shapefileFolder: indicate the path to the folder where the input and aggregated shapefiles shall be located 
-            |br| * the default value is None
-        :type shapefileFolder: string
-
-        :param inputShapefile: indicate the filename of the input shapefile located in the shapefileFolder 
-            |br| * the default value is None
-        :type inputShapefile: string
-
-        :param spatialClusterMethod: states the method which is used in the SPAGAT package for clustering the spatial
-            data. Options are for example 'centroid-based'.
-            Note: Please refer to the SPAGAT package documentation of the parameter clusterMethod for more information.
-            |br| * the default value is 'centroid-based'
-        :type spatialClusterMethod: string
-        """
-
-        shapefilePath = os.path.join(shapefileFolder, inputShapefile)
+        :returns: Aggregated esM instance 
+        """    
+        #STEP 1. Read in the shapefile 
         gdfRegions = gpd.read_file(shapefilePath)
 
-        esM_aggregated = xrio.spatial_aggregation(
-            self,
-            numberOfRegions=numberOfRegions,
-            gdfRegions=gdfRegions,
-            clusterMethod="centroid-based",
-            aggregatedShapefileFolderPath=shapefileFolder,
-            **kwargs,
-        )
+        #STEP 2. Obtain xr dataset from esM 
+        sds = spd.SpagatDataset()
+        esm_dict, comp_dict = dictIO.exportToDict(self)
+        sds.xr_dataset = xrio.dimensional_data_to_xarray_dataset(esm_dict, comp_dict)
+        
+        #STEP 3. Add shapefile information to sds
+        sds.add_objects(description='gpd_geometries',
+                        dimension_list=['space'],
+                        object_list=gdfRegions.geometry)
+        spr.add_region_centroids(sds, spatial_dim='space')
+        
+        #STEP 4. Spatial grouping
+        if grouping_mode == 'string_based':
+            print('Performing string-based clustering on the regions')
+            locations = sds.xr_dataset.space.values
+            aggregation_dict = spg.string_based_clustering(locations)
 
-        return esM_aggregated
+        elif grouping_mode == 'distance_based':
+            agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical')  #TODO: some of the parameters and their default values are repeating in
+            print(f'Performing distance-based clustering on the regions. Clustering mode: {agg_mode}')
 
-        # TODO: write esM_aggregated back to "self" instead of returning a new esM_aggregated instance
+            dimension_description = kwargs.get('dimension_description', 'space') # 'all_variable_based'. Maybe make it common 
+            ax_illustration = kwargs.get('ax_illustration', None) 
+            save_path = kwargs.get('save_path', None) 
+            fig_name = kwargs.get('fig_name', None)
+            verbose = kwargs.get('verbose', False)
 
-    def temporal_aggregation(self, numberOfTypicalPeriods=7, numberOfTimeStepsPerPeriod=24, 
+            aggregation_dict = spg.distance_based_clustering(sds, 
+                                                            agg_mode, 
+                                                            dimension_description, 
+                                                            ax_illustration, 
+                                                            save_path,
+                                                            fig_name, 
+                                                            verbose)
+
+        elif grouping_mode == 'all_variable_based':
+            agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical') 
+            print(f'Performing all variable-based clustering on the regions. Clustering mode: {agg_mode}')
+
+            dimension_description = kwargs.get('dimension_description', 'space') 
+            ax_illustration = kwargs.get('ax_illustration', None) 
+            save_path = kwargs.get('save_path', None) 
+            fig_name = kwargs.get('fig_name', None)
+            verbose = kwargs.get('verbose', False)
+            weighting = kwargs.get('weighting', None)
+
+            aggregation_dict = spg.all_variable_based_clustering(sds, 
+                                                                agg_mode,
+                                                                dimension_description,
+                                                                ax_illustration, 
+                                                                save_path, 
+                                                                fig_name,  
+                                                                verbose,
+                                                                weighting)
+        
+        #STEP 5. Representation of the new regions
+        if grouping_mode == 'string_based':
+            sub_to_sup_region_id_dict = aggregation_dict #INFO: Not a nested dict for different #regions
+        else:
+            sub_to_sup_region_id_dict = aggregation_dict[nRegionsForRepresentation]
+        
+        if 'aggregation_function_dict' not in kwargs:
+            aggregation_function_dict = None
+        else: 
+            print('aggregation_function_dict found in kwargs')
+            aggregation_function_dict = kwargs.get('aggregation_function_dict')
+            if aggregation_function_dict != None:
+                aggregation_function_dict = {f"{dimension}_{key}": value      #INFO: xarray dataset has prefix 1d_ and 2d_. Therefore, in order to match that,the prefix is added here for each variable  
+                                                for key, value in aggregation_function_dict.items()
+                                                    for dimension in ["1d", "2d"]}
+        
+        spatial_dim = kwargs.get('spatial_dim', 'space')
+        time_dim = kwargs.get('time_dim', 'TimeStep')
+        
+        aggregated_sds = spr.aggregate_based_on_sub_to_sup_region_id_dict(sds,
+                                                                    sub_to_sup_region_id_dict,
+                                                                    aggregation_function_dict,
+                                                                    spatial_dim,        #TODO: check how useful these parameters would be, 
+                                                                    time_dim)       # if you decide to keep them, make it uniform, 
+                                                                                                # ex.: in grouping functions, spatial_dim is called dimension_description
+        
+        #STEP 6. Obtain aggregated esM
+        new_esm_dict, new_comp_dict = xrio.update_dicts_based_on_xarray_dataset(esm_dict, 
+                                                                        comp_dict, 
+                                                                        xarray_dataset=aggregated_sds.xr_dataset)
+        
+        aggregated_esM = dictIO.importFromDict(new_esm_dict, new_comp_dict)
+        
+        #STEP 7. Save shapefiles and aggregated data if user chooses
+        if aggregatedResultsPath is not None:   #TODO: test if they are saved as intented 
+            sds_region_filename = kwargs.get('sds_region_filename', 'sds_regions.shp') 
+            sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')
+            
+            aggregated_sds.save_sds(aggregatedResultsPath,
+                        sds_region_filename,
+                        sds_xr_dataset_filename)
+            
+
+        return aggregated_esM
+            # TODO: write esM_aggregated back to "self" instead of returning a new esM_aggregated instance
+
+    def aggregateTemporally(self, 
+                numberOfTypicalPeriods=7, 
+                numberOfTimeStepsPerPeriod=24, 
                 segmentation=False,
                 numberOfSegmentsPerPeriod=24, 
-                clusterMethod='hierarchical',
-                sortValues=True, storeTSAinstance=False, **kwargs):
+                clusterMethod='hierarchical', 
+                sortValues=True, 
+                storeTSAinstance=False,
+                **kwargs):
         """
-        Cluster the time series data of all components considered in the EnergySystemModel instance and then
-        stores the clustered data in the respective components. 
-        
-        For this, the time series data is broken down
+        Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
+        stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
         days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
         time steps with an irregular duration using the segmentation option.
@@ -684,6 +670,8 @@ class EnergySystemModel:
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
         utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", self.verbose, 0)
+
+
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """
