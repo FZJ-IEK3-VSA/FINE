@@ -10,9 +10,9 @@ def getData():
    
     data = {}
     
-    inProfile = pd.read_excel(inProfileDataPath, index_col=0)
-    outProfile = pd.read_excel(outProfileDataPath, index_col=0)
-    esMaxCap = pd.read_excel(esDataPath, index_col=0)
+    inProfile = pd.read_excel(inProfileDataPath, index_col=0, engine='openpyxl')
+    outProfile = pd.read_excel(outProfileDataPath, index_col=0, engine='openpyxl')
+    esMaxCap = pd.read_excel(esDataPath, index_col=0, engine='openpyxl')
     
     # Onshore data
    
