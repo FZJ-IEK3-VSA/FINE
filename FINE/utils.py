@@ -675,6 +675,39 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     return _data
 
 
+def checkAndSetTimeSeriesConversionFactors(esM, commodityConversionFactorsTimeSeries, locationalEligibility):
+    if commodityConversionFactorsTimeSeries is not None:
+        if not isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
+            if len(esM.locations) == 1:
+                if isinstance(commodityConversionFactorsTimeSeries, pd.Series):
+                    commodityConversionFactorsTimeSeries = pd.DataFrame(commodityConversionFactorsTimeSeries.values, index=commodityConversionFactorsTimeSeries.index,
+                                                                        columns=list(esM.locations))
+                else:
+                    raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame or Series')
+            else:
+                raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame')
+
+        checkTimeSeriesIndex(esM, commodityConversionFactorsTimeSeries)
+
+        checkRegionalColumnTitles(esM, commodityConversionFactorsTimeSeries)
+
+        if locationalEligibility is not None and commodityConversionFactorsTimeSeries is not None:
+            # Check if given conversion factors indicate the same eligibility
+            data = commodityConversionFactorsTimeSeries.copy().sum().abs()
+            data[data > 0] = 1
+            if (data.sort_index() > locationalEligibility.sort_index()).any().any():
+                warnings.warn('The locationalEligibility and commodityConversionFactorsTimeSeries parameters '
+                                'indicate different eligibilities.')
+
+        commodityConversionFactorsTimeSeries = commodityConversionFactorsTimeSeries.copy()
+        commodityConversionFactorsTimeSeries["Period"], commodityConversionFactorsTimeSeries["TimeStep"] = 0, commodityConversionFactorsTimeSeries.index
+
+        return commodityConversionFactorsTimeSeries.set_index(['Period', 'TimeStep'])
+
+    else:
+        return None
+
+
 def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalEligibility):
     if data is None:
         return None
@@ -1158,4 +1191,3 @@ def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
     """
     if CO2ReductionTargets is not None: 
         setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', CO2Reference*(1-CO2ReductionTargets[step]/100))
-

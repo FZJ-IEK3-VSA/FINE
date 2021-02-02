@@ -63,8 +63,9 @@ class Conversion(Component):
         :param commodityConversionFactors: conversion factors with which commodities are converted into each
             other with one unit of operation (dictionary). Each commodity which is converted in this component
             is indicated by a string in this dictionary. The conversion factor related to this commodity is
-            given as a float. A negative value indicates that the commodity is consumed. A positive value
-            indicates that the commodity is produced. Check unit consistency when specifying this parameter!
+            given as a float (constant), pandas.Series or pandas.DataFrame (time-variable). A negative value 
+            indicates that the commodity is consumed. A positive value indicates that the commodity is produced.
+            Check unit consistency when specifying this parameter!
             Examples:\n
             * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
               of 70%. The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is
@@ -75,7 +76,7 @@ class Conversion(Component):
             GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
             -> the commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.\n
         :type commodityConversionFactors: dictionary, assigns commodities (string) to a conversion factors
-            (float)
+            (float, pandas.Series or pandas.DataFrame)
 
         **Default arguments:**
 
@@ -152,7 +153,15 @@ class Conversion(Component):
         utils.checkCommodityUnits(esM, physicalUnit)
         if linkedConversionCapacityID is not None:
             utils.isString(linkedConversionCapacityID)
+
         self.commodityConversionFactors = commodityConversionFactors
+        self.fullCommodityConversionFactors = {}
+        self.aggregatedCommodityConversionFactors = {}
+        for commod in self.commodityConversionFactors:
+            if not isinstance(commodityConversionFactors[commod], (int, float)):
+                self.fullCommodityConversionFactors[commod] = utils.checkAndSetTimeSeriesConversionFactors(esM, self.commodityConversionFactors[commod], self.locationalEligibility)
+                self.aggregatedCommodityConversionFactors[commod], self.commodityConversionFactors[commod] = None, None
+
         self.physicalUnit = physicalUnit
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
@@ -211,12 +220,18 @@ class Conversion(Component):
         """
         self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
         self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
+        for commod in self.fullCommodityConversionFactors:
+            self.commodityConversionFactors[commod] = self.aggregatedCommodityConversionFactors[commod] if hasTSA else self.fullCommodityConversionFactors[commod]
 
     def getDataForTimeSeriesAggregation(self):
         """ Function for getting the required data if a time series aggregation is requested. """
         weightDict, data = {}, []
         weightDict, data = self.prepareTSAInput(self.fullOperationRateFix, self.fullOperationRateMax,
                                                 '_operationRate_', self.tsaWeight, weightDict, data)
+        for commod in self.fullCommodityConversionFactors:
+            weightDict, data = self.prepareTSAInput(self.fullCommodityConversionFactors[commod], None,
+                                                    '_commodityConversionFactorTimeSeries' + str(commod) + '_',
+                                                    self.tsaWeight, weightDict, data)
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data):
@@ -228,6 +243,8 @@ class Conversion(Component):
         """
         self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
         self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
+        for commod in self.fullCommodityConversionFactors:
+            self.aggregatedCommodityConversionFactors[commod] = self.getTSAOutput(self.fullCommodityConversionFactors[commod], '_commodityConversionFactorTimeSeries'+ str(commod) + '_', data)
 
 
 class ConversionModel(ComponentModel):
@@ -433,14 +450,23 @@ class ConversionModel(ComponentModel):
         :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
         :param commod: string
         """
-        return any([(commod in comp.commodityConversionFactors and comp.commodityConversionFactors[commod] != 0)
+        return any([(commod in comp.commodityConversionFactors and (comp.commodityConversionFactors[commod] is not
+                                                                    None))
                     and comp.locationalEligibility[loc] == 1 for comp in self.componentsDict.values()])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
         """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
-        return sum(opVar[loc, compName, p, t] * compDict[compName].commodityConversionFactors[commod]
+
+        def getFactor(commodCommodityConversionFactors, loc, p, t):
+            if isinstance(commodCommodityConversionFactors, (int, float)):
+                return commodCommodityConversionFactors
+            else:
+                return commodCommodityConversionFactors[loc][p,t]
+
+        return sum(opVar[loc, compName, p, t] * getFactor(compDict[compName].commodityConversionFactors[commod], loc,
+                                                          p, t)
                    for compName in opVarDict[loc] if commod in compDict[compName].commodityConversionFactors)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
