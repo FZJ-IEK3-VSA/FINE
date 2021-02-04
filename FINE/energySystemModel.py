@@ -601,6 +601,8 @@ class EnergySystemModel:
         Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
         salt cavern storing methane and salt caverns storing hydrogen.
 
+        .. math:: \underset{\text{comp} \in \mathcal{C}^{ID}}{\sum} \text{cap}^{comp}_{loc} \text{capMax}^{comp}_{loc} \leq 1 
+
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
@@ -671,6 +673,8 @@ class EnergySystemModel:
     def declareCommodityBalanceConstraints(self, pyM):
         """
         Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
+
+        ..nath:: \underset{comp \in \mathcal{C}^{comm}_{loc}}{\sum} \text{C}^{comp,comm}_{loc,p,t} = 0 
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.

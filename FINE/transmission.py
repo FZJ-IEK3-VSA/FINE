@@ -336,6 +336,7 @@ class TransmissionModel(ComponentModel):
         """
         Ensure that the capacity between location_1 and location_2 is the same as the one
         between location_2 and location_1.
+        .. math:: cap^{comp}_{(loc_1,loc_2)} = cap^{comp}_{loc_2,loc_1)} 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -354,6 +355,8 @@ class TransmissionModel(ComponentModel):
         Since the flow should either go in one direction or the other, the limitation can be enforced on the sum
         of the forward and backward flow over the line. This leads to one of the flow variables being set to zero
         if a basic solution is obtained during optimization.
+        
+        .. math:: op^{comp,op}_{(loc_1,loc_2),p,t} + op^{op}_{(loc_2,loc_1),p,t} \leq \tau^{hours} \cdot \text{cap}^{comp}_{l_{in},l_{out})}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel

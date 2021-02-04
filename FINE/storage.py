@@ -516,6 +516,9 @@ class StorageModel(ComponentModel):
         discharging (considering the efficiencies of these processes) within the time step in between minus
         the self-discharge of the storage.
 
+        .. math:: SoC^{comp}_{loc,p,t+1} - \left( SoC^{comp}_{loc,p,t} \left( 1 - \eta^{self-discharge} \right)^{\frac{\tau^{hours}}{h}} \right. \nonumber\\ 
+&& \left. + op^{comp,charge}_{loc,p,t} \eta^{charge} - op^{comp,discharge}_{loc,p,t}/ \eta^{discharge} \right) = 0        
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
@@ -544,6 +547,8 @@ class StorageModel(ComponentModel):
         """
         Declare the constraint for connecting the states of charge: the state of charge at the beginning of a period
         has to be the same as the state of charge in the end of that period.
+
+        .. math:: SoC^{comp,inter}_{loc,p} + SoC^{comp}_{loc,p,0} = SoC^{comp,inter}_{loc,p} 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -577,6 +582,8 @@ class StorageModel(ComponentModel):
         """
         Declare the constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime.
 
+        .. math:: op^{charge}_{loc,annual} \leq \left( \text{SoC}^{max} - \text{SoC}^{min} \right) \cdot cap^{comp}_{loc} \cdot \frac{t^{ \text{c,cyclic lifetime}}}{\tau^{ \text{c,economic lifetime}}_{l}} \nonumber\\ \text{with} \nonumber \\ && op^{comp,charge}_{loc,annual} = \sum_{(p,t) \in \mathcal{P} \times \mathcal{T}} op^{comp,charge}_{loc,p,t} \cdot freq(p)/\tau^{years}\\
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
@@ -600,6 +607,9 @@ class StorageModel(ComponentModel):
         Declare the constraint that the state of charge at the end of each period has to be equivalent to the state of
         charge of the period before it (minus its self discharge) plus the change in the state of charge which
         happened during the typical period which was assigned to that period.
+
+        .. math:: SoC^{inter}_{loc,p+1} - SoC^{inter}_{loc,p} \cdot \left( 1 - \eta^{self-discharge} \right)^{\frac{t^{\text{per period}} \cdot \tau^{hours}}{h}} \nonumber\\ +SoC^{comp}_{loc,map(p),t^{\text{per period}}} = 0
+        .. math:: SoC^{comp}_{loc,0,0} \quad = SoC^{comp}_{loc,0,t^{total}} \quad \text{ with full temporal resolution}$ \\ \label{eqn: energySystem_model_1:con2_8} SoC^{comp,inter}_{loc,0} = SoC^{comp,inter}_{loc,p^{total}} 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -635,6 +645,8 @@ class StorageModel(ComponentModel):
         """
         Declare the constraint that the (virtual) state of charge at the beginning of a typical period is zero.
 
+        .. math:: SoC^{comp}_{loc,p,0} = 0 
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
@@ -654,6 +666,8 @@ class StorageModel(ComponentModel):
         """
         Declare the constraint that, if periodic storage is selected, the states of charge between periods
         have the same value.
+
+        .. math:: 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -675,6 +689,8 @@ class StorageModel(ComponentModel):
         Declare the constraint that the state of charge [commodityUnit*h] has to be larger than the
         installed capacity [commodityUnit*h] multiplied with the relative minimum state of charge.
 
+        .. math::  \text{SoC}^{comp,min} \cdot cap^{comp}_{loc} \leq SoC^{comp}_{loc,0,t} \leq \text{SoC}^{comp,max} \cdot cap^{comp}_{loc} 
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
@@ -691,11 +707,19 @@ class StorageModel(ComponentModel):
         Simplified version of the state of charge limitation control.
         The error compared to the precise version is small in cases of small selfDischarge.
 
+        .. math:: SoC^{comp,min} \cdot cap^{comp}_{loc} \leq \underline{\text{SoC}}^{comp,sup}_{loc,p,t}
+        .. math:: \overline{\text{SoC}}^{comp,sup}_{loc,p,t} \leq \text{SoC}^{comp,max} \cdot cap^{comp}_{loc} 
+        .. math:: \text{with}
+        .. math:: \underline{\text{SoC}}^{comp,sup}_{loc,p,t} = SoC^{comp,inter}_{loc,p} \cdot (1 - \eta^{\text{self-discharge}})^{\frac{t^{\text{per period}} \cdot \tau^{hours}}{h}}+ SoC^{comp,min}_{loc,map(p)}
+        .. math:: \overline{\text{SoC}}^{comp,sup}_{loc,p,t} = SoC^{comp,inter}_{loc,p} + SoC^{comp,max}_{loc,map(p)}
+        .. math:: SoC^{comp,min}_{loc,\overline{p}} \leq SoC^{comp}_{loc,\overline{p},t} \leq SoC^{comp,max}_{loc,\overline{p}}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSimpleSet = getattr(pyM, 'varSetSimple_' + abbrvName)
@@ -751,6 +775,8 @@ class StorageModel(ComponentModel):
         Declare the constraint that the state of charge [commodityUnit*h] is limited by the installed capacity
         [commodityUnit*h] and the relative maximum state of charge [-].
 
+        .. math:: \text{SoC}^{comp,min} \cdot cap^{comp}_{loc} \leq SoC^{comp}_{loc,0,t} \leq \text{SoC}^{comp,max} \cdot cap^{comp}_{loc}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
@@ -772,6 +798,10 @@ class StorageModel(ComponentModel):
         """
         Declare the constraint that the state of charge [commodityUnit*h] is limited by the installed capacity
         # [commodityUnit*h] and the relative maximum state of charge [-].
+
+        .. math:: \text{SoC}^{comp,min} \cdot cap^{comp}_{loc} \leq SoC^{comp,sup}_{loc,p,t} \leq \text{SoC}^{comp,max} \cdot cap^{comp}_{loc}\\
+            \text{with} \\
+            \text{SoC}^{comp,sup}_{loc,p,t} = SoC^{comp,inter}_{loc,p} \cdot (1 - \eta^{\text{self-discharge}})^{\frac{t \cdot \tau^{hours}}{h}} + SoC^{comp}_{loc,map(p),t} 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -806,6 +836,8 @@ class StorageModel(ComponentModel):
         """
         Declare the constraint that the state of charge [commodityUnit*h] at each time step cannot be smaller
         than the installed capacity [commodityUnit*h] multiplied with the relative minimum state of charge [-].
+
+        .. math::
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
