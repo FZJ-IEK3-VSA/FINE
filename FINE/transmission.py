@@ -336,7 +336,10 @@ class TransmissionModel(ComponentModel):
         """
         Ensure that the capacity between location_1 and location_2 is the same as the one
         between location_2 and location_1.
-        .. math:: cap^{comp}_{(loc_1,loc_2)} = cap^{comp}_{loc_2,loc_1)} 
+        
+        .. math:: 
+            
+            cap^{comp}_{(loc_1,loc_2)} = cap^{comp}_{loc_2,loc_1)} 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -356,7 +359,9 @@ class TransmissionModel(ComponentModel):
         of the forward and backward flow over the line. This leads to one of the flow variables being set to zero
         if a basic solution is obtained during optimization.
         
-        .. math:: op^{comp,op}_{(loc_1,loc_2),p,t} + op^{op}_{(loc_2,loc_1),p,t} \leq \tau^{hours} \cdot \text{cap}^{comp}_{l_{in},l_{out})}
+        .. math:: 
+            
+            op^{comp,op}_{(loc_1,loc_2),p,t} + op^{op}_{(loc_2,loc_1),p,t} \leq \tau^{hours} \cdot \text{cap}^{comp}_{l_{in},l_{out})}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -458,7 +463,15 @@ class TransmissionModel(ComponentModel):
                     for comp in self.componentsDict.values() for loc_ in esM.locations])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
+        """ 
+        Get contribution to a commodity balance. 
+        
+        .. math::
+            
+            \text{C}^{comp,comm}_{loc,p,t} = && \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),p,t} \qquad \\
+            &&  -\\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),p,t} \\
+            
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
         opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
