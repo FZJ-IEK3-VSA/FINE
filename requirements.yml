@@ -23,9 +23,9 @@ dependencies:
 - scikit-learn
 - xarray
 - dask
-- wquantiles
 - statsmodels
 - seaborn
 - conda-forge::rasterio
 - pip:
     - tsam
+    - wquantiles

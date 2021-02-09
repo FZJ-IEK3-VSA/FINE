@@ -14,6 +14,6 @@ openpyxl
 netcdf4
 xarray
 dask
-wquantiles
+wquantiles==0.5
 statsmodels
 seaborn
