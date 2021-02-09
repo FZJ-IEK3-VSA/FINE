@@ -635,7 +635,7 @@ def all_variable_based_clustering(sds, agg_mode='sklearn_hierarchical',
         silhouette_scores = []
 
         #STEP 2. Clustering for every number of regions from 1 to one less than n_regions 
-        for i in range(1,n_regions):           #NOTE: each level in the hierarchy shows one merge. Looks like her it does not. 
+        for i in range(1,n_regions):           #NOTE: each level in the hierarchy shows one merge. Looks like here it does not. 
                                                 #Hence, for loop is used to perform clustering for every number of desired regions 
                                                 #TODO: maybe investigate this?
 
