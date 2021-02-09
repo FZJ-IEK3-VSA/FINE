@@ -1112,7 +1112,7 @@ class EnergySystemModel:
             optimizer.options['timelimit'] = timeLimit
 
         # Set the specified solver options
-        if 'LogToConsole=' not in optimizationSpecs:
+        if 'LogToConsole=' not in optimizationSpecs and solver == "gurobi":
             if self.verbose == 2:
                 optimizationSpecs += ' LogToConsole=0'
 
@@ -1120,6 +1120,9 @@ class EnergySystemModel:
         if solver=='gurobi':
             optimizer.set_options('Threads=' + str(threads) + ' logfile=' + logFileName + ' ' + optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
+        elif solver=="glpk":
+            optimizer.set_options(optimizationSpecs)
+            solver_info = optimizer.solve(self.pyM, tee=True)
         else:
             solver_info = optimizer.solve(self.pyM, tee=True)
         self.solverSpecs['solvetime'] = time.time() - timeStart
@@ -1168,5 +1171,3 @@ class EnergySystemModel:
 
         # Store the objective value in the EnergySystemModel instance.
         self.objectiveValue = self.pyM.Obj()
-
-        
