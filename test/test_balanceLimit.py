@@ -414,7 +414,7 @@ def test_CO2Limit():
                            for day in range(ndays) for u in dailyProfileSimple],
                           index=range(nhours), columns=['Region1', 'Region2']).round(2)
 
-    #  Define CO2-Limit with balanceLimitConstraint (sink are defined negative)
+    # 1) Define CO2-Limit with balanceLimitConstraint (sink are defined negative)
     CO2_limit = pd.Series(index=["CO2 limit"])
     CO2_limit.loc["CO2 limit"] = -1*demand.sum().sum()*0.6*201 * 1e-6 / 0.6
 
