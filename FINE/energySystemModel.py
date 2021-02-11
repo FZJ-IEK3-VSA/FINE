@@ -70,7 +70,7 @@ class EnergySystemModel:
                  costUnit='1e9 Euro',
                  lengthUnit='km',
                  verboseLogLevel=0,
-                 flowLimit=None,
+                 balanceLimit=None,
                  lowerBound=False):
         """
         Constructor for creating an EnergySystemModel class instance
@@ -131,22 +131,41 @@ class EnergySystemModel:
             |br| * the default value is 0
         :type verboseLogLevel: integer (0, 1 or 2)
 
-        :param flowLimit: defines the flowLimit constraint for specific regions. Can be specified by a pd.Dataframe,
-            the limit is given in the commodities' unit. Possible included components are
-            SourceSinkModel (e.g.: Purchase) and TransmissionModel (i.e.: exchange with other regions).
+        :param balanceLimit: defines the balanceLimit constraint (various different balanceLimitIDs possible)
+            for specific regions or the whole model. The balancelimitID can be assigned to various components
+            of e.g. SourceSinkModel or TransmissionModel to limit the balance of production, consumption and im/export.
+            If the balanceLimit is passed as pd.Series it will apply to the overall model, if it is passed
+            as pd.Dataframe each column will apply to one region of the multi-node model. In the latter case,
+            the number and names of the columns should match the regions/region names in the model.
+            Each row contains an individual balanceLimitID as index and the corresponding values for the model
+            (pd.Series) or regions (pd.Dataframe). Values are always given in the unit of the esM commodities unit.
+            Note: If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
+            defined as negative.
             Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
-        :type flowLimit: pd.DataFrame
+            |br| * the default value is None
+        :type balanceLimit: pd.DataFrame or pd.Series
 
-        :param lowerLimit: defines the lower limit constraint for specific regions. Can be specified by a pd.Dataframe,
-            the limit is given in the commodities' unit. Possible included components are
-            SourceSinkModel (e.g.: PV, Wind or Demand).
-            Example: pd.DataFrame(columns=["Region1"], index=["Renewables"], data=[1000])
-        :type flowLimit: pd.DataFrame
+        :param lowerBound: defines whether a lowerBound or an upperBound is considered in the balanceLimitConstraint.
+            By default an upperBound is considered. However, multiple cases can be considered:
+            1) Sources:
+                a) LowerBound=False: UpperBound for commodity from SourceComponent (Define positive value in
+                balanceLimit). Example: Limit CO2-Emission
+                b) LowerBound=True: LowerBound for commodity from SourceComponent (Define positive value in
+                balanceLimit). Example: Require minimum production from renewables.
+            2) Sinks:
+                a) LowerBound=False: UpperBound in a mathematical sense for commodity from SinkComponent
+                (Logically minimum limit for negative values, define negative value in balanceLimit).
+                Example: Minimum export/consumption of hydrogen.
+                b) LowerBound=True: LowerBound in a mathematical sense for commodity from SourceComponent
+                (Logically maximum limit for negative values, define negative value in balanceLimit).
+                Example: Define upper limit for Carbon Capture & Storage.
+            |br| * the default value is False
+        :type lowerBound: bool
         """
 
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numberOfTimeSteps,
-                                          hoursPerTimeStep, costUnit, lengthUnit, flowLimit)
+                                          hoursPerTimeStep, costUnit, lengthUnit, balanceLimit)
 
         ################################################################################################################
         #                                        Spatial resolution parameters                                         #
@@ -156,10 +175,10 @@ class EnergySystemModel:
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
-        # The flowLimit can be used to limit certain flowLimitIDs defined in the components.
+        # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
         self.locations, self.lengthUnit = locations, lengthUnit
         self.numberOfTimeSteps = numberOfTimeSteps
-        self.flowLimit = flowLimit
+        self.balanceLimit = balanceLimit
         self.lowerBound = lowerBound
 
         ################################################################################################################
@@ -609,13 +628,15 @@ class EnergySystemModel:
         pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
         pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
 
-    def declareFlowLimitConstraint(self, pyM, timeSeriesAggregation):
+    def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
         """
-        Declare net autarky (or balanced autarky) constraint.
+        Declare balance limit constraint.
 
-        Net autarky constraint or balanced autarky refers to a concept in which sold and purchased commodities are
-        considered with the following equation: E_purchase - E_sold + E_exchange,out - E_exchange,in <= E_lim.
-        The netAutarkyConstraint is defined for specific regions.
+        Balance limit constraint can limit the exchange of commodities within the model or over the model region
+        boundaries. See the documentation of the parameters for further explanation. In general the following equation
+        applies:
+            E_source - E_sink + E_exchange,in - E_exchange,out <= E_lim (self.LowerBound=False)
+            E_source - E_sink + E_exchange,in - E_exchange,out >= E_lim (self.LowerBound=True)
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -626,62 +647,56 @@ class EnergySystemModel:
             (b) clustered time series data (True).
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
-
-        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-            (a) the full time series (False) or
-            (b) clustered time series data (True).
-            |br| * the default value is False
-        :type timeSeriesAggregation: boolean
         """
-        flowLimitDict = {}
+        balanceLimitDict = {}
         # 2 differentiations (or 4 cases). 1st: Locational or not; 2nd: lowerBound or not (lower bound)
         # DataFrame with locational input. Otherwise error is thrown in input check.
-        if type(self.flowLimit) == pd.DataFrame:
+        if type(self.balanceLimit) == pd.DataFrame:
             for mdl_type, mdl in self.componentModelingDict.items():
                 if mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel":
                     for compName, comp in mdl.componentsDict.items():
-                        if comp.flowLimitID is not None:
-                            [flowLimitDict.setdefault((comp.flowLimitID, loc), []).append(compName)
+                        if comp.balanceLimitID is not None:
+                            [balanceLimitDict.setdefault((comp.balanceLimitID, loc), []).append(compName)
                              for loc in self.locations]
-            setattr(pyM, "flowLimitDict", flowLimitDict)
+            setattr(pyM, "balanceLimitDict", balanceLimitDict)
 
-            def flowLimitConstraint(pyM, ID, loc):
+            def balanceLimitConstraint(pyM, ID, loc):
                 # Check whether we want to consider an upper or lower bound.
                 if not self.lowerBound:
-                    return sum(mdl.getFlowLimitContribution(esM=self, pyM=pyM, ID=ID, loc=loc,
-                                                          timeSeriesAggregation=timeSeriesAggregation)
-                        for mdl_type, mdl in self.componentModelingDict.items() if (
+                    return sum(mdl.getBalanceLimitContribution(esM=self, pyM=pyM, ID=ID,
+                                                               timeSeriesAggregation=timeSeriesAggregation, loc=loc)
+                               for mdl_type, mdl in self.componentModelingDict.items() if (
                             mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel")
-                            ) <= self.flowLimit.loc[ID, loc]
+                               ) <= self.balanceLimit.loc[ID, loc]
                 else:
-                    return sum(mdl.getFlowLimitContribution(esM=self, pyM=pyM, ID=ID, loc=loc,
-                                                          timeSeriesAggregation=timeSeriesAggregation)
-                        for mdl_type, mdl in self.componentModelingDict.items() if (
+                    return sum(mdl.getBalanceLimitContribution(esM=self, pyM=pyM, ID=ID,
+                                                               timeSeriesAggregation=timeSeriesAggregation, loc=loc)
+                               for mdl_type, mdl in self.componentModelingDict.items() if (
                             mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel")
-                            ) >= self.flowLimit.loc[ID, loc]
+                               ) >= self.balanceLimit.loc[ID, loc]
         # Series as input. Whole model is considered.
         else:
             for mdl_type, mdl in self.componentModelingDict.items():
                 if mdl_type=="SourceSinkModel":
                     for compName, comp in mdl.componentsDict.items():
-                        if comp.flowLimitID is not None:
-                            flowLimitDict.setdefault((comp.flowLimitID), []).append(compName)
-            setattr(pyM, "flowLimitDict", flowLimitDict)
+                        if comp.balanceLimitID is not None:
+                            balanceLimitDict.setdefault((comp.balanceLimitID), []).append(compName)
+            setattr(pyM, "balanceLimitDict", balanceLimitDict)
 
-            def flowLimitConstraint(pyM, ID):
+            def balanceLimitConstraint(pyM, ID):
                 # Check wether we want to consider an upper or lower bound
                 if not self.lowerBound:
-                    return sum(mdl.getFlowLimitContribution(esM=self, pyM=pyM, ID=ID,
-                                                          timeSeriesAggregation=timeSeriesAggregation)
-                        for mdl_type, mdl in self.componentModelingDict.items() if (
-                            mdl_type=="SourceSinkModel")) <= self.flowLimit.loc[ID]
-                else:
-                    return sum(mdl.getFlowLimitContribution(esM=self, pyM=pyM, ID=ID,
-                                                          timeSeriesAggregation=timeSeriesAggregation)
+                    return sum(mdl.getBalanceLimitContribution(esM=self, pyM=pyM, ID=ID,
+                                                               timeSeriesAggregation=timeSeriesAggregation)
                                for mdl_type, mdl in self.componentModelingDict.items() if (
-                                       mdl_type == "SourceSinkModel")) >= self.flowLimit.loc[ID]
-        pyM.flowLimitConstraint = \
-            pyomo.Constraint(pyM.flowLimitDict.keys(), rule=flowLimitConstraint)
+                            mdl_type=="SourceSinkModel")) <= self.balanceLimit.loc[ID]
+                else:
+                    return sum(mdl.getBalanceLimitContribution(esM=self, pyM=pyM, ID=ID,
+                                                               timeSeriesAggregation=timeSeriesAggregation)
+                               for mdl_type, mdl in self.componentModelingDict.items() if (
+                                       mdl_type == "SourceSinkModel")) >= self.balanceLimit.loc[ID]
+        pyM.balanceLimitConstraint = \
+            pyomo.Constraint(pyM.balanceLimitDict.keys(), rule=balanceLimitConstraint)
 
     def declareSharedPotentialConstraints(self, pyM):
         """
@@ -883,9 +898,9 @@ class EnergySystemModel:
         self.declareCommodityBalanceConstraints(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
-        # Declare constraint for flowLimit
+        # Declare constraint for balanceLimit
         _t = time.time()
-        self.declareFlowLimitConstraint(pyM, timeSeriesAggregation)
+        self.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
         ################################################################################################################

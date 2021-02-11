@@ -64,7 +64,7 @@ def isEnergySystemModelInstance(esM):
 
 
 def checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numberOfTimeSteps, hoursPerTimeStep,
-                                costUnit, lengthUnit, flowLimit):
+                                costUnit, lengthUnit, balanceLimit):
     """ Check input arguments of an EnergySystemModel instance for value/type correctness. """
 
     # Locations and commodities have to be sets
@@ -84,13 +84,13 @@ def checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numb
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
 
-    # flowLimit has to be DataFrame with locations as columns or Series, if valid for whole model
-    if flowLimit is not None:
-        if not type(flowLimit) == pd.DataFrame and not type(flowLimit) == pd.Series:
-            raise TypeError("The flowLimit input argument has to be a pandas.DataFrame")
-        if type(flowLimit) == pd.DataFrame and set(flowLimit.columns) != locations:
-            raise ValueError('Location indices in the flowLimit do not match the input locations.\n' +
-                             'flowLimit columns: ' + str(set(flowLimit.columns)) + '\n' +
+    # balanceLimit has to be DataFrame with locations as columns or Series, if valid for whole model
+    if balanceLimit is not None:
+        if not type(balanceLimit) == pd.DataFrame and not type(balanceLimit) == pd.Series:
+            raise TypeError("The balanceLimit input argument has to be a pandas.DataFrame or a pd.Series.")
+        if type(balanceLimit) == pd.DataFrame and set(balanceLimit.columns) != locations:
+            raise ValueError('Location indices in the balanceLimit do not match the input locations.\n' +
+                             'balanceLimit columns: ' + str(set(balanceLimit.columns)) + '\n' +
                              'Input regions: ' + str(locations))
 
 def checkTimeUnit(timeUnit):

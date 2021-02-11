@@ -47,7 +47,7 @@ class Source(Component):
                  technicalLifetime=None,
                  yearlyFullLoadHoursMin=None,
                  yearlyFullLoadHoursMax=None,
-                 flowLimitID=None):
+                 balanceLimitID=None):
 
         """
         Constructor for creating an Source class instance.
@@ -171,13 +171,12 @@ class Source(Component):
         :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
 
-        :param flowLimitID: ID for the autarky limit specified in the esM, if the SourceSinkModel is
-            supposed to be included in the autarky analysis.
-        :type flowLimitID: string
-
-        :param lowerLimitID: ID for the lower limit specified in the esM, if the SourceSinkModel is
-            supposed to be included in the lower limit analysis.
-        :type lowerLimitID: string
+        :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
+            Should be specified if the respective component of the SourceSinkModel is supposed to be included in
+            the balance analysis. If the commodity is transported out of the region, it is counted as a negative, if
+            it is imported into the region it is considered positive.
+            |br| * the default value is None
+        :type balanceLimitID: string
         """
 
         Component. __init__(self,
@@ -213,7 +212,7 @@ class Source(Component):
         self.commodity, self.commodityUnit = commodity, esM.commodityUnitsDict[commodity]
         # TODO check value and type correctness
         self.commodityLimitID, self.yearlyLimit = commodityLimitID, yearlyLimit
-        self.flowLimitID = flowLimitID
+        self.balanceLimitID = balanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
@@ -355,7 +354,7 @@ class Sink(Source):
                  interestRate=0.08,
                  economicLifetime=10,
                  technicalLifetime=None,
-                 flowLimitID=None):
+                 balanceLimitID=None):
         """
         Constructor for creating an Sink class instance.
 
@@ -398,7 +397,7 @@ class Sink(Source):
                         interestRate=interestRate,
                         economicLifetime=economicLifetime,
                         technicalLifetime=technicalLifetime,
-                        flowLimitID=flowLimitID)
+                        balanceLimitID=balanceLimitID)
 
         self.sign = -1
 
@@ -611,12 +610,10 @@ class SourceSinkModel(ComponentModel):
         return any([comp.commodity == commod and comp.locationalEligibility[loc] == 1
                     for comp in self.componentsDict.values()])
 
-    def getFlowLimitContribution(self, esM, pyM, ID, timeSeriesAggregation, loc=None):
+    def getBalanceLimitContribution(self, esM, pyM, ID, timeSeriesAggregation, loc=None):
         """
-        Get contribution to autarky constraint.
-
-        Net Autarky or balanced Autarky is regarded (further read in the EnergySystemModel definition), therefore the
-        sum of the operation of a SourceSink component is used as the autarky contribution:
+        Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+        Sum of the operation time series of a SourceSink component is used as the balanceLimit contribution:
         - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
         - A Sink contributes with a negative sign. Example: Sale of electricity
 
@@ -626,20 +623,20 @@ class SourceSinkModel(ComponentModel):
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
 
-        :param ID: ID of the regarded autarky constraint
+        :param ID: ID of the regarded balanceLimitConstraint
         :param ID: string
-
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
             (a) the full time series (False) or
             (b) clustered time series data (True).
         :type timeSeriesAggregation: boolean
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
-        limitDict = getattr(pyM, 'flowLimitDict')
+        limitDict = getattr(pyM, 'balanceLimitDict')
 
         if timeSeriesAggregation:
             periods = esM.typicalPeriods
@@ -649,20 +646,20 @@ class SourceSinkModel(ComponentModel):
             timeSteps = esM.totalTimeSteps
         # Check if locational input is not set in esM, if so additionally loop over all locations
         if loc is None:
-            flow = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
-                       esM.periodOccurrences[p]
-                       for compName in compDict.keys() if compName in limitDict[ID]
-                       for p in periods
-                       for t in timeSteps
-                       for loc in esM.locations)
+            balance = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+                          esM.periodOccurrences[p]
+                          for compName in compDict.keys() if compName in limitDict[ID]
+                          for p in periods
+                          for t in timeSteps
+                          for loc in esM.locations)
         # Otherwise get the contribution for specific region
         else:
-            flow = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
-                       esM.periodOccurrences[p]
-                       for compName in compDict.keys() if compName in limitDict[(ID, loc)]
-                       for p in periods
-                       for t in timeSteps)
-        return flow
+            balance = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+                          esM.periodOccurrences[p]
+                          for compName in compDict.keys() if compName in limitDict[(ID, loc)]
+                          for p in periods
+                          for t in timeSteps)
+        return balance
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
         """ Get contribution to a commodity balance. """

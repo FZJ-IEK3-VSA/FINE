@@ -43,7 +43,7 @@ class Transmission(Component):
                  interestRate=0.08,
                  economicLifetime=10,
                  technicalLifetime=None,
-                 flowLimitID=None):
+                 balanceLimitID=None):
         """
         Constructor for creating an Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
@@ -116,10 +116,12 @@ class Transmission(Component):
             The row and column indices of the DataFrame have to equal the in the energy system model
             specified locations.
 
-        :param flowLimit: ID for the flow limit specified in the esM, if the TransmissionModel is
-            supposed to be included in the flow analysis. If the commodity is going out of the region,
-            it is counted as a positive
-        :type flowLimit: string
+        :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
+            Should be specified if the respective component of the TransmissionModel is supposed to be included in
+            the balance analysis. If the commodity is transported out of the region, it is counted as a negative, if
+            it is imported into the region it is considered positive.
+            |br| * the default value is None
+        :type balanceLimitID: string
         """
         # TODO add unit checks
         # Preprocess two-dimensional data
@@ -153,7 +155,7 @@ class Transmission(Component):
         self.interestRate = utils.preprocess2dimData(interestRate, self._mapC)
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
-        self.flowLimitID = flowLimitID
+        self.balanceLimitID = balanceLimitID
 
         Component. __init__(self,
                             esM,
@@ -476,14 +478,13 @@ class TransmissionModel(ComponentModel):
                    for compName in opVarDictOut[loc][loc_]
                    if commod in compDict[compName].commodity)
 
-    def getFlowLimitContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
+    def getBalanceLimitContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
         """
-        Get contribution to flowLimitConstraint.
-
-        Net Autarky or balanced Autarky is regarded (further read in the EnergySystemModel definition), therefore the
-        operation of a Tranmission component is summed up as the autarky contribution as follows:
+        Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+        Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
         - If commodity is transferred out of region a negative sign is used.
         - If commodity is transferred into region a positive sign is used and losses are considered.
+        Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -491,22 +492,21 @@ class TransmissionModel(ComponentModel):
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
 
-        :param ID: ID of the regarded autarky constraint
+        :param ID: ID of the regarded balanceLimitConstraint
         :param ID: string
-
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
             (a) the full time series (False) or
             (b) clustered time series data (True).
-            |br| * the default value is False
         :type timeSeriesAggregation: boolean
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
         opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
-        limitDict = getattr(pyM, 'flowLimitDict')
+        limitDict = getattr(pyM, 'balanceLimitDict')
         if timeSeriesAggregation:
             periods = esM.typicalPeriods
             timeSteps = esM.timeStepsPerPeriod
