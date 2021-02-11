@@ -1,0 +1,14 @@
+# Early concept for capacity equations in perfect foresight
+def capacityequation
+
+# Capacity stock before startyear
+capStock[loc,compname,ip]=input_Stock[loc,compname,ip] #InputFile with existing capacites before startyear
+
+# Capacity added in previous ip
+preIp=list(startyear:ip-1)
+capAddPre[loc,compname,ip]== sum( capAddNew[loc,compname,i] for i in preIp if i+lifetime[loc,comp]>=ip )
+
+# Existing capacity in this ip
+capVar[loc, compname, ip] == capStock[loc,compname,ip]+capAddPre[loc,compname,ip]+capAddNew[loc,compname,ip]
+
+# To-DO: 2dim-locational eligibility in utlis (line 530) problems? Was not changed like 1-dim.

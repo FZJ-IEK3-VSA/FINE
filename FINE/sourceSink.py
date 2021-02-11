@@ -229,13 +229,50 @@ class Source(Component):
             if esM.verbose < 2:
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
+        # Addition for perfect foresight:
+        # self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
+        # self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
-        self.aggregatedOperationRateMax, self.operationRateMax = None, None
+        ## New code for perfect foresight!
+        # create emtpy dicts
+        self.fullOperationRateMax = {}
+        self.aggregatedOperationRateMax = {}
+        self.operationRateMax = {}
 
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
-        self.aggregatedOperationRateFix, self.operationRateFix = None, None
+        self.fullOperationRateFix = {}
+        self.aggregatedOperationRateFix = {}
+        self.operationRateFix = {}
         
+        # iterate over all ips
+        for ip in esM.investmentPeriods:
+
+            # Operation Rate Max
+            if isinstance(operationRateMax, pd.DataFrame): #operationRate is dataframe
+                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
+            elif isinstance(operationRateMax, dict): # operationRate is dict
+                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax[ip], locationalEligibility)
+            elif operationRateMax is None:
+                pass
+            else:
+                raise TypeError('OperationRateMax should be a pandas dataframe or a dictionary.')
+            
+            self.aggregatedOperationRateMax[ip], self.operationRateMax[ip] = None, None
+            
+            # Operation Rate Fix
+            if isinstance(operationRateFix, pd.DataFrame): #operationRate is dataframe
+                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
+            elif isinstance(operationRateFix, dict): #operationRate is dict
+                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix[ip], locationalEligibility)
+            elif operationRateFix is None:
+                pass
+            else:
+                raise TypeError('OperationRateFix should be a pandas dataframe or a dictionary.')
+            
+            self.aggregatedOperationRateFix[ip], self.operationRateFix[ip] = None, None
+        
+        # testing purpose
+        #print('fullOperationRate' + '\n' + str(self.fullOperationRateFix))
+
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:
                 if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
@@ -248,11 +285,29 @@ class Source(Component):
         self.tsaWeight = tsaWeight
 
         # Set locational eligibility
-        operationTimeSeries = self.fullOperationRateFix if self.fullOperationRateFix is not None \
-            else self.fullOperationRateMax
+        # new code for perfect foresight
+        # self.locationalEligibility = {}
+        # catch None values
+        if not self.fullOperationRateMax:
+            self.fullOperationRateMax = None
+        if not self.fullOperationRateFix:
+            self.fullOperationRateFix = None 
+        operationTimeSeries = {}
+        if self.fullOperationRateFix is not None:
+            for ip in esM.investmentPeriods:
+                operationTimeSeries[ip] = self.fullOperationRateFix[ip]
+        elif self.fullOperationRateMax is not None:
+            for ip in esM.investmentPeriods:
+                operationTimeSeries[ip] = self.fullOperationRateMax[ip]
+        else:
+            operationTimeSeries=None
+   
+
         self.locationalEligibility = \
             utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
-                                           self.isBuiltFix, self.hasCapacityVariable, operationTimeSeries)
+                                        self.isBuiltFix, self.hasCapacityVariable, operationTimeSeries)
+
+
 
     def addToEnergySystemModel(self, esM):
         """
@@ -289,13 +344,14 @@ class Source(Component):
                                                 '_commodityRevenueTimeSeries_', self.tsaWeight, weightDict, data)
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
-    def setAggregatedTimeSeriesData(self, data):
+    def setAggregatedTimeSeriesData(self, data): ### include ip dependency
         """
         Function for determining the aggregated maximum rate and the aggregated fixed operation rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the source component
         :type data: Pandas DataFrame
         """
+        #self.aggregatedOperationRateFix[ip] = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data, ip)
         self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
         self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
         self.aggregatedCommodityCostTimeSeries = \

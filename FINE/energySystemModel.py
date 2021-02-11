@@ -494,7 +494,8 @@ class EnergySystemModel:
             # second index as time step number per typical period.
             data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
         # Store the respective clustered time series data in the associated components
-        for mdlName, mdl in self.componentModelingDict.items():
+        # To-Do: Continue here
+        for mdlName, mdl in self.componentModelingDict.items(): ### for-loop for ip
             for compName, comp in mdl.componentsDict.items():
                 comp.setAggregatedTimeSeriesData(data)
 

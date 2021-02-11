@@ -16,7 +16,7 @@ import pandas as pd
 def test_perfectForesight():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
-    numberOfInvestmentPeriods = 1
+    numberOfInvestmentPeriods = 2   # new test, before =1
     yearsPerInvestmentPeriod=1
 
     # Create an energy system model instance 
@@ -63,8 +63,20 @@ def test_perfectForesight():
     # Sinks
 
     ### Industry site
-    demand = pd.DataFrame([np.array([2e3, 1e3, 1e3, 1e3,])],
-                    index = ['PerfectLand']).T
+    # for one ip:
+    # demand = pd.DataFrame([np.array([2/5, 1/5, 1/5, 1/5,])],
+    #                 index = ['PerfectLand']).T
+    # demand now as dict:
+    demand = {}
+    demand[0] = pd.DataFrame([np.array([2e3, 1e3, 1e3, 1e3,])],
+                    index = ['PerfectLand']).T # first investmentperiod
+    demand[1] = pd.DataFrame([np.array([4e3, 2e3, 2e3, 2e3,])],
+                    index = ['PerfectLand']).T # second investmentperiod
+
+    # just a test:
+    # yearlyDemand = pd.DataFrame([np.array([5e3, 10e3])],
+    #                 index = ['PerfectLand']).T
+    
     esM.add(fn.Sink(esM=esM, name='EDemand', commodity='electricity', hasCapacityVariable=False,
                     operationRateFix = demand,
                     ))
@@ -83,7 +95,7 @@ def test_perfectForesight():
     print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('PV')) ### [1500,1000,1000,1000]
 
     print('Demand:')
-    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('EDemand')) ### [2000,2000,2000,2000]
+    print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('EDemand')) ### [2000,1000,1000,1000]
 
 
 
