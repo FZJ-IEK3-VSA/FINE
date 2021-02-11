@@ -442,7 +442,7 @@ class ConversionModel(ComponentModel):
         
         .. math::
             
-            \text{C}^{comp,comm}_{loc,p,t} =  && \text{conversionFactor}^{comp}_{comm} \cdot op_{loc,p,t}^{comp,op} 
+            \\text{C}^{comp,comm}_{loc,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,p,t}^{comp,op} 
         
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName

@@ -603,10 +603,10 @@ class SourceSinkModel(ComponentModel):
         
         .. math::
             
-            \text{C}^{comp,comm}_{loc,p,t} = && -op_{loc,p,t}^{comp,op}  \text[Sink}\\
+            \\text{C}^{comp,comm}_{loc,p,t} = - op_{loc,p,t}^{comp,op}  \\text{Sink}
 
-            
-            \text{C}^{comp,comm}_{loc,p,t} = && op_{loc,p,t}^{comp,op} \text[Source}\\
+        .. math::
+            \\text{C}^{comp,comm}_{loc,p,t} = op_{loc,p,t}^{comp,op} \\text{Source}
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
