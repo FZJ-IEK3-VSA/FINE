@@ -60,7 +60,7 @@ class EnergySystemModel:
     |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
-    def __init__(self, 
+    def __init__(self,
                  locations, 
                  commodities, 
                  commodityUnitsDict, 
@@ -603,7 +603,7 @@ class EnergySystemModel:
 
         .. math:: 
             
-            \\underset{\text{comp} \in \mathcal{C}^{ID}}{\sum} \text{cap}^{comp}_{loc} \text{capMax}^{comp}_{loc} \leq 1 
+            \\underset{\\text{comp} \in \mathcal{C}^{ID}}{\sum} \\text{cap}^{comp}_{loc} / \\text{capMax}^{comp}_{loc} \leq 1 
 
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
@@ -678,9 +678,9 @@ class EnergySystemModel:
         """
         Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
 
-        ..math:: 
+        .. math:: 
             
-            \\underset{comp \in \mathcal{C}^{comm}_{loc}}{\sum} \text{C}^{comp,comm}_{loc,p,t} = 0 
+            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,p,t} = 0 
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -712,18 +712,22 @@ class EnergySystemModel:
         components.
         
         .. math::
-            
-            z^* = \min && \\underset{comp \in \mathcal{C}}{\sum} \ \\underset{loc \in \mathfrak{L}
-            ^{comp}}{\sum} \left( TAC_{loc}^{comp,cap}  +  TAC_{loc}^{comp,bin}  \right. \\
-            && \left. + TAC_{loc}^{comp,op} \right) \\
-            \\
-            %Objective Function detailed
-            z^* = \min && \\underset{comp \in \mathcal{C}}{\sum}  \ \\underset{loc \in \mathfrak{L}^{comp}}{\sum}\left[ \text{F}^{comp,cap}_{loc} \cdot \left(  \frac{\text{investPerCap}^{comp}_{loc}}{\text{CCF}^{comp}_{loc}} \right. \right. \\ 
-            && \left. + \text{opexPerCap}^{comp}_{loc} \right) \cdot cap^{comp}_{loc} + \text{F}^{comp,bin}_{loc} \cdot \\
-            && \left( \frac{\text{investIfBuilt}^{comp}_{loc}}	{CCF^{comp}_{loc}} + \text{opexIfBuilt}^{comp}_{loc} \right)  \cdot  bin^{comp}_{loc} \\
-            &&+ \left( \\underset{(p,t) \in \mathcal{PxT}}{\sum} \ \\underset{\text{opType} \in \mathcal{O}^{comp}}{\sum} \text{factorPerOp}^{comp,opType}_{loc} \cdot \right.\\
-            && \left. \left. op^{comp,opType}_{loc,p,t} \cdot  \frac{\text{freq(p)}}{\tau^{years}} \right) \right] \\
-            \\
+            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum} 
+            \\left( TAC_{loc}^{comp,cap}  +  TAC_{loc}^{comp,bin} + TAC_{loc}^{comp,op} \\right)
+
+        Objective Function detailed:
+
+        .. math::
+            :nowrap:
+
+            \\begin{eqnarray*}
+            z^* = \\min & & \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}
+            \\left[ \\text{F}^{comp,cap}_{loc} \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc}}{\\text{CCF}^{comp}_{loc}} \\right.
+            + \\text{opexPerCap}^{comp}_{loc} \\right) \\cdot cap^{comp}_{loc} \\\\
+            & & + \\ \\text{F}^{comp,bin}_{loc} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc}}	{CCF^{comp}_{loc}} 
+            + \\text{opexIfBuilt}^{comp}_{loc} \\right)  \\cdot  bin^{comp}_{loc} \\\\
+            & & \\left. + \\left( \\underset{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}}{\\sum} \\ \\underset{\\text{opType} \\in \\mathcal{O}^{comp}}{\\sum} \\text{factorPerOp}^{comp,opType}_{loc} \\cdot op^{comp,opType}_{loc,p,t} \\cdot  \\frac{\\text{freq(p)}}{\\tau^{years}} \\right) \\right]
+            \\end{eqnarray*}
         
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
