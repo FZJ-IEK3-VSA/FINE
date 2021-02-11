@@ -1,7 +1,7 @@
 """
 Last edited: February 11, 2020
 
-@author: Theresa Groß
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
 from FINE import utils
@@ -97,7 +97,7 @@ def optimizeSimpleMyopic(esM,
     :rtype myopicResults: dict of all optimized instances of the EnergySystemModel class or None.
 
     Last edited: February 14, 2020
-    |br| @author: Theresa Gross, Felix Kullmann
+    |br| @author: FINE Developer Team (FZJ IEK-3)
     """                              
                 
     nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(startYear, endYear, nbOfSteps, nbOfRepresentedYears)
@@ -151,7 +151,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
     :rtype: EnergySystemModel instance
 
     Last edited: February 11, 2020
-    |br| @author: Theresa Gross, Felix Kullmann
+    |br| @author: FINE Developer Team (FZJ IEK-3)
     ''' 
     for mdl in esM.componentModelingDict.keys():
         compValues = esM.componentModelingDict[mdl].getOptimalValues('capacityVariablesOptimum')['values']

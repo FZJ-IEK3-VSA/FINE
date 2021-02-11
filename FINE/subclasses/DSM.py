@@ -1,7 +1,7 @@
 """
 Last edited: January 21 2020
 
-@author: Lara Welder
+|br| @author: FINE Developer Team (FZJ IEK-3)
 Basic idea inspired by:
 Zerrahn, Alexander, and Wolf-Peter Schill. "On the representation of demand-side management in
 power system models." Energy 84 (2015): 840-845.

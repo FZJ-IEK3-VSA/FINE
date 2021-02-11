@@ -296,7 +296,7 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
                   color="k", fontsize=12, save=False, fileName='operation.png', dpi=200, **kwargs):
     """
     Plot operation time series of a component at a location.
-
+    
     **Required arguments:**
 
     :param esM: considered energy system model
@@ -506,14 +506,12 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
     """
     isStorage=False
 
-    if (isinstance(esM.getComponent(compName), fn.Conversion) |
-        issubclass(esM.getComponent(compName), fn.Conversion)):
+    if isinstance(esM.getComponent(compName), fn.Conversion):
         unit = esM.getComponent(compName).physicalUnit
     else:
         unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
 
-    if (isinstance(esM.getComponent(compName), fn.Storage) |
-        issubclass(esM.getComponent(compName), fn.Storage)):
+    if isinstance(esM.getComponent(compName), fn.Storage):
         isStorage=True
         unit = unit + '*h'
 
@@ -525,7 +523,12 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
         timeSeries = data['values'].loc[(compName, loc, locTrans)].values
     timeSeries = timeSeries/esM.hoursPerTimeStep if not isStorage else timeSeries
 
-    timeSeries = timeSeries.reshape(nbPeriods, nbTimeStepsPerPeriod).T
+    try:
+        timeSeries = timeSeries.reshape(nbPeriods, nbTimeStepsPerPeriod).T
+    except ValueError as e:
+        raise ValueError("Could not reshape array. Your timeSeries has {} values and it is therefore not possible".format(len(timeSeries)) +
+              " to reshape it to ({}, {}). Please correctly specify nbPeriods".format(nbPeriods, nbTimeStepsPerPeriod) +
+              " and nbTimeStepsPerPeriod The error was: {}.".format(e))
     vmax = timeSeries.max() if vmax == -1 else vmax
 
     fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
@@ -691,9 +694,9 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
         |br| * the default value is 'epsg:3035'
     :type crs: string
 
-    :param variableName: name of the operation time series. Checkout the component model class to see which options
-        are available.
-        |br| * the default value is 'capacityVariables'
+    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation 
+        ('operationVariablesOptimum'). 
+        |br| * the default value is 'capacityVariablesOptimum'
     :type variableName: string
 
     :param color: color of the transmission line
@@ -782,7 +785,7 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
 def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, perArea=True, areaFactor=1e3,
                            crs='epsg:3035', variableName='capacityVariablesOptimum', doSum=False, cmap='viridis', vmin=0,
                            vmax=-1, zlabel='Installed capacity\nper kilometer\n', figsize=(6, 6), fontsize=12, save=False,
-                           fileName='', dpi=200, **kwargs):
+                           fileName='capacity.png', dpi=200, **kwargs):
     """
     Plot the data of a component for each location.
 
@@ -814,9 +817,9 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
         |br| * the default value is 'epsg:3035'
     :type crs: string
 
-    :param variableName: name of the operation time series. Checkout the component model class to see which options
-        are available.
-        |br| * the default value is 'operationVariablesOptimum'
+    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation 
+        ('operationVariablesOptimum'). In case of plotting the operation, set the parameter doSum to True.
+        |br| * the default value is 'capacityVariablesOptimum'
     :type variableName: string
 
     :param doSum: indicates if the variable has to be summarized for the location (e.g. for operation
@@ -853,7 +856,7 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     :type save: boolean
 
     :param fileName: output file name
-        |br| * the default value is 'operation.png'
+        |br| * the default value is 'capacity.png'
     :type fileName: string
 
     :param dpi: resolution in dots per inch
@@ -865,6 +868,16 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     if doSum:
         data = data.sum(axis=1)
     gdf = gpd.read_file(locationsShapeFileName).to_crs({'init': crs})
+
+    # Make sure the data and gdf indices match 
+    ## 1. Sort the indices to obtain same order 
+    data.sort_index(inplace=True)
+    gdf.sort_values(indexColumn, inplace=True)
+
+    ## 2. Take first 20 characters of the string for matching. (In gdfs usually long strings are cut in the end)
+    gdf[indexColumn] = gdf[indexColumn].apply(lambda x: x[:20]) 
+    data.index = data.index.str[:20]
+
     if perArea:
         gdf.loc[gdf[indexColumn] == data.index, "data"] = \
             data.fillna(0).values/(gdf.loc[gdf[indexColumn] == data.index].geometry.area/areaFactor**2)

@@ -1,7 +1,7 @@
 """
 Created on Thu Nov  8 10:02:46 2018
 
-@author: a.schmitt
+|br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
 import pandas as pd
@@ -14,21 +14,21 @@ def getData():
     data = {}
 
     # Locations
-    locations = set(pd.read_excel(os.path.join(inputDataPath, 'Locations.xlsx')))
+    locations = set(pd.read_excel(os.path.join(inputDataPath, 'Locations.xlsx'), engine='openpyxl'))
 
     data.update({'locations': locations})
 
     # PV data
     gen_capacityMax = pd.read_excel(os.path.join(inputDataPath, 'PV_Capacity.xlsx'),
-                                    sheet_name ='GenerationCapacities', index_col=0)
+                                    sheet_name ='GenerationCapacities', index_col=0, engine='openpyxl')
     gen_capacityMax = gen_capacityMax.loc['PV_south'].T
-    gen_operationRateMax = pd.read_excel(os.path.join(inputDataPath, 'PV_Generation.xlsx'))
+    gen_operationRateMax = pd.read_excel(os.path.join(inputDataPath, 'PV_Generation.xlsx'), engine='openpyxl')
 
     data.update({'PV, capacityMax': gen_capacityMax})
     data.update({'PV, operationRateMax': gen_operationRateMax})
     
     # Heat & Battery Storage
-    st_capacityMax = pd.read_excel(os.path.join(inputDataPath, 'Storage_capacities.xlsx'), index_col=0)
+    st_capacityMax = pd.read_excel(os.path.join(inputDataPath, 'Storage_capacities.xlsx'), index_col=0, engine='openpyxl')
     st_capacityMax_TS = st_capacityMax.loc['Thermal Storage']
     st_capacityMax_BS = st_capacityMax.loc['Battery']
    
@@ -36,8 +36,8 @@ def getData():
     data.update({'BS, capacityMax': st_capacityMax_BS})
 
     # Transmission Technologies
-    tr_distances_el = pd.read_excel(os.path.join(inputDataPath, 'grid_length_matrix.xlsx'), index_col=0)
-    tr_capacityFix_el = pd.read_excel(os.path.join(inputDataPath, 'grid_capacity_matrix.xlsx'), index_col=0)
+    tr_distances_el = pd.read_excel(os.path.join(inputDataPath, 'grid_length_matrix.xlsx'), index_col=0, engine='openpyxl')
+    tr_capacityFix_el = pd.read_excel(os.path.join(inputDataPath, 'grid_capacity_matrix.xlsx'), index_col=0, engine='openpyxl')
     
     data.update({'cables, capacityFix': tr_capacityFix_el})
     data.update({'cables, distances': tr_distances_el})
@@ -46,15 +46,15 @@ def getData():
     data.update({'NG, distances': tr_distances_el})
   
     # Denand Data
-    Edemand_operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'E_Demand.xlsx'))
-    Hdemand_operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'Heat_Demand.xlsx'))
+    Edemand_operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'E_Demand.xlsx'), engine='openpyxl')
+    Hdemand_operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'Heat_Demand.xlsx'), engine='openpyxl')
     
     data.update({'Electricity demand, operationRateFix': Edemand_operationRateFix})
     data.update({'Heat demand, operationRateFix': Hdemand_operationRateFix})
     
     # Purchase Data
-    Pu_operationRateMax_El = pd.read_excel(os.path.join(inputDataPath, 'purchaseElectricity.xlsx'), index_col=0)
-    Pu_operationRateMax_NG = pd.read_excel(os.path.join(inputDataPath, 'purchaseNaturalGas.xlsx'), index_col=0)
+    Pu_operationRateMax_El = pd.read_excel(os.path.join(inputDataPath, 'purchaseElectricity.xlsx'), index_col=0, engine='openpyxl')
+    Pu_operationRateMax_NG = pd.read_excel(os.path.join(inputDataPath, 'purchaseNaturalGas.xlsx'), index_col=0, engine='openpyxl')
     
     data.update({'El Purchase, operationRateMax': Pu_operationRateMax_El})
     data.update({'NG Purchase, operationRateMax': Pu_operationRateMax_NG})
