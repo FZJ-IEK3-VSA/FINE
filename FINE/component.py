@@ -771,7 +771,7 @@ class ComponentModel(metaclass=ABCMeta):
         
         .. math:: 
             
-            \text{capMin}^{comp}_{loc} \leq cap^{comp}_{loc} \leq \text{capMax}^{comp}_{loc} 
+            \\text{capMin}^{comp}_{loc} \leq cap^{comp}_{loc} \leq \\text{capMax}^{comp}_{loc} 
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel 
@@ -864,7 +864,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math:: 
             
-            cap^{comp}_{loc} = capPerUnit^{comp} \cdot nbReal^{comp}_{loc}
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbReal^{comp}_{loc}
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel 
@@ -883,7 +883,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
             
-            cap^{comp}_{loc} = \text{capPerUnit}^{comp} \cdot nbInt^{comp}_{loc}
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbInt^{comp}_{loc}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -902,7 +902,7 @@ class ComponentModel(metaclass=ABCMeta):
         
         .. math:: 
             
-            \text{M}^{comp} \cdot bin^{comp}_{loc} \geq cap^{comp}_{loc}
+            \\text{M}^{comp} \cdot bin^{comp}_{loc} \geq cap^{comp}_{loc}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -921,7 +921,7 @@ class ComponentModel(metaclass=ABCMeta):
         
         .. math::
             
-            \text{capMin}^{comp}_{loc} \cdot bin^{comp}_{loc} \leq  cap^{comp}_{loc}
+            \\text{capMin}^{comp}_{loc} \cdot bin^{comp}_{loc} \leq  cap^{comp}_{loc}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -941,7 +941,7 @@ class ComponentModel(metaclass=ABCMeta):
         
         .. math::
             
-            cap^{comp}_{(loc_1,loc_2)} = \text{capFix}^{comp}_{(loc_1,loc_2)}
+            cap^{comp}_{(loc_1,loc_2)} = \\text{capFix}^{comp}_{(loc_1,loc_2)}
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -963,7 +963,7 @@ class ComponentModel(metaclass=ABCMeta):
         
         .. math::
             
-            bin^{comp}_{(loc_1,loc_2)} = \text{binFix}^{comp}_{(loc_1,loc_2)}
+            bin^{comp}_{(loc_1,loc_2)} = \\text{binFix}^{comp}_{(loc_1,loc_2)}
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -990,7 +990,7 @@ class ComponentModel(metaclass=ABCMeta):
         
         .. math:: 
             
-            op^{comp,opType}_{loc,p,t} \leq \tau^{hours} \cdot \text{opFactor}^{opType} \cdot cap^{comp}_{loc}
+            op^{comp,opType}_{loc,p,t} \leq \\tau^{hours} \cdot \\text{opFactor}^{opType} \cdot cap^{comp}_{loc}
         
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1020,7 +1020,7 @@ class ComponentModel(metaclass=ABCMeta):
         
         .. math::
         
-            op^{comp,opType}_{loc,p,t} \leq \tau^{hours} \cdot \text{opRateMax}^{comp,opType}_{loc,p,t} \cdot cap^{comp}_{loc}
+            op^{comp,opType}_{loc,p,t} \leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,p,t} \cdot cap^{comp}_{loc}
         
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1049,8 +1049,7 @@ class ComponentModel(metaclass=ABCMeta):
         * [commodityUnit] multiplied by the hours per time step (else).\n
         
         .. math::
-            
-            op^{comp,opType}_{loc,p,t} = \tau^{hours} \cdot \text{opRateFix}^{comp,opType}_{loc,p,t} \cdot cap^{comp}_{loc} \\
+            op^{comp,opType}_{loc,p,t} = \\tau^{hours} \cdot \\text{opRateFix}^{comp,opType}_{loc,p,t} \cdot cap^{comp}_{loc} 
         
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1074,9 +1073,8 @@ class ComponentModel(metaclass=ABCMeta):
         """
         Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
         
-        ..math::
-            
-            op^{comp,opType}_{loc,p,t} = \text{opRateFix}^{comp,opType}_{loc,p,t}
+        .. math::
+            op^{comp,opType}_{loc,p,t} = \\text{opRateFix}^{comp,opType}_{loc,p,t}
         
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1098,7 +1096,8 @@ class ComponentModel(metaclass=ABCMeta):
         """
         Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
         
-        .. math:: op^{comp,opType}_{loc,p,t} \leq \text{opRateMax}^{comp,opType}_{loc,p,t}
+        .. math:: 
+            op^{comp,opType}_{loc,p,t} \leq \\text{opRateMax}^{comp,opType}_{loc,p,t}
         
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
