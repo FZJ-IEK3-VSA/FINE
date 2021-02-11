@@ -769,6 +769,10 @@ class ComponentModel(metaclass=ABCMeta):
         """ 
         Declare capacity variables.
         
+        .. math:: 
+            
+            \\text{capMin}^{comp}_{loc} \leq cap^{comp}_{loc} \leq \\text{capMax}^{comp}_{loc} 
+        
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel 
         """
@@ -855,8 +859,12 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def capToNbReal(self, pyM):
-        """ 
+        """         
         Determine the components' capacities from the number of installed units.
+
+        .. math:: 
+            
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbReal^{comp}_{loc}
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel 
@@ -872,7 +880,11 @@ class ComponentModel(metaclass=ABCMeta):
     def capToNbInt(self, pyM):
         """ 
         Determine the components' capacities from the number of installed units. 
-        
+
+        .. math::
+            
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbInt^{comp}_{loc}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
@@ -888,6 +900,10 @@ class ComponentModel(metaclass=ABCMeta):
         """ 
         Enforce the consideration of the binary design variables of a component. 
         
+        .. math:: 
+            
+            \\text{M}^{comp} \cdot bin^{comp}_{loc} \geq cap^{comp}_{loc}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
@@ -903,6 +919,10 @@ class ComponentModel(metaclass=ABCMeta):
         """ 
         Enforce the consideration of minimum capacities for components with design decision variables. 
         
+        .. math::
+            
+            \\text{capMin}^{comp}_{loc} \cdot bin^{comp}_{loc} \leq  cap^{comp}_{loc}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
@@ -918,6 +938,10 @@ class ComponentModel(metaclass=ABCMeta):
     def capacityFix(self, pyM):
         """ 
         Set, if applicable, the installed capacities of a component. 
+        
+        .. math::
+            
+            cap^{comp}_{(loc_1,loc_2)} = \\text{capFix}^{comp}_{(loc_1,loc_2)}
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -936,6 +960,10 @@ class ComponentModel(metaclass=ABCMeta):
     def designBinFix(self, pyM):
         """ 
         Set, if applicable, the installed capacities of a component. 
+        
+        .. math::
+            
+            bin^{comp}_{(loc_1,loc_2)} = \\text{binFix}^{comp}_{(loc_1,loc_2)}
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -959,6 +987,11 @@ class ComponentModel(metaclass=ABCMeta):
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
         An additional factor can limited the operation further.
+        
+        .. math:: 
+            
+            op^{comp,opType}_{loc,p,t} \leq \\tau^{hours} \cdot \\text{opFactor}^{opType} \cdot cap^{comp}_{loc}
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
@@ -984,6 +1017,11 @@ class ComponentModel(metaclass=ABCMeta):
         with a time series in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
+        
+        .. math::
+        
+            op^{comp,opType}_{loc,p,t} \leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,p,t} \cdot cap^{comp}_{loc}
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
@@ -1009,6 +1047,10 @@ class ComponentModel(metaclass=ABCMeta):
         with a time series in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
+        
+        .. math::
+            op^{comp,opType}_{loc,p,t} = \\tau^{hours} \cdot \\text{opRateFix}^{comp,opType}_{loc,p,t} \cdot cap^{comp}_{loc} 
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
@@ -1030,6 +1072,10 @@ class ComponentModel(metaclass=ABCMeta):
     def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix'):
         """
         Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
+        
+        .. math::
+            op^{comp,opType}_{loc,p,t} = \\text{opRateFix}^{comp,opType}_{loc,p,t}
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + '_' + abbrvName)
@@ -1049,6 +1095,10 @@ class ComponentModel(metaclass=ABCMeta):
     def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax'):
         """
         Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
+        
+        .. math:: 
+            op^{comp,opType}_{loc,p,t} \leq \\text{opRateMax}^{comp,opType}_{loc,p,t}
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + '_' + abbrvName)

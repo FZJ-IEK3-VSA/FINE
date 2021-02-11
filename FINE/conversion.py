@@ -455,7 +455,14 @@ class ConversionModel(ComponentModel):
                     and comp.locationalEligibility[loc] == 1 for comp in self.componentsDict.values()])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
+        """ 
+        Get contribution to a commodity balance. 
+        
+        .. math::
+            
+            \\text{C}^{comp,comm}_{loc,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,p,t}^{comp,op} 
+        
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
 

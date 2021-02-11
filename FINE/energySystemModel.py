@@ -60,7 +60,7 @@ class EnergySystemModel:
     |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
-    def __init__(self, 
+    def __init__(self,
                  locations, 
                  commodities, 
                  commodityUnitsDict, 
@@ -601,9 +601,15 @@ class EnergySystemModel:
         Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
         salt cavern storing methane and salt caverns storing hydrogen.
 
+        .. math:: 
+            
+            \\underset{\\text{comp} \in \mathcal{C}^{ID}}{\sum} \\text{cap}^{comp}_{loc} / \\text{capMax}^{comp}_{loc} \leq 1 
+
+
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
+        
         """
         utils.output('Declaring shared potential constraint...', self.verbose, 0)
 
@@ -672,6 +678,10 @@ class EnergySystemModel:
         """
         Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
 
+        .. math:: 
+            
+            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,p,t} = 0 
+
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
@@ -700,7 +710,25 @@ class EnergySystemModel:
         Declare the objective function by obtaining the contributions to the objective function from all modeling
         classes. Currently, the only objective function which can be selected is the sum of the total annual cost of all
         components.
+        
+        .. math::
+            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum} 
+            \\left( TAC_{loc}^{comp,cap}  +  TAC_{loc}^{comp,bin} + TAC_{loc}^{comp,op} \\right)
 
+        Objective Function detailed:
+
+        .. math::
+            :nowrap:
+
+            \\begin{eqnarray*}
+            z^* = \\min & & \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}
+            \\left[ \\text{F}^{comp,cap}_{loc} \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc}}{\\text{CCF}^{comp}_{loc}} \\right.
+            + \\text{opexPerCap}^{comp}_{loc} \\right) \\cdot cap^{comp}_{loc} \\\\
+            & & + \\ \\text{F}^{comp,bin}_{loc} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc}}	{CCF^{comp}_{loc}} 
+            + \\text{opexIfBuilt}^{comp}_{loc} \\right)  \\cdot  bin^{comp}_{loc} \\\\
+            & & \\left. + \\left( \\underset{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}}{\\sum} \\ \\underset{\\text{opType} \\in \\mathcal{O}^{comp}}{\\sum} \\text{factorPerOp}^{comp,opType}_{loc} \\cdot op^{comp,opType}_{loc,p,t} \\cdot  \\frac{\\text{freq(p)}}{\\tau^{years}} \\right) \\right]
+            \\end{eqnarray*}
+        
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel

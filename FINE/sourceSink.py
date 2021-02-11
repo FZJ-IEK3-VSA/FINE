@@ -598,7 +598,17 @@ class SourceSinkModel(ComponentModel):
                     for comp in self.componentsDict.values()])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
+        """ 
+        Get contribution to a commodity balance.
+        
+        .. math::
+            
+            \\text{C}^{comp,comm}_{loc,p,t} = - op_{loc,p,t}^{comp,op}  \\text{Sink}
+
+        .. math::
+            \\text{C}^{comp,comm}_{loc,p,t} = op_{loc,p,t}^{comp,op} \\text{Source}
+
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
         return sum(opVar[loc, compName, p, t] * compDict[compName].sign
