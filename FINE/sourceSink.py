@@ -518,7 +518,7 @@ class SourceSinkModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        warnings.warn("The yearly limit is depreceated and moved to the flowLimit", DeprecationWarning)
+        warnings.warn("The yearly limit is depreceated and moved to the balanceLimit", DeprecationWarning)
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
         limitDict = getattr(pyM, 'yearlyCommodityLimitationDict_' + abbrvName)
