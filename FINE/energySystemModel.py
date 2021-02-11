@@ -3,8 +3,6 @@ Last edited: November 12 2020
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
-from FINE.transmission import TransmissionModel
-from FINE.sourceSink import SourceSinkModel
 from FINE.component import Component, ComponentModel
 from FINE import utils
 from tsam.timeseriesaggregation import TimeSeriesAggregation
