@@ -109,7 +109,7 @@ def optimizeTSAmultiStage(esM,
         esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxIsBuiltBinary=True,
                     logFileName='relaxedProblem', threads=threads, solver=solver, timeLimit=timeLimit, 
                     optimizationSpecs=optimizationSpecs, warmstart=warmstart)
-        lowerBound = esM.pyM.Obj()
+        lowerBound = esM.objectiveValue
 
     esM.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
                     clusterMethod=clusterMethod, solver=solver, sortValues=True)
@@ -124,7 +124,7 @@ def optimizeTSAmultiStage(esM,
     esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxIsBuiltBinary=False,
                     logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
                     optimizationSpecs=optimizationSpecs, warmstart=False)  
-    upperBound = esM.pyM.Obj()
+    upperBound = esM.objectiveValue
 
     if lowerBound is not None:
         delta = upperBound - lowerBound 

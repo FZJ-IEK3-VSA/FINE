@@ -345,6 +345,10 @@ class TransmissionModel(ComponentModel):
         """
         Ensure that the capacity between location_1 and location_2 is the same as the one
         between location_2 and location_1.
+        
+        .. math:: 
+            
+            cap^{comp}_{(loc_1,loc_2)} = cap^{comp}_{(loc_2,loc_1)} 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -363,6 +367,10 @@ class TransmissionModel(ComponentModel):
         Since the flow should either go in one direction or the other, the limitation can be enforced on the sum
         of the forward and backward flow over the line. This leads to one of the flow variables being set to zero
         if a basic solution is obtained during optimization.
+        
+        .. math:: 
+            
+            op^{comp,op}_{(loc_1,loc_2),p,t} + op^{op}_{(loc_2,loc_1),p,t} \leq \\tau^{hours} \cdot \\text{cap}^{comp}_{(loc_{in},loc_{out})}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -464,7 +472,17 @@ class TransmissionModel(ComponentModel):
                     for comp in self.componentsDict.values() for loc_ in esM.locations])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
+        """ 
+        Get contribution to a commodity balance. 
+        
+        .. math::
+            :nowrap:
+
+            \\begin{eqnarray*}
+            \\text{C}^{comp,comm}_{loc,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),p,t} \\\\
+            & - & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),p,t}
+            \\end{eqnarray*}
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
         opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
@@ -574,10 +592,14 @@ class TransmissionModel(ComponentModel):
         self.operationVariablesOptimum = optVal_
 
         props = ['operation', 'opexOp']
-        units = ['[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
-        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
-        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].commodityUnit + '*h/a]')
-                          if x[1] == 'operation' else x, tuples))
+        # Unit dict: Specify units for props
+        units = {props[0]: ['[-*h]', '[-*h/a]'],
+                 props[1]: ['[' + esM.costUnit + '/a]']}
+        # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
+        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop in props for unit in units[prop]]
+        # Replace placeholder with correct unit of component
+        tuples = list(map(lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+            if x[1] == 'operation' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(mapC.keys())).sort_index()
 
@@ -586,6 +608,8 @@ class TransmissionModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation, axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
+            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],
+                           opSum.columns] = opSum.values
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values/esM.numberOfYears * 0.5
 

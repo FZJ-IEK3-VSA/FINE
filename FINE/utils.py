@@ -683,6 +683,39 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     return _data
 
 
+def checkAndSetTimeSeriesConversionFactors(esM, commodityConversionFactorsTimeSeries, locationalEligibility):
+    if commodityConversionFactorsTimeSeries is not None:
+        if not isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
+            if len(esM.locations) == 1:
+                if isinstance(commodityConversionFactorsTimeSeries, pd.Series):
+                    commodityConversionFactorsTimeSeries = pd.DataFrame(commodityConversionFactorsTimeSeries.values, index=commodityConversionFactorsTimeSeries.index,
+                                                                        columns=list(esM.locations))
+                else:
+                    raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame or Series')
+            else:
+                raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame')
+
+        checkTimeSeriesIndex(esM, commodityConversionFactorsTimeSeries)
+
+        checkRegionalColumnTitles(esM, commodityConversionFactorsTimeSeries)
+
+        if locationalEligibility is not None and commodityConversionFactorsTimeSeries is not None:
+            # Check if given conversion factors indicate the same eligibility
+            data = commodityConversionFactorsTimeSeries.copy().sum().abs()
+            data[data > 0] = 1
+            if (data.sort_index() > locationalEligibility.sort_index()).any().any():
+                warnings.warn('The locationalEligibility and commodityConversionFactorsTimeSeries parameters '
+                                'indicate different eligibilities.')
+
+        commodityConversionFactorsTimeSeries = commodityConversionFactorsTimeSeries.copy()
+        commodityConversionFactorsTimeSeries["Period"], commodityConversionFactorsTimeSeries["TimeStep"] = 0, commodityConversionFactorsTimeSeries.index
+
+        return commodityConversionFactorsTimeSeries.set_index(['Period', 'TimeStep'])
+
+    else:
+        return None
+
+
 def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalEligibility):
     if data is None:
         return None
@@ -1138,11 +1171,31 @@ def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
         else:
             return CO2ReductionTargets
 
+def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
+    """
+    Check if simultaneous charge and discharge occurs for StorageComponent.
+    :param tsCharge: Charge time series of component, which is checked. Can be retrieved from
+        chargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
+    :type tsCharge: pd.DataFrame
+    :param tsDischarge: Discharge time series of component, which is checked. Can be retrieved from
+        dischargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
+    :type tsDischarge: pd.DataFrame
+
+    :return: simultaneousChargeDischarge: Boolean with information if simultaneous charge & discharge happens
+    :type simultaneousChargeDischarge: bool
+    """
+    # Merge Charge and Discharge Series
+    ts = pd.concat([tsCharge.T, tsDischarge.T], axis=1)
+    # If no simultaneous charge and discharge occurs ts[region][ts[region] > 0] will only return nan values. After
+    # dropping them the len() is 0 and the check returns False. This is done for all regions in the list comprehension.
+    # If any() region returns True the check returns True.
+    simultaneousChargeDischarge = \
+        any([len(ts[region][ts[region] > 0].dropna()) > 0 for region in set(ts.columns.values)])
+    return simultaneousChargeDischarge
+
 def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
     """
     If CO2ReductionTargets are given, set the new value for each iteration.
     """
     if CO2ReductionTargets is not None: 
         setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', CO2Reference*(1-CO2ReductionTargets[step]/100))
-
- 
