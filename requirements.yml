@@ -22,7 +22,6 @@ dependencies:
 - sphinx_rtd_theme
 - scikit-learn
 - xarray
-- dask
 - wquantiles
 - statsmodels
 - seaborn
