@@ -517,9 +517,11 @@ class StorageModel(ComponentModel):
         the self-discharge of the storage.
 
         .. math:: 
-            
-            SoC^{comp}_{loc,p,t+1} - \left( SoC^{comp}_{loc,p,t} \left( 1 - \eta^{self-discharge} \right)^{\frac{\tau^{hours}}{h}} \right. \nonumber\\ 
-            && \left. + op^{comp,charge}_{loc,p,t} \eta^{charge} - op^{comp,discharge}_{loc,p,t}/ \eta^{discharge} \right) = 0        
+            :nowrap:
+
+            \\begin{eqnarray*}
+            SoC^{comp}_{loc,p,t+1} - \\left( SoC^{comp}_{loc,p,t} \\left( 1 - \\eta^{self-discharge} \\right)^{\\frac{\\tau^{hours}}{h}} + op^{comp,charge}_{loc,p,t} \\eta^{charge} - op^{comp,discharge}_{loc,p,t} / \\eta^{discharge} \\right) = 0        
+            \\end{eqnarray*}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -550,10 +552,15 @@ class StorageModel(ComponentModel):
         Declare the constraint for connecting the states of charge: the state of charge at the beginning of a period
         has to be the same as the state of charge in the end of that period.
 
+        with full temporal resolution
+
         .. math:: 
-            
-            SoC^{comp}_{loc,0,0} \quad = SoC^{comp}_{loc,0,t^{total}} \quad \text{ with full temporal resolution} \\ 
-            SoC^{inter}_{loc,0} = SoC^{inter}_{loc,p^{total}} \text{ with time series aggregation}
+            SoC^{comp}_{loc,0,0} = SoC^{comp}_{loc,0,t^{total}} 
+
+        with time series aggregation:
+
+        .. math::
+            SoC^{inter}_{loc,0} = SoC^{inter}_{loc,p^{total}} 
             
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -588,8 +595,13 @@ class StorageModel(ComponentModel):
         Declare the constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime.
 
         .. math:: 
-            
-            op^{charge}_{loc,annual} \leq \left( \text{SoC}^{max} - \text{SoC}^{min} \right) \cdot cap^{comp}_{loc} \cdot \frac{t^{ \text{c,cyclic lifetime}}}{\tau^{ \text{c,economic lifetime}}_{l}} \nonumber\\ \text{with} \nonumber \\ && op^{comp,charge}_{loc,annual} = \sum_{(p,t) \in \mathcal{P} \times \mathcal{T}} op^{comp,charge}_{loc,p,t} \cdot freq(p)/\tau^{years}\\
+            :nowrap:
+
+            \\begin{eqnarray*}
+            & & op^{comp,charge}_{loc,annual} \\leq \\left( \\text{SoC}^{max} - \\text{SoC}^{min} \\right) \\cdot cap^{comp}_{loc} \\cdot \\frac{t^{ \\text{comp,cyclic lifetime}}}{\\tau^{ \\text{comp,economic lifetime}}_{loc}} \\\\ 
+            \\text{with} \\\\ 
+            & & op^{comp,charge}_{loc,annual} = \\sum_{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}} op^{comp,charge}_{loc,p,t} \\cdot freq(p) / \\tau^{years}
+            \\end{eqnarray*}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -616,9 +628,13 @@ class StorageModel(ComponentModel):
         happened during the typical period which was assigned to that period.
 
         .. math:: 
-            
-            SoC^{inter}_{loc,p+1} - SoC^{inter}_{loc,p} \cdot \left( 1 - \eta^{self-discharge} \right)^{\frac{t^{\text{per period}} \cdot \tau^{hours}}{h}} \nonumber\\ +SoC^{comp}_{loc,map(p),t^{\text{per period}}} = 0
-        
+            :nowrap:
+
+            \\begin{eqnarray*}
+            SoC^{inter}_{loc,p+1} - SoC^{inter}_{loc,p} \\cdot \\left( 1 - \\eta^{self-discharge} \\right)^{\\frac{t^{\\text{per period}} \cdot \\tau^{hours}}{h}} 
+            \\ SoC^{comp}_{loc,map(p),t^{\\text{per period}}} = 0
+            \\end{eqnarray*}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
@@ -703,7 +719,7 @@ class StorageModel(ComponentModel):
 
         .. math::  
             
-            \text{SoC}^{comp,min} \cdot cap^{comp}_{loc} \leq SoC^{comp}_{loc,0,t}
+            SoC^{comp,min} \cdot cap^{comp}_{loc} \leq SoC^{comp}_{loc,0,t}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -722,17 +738,16 @@ class StorageModel(ComponentModel):
         The error compared to the precise version is small in cases of small selfDischarge.
 
         .. math:: 
-            
-            SoC^{min} \cdot cap^{comp}_{loc} \leq \\underline{\text{SoC}}^{comp,sup}_{loc,p,t} \nonumber\\
-                
-            \overline{\text{SoC}}^{comp,sup}_{loc,p,t} \leq \text{SoC}^{max} \cdot cap^{comp}_{loc} \nonumber\\
-                
-            \text{with }\nonumber\\
-                
-            \\underline{\text{SoC}}^{comp,sup}_{loc,p,t} = SoC^{inter}_{loc,p} \cdot (1 - \eta^{\text{self-discharge}})^{\frac{t^{\text{per period}} \cdot \tau^{hours}}{h}}+ SoC^{min}_{loc,map(p)} \nonumber\\
-            
-            \overline{\text{SoC}}^{comp,sup}_{loc,p,t} = SoC^{inter}_{loc,p} + SoC^{max}_{loc,map(p)} \nonumber\\
-  
+            :nowrap:
+
+            \\begin{eqnarray*}
+            & & \\underline{SoC}^{comp,sup}_{loc,p,t} \\geq \\text{SoC}^{min} \\cdot cap^{comp}_{loc} \\\\  
+            & & \overline{SoC}^{comp,sup}_{loc,p,t} \\leq \\text{SoC}^{max} \\cdot cap^{comp}_{loc} \\\\
+            \\text{with } \\\\ 
+            & & \\underline{SoC}^{comp,sup}_{loc,p,t} = SoC^{inter}_{loc,p} \\cdot (1 - \\eta^{\\text{self-discharge}})^{\\frac{t^{\\text{per period}} \\cdot \\tau^{hours}}{h}}+ SoC^{min}_{loc,map(p)} \\\\
+            & &\\overline{SoC}^{comp,sup}_{loc,p,t} = SoC^{inter}_{loc,p} + SoC^{max}_{loc,map(p)}
+            \\end{eqnarray*}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
@@ -796,7 +811,7 @@ class StorageModel(ComponentModel):
 
         .. math:: 
             
-            SoC^{comp}_{loc,0,t} \leq \text{SoC}^{comp,max} \cdot cap^{comp}_{loc}
+            SoC^{comp}_{loc,0,t} \\leq \\text{SoC}^{comp,max} \\cdot cap^{comp}_{loc}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -822,7 +837,7 @@ class StorageModel(ComponentModel):
 
         .. math:: 
                         
-            SoC^{inter}_{loc,p} \cdot (1 - \eta^{\text{self-discharge}})^{\frac{t \cdot \tau^{hours}}{h}} + SoC^{comp}_{loc,map(p),t} \leq \text{SoC}^{max} \cdot cap^{comp}_{loc}
+            SoC^{inter}_{loc,p} \cdot (1 - \eta^{\\text{self-discharge}})^{\\frac{t \cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,map(p),t} \leq \\text{SoC}^{max} \cdot cap^{comp}_{loc}
             
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -860,7 +875,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            \text{SoC}^{min} \cdot cap^{comp}_{loc} \leq SoC^{inter}_{loc,p} \cdot (1 - \eta^{\text{self-discharge}})^{\frac{t \cdot \tau^{hours}}{h}} + SoC^{comp}_{loc,map(p),t}
+            \\text{SoC}^{min} \cdot cap^{comp}_{loc} \leq SoC^{inter}_{loc,p} \cdot (1 - \eta^{\\text{self-discharge}})^{\\frac{t \cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,map(p),t}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1044,7 +1059,7 @@ class StorageModel(ComponentModel):
         
         .. math::
             
-            \text{C}^{comp,comm}_{loc,p,t} = && op^{comp,discharge}_{loc,p,t} - op^{comp,charge}_{loc,p,t}
+            \\text{C}^{comp,comm}_{loc,p,t} = op^{comp,discharge}_{loc,p,t} - op^{comp,charge}_{loc,p,t}
         
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
