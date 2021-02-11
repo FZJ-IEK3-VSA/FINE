@@ -10,7 +10,7 @@ def test_add_shapes_from_shp(gridded_RE_data, sample_shapefile):
     expected_raster_reg02 = np.array([[np.nan, np.nan, np.nan,  1,  1] for i in range(3)])
 
     #Function call
-    regional_RE_xr_ds = RE_rep_utils.add_shapes_from_shp(gridded_RE_data, #sds.xr_ds_wind
+    regional_RE_xr_ds = RE_rep_utils.add_shapes_from_shp(gridded_RE_data,
                                                 sample_shapefile, 
                                                 index_col='region_ids', 
                                                 geometry_col='geometry',

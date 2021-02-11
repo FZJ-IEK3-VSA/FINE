@@ -11,21 +11,42 @@ import seaborn as sns
 from matplotlib import cm
 from matplotlib.cbook import violin_stats
 import matplotlib.patches as mpatches
+from typing import Dict, List
 
-
-def transform_from_latlon(lat, lon):
-    """ input 1D array of lat / lon and output an Affine transformation
-    """
-    lat = np.asarray(lat)
-    lon = np.asarray(lon)
-    trans = Affine.translation(lon[0], lat[0])
-    scale = Affine.scale(lon[1] - lon[0], lat[1] - lat[0])
-    return trans * scale
 
 def rasterize_geometry(geometry, coords, latitude='y', longitude='x'):
+    """Given a geometry and geolocations, it masks the geolocations 
+    such that all the geolocations within the geometry are indicated
+    by a 1 and rest are NAs. 
+
+    Parameters
+    ----------
+    geometry : a polygon or a multiploygon 
+    coords : Dict-like 
+        Holds latitudes and longitudes 
+    latitude : str, optional (default='y')  
+        The description of latitude in `coords` 
+    longitude : str, optional (default='x') 
+        The description of longitude in `coords`
+
+    Returns
+    -------
+    raster : np.ndarray 
+        A 2d matrix of size latitudes * longitudes 
+        If a latitude-longitude pair falls within the `geometry` then 
+        the value at this point in the matrix is 1, otherwise NA 
+    """
+
+    #STEP 1. Get the affine transformation
+    lat = np.asarray(coords[latitude])
+    lon = np.asarray(coords[longitude])
+
+    trans = Affine.translation(lon[0], lat[0])
+    scale = Affine.scale(lon[1] - lon[0], lat[1] - lat[0])
+    transform = trans * scale
     
-    transform = transform_from_latlon(coords[latitude], coords[longitude])
-    out_shape = (len(coords[latitude]), len(coords[longitude]))
+    #STEP 2. Get the raster mask 
+    out_shape = (len(lat), len(lon))
     
     raster = features.rasterize([geometry], 
                                 out_shape=out_shape,
@@ -33,7 +54,6 @@ def rasterize_geometry(geometry, coords, latitude='y', longitude='x'):
                                 transform=transform,
                                 dtype=float)
     
-
     return raster 
 
 def add_shapes_from_shp(gridded_RE_ds, 
@@ -42,7 +62,33 @@ def add_shapes_from_shp(gridded_RE_ds,
                         geometry_col='geometry',
                         longitude='x', 
                         latitude='y'):
+    """Given a gridded xarray dataset and a shapefile, 
+    for each geometry in the shapefile it returns a mask 
+    of geolocations. 
 
+    Parameters
+    ----------
+    gridded_RE_ds : xr.Dataset 
+        2 mandatory dimensions in this data - latitude and longitude  
+    shp_file : str/Shapefile
+        Either the path to the shapefile or the read-in shapefile 
+        that should be added to `gridded_RE_ds`
+    index_col : str, optional (default='region_ids')
+        The column in `shp_file` that needs to be taken as location-index in `gridded_RE_ds`
+    geometry_col : str, optional (default='geometry')
+        The column in `shp_file` that holds geometries 
+    longitude : str, optional (default='x')
+        The dimension name in `gridded_RE_ds` that corresponds to longitude 
+    latitude : str, optional (default='y')
+        The dimension name in `gridded_RE_ds` that corresponds to latitude
+
+    Returns
+    -------
+    rasterized_RE_ds : xr.Dataset 
+        - Additional dimension with name `index_col` 
+        - Additional variable with name 'rasters' and values as rasters 
+          corresponding to each geometry in `shp_file`
+    """
     #STEP 1. Read shapefile
     if isinstance(shp_file, str): 
         shp_file = gpd.read_file(shp_file)
@@ -69,7 +115,7 @@ def add_shapes_from_shp(gridded_RE_ds,
 
 
 #PLOTS =================================================================================================
-
+#TODO: update docstrings 
 #VIOLIN PLOT ------------------------------------------------------
 def vdensity_with_weights(weights):
     ''' Outer function allows innder function access to weights. Matplotlib

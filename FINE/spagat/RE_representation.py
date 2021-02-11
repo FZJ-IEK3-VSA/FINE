@@ -7,17 +7,70 @@ import xarray as xr
 from sklearn.cluster import AgglomerativeClustering
 
 import FINE.spagat.utils as spu
+import FINE.spagat.RE_representation_utils as RE_rep_utils
 
 @spu.timer
-def represent_RE_technology(rasterized_RE_ds, n_timeSeries_perRegion, linkage='average'):
-    """ Represents RE time series and their corresponding capacities using time series clustering methods.
-    Clustering method: agglomerative hierarchical clustering, Linkage criteria: Average 
-    Distance measure used: Euclidean distance.
+def represent_RE_technology(gridded_RE_ds, 
+                            shp_file,
+                            n_timeSeries_perRegion, 
+                            linkage='average', 
+                            index_col='region_ids', 
+                            geometry_col='geometry',
+                            longitude='x', 
+                            latitude='y'):
+    """Represents RE time series and their corresponding capacities, within each region
+    using time series clustering methods.
+    - Clustering method: agglomerative hierarchical clustering
+    - Distance measure: Euclidean distance
+
+    Parameters
+    ----------
+    gridded_RE_ds : str/xr.Dataset 
+        Either the path to the dataset or the read-in xr.Dataset
+        - Dimensions in this data - latitude, longitude, and 'time' 
+        - variables - 'capfac' and 'capacity' #TODO: generalize this
+    shp_file : str/Shapefile
+        Either the path to the shapefile or the read-in shapefile 
+        that should be added to `gridded_RE_ds`
+    n_timeSeries_perRegion : strictly int 
+        The number of time series to which the original set should be reduced,
+        within each region 
+    linkage : str, optional (default='average') 
+        The linkage criterion to be used with agglomerative hierarchical clustering. 
+        Can be 'complete', 'single', etc. 
+    index_col : str, optional (default='region_ids')
+        The column in `shp_file` that needs to be taken as location-index in `gridded_RE_ds`
+    geometry_col : str, optional (default='geometry')
+        The column in `shp_file` that holds geometries 
+    longitude : str, optional (default='x')
+        The dimension name in `gridded_RE_ds` that corresponds to longitude 
+    latitude : str, optional (default='y')
+        The dimension name in `gridded_RE_ds` that corresponds to latitude
+
+    
+    Returns
+    -------
+    represented_RE_ds : xr.Dataset 
+        - Dimensions in this data - 'time', 'region_ids', 'TS_ids'
+        - The dimension 'region_ids' has its coordinates corresponding to `index_col`
+        -  Within each region, different time seires are indicated by the 'TS_ids'   
     """
-    #STEP 1. Create DataArrays to store the represented time series and capacities
+    if isinstance(gridded_RE_ds, str): 
+        gridded_RE_ds = xr.open_dataset(gridded_RE_ds)
+    elif not isinstance(gridded_RE_ds, xr.Dataset):
+        raise TypeError("gridded_RE_ds must either be a path to a netcdf file or xarray dataset")
+    
+    #STEP 1. Rasterize the dataset
+    rasterized_RE_ds = RE_rep_utils.add_shapes_from_shp(gridded_RE_ds, 
+                                                        shp_file, 
+                                                        index_col=index_col, 
+                                                        geometry_col=geometry_col,
+                                                        longitude=longitude, 
+                                                        latitude=latitude)
+
+    #STEP 2. Create DataArrays to store the represented time series and capacities
     ## DataArray to store the represented time series
     #TODO: maybe instead of dataarrays, you can directly output a data dict for FINE here.
-    
     time_steps = rasterized_RE_ds["time"].values  #quickfix might be required - X.time.values = range(8760)
     region_ids = rasterized_RE_ds["region_ids"].values
 
@@ -37,16 +90,16 @@ def represent_RE_technology(rasterized_RE_ds, n_timeSeries_perRegion, linkage='a
     represented_capacities = xr.DataArray(data, [('region_ids', region_ids),
                                                   ('TS_ids', TS_ids)])
     
-    #STEP 2. Representation in every region...
+    #STEP 3. Representation in every region...
     for region in region_ids:
-        #STEP 2a. Get time series and capacities of current region 
+        #STEP 3a. Get time series and capacities of current region 
         regional_ds = rasterized_RE_ds.sel(region_ids = region)
         regional_capfac_da = regional_ds.capfac.where(regional_ds.rasters == 1)
         regional_capacity_da = regional_ds.capacity.where(regional_ds.rasters == 1)
 
-        #STEP 2b. Preprocess regional capfac and capacity dataArrays 
+        #STEP 3b. Preprocess regional capfac and capacity dataArrays 
 
-        #STEP 2b (i). Restructure data
+        #STEP 3b (i). Restructure data
         #INFO: The clustering model, takes <= 2 dimensions. So, x and y coordinates are fused 
         # Transposing dimensions to make sure clustering is performed along x_y dimension (i.e., space not time)
         regional_capfac_da = regional_capfac_da.stack(x_y = ['x', 'y']) 
@@ -55,11 +108,11 @@ def represent_RE_technology(rasterized_RE_ds, n_timeSeries_perRegion, linkage='a
         regional_capacity_da = regional_capacity_da.stack(x_y = ['x', 'y'])
         regional_capacity_da = regional_capacity_da.transpose(transpose_coords= True)
 
-        #STEP 2b (ii). Remove all time series with 0 values 
+        #STEP 3b (ii). Remove all time series with 0 values 
         regional_capfac_da = regional_capfac_da.where(regional_capacity_da > 0)
         regional_capacity_da = regional_capacity_da.where(regional_capacity_da > 0)
 
-        #STEP 2b (iii). Drop NAs 
+        #STEP 3b (iii). Drop NAs 
         regional_capfac_da = regional_capfac_da.dropna(dim='x_y')
         regional_capacity_da = regional_capacity_da.dropna(dim='x_y')
 
@@ -67,16 +120,16 @@ def represent_RE_technology(rasterized_RE_ds, n_timeSeries_perRegion, linkage='a
         n_ts = len(regional_capfac_da['x_y'].values)
         print(f'Number of time series in {region}: {n_ts}')
 
-        #STEP 2c. Get power curves from capacity factor time series and capacities 
+        #STEP 3c. Get power curves from capacity factor time series and capacities 
         region_power_da = regional_capacity_da * regional_capfac_da
 
-        #STEP 2d. Clustering  
+        #STEP 3d. Clustering  
         agg_cluster = AgglomerativeClustering(n_clusters=n_timeSeries_perRegion, 
                                               affinity="euclidean",  
                                               linkage=linkage)
         agglomerative_model = agg_cluster.fit(regional_capfac_da)
 
-        #STEP 2e. Aggregation
+        #STEP 3e. Aggregation
         for i in range(np.unique(agglomerative_model.labels_).shape[0]):
             ## Aggregate capacities 
             cluster_capacity = regional_capacity_da[agglomerative_model.labels_ == i]
@@ -99,12 +152,55 @@ def represent_RE_technology(rasterized_RE_ds, n_timeSeries_perRegion, linkage='a
 
 
 @spu.timer
-def get_one_REtech_per_region(rasterized_RE_ds):
-    """Simple aggregation: Within every region, take the weighted mean of capfac 
-    time series (capacities being weights), and sum of capacities. 
+def get_one_REtech_per_region(gridded_RE_ds, 
+                            shp_file, 
+                            index_col='region_ids', 
+                            geometry_col='geometry',
+                            longitude='x', 
+                            latitude='y'):
+    """Performs simple aggregation: 
+    Within every region, calculates the weighted mean of capfac 
+    time series (capacities being weights), and sums the capacities. 
     
+    Parameters
+    ----------
+    gridded_RE_ds : str/xr.Dataset 
+        Either the path to the dataset or the read-in xr.Dataset
+        - Dimensions in this data - latitude, longitude, and 'time' 
+        - variables - 'capfac' and 'capacity' 
+    shp_file : str/Shapefile
+        Either the path to the shapefile or the read-in shapefile 
+        that should be added to `gridded_RE_ds`
+    index_col : str, optional (default='region_ids')
+        The column in `shp_file` that needs to be taken as location-index in `gridded_RE_ds`
+    geometry_col : str, optional (default='geometry')
+        The column in `shp_file` that holds geometries 
+    longitude : str, optional (default='x')
+        The dimension name in `gridded_RE_ds` that corresponds to longitude 
+    latitude : str, optional (default='y')
+        The dimension name in `gridded_RE_ds` that corresponds to latitude
+
+    
+    Returns
+    -------
+    aggregated_RE_ds : xr.Dataset 
+        - Dimensions in this data - 'time', 'region_ids'
+        - The dimension 'region_ids' has its coordinates corresponding to `index_col` 
     """
-    #STEP 1. Create DataArrays to store the aggregated time series and capacities
+    if isinstance(gridded_RE_ds, str): 
+        gridded_RE_ds = xr.open_dataset(gridded_RE_ds)
+    elif not isinstance(gridded_RE_ds, xr.Dataset):
+        raise TypeError("gridded_RE_ds must either be a path to a netcdf file or xarray dataset")
+    
+    #STEP 1. Rasterize the dataset
+    rasterized_RE_ds = RE_rep_utils.add_shapes_from_shp(gridded_RE_ds, 
+                                                        shp_file, 
+                                                        index_col=index_col, 
+                                                        geometry_col=geometry_col,
+                                                        longitude=longitude, 
+                                                        latitude=latitude)
+
+    #STEP 2. Create DataArrays to store the aggregated time series and capacities
     ## DataArray to store the aggregated time series
     region_ids = rasterized_RE_ds['region_ids'].values
     time_steps = rasterized_RE_ds['time'].values
@@ -119,16 +215,16 @@ def get_one_REtech_per_region(rasterized_RE_ds):
 
     aggr_capacity_da = xr.DataArray(data, [('region_ids', region_ids)])
     
-    #STEP 2. Aggregation in every region...
+    #STEP 3. Aggregation in every region...
     for region in region_ids:
-        #STEP 2a. Get time series and capacities of current region 
+        #STEP 3a. Get time series and capacities of current region 
         regional_ds = rasterized_RE_ds.sel(region_ids = region)
         regional_capfac_da = regional_ds.capfac.where(regional_ds.rasters == 1)
         regional_capacity_da = regional_ds.capacity.where(regional_ds.rasters == 1)
         
-        #STEP 2b. Preprocess regional capfac and capacity dataArrays 
+        #STEP 3b. Preprocess regional capfac and capacity dataArrays 
         
-        #STEP 2b (i). Restructure data
+        #STEP 3b (i). Restructure data
         #INFO: The clustering model, takes <= 2 dimensions. So, x and y coordinates are fused 
         # Transposing dimensions to make sure clustering is performed along x_y dimension (i.e., space not time)
         regional_capfac_da = regional_capfac_da.stack(x_y = ['x', 'y']) 
@@ -137,11 +233,11 @@ def get_one_REtech_per_region(rasterized_RE_ds):
         regional_capacity_da = regional_capacity_da.stack(x_y = ['x', 'y'])
         regional_capacity_da = regional_capacity_da.transpose(transpose_coords= True)
             
-        #STEP 2b (ii). Remove all time series with 0 values 
+        #STEP 3b (ii). Remove all time series with 0 values 
         regional_capfac_da = regional_capfac_da.where(regional_capacity_da>0)
         regional_capacity_da = regional_capacity_da.where(regional_capacity_da>0)
         
-        #STEP 2b (iii). Drop NAs 
+        #STEP 3b (iii). Drop NAs 
         regional_capfac_da = regional_capfac_da.dropna(dim='x_y')
         regional_capacity_da = regional_capacity_da.dropna(dim='x_y')
         
@@ -149,10 +245,10 @@ def get_one_REtech_per_region(rasterized_RE_ds):
         n_ts = len(regional_capfac_da['x_y'].values)
         print(f'Number of time series in {region}: {n_ts}')
         
-        #STEP 2c. Get power curves from capacity factor time series and capacities 
+        #STEP 3c. Get power curves from capacity factor time series and capacities 
         regional_power_da = regional_capacity_da * regional_capfac_da
         
-        #STEP 2d. Aggregation
+        #STEP 3d. Aggregation
         ## capacity
         capacity_total = regional_capacity_da.sum(dim = 'x_y').values
         aggr_capacity_da.loc[region] = capacity_total
@@ -164,7 +260,7 @@ def get_one_REtech_per_region(rasterized_RE_ds):
         aggr_capfac_da.loc[:,region] = capfac_total
         
     #STEP 4. Create resulting dataset 
-    aggr_RE_ds = xr.Dataset({'capacity': aggr_capacity_da,
+    aggregated_RE_ds = xr.Dataset({'capacity': aggr_capacity_da,
                              'capfac': aggr_capfac_da}) 
             
-    return aggr_RE_ds
+    return aggregated_RE_ds
