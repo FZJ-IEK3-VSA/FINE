@@ -2,15 +2,7 @@
 # jupyter:
 #   jupytext:
 #     formats: ipynb,py:percent
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.6.0
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
+#     notebook_metadata_filter: -kernelspec,-jupytext.text_representation
 # ---
 
 # %% [markdown]
@@ -42,13 +34,13 @@ import FINE as fn
 # ### Read model from excel file, optimize and store to excel file
 # Checkout the output excel file in the folder where this notebook is located
 
-# %% tags=["nbval-skip"]
+# %%
 esM = fn.energySystemModelRunFromExcel()
 
 # %% [markdown]
 # ### Read only
 
-# %% tags=["nbval-skip"]
+# %%
 esM, esMData = fn.readEnergySystemModelFromExcel()
 
 # %%
