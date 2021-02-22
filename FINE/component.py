@@ -912,8 +912,11 @@ class ComponentModel(metaclass=ABCMeta):
         designBinVarSet = getattr(pyM, 'designDecisionVarSet_' + abbrvName)
 
         def bigM(pyM, loc, compName):
-            return capVar[loc, compName] <= designBinVar[loc, compName] * compDict[compName].bigM
+            comp = compDict[compName]
+            M = comp.capacityMax[loc] if comp.capacityMax is not None else comp.bigM
+            return capVar[loc, compName] <= designBinVar[loc, compName] * M
         setattr(pyM, 'ConstrBigM_' + abbrvName, pyomo.Constraint(designBinVarSet, rule=bigM))
+
 
     def capacityMinDec(self, pyM):
         """ 
@@ -1633,10 +1636,11 @@ class ComponentModel(metaclass=ABCMeta):
         self.capacityVariablesOptimum = optVal_
 
         if optVal is not None:
-            # Check if the installed capacities are close to a bigM value for components with design decision variables
+            # Check if the installed capacities are close to a bigM value for components with design decision variables but
+            # ignores cases where bigM was substituted by capacityMax parameter (see bigM constraint)
             for compName, comp in compDict.items():
-                if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max() >= comp.bigM * 0.9 \
-                        and esM.verbose < 2:
+                if comp.hasIsBuiltBinaryVariable and (comp.capacityMax is None) and optVal.loc[compName].max() >= comp.bigM * 0.9 \
+                        and esM.verbose < 2: # and comp.capacityMax is None
                     warnings.warn('the capacity of component ' + compName + ' is in one or more locations close ' +
                                   'or equal to the chosen Big M. Consider rerunning the simulation with a higher' +
                                   ' Big M.')

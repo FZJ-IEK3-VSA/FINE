@@ -918,6 +918,7 @@ class EnergySystemModel:
         Last edited: March 26, 2020
         |br| @author: FINE Developer Team (FZJ IEK-3)
         """
+
         if not timeSeriesAggregation:
             self.segmentation = False
 
