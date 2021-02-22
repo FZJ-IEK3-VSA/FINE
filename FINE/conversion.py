@@ -157,7 +157,7 @@ class Conversion(Component):
         self.commodityConversionFactors = commodityConversionFactors
         self.fullCommodityConversionFactors = {}
         self.aggregatedCommodityConversionFactors = {}
-        for commod in self.commodityConversionFactors:
+        for commod in self.commodityConversionFactors.keys():
             if not isinstance(commodityConversionFactors[commod], (int, float)):
                 self.fullCommodityConversionFactors[commod] = utils.checkAndSetTimeSeriesConversionFactors(esM, self.commodityConversionFactors[commod], self.locationalEligibility)
                 self.aggregatedCommodityConversionFactors[commod], self.commodityConversionFactors[commod] = None, None
