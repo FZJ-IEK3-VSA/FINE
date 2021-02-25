@@ -954,7 +954,7 @@ class EnergySystemModel:
 
         if solver == 'None':
             for nSolver in solverList:
-                while solver == 'None':
+                if solver == 'None':
                     try:
                         if opt.SolverFactory(nSolver).available():
                             solver = nSolver
