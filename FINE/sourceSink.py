@@ -688,10 +688,10 @@ class SourceSinkModel(ComponentModel):
                 ox.values/esM.numberOfYears
 
             # get empty datframe for resulting time dependent (TD) cost sum
-            cRevenueTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)
-            cCostTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)
-            
-            for compName in compDict.keys():
+            cRevenueTD = pd.DataFrame(0., index=opSum.index, columns=opSum.columns)
+            cCostTD = pd.DataFrame(0., index=opSum.index, columns=opSum.columns)
+
+            for compName in opSum.index:
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
                     calcCostTD = utils.buildFullTimeSeries(
