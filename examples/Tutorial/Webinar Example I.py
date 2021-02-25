@@ -43,10 +43,12 @@ warnings.filterwarnings('ignore') # For better visibility, warnings are turned o
 # %%
 import FINE as fn         # Provides objects and functions to model an energy system 
 import pandas as pd       # Used to manage data in tables
-import geopandas as gpd   # Used to display geo-referenced plots
 import shapely as shp     # Used to generate geometric objects
 import numpy as np        # Used to generate random input data
 np.random.seed(42)        # Sets a "seed" to produce the same random input data in each model run
+
+# %% tags=["nbval-skip"]
+import geopandas as gpd   # Used to display geo-referenced plots
 
 # %% [markdown]
 # # Model an energy system
