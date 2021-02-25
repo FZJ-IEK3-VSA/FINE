@@ -954,11 +954,11 @@ class EnergySystemModel:
 
         if solver == 'None':
             for nSolver in solverList:
-                if solver == 'None':
+                while solver == 'None':
                     try:
-                        opt.SolverFactory(nSolver).available()
-                        solver = nSolver
-                        utils.output('Either solver not selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
+                        if opt.SolverFactory(nSolver).available():
+                            solver = nSolver
+                            utils.output('Either solver not selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
                     except:
                         pass
 
