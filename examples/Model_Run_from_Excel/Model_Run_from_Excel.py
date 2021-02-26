@@ -34,7 +34,7 @@ import FINE as fn
 # ### Read model from excel file, optimize and store to excel file
 # Checkout the output excel file in the folder where this notebook is located
 
-# %%
+# %% tags=["nbval-skip"]
 esM = fn.energySystemModelRunFromExcel()
 
 # %% [markdown]
