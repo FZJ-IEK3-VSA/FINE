@@ -432,7 +432,7 @@ fig, ax = fn.plotOperationColorMap(esM, 'Electricity demand', 'cluster_0')
 # %% tags=["nbval-skip"]
 esM.getOptimizationSummary("ConversionModel", outputLevel=2)
 
-# %%
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotLocationalColorMap(esM, 'Electrolyzer', locFilePath, 'index', perArea=False)
 
 # %% tags=["nbval-skip"]
