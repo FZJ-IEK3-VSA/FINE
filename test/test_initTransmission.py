@@ -94,6 +94,37 @@ def test_initializeTransmission_withFloat():
                             opexPerOperation=opexPerOp,
                             opexPerCapacity=opexPerCap)) 
 
+def test_initializeTransmission_withSeries():
+    '''
+    Tests if Transmission components are initialized without error if
+    additional parameters are given as data series.
+    '''   
+    # Define general parameters for esM-instance
+    locations = ['cluster_1', 'cluster_2', 'cluster_3', 'cluster_4']
+    commodityUnitDict = {'commodity1': 'commodity_unit'}
+    commodities = {'commodity1'}
+
+    # Initialize esM-instance
+    esM = fn.EnergySystemModel(locations=set(locations), commodities=commodities, numberOfTimeSteps=4,
+                               commodityUnitsDict=commodityUnitDict,
+                               hoursPerTimeStep=1, costUnit='cost_unit', lengthUnit='length_unit')
+
+    # Set capacityMin, capacityMax, opexPerOperation and opexPerCapacity as float
+    idx =  ['cluster_1_cluster_2', 'cluster_1_cluster_3', 'cluster_1_cluster_4',
+            'cluster_2_cluster_1', 'cluster_2_cluster_3', 'cluster_2_cluster_4',
+            'cluster_3_cluster_1', 'cluster_3_cluster_2', 'cluster_3_cluster_4',
+            'cluster_4_cluster_1', 'cluster_4_cluster_2', 'cluster_4_cluster_3']
+    capMax = pd.Series([2,3,3,4,5,6,2,3,3,1,6,4], index=idx)
+    opexPerOp = capMax*0.02
+
+    # Initialize Transmission
+    esM.add(fn.Transmission(esM=esM, 
+                            name='Transmission_1', 
+                            commodity='commodity1', 
+                            hasCapacityVariable=True,
+                            capacityMin=capMax,
+                            opexPerOperation=opexPerOp)) 
+
 
 
 
