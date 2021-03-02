@@ -120,7 +120,7 @@ class Transmission(Component):
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
         self.capacityMax = utils.preprocess2dimData(capacityMax, locationalEligibility=locationalEligibility)
         self.capacityFix = utils.preprocess2dimData(capacityFix, locationalEligibility=locationalEligibility)
-        self.isBuiltFix = utils.preprocess2dimData(isBuiltFix)
+        self.isBuiltFix = utils.preprocess2dimData(isBuiltFix, locationalEligibility=locationalEligibility)
 
         # Set locational eligibility
         operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
@@ -138,9 +138,12 @@ class Transmission(Component):
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + '_' + loc2})
                     self._mapI.update({loc1 + '_' + loc2: loc2 + '_' + loc1})
 
-        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC)
+        self.capacityMax = utils.preprocess2dimData(capacityMax, self._mapC, locationalEligibility=self.locationalEligibility)
+        self.capacityFix = utils.preprocess2dimData(capacityFix, self._mapC, locationalEligibility=self.locationalEligibility)
+        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC, locationalEligibility=self.locationalEligibility)
         self.investPerCapacity = utils.preprocess2dimData(investPerCapacity, self._mapC)
         self.investIfBuilt = utils.preprocess2dimData(investIfBuilt, self._mapC)
+        self.isBuiltFix = utils.preprocess2dimData(isBuiltFix, self._mapC, locationalEligibility=self.locationalEligibility)
         self.opexPerCapacity = utils.preprocess2dimData(opexPerCapacity, self._mapC)
         self.opexIfBuilt = utils.preprocess2dimData(opexIfBuilt, self._mapC)
         self.interestRate = utils.preprocess2dimData(interestRate, self._mapC)

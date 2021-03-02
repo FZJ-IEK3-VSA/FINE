@@ -528,8 +528,10 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
                 return data
             else:
                 raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
-        elif capacityFix is None and capacityMax is None and isBuiltFix is None:
-            # If no information is given all values are set to 1
+        elif (capacityFix is None or isinstance(capacityFix,float) or isinstance(capacityFix,int)) \
+            and (capacityMax is None or isinstance(capacityMax,float) or isinstance(capacityMax,int)) \
+            and (isBuiltFix is None or isinstance(isBuiltFix,int)):
+            # If no information is given, or all information is given as float or integer, all values are set to 1
             if dimension == '1dim':
                 return pd.Series([1 for loc in esM.locations], index=esM.locations)
             else:
@@ -537,10 +539,11 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
                 data = pd.Series([1 for key in keys], index=keys)
                 data.sort_index(inplace=True)
                 return data
-        elif isBuiltFix is not None:
+        elif isBuiltFix is not None and isinstance(isBuiltFix,pd.Series):
             # If the isBuiltFix is not empty, the eligibility is set based on the fixed capacity
             data = isBuiltFix.copy()
             data[data > 0] = 1
+            data.sort_index(inplace=True)
             return data
         else:
             # If the fixCapacity is not empty, the eligibility is set based on the fixed capacity
@@ -928,6 +931,10 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
         data_ = data*locationalEligibility
         data_.sort_index(inplace=True)
         return data_
+    elif isinstance(data, int) and locationalEligibility is not None:
+        data_ = data*locationalEligibility
+        data_.sort_index(inplace=True)
+        return data_    
     elif isinstance(data, pd.Series):
         data_ = data.sort_index()
         return data_
