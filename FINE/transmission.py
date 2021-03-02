@@ -9,7 +9,7 @@ class Transmission(Component):
     """
     A Transmission component can transmit a commodity between locations of the energy system.
 
-    Last edited: November 12, 2020
+    Last edited: March 02, 2021
     |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     def __init__(self,
@@ -119,9 +119,8 @@ class Transmission(Component):
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
         self.capacityMax = utils.preprocess2dimData(capacityMax, locationalEligibility=locationalEligibility)
-        self.capacityFix = utils.preprocess2dimData(capacityFix)
+        self.capacityFix = utils.preprocess2dimData(capacityFix, locationalEligibility=locationalEligibility)
         self.isBuiltFix = utils.preprocess2dimData(isBuiltFix)
-
 
         # Set locational eligibility
         operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
@@ -139,7 +138,7 @@ class Transmission(Component):
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + '_' + loc2})
                     self._mapI.update({loc1 + '_' + loc2: loc2 + '_' + loc1})
 
-        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC, locationalEligibility)
+        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC)
         self.investPerCapacity = utils.preprocess2dimData(investPerCapacity, self._mapC)
         self.investIfBuilt = utils.preprocess2dimData(investIfBuilt, self._mapC)
         self.opexPerCapacity = utils.preprocess2dimData(opexPerCapacity, self._mapC)
@@ -190,7 +189,8 @@ class Transmission(Component):
         self.opexIfBuilt *= (self.distances * 0.5)
         
         # Set additional economic data
-        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',
+        self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC)
+        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, self.opexPerOperation, '2dim',
                                                                self.locationalEligibility)
 
         # Set location-specific operation parameters

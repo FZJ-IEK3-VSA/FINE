@@ -525,8 +525,7 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
             elif dimension == '2dim':
                 data = operationTimeSeries.copy().sum()
                 data.loc[:] = 1
-                locationalEligibility = data
-                return locationalEligibility
+                return data
             else:
                 raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
         elif capacityFix is None and capacityMax is None and isBuiltFix is None:
@@ -535,7 +534,9 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
                 return pd.Series([1 for loc in esM.locations], index=esM.locations)
             else:
                 keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations if loc1 != loc2}
-                return pd.Series([1 for key in keys], index=keys)
+                data = pd.Series([1 for key in keys], index=keys)
+                data.sort_index(inplace=True)
+                return data
         elif isBuiltFix is not None:
             # If the isBuiltFix is not empty, the eligibility is set based on the fixed capacity
             data = isBuiltFix.copy()
@@ -901,6 +902,9 @@ def setOptimalComponentVariables(optVal, varType, compDict):
                 setattr(comp, varType, None)
 
 def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
+    """
+    Change format of 2-dimensional data (for transmission components).
+    """
     if data is not None and isinstance(data, pd.DataFrame):
         if mapC is None:
             index, data_ = [], []
@@ -913,13 +917,21 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                     else:
                         if data[loc1][loc2] >= 0:
                             index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
-            return pd.Series(data_, index=index)
+            data_ = pd.Series(data_, index=index)
+            data_.sort_index(inplace=True)
+            return data_
         else:
-            return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+            data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+            data_.sort_index(inplace=True)
+            return data_
     elif isinstance(data, float) and locationalEligibility is not None:
-        data2 = data*locationalEligibility
-        return data2
-    else:
+        data_ = data*locationalEligibility
+        data_.sort_index(inplace=True)
+        return data_
+    elif isinstance(data, pd.Series):
+        data_ = data.sort_index()
+        return data_
+    else: 
         return data
 
 def map2dimData(data, mapC):
