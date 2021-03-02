@@ -57,7 +57,12 @@ class Transmission(Component):
 
         :param losses: relative losses per lengthUnit (lengthUnit as specified in the energy system model) in
             percentage of the commodity flow. This loss factor can capture simple linear losses
-            trans_in_ij=(1-losses*distance)*trans_out_ij (with trans being the commodity flow at a certain point in
+
+            .. math:: 
+            
+            \\trans_{in, ij} = (1 - \\text{losses} \cdot \\text{distances})*trans_{out, ij}
+
+            (with trans being the commodity flow at a certain point in
             time and i and j being locations in the energy system). The losses can either be given as a float or a
             Pandas DataFrame with location specific values.
             |br| * the default value is 0
@@ -82,7 +87,7 @@ class Transmission(Component):
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
-            one location indicates where the commodity is going too. If a flow is specified from location i to
+            location indicates where the commodity is going too. If a flow is specified from location i to
             location j, it also has to be specified from j to i.
 
         :param operationRateFix: if specified, indicates a fixed operation rate for all possible connections
@@ -109,7 +114,8 @@ class Transmission(Component):
             the opexPerOperation parameter with the annual sum of the operational time series of the components.
             The opexPerOperation can either be given as a float or a Pandas DataFrame with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
-            system model (e.g. Euro, Dollar, 1e6 Euro).
+            system model (e.g. Euro, Dollar, 1e6 Euro). The value has to match the unit costUnit/operationUnit 
+            (e.g. Euro/kWh, Dollar/kWh).
             |br| * the default value is 0
         :type opexPerOperation: positive (>=0) float or Pandas DataFrame with positive (>=0) values.
             The row and column indices of the DataFrame have to equal the in the energy system model
@@ -179,7 +185,7 @@ class Transmission(Component):
         # Set general component data
         utils.checkCommodities(esM, {commodity})
         self.commodity, self.commodityUnit = commodity, esM.commodityUnitsDict[commodity]
-        self.distances = utils.preprocess2dimData(distances, self._mapC)
+        self.distances = utils.preprocess2dimData(distances, self._mapC, locationalEligibility=self.locationalEligibility)
         self.losses = utils.preprocess2dimData(losses, self._mapC)
         self.distances = utils.checkAndSetDistances(self.distances, self.locationalEligibility, esM)
         self.losses = utils.checkAndSetTransmissionLosses(self.losses, self.distances, self.locationalEligibility)
