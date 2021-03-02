@@ -1,5 +1,5 @@
 """
-Last edited: February 21, 2020
+Last edited: March 02, 2021
 
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
@@ -906,7 +906,7 @@ def setOptimalComponentVariables(optVal, varType, compDict):
 
 def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
     """
-    Change format of 2-dimensional data (for transmission components).
+    Change format of 2-dimensional data (for transmission components). 
     """
     if data is not None and isinstance(data, pd.DataFrame):
         if mapC is None:
