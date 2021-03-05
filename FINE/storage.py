@@ -1154,7 +1154,7 @@ class StorageModel(ComponentModel):
                                                 esM.periodsOrder, esM=esM)
         self.dischargeOperationVariablesOptimum = optVal
         # Check if there are time steps, at which a storage component is both charging and discharging
-        for compName in self.componentsDict.keys():
+        for compName in opSum.index:
             simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
                 tsCharge=self.chargeOperationVariablesOptimum.loc[compName],
                 tsDischarge=self.dischargeOperationVariablesOptimum.loc[compName])
