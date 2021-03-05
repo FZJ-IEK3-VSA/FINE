@@ -191,14 +191,17 @@ class Component(metaclass=ABCMeta):
 
         :param investPerCapacity: describes the investment costs for one unit of the capacity. The
             invest of a component is obtained by multiplying the built capacities
-            of the component (in the physicalUnit of the component) with the investPerCapacity factor.
+            of the component (in the physicalUnit of the component) with the investPerCapacity factor. 
+            The value has to match the unit costUnit/physicalUnit (e.g. Euro/kW). 
             The investPerCapacity can either be given as\n
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
               parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro) or
+              1e6 Euro). The value has to match the unit 
+              costUnit/physicalUnit (e.g. Euro/kW, 1e6 Euro/GW) or
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
-              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km).\n
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). The value has to match the unit 
+              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km)) \n
             |br| * the default value is 0
         :type investPerCapacity:
             * None or
@@ -231,10 +234,12 @@ class Component(metaclass=ABCMeta):
             with the opexPerCapacity factor. The opexPerCapacity factor can either be given as\n
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
               parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro) or
+              1e6 Euro). The value has to match the unit 
+              costUnit/physicalUnit (e.g. Euro/kW, 1e6 Euro/GW)  or
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
-              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). The value has to match the unit 
+              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km))\n
             |br| * the default value is 0
         :type opexPerCapacity:
             * None or
@@ -248,10 +253,10 @@ class Component(metaclass=ABCMeta):
             if a component is built at that location. The opexIfBuilt can either be given as\n
             * a float or a Pandas Series with location specific values (dimension=1dim) . The cost unit in which
               the parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro)or
+              1e6 Euro) or
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
-              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). \n
             |br| * the default value is 0
         :type opexIfBuilt:
             * None or
