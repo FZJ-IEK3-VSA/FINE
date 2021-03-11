@@ -205,23 +205,112 @@ class Source(Component):
         self.commodityLimitID, self.yearlyLimit = commodityLimitID, yearlyLimit
         self.sign = 1
         self.modelingClass = SourceSinkModel
-
+        # Addition for perfect foresight
         # Set additional economic data: opexPerOperation, commodityCost, commodityRevenue
-        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
-                                                               locationalEligibility)
-        self.commodityCost = utils.checkAndSetCostParameter(esM, name, commodityCost, '1dim',
-                                                            locationalEligibility)
+        # self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
+        #                                                      locationalEligibility)
+        # self.commodityCost = utils.checkAndSetCostParameter(esM, name, commodityCost, '1dim',
+        #                                                    locationalEligibility
+        # self.commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',
+        #                                                       locationalEligibility)
+        ## New code for perfect foresight!
+        # create emtpy dicts
+        self.opexPerOperation = {}
+        self.commodityCost= {}
+        self.commodityRevenue = {}
+        
+        
+        # iterate over all ips
+        for ip in esM.investmentPeriods:
+            
+            # opexPerOperation 
+            if (isinstance(opexPerOperation, int) or isinstance(opexPerOperation, float) or isinstance(opexPerOperation, pd.Series)): #opexPerOperation is series/float/int
+                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',locationalEligibility)
+            elif isinstance(opexPerOperation, dict): # opexPerOperations is dict
+                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'1dim', locationalEligibility)
+            else:
+                raise TypeError('opexPerOperation should be a pandas series or a dictionary.')
 
-        self.commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',
-                                                               locationalEligibility)
+            # Commodity Cost 
+            if (isinstance(commodityCost, int) or isinstance(commodityCost, float) or isinstance(commodityCost, pd.Series)): #commodityCost is series/float/int
+                self.commodityCost[ip] = utils.checkAndSetCostParameter(esM, name, commodityCost, '1dim',locationalEligibility)
+            elif isinstance(commodityCost, dict): # commodityCostTimeSeries is dict
+                self.commodityCost[ip] = utils.checkAndSetCostParameter(esM, name, commodityCost[ip],'1dim', locationalEligibility)
+            else:
+                raise TypeError('commodityCost should be a pandas series or a dictionary.')
 
-        self.fullCommodityCostTimeSeries = \
-            utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries, locationalEligibility)
-        self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
+            # Commodity Revenue
+            if (isinstance(commodityRevenue, int) or isinstance(commodityRevenue, float) or isinstance(commodityRevenue, pd.Series)): #commodityRevenue is series/float/int
+                self.commodityRevenue[ip] = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',locationalEligibility)
+            elif isinstance(commodityRevenue, dict): # commodityRevenue is dict
+                self.commodityRevenue[ip] = utils.checkAndSetCostParameter(esM, name, commodityRevenue[ip],'1dim', locationalEligibility)
+            else:
+                raise TypeError('commodityRevenue should be a pandas series or a dictionary.')   
 
-        self.fullCommodityRevenueTimeSeries = \
-            utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries, locationalEligibility)
-        self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
+        # if all(type(value)!=pd.core.series for value in self.opexPerOperation.values()):
+        #     self.opexPerOperation=None
+        
+        # if all(type(value)!=pd.core.series for value in self.commodityCost.values()):
+        #     self.commodityCost=None
+
+        # if all(type(value)!=pd.core.series for value in self.commodityRevenue.values()):
+        #     self.commodityRevenue=None
+
+
+        # Addition for perfect foresight:
+        # self.fullCommodityCostTimeSeries = \
+        #     utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries, locationalEligibility)
+        # self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, None
+
+        # self.fullCommodityRevenueTimeSeries = \
+        #     utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries, locationalEligibility)
+        # self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, None
+
+
+        ## New code for perfect foresight!
+        # create emtpy dicts
+        self.fullCommodityCostTimeSeries = {}
+        self.aggregatedCommodityCostTimeSeries = {}
+        self.commodityCostTimeSeries = {}
+
+        self.fullCommodityRevenueTimeSeries = {}
+        self.aggregatedCommodityRevenueTimeSeries = {}
+        self.commodityRevenueTimeSeries = {}
+        
+        # iterate over all ips
+        for ip in esM.investmentPeriods:
+
+            # Commodity Cost Time Series
+            if isinstance(commodityCostTimeSeries, pd.DataFrame) or commodityCostTimeSeries is None: #commodityCostTimeSeries is dataframe
+                self.fullCommodityCostTimeSeries[ip] = utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries, locationalEligibility)
+            elif isinstance(commodityCostTimeSeries, dict): # commodityCostTimeSeries is dict
+                self.fullCommodityCostTimeSeries[ip] = utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries[ip], locationalEligibility)
+            # elif commodityCostTimeSeries is None:
+            #     pass
+            else:
+                raise TypeError('commodityCostTimeSeries should be a pandas dataframe or a dictionary.')
+            
+            self.aggregatedCommodityCostTimeSeries[ip], self.commodityCostTimeSeries[ip] = None, None
+            
+            # commodityRevenueTimeSeries
+            if isinstance(commodityRevenueTimeSeries, pd.DataFrame) or commodityRevenueTimeSeries is None: #commodityRevenueTimeSeries is dataframe
+                self.fullCommodityRevenueTimeSeries[ip] = utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries, locationalEligibility)
+            elif isinstance(commodityRevenueTimeSeries, dict): #commodityRevenueTimeSeries is dict
+                self.fullCommodityRevenueTimeSeries[ip] = utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries[ip], locationalEligibility)
+            # elif commodityRevenueTimeSeries is None:
+            #     pass
+            else:
+                raise TypeError('commodityRevenueTimeSeries should be a pandas dataframe or a dictionary.')
+            
+            self.aggregatedCommodityRevenueTimeSeries[ip], self.commodityRevenueTimeSeries[ip] = None, None
+
+
+        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullCommodityCostTimeSeries.values()):
+            self.fullCommodityCostTimeSeries=None
+        
+        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullCommodityRevenueTimeSeries.values()):
+            self.fullCommodityRevenueTimeSeries=None
+
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
         if operationRateMax is not None and operationRateFix is not None:
@@ -247,31 +336,29 @@ class Source(Component):
         for ip in esM.investmentPeriods:
 
             # Operation Rate Max
-            if isinstance(operationRateMax, pd.DataFrame): #operationRate is dataframe
+            if isinstance(operationRateMax, pd.DataFrame) or operationRateMax is None: #operationRate is dataframe
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
             elif isinstance(operationRateMax, dict): # operationRate is dict
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax[ip], locationalEligibility)
-            elif operationRateMax is None:
-                pass
+            # elif operationRateMax is None:
+            #     pass
             else:
                 raise TypeError('OperationRateMax should be a pandas dataframe or a dictionary.')
             
             self.aggregatedOperationRateMax[ip], self.operationRateMax[ip] = None, None
             
             # Operation Rate Fix
-            if isinstance(operationRateFix, pd.DataFrame): #operationRate is dataframe
+            if isinstance(operationRateFix, pd.DataFrame) or operationRateFix is None: #operationRate is dataframe
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
             elif isinstance(operationRateFix, dict): #operationRate is dict
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix[ip], locationalEligibility)
-            elif operationRateFix is None:
-                pass
+            # elif operationRateFix is None:
+            #     pass
             else:
                 raise TypeError('OperationRateFix should be a pandas dataframe or a dictionary.')
             
             self.aggregatedOperationRateFix[ip], self.operationRateFix[ip] = None, None
         
-        # testing purpose
-        #print('fullOperationRate' + '\n' + str(self.fullOperationRateFix))
 
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:
@@ -284,24 +371,56 @@ class Source(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
+        # Old code
+        # Set locational eligibility
+        # operationTimeSeries = self.fullOperationRateFix if self.fullOperationRateFix is not None \
+        #     else self.fullOperationRateMax
+        # self.locationalEligibility = \
+        #     utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
+        #                                    self.isBuiltFix, self.hasCapacityVariable, operationTimeSeries)
+
         # Set locational eligibility
         # new code for perfect foresight
         # self.locationalEligibility = {}
         # catch None values
-        if not self.fullOperationRateMax:
-            self.fullOperationRateMax = None
-        if not self.fullOperationRateFix:
-            self.fullOperationRateFix = None 
+        # if not self.fullOperationRateMax:
+        #     self.fullOperationRateMax = None
+        # if not self.fullOperationRateFix:
+        #     self.fullOperationRateFix = None 
+        # tests
+        #print('fullOperationRateFix')
+        #print(self.fullOperationRateFix)
+        #print('fullOperationRateMax')
+        #print(self.fullOperationRateMax)
+
+        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateFix.values()):
+            self.fullOperationRateFix=None
+        
+        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateMax.values()):
+            self.fullOperationRateMax=None
+
+        
         operationTimeSeries = {}
+        #for ip in esM.investmentPeriods:
         if self.fullOperationRateFix is not None:
             for ip in esM.investmentPeriods:
                 operationTimeSeries[ip] = self.fullOperationRateFix[ip]
         elif self.fullOperationRateMax is not None:
+        #else:
             for ip in esM.investmentPeriods:
                 operationTimeSeries[ip] = self.fullOperationRateMax[ip]
         else:
-            operationTimeSeries=None
-   
+            operationTimeSeries = None
+        
+        # tests
+        # print('operationTimeSeries')
+        # print(operationTimeSeries)
+
+        #if all(type(value)!=pd.core.frame.DataFrame for value in operationTimeSeries.values()):
+        #    operationTimeSeries=None
+        
+        #print('operationTimeSeries_after')
+        #print(operationTimeSeries)
 
         self.locationalEligibility = \
             utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
@@ -685,7 +804,7 @@ class SourceSinkModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
+    def setOptimalValues(self, esM, pyM, ip):
         """
         Set the optimal values of the components.
 
@@ -694,10 +813,16 @@ class SourceSinkModel(ComponentModel):
 
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
+
+        :param ip: investment period
+        :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
-
+        # tests
+        print('opVar-Values')
+        print(opVar.get_values())
+        # To-DOs: 11.03.2021: Continue here, see also utils: def formatOptimizationOutput (l. 803)
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'commodityUnit')
 
@@ -719,13 +844,19 @@ class SourceSinkModel(ComponentModel):
             if x[1] == 'operation' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
-# To-Do: Perfect Foresight - Continue here
+# To-Do 11.03.2021: Perfect Foresight - Continue here
+# see also utils --> def formatOptimizationOutput (l 803)
 # fix: output only first column
 # expand: use for loop to replace 0 with index i --> get all columns
 # print commands just for testing purposes
         if optVal is not None:
             idx = pd.IndexSlice
-            optVal = optVal.loc[idx[:,:,0],:] # 0 must be set to variable ip
+            # print just for testing
+            print("optVal_before")
+            print(optVal)
+            print("ip")
+            print(ip)
+            optVal = optVal.loc[idx[:,:,ip],:] # 0 must be set to variable ip
             optVal = optVal.droplevel([2])
             print("optVal")
             print(optVal)
@@ -733,11 +864,16 @@ class SourceSinkModel(ComponentModel):
             print("opSum")
             print(opSum)
 
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)           
-            cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[op.index], axis=1)
-            cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost['PerfectLand'], axis=1)
-            cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[op.index], axis=1)
-
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[ip][op.index], axis=1)           
+            cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[ip][op.index], axis=1)
+            cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[ip][op.index], axis=1)
+            # tests
+            print('ox')
+            print(ox)
+            print('cCost')
+            print(cCost)
+            print('cRevenue')
+            print(cRevenue)
 
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
@@ -756,7 +892,7 @@ class SourceSinkModel(ComponentModel):
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
                     calcCostTD = utils.buildFullTimeSeries(
-                        compDict[compName].commodityCostTimeSeries.unstack(level=1).stack(level=0),
+                        compDict[compName].commodityCostTimeSeries[ip].unstack(level=1).stack(level=0),
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total cost
 
@@ -769,7 +905,7 @@ class SourceSinkModel(ComponentModel):
                 if not compDict[compName].commodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
                     calcRevenueTD = utils.buildFullTimeSeries(
-                        compDict[compName].commodityRevenueTimeSeries.unstack(level=1).stack(level=0),
+                        compDict[compName].commodityRevenueTimeSeries[ip].unstack(level=1).stack(level=0),
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
                     cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)

@@ -1011,11 +1011,12 @@ class EnergySystemModel:
             w = str(len(max(self.componentModelingDict.keys()))+6)
             # ToDo: 
             # For Schleife über investmentperiods --> output für einzelne invperiods
-            for key, mdl in self.componentModelingDict.items():
-                __t = time.time()
-                mdl.setOptimalValues(self, self.pyM)
-                outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
-                utils.output(outputString, self.verbose, 0)
+            for ip in self.investmentPeriods:
+                for key, mdl in self.componentModelingDict.items():
+                    __t = time.time()
+                    mdl.setOptimalValues(self, self.pyM, ip)
+                    outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
+                    utils.output(outputString, self.verbose, 0)
 
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 

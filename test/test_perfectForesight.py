@@ -37,12 +37,34 @@ def test_perfectForesight():
     # Sources
 
     # Electricity market
-    costs = pd.DataFrame([np.array([ 1,1,1,1,])],
+    # for one investmentperiod:
+    
+    #costs = pd.DataFrame([np.array([ 1,1,1,1,])],
+    #                    index = ['PerfectLand']).T
+    # revenues = pd.DataFrame([np.array([ 0., 0., 0., 0.,])],
+    #                       index = ['PerfectLand']).T
+    #maxpurchase = pd.DataFrame([np.array([0.5e3, 0.5e3, 4e3, 4e3,])],
+    #                    index = ['PerfectLand']).T
+
+    # for two investmentperiods
+    costs = {}
+    costs[0] = pd.DataFrame([np.array([ 1,1,1,1,])],
                             index = ['PerfectLand']).T
-    revenues = pd.DataFrame([np.array([ 0., 0., 0., 0.,])],
+    costs[1] = pd.DataFrame([np.array([ 1,1,1,1,])],
                             index = ['PerfectLand']).T
-    maxpurchase = pd.DataFrame([np.array([0.5e3, 0.5e3, 4e3, 4e3,])],
+    
+    revenues = {}
+    revenues[0] = pd.DataFrame([np.array([ 0., 0., 0., 0.,])],
                             index = ['PerfectLand']).T
+    revenues[1] = pd.DataFrame([np.array([ 0., 0., 0., 0.,])],
+                            index = ['PerfectLand']).T
+                            
+    maxpurchase = {}
+    maxpurchase[0] = pd.DataFrame([np.array([0.5e3, 0.5e3, 4e3, 4e3,])],
+                            index = ['PerfectLand']).T
+    maxpurchase[1] = pd.DataFrame([np.array([0.5e3, 0.5e3, 4e3, 4e3,])],
+                            index = ['PerfectLand']).T
+                            
     esM.add(fn.Source(esM=esM, name='Electricity market', commodity='electricity', 
                         hasCapacityVariable=False, operationRateMax = maxpurchase,
                         commodityCostTimeSeries = costs,  
@@ -51,8 +73,17 @@ def test_perfectForesight():
                         )) # eur/kWh
 
     # Photovoltaic
-    PVoperationRateMax = pd.DataFrame([np.array([0.4, 0.4, 0.6, 0.6,])],
+    # single investment period
+    # PVoperationRateMax = pd.DataFrame([np.array([0.4, 0.4, 0.6, 0.6,])],
+    #                        index = ['PerfectLand']).T
+    
+    # 2 investmentperiods
+    PVoperationRateMax = {}
+    PVoperationRateMax[0] = pd.DataFrame([np.array([0.4, 0.4, 0.6, 0.6,])],
                             index = ['PerfectLand']).T
+    PVoperationRateMax[1] = pd.DataFrame([np.array([0.4, 0.4, 0.6, 0.6,])],
+                            index = ['PerfectLand']).T
+    
     esM.add(fn.Source(esM=esM, name='PV', commodity='electricity', hasCapacityVariable=True,
                   operationRateMax=PVoperationRateMax,
                   capacityMax=4e6,
@@ -67,11 +98,13 @@ def test_perfectForesight():
     # demand = pd.DataFrame([np.array([2/5, 1/5, 1/5, 1/5,])],
     #                 index = ['PerfectLand']).T
     # demand now as dict:
+    # two investmentperiods
     demand = {}
     demand[0] = pd.DataFrame([np.array([2e3, 1e3, 1e3, 1e3,])],
                     index = ['PerfectLand']).T # first investmentperiod
     demand[1] = pd.DataFrame([np.array([4e3, 2e3, 2e3, 2e3,])],
                     index = ['PerfectLand']).T # second investmentperiod
+   # print(demand)
 
     # just a test:
     # yearlyDemand = pd.DataFrame([np.array([5e3, 10e3])],

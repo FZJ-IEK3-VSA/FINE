@@ -1246,7 +1246,7 @@ class ComponentModel(metaclass=ABCMeta):
         return sum(capVar[loc, compName] / compDict[compName].capacityMax[loc] for compName in compDict
                    if compDict[compName].sharedPotentialID == key and (loc, compName) in capVarSet)
                 
-    def getLocEconomicsTD(self, pyM, esM, factorNames, varName, loc, compName, getOptValue=False):
+    def getLocEconomicsTD(self, pyM, esM, factorNames, varName, loc, compName, ip, getOptValue=False):
         """
         Set time-dependent equation specified for one component in one location or one connection between two locations.
 
@@ -1282,7 +1282,7 @@ class ComponentModel(metaclass=ABCMeta):
         """
 
         var = getattr(pyM, varName + '_' + self.abbrvName)
-        factors = [getattr(self.componentsDict[compName], factorName)[loc] for factorName in factorNames]
+        factors = [getattr(self.componentsDict[compName], factorName)[ip][loc] for factorName in factorNames]
         factor = 1.
         for factor_ in factors:
             factor *= factor_
@@ -1433,16 +1433,17 @@ class ComponentModel(metaclass=ABCMeta):
         """
         indices = getattr(pyM, dictName + '_' + self.abbrvName).items()
         if self.dimension == '1dim':
-            return sum(self.getLocEconomicsTD(pyM, esM, factorNames, varName, loc, compName, getOptValue)
-                       for loc, compNames in indices for compName in compNames)
+            return sum(self.getLocEconomicsTD(pyM, esM, factorNames, varName, loc, compName, ip, getOptValue)
+                       for loc, compNames in indices for compName in compNames for ip in esM.investmentPeriods)
         else:
-            return sum(self.getLocEconomicsTD(pyM, esM, factorNames, varName, loc + '_' + loc_, compName, getOptValue)
+            return sum(self.getLocEconomicsTD(pyM, esM, factorNames, varName, loc + '_' + loc_, compName, ip, getOptValue)
                        for loc, subDict in indices
                        for loc_, compNames in subDict.items()
-                       for compName in compNames)
+                       for compName in compNames
+                       for ip in esM.investmentPeriods)
 
 
-    def getLocEconomicsTimeSeries(self, pyM, esM, factorName, varName, loc, compName, getOptValue=False):
+    def getLocEconomicsTimeSeries(self, pyM, esM, factorName, varName, loc, compName, ip, getOptValue=False):
         """
         Set time-dependent cost functions for the individual components. The equations will be set for all components 
         of a modeling class and all locations as well as for each considered time step.
@@ -1481,12 +1482,12 @@ class ComponentModel(metaclass=ABCMeta):
         """
         var = getattr(pyM, varName + '_' + self.abbrvName)
         if getattr(self.componentsDict[compName], factorName) is not None:
-            factor = getattr(self.componentsDict[compName], factorName)[loc]
+            factor = getattr(self.componentsDict[compName], factorName)[ip][loc]
             if not getOptValue:
-                return sum(factor[ip, p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
+                return sum(factor[p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
                                        for ip, p, t in pyM.timeSet)/esM.numberOfYears
             else:
-                return sum(factor[ip, p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
+                return sum(factor[p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
                                        for ip, p, t in pyM.timeSet)/esM.numberOfYears
         else:
             return 0
@@ -1524,13 +1525,14 @@ class ComponentModel(metaclass=ABCMeta):
         """
         indices = getattr(pyM, dictName + '_' + self.abbrvName).items()
         if self.dimension == '1dim':
-            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc, compName, getOptValue)
-                       for loc, compNames in indices for compName in compNames)
+            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc, compName, ip, getOptValue)
+                       for loc, compNames in indices for compName in compNames for ip in esM.investmentPeriods)
         else:
-            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc + '_' + loc_, compName, getOptValue)
+            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc + '_' + loc_, compName, ip, getOptValue)
                         for loc, subDict in indices
                         for loc_, compNames in subDict.items()
-                        for compName in compNames)
+                        for compName in compNames
+                        for ip in esM.investmentPeriods)
 
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=''):
         """
