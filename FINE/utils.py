@@ -831,7 +831,7 @@ def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
             # if divide is set to True, the values are divided when being unravelled, e.g. in order to fit provided
             # energy per segment provided energy per time step
             if divide:
-                dataPeriod = pd.DataFrame(np.repeat(np.divide(df.loc[p].values, repList), repList, axis=1),
+                dataPeriod = pd.DataFrame(np.repeat(np.divide(df.loc[p].values, repList, where=(df.loc[p].values!=None)), repList, axis=1),  #INFO: where part is added so that rows with None values are skipped
                                           index=df.xs(p, level=0, drop_level=False).index)
             # if divide is set to Frue, the values are not divided when being unravelled e.g. in case of time-
             # independent costs
