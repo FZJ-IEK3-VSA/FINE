@@ -662,7 +662,17 @@ class SourceSinkModel(ComponentModel):
         return balance
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
+        """ 
+        Get contribution to a commodity balance.
+        
+        .. math::
+            
+            \\text{C}^{comp,comm}_{loc,p,t} = - op_{loc,p,t}^{comp,op}  \\text{Sink}
+
+        .. math::
+            \\text{C}^{comp,comm}_{loc,p,t} = op_{loc,p,t}^{comp,op} \\text{Source}
+
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
         return sum(opVar[loc, compName, p, t] * compDict[compName].sign
@@ -715,10 +725,16 @@ class SourceSinkModel(ComponentModel):
         self.operationVariablesOptimum = optVal
 
         props = ['operation', 'opexOp', 'commodCosts', 'commodRevenues']
-        units = ['[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
-        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
-        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].commodityUnit + '*h/a]')
-                          if x[1] == 'operation' else x, tuples))
+        # Unit dict: Specify units for props
+        units = {props[0]: ['[-*h]', '[-*h/a]'],
+                 props[1]: ['[' + esM.costUnit + '/a]'],
+                 props[2]: ['[' + esM.costUnit + '/a]'],
+                 props[3]: ['[' + esM.costUnit + '/a]']}
+        # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
+        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop in props for unit in units[prop]]
+        # Replace placeholder with correct unit of component
+        tuples = list(map(lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+            if x[1] == 'operation' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
 
@@ -730,12 +746,14 @@ class SourceSinkModel(ComponentModel):
 
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
+            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],
+                           opSum.columns] = opSum.values
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values/esM.numberOfYears
 
             # get empty datframe for resulting time dependent (TD) cost sum
-            cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
-            cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
+            cRevenueTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)
+            cCostTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)
             
             for compName in compDict.keys():
                 if not compDict[compName].commodityCostTimeSeries is None:
@@ -756,7 +774,6 @@ class SourceSinkModel(ComponentModel):
 
             optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cCostTD.values + cCost.values)/esM.numberOfYears
-
             optSummary.loc[[(ix, 'commodRevenues', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cRevenueTD.values + cRevenue.values)/esM.numberOfYears
 

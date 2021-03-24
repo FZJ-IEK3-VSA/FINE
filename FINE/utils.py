@@ -1,5 +1,5 @@
 """
-Last edited: February 21, 2020
+Last edited: March 02, 2021
 
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
@@ -533,21 +533,25 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
             elif dimension == '2dim':
                 data = operationTimeSeries.copy().sum()
                 data.loc[:] = 1
-                locationalEligibility = data
-                return locationalEligibility
+                return data
             else:
                 raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
-        elif capacityFix is None and capacityMax is None and isBuiltFix is None:
-            # If no information is given all values are set to 1
+        elif (capacityFix is None or isinstance(capacityFix,float) or isinstance(capacityFix,int)) \
+            and (capacityMax is None or isinstance(capacityMax,float) or isinstance(capacityMax,int)) \
+            and (isBuiltFix is None or isinstance(isBuiltFix,int)):
+            # If no information is given, or all information is given as float or integer, all values are set to 1
             if dimension == '1dim':
                 return pd.Series([1 for loc in esM.locations], index=esM.locations)
             else:
                 keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations if loc1 != loc2}
-                return pd.Series([1 for key in keys], index=keys)
-        elif isBuiltFix is not None:
+                data = pd.Series([1 for key in keys], index=keys)
+                data.sort_index(inplace=True)
+                return data
+        elif isBuiltFix is not None and isinstance(isBuiltFix,pd.Series):
             # If the isBuiltFix is not empty, the eligibility is set based on the fixed capacity
             data = isBuiltFix.copy()
             data[data > 0] = 1
+            data.sort_index(inplace=True)
             return data
         else:
             # If the fixCapacity is not empty, the eligibility is set based on the fixed capacity
@@ -681,6 +685,39 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
         raise ValueError('Value error in ' + name + ' detected.\n' +
                          'All entries in economic parameter series have to be positive.')
     return _data
+
+
+def checkAndSetTimeSeriesConversionFactors(esM, commodityConversionFactorsTimeSeries, locationalEligibility):
+    if commodityConversionFactorsTimeSeries is not None:
+        if not isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
+            if len(esM.locations) == 1:
+                if isinstance(commodityConversionFactorsTimeSeries, pd.Series):
+                    commodityConversionFactorsTimeSeries = pd.DataFrame(commodityConversionFactorsTimeSeries.values, index=commodityConversionFactorsTimeSeries.index,
+                                                                        columns=list(esM.locations))
+                else:
+                    raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame or Series')
+            else:
+                raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame')
+
+        checkTimeSeriesIndex(esM, commodityConversionFactorsTimeSeries)
+
+        checkRegionalColumnTitles(esM, commodityConversionFactorsTimeSeries)
+
+        if locationalEligibility is not None and commodityConversionFactorsTimeSeries is not None:
+            # Check if given conversion factors indicate the same eligibility
+            data = commodityConversionFactorsTimeSeries.copy().sum().abs()
+            data[data > 0] = 1
+            if (data.sort_index() > locationalEligibility.sort_index()).any().any():
+                warnings.warn('The locationalEligibility and commodityConversionFactorsTimeSeries parameters '
+                                'indicate different eligibilities.')
+
+        commodityConversionFactorsTimeSeries = commodityConversionFactorsTimeSeries.copy()
+        commodityConversionFactorsTimeSeries["Period"], commodityConversionFactorsTimeSeries["TimeStep"] = 0, commodityConversionFactorsTimeSeries.index
+
+        return commodityConversionFactorsTimeSeries.set_index(['Period', 'TimeStep'])
+
+    else:
+        return None
 
 
 def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalEligibility):
@@ -876,6 +913,9 @@ def setOptimalComponentVariables(optVal, varType, compDict):
                 setattr(comp, varType, None)
 
 def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
+    """
+    Change format of 2-dimensional data (for transmission components). 
+    """
     if data is not None and isinstance(data, pd.DataFrame):
         if mapC is None:
             index, data_ = [], []
@@ -888,13 +928,25 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                     else:
                         if data[loc1][loc2] >= 0:
                             index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
-            return pd.Series(data_, index=index)
+            data_ = pd.Series(data_, index=index)
+            data_.sort_index(inplace=True)
+            return data_
         else:
-            return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+            data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+            data_.sort_index(inplace=True)
+            return data_
     elif isinstance(data, float) and locationalEligibility is not None:
-        data2 = data*locationalEligibility
-        return data2
-    else:
+        data_ = data*locationalEligibility
+        data_.sort_index(inplace=True)
+        return data_
+    elif isinstance(data, int) and locationalEligibility is not None:
+        data_ = data*locationalEligibility
+        data_.sort_index(inplace=True)
+        return data_    
+    elif isinstance(data, pd.Series):
+        data_ = data.sort_index()
+        return data_
+    else: 
         return data
 
 def map2dimData(data, mapC):
@@ -1138,11 +1190,31 @@ def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
         else:
             return CO2ReductionTargets
 
+def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
+    """
+    Check if simultaneous charge and discharge occurs for StorageComponent.
+    :param tsCharge: Charge time series of component, which is checked. Can be retrieved from
+        chargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
+    :type tsCharge: pd.DataFrame
+    :param tsDischarge: Discharge time series of component, which is checked. Can be retrieved from
+        dischargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
+    :type tsDischarge: pd.DataFrame
+
+    :return: simultaneousChargeDischarge: Boolean with information if simultaneous charge & discharge happens
+    :type simultaneousChargeDischarge: bool
+    """
+    # Merge Charge and Discharge Series
+    ts = pd.concat([tsCharge.T, tsDischarge.T], axis=1)
+    # If no simultaneous charge and discharge occurs ts[region][ts[region] > 0] will only return nan values. After
+    # dropping them the len() is 0 and the check returns False. This is done for all regions in the list comprehension.
+    # If any() region returns True the check returns True.
+    simultaneousChargeDischarge = \
+        any([len(ts[region][ts[region] > 0].dropna()) > 0 for region in set(ts.columns.values)])
+    return simultaneousChargeDischarge
+
 def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
     """
     If CO2ReductionTargets are given, set the new value for each iteration.
     """
     if CO2ReductionTargets is not None: 
         setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', CO2Reference*(1-CO2ReductionTargets[step]/100))
-
- 
