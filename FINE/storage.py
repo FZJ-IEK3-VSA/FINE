@@ -262,6 +262,9 @@ class Storage(Component):
         self.opexPerDischargeOperation = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation, '1dim',
                                                                         locationalEligibility)
 
+        self.chargeOpRateMax = chargeOpRateMax
+        self.chargeOpRateFix = chargeOpRateFix
+
         # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
         # and time series aggregation weighting factor
         if chargeOpRateMax is not None and chargeOpRateFix is not None:
@@ -271,10 +274,10 @@ class Storage(Component):
                               'The chargeOpRateMax time series was set to None.')
 
         self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
-        self.aggregatedChargeOpRateMax, self.chargeOpRateMax = None, None
+        self.aggregatedChargeOpRateMax, self.processedChargeOpRateMax = None, None
 
         self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix, locationalEligibility)
-        self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, None
+        self.aggregatedChargeOpRateFix, self.processedChargeOpRateFix = None, None
 
         
         if self.partLoadMin is not None:
@@ -290,6 +293,9 @@ class Storage(Component):
         utils.isPositiveNumber(chargeTsaWeight)
         self.chargeTsaWeight = chargeTsaWeight
 
+        self.dischargeOpRateMax = dischargeOpRateMax
+        self.dischargeOpRateFix = dischargeOpRateFix
+
         if dischargeOpRateMax is not None and dischargeOpRateFix is not None:
             dischargeOpRateMax = None
             if esM.verbose < 2:
@@ -297,10 +303,10 @@ class Storage(Component):
                               + 'The dischargeOpRateMax time series was set to None.')
 
         self.fullDischargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax, locationalEligibility)
-        self.aggregatedDischargeOpRateMax, self.dischargeOpRateMax = None, None
+        self.aggregatedDischargeOpRateMax, self.processedDischargeOpRateMax = None, None
 
         self.fullDischargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix, locationalEligibility)
-        self.aggregatedDischargeOpRateFix, self.dischargeOpRateFix = None, None
+        self.aggregatedDischargeOpRateFix, self.processedDischargeOpRateFix = None, None
 
         utils.isPositiveNumber(dischargeTsaWeight)
         self.dischargeTsaWeight = dischargeTsaWeight
@@ -333,10 +339,10 @@ class Storage(Component):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
-        self.chargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullChargeOpRateMax
-        self.chargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullChargeOpRateFix
-        self.dischargeOpRateMax = self.aggregatedDischargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
-        self.dischargeOpRateFix = self.aggregatedDischargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
+        self.processedChargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullChargeOpRateMax
+        self.processedChargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullChargeOpRateFix
+        self.processedDischargeOpRateMax = self.aggregatedDischargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
+        self.processedDischargeOpRateFix = self.aggregatedDischargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
 
     def getDataForTimeSeriesAggregation(self):
         """ Function for getting the required data if a time series aggregation is requested. """
@@ -435,9 +441,9 @@ class StorageModel(ComponentModel):
 
         # Declare sets for case differentiation of operating modes
         # * Charge operation
-        self.declareOperationModeSets(pyM, 'chargeOpConstrSet', 'chargeOpRateMax', 'chargeOpRateFix')
+        self.declareOperationModeSets(pyM, 'chargeOpConstrSet', 'processedChargeOpRateMax', 'processedChargeOpRateFix')
         # * Discharge operation
-        self.declareOperationModeSets(pyM, 'dischargeOpConstrSet', 'dischargeOpRateMax', 'dischargeOpRateFix')
+        self.declareOperationModeSets(pyM, 'dischargeOpConstrSet', 'processedDischargeOpRateMax', 'processedDischargeOpRateFix')
 
     ####################################################################################################################
     #                                                Declare variables                                                 #

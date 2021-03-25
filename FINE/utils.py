@@ -684,29 +684,33 @@ def checkAndSetTimeSeriesConversionFactors(esM, commodityConversionFactorsTimeSe
         if not isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
             if len(esM.locations) == 1:
                 if isinstance(commodityConversionFactorsTimeSeries, pd.Series):
-                    commodityConversionFactorsTimeSeries = pd.DataFrame(commodityConversionFactorsTimeSeries.values, index=commodityConversionFactorsTimeSeries.index,
+                    fullCommodityConversionFactorsTimeSeries = pd.DataFrame(commodityConversionFactorsTimeSeries.values, index=commodityConversionFactorsTimeSeries.index,
                                                                         columns=list(esM.locations))
                 else:
                     raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame or Series')
             else:
                 raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame')
+        elif isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
+            fullCommodityConversionFactorsTimeSeries = commodityConversionFactorsTimeSeries 
+        else:
+            raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame or Series')
 
-        checkTimeSeriesIndex(esM, commodityConversionFactorsTimeSeries)
+        checkTimeSeriesIndex(esM, fullCommodityConversionFactorsTimeSeries)
 
-        checkRegionalColumnTitles(esM, commodityConversionFactorsTimeSeries)
+        checkRegionalColumnTitles(esM, fullCommodityConversionFactorsTimeSeries)
 
-        if locationalEligibility is not None and commodityConversionFactorsTimeSeries is not None:
+        if locationalEligibility is not None and fullCommodityConversionFactorsTimeSeries is not None:
             # Check if given conversion factors indicate the same eligibility
-            data = commodityConversionFactorsTimeSeries.copy().sum().abs()
+            data = fullCommodityConversionFactorsTimeSeries.copy().sum().abs()
             data[data > 0] = 1
             if (data.sort_index() > locationalEligibility.sort_index()).any().any():
                 warnings.warn('The locationalEligibility and commodityConversionFactorsTimeSeries parameters '
                                 'indicate different eligibilities.')
 
-        commodityConversionFactorsTimeSeries = commodityConversionFactorsTimeSeries.copy()
-        commodityConversionFactorsTimeSeries["Period"], commodityConversionFactorsTimeSeries["TimeStep"] = 0, commodityConversionFactorsTimeSeries.index
+        fullCommodityConversionFactorsTimeSeries = fullCommodityConversionFactorsTimeSeries.copy()
+        fullCommodityConversionFactorsTimeSeries["Period"], fullCommodityConversionFactorsTimeSeries["TimeStep"] = 0, fullCommodityConversionFactorsTimeSeries.index
 
-        return commodityConversionFactorsTimeSeries.set_index(['Period', 'TimeStep'])
+        return fullCommodityConversionFactorsTimeSeries.set_index(['Period', 'TimeStep'])
 
     else:
         return None

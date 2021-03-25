@@ -202,6 +202,9 @@ class Transmission(Component):
         self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, self.opexPerOperation, '2dim',
                                                                self.locationalEligibility)
 
+        self.operationRateMax = operationRateMax
+        self.operationRateFix = operationRateFix
+
         # Set location-specific operation parameters
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
@@ -210,10 +213,10 @@ class Transmission(Component):
                               'The operationRateMax time series was set to None.')
 
         self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, self.locationalEligibility, self.dimension)
-        self.aggregatedOperationRateMax, self.operationRateMax = None, None
+        self.aggregatedOperationRateMax, self.processedOperationRateMax = None, None
 
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, self.locationalEligibility, self.dimension)
-        self.aggregatedOperationRateFix, self.operationRateFix = None, None
+        self.aggregatedOperationRateFix, self.processedOperationRateFix = None, None
 
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:
@@ -243,8 +246,8 @@ class Transmission(Component):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
-        self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
-        self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
+        self.processedOperationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
+        self.processedOperationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
 
     def getDataForTimeSeriesAggregation(self):
         """ Function for getting the required data if a time series aggregation is requested. """
