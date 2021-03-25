@@ -1286,12 +1286,22 @@ class ComponentModel(metaclass=ABCMeta):
         factor = 1.
         for factor_ in factors:
             factor *= factor_
+        # create a timeSet for the current ip
+        timeSet_pt = [(p,t) for ip0, p, t in pyM.timeSet if ip0 == ip]
         if not getOptValue:
+            # old code:
+            # return (factor * sum(var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
+            #                      for ip, p, t in pyM.timeSet)/esM.numberOfYears)
+            # new with timeSet for current ip
             return (factor * sum(var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
-                                 for ip, p, t in pyM.timeSet)/esM.numberOfYears)
+                                 for p, t in timeSet_pt)/esM.numberOfYears)
         else:
+            # old code:
+            # return (factor * sum(var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
+            #                      for ip, p, t in pyM.timeSet)/esM.numberOfYears)
+            # new with timeSet for current ip
             return (factor * sum(var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
-                                 for ip, p, t in pyM.timeSet)/esM.numberOfYears)
+                                 for p, t in timeSet_pt)/esM.numberOfYears)
 
     def getLocEconomicsTI(self, pyM, factorNames, varName, loc, compName, divisorName='', QPfactorNames=[], QPdivisorNames=[], getOptValue=False):
         """
@@ -1481,14 +1491,24 @@ class ComponentModel(metaclass=ABCMeta):
         :type getoptValue: boolean
         """
         var = getattr(pyM, varName + '_' + self.abbrvName)
+        # create new timeSet for current ip
+        timeSet_pt = [(p,t) for ip0, p, t in pyM.timeSet if ip0 == ip]
         if getattr(self.componentsDict[compName], factorName) is not None:
             factor = getattr(self.componentsDict[compName], factorName)[ip][loc]
             if not getOptValue:
+                # old code
+                # return sum(factor[p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
+                #                        for ip, p, t in pyM.timeSet)/esM.numberOfYears
+                # new with timeSet for current ip
                 return sum(factor[p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
-                                       for ip, p, t in pyM.timeSet)/esM.numberOfYears
+                                       for p, t in timeSet_pt)/esM.numberOfYears
             else:
+                # old code
+                # return sum(factor[p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
+                #                        for ip, p, t in pyM.timeSet)/esM.numberOfYears
+                # new with timeSet for current ip
                 return sum(factor[p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
-                                       for ip, p, t in pyM.timeSet)/esM.numberOfYears
+                                       for p, t in timeSet_pt)/esM.numberOfYears
         else:
             return 0
       

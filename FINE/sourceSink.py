@@ -819,10 +819,6 @@ class SourceSinkModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
-        # tests
-        print('opVar-Values')
-        print(opVar.get_values())
-        # To-DOs: 11.03.2021: Continue here, see also utils: def formatOptimizationOutput (l. 803)
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'commodityUnit')
 
@@ -844,22 +840,11 @@ class SourceSinkModel(ComponentModel):
             if x[1] == 'operation' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
-# To-Do 11.03.2021: Perfect Foresight - Continue here
-# see also utils --> def formatOptimizationOutput (l 803)
-# fix: output only first column
-# expand: use for loop to replace 0 with index i --> get all columns
 # print commands just for testing purposes
         if optVal is not None:
             idx = pd.IndexSlice
-            # print just for testing
-            print("optVal_before")
-            print(optVal)
-            print("ip")
-            print(ip)
-            optVal = optVal.loc[idx[:,:,ip],:] # 0 must be set to variable ip
-            optVal = optVal.droplevel([2])
-            print("optVal")
-            print(optVal)
+            optVal = optVal.loc[idx[:,ip,:],:] # perfect foresight: added ip
+            optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
             print("opSum")
             print(opSum)
@@ -881,8 +866,6 @@ class SourceSinkModel(ComponentModel):
                            opSum.columns] = opSum.values
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values/esM.numberOfYears
-            # print('optSummary')
-            # print(optSummary)
 
             # get empty datframe for resulting time dependent (TD) cost sum
             cRevenueTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)

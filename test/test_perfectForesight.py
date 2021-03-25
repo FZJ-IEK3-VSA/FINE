@@ -83,12 +83,16 @@ def test_perfectForesight():
                             index = ['PerfectLand']).T
     PVoperationRateMax[1] = pd.DataFrame([np.array([0.4, 0.4, 0.6, 0.6,])],
                             index = ['PerfectLand']).T
+    # different opexPerOperation per investmentperiod
+    PVopexPerOperation = {}
+    PVopexPerOperation[0] = 0.01
+    PVopexPerOperation[1] = 0.02
     
     esM.add(fn.Source(esM=esM, name='PV', commodity='electricity', hasCapacityVariable=True,
                   operationRateMax=PVoperationRateMax,
                   capacityMax=4e6,
                   investPerCapacity=2*2190, opexPerCapacity=0, interestRate=0,
-                  opexPerOperation=0.01,
+                  opexPerOperation=PVopexPerOperation, # 0.01,
                   economicLifetime=1))
 
     # Sinks
@@ -99,10 +103,17 @@ def test_perfectForesight():
     #                 index = ['PerfectLand']).T
     # demand now as dict:
     # two investmentperiods
+
+    revenuesDemand = {}
+    revenuesDemand[0] = pd.DataFrame([np.array([ 0.1, 0.1, 0.1, 0.1,])],
+                            index = ['PerfectLand']).T
+    revenuesDemand[1] = pd.DataFrame([np.array([ 0.2, 0.2, 0.2, 0.2,])],
+                            index = ['PerfectLand']).T
+    
     demand = {}
     demand[0] = pd.DataFrame([np.array([2e3, 1e3, 1e3, 1e3,])],
                     index = ['PerfectLand']).T # first investmentperiod
-    demand[1] = pd.DataFrame([np.array([4e3, 2e3, 2e3, 2e3,])],
+    demand[1] = pd.DataFrame([np.array([2e3, 1e3, 1e3, 1e3,])],
                     index = ['PerfectLand']).T # second investmentperiod
    # print(demand)
 
@@ -112,6 +123,7 @@ def test_perfectForesight():
     
     esM.add(fn.Sink(esM=esM, name='EDemand', commodity='electricity', hasCapacityVariable=False,
                     operationRateFix = demand,
+                    commodityRevenueTimeSeries = revenuesDemand # new compared to original model
                     ))
 
     # Optimize energy system model    
