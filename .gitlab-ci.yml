@@ -27,4 +27,4 @@ test-notebooks:
     refs:
       - master
       - develop
-      - 47-test-notebooks
+      - 161-exclude-cells-with-gpd-from-testing
