@@ -1141,11 +1141,10 @@ class EnergySystemModel:
                 mdl.setOptimalValues(self, self.pyM)
                 outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
                 utils.output(outputString, self.verbose, 0)
+            # Store the objective value in the EnergySystemModel instance.
+            self.objectiveValue = self.pyM.Obj()
 
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
-
-        # Store the objective value in the EnergySystemModel instance.
-        self.objectiveValue = self.pyM.Obj()
