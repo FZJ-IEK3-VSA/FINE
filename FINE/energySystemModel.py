@@ -64,7 +64,11 @@ class EnergySystemModel:
                  locations, 
                  commodities, 
                  commodityUnitsDict, 
+<<<<<<< HEAD
                  numberOfTimeSteps=8760,
+=======
+                 numberOfTimeSteps=8760, 
+>>>>>>> 9cf59a112062ae0f49e3c296047a559bb838a4ee
                  hoursPerTimeStep=1,
                  costUnit='1e9 Euro',
                  lengthUnit='km',
