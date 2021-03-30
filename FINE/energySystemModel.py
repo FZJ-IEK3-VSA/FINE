@@ -12,9 +12,10 @@ import pyomo.environ as pyomo
 import pyomo.opt as opt
 import time
 import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
 
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("always", category=UserWarning)
 
 class EnergySystemModel:
     """
@@ -59,7 +60,7 @@ class EnergySystemModel:
     |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
-    def __init__(self, 
+    def __init__(self,
                  locations, 
                  commodities, 
                  commodityUnitsDict, 
@@ -221,9 +222,14 @@ class EnergySystemModel:
         # timeLimit (positive float or None, if specified, indicates the maximum allowed runtime of the solver),
         # threads (positive int, number of threads used for optimization, can depend on solver), logFileName
         # (string, name of logfile).
+        # The objectiveValue parameter is None when the EnergySystemModel is initialized. After calling the 
+        # optimize function, the objective value (i.e. TAC of the analyzed energy system) is stored in the 
+        # objectiveValue parameter for easier access.
+
         self.pyM = None
         self.solverSpecs = {'solver': '', 'optimizationSpecs': '', 'hasTSA': False, 'buildtime': 0, 'solvetime': 0,
                             'runtime': 0, 'timeLimit': None, 'threads': 0, 'logFileName': ''}
+        self.objectiveValue = None
 
         ################################################################################################################
         #                                           General model parameters                                           #
@@ -595,9 +601,15 @@ class EnergySystemModel:
         Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
         salt cavern storing methane and salt caverns storing hydrogen.
 
+        .. math:: 
+            
+            \\underset{\\text{comp} \in \mathcal{C}^{ID}}{\sum} \\text{cap}^{comp}_{loc} / \\text{capMax}^{comp}_{loc} \leq 1 
+
+
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
+        
         """
         utils.output('Declaring shared potential constraint...', self.verbose, 0)
 
@@ -620,10 +632,55 @@ class EnergySystemModel:
                        for mdl in self.componentModelingDict.values()) <= 1
         pyM.ConstraintSharedPotentials = \
             pyomo.Constraint(pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint)
+    
+    def declareComponentLinkedQuantityConstraints(self, pyM):
+        """
+        Declare linked component quantity constraint, e.g. if an engine (E-Motor) is built also a storage (Battery)
+        and a vehicle body (e.g. BEV Car) needs to be built. Not the capacity of the components, but the number of
+        the components is linked.
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel     
+        """
+        utils.output('Declaring linked component quantity constraint...', self.verbose, 0)
+
+        compDict = {}
+        for mdl in self.componentModelingDict.values():
+            for compName, comp in mdl.componentsDict.items():
+                if comp.linkedQuantityID is not None:
+                    [compDict.setdefault((comp.linkedQuantityID, loc), []).append(compName)
+                    for loc in comp.locationalEligibility.index]
+        pyM.linkedQuantityDict = compDict
+       
+        def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2):
+            abbrvName1 = self.componentModelingDict[self.componentNames[compName1]].abbrvName
+            abbrvName2 = self.componentModelingDict[self.componentNames[compName2]].abbrvName
+            capVar1 = getattr(pyM, 'cap_' + abbrvName1)
+            capVar2 = getattr(pyM, 'cap_' + abbrvName2)
+            capPPU1 = self.componentModelingDict[self.componentNames[compName1]].componentsDict[compName1].capacityPerPlantUnit
+            capPPU2 = self.componentModelingDict[self.componentNames[compName2]].componentsDict[compName2].capacityPerPlantUnit
+            return capVar1[loc, compName1] / capPPU1 == capVar2[loc, compName2] / capPPU2
+
+
+        for (i,j) in pyM.linkedQuantityDict.keys():
+            linkedQuantityList = []
+            linkedQuantityList.append((i, j))
+            
+            setattr(pyM, 'ConstraintLinkedQuantity_' + str(i) + '_' + str(j),\
+                pyomo.Constraint(\
+                    linkedQuantityList,\
+                    pyM.linkedQuantityDict[i, j],\
+                    pyM.linkedQuantityDict[i, j],\
+                    rule=linkedQuantityConstraint))
 
     def declareCommodityBalanceConstraints(self, pyM):
         """
         Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
+
+        .. math:: 
+            
+            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,p,t} = 0 
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -653,7 +710,25 @@ class EnergySystemModel:
         Declare the objective function by obtaining the contributions to the objective function from all modeling
         classes. Currently, the only objective function which can be selected is the sum of the total annual cost of all
         components.
+        
+        .. math::
+            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum} 
+            \\left( TAC_{loc}^{comp,cap}  +  TAC_{loc}^{comp,bin} + TAC_{loc}^{comp,op} \\right)
 
+        Objective Function detailed:
+
+        .. math::
+            :nowrap:
+
+            \\begin{eqnarray*}
+            z^* = \\min & & \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}
+            \\left[ \\text{F}^{comp,cap}_{loc} \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc}}{\\text{CCF}^{comp}_{loc}} \\right.
+            + \\text{opexPerCap}^{comp}_{loc} \\right) \\cdot cap^{comp}_{loc} \\\\
+            & & + \\ \\text{F}^{comp,bin}_{loc} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc}}	{CCF^{comp}_{loc}} 
+            + \\text{opexIfBuilt}^{comp}_{loc} \\right)  \\cdot  bin^{comp}_{loc} \\\\
+            & & \\left. + \\left( \\underset{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}}{\\sum} \\ \\underset{\\text{opType} \\in \\mathcal{O}^{comp}}{\\sum} \\text{factorPerOp}^{comp,opType}_{loc} \\cdot op^{comp,opType}_{loc,p,t} \\cdot  \\frac{\\text{freq(p)}}{\\tau^{years}} \\right) \\right]
+            \\end{eqnarray*}
+        
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
@@ -739,6 +814,11 @@ class EnergySystemModel:
         self.declareSharedPotentialConstraints(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
+        # Declare constraints for linked quantities
+        _t = time.time()
+        self.declareComponentLinkedQuantityConstraints(pyM)
+        utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
+
         # Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
         _t = time.time()
         self.declareCommodityBalanceConstraints(pyM)
@@ -762,7 +842,7 @@ class EnergySystemModel:
                  timeSeriesAggregation=False,
                  logFileName='', 
                  threads=3, 
-                 solver='gurobi', 
+                 solver='None', 
                  timeLimit=None, 
                  optimizationSpecs='', 
                  warmstart=False):
@@ -838,6 +918,7 @@ class EnergySystemModel:
         Last edited: March 26, 2020
         |br| @author: FINE Developer Team (FZJ IEK-3)
         """
+
         if not timeSeriesAggregation:
             self.segmentation = False
 
@@ -861,6 +942,31 @@ class EnergySystemModel:
         self.solverSpecs['solver'], self.solverSpecs['timeLimit'] = solver, timeLimit
         self.solverSpecs['optimizationSpecs'], self.solverSpecs['hasTSA'] = optimizationSpecs, timeSeriesAggregation
 
+        # Check which solvers are available and choose default solver if no solver is specified explicitely
+        # Order of possible solvers in solverList defines the priority of chosen default solver.
+        solverList = ['gurobi', 'coincbc', 'glpk']
+        
+        if solver != 'None':
+            try:
+                opt.SolverFactory(solver).available()
+            except:
+                solver = 'None'
+
+        if solver == 'None':
+            for nSolver in solverList:
+                if solver == 'None':
+                    try:
+                        if opt.SolverFactory(nSolver).available():
+                            solver = nSolver
+                            utils.output('Either solver not selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
+                    except:
+                        pass
+
+        if solver == 'None':
+            raise TypeError('At least one solver must be installed.'
+                            ' Have a look at the FINE documentation to see how to install possible solvers.'
+                            ' https://vsa-fine.readthedocs.io/en/latest/')
+
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
@@ -873,7 +979,7 @@ class EnergySystemModel:
             optimizer.options['timelimit'] = timeLimit
 
         # Set the specified solver options
-        if 'LogToConsole=' not in optimizationSpecs:
+        if 'LogToConsole=' not in optimizationSpecs and solver == "gurobi":
             if self.verbose == 2:
                 optimizationSpecs += ' LogToConsole=0'
 
@@ -881,6 +987,9 @@ class EnergySystemModel:
         if solver=='gurobi':
             optimizer.set_options('Threads=' + str(threads) + ' logfile=' + logFileName + ' ' + optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
+        elif solver=="glpk":
+            optimizer.set_options(optimizationSpecs)
+            solver_info = optimizer.solve(self.pyM, tee=True)
         else:
             solver_info = optimizer.solve(self.pyM, tee=True)
         self.solverSpecs['solvetime'] = time.time() - timeStart
@@ -921,6 +1030,8 @@ class EnergySystemModel:
                 mdl.setOptimalValues(self, self.pyM)
                 outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
                 utils.output(outputString, self.verbose, 0)
+            # Store the objective value in the EnergySystemModel instance.
+            self.objectiveValue = self.pyM.Obj()
 
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 

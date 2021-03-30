@@ -9,38 +9,39 @@ class Transmission(Component):
     """
     A Transmission component can transmit a commodity between locations of the energy system.
 
-    Last edited: November 12, 2020
+    Last edited: March 02, 2021
     |br| @author: FINE Developer Team (FZJ IEK-3)
     """
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
-                 losses=0, 
+    def __init__(self,
+                 esM,
+                 name,
+                 commodity,
+                 losses=0,
                  distances=None,
-                 hasCapacityVariable=True, 
-                 capacityVariableDomain='continuous', 
+                 hasCapacityVariable=True,
+                 capacityVariableDomain='continuous',
                  capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
+                 hasIsBuiltBinaryVariable=False,
                  bigM=None,
-                 operationRateMax=None, 
-                 operationRateFix=None, 
+                 operationRateMax=None,
+                 operationRateFix=None,
                  tsaWeight=1,
-                 locationalEligibility=None, 
-                 capacityMin=None, 
-                 capacityMax=None, 
-                 partLoadMin=None, 
+                 locationalEligibility=None,
+                 capacityMin=None,
+                 capacityMax=None,
+                 partLoadMin=None,
                  sharedPotentialID=None,
-                 capacityFix=None, 
+                 linkedQuantityID=None,
+                 capacityFix=None,
                  isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
-                 opexPerOperation=0, 
+                 investPerCapacity=0,
+                 investIfBuilt=0,
+                 opexPerOperation=0,
                  opexPerCapacity=0,
-                 opexIfBuilt=0, 
-                 QPcostScale=0, 
-                 interestRate=0.08, 
-                 economicLifetime=10, 
+                 opexIfBuilt=0,
+                 QPcostScale=0,
+                 interestRate=0.08,
+                 economicLifetime=10,
                  technicalLifetime=None):
         """
         Constructor for creating an Transmission class instance.
@@ -56,7 +57,12 @@ class Transmission(Component):
 
         :param losses: relative losses per lengthUnit (lengthUnit as specified in the energy system model) in
             percentage of the commodity flow. This loss factor can capture simple linear losses
-            trans_in_ij=(1-losses*distance)*trans_out_ij (with trans being the commodity flow at a certain point in
+
+            .. math:: 
+            
+            \\trans_{in, ij} = (1 - \\text{losses} \cdot \\text{distances})*trans_{out, ij}
+
+            (with trans being the commodity flow at a certain point in
             time and i and j being locations in the energy system). The losses can either be given as a float or a
             Pandas DataFrame with location specific values.
             |br| * the default value is 0
@@ -81,7 +87,7 @@ class Transmission(Component):
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
-            one location indicates where the commodity is going too. If a flow is specified from location i to
+            location indicates where the commodity is going too. If a flow is specified from location i to
             location j, it also has to be specified from j to i.
 
         :param operationRateFix: if specified, indicates a fixed operation rate for all possible connections
@@ -108,7 +114,8 @@ class Transmission(Component):
             the opexPerOperation parameter with the annual sum of the operational time series of the components.
             The opexPerOperation can either be given as a float or a Pandas DataFrame with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
-            system model (e.g. Euro, Dollar, 1e6 Euro).
+            system model (e.g. Euro, Dollar, 1e6 Euro). The value has to match the unit costUnit/operationUnit 
+            (e.g. Euro/kWh, Dollar/kWh).
             |br| * the default value is 0
         :type opexPerOperation: positive (>=0) float or Pandas DataFrame with positive (>=0) values.
             The row and column indices of the DataFrame have to equal the in the energy system model
@@ -118,9 +125,8 @@ class Transmission(Component):
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
         self.capacityMax = utils.preprocess2dimData(capacityMax, locationalEligibility=locationalEligibility)
-        self.capacityFix = utils.preprocess2dimData(capacityFix)
-        self.isBuiltFix = utils.preprocess2dimData(isBuiltFix)
-
+        self.capacityFix = utils.preprocess2dimData(capacityFix, locationalEligibility=locationalEligibility)
+        self.isBuiltFix = utils.preprocess2dimData(isBuiltFix, locationalEligibility=locationalEligibility)
 
         # Set locational eligibility
         operationTimeSeries = operationRateFix if operationRateFix is not None else operationRateMax
@@ -138,44 +144,48 @@ class Transmission(Component):
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + '_' + loc2})
                     self._mapI.update({loc1 + '_' + loc2: loc2 + '_' + loc1})
 
-        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC, locationalEligibility)
+        self.capacityMax = utils.preprocess2dimData(capacityMax, self._mapC, locationalEligibility=self.locationalEligibility)
+        self.capacityFix = utils.preprocess2dimData(capacityFix, self._mapC, locationalEligibility=self.locationalEligibility)
+        self.capacityMin = utils.preprocess2dimData(capacityMin, self._mapC, locationalEligibility=self.locationalEligibility)
         self.investPerCapacity = utils.preprocess2dimData(investPerCapacity, self._mapC)
         self.investIfBuilt = utils.preprocess2dimData(investIfBuilt, self._mapC)
+        self.isBuiltFix = utils.preprocess2dimData(isBuiltFix, self._mapC, locationalEligibility=self.locationalEligibility)
         self.opexPerCapacity = utils.preprocess2dimData(opexPerCapacity, self._mapC)
         self.opexIfBuilt = utils.preprocess2dimData(opexIfBuilt, self._mapC)
         self.interestRate = utils.preprocess2dimData(interestRate, self._mapC)
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
 
-        Component. __init__(self, 
-                            esM, 
-                            name, 
-                            dimension='2dim', 
+        Component. __init__(self,
+                            esM,
+                            name,
+                            dimension='2dim',
                             hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain, 
+                            capacityVariableDomain=capacityVariableDomain,
                             capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
+                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
                             bigM=bigM,
-                            locationalEligibility=self.locationalEligibility, 
+                            locationalEligibility=self.locationalEligibility,
                             capacityMin=self.capacityMin,
-                            capacityMax=self.capacityMax, 
-                            partLoadMin=partLoadMin, 
+                            capacityMax=self.capacityMax,
+                            partLoadMin=partLoadMin,
                             sharedPotentialID=sharedPotentialID,
-                            capacityFix=self.capacityFix, 
+                            linkedQuantityID=linkedQuantityID,
+                            capacityFix=self.capacityFix,
                             isBuiltFix=self.isBuiltFix,
-                            investPerCapacity=self.investPerCapacity, 
+                            investPerCapacity=self.investPerCapacity,
                             investIfBuilt=self.investIfBuilt,
-                            opexPerCapacity=self.opexPerCapacity, 
+                            opexPerCapacity=self.opexPerCapacity,
                             opexIfBuilt=self.opexIfBuilt,
-                            interestRate=self.interestRate, 
-                            QPcostScale=QPcostScale, 
-                            economicLifetime=self.economicLifetime, 
+                            interestRate=self.interestRate,
+                            QPcostScale=QPcostScale,
+                            economicLifetime=self.economicLifetime,
                             technicalLifetime=self.technicalLifetime)
 
         # Set general component data
         utils.checkCommodities(esM, {commodity})
         self.commodity, self.commodityUnit = commodity, esM.commodityUnitsDict[commodity]
-        self.distances = utils.preprocess2dimData(distances, self._mapC)
+        self.distances = utils.preprocess2dimData(distances, self._mapC, locationalEligibility=self.locationalEligibility)
         self.losses = utils.preprocess2dimData(losses, self._mapC)
         self.distances = utils.checkAndSetDistances(self.distances, self.locationalEligibility, esM)
         self.losses = utils.checkAndSetTransmissionLosses(self.losses, self.distances, self.locationalEligibility)
@@ -188,7 +198,8 @@ class Transmission(Component):
         self.opexIfBuilt *= (self.distances * 0.5)
         
         # Set additional economic data
-        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',
+        self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC)
+        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, self.opexPerOperation, '2dim',
                                                                self.locationalEligibility)
 
         # Set location-specific operation parameters
@@ -198,10 +209,10 @@ class Transmission(Component):
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
 
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, operationRateMax, self.locationalEligibility, self.dimension)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateMax, self.operationRateMax = None, None
 
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, operationRateFix, self.locationalEligibility, self.dimension)
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, self.locationalEligibility, self.dimension)
         self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         if self.partLoadMin is not None:
@@ -334,6 +345,10 @@ class TransmissionModel(ComponentModel):
         """
         Ensure that the capacity between location_1 and location_2 is the same as the one
         between location_2 and location_1.
+        
+        .. math:: 
+            
+            cap^{comp}_{(loc_1,loc_2)} = cap^{comp}_{(loc_2,loc_1)} 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -352,6 +367,10 @@ class TransmissionModel(ComponentModel):
         Since the flow should either go in one direction or the other, the limitation can be enforced on the sum
         of the forward and backward flow over the line. This leads to one of the flow variables being set to zero
         if a basic solution is obtained during optimization.
+        
+        .. math:: 
+            
+            op^{comp,op}_{(loc_1,loc_2),p,t} + op^{op}_{(loc_2,loc_1),p,t} \leq \\tau^{hours} \cdot \\text{cap}^{comp}_{(loc_{in},loc_{out})}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -453,7 +472,17 @@ class TransmissionModel(ComponentModel):
                     for comp in self.componentsDict.values() for loc_ in esM.locations])
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
+        """ 
+        Get contribution to a commodity balance. 
+        
+        .. math::
+            :nowrap:
+
+            \\begin{eqnarray*}
+            \\text{C}^{comp,comm}_{loc,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),p,t} \\\\
+            & - & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),p,t}
+            \\end{eqnarray*}
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
         opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
@@ -511,10 +540,14 @@ class TransmissionModel(ComponentModel):
         self.operationVariablesOptimum = optVal_
 
         props = ['operation', 'opexOp']
-        units = ['[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
-        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
-        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].commodityUnit + '*h/a]')
-                          if x[1] == 'operation' else x, tuples))
+        # Unit dict: Specify units for props
+        units = {props[0]: ['[-*h]', '[-*h/a]'],
+                 props[1]: ['[' + esM.costUnit + '/a]']}
+        # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
+        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop in props for unit in units[prop]]
+        # Replace placeholder with correct unit of component
+        tuples = list(map(lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+            if x[1] == 'operation' else x, tuples))
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(mapC.keys())).sort_index()
 
@@ -523,6 +556,8 @@ class TransmissionModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation, axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
+            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],
+                           opSum.columns] = opSum.values
             optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values/esM.numberOfYears * 0.5
 
