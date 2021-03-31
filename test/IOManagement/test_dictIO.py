@@ -55,7 +55,9 @@ def test_export_to_dict_minimal(minimal_test_esM):
                               'hoursPerTimeStep',
                               'costUnit', 
                               'lengthUnit',
-                              'verboseLogLevel'), 
+                              'verboseLogLevel',
+                              'balanceLimit',
+                              'lowerBound'), 
                             (minimal_test_esM.locations,
                              minimal_test_esM.commodities, 
                              minimal_test_esM.commodityUnitsDict,
@@ -63,7 +65,9 @@ def test_export_to_dict_minimal(minimal_test_esM):
                              minimal_test_esM.hoursPerTimeStep,
                              minimal_test_esM.costUnit, 
                              minimal_test_esM.lengthUnit,
-                             minimal_test_esM.verboseLogLevel)))
+                             minimal_test_esM.verboseLogLevel, 
+                             minimal_test_esM.balanceLimit, 
+                             minimal_test_esM.lowerBound)))
     
     expected_Electrolyzers_investPerCapacity = minimal_test_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity')
     expected_Electricitymarket_operationRateMax = minimal_test_esM.getComponentAttribute('Electricity market', 'operationRateMax')
@@ -92,7 +96,9 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                               'hoursPerTimeStep',
                               'costUnit', 
                               'lengthUnit',
-                              'verboseLogLevel'), 
+                              'verboseLogLevel',
+                              'balanceLimit',
+                              'lowerBound'), 
                             (multi_node_test_esM_init.locations,
                              multi_node_test_esM_init.commodities, 
                              multi_node_test_esM_init.commodityUnitsDict,
@@ -100,7 +106,9 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                              multi_node_test_esM_init.hoursPerTimeStep,
                              multi_node_test_esM_init.costUnit, 
                              multi_node_test_esM_init.lengthUnit,
-                             multi_node_test_esM_init.verboseLogLevel)))
+                             multi_node_test_esM_init.verboseLogLevel, 
+                             multi_node_test_esM_init.balanceLimit, 
+                             multi_node_test_esM_init.lowerBound)))
 
     expected_Windonshore_operationRateMax = multi_node_test_esM_init.getComponentAttribute('Wind (onshore)', 'operationRateMax')
     expected_CCGTplantsmethane_investPerCapacity = multi_node_test_esM_init.getComponentAttribute('CCGT plants (methane)', 'investPerCapacity')
@@ -147,7 +155,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
 
 
 @pytest.mark.parametrize("test_esM_fixture", ['minimal_test_esM', 'multi_node_test_esM_init'])
-def test_import_from_dict_minimal(test_esM_fixture, request):
+def test_import_from_dict(test_esM_fixture, request):
 
     test_esM = request.getfixturevalue(test_esM_fixture)
 
@@ -164,24 +172,24 @@ def test_import_from_dict_minimal(test_esM_fixture, request):
     if test_esM_fixture == 'minimal_test_esM':
         ## expected 
         expected_df = test_esM.getComponentAttribute('Electricity market', 'operationRateMax') 
-        expected_series = test_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity') 
+        expected_series = test_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity').sort_index() 
         ## output 
         output_df = output_esM.getComponentAttribute('Electricity market', 'operationRateMax')
         output_df.reset_index(level=0, drop=True, inplace=True) #TODO: check why output_esM's dfs 
                                                                 # have multiindex (Period, TimeStep)
                                                                 # whereas test_esM's just 1 (TimeStep)
 
-        output_series = output_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity') 
+        output_series = output_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity').sort_index() 
 
     else:
         ## expected 
         expected_df = test_esM.getComponentAttribute('Hydrogen demand', 'operationRateFix') 
-        expected_series = test_esM.getComponentAttribute('AC cables', 'reactances') 
+        expected_series = test_esM.getComponentAttribute('AC cables', 'reactances').sort_index()
         ## output
         output_df = output_esM.getComponentAttribute('Hydrogen demand', 'operationRateFix') 
         output_df.reset_index(level=0, drop=True, inplace=True)
 
-        output_series = output_esM.getComponentAttribute('AC cables', 'reactances')
+        output_series = output_esM.getComponentAttribute('AC cables', 'reactances').sort_index()
 
 
     #ASSERTION

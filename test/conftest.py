@@ -33,7 +33,9 @@ def minimal_test_esM(scope="session"):
                                 commodityUnitsDict={'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'},
                                 hoursPerTimeStep=hoursPerTimeStep, costUnit='1 Euro', 
                                 lengthUnit='km', 
-                                verboseLogLevel=1)
+                                verboseLogLevel=1,
+                                balanceLimit=None,
+                                lowerBound=False)
 
     ### Buy electricity at the electricity market
     costs = pd.DataFrame([np.array([ 0.05, 0., 0.1, 0.051,]),np.array([0., 0., 0., 0.,])],
@@ -339,9 +341,16 @@ def multi_node_test_esM_optimized(scope="session"):
     numberOfTimeSteps=8760
     hoursPerTimeStep=1
 
-    esM = fn.EnergySystemModel(locations=locations, commodities=commodities, numberOfTimeSteps=8760,
-                               commodityUnitsDict=commodityUnitDict,
-                               hoursPerTimeStep=1, costUnit='1e9 Euro', lengthUnit='km', verboseLogLevel=0)
+    esM = fn.EnergySystemModel(locations=locations, 
+                                commodities=commodities, 
+                                numberOfTimeSteps=8760,
+                                commodityUnitsDict=commodityUnitDict,
+                                hoursPerTimeStep=1, 
+                                costUnit='1e9 Euro', 
+                                lengthUnit='km', 
+                                verboseLogLevel=0,
+                                balanceLimit=None,
+                                lowerBound=False)
 
     CO2_reductionTarget = 1
 
