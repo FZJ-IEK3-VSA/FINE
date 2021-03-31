@@ -21,78 +21,6 @@ def sds():
 
     return sds
 
-@pytest.fixture()
-def sds_and_dict_for_basic_representation():  
-  '''
-  sds data to test basic representation functions-
-  1. test_aggregate_based_on_sub_to_sup_region_id_dict()
-  2. test_aggregate_time_series()
-  3. test_aggregate_values()
-  4. test_aggregate_connections()
-  5. test_create_grid_shapefile()
-  5. test_aggregate_geometries()
-  '''
-  #DICT
-  sub_to_sup_region_id_dict = {'01_reg_02_reg': ['01_reg','02_reg'], 
-                                 '03_reg_04_reg': ['03_reg','04_reg']}
-  
-  #SDS
-  component_list = ['c1','c2']  
-  space_list = ['01_reg','02_reg','03_reg','04_reg']
-  TimeStep_list = ['T0','T1']
-  Period_list = [0]
-
-  ## ts variable data
-  test_ts_data = np.array([ [ [ [5, 5, 5, 5] for i in range(2)] ],
-
-                          [ [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ]
-
-                          ])
-
-  test_ts_DataArray = xr.DataArray(test_ts_data, 
-                                  coords=[component_list, Period_list, TimeStep_list, space_list], 
-                                  dims=['component', 'Period', 'TimeStep','space'])
-
-  ## 1d variable data
-  test_1d_data = np.array([ [5,  5,  5, 5],
-                            [np.nan] *4
-                          ])
-
-  test_1d_DataArray = xr.DataArray(test_1d_data, 
-                              coords=[component_list, space_list], 
-                              dims=['component', 'space'])
-
-  ## 2d variable data
-  test_2d_data = np.array([ [[ 0,  5,  5, 5],
-                          [ 5,  0,  5, 5],
-                          [ 5,  5,  0, 5],
-                          [ 5,  5,  5, 0]],
-
-                        [[np.nan] * 4 for i in range(4)] 
-                        ])
-
-  test_2d_DataArray = xr.DataArray(test_2d_data, 
-                              coords=[component_list, space_list, space_list], 
-                              dims=['component', 'space', 'space_2'])
-
-  test_ds = xr.Dataset({'var_ts': test_ts_DataArray, 
-                        'var_1d': test_1d_DataArray,
-                        'var_2d': test_2d_DataArray})    
-
-  sds = spd.SpagatDataset()
-  sds.xr_dataset = test_ds            
-
-  test_geometries = [Polygon([(0,0), (2,0), (2,2), (0,2)]),
-                    Polygon([(2,0), (4,0), (4,2), (2,2)]),
-                    Polygon([(0,0), (4,0), (4,4), (0,4)]),
-                    Polygon([(0,0), (1,0), (1,1), (0,1)])]   
-
-  sds.add_objects(description ='gpd_geometries',   #NOTE: not sure if it is ok to call another function here
-                dimension_list =['space'], 
-                object_list = test_geometries)   
-
-  return namedtuple("dict_and_sds", "sub_to_sup_region_id_dict sds")(sub_to_sup_region_id_dict, sds)    
-
 @pytest.fixture
 def gridded_RE_data(scope="session"):
   time_steps = 10
@@ -136,6 +64,122 @@ def sample_shapefile(scope="session"):
 
   return gdf
 
+
+@pytest.fixture()
+def sds_and_dict_for_basic_representation():  
+  '''
+  sds data to test basic representation functions-
+  1. test_aggregate_based_on_sub_to_sup_region_id_dict()
+  2. test_aggregate_time_series()
+  3. test_aggregate_values()
+  4. test_aggregate_connections()
+  5. test_create_grid_shapefile()
+  5. test_aggregate_geometries()
+  '''
+  #DICT
+  sub_to_sup_region_id_dict = {'01_reg_02_reg': ['01_reg','02_reg'], 
+                                 '03_reg_04_reg': ['03_reg','04_reg']}
+  
+  #SDS
+  component_list = ['source_comp','sink_comp', 'transmission_comp']  
+  space_list = ['01_reg','02_reg','03_reg','04_reg']
+  TimeStep_list = ['T0','T1']
+  Period_list = [0]
+
+  ## ts variable data
+  operationRateMax = np.array([ [ [ [3, 3, 3, 3] for i in range(2)] ],
+
+                          [ [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ], 
+
+                          [ [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ]
+
+                          ])
+
+  operationRateMax_da = xr.DataArray(operationRateMax, 
+                                  coords=[component_list, Period_list, TimeStep_list, space_list], 
+                                  dims=['component', 'Period', 'TimeStep','space'])
+
+  operationRateFix = np.array([ [ [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ], 
+
+                          [ [ [5, 5, 5, 5] for i in range(2)] ],
+
+                          [ [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ]
+
+                          ])
+
+  operationRateFix_da = xr.DataArray(operationRateFix, 
+                                  coords=[component_list, Period_list, TimeStep_list, space_list], 
+                                  dims=['component', 'Period', 'TimeStep','space'])
+
+  ## 1d variable data
+  capacityMax_1d = np.array([ [15,  15,  15, 15],
+                            [np.nan] *4, 
+                            [np.nan] *4, 
+                          ])
+
+  capacityMax_1d_da = xr.DataArray(capacityMax_1d, 
+                              coords=[component_list, space_list], 
+                              dims=['component', 'space'])
+
+  capacityFix_1d = np.array([ [np.nan] *4, 
+                           [5,  5,  5, 5],
+                            [np.nan] *4, 
+                          ])
+
+  capacityFix_1d_da = xr.DataArray(capacityFix_1d, 
+                              coords=[component_list, space_list], 
+                              dims=['component', 'space'])
+
+  ## 2d variable data
+  capacityMax_2d = np.array([ [[np.nan] * 4 for i in range(4)], 
+
+                        [[np.nan] * 4 for i in range(4)],
+
+                         [[ 0,  5,  5, 5],
+                          [ 5,  0,  5, 5],
+                          [ 5,  5,  0, 5],
+                          [ 5,  5,  5, 0]]
+                        ])
+
+  capacityMax_2d_da = xr.DataArray(capacityMax_2d, 
+                              coords=[component_list, space_list, space_list], 
+                              dims=['component', 'space', 'space_2'])
+  
+  locationalEligibility_2d = np.array([ [[np.nan] * 4 for i in range(4)], 
+
+                        [[np.nan] * 4 for i in range(4)],
+
+                         [[ 0,  1,  1, 1],
+                          [ 0,  0,  1, 1],
+                          [ 0,  0,  0, 1],
+                          [ 0,  0,  0, 0]]
+                        ])
+
+  locationalEligibility_2d_da = xr.DataArray(locationalEligibility_2d, 
+                              coords=[component_list, space_list, space_list], 
+                              dims=['component', 'space', 'space_2'])
+
+  test_ds = xr.Dataset({'ts_operationRateMax': operationRateMax_da, 
+                        'ts_operationRateFix': operationRateFix_da,
+                        '1d_capacityMax': capacityMax_1d_da, 
+                        '1d_capacityFix': capacityFix_1d_da, 
+                        '2d_capacityMax': capacityMax_2d_da, 
+                        '2d_locationalEligibility': locationalEligibility_2d_da
+                        })    
+
+  sds = spd.SpagatDataset()
+  sds.xr_dataset = test_ds            
+
+  test_geometries = [Polygon([(0,0), (2,0), (2,2), (0,2)]),
+                    Polygon([(2,0), (4,0), (4,2), (2,2)]),
+                    Polygon([(0,0), (4,0), (4,4), (0,4)]),
+                    Polygon([(0,0), (1,0), (1,1), (0,1)])]   
+
+  sds.add_objects(description ='gpd_geometries',   #NOTE: not sure if it is ok to call another function here
+                dimension_list =['space'], 
+                object_list = test_geometries)   
+
+  return namedtuple("dict_and_sds", "sub_to_sup_region_id_dict sds")(sub_to_sup_region_id_dict, sds)    
 
   
   
