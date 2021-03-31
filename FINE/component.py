@@ -191,14 +191,17 @@ class Component(metaclass=ABCMeta):
 
         :param investPerCapacity: describes the investment costs for one unit of the capacity. The
             invest of a component is obtained by multiplying the built capacities
-            of the component (in the physicalUnit of the component) with the investPerCapacity factor.
+            of the component (in the physicalUnit of the component) with the investPerCapacity factor. 
+            The value has to match the unit costUnit/physicalUnit (e.g. Euro/kW). 
             The investPerCapacity can either be given as\n
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
               parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro) or
+              1e6 Euro). The value has to match the unit 
+              costUnit/physicalUnit (e.g. Euro/kW, 1e6 Euro/GW) or
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
-              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km).\n
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). The value has to match the unit 
+              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km)) \n
             |br| * the default value is 0
         :type investPerCapacity:
             * None or
@@ -231,10 +234,12 @@ class Component(metaclass=ABCMeta):
             with the opexPerCapacity factor. The opexPerCapacity factor can either be given as\n
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
               parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro) or
+              1e6 Euro). The value has to match the unit 
+              costUnit/physicalUnit (e.g. Euro/kW, 1e6 Euro/GW)  or
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
-              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). The value has to match the unit 
+              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km))\n
             |br| * the default value is 0
         :type opexPerCapacity:
             * None or
@@ -248,10 +253,10 @@ class Component(metaclass=ABCMeta):
             if a component is built at that location. The opexIfBuilt can either be given as\n
             * a float or a Pandas Series with location specific values (dimension=1dim) . The cost unit in which
               the parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
-              1e6 Euro)or
+              1e6 Euro) or
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
-              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). \n
             |br| * the default value is 0
         :type opexIfBuilt:
             * None or
@@ -769,6 +774,10 @@ class ComponentModel(metaclass=ABCMeta):
         """ 
         Declare capacity variables.
         
+        .. math:: 
+            
+            \\text{capMin}^{comp}_{loc} \leq cap^{comp}_{loc} \leq \\text{capMax}^{comp}_{loc} 
+        
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel 
         """
@@ -855,8 +864,12 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def capToNbReal(self, pyM):
-        """ 
+        """         
         Determine the components' capacities from the number of installed units.
+
+        .. math:: 
+            
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbReal^{comp}_{loc}
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel 
@@ -872,7 +885,11 @@ class ComponentModel(metaclass=ABCMeta):
     def capToNbInt(self, pyM):
         """ 
         Determine the components' capacities from the number of installed units. 
-        
+
+        .. math::
+            
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbInt^{comp}_{loc}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
@@ -888,6 +905,10 @@ class ComponentModel(metaclass=ABCMeta):
         """ 
         Enforce the consideration of the binary design variables of a component. 
         
+        .. math:: 
+            
+            \\text{M}^{comp} \cdot bin^{comp}_{loc} \geq cap^{comp}_{loc}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
@@ -896,13 +917,20 @@ class ComponentModel(metaclass=ABCMeta):
         designBinVarSet = getattr(pyM, 'designDecisionVarSet_' + abbrvName)
 
         def bigM(pyM, loc, compName):
-            return capVar[loc, compName] <= designBinVar[loc, compName] * compDict[compName].bigM
+            comp = compDict[compName]
+            M = comp.capacityMax[loc] if comp.capacityMax is not None else comp.bigM
+            return capVar[loc, compName] <= designBinVar[loc, compName] * M
         setattr(pyM, 'ConstrBigM_' + abbrvName, pyomo.Constraint(designBinVarSet, rule=bigM))
+
 
     def capacityMinDec(self, pyM):
         """ 
         Enforce the consideration of minimum capacities for components with design decision variables. 
         
+        .. math::
+            
+            \\text{capMin}^{comp}_{loc} \cdot bin^{comp}_{loc} \leq  cap^{comp}_{loc}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
@@ -918,6 +946,10 @@ class ComponentModel(metaclass=ABCMeta):
     def capacityFix(self, pyM):
         """ 
         Set, if applicable, the installed capacities of a component. 
+        
+        .. math::
+            
+            cap^{comp}_{(loc_1,loc_2)} = \\text{capFix}^{comp}_{(loc_1,loc_2)}
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -936,6 +968,10 @@ class ComponentModel(metaclass=ABCMeta):
     def designBinFix(self, pyM):
         """ 
         Set, if applicable, the installed capacities of a component. 
+        
+        .. math::
+            
+            bin^{comp}_{(loc_1,loc_2)} = \\text{binFix}^{comp}_{(loc_1,loc_2)}
         
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -959,6 +995,11 @@ class ComponentModel(metaclass=ABCMeta):
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
         An additional factor can limited the operation further.
+        
+        .. math:: 
+            
+            op^{comp,opType}_{loc,p,t} \leq \\tau^{hours} \cdot \\text{opFactor}^{opType} \cdot cap^{comp}_{loc}
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
@@ -984,6 +1025,11 @@ class ComponentModel(metaclass=ABCMeta):
         with a time series in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
+        
+        .. math::
+        
+            op^{comp,opType}_{loc,p,t} \leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,p,t} \cdot cap^{comp}_{loc}
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
@@ -1009,6 +1055,10 @@ class ComponentModel(metaclass=ABCMeta):
         with a time series in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
+        
+        .. math::
+            op^{comp,opType}_{loc,p,t} = \\tau^{hours} \cdot \\text{opRateFix}^{comp,opType}_{loc,p,t} \cdot cap^{comp}_{loc} 
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
@@ -1030,6 +1080,10 @@ class ComponentModel(metaclass=ABCMeta):
     def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix'):
         """
         Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
+        
+        .. math::
+            op^{comp,opType}_{loc,p,t} = \\text{opRateFix}^{comp,opType}_{loc,p,t}
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + '_' + abbrvName)
@@ -1049,6 +1103,10 @@ class ComponentModel(metaclass=ABCMeta):
     def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax'):
         """
         Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
+        
+        .. math:: 
+            op^{comp,opType}_{loc,p,t} \leq \\text{opRateMax}^{comp,opType}_{loc,p,t}
+        
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + '_' + abbrvName)
@@ -1583,10 +1641,11 @@ class ComponentModel(metaclass=ABCMeta):
         self.capacityVariablesOptimum = optVal_
 
         if optVal is not None:
-            # Check if the installed capacities are close to a bigM value for components with design decision variables
+            # Check if the installed capacities are close to a bigM value for components with design decision variables but
+            # ignores cases where bigM was substituted by capacityMax parameter (see bigM constraint)
             for compName, comp in compDict.items():
-                if comp.hasIsBuiltBinaryVariable and optVal.loc[compName].max() >= comp.bigM * 0.9 \
-                        and esM.verbose < 2:
+                if comp.hasIsBuiltBinaryVariable and (comp.capacityMax is None) and optVal.loc[compName].max() >= comp.bigM * 0.9 \
+                        and esM.verbose < 2: # and comp.capacityMax is None
                     warnings.warn('the capacity of component ' + compName + ' is in one or more locations close ' +
                                   'or equal to the chosen Big M. Consider rerunning the simulation with a higher' +
                                   ' Big M.')

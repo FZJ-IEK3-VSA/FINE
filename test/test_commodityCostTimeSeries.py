@@ -55,17 +55,17 @@ def test_miniSystem(solver):
     esM.optimize(timeSeriesAggregation=False, solver = solver)
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
-    assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc1'] == 730
-    assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc2'] == 2920
-    assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc1'] == -730
-    assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc2'] == -2920
+    assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc1'] == -730
+    assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc2'] == -2920
+    assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc1'] == 730
+    assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc2'] == 2920
 
     esM.cluster(numberOfTypicalPeriods=5, numberOfTimeStepsPerPeriod=1)
 
     esM.optimize(timeSeriesAggregation=True, solver = solver)
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
-    assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc1'] == 730
-    assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc2'] == 2920
-    assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc1'] == -730
-    assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc2'] == -2920
+    assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc1'] == -730
+    assert summary.loc[('Electricity demand','TAC','[Euro/a]'),'loc2'] == -2920
+    assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc1'] == 730
+    assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc2'] == 2920

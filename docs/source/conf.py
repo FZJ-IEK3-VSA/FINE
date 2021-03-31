@@ -58,8 +58,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'FINE'
-copyright = '2016-2020, FINE Developer Team'
-author = 'Lara Welder'
+copyright = '2016-2021, FINE Developer Team'
+author = 'FINE Developer Team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

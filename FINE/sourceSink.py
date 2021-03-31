@@ -46,7 +46,9 @@ class Source(Component):
                  economicLifetime=10,
                  technicalLifetime=None,
                  yearlyFullLoadHoursMin=None,
-                 yearlyFullLoadHoursMax=None):
+                 yearlyFullLoadHoursMax=None,
+                 balanceLimitID=None):
+
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -88,7 +90,7 @@ class Source(Component):
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
         :param commodityCostTimeSeries: if specified, indicates commodity cost rates for each location and each
-            time step by a positive float. The values are given as specific values relative to the commodityUnit 
+            time step by a positive float. The values are given as specific values relative to the commodityUnit
             for each time step.
             |br| * the default value is None
         :type commodityCostTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
@@ -168,6 +170,13 @@ class Source(Component):
             |br| * the default value is 0
         :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
+
+        :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
+            Should be specified if the respective component of the SourceSinkModel is supposed to be included in
+            the balance analysis. If the commodity is transported out of the region, it is counted as a negative, if
+            it is imported into the region it is considered positive.
+            |br| * the default value is None
+        :type balanceLimitID: string
         """
 
         Component. __init__(self,
@@ -203,6 +212,7 @@ class Source(Component):
         self.commodity, self.commodityUnit = commodity, esM.commodityUnitsDict[commodity]
         # TODO check value and type correctness
         self.commodityLimitID, self.yearlyLimit = commodityLimitID, yearlyLimit
+        self.balanceLimitID = balanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
@@ -344,7 +354,8 @@ class Sink(Source):
                  QPcostScale=0,
                  interestRate=0.08,
                  economicLifetime=10,
-                 technicalLifetime=None):
+                 technicalLifetime=None,
+                 balanceLimitID=None):
         """
         Constructor for creating an Sink class instance.
 
@@ -386,7 +397,8 @@ class Sink(Source):
                         QPcostScale=QPcostScale,
                         interestRate=interestRate,
                         economicLifetime=economicLifetime,
-                        technicalLifetime=technicalLifetime)
+                        technicalLifetime=technicalLifetime,
+                        balanceLimitID=balanceLimitID)
 
         self.sign = -1
 
@@ -507,6 +519,7 @@ class SourceSinkModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
+        warnings.warn("The yearly limit is depreceated and moved to the balanceLimit", DeprecationWarning)
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
         limitDict = getattr(pyM, 'yearlyCommodityLimitationDict_' + abbrvName)
@@ -598,8 +611,69 @@ class SourceSinkModel(ComponentModel):
         return any([comp.commodity == commod and comp.locationalEligibility[loc] == 1
                     for comp in self.componentsDict.values()])
 
+    def getBalanceLimitContribution(self, esM, pyM, ID, timeSeriesAggregation, loc=None):
+        """
+        Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+        Sum of the operation time series of a SourceSink component is used as the balanceLimit contribution:
+        - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
+        - A Sink contributes with a negative sign. Example: Sale of electricity
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param ID: ID of the regarded balanceLimitConstraint
+        :param ID: string
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+        :type timeSeriesAggregation: boolean
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
+        limitDict = getattr(pyM, 'balanceLimitDict')
+
+        if timeSeriesAggregation:
+            periods = esM.typicalPeriods
+            timeSteps = esM.timeStepsPerPeriod
+        else:
+            periods = esM.periods
+            timeSteps = esM.totalTimeSteps
+        # Check if locational input is not set in esM, if so additionally loop over all locations
+        if loc is None:
+            balance = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+                          esM.periodOccurrences[p]
+                          for compName in compDict.keys() if compName in limitDict[ID]
+                          for p in periods
+                          for t in timeSteps
+                          for loc in esM.locations)
+        # Otherwise get the contribution for specific region
+        else:
+            balance = sum(opVar[loc, compName, p, t] * compDict[compName].sign *
+                          esM.periodOccurrences[p]
+                          for compName in compDict.keys() if compName in limitDict[(ID, loc)]
+                          for p in periods
+                          for t in timeSteps)
+        return balance
+
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
+        """ 
+        Get contribution to a commodity balance.
+        
+        .. math::
+            
+            \\text{C}^{comp,comm}_{loc,p,t} = - op_{loc,p,t}^{comp,op}  \\text{Sink}
+
+        .. math::
+            \\text{C}^{comp,comm}_{loc,p,t} = op_{loc,p,t}^{comp,op} \\text{Source}
+
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
         return sum(opVar[loc, compName, p, t] * compDict[compName].sign
@@ -670,7 +744,7 @@ class SourceSinkModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
             cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[op.index], axis=1)
             cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[op.index], axis=1)
-            
+
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],
@@ -679,10 +753,10 @@ class SourceSinkModel(ComponentModel):
                 ox.values/esM.numberOfYears
 
             # get empty datframe for resulting time dependent (TD) cost sum
-            cRevenueTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)
-            cCostTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)
-            
-            for compName in compDict.keys():
+            cRevenueTD = pd.DataFrame(0., index=opSum.index, columns=opSum.columns)
+            cCostTD = pd.DataFrame(0., index=opSum.index, columns=opSum.columns)
+
+            for compName in opSum.index:
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
                     calcCostTD = utils.buildFullTimeSeries(
@@ -698,7 +772,7 @@ class SourceSinkModel(ComponentModel):
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
                     cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
-                        
+
             optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 (cCostTD.values + cCost.values)/esM.numberOfYears
             optSummary.loc[[(ix, 'commodRevenues', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \

@@ -76,15 +76,17 @@ class EnergySystemModel:
     |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
-    def __init__(self, 
-                 locations, 
-                 commodities, 
-                 commodityUnitsDict, 
-                 numberOfTimeSteps=8760, 
+    def __init__(self,
+                 locations,
+                 commodities,
+                 commodityUnitsDict,
+                 numberOfTimeSteps=8760,
                  hoursPerTimeStep=1,
-                 costUnit='1e9 Euro', 
-                 lengthUnit='km', 
-                 verboseLogLevel=0):
+                 costUnit='1e9 Euro',
+                 lengthUnit='km',
+                 verboseLogLevel=0,
+                 balanceLimit=None,
+                 lowerBound=False):
         """
         Constructor for creating an EnergySystemModel class instance
 
@@ -144,11 +146,41 @@ class EnergySystemModel:
             |br| * the default value is 0
         :type verboseLogLevel: integer (0, 1 or 2)
 
+        :param balanceLimit: defines the balanceLimit constraint (various different balanceLimitIDs possible)
+            for specific regions or the whole model. The balancelimitID can be assigned to various components
+            of e.g. SourceSinkModel or TransmissionModel to limit the balance of production, consumption and im/export.
+            If the balanceLimit is passed as pd.Series it will apply to the overall model, if it is passed
+            as pd.Dataframe each column will apply to one region of the multi-node model. In the latter case,
+            the number and names of the columns should match the regions/region names in the model.
+            Each row contains an individual balanceLimitID as index and the corresponding values for the model
+            (pd.Series) or regions (pd.Dataframe). Values are always given in the unit of the esM commodities unit.
+            Note: If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
+            defined as negative.
+            Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
+            |br| * the default value is None
+        :type balanceLimit: pd.DataFrame or pd.Series
+
+        :param lowerBound: defines whether a lowerBound or an upperBound is considered in the balanceLimitConstraint.
+            By default an upperBound is considered. However, multiple cases can be considered:
+            1) Sources:
+                a) LowerBound=False: UpperBound for commodity from SourceComponent (Define positive value in
+                balanceLimit). Example: Limit CO2-Emission
+                b) LowerBound=True: LowerBound for commodity from SourceComponent (Define positive value in
+                balanceLimit). Example: Require minimum production from renewables.
+            2) Sinks:
+                a) LowerBound=False: UpperBound in a mathematical sense for commodity from SinkComponent
+                (Logically minimum limit for negative values, define negative value in balanceLimit).
+                Example: Minimum export/consumption of hydrogen.
+                b) LowerBound=True: LowerBound in a mathematical sense for commodity from SourceComponent
+                (Logically maximum limit for negative values, define negative value in balanceLimit).
+                Example: Define upper limit for Carbon Capture & Storage.
+            |br| * the default value is False
+        :type lowerBound: bool
         """
 
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numberOfTimeSteps,
-                                          hoursPerTimeStep, costUnit, lengthUnit)
+                                          hoursPerTimeStep, costUnit, lengthUnit, balanceLimit)
 
         ################################################################################################################
         #                                        Spatial resolution parameters                                         #
@@ -158,10 +190,14 @@ class EnergySystemModel:
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
+        # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
         self.locations, self.lengthUnit = locations, lengthUnit
         self._locationsOrdered = sorted(locations)
 
         self.numberOfTimeSteps = numberOfTimeSteps
+        self.balanceLimit = balanceLimit
+        self.lowerBound = lowerBound
+
         ################################################################################################################
         #                                            Time series parameters                                            #
         ################################################################################################################
@@ -288,9 +324,9 @@ class EnergySystemModel:
 
         :returns: dictionary with the removed componentName and component instance if track is set to True else None.
         :rtype: dict or None
-        """       
+        """
 
-        # Test if component exists 
+        # Test if component exists
         if componentName not in self.componentNames.keys():
             raise ValueError('The component ' + componentName + ' cannot be found in the energy system model.\n' +
                              'The components considered in the model are: ' + str(self.componentNames.keys()))
@@ -513,11 +549,11 @@ class EnergySystemModel:
 
     def cluster(self,                #TODO: change this to 'aggregateTemporally', then change it everywhere it is called 
                 numberOfTypicalPeriods=7, 
-                numberOfTimeStepsPerPeriod=24, 
+                numberOfTimeStepsPerPeriod=24,
                 segmentation=False,
-                numberOfSegmentsPerPeriod=24, 
-                clusterMethod='hierarchical', 
-                sortValues=True, 
+                numberOfSegmentsPerPeriod=24,
+                clusterMethod='hierarchical',
+                sortValues=True,
                 storeTSAinstance=False,
                 **kwargs):
         """
@@ -583,7 +619,7 @@ class EnergySystemModel:
         if segmentation:
             if numberOfSegmentsPerPeriod > numberOfTimeStepsPerPeriod:
                 if self.verbose < 2:
-                    warnings.warn('The chosen number of segments per period exceeds the number of time steps per' 
+                    warnings.warn('The chosen number of segments per period exceeds the number of time steps per'
                                   'period. The number of segments per period is set to the number of time steps per '
                                   'period.')
                 numberOfSegmentsPerPeriod = numberOfTimeStepsPerPeriod
@@ -754,14 +790,90 @@ class EnergySystemModel:
         pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
         pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
 
+    def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
+        """
+        Declare balance limit constraint.
+
+        Balance limit constraint can limit the exchange of commodities within the model or over the model region
+        boundaries. See the documentation of the parameters for further explanation. In general the following equation
+        applies:
+            E_source - E_sink + E_exchange,in - E_exchange,out <= E_lim (self.LowerBound=False)
+            E_source - E_sink + E_exchange,in - E_exchange,out >= E_lim (self.LowerBound=True)
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+            |br| * the default value is False
+        :type timeSeriesAggregation: boolean
+        """
+        balanceLimitDict = {}
+        # 2 differentiations (or 4 cases). 1st: Locational or not; 2nd: lowerBound or not (lower bound)
+        # DataFrame with locational input. Otherwise error is thrown in input check.
+        if type(self.balanceLimit) == pd.DataFrame:
+            for mdl_type, mdl in self.componentModelingDict.items():
+                if mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel":
+                    for compName, comp in mdl.componentsDict.items():
+                        if comp.balanceLimitID is not None:
+                            [balanceLimitDict.setdefault((comp.balanceLimitID, loc), []).append(compName)
+                             for loc in self.locations]
+            setattr(pyM, "balanceLimitDict", balanceLimitDict)
+
+            def balanceLimitConstraint(pyM, ID, loc):
+                # Check whether we want to consider an upper or lower bound.
+                if not self.lowerBound:
+                    return sum(mdl.getBalanceLimitContribution(esM=self, pyM=pyM, ID=ID,
+                                                               timeSeriesAggregation=timeSeriesAggregation, loc=loc)
+                               for mdl_type, mdl in self.componentModelingDict.items() if (
+                            mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel")
+                               ) <= self.balanceLimit.loc[ID, loc]
+                else:
+                    return sum(mdl.getBalanceLimitContribution(esM=self, pyM=pyM, ID=ID,
+                                                               timeSeriesAggregation=timeSeriesAggregation, loc=loc)
+                               for mdl_type, mdl in self.componentModelingDict.items() if (
+                            mdl_type=="SourceSinkModel" or mdl_type=="TransmissionModel")
+                               ) >= self.balanceLimit.loc[ID, loc]
+        # Series as input. Whole model is considered.
+        else:
+            for mdl_type, mdl in self.componentModelingDict.items():
+                if mdl_type=="SourceSinkModel":
+                    for compName, comp in mdl.componentsDict.items():
+                        if comp.balanceLimitID is not None:
+                            balanceLimitDict.setdefault((comp.balanceLimitID), []).append(compName)
+            setattr(pyM, "balanceLimitDict", balanceLimitDict)
+
+            def balanceLimitConstraint(pyM, ID):
+                # Check wether we want to consider an upper or lower bound
+                if not self.lowerBound:
+                    return sum(mdl.getBalanceLimitContribution(esM=self, pyM=pyM, ID=ID,
+                                                               timeSeriesAggregation=timeSeriesAggregation)
+                               for mdl_type, mdl in self.componentModelingDict.items() if (
+                            mdl_type=="SourceSinkModel")) <= self.balanceLimit.loc[ID]
+                else:
+                    return sum(mdl.getBalanceLimitContribution(esM=self, pyM=pyM, ID=ID,
+                                                               timeSeriesAggregation=timeSeriesAggregation)
+                               for mdl_type, mdl in self.componentModelingDict.items() if (
+                                       mdl_type == "SourceSinkModel")) >= self.balanceLimit.loc[ID]
+        pyM.balanceLimitConstraint = \
+            pyomo.Constraint(pyM.balanceLimitDict.keys(), rule=balanceLimitConstraint)
+
     def declareSharedPotentialConstraints(self, pyM):
         """
         Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
         salt cavern storing methane and salt caverns storing hydrogen.
 
+        .. math:: 
+            
+            \\underset{\\text{comp} \in \mathcal{C}^{ID}}{\sum} \\text{cap}^{comp}_{loc} / \\text{capMax}^{comp}_{loc} \leq 1 
+
+
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
+        
         """
         utils.output('Declaring shared potential constraint...', self.verbose, 0)
 
@@ -830,6 +942,10 @@ class EnergySystemModel:
         """
         Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
 
+        .. math:: 
+            
+            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,p,t} = 0 
+
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
@@ -858,7 +974,25 @@ class EnergySystemModel:
         Declare the objective function by obtaining the contributions to the objective function from all modeling
         classes. Currently, the only objective function which can be selected is the sum of the total annual cost of all
         components.
+        
+        .. math::
+            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum} 
+            \\left( TAC_{loc}^{comp,cap}  +  TAC_{loc}^{comp,bin} + TAC_{loc}^{comp,op} \\right)
 
+        Objective Function detailed:
+
+        .. math::
+            :nowrap:
+
+            \\begin{eqnarray*}
+            z^* = \\min & & \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}
+            \\left[ \\text{F}^{comp,cap}_{loc} \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc}}{\\text{CCF}^{comp}_{loc}} \\right.
+            + \\text{opexPerCap}^{comp}_{loc} \\right) \\cdot cap^{comp}_{loc} \\\\
+            & & + \\ \\text{F}^{comp,bin}_{loc} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc}}	{CCF^{comp}_{loc}} 
+            + \\text{opexIfBuilt}^{comp}_{loc} \\right)  \\cdot  bin^{comp}_{loc} \\\\
+            & & \\left. + \\left( \\underset{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}}{\\sum} \\ \\underset{\\text{opType} \\in \\mathcal{O}^{comp}}{\\sum} \\text{factorPerOp}^{comp,opType}_{loc} \\cdot op^{comp,opType}_{loc,p,t} \\cdot  \\frac{\\text{freq(p)}}{\\tau^{years}} \\right) \\right]
+            \\end{eqnarray*}
+        
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
@@ -954,6 +1088,11 @@ class EnergySystemModel:
         self.declareCommodityBalanceConstraints(pyM)
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
+        # Declare constraint for balanceLimit
+        _t = time.time()
+        self.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
+        utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
+
         ################################################################################################################
         #                                         Declare objective function                                           #
         ################################################################################################################
@@ -966,15 +1105,15 @@ class EnergySystemModel:
         # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['buildtime'] = time.time() - timeStart
 
-    def optimize(self, 
-                 declaresOptimizationProblem=True, 
-                 relaxIsBuiltBinary=False, 
+    def optimize(self,
+                 declaresOptimizationProblem=True,
+                 relaxIsBuiltBinary=False,
                  timeSeriesAggregation=False,
                  logFileName='', 
                  threads=3, 
                  solver='None', 
                  timeLimit=None, 
-                 optimizationSpecs='', 
+                 optimizationSpecs='',
                  warmstart=False):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
@@ -1048,6 +1187,7 @@ class EnergySystemModel:
         Last edited: March 26, 2020
         |br| @author: FINE Developer Team (FZJ IEK-3)
         """
+
         if not timeSeriesAggregation:
             self.segmentation = False
 
@@ -1085,9 +1225,9 @@ class EnergySystemModel:
             for nSolver in solverList:
                 if solver == 'None':
                     try:
-                        opt.SolverFactory(nSolver).available()
-                        solver = nSolver
-                        utils.output('Either solver not selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
+                        if opt.SolverFactory(nSolver).available():
+                            solver = nSolver
+                            utils.output('Either solver not selected or specified solver not available.' + str(nSolver) + ' is set as solver.', self.verbose, 0)
                     except:
                         pass
 
@@ -1159,11 +1299,10 @@ class EnergySystemModel:
                 mdl.setOptimalValues(self, self.pyM)
                 outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
                 utils.output(outputString, self.verbose, 0)
+            # Store the objective value in the EnergySystemModel instance.
+            self.objectiveValue = self.pyM.Obj()
 
         utils.output('\t\t(%.4f' % (time.time() - _t) + ' sec)\n', self.verbose, 0)
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs['runtime'] = self.solverSpecs['buildtime'] + time.time() - timeStart
-
-        # Store the objective value in the EnergySystemModel instance.
-        self.objectiveValue = self.pyM.Obj()
