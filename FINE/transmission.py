@@ -42,7 +42,8 @@ class Transmission(Component):
                  QPcostScale=0,
                  interestRate=0.08,
                  economicLifetime=10,
-                 technicalLifetime=None):
+                 technicalLifetime=None,
+                 balanceLimitID=None):
         """
         Constructor for creating an Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
@@ -120,6 +121,13 @@ class Transmission(Component):
         :type opexPerOperation: positive (>=0) float or Pandas DataFrame with positive (>=0) values.
             The row and column indices of the DataFrame have to equal the in the energy system model
             specified locations.
+
+        :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
+            Should be specified if the respective component of the TransmissionModel is supposed to be included in
+            the balance analysis. If the commodity is transported out of the region, it is counted as a negative, if
+            it is imported into the region it is considered positive.
+            |br| * the default value is None
+        :type balanceLimitID: string
         """
         # TODO add unit checks
         # Preprocess two-dimensional data
@@ -155,6 +163,7 @@ class Transmission(Component):
         self.interestRate = utils.preprocess2dimData(interestRate, self._mapC)
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
+        self.balanceLimitID = balanceLimitID
 
         Component. __init__(self,
                             esM,
@@ -190,13 +199,13 @@ class Transmission(Component):
         self.distances = utils.checkAndSetDistances(self.distances, self.locationalEligibility, esM)
         self.losses = utils.checkAndSetTransmissionLosses(self.losses, self.distances, self.locationalEligibility)
         self.modelingClass = TransmissionModel
-        
+
         # Set distance related costs data
         self.investPerCapacity *= (self.distances * 0.5)
         self.investIfBuilt *= (self.distances * 0.5)
         self.opexPerCapacity *= (self.distances * 0.5)
         self.opexIfBuilt *= (self.distances * 0.5)
-        
+
         # Set additional economic data
         self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC)
         self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, self.opexPerOperation, '2dim',
@@ -498,6 +507,58 @@ class TransmissionModel(ComponentModel):
                    for loc_ in opVarDictOut[loc].keys()
                    for compName in opVarDictOut[loc][loc_]
                    if commod in compDict[compName].commodity)
+
+    def getBalanceLimitContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
+        """
+        Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+        Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
+        - If commodity is transferred out of region a negative sign is used.
+        - If commodity is transferred into region a positive sign is used and losses are considered.
+        Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param ID: ID of the regarded balanceLimitConstraint
+        :param ID: string
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+        :type timeSeriesAggregation: boolean
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
+        opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
+        limitDict = getattr(pyM, 'balanceLimitDict')
+        if timeSeriesAggregation:
+            periods = esM.typicalPeriods
+            timeSteps = esM.timeStepsPerPeriod
+        else:
+            periods = esM.periods
+            timeSteps = esM.totalTimeSteps
+        aut = \
+            sum(opVar[loc_ + "_" + loc, compName, p, t] *
+                (1 - compDict[compName].losses[loc_ + '_' + loc] * 
+                 compDict[compName].distances[loc_ + '_' + loc]) *
+                esM.periodOccurrences[p]
+                for loc_ in opVarDictIn[loc].keys()
+                for compName in opVarDictIn[loc][loc_] if compName in limitDict[(ID, loc)]
+                for p in periods
+                for t in timeSteps) - \
+            sum(opVar[loc + "_" + loc_, compName, p, t] *
+                esM.periodOccurrences[p]
+                for loc_ in opVarDictOut[loc].keys()
+                for compName in opVarDictOut[loc][loc_] if compName in limitDict[(ID, loc)]
+                for p in periods
+                for t in timeSteps)
+        return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
