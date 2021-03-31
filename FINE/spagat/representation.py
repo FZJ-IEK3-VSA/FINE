@@ -404,29 +404,46 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     """
     aggregated_sds = spd.SpagatDataset()
-    
+
+    if aggregation_function_dict != None:
+        #INFO: xarray dataset has prefix 1d_ and 2d_. 
+        # Therefore, in order to match that, the prefix is added here for each variable  
+        aggregation_function_dict = {f"{dimension}_{key}": value      
+                                        for key, value in aggregation_function_dict.items()
+                                            for dimension in ["ts", "1d", "2d"]}
     
     for varname, da in sds.xr_dataset.data_vars.items():
 
-        #STEP 1. Set aggregation mode and weights
-        # If aggregation_function_dict is passed AND the current variable is in it   
+        #STEP 1. Check and set aggregation mode and weights
+        # If aggregation_function_dict is passed AND the current variable is in it...   
         if ((aggregation_function_dict is not None) and (varname in aggregation_function_dict.keys())):
             
             ## Get the mode and weight 
             aggregation_mode = aggregation_function_dict[varname][0]  
             aggregation_weight = aggregation_function_dict[varname][1]
 
-            ## If variable is related to locationalEligibility, set the mode to "bool"
+            ## If variable is related to locationalEligibility, the mode must be "bool"
             if varname in ["1d_locationalEligibility", "2d_locationalEligibility"]:
                 if aggregation_mode != "bool":
                     warnings.warn(f"Aggregation mode for {varname} set to bool as only binary values are acceptable for this variable")
                     aggregation_mode = "bool"
                     aggregation_weight = None 
 
-            ## If the mode is "weighted mean", raise error if weight is not specified 
-            if ((aggregation_mode == "weighted mean") and (aggregation_weight is None)):
-                raise TypeError("Weights must be passed in order to perform weighted mean")
-            
+            ## If the mode is "weighted mean"...  
+            if (aggregation_mode == "weighted mean"):
+                ## raise error if weight is not specified
+                if aggregation_weight is None: 
+                    raise TypeError("Weights must be passed in order to perform weighted mean")
+                ## get corresponding weight data if another variable is supposed to be the weight
+                ##INFO: User would only give the name of this weight variable. It should be 
+                #  matched based on the current variable's dimension 
+                elif isinstance(aggregation_weight, str):
+                    if varname[:3] == "2d_":
+                        aggregation_weight = sds.xr_dataset.data_vars.get(f'2d_{aggregation_weight}')
+                    else:
+                        aggregation_weight = sds.xr_dataset.data_vars.get(f'1d_{aggregation_weight}')
+
+
         # If aggregation_function_dict is not passed OR the current variable is not in it    
         else:
             ## If variable is related to locationalEligibility, set the mode to "bool"
@@ -468,14 +485,14 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
                 aggregated_sds.xr_dataset[varname] = da
 
             ## 1d variables
-            if (spatial_dim in da.dims and f"{spatial_dim}_2" not in da.dims):  
+            elif (spatial_dim in da.dims and f"{spatial_dim}_2" not in da.dims):  
                 da = aggregate_values(sds.xr_dataset[varname],
                                     sub_to_sup_region_id_dict,
                                     mode=aggregation_mode)
                 aggregated_sds.xr_dataset[varname] = da
             
             ## 2d variables
-            if (f"{spatial_dim}" in da.dims and f"{spatial_dim}_2" in da.dims):  
+            elif (spatial_dim in da.dims and f"{spatial_dim}_2" in da.dims):  
                 da = aggregate_connections(sds.xr_dataset[varname],
                                         sub_to_sup_region_id_dict,
                                         mode=aggregation_mode)
