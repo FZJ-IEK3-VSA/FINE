@@ -480,11 +480,7 @@ class EnergySystemModel:
         else: 
             print('aggregation_function_dict found in kwargs')
             aggregation_function_dict = kwargs.get('aggregation_function_dict')
-            if aggregation_function_dict != None:
-                aggregation_function_dict = {f"{dimension}_{key}": value      #INFO: xarray dataset has prefix 1d_ and 2d_. Therefore, in order to match that,the prefix is added here for each variable  
-                                                for key, value in aggregation_function_dict.items()
-                                                    for dimension in ["1d", "2d"]}
-        
+            
         spatial_dim = kwargs.get('spatial_dim', 'space')
         time_dim = kwargs.get('time_dim', 'TimeStep')
         
