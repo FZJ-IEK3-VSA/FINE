@@ -32,8 +32,7 @@ def test_generate_iteration_dicts(minimal_test_esM):
                             'operationRateFix': [('Sink', 'Industry site')]} 
 
 def test_dimensional_data_to_xarray_dataset(minimal_test_esM):
-    esm_dict, component_dict = dictIO.exportToDict(minimal_test_esM)
-
+   
     expected_locations = list(minimal_test_esM.locations).sort()
     expected_Electricitymarket_operationRateMax = \
         minimal_test_esM.getComponentAttribute('Electricity market', 'operationRateMax').values
@@ -41,11 +40,13 @@ def test_dimensional_data_to_xarray_dataset(minimal_test_esM):
         minimal_test_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity').values
     
     #FUNCTION CALL
+    esm_dict, component_dict = dictIO.exportToDict(minimal_test_esM)
     output_xarray = xrio.dimensional_data_to_xarray_dataset(esm_dict, component_dict)
+
     ## a time series variable
     output_locations = list(output_xarray.space.values).sort()
     output_Electricitymarket_operationRateMax = \
-                    output_xarray.operationRateMax.loc['Source, Electricity market', 0, :, :].values
+                    output_xarray['ts_operationRateMax'].loc['Source, Electricity market', 0, :, :].values
     ## a 1d variable
     output_Electrolyzers_investPerCapacity = \
         output_xarray['1d_investPerCapacity'].loc['Conversion, Electrolyzers', :].values
@@ -64,20 +65,19 @@ def test_dimensional_data_to_xarray_dataset(minimal_test_esM):
     
 def test_update_dicts_based_on_xarray_dataset(multi_node_test_esM_init):
     # TEST DATA
-    #NOTE: aggregated_xr_dataset is obtained by running spatial_aggregation(),
-    # distance_based clustering with all default settings.
+    #NOTE: sds_xr_dataset is obtained by running spatial aggregation,
+    # in 'distance_based' clustering mode with all default settings.
     # Representation is performed for nRegionsForRepresentation = 2 
-    TEST_FILE_PATH = os.path.join(os.path.dirname(__file__), '../../test/spagat/data/input/aggregated_sds_xr_dataset.nc4')
+    TEST_FILE_PATH = os.path.join(os.path.dirname(__file__), '../../test/spagat/data/input/sds_xr_dataset.nc4')
     aggregated_xr_dataset = xr.open_dataset(TEST_FILE_PATH)
 
-    esm_dict, comp_dict = dictIO.exportToDict(multi_node_test_esM_init)
-    
     #EXPECTED 
     expected_locations = list(aggregated_xr_dataset.space.values).sort()
     expected_opexPerCapacity_Windoffshore = \
         sorted(aggregated_xr_dataset['1d_opexPerCapacity'].loc['Source, Wind (offshore)', :].values)
 
     #FUNCTION CALL 
+    esm_dict, comp_dict = dictIO.exportToDict(multi_node_test_esM_init)
     output_esm_dict, output_comp_dict = \
         xrio.update_dicts_based_on_xarray_dataset(esm_dict, 
                                                 comp_dict, 
