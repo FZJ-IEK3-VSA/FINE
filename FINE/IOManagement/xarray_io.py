@@ -103,7 +103,7 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
         df_variable.index.set_names("component", level=0, inplace=True) # ?
 
         ds_component = xr.Dataset()
-        ds_component[variable_description] = df_variable.sort_index().to_xarray()
+        ds_component[f"ts_{variable_description}"] = df_variable.sort_index().to_xarray()
 
         ds = xr.merge([ds, ds_component])
 
@@ -197,7 +197,7 @@ def update_dicts_based_on_xarray_dataset(esm_dict, component_dict, xarray_datase
             classname, component_description = description_tuple
 
             df_description = f"{classname}, {component_description}"
-            df = xarray_dataset[variable_description].sel(component=df_description).drop("component").to_dataframe().unstack(level=2)
+            df = xarray_dataset[f"ts_{variable_description}"].sel(component=df_description).drop("component").to_dataframe().unstack(level=2)
             
             if len(df.columns) > 1:
                 df.columns = df.columns.droplevel(0)
