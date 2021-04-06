@@ -189,7 +189,6 @@ def aggregate_time_series(xr_data_array_in,
         if mode == "weighted mean":
             weighted_xr_data_array_in = xr_data_array_in * xr_weight_array
 
-            # TODO: implement weighted mean aggregation properly
             xr_data_array_out.loc[
                 dict(space=sup_region_id)
             ] = weighted_xr_data_array_in.sel(space=sub_region_id_list).sum(
@@ -206,6 +205,8 @@ def aggregate_time_series(xr_data_array_in,
                 .sum(dim=spatial_dim)
                 .values
             )
+    #set NAs to 0
+    xr_data_array_out = xr_data_array_out.where(xr_data_array_out >= 0.0, 0.0)
 
     return xr_data_array_out
 
