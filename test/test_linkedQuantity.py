@@ -2,7 +2,7 @@ import FINE as fn
 import pandas as pd
 
 
-def test_linkedQuantityID(minimal_test_esM, solver):
+def test_linkedQuantityID(minimal_test_esM):
     """
     """
     esM = minimal_test_esM
@@ -31,7 +31,7 @@ def test_linkedQuantityID(minimal_test_esM, solver):
     electrolyzer.opexPerCapacity = pd.Series(1, index=esM.locations)
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver=solver)
+    esM.optimize(timeSeriesAggregation=False, solver='glpk')
 
     assert (
         esM.getOptimizationSummary("ConversionModel")

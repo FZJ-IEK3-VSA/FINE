@@ -13,13 +13,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-re
 from getData import getData
 
 @pytest.fixture
-def solver():
-    """Global variable for solver - glpk or gurobi"""
-    return 'glpk'
-
-Solver = 'glpk' # can't use fixture on another fixture - multi_node_test_esM_optimized
-
-@pytest.fixture
 def minimal_test_esM(scope="session"):
     """Returns minimal instance of esM"""
 
@@ -321,7 +314,7 @@ def multi_node_test_esM_init(scope="session"):
 
     # esM.cluster(numberOfTypicalPeriods=3)
 
-    # esM.optimize(timeSeriesAggregation=True, solver = solver)
+    # esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
 
     return esM
@@ -572,7 +565,7 @@ def multi_node_test_esM_optimized(scope="session"):
 
     esM.cluster(numberOfTypicalPeriods=3)
 
-    esM.optimize(timeSeriesAggregation=True, solver = Solver)
+    esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
 
     return esM

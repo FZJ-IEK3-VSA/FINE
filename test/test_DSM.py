@@ -2,7 +2,7 @@ import pandas as pd
 import FINE as fn
 import numpy as np
 
-def test_DSM(dsm_test_esM, solver):
+def test_DSM(dsm_test_esM):
     """
     Given a one-node system with two generators, check whether the load and generation is shifted correctly in both
     directions with and without demand side management.
@@ -13,7 +13,7 @@ def test_DSM(dsm_test_esM, solver):
     esM_without.add(fn.Sink(esM=esM_without, name='load', commodity='electricity',
                             hasCapacityVariable=False, operationRateFix=load_without_dsm))
 
-    esM_without.optimize(timeSeriesAggregation=False, solver=solver)  # without dsm
+    esM_without.optimize(timeSeriesAggregation=False, solver='glpk')  # without dsm
 
     generator_outputs = esM_without.componentModelingDict['SourceSinkModel'].operationVariablesOptimum
 

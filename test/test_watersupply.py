@@ -7,7 +7,7 @@ import numpy as np
 import FINE as fn
 
 
-def test_watersupply(solver):
+def test_watersupply():
 
     # read in original results
     results = pd.read_csv(os.path.join(os.path.dirname(__file__), '_testInputFiles', 

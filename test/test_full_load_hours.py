@@ -1,12 +1,12 @@
 import pandas as pd
 
-def test_fullloadhours_above(minimal_test_esM, solver):
+def test_fullloadhours_above(minimal_test_esM):
     '''
     Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000.
     '''
     esM = minimal_test_esM
 
-    esM.optimize(timeSeriesAggregation=False, solver = solver)
+    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
 
     # get cumulative operation
     operationSum = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs('Electrolyzers').sum().sum()
@@ -20,7 +20,7 @@ def test_fullloadhours_above(minimal_test_esM, solver):
     assert fullloadhours > 4000.
 
 
-def test_fullloadhours_max(minimal_test_esM, solver):
+def test_fullloadhours_max(minimal_test_esM):
     '''
     Get the minimal test system, and check if the fulllload hour limitation works
     '''
@@ -38,7 +38,7 @@ def test_fullloadhours_max(minimal_test_esM, solver):
     market.yearlyFullLoadHoursMax = pd.Series(3000., index = esM.locations)
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver = solver)
+    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
 
     # get cumulative operation
     operationSum = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs('Electrolyzers').sum().sum()
@@ -57,7 +57,7 @@ def test_fullloadhours_max(minimal_test_esM, solver):
     assert fullloadhoursMarket < 3000.1
 
 
-def test_fullloadhours_min(minimal_test_esM, solver):
+def test_fullloadhours_min(minimal_test_esM):
     '''
     Get the minimal test system, and check if the fulllload hour limitation works
     '''
@@ -75,7 +75,7 @@ def test_fullloadhours_min(minimal_test_esM, solver):
     market.yearlyFullLoadHoursMin = pd.Series(3000., index = esM.locations)
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver = solver)
+    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
 
     # get cumulative operation
     operationSum = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs('Electrolyzers').sum().sum()

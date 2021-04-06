@@ -7,7 +7,7 @@ import numpy as np        # Used to generate random input data
 import matplotlib.pyplot as plt
 import os
 
-def test_industrialSite(solver):
+def test_industrialSite():
     # # Model an energy system
 
     # Input parameters
@@ -83,7 +83,7 @@ def test_industrialSite(solver):
 
     # Input parameters
     timeSeriesAggregation=False
-    solver=solver
+    solver='glpk'
 
     # Optimize
     esM.optimize(timeSeriesAggregation=timeSeriesAggregation, solver=solver)
