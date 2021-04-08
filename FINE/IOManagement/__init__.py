@@ -5,3 +5,5 @@ Last edited: May 15 2018
 """
 from .standardIO import *
 from .exploitOutput import *
+from .dictIO import *
+from .xarrayIO import *
