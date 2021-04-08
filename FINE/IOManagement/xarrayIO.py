@@ -242,10 +242,65 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
 #     return esm_dict, component_dict
 
 def xarray_dataset_to_esM_instance(xarray_dataset):
-
+    # TODO: Write attributes of single components to xarray_dataset (commodity etc.)
     esm_dict = xarray_dataset.attrs
 
     esm_dict['locations'] = set(str(value) for value in xarray_dataset.space.values)
 
-    
+    component_dict = {}
+    for component in xarray_dataset.component.values:
+        sub_xarray = xarray_dataset.sel(component=component)
+        
+        for variable in sub_xarray.data_vars:
+                
+            if not xr.ufuncs.isnan(sub_xarray[variable].values).all():
+                
+                # set all regional time series (regions, time)
+                if variable[:3]== 'ts_':
+                    
+                    # print(f'{variable} is chosen')
+                    # TODO: check unstack level and variable name 'level_1' for time
+                    # df = sub_xarray[variable].drop("component").to_dataframe().unstack(level=2)
+                    df = sub_xarray[variable].drop("component").to_dataframe().unstack(level=1)
+                    if len(df.columns) > 1:
+                        df.columns = df.columns.droplevel(0)
+                    
+                    class_component_list = component.split(', ')
+                    
+                    if class_component_list[0] not in component_dict.keys():
+                        component_dict.update({class_component_list[0]: {}})
+                    if class_component_list[1] not in component_dict.get(class_component_list[0]).keys():
+                        component_dict.get(class_component_list[0]).update({class_component_list[1]: {}})
+                    if variable[3:] not in component_dict.get(class_component_list[0]).get(class_component_list[1]).keys():
+                        component_dict.get(class_component_list[0]).get(class_component_list[1]).update({variable[3:]: df.sort_index()})
 
+                # set all 2d data (regions, regions)
+                elif variable[:3]== '2d_':
+                    # print(f'{variable} is chosen')
+                    # TODO: Maybe convert to dataframe for 
+                    series = sub_xarray[variable].drop("component").to_dataframe().stack(level=0)
+
+                    series.index = series.index.droplevel(level=2).map('_'.join)
+
+                    class_component_list = component.split(', ')
+
+                    if class_component_list[0] not in component_dict.keys():
+                        component_dict.update({class_component_list[0]: {}})
+                    if class_component_list[1] not in component_dict.get(class_component_list[0]).keys():
+                        component_dict.get(class_component_list[0]).update({class_component_list[1]: {}})
+                    if variable[3:] not in component_dict.get(class_component_list[0]).get(class_component_list[1]).keys():
+                        component_dict.get(class_component_list[0]).get(class_component_list[1]).update({variable[3:]: series.sort_index()})
+
+                # # set all 1d data (regions)
+                elif variable[:3]== '1d_':
+                    # print(f'{variable} is chosen')
+                    series = sub_xarray[variable].drop("component").to_dataframe().unstack(level=0)
+                    series.index = series.index.droplevel(level=0)
+                    
+                    class_component_list = component.split(', ')
+                    if class_component_list[0] not in component_dict.keys():
+                        component_dict.update({class_component_list[0]: {}})
+                    if class_component_list[1] not in component_dict.get(class_component_list[0]).keys():
+                        component_dict.get(class_component_list[0]).update({class_component_list[1]: {}})
+                    if variable[3:] not in component_dict.get(class_component_list[0]).get(class_component_list[1]).keys():
+                        component_dict.get(class_component_list[0]).get(class_component_list[1]).update({variable[3:]: series.sort_index()})
