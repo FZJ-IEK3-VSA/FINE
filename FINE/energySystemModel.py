@@ -20,7 +20,7 @@ from FINE.component import Component, ComponentModel
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from FINE.IOManagement import dictIO 
-from FINE.IOManagement import xarray_io as xrio
+from FINE.IOManagement import xarrayIO as xrIO
 try:
     import FINE.spagat.dataset as spd
     import FINE.spagat.grouping as spg
@@ -453,7 +453,7 @@ class EnergySystemModel:
         #STEP 2. Obtain xr dataset from esM 
         sds = spd.SpagatDataset()
         esm_dict, comp_dict = dictIO.exportToDict(self)
-        sds.xr_dataset = xrio.dimensional_data_to_xarray_dataset(esm_dict, comp_dict)
+        sds.xr_dataset = xrIO.dimensional_data_to_xarray_dataset(esm_dict, comp_dict)
         
         #STEP 3. Add shapefile information to sds
         sds.add_objects(description='gpd_geometries',
@@ -528,7 +528,7 @@ class EnergySystemModel:
                                                                                                 # ex.: in grouping functions, spatial_dim is called dimension_description
         
         #STEP 6. Obtain aggregated esM
-        new_esm_dict, new_comp_dict = xrio.update_dicts_based_on_xarray_dataset(esm_dict, 
+        new_esm_dict, new_comp_dict = xrIO.update_dicts_based_on_xarray_dataset(esm_dict, 
                                                                         comp_dict, 
                                                                         xarray_dataset=aggregated_sds.xr_dataset)
         

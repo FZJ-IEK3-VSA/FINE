@@ -7,7 +7,6 @@ before_script:
   - mamba info --envs
   - source activate fine
   - python -m pip install -e .
-  - conda update --all
 
 test-code:
   stage: test

@@ -8,12 +8,12 @@ import geopandas as gpd
 import FINE as fn
 
 from FINE.IOManagement import dictIO
-import FINE.IOManagement.xarray_io as xrio 
+import FINE.IOManagement.xarrayIO as xrIO
 
 
 def test_generate_iteration_dicts(minimal_test_esM):
     esm_dict, component_dict = dictIO.exportToDict(minimal_test_esM)
-    output_df_dict, output_series_dict = xrio.generate_iteration_dicts(component_dict)
+    output_df_dict, output_series_dict = xrIO.generate_iteration_dicts(component_dict)
 
     assert output_series_dict.get('locationalEligibility') == [('Source', 'Electricity market'), 
                                                                 ('Sink', 'Industry site'), 
@@ -41,7 +41,7 @@ def test_dimensional_data_to_xarray_dataset(minimal_test_esM):
     
     #FUNCTION CALL
     esm_dict, component_dict = dictIO.exportToDict(minimal_test_esM)
-    output_xarray = xrio.dimensional_data_to_xarray_dataset(esm_dict, component_dict)
+    output_xarray = xrIO.dimensional_data_to_xarray_dataset(esm_dict, component_dict)
 
     ## a time series variable
     output_locations = list(output_xarray.space.values).sort()
@@ -79,7 +79,7 @@ def test_update_dicts_based_on_xarray_dataset(multi_node_test_esM_init):
     #FUNCTION CALL 
     esm_dict, comp_dict = dictIO.exportToDict(multi_node_test_esM_init)
     output_esm_dict, output_comp_dict = \
-        xrio.update_dicts_based_on_xarray_dataset(esm_dict, 
+        xrIO.update_dicts_based_on_xarray_dataset(esm_dict, 
                                                 comp_dict, 
                                                 xarray_dataset=aggregated_xr_dataset)
     
