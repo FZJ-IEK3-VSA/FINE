@@ -76,11 +76,10 @@ def test_aggregate_time_series(sds_and_dict_for_basic_representation,
     #ASSERTION 
     ## for valid component, source_comp
     assert time_series_aggregated.loc['source_comp', 0, 'T0', '01_reg_02_reg'].values == expected
+    
     ## for invalid component, sink_comp
-    if mode == 'sum': #NOTE: sum of nan gives 0 as output 
-        assert time_series_aggregated.loc['sink_comp', 0, 'T0', '01_reg_02_reg'].values == 0
-    else:  
-        assert math.isnan( time_series_aggregated.loc['sink_comp', 0, 'T0', '01_reg_02_reg'].values )
+    assert time_series_aggregated.loc['sink_comp', 0, 'T0', '01_reg_02_reg'].values == 0
+    
 
 
 @pytest.mark.parametrize("mode", ["mean", "sum", "bool"])       

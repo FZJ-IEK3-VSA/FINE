@@ -542,6 +542,8 @@ def all_variable_based_clustering(sds,
 
         #STEP 1a.  Hierarchical clustering with average linkage
         distance_matrix = hierarchy.distance.squareform(precomputed_dist_matrix)
+        
+
         Z = hierarchy.linkage(distance_matrix, method='average')
 
         print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(Z, distance_matrix)[0])
@@ -633,7 +635,6 @@ def all_variable_based_clustering(sds,
         #STEP 1.  Obtain a matrix where 1 means two regions are connected and 0 means not 
         # (any one of the component and any one of it's 2d variable has to have a positive value)
         connectMatrix = gu.generateConnectivityMatrix(sds)
-
         silhouette_scores = []
 
         #STEP 2. Clustering for every number of regions from 1 to one less than n_regions 

@@ -640,4 +640,22 @@ def computeSilhouetteCoefficient(regions_list, distanceMatrix, aggregation_dict)
 
     return scores
 
-
+# def checkConnectivity_matrix(connectivity_matrix):
+#     #TODO: incorporate it within grouping 
+#     is_diagonal_all_1 =  'all diagonal values are not 1' if any(a != 1 for a in np.diagonal(connectivity_matrix)) else 'all diagonal values are 1'
+#     is_symmetric = 'symmetric'if (connectivity_matrix == connectivity_matrix.T).all() else 'not symmetric'
+    
+#     length = len(connectMatrix)
+#     is_connection = [] 
+#     for row in range(length):
+#         if np.count_nonzero(connectMatrix[row] == 1) > 1:
+#             is_connection.append(True)
+#         else:
+#             is_connection.append(False)
+    
+#     if all(is_connection):
+#         connected = "all regions are connected"
+#     else:
+#         connected = f"regions are not connected. Hint: check region(s) at index {[i for i, x in enumerate(is_connection) if not x]}"
+    
+#     return f'In the connectivity matrix: {is_diagonal_all_1}, the matrix is {is_symmetric}, and {connected}'
