@@ -487,6 +487,8 @@ class EnergySystemModel:
 
         elif grouping_mode == 'all_variable_based':
             agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical') 
+            spatial_contiguity = kwargs.get('spatial_contiguity', True) 
+
             print(f'Performing all variable-based clustering on the regions. Clustering mode: {agg_mode}')
 
             dimension_description = kwargs.get('dimension_description', 'space') 
@@ -498,6 +500,7 @@ class EnergySystemModel:
 
             aggregation_dict = spg.all_variable_based_clustering(sds, 
                                                                 agg_mode,
+                                                                spatial_contiguity,
                                                                 dimension_description,
                                                                 ax_illustration, 
                                                                 save_path, 

@@ -71,11 +71,13 @@ def test_distance_based_clustering(mode):
      
      
 
-@pytest.mark.parametrize("mode", ['scipy_hierarchical', 
-                                   'sklearn_hierarchical', 
-                                   'spectral_with_precomputedAffinity', 
-                                   'spectral_with_RBFaffinity'])
-def test_all_variable_based_clustering(mode):
+@pytest.mark.parametrize("mode, spatial_contiguity", [('scipy_hierarchical', False), 
+                                                      ('sklearn_hierarchical', False), 
+                                                      ('spectral_with_precomputedAffinity', False),
+                                                      ('spectral_with_precomputedAffinity', True), 
+                                                      ('spectral_with_RBFaffinity', False),
+                                                      ('spectral_with_RBFaffinity', True)])
+def test_all_variable_based_clustering(mode, spatial_contiguity):
      #TEST DATA     
      component_list = ['c1','c2', 'c3']  
      space_list = ['01_reg','02_reg','03_reg']
@@ -123,7 +125,9 @@ def test_all_variable_based_clustering(mode):
      sds.xr_dataset = ds
      
      #FUNCTION CALL
-     output_dict = spg.all_variable_based_clustering(sds, agg_mode=mode, 
+     output_dict = spg.all_variable_based_clustering(sds, 
+                                                  agg_mode=mode, 
+                                                  spatial_contiguity=spatial_contiguity, #TODO: find a way to recreate spatial contiguity problem and check if it is solved. Hint: fragmented polygons per geometry
                                                   dimension_description='space',
                                                   ax_illustration=None, 
                                                   save_path=path_to_test_dir, 

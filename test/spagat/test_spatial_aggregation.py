@@ -10,7 +10,7 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init):
     
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
-            'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
+            'InputData/SpatialData_Germany/ShapeFiles/clusteredRegions.shp')
 
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
@@ -33,22 +33,20 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init):
                                                     ])
 @pytest.mark.parametrize("n_regions", [1, 3, 8]) 
 def test_spatial_aggregation(multi_node_test_esM_init,
-                            aggregation_function_dict,
                             grouping_mode, 
                             agg_mode,
                             n_regions):   
     
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
-            'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
+            'InputData/SpatialData_Germany/ShapeFiles/clusteredRegions.shp')
 
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
                                                                 grouping_mode = grouping_mode, 
                                                                 nRegionsForRepresentation = n_regions, 
                                                                 aggregatedResultsPath=None,
-                                                                agg_mode=agg_mode,
-                                                                aggregation_function_dict=aggregation_function_dict)   
+                                                                agg_mode=agg_mode)   
 
     #ASSERTION 
     assert len(aggregated_esM.locations) == n_regions
@@ -67,7 +65,7 @@ def test_spatial_aggregation_with_aggregation_function_dict(multi_node_test_esM_
     
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
-            'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
+            'InputData/SpatialData_Germany/ShapeFiles/clusteredRegions.shp')
 
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 

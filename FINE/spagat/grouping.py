@@ -415,7 +415,9 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
 
 
 @spu.timer
-def all_variable_based_clustering(sds, agg_mode='sklearn_hierarchical', 
+def all_variable_based_clustering(sds, 
+                                agg_mode='sklearn_hierarchical', 
+                                spatial_contiguity = True,
                                 dimension_description='space',
                                 ax_illustration=None, 
                                 save_path=None, 
@@ -533,8 +535,8 @@ def all_variable_based_clustering(sds, agg_mode='sklearn_hierarchical',
         #STEP 0a. Preprocess the whole dataset with handle_mode='toAffinity'
         feature_matrix_ts, feature_matrix_1d, adjacency_matrix_2d = gu.preprocessDataset(sds, handle_mode='toAffinity')
 
-    #============================ SCIPY - HIERARCHICAL ============================#
-    if agg_mode == 'scipy_hierarchical':
+    #============================ SCIPY - HIERARCHICAL ============================# #TODO: maybe just delete this!
+    if agg_mode == 'scipy_hierarchical': 
 
         #STEP 1. CLUSTERING
 
@@ -725,20 +727,26 @@ def all_variable_based_clustering(sds, agg_mode='sklearn_hierarchical',
 
         #STEP 2. Compute a single affinity matrix
         affinity_matrix = (affinity_ts * weighting[0] + affinity_1d * weighting[1] + affinity_2d * weighting[2]) 
+        
+        #STEP 3.  If spatial_contiguity is true, 
+        # get connectivity matrix. set affinity matrix values to 0 where connectivity matrix values are 0 
+        if spatial_contiguity:
+            connectMatrix = gu.generateConnectivityMatrix(sds)
+            affinity_matrix[connectMatrix == 0] = 0
 
         # Evaluation indicators
         modularities = []
-        #STEP 3. For 1 to one less than n regions: Perform the following sub steps
+        #STEP 4. For 1 to one less than n regions: Perform the following sub steps
         for i in range(1,n_regions):
-            #STEP 3a. clustering
+            #STEP 4a. clustering
             model = skc.SpectralClustering(n_clusters=i,affinity='precomputed').fit(affinity_matrix)
             regions_label_list = model.labels_
 
-            #STEP 3b. compute modulatiy (calls computeModularity() )
+            #STEP 4b. compute modulatiy (calls computeModularity() )
             modularity = gu.computeModularity(affinity_matrix, regions_label_list)
             modularities.append(modularity)
 
-            #STEP 3c. form resulting sub_to_sup_region_id_dict 
+            #STEP 4c. form resulting sub_to_sup_region_id_dict 
             regions_dict = {}
             for label in range(i):
                 # Group the regions of this regions label
@@ -750,7 +758,7 @@ def all_variable_based_clustering(sds, agg_mode='sklearn_hierarchical',
     
         print('Modularities',modularities)
 
-        #STEP 4. Obtain Silhouette scores
+        #STEP 5. Obtain Silhouette scores
         ds_ts, ds_1d, ds_2d = gu.preprocessDataset(sds, handle_mode='toDissimilarity')
         distances = gu.selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions)
         silhouette_scores = gu.computeSilhouetteCoefficient(list(regions_list), distances, aggregation_dict)
@@ -765,6 +773,12 @@ def all_variable_based_clustering(sds, agg_mode='sklearn_hierarchical',
         #STEP 2. Use RBF kernel to construct affinity matrix based on scaled distance matrix
         delta = 1
         affinity_matrix = np.exp(- scaled_dist_matrix ** 2 / (2. * delta ** 2))
+
+        #STEP 3.  If spatial_contiguity is true, 
+        # get connectivity matrix. set affinity matrix values to 0 where connectivity matrix values are 0 
+        if spatial_contiguity:
+            connectMatrix = gu.generateConnectivityMatrix(sds)
+            affinity_matrix[connectMatrix == 0] = 0
 
         # Evaluation indicators
         modularities = []
