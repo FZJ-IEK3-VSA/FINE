@@ -47,16 +47,16 @@ def test_spatial_aggregation_distance_based(multi_node_test_esM_init, agg_mode, 
     aggregated_esM.optimize(timeSeriesAggregation=True, solver='glpk')
     #TODO: add test to check if optimization summary is available
 
-@pytest.mark.skip(reason='Connectivity functions need fixing. Wont work without them') 
+
 @pytest.mark.parametrize("aggregation_function_dict", [None, {'operationRateMax': ('weighted mean', 'capacityMax'), 
                                                             'operationRateFix': ('sum', None), 
                                                             'capacityMax': ('sum', None), 
                                                             'capacityFix': ('sum', None), 
                                                             'locationalEligibility': ('bool', None)} ]) 
 @pytest.mark.parametrize("n_regions", [1, 3, 8])                                                            
-def test_spatial_aggregation_all_variable_based(multi_node_test_esM_init, 
-                                                aggregation_function_dict,
-                                                n_regions):   
+def test_spatial_aggregation_parameter_based(multi_node_test_esM_init, 
+                                            aggregation_function_dict,
+                                            n_regions):   
     
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
@@ -64,13 +64,13 @@ def test_spatial_aggregation_all_variable_based(multi_node_test_esM_init,
 
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
-                                                                grouping_mode = 'all_variable_based', 
+                                                                grouping_mode = 'parameter_based', 
                                                                 nRegionsForRepresentation = n_regions, 
                                                                 aggregatedResultsPath=None,
                                                                 aggregation_function_dict=aggregation_function_dict)   
 
     #ASSERTION 
-    assert len(aggregated_esM.locations) == 2
+    assert len(aggregated_esM.locations) == n_regions
     # Additional check - if the optimization runs through
     aggregated_esM.cluster(numberOfTypicalPeriods=2)
     aggregated_esM.optimize(timeSeriesAggregation=True, solver='glpk')

@@ -54,7 +54,7 @@
 #     esM_initial = opM.setup()
 
 #     aggregated_esM = esM_initial.aggregateSpatially(shapefilePath = input_shape_path, 
-#                                                     grouping_mode='all_variable_based', 
+#                                                     grouping_mode='parameter_based', 
 #                                                     nRegionsForRepresentation = n_regions,
 #                                                                                                #aggregatedResultsPath = OUTPUT_PATH,
 #                                                     agg_mode='sklearn_hierarchical',

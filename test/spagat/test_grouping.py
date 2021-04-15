@@ -3,11 +3,12 @@ import pytest
 
 import numpy as np
 import xarray as xr
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 from sklearn.datasets import make_blobs
 
 import FINE.spagat.dataset as spd
 import FINE.spagat.grouping as spg
+import FINE.spagat.representation as spr
 
 path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/')  
 file_name = 'test_fig'
@@ -19,7 +20,7 @@ expected_file = os.path.join(path_to_test_dir, f'{file_name}.png')
                          (['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'])]) 
 def test_string_based_clustering(string_list, expected):
      clustered_regions_dict = spg.string_based_clustering(string_list)
-     assert list(clustered_regions_dict.keys()).sort() == expected.sort()   #INFO: instead of unpermute, you can use .sort() 
+     assert list(clustered_regions_dict.keys()).sort() == expected.sort()   
       #TODO: check values also       
 
 @pytest.mark.parametrize("mode", ['sklearn_kmeans', 'sklearn_hierarchical', 'sklearn_spectral', 'scipy_kmeans', 'scipy_hierarchical'])
@@ -70,8 +71,8 @@ def test_distance_based_clustering(mode):
           os.remove(expected_file)
      
 
-@pytest.mark.skip(reason='Connectivity functions need fixing. Wont work without them') 
-def test_all_variable_based_clustering():
+
+def test_parameter_based_clustering(): #TODO: check what happens when you restrict connections. Hint: take more regions and make a complex structure 
      #TEST DATA     
      component_list = ['c1','c2', 'c3']  
      space_list = ['01_reg','02_reg','03_reg']
@@ -111,15 +112,28 @@ def test_all_variable_based_clustering():
                                         coords=[component_list, space_list, space_list], 
                                         dims=['component', 'space', 'space_2'])
      
-     ds = xr.Dataset({'var_ts': var_ts_DataArray,
-                    'var_1d': var_1d_DataArray,  
-                    'var_2d': var_2d_DataArray}) 
+     ds = xr.Dataset({'ts_var': var_ts_DataArray,
+                    '1d_var': var_1d_DataArray,  
+                    '2d_var': var_2d_DataArray}) 
 
      sds = spd.SpagatDataset()
      sds.xr_dataset = ds
+
+     #Geometries 
+     test_geometries = [Polygon([(0,3), (1,3), (1,4), (0,4)]),
+                         Polygon([(1,3), (2,3), (2,4), (4,1)]),
+                         Polygon([(0,2), (1,2), (1,3), (0,3)]) ] 
+                    
+
+     sds.add_objects(description ='gpd_geometries',   
+                    dimension_list =['space'], 
+                    object_list = test_geometries)   
+     
+     spr.add_region_centroids(sds) 
+     spr.add_centroid_distances(sds)
      
      #FUNCTION CALL
-     output_dict = spg.all_variable_based_clustering(sds,
+     output_dict = spg.parameter_based_clustering(sds,
                                                   dimension_description='space',
                                                   ax_illustration=None, 
                                                   save_path=path_to_test_dir, 
@@ -132,7 +146,3 @@ def test_all_variable_based_clustering():
                assert (key == '01_reg_02_reg') & (value == ['01_reg', '02_reg'])
           else:
                assert (key == '03_reg') & (value == ['03_reg'] )
-
-     if mode == 'scipy_hierarchical':
-          assert os.path.isfile(expected_file) 
-          os.remove(expected_file) 

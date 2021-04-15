@@ -11,59 +11,109 @@ from collections import namedtuple
 import FINE.spagat.dataset as spd
 import FINE.spagat.representation as spr
 
-
-@pytest.fixture(scope="package")
-def sds():
-    sds_folder_path_in = pathlib.Path("test/spagat/data/input")
-    sds = spd.SpagatDataset()
-    sds.read_dataset(sds_folder_path_in)
-    spr.add_region_centroids(sds)
-
-    return sds
-
-@pytest.fixture
-def gridded_RE_data(scope="session"):
-  time_steps = 10
-  x_coordinates = 5
-  y_coordinates = 3
-
-  time = np.arange(time_steps)
-  x_locations = [1, 2, 3, 4, 5]
-  y_locations = [1, 2, 3]
-
-  #capacity factor time series 
-  capfac_xr_da = xr.DataArray(coords=[x_locations, y_locations, time], 
-                              dims=['x', 'y','time'])
-
-  capfac_xr_da.loc[[1, 2, 5], :, :] = [np.full((3, 10), 1) for x in range(3)]
-  capfac_xr_da.loc[3:4, :, :] = [np.full((3, 10), 2) for x in range(2)]
-
-  #capacities
-  test_data = np.ones((x_coordinates, y_coordinates))
-  capacity_xr_da = xr.DataArray(test_data, 
-                              coords=[x_locations, y_locations], 
-                              dims=['x', 'y'])
-
-  test_xr_ds = xr.Dataset({'capacity': capacity_xr_da,
-                          'capfac': capfac_xr_da}) 
-
-  return test_xr_ds
+#============================================Fixtures for Grouping==================================================#
 
 
-@pytest.fixture
-def sample_shapefile(scope="session"):
-  polygon1 = Polygon([(0,0), (4,0), (4,4), (0,4)])
-  polygon2 = Polygon([(4,0), (7,0), (7,4), (4,4)])
+@pytest.fixture()
+def sds_for_Connectivity():  
 
-  test_geometries = [MultiPolygon([polygon1]),
-                  MultiPolygon([polygon2])] 
+  component_list = ['source_comp','sink_comp', 'transmission_comp']  
+  space_list = ['01_reg','02_reg','03_reg','04_reg', '05_reg','06_reg', '07_reg','08_reg']
+  TimeStep_list = ['T0','T1']
+  Period_list = [0]
 
-  df = pd.DataFrame({'region_ids': ['reg_01', 'reg_02']})
+  ## ts variable data
+  operationRateMax = np.array([ [ [[1] * 8 for i in range(2)] ], 
 
-  gdf = gpd.GeoDataFrame(df, geometry=test_geometries, crs=f'epsg:{3035}') 
+                                [ [[np.nan] * 8 for i in range(2)] ], 
 
-  return gdf
+                                [ [[np.nan] * 8 for i in range(2)] ] 
 
+                          ])
+
+  operationRateMax_da = xr.DataArray(operationRateMax, 
+                                  coords=[component_list, Period_list, TimeStep_list, space_list], 
+                                  dims=['component', 'Period', 'TimeStep','space'])
+
+
+  ## 1d variable data
+  capacityMax_1d = np.array([ [14] * 8, 
+                            [np.nan] *8, 
+                            [np.nan] *8
+                          ])
+
+  capacityMax_1d_da = xr.DataArray(capacityMax_1d, 
+                              coords=[component_list, space_list], 
+                              dims=['component', 'space'])
+
+
+  ## 2d variable data
+  capacityMax_2d = np.array([ [[np.nan] * 8 for i in range(8)], 
+
+                        [[np.nan] * 8 for i in range(8)],
+
+                         [[ 0, 0, 0, 0, 0, 0, 0, 0],
+                          [ 0, 0, 0, 0, 0, 0, 0, 0],
+                          [ 0, 0, 0, 0, 0, 0, 0, 0],
+                          [ 0, 0, 0, 0, 0, 0, 0, 0],
+                          [ 0, 0, 0, 0, 0, 0, 0, 0],
+                          [ 0, 0, 0, 0, 0, 0, 0, 3],
+                          [ 0, 0, 0, 0, 0, 0, 0, 5],
+                          [ 0, 0, 0, 0, 0, 3, 5, 0]]
+                        ])
+
+  capacityMax_2d_da = xr.DataArray(capacityMax_2d, 
+                              coords=[component_list, space_list, space_list], 
+                              dims=['component', 'space', 'space_2'])
+  
+  locationalEligibility_2d = np.array([ [[np.nan] * 8 for i in range(8)], 
+
+                                        [[np.nan] * 8 for i in range(8)],
+
+                                        [[ 0, 0, 0, 0, 0, 0, 0, 0],
+                                        [ 0, 0, 0, 0, 0, 0, 0, 0],
+                                        [ 0, 0, 0, 0, 0, 0, 0, 0],
+                                        [ 0, 0, 0, 0, 0, 0, 0.2, 0],
+                                        [ 0, 0, 0, 0, 0, 0, 0, 0],
+                                        [ 0, 0, 0, 0, 0, 0, 0, 0],
+                                        [ 0, 0, 0, 0.2, 0, 0, 0, 0],
+                                        [ 0, 0, 0, 0, 0, 0, 0, 0]]
+                                        ])
+
+  locationalEligibility_2d_da = xr.DataArray(locationalEligibility_2d, 
+                              coords=[component_list, space_list, space_list], 
+                              dims=['component', 'space', 'space_2'])
+  
+  test_ds = xr.Dataset({'ts_operationRateMax': operationRateMax_da, 
+                        '1d_capacityMax': capacityMax_1d_da, 
+                        '2d_capacityMax': capacityMax_2d_da,
+                        '2d_locationalEligibility': locationalEligibility_2d_da
+                        })    
+
+  sds = spd.SpagatDataset()
+  sds.xr_dataset = test_ds 
+
+  #Geometries 
+  test_geometries = [Polygon([(0,3), (1,3), (1,4), (0,4)]),
+                  Polygon([(1,3), (2,3), (2,4), (4,1)]),
+                  Polygon([(2,3), (3,3), (3,4), (2,4)]),
+                  Polygon([(0,2), (1,2), (1,3), (0,3)]),
+                  Polygon([(1,2), (2,2), (2,3), (1,3)]),
+                  Polygon([(2,2), (3,2), (3,3), (2,3)]),
+                  Polygon([(1,0), (2,0), (2,1), (1,1)]),
+                  Polygon([(2.5,0), (3.5,0), (3.5,1), (2.5,1)])] 
+                
+
+  sds.add_objects(description ='gpd_geometries',   
+                dimension_list =['space'], 
+                object_list = test_geometries)   
+  
+  spr.add_region_centroids(sds) 
+  spr.add_centroid_distances(sds)
+
+  return sds  
+
+#============================================Fixtures for Basic Representation==================================================#
 
 @pytest.fixture()
 def sds_and_dict_for_basic_representation():  
@@ -181,10 +231,50 @@ def sds_and_dict_for_basic_representation():
 
   return namedtuple("dict_and_sds", "sub_to_sup_region_id_dict sds")(sub_to_sup_region_id_dict, sds)    
 
-  
-  
+#============================================Fixtures for RE Representation==================================================#
+
+@pytest.fixture
+def gridded_RE_data(scope="session"):
+  time_steps = 10
+  x_coordinates = 5
+  y_coordinates = 3
+
+  time = np.arange(time_steps)
+  x_locations = [1, 2, 3, 4, 5]
+  y_locations = [1, 2, 3]
+
+  #capacity factor time series 
+  capfac_xr_da = xr.DataArray(coords=[x_locations, y_locations, time], 
+                              dims=['x', 'y','time'])
+
+  capfac_xr_da.loc[[1, 2, 5], :, :] = [np.full((3, 10), 1) for x in range(3)]
+  capfac_xr_da.loc[3:4, :, :] = [np.full((3, 10), 2) for x in range(2)]
+
+  #capacities
+  test_data = np.ones((x_coordinates, y_coordinates))
+  capacity_xr_da = xr.DataArray(test_data, 
+                              coords=[x_locations, y_locations], 
+                              dims=['x', 'y'])
+
+  test_xr_ds = xr.Dataset({'capacity': capacity_xr_da,
+                          'capfac': capfac_xr_da}) 
+
+  return test_xr_ds
 
 
+@pytest.fixture
+def sample_shapefile(scope="session"):
+  polygon1 = Polygon([(0,0), (4,0), (4,4), (0,4)])
+  polygon2 = Polygon([(4,0), (7,0), (7,4), (4,4)])
+
+  test_geometries = [MultiPolygon([polygon1]),
+                  MultiPolygon([polygon2])] 
+
+  df = pd.DataFrame({'region_ids': ['reg_01', 'reg_02']})
+
+  gdf = gpd.GeoDataFrame(df, geometry=test_geometries, crs=f'epsg:{3035}') 
+
+  return gdf
 
 
 

@@ -415,12 +415,12 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
 
 
 @spu.timer
-def all_variable_based_clustering(sds,
-                                dimension_description='space',
-                                ax_illustration=None, 
-                                save_path=None, 
-                                fig_name=None,  
-                                verbose=False):
+def parameter_based_clustering(sds,
+                            dimension_description='space',
+                            ax_illustration=None, 
+                            save_path=None, 
+                            fig_name=None,  
+                            verbose=False):
     """Groups regions based on the Energy System Model instance's data. 
 
     Parameters #TODO: update this 

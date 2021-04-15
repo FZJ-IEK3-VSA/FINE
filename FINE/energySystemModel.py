@@ -413,7 +413,7 @@ class EnergySystemModel:
 
     def aggregateSpatially(self, 
                         shapefilePath, 
-                        grouping_mode='all_variable_based', 
+                        grouping_mode='parameter_based', 
                         nRegionsForRepresentation=2,
                         aggregatedResultsPath=None,
                         **kwargs): 
@@ -427,11 +427,11 @@ class EnergySystemModel:
         
         :param grouping_mode: Defines how to spatially group the regions. 
         Refer to grouping.py for more information.
-            |br| * the default value is 'all_variable_based'
-        :type grouping_mode: string, Options - 'string_based', 'distance_based', 'all_variable_based'
+            |br| * the default value is 'parameter_based'
+        :type grouping_mode: string, Options - 'string_based', 'distance_based', 'parameter_based'
 
         :param nRegionsForRepresentation: Indicates the number of regions chosen for representation of data. 
-        If 'distance_based' or 'all_variable_based' is chosen for `grouping_mode`, grouping is performed for 
+        If 'distance_based' or 'parameter_based' is chosen for `grouping_mode`, grouping is performed for 
         1 to number of regions initially present in the `esM`. Here, the number of groups finally chosen for 
         representation of data is to be specified. This parameter is irrelevant if `grouping_mode` is 
         'string_based'.
@@ -459,10 +459,11 @@ class EnergySystemModel:
         sds.add_objects(description='gpd_geometries',
                         dimension_list=['space'],
                         object_list=gdfRegions.geometry)
-        spr.add_region_centroids(sds, spatial_dim='space')
+        spr.add_region_centroids(sds, spatial_dim='space') 
+        spr.add_centroid_distances(sds)
         
         #STEP 4. Spatial grouping
-        dimension_description = kwargs.get('dimension_description', 'space') # 'all_variable_based'. Maybe make it common 
+        dimension_description = kwargs.get('dimension_description', 'space')  
         ax_illustration = kwargs.get('ax_illustration', None) 
         save_path = kwargs.get('save_path', None) 
         fig_name = kwargs.get('fig_name', None)
@@ -485,15 +486,15 @@ class EnergySystemModel:
                                                             fig_name, 
                                                             verbose)
 
-        elif grouping_mode == 'all_variable_based':
-            print(f'Performing all variable-based clustering on the regions.')
+        elif grouping_mode == 'parameter_based':
+            print(f'Performing parameter-based clustering on the regions.')
 
-            aggregation_dict = spg.all_variable_based_clustering(sds, 
-                                                                dimension_description,
-                                                                ax_illustration, 
-                                                                save_path, 
-                                                                fig_name,  
-                                                                verbose)
+            aggregation_dict = spg.parameter_based_clustering(sds, 
+                                                            dimension_description,
+                                                            ax_illustration, 
+                                                            save_path, 
+                                                            fig_name,  
+                                                            verbose)
         
         #STEP 5. Representation of the new regions
         if grouping_mode == 'string_based':

@@ -526,70 +526,20 @@ def test_selfDistanceMatrix():
 
     assert np.array_equal(expected_dist_matrix, output_dist_matrix)
 
-@pytest.mark.skip(reason='changes required in the function. And followup changes here') 
-@pytest.mark.parametrize("reg_m, reg_n, expected_bool", [(0, 1, True), (0, 2, True), (1, 2, False)])
-def test_checkConnectivity(reg_m, reg_n, expected_bool):
-    #TEST DATA
-    test_dict = {}
 
-    var1_c1_matrix = 0.1 * np.array([ [ 0,  1,  0],
-                                      [ 1,  0,  0],
-                                      [ 0,  0,  0] ])
-
-    var1_c3_matrix = 0.1 * np.array([ [ 0,  0,  1],
-                                      [ 0,  0,  0],
-                                      [ 1,  0,  0] ])
-
-    test_dict['var1'] = {0: var1_c1_matrix, 2: var1_c3_matrix}
+def test_generateConnectivityMatrix(sds_for_Connectivity):
+    #EXPECTED 
+    expected_matrix = np.array([[ 1, 1, 0, 1, 1, 0, 0, 0],
+                                [ 1, 1, 1, 1, 1, 1, 0, 0],
+                                [ 0, 1, 1, 0, 1, 1, 0, 0],
+                                [ 1, 1, 0, 1, 1, 0, 1, 0],
+                                [ 1, 1, 1, 1, 1, 1, 0, 0],
+                                [ 0, 1, 1, 0, 1, 1, 0, 1],
+                                [ 0, 0, 0, 1, 0, 0, 1, 1],
+                                [ 0, 0, 0, 0, 0, 1, 1, 1]])
 
     #FUNCTION CALL 
-    connect_components = [0, 1, 2, 3]           
-    output_bool = gu.checkConnectivity(reg_m, reg_n, test_dict, connect_components)
-
-    #ASSERTION 
-    assert output_bool == expected_bool
-
-
-@pytest.mark.skip(reason='changes required in the function. And followup changes here')
-@pytest.mark.parametrize("component_list, expected_matrix", [(['c1','c2','c3','c4'], 
-                                                               np.array([[ 1,  1,  1],
-                                                                         [ 1,  1,  0],
-                                                                         [ 1,  0,  1] ])
-                                                              ), 
-                                                              (['c1','c2','pipeline','c4'],
-                                                                np.array([[ 1,  0,  1],
-                                                                          [ 0,  1,  0],
-                                                                          [ 1,  0,  1] ])
-                                                              ) 
-                                                            ])
-def test_generateConnectivityMatrix(component_list, expected_matrix):
-
-    #TEST DATA 
-    space_list = ['01_reg','02_reg','03_reg']
-
-    ## 2d variable data
-    var_2d_1_data = np.array([ [[ 0,  1,  0],
-                                [ 1,  0,  0],
-                                [ 0,  0,  0]],
-
-                                [[np.nan] * 3 for i in range(3)],
-
-                                [[ 0,  0,  1],
-                                 [ 0,  0,  0],
-                                 [ 1,  0,  0]],
- 
-                                [[np.nan] * 3 for i in range(3)] ])
-
-    var_2d_1_DataArray = xr.DataArray(var_2d_1_data, 
-                                    coords=[component_list, space_list, space_list], 
-                                    dims=['component', 'space', 'space_2'])
-
-    ds = xr.Dataset({'var_2d_1': var_2d_1_DataArray})
-    sds = spd.SpagatDataset()
-    sds.xr_dataset = ds
-    
-    #FUNCTION CALL 
-    output_matrix = gu.generateConnectivityMatrix(sds)
+    output_matrix = gu.generateConnectivityMatrix(sds_for_Connectivity)
 
     #ASSERTION 
     assert np.array_equal(output_matrix, expected_matrix)

@@ -3,7 +3,7 @@ import warnings
 import xarray as xr
 import numpy as np
 import pandas as pd
-import geopandas
+import geopandas as gpd
 from sklearn import preprocessing as prep
 from scipy.cluster import hierarchy
 from sklearn import metrics
@@ -348,7 +348,7 @@ def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions):
 
 
 def generateConnectivityMatrix(sds):
-    """Generates connectiviy matrix. 
+    """Generates connectiviy matrix. #TODO: update docstring
         - In this matrix, if two regions are connected, it is indicated as 1 and 0 otherwise. 
         - For every region pair, as long as they have atleast one non-zero 2d-variable value, 
           related to 'pipeline' component, they are regarded as connected.
@@ -362,82 +362,46 @@ def generateConnectivityMatrix(sds):
     
     Returns
     -------
-    adjacencyMatrix : np.ndarray 
+    connectivity_matrix : np.ndarray 
         A n_regions by n_regions symmetric matrix 
     """
     ds_extracted = sds.xr_dataset
-
-    vars_2d = {}
-
-    for varname, da in ds_extracted.data_vars.items():
-        if da.dims == ('component','space','space_2'):
-            vars_2d[varname] = da
-
-    n_regions = len(ds_extracted['space'].values)
-    component_list = list(ds_extracted['component'].values)
-    n_components = len(component_list)
-
-    #STEP 1. Preprocess 2d variables #TODO: why is this required again? isn't this done initially ?
-    ds_2d = preprocess2dVariables(vars_2d, n_components, handle_mode='toAffinity') #TODO: This needs to be changed toAffinity 
-                                                                                   # does not exit anymore 
-
-    #STEP 2. First check if a component called 'pipeline' exists.
-    # If it does, take it as connect_components
-    connect_components = []
-    for i in range(n_components):            
-        if 'pipeline' in component_list[i].lower():
-            connect_components.append(i)
-
-    #STEP 3. If 'pipeline' does not exist, consider all existing components.
-    if not connect_components:
-        connect_components = list(range(n_components))  
-
-    adjacencyMatrix = np.zeros((n_regions,n_regions))
-    # For each region pair checkConnectivity (call the function)
-    for i in range(n_regions):
-        for j in range(i+1,n_regions):
-            if checkConnectivity(i,j, ds_2d, connect_components):  #INFO: checkConnectivity returns true or false 
-                adjacencyMatrix[i,j] = 1
-
-    #STEP 4. adjacencyMatrix is upper triangular. 
-    # so, take transpose, subtract the diagonal elements and add it back to adjacencyMatrix. 
-    # Now, it is symmetrical
-    adjacencyMatrix += adjacencyMatrix.T - np.diag(adjacencyMatrix.diagonal())  
-
-    #STEP 5. Set the diagonal values to 1
-    np.fill_diagonal(adjacencyMatrix, 1)  
-
-    return adjacencyMatrix
-
-def checkConnectivity(region_index_x, region_index_y, ds_2d, connect_components): 
-    """Checks if the given two regions are connected based on 2d-variables   
-                                                  
-    Parameters
-    ----------
-    region_index_x, region_index_y : int 
-        Indicate the two regions between which the connectivity is to be checked 
-        range of these indices - [0, n_regions)
-    ds_2d : Dict 
-        Dictionary obtained as a result of preprocess2dVariables() with handle_mode='toAffinity' 
-    connect_components : List[int]
-        List of component indices to be considered while checking for connectivity. 
-        See generateConnectivityMatrix() for more information 
     
-    Returns
-    -------
-    bool 
-        True if a non-zero value is present for at least one component in `connect_components`,
-        False otherwise 
-    """  
-    for var_dict in ds_2d.values():
-        for c, data in var_dict.items():
-            if (c in connect_components) and (data[region_index_x, region_index_y] != 0):  
-                return True                              #INFO: checks for each var, each component. 
-                                                         #      Returns TRUE if atleast one var, component pair has non-zero value.
-                                                         # 
-                                                         #
-    return False                                         # After checking for all, returns false if none had non-zero value
+    n_regions = len(ds_extracted['space'].values)
 
+    connectivity_matrix = np.zeros((n_regions,n_regions))
+
+    #STEP 1: Check for contiguous neighbors 
+    geometries = gpd.GeoSeries(ds_extracted['gpd_geometries']) #NOTE: disjoint seems to work only on geopandas or geoseries object
+    for ix, geom in enumerate(geometries):
+        neighbors = geometries[~geometries.disjoint(geom)].index.tolist()
+        connectivity_matrix[ix, neighbors] = 1
+    
+    #STEP 2: Find nearest neighbor for island regions   
+    for row in range(len(connectivity_matrix)):
+        if np.count_nonzero(connectivity_matrix[row,:] == 1) == 1: #if a region is connected only to itself
+            
+            #get the nearest neighbor based on regions centroids 
+            centroid_distances = ds_extracted.centroid_distances.values[row,:] 
+            nearest_neighbor_idx = np.argmin(centroid_distances[np.nonzero(centroid_distances)])
+            
+            #make the connection between the regions (both ways to keep it symmetric)
+            connectivity_matrix[row,nearest_neighbor_idx], connectivity_matrix[nearest_neighbor_idx, row] = 1, 1
+            
+    #STEP 3: Additionally, check if there are transmission between regions that are not yet connected in the 
+    #connectivity matrix 
+    for data_var in ds_extracted.data_vars:
+        if data_var[:3] == "2d_":
+            comp_xr = ds_extracted[data_var]
+            valid_comps_xr = comp_xr.dropna(dim='component') #drop invalid components
+
+            valid_comps_xr = valid_comps_xr.fillna(0) #for safety purpose, does not affect further steps anyway
+
+            valid_comps_xr = valid_comps_xr.sum(dim=['component'])
+            
+            connectivity_matrix[valid_comps_xr.values>0] = 1 #if a pos, non-zero value exits, make a connection!
+    
+    return connectivity_matrix
 
 def computeSilhouetteCoefficient(regions_list, distanceMatrix, aggregation_dict):
     """Silhouette Coefficient for different region groups. 
@@ -489,22 +453,4 @@ def computeSilhouetteCoefficient(regions_list, distanceMatrix, aggregation_dict)
 
     return scores
 
-# def checkConnectivity_matrix(connectivity_matrix):
-#     #TODO: incorporate it within grouping 
-#     is_diagonal_all_1 =  'all diagonal values are not 1' if any(a != 1 for a in np.diagonal(connectivity_matrix)) else 'all diagonal values are 1'
-#     is_symmetric = 'symmetric'if (connectivity_matrix == connectivity_matrix.T).all() else 'not symmetric'
-    
-#     length = len(connectMatrix)
-#     is_connection = [] 
-#     for row in range(length):
-#         if np.count_nonzero(connectMatrix[row] == 1) > 1:
-#             is_connection.append(True)
-#         else:
-#             is_connection.append(False)
-    
-#     if all(is_connection):
-#         connected = "all regions are connected"
-#     else:
-#         connected = f"regions are not connected. Hint: check region(s) at index {[i for i, x in enumerate(is_connection) if not x]}"
-    
-#     return f'In the connectivity matrix: {is_diagonal_all_1}, the matrix is {is_symmetric}, and {connected}'
+
