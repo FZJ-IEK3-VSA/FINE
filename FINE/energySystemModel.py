@@ -462,20 +462,20 @@ class EnergySystemModel:
         spr.add_region_centroids(sds, spatial_dim='space')
         
         #STEP 4. Spatial grouping
+        dimension_description = kwargs.get('dimension_description', 'space') # 'all_variable_based'. Maybe make it common 
+        ax_illustration = kwargs.get('ax_illustration', None) 
+        save_path = kwargs.get('save_path', None) 
+        fig_name = kwargs.get('fig_name', None)
+        verbose = kwargs.get('verbose', False)
+
         if grouping_mode == 'string_based':
             print('Performing string-based clustering on the regions')
             locations = sds.xr_dataset.space.values
             aggregation_dict = spg.string_based_clustering(locations)
 
         elif grouping_mode == 'distance_based':
-            agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical')  #TODO: some of the parameters and their default values are repeating in
+            agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical')  
             print(f'Performing distance-based clustering on the regions. Clustering mode: {agg_mode}')
-
-            dimension_description = kwargs.get('dimension_description', 'space') # 'all_variable_based'. Maybe make it common 
-            ax_illustration = kwargs.get('ax_illustration', None) 
-            save_path = kwargs.get('save_path', None) 
-            fig_name = kwargs.get('fig_name', None)
-            verbose = kwargs.get('verbose', False)
 
             aggregation_dict = spg.distance_based_clustering(sds, 
                                                             agg_mode, 
@@ -486,33 +486,20 @@ class EnergySystemModel:
                                                             verbose)
 
         elif grouping_mode == 'all_variable_based':
-            agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical') 
-            spatial_contiguity = kwargs.get('spatial_contiguity', True) 
-
-            print(f'Performing all variable-based clustering on the regions. Clustering mode: {agg_mode}')
-
-            dimension_description = kwargs.get('dimension_description', 'space') 
-            ax_illustration = kwargs.get('ax_illustration', None) 
-            save_path = kwargs.get('save_path', None) 
-            fig_name = kwargs.get('fig_name', None)
-            verbose = kwargs.get('verbose', False)
-            weighting = kwargs.get('weighting', None)
+            print(f'Performing all variable-based clustering on the regions.')
 
             aggregation_dict = spg.all_variable_based_clustering(sds, 
-                                                                agg_mode,
-                                                                spatial_contiguity,
                                                                 dimension_description,
                                                                 ax_illustration, 
                                                                 save_path, 
                                                                 fig_name,  
-                                                                verbose,
-                                                                weighting)
+                                                                verbose)
         
         #STEP 5. Representation of the new regions
         if grouping_mode == 'string_based':
             sub_to_sup_region_id_dict = aggregation_dict #INFO: Not a nested dict for different #regions
         else:
-            sub_to_sup_region_id_dict = aggregation_dict[nRegionsForRepresentation]
+            sub_to_sup_region_id_dict = aggregation_dict.get(nRegionsForRepresentation)
         
         if 'aggregation_function_dict' not in kwargs:
             aggregation_function_dict = None
