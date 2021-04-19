@@ -130,7 +130,7 @@ def test_perfectForesight():
     
     #esM.cluster(numberOfTypicalPeriods=4, numberOfTimeStepsPerPeriod=1)
 
-    esM.optimize(timeSeriesAggregation=False, solver = 'gurobi')
+    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
     print('Objective value:')
     print(esM.pyM.Obj()) ### 8045
     print('Electricity Market:')

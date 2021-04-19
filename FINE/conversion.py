@@ -436,11 +436,11 @@ class ConversionModel(ComponentModel):
         return any([(commod in comp.commodityConversionFactors and comp.commodityConversionFactors[commod] != 0)
                     and comp.locationalEligibility[loc] == 1 for comp in self.componentsDict.values()])
 
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
-        return sum(opVar[loc, compName, p, t] * compDict[compName].commodityConversionFactors[commod]
+        return sum(opVar[loc, compName, ip, p, t] * compDict[compName].commodityConversionFactors[commod]
                    for compName in opVarDict[loc] if commod in compDict[compName].commodityConversionFactors)
 
     def getObjectiveFunctionContribution(self, esM, pyM):

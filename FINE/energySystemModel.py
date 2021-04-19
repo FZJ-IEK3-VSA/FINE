@@ -579,6 +579,10 @@ class EnergySystemModel:
 
             def initInterTimeStepsSet(pyM):
                 return ((ip, p, t) for ip in self.investmentPeriods for p in self.periods for t in range(len(self.timeStepsPerPeriod) + 1))
+
+            def initInvestSet(pyM):
+                return(ip for ip in self.investmentPeriods)
+
         else:
             if not pyM.hasSegmentation:
                 utils.output('Time series aggregation specifications:\n'
@@ -610,6 +614,7 @@ class EnergySystemModel:
         # Initialize sets
         pyM.timeSet = pyomo.Set(dimen=3, initialize=initTimeSet)
         pyM.interTimeStepsSet = pyomo.Set(dimen=3, initialize=initInterTimeStepsSet)
+        pyM.investSet = pyomo.Set(dimen=1, initialize=initInvestSet)
 
     def declareSharedPotentialConstraints(self, pyM):
         """

@@ -1280,7 +1280,8 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean        
         """
-
+        print(self.abbrvName, factorNames)
+        print(getattr(self.componentsDict[compName], factorNames[0]))
         var = getattr(pyM, varName + '_' + self.abbrvName)
         factors = [getattr(self.componentsDict[compName], factorName)[ip][loc] for factorName in factorNames]
         factor = 1.

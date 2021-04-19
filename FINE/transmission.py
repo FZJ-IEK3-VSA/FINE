@@ -366,13 +366,13 @@ class TransmissionModel(ComponentModel):
         constrSet1 = getattr(pyM, constrSetName + '1_' + abbrvName)
 
         if not pyM.hasSegmentation:
-            def op1(pyM, loc, compName, p, t):
-                return opVar[loc, compName, p, t] + opVar[compDict[compName]._mapI[loc], compName, p, t] <= \
+            def op1(pyM, loc, compName, ip, p, t):
+                return opVar[loc, compName, ip, p, t] + opVar[compDict[compName]._mapI[loc], compName, ip, p, t] <= \
                        capVar[loc, compName] * esM.hoursPerTimeStep
             setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
         else:
-            def op1(pyM, loc, compName, p, t):
-                return opVar[loc, compName, p, t] + opVar[compDict[compName]._mapI[loc], compName, p, t] <= \
+            def op1(pyM, loc, compName, ip, p, t):
+                return opVar[loc, compName, ip, p, t] + opVar[compDict[compName]._mapI[loc], compName, ip, p, t] <= \
                        capVar[loc, compName] * esM.hoursPerSegment.to_dict()[p,t]
             setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
@@ -454,17 +454,17 @@ class TransmissionModel(ComponentModel):
                      loc_ + '_' + loc in comp.locationalEligibility.index)
                     for comp in self.componentsDict.values() for loc_ in esM.locations])
 
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
         opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
-        return sum(opVar[loc_ + '_' + loc, compName, p, t] *
+        return sum(opVar[loc_ + '_' + loc, compName, ip, p, t] *
                    (1 - compDict[compName].losses[loc_ + '_' + loc] * compDict[compName].distances[loc_ + '_' + loc])
                    for loc_ in opVarDictIn[loc].keys()
                    for compName in opVarDictIn[loc][loc_]
                    if commod in compDict[compName].commodity) - \
-               sum(opVar[loc + '_' + loc_, compName, p, t]
+               sum(opVar[loc + '_' + loc_, compName, ip, p, t]
                    for loc_ in opVarDictOut[loc].keys()
                    for compName in opVarDictOut[loc][loc_]
                    if commod in compDict[compName].commodity)
