@@ -16,8 +16,11 @@ def test_represent_RE_technology(gridded_RE_data, sample_shapefile):
 
     #Function call 
     represented_RE_ds = represent_RE_technology(gridded_RE_data, 
+                                                'SRS',
                                                 sample_shapefile,
-                                                n_timeSeries_perRegion=2)
+                                                n_timeSeries_perRegion=2,
+                                                capacity_var_name='capacity',
+                                                capfac_var_name='capfac')
 
     #Assertion 
     #reg_01 
@@ -41,7 +44,11 @@ def test_represent_RE_technology(gridded_RE_data, sample_shapefile):
 def test_get_one_REtech_per_region(gridded_RE_data, sample_shapefile):
 
     #Function call 
-    aggregated_RE_ds = get_one_REtech_per_region(gridded_RE_data, sample_shapefile)
+    aggregated_RE_ds = get_one_REtech_per_region(gridded_RE_data, 
+                                                'SRS',
+                                                sample_shapefile,
+                                                capacity_var_name='capacity',
+                                                capfac_var_name='capfac')
     
     #Assertion
     ## first region 

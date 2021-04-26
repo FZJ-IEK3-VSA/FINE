@@ -587,7 +587,7 @@ def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='
 
     **Required arguments:**
 
-    :param locationsShapeFileName: file name or path to a shape file
+    :param locationsShapeFileName: file name or path to a shape file 
     :type locationsShapeFileName: string
 
     :param indexColumn: name of the column in which the location indices are stored
@@ -643,6 +643,7 @@ def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='
         |br| * the default value is 200
     :type dpi: scalar > 0
     """
+    
     gdf = gpd.read_file(locationsShapeFileName).to_crs({'init': crs})
 
     if ax is None:

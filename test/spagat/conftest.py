@@ -259,6 +259,8 @@ def gridded_RE_data(scope="session"):
   test_xr_ds = xr.Dataset({'capacity': capacity_xr_da,
                           'capfac': capfac_xr_da}) 
 
+  test_xr_ds.attrs['SRS'] = 'epsg:3035'
+
   return test_xr_ds
 
 
@@ -272,7 +274,7 @@ def sample_shapefile(scope="session"):
 
   df = pd.DataFrame({'region_ids': ['reg_01', 'reg_02']})
 
-  gdf = gpd.GeoDataFrame(df, geometry=test_geometries, crs=f'epsg:{3035}') 
+  gdf = gpd.GeoDataFrame(df, geometry=test_geometries, crs='epsg:3035') 
 
   return gdf
 

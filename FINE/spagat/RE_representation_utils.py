@@ -70,9 +70,8 @@ def add_shapes_from_shp(gridded_RE_ds,
     ----------
     gridded_RE_ds : xr.Dataset 
         2 mandatory dimensions in this data - latitude and longitude  
-    shp_file : str/Shapefile
-        Either the path to the shapefile or the read-in shapefile 
-        that should be added to `gridded_RE_ds`
+    shp_file : Shapefile
+        The read-in shapefile that should be added to `gridded_RE_ds`
     index_col : str, optional (default='region_ids')
         The column in `shp_file` that needs to be taken as location-index in `gridded_RE_ds`
     geometry_col : str, optional (default='geometry')
@@ -89,23 +88,18 @@ def add_shapes_from_shp(gridded_RE_ds,
         - Additional variable with name 'rasters' and values as rasters 
           corresponding to each geometry in `shp_file`
     """
-    #STEP 1. Read shapefile
-    if isinstance(shp_file, str): 
-        shp_file = gpd.read_file(shp_file)
-    elif not isinstance(shp_file, gpd.geodataframe.GeoDataFrame):
-        raise TypeError("shp_file must either be a path to a shapefile or a geopandas dataframe")
         
-    #STEP 2. Add geometries 
+    #STEP 1. Add geometries 
     region_geometries = shp_file[geometry_col]
     region_indices = shp_file[index_col]
     
     rasterized_RE_ds = gridded_RE_ds.expand_dims({'region_ids' : region_indices})  
     
         
-    #STEP 3. rasterize each geometry and add it to new data_var "rasters"
+    #STEP 2. rasterize each geometry and add it to new data_var "rasters"
     coords = rasterized_RE_ds.coords 
     
-    rasterized_RE_ds['rasters'] = (['region_ids', 'y', 'x'],
+    rasterized_RE_ds['rasters'] = (['region_ids', latitude, longitude],
                                       [rasterize_geometry(geometry, 
                                                         coords, 
                                                         longitude=longitude, 
