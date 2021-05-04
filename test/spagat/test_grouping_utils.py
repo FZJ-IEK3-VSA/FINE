@@ -8,13 +8,13 @@ import FINE.spagat.grouping_utils as gu
 import FINE.spagat.dataset as spd
 
 
-def test_matrix_MinMaxScaler():
+def test_get_scaled_matrix():
 
     test_matrix = np.array([[10, 9, 8], [7, 4, 6], [2, 1, 0]])
 
     expected_matrix = 0.1 * test_matrix
 
-    output_matrix = gu.matrix_MinMaxScaler(test_matrix, scaled_min=0, scaled_max=1)
+    output_matrix = gu.get_scaled_matrix(test_matrix, scaled_min=0, scaled_max=1)
 
     #floating points need to be converted to decimals, otherwise they do not match 
     output_matrix = np.round(output_matrix, 1)
@@ -23,7 +23,7 @@ def test_matrix_MinMaxScaler():
     assert np.array_equal(output_matrix, expected_matrix) 
 
 
-def test_preprocessTimeSeries():
+def test_preprocess_time_series():
     #TEST DATA 
     test_dict = {}
 
@@ -93,7 +93,7 @@ def test_preprocessTimeSeries():
     expected_dict['var2'] = np.concatenate((c3_matrix, c4_matrix), axis=1)
 
     # FUNCTION CALL 
-    output_dict = gu.preprocessTimeSeries(test_dict, len(space_list), len(component_list))
+    output_dict = gu.preprocess_time_series(test_dict, len(space_list), len(component_list))
 
     # ASSERTION 
     assert output_dict.keys() == expected_dict.keys()
@@ -103,7 +103,7 @@ def test_preprocessTimeSeries():
 
     
 
-def test_preprocess1dVariables():
+def test_preprocess_1d_variables():
 
     #TEST DATA 
     test_dict = {} 
@@ -143,7 +143,7 @@ def test_preprocess1dVariables():
                                              [0,  9,  10] ]).T
 
     #FUNCTION CALL 
-    output_dict = gu.preprocess1dVariables(test_dict, len(component_list))
+    output_dict = gu.preprocess_1d_variables(test_dict, len(component_list))
 
     # ASSERTION 
     assert output_dict.keys() == expected_dict.keys()
@@ -152,7 +152,7 @@ def test_preprocess1dVariables():
         assert np.array_equal(output_dict[var], expected_dict[var])
      
 
-def test_preprocess2dVariables():
+def test_preprocess_2d_variables():
 
     #TEST DATA 
     test_dict = {} 
@@ -210,7 +210,7 @@ def test_preprocess2dVariables():
     expected_dict['var2'] = {1: var2_c2_array, 3: var2_c4_array}
 
     #FUNCTION CALL 
-    output_dict = gu.preprocess2dVariables(test_dict, len(component_list))
+    output_dict = gu.preprocess_2d_variables(test_dict, len(component_list))
 
     #ASSERTION  
     for (output_var, output_comp_dict), (expected_var, expected_comp_dict) in zip(output_dict.items(), expected_dict.items()):
@@ -226,7 +226,7 @@ def test_preprocess2dVariables():
             assert np.array_equal(output_comp_array, expected_comp_array)
 
     
-def test_preprocessDataset():
+def test_preprocess_dataset():
     #TEST DATA 
     #var_list = ['var_ts_1', 'var_ts_2', 'var_1d_1', 'var_1d_2', 'var_2d_1', 'var_2d_2']
     component_list = ['c1','c2','c3','c4']
@@ -372,7 +372,7 @@ def test_preprocessDataset():
     expected_2d_dict['var_2d_2'] = {2: var_2d_2_c3_array, 3: var_2d_2_c4_array}
         
     #FUNCTION CALL 
-    output_ts_dict, output_1d_dict, output_2d_dict = gu.preprocessDataset(sds) 
+    output_ts_dict, output_1d_dict, output_2d_dict = gu.preprocess_dataset(sds) 
     
     # ASSERTION 
     ## ts 
@@ -404,7 +404,7 @@ def test_preprocessDataset():
       
         
 @pytest.mark.parametrize("reg_m, reg_n, dist_expected", [(0, 1, 16), (0, 2, 64), (1, 2, 48)])
-def test_selfDistance(reg_m, reg_n, dist_expected):
+def test_get_custom_distance(reg_m, reg_n, dist_expected):
     #TEST DATA 
     test_ts_dict = {}                  #TODO: add this data to a fixture as the next test also uses the same. 
                                          #check how you can pass this and parameters at the same time
@@ -453,7 +453,7 @@ def test_selfDistance(reg_m, reg_n, dist_expected):
 
     #FUNCTION CALL 
     n_regions = 3
-    dist_output = gu.selfDistance(test_ts_dict, 
+    dist_output = gu.get_custom_distance(test_ts_dict, 
                                 test_1d_dict, 
                                 test_2d_dict, 
                                 n_regions, reg_m, reg_n)  
@@ -461,7 +461,7 @@ def test_selfDistance(reg_m, reg_n, dist_expected):
     #ASSERTION 
     assert dist_output == dist_expected
 
-def test_selfDistanceMatrix():
+def test_get_custom_distance_matrix():
     #TEST DATA                   #TODO: once a fixture is implemented, use that here 
     test_ts_dict = {}          
 
@@ -514,10 +514,10 @@ def test_selfDistanceMatrix():
     
     #FUNCTION CALL 
     n_regions = 3
-    output_dist_matrix = gu.selfDistanceMatrix(test_ts_dict, 
-                                                test_1d_dict, 
-                                                test_2d_dict, 
-                                                 n_regions)     
+    output_dist_matrix = gu.get_custom_distance_matrix(test_ts_dict, 
+                                                    test_1d_dict, 
+                                                    test_2d_dict, 
+                                                    n_regions)     
     
     #ASSERTION 
     #floating points and ints need to be converted to decimals, otherwise they do not match 
@@ -527,7 +527,7 @@ def test_selfDistanceMatrix():
     assert np.array_equal(expected_dist_matrix, output_dist_matrix)
 
 
-def test_generateConnectivityMatrix(sds_for_Connectivity):
+def test_get_connectivity_matrix(sds_for_Connectivity):
     #EXPECTED 
     expected_matrix = np.array([[ 1, 1, 0, 1, 1, 0, 0, 0],
                                 [ 1, 1, 1, 1, 1, 1, 0, 0],
@@ -539,39 +539,12 @@ def test_generateConnectivityMatrix(sds_for_Connectivity):
                                 [ 0, 0, 0, 0, 0, 1, 1, 1]])
 
     #FUNCTION CALL 
-    output_matrix = gu.generateConnectivityMatrix(sds_for_Connectivity)
+    output_matrix = gu.get_connectivity_matrix(sds_for_Connectivity)
 
     #ASSERTION 
     assert np.array_equal(output_matrix, expected_matrix)
 
 
-                
-def test_computeSilhouetteCoefficient():
-    #TEST DATA 
-    sample_data, sample_labels = make_blobs(n_samples=5, centers=3, n_features=2, random_state=0) #NOTE: with random_state=0, sample data 
-                                                                                                  # distribution is such that sample_labels is always 
-                                                                                                  # array([2, 0, 0, 1, 1])
-                                                                                                  
-
-    test_dist_matrix = np.zeros((5,5))
-    for i in range(5):
-        for j in range(i+1, 5): 
-            test_dist_matrix[i][j] = sum(np.power((sample_data[i] - sample_data[j]), 2))
-    
-    test_dist_matrix += test_dist_matrix.T
-
-    regions_list = ['01_reg','02_reg','03_reg','04_reg','05_reg']
-    aggregation_dict = {5: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg'], '04_reg': ['04_reg'], '05_reg': ['05_reg']},
-                        4: {'01_reg': ['01_reg'], '02_reg_03_reg_04_reg_05_reg': ['02_reg', '03_reg', '04_reg', '05_reg']},
-                        3: {'01_reg': ['01_reg'], '02_reg_03_reg': ['02_reg', '03_reg'], '04_reg_05_reg': ['04_reg', '05_reg']},
-                        2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg_04_reg_05_reg': ['03_reg', '04_reg', '05_reg']},
-                        1: {'01_reg_02_reg_03_reg_04_reg_05_reg': ['01_reg','02_reg','03_reg','04_reg','05_reg']}}
-    
-    #FUNCTION CALL 
-    output_list = gu.computeSilhouetteCoefficient(regions_list, test_dist_matrix, aggregation_dict)
-    
-    #ASSERTION 
-    assert output_list[2] < output_list[0] < output_list[1]
     
     
     

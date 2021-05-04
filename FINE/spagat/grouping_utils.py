@@ -9,7 +9,7 @@ from scipy.cluster import hierarchy
 from sklearn import metrics
 from typing import Dict, List
 
-def matrix_MinMaxScaler(matrix, scaled_min = 0, scaled_max = 1):
+def get_scaled_matrix(matrix, scaled_min = 0, scaled_max = 1):
     """Scale the given matrix to specificied range.
 
     Parameters
@@ -32,7 +32,7 @@ def matrix_MinMaxScaler(matrix, scaled_min = 0, scaled_max = 1):
 
     return ((matrix - np.min(matrix)) / (np.max(matrix) - np.min(matrix))) * (scaled_max - scaled_min) + scaled_min
 
-def preprocessTimeSeries(vars_dict, n_regions, n_components):
+def preprocess_time_series(vars_dict, n_regions, n_components):
     """Preprocess time series variables.
 
     Parameters
@@ -68,7 +68,7 @@ def preprocessTimeSeries(vars_dict, n_regions, n_components):
         #STEP 2. For each valid component...
         for comp_id in valid_component_ids:
             #STEP 2a. Scale the corresponding matrix
-            matrix_var_c = matrix_MinMaxScaler(da[comp_id].values) 
+            matrix_var_c = get_scaled_matrix(da[comp_id].values) 
 
             #STEP 2b. Concatenate the resulting matrix to the final matrix of the corresponding variable
             matrix_var = np.concatenate((matrix_var, matrix_var_c), axis=1)
@@ -79,7 +79,7 @@ def preprocessTimeSeries(vars_dict, n_regions, n_components):
            
     return ds_ts
 
-def preprocess1dVariables(vars_dict, n_components):
+def preprocess_1d_variables(vars_dict, n_components):
     """Preprocess 1-dimensional variables.
 
     Parameters
@@ -117,7 +117,7 @@ def preprocess1dVariables(vars_dict, n_components):
 
     return ds_1d
 
-def preprocess2dVariables(vars_dict, n_components):  
+def preprocess_2d_variables(vars_dict, n_components):  
     """Preprocess 2-dimensional variables.
 
     Parameters
@@ -172,7 +172,7 @@ def preprocess2dVariables(vars_dict, n_components):
             da_comp_df = da_comp_df[space1]
             
             #STEP 2b: Scale the matrix
-            ds_2d_var[comp_id] = matrix_MinMaxScaler(da_comp_df.to_numpy())
+            ds_2d_var[comp_id] = get_scaled_matrix(da_comp_df.to_numpy())
         
         #STEP 3. Add it to resultant dict
         ds_2d[var] = ds_2d_var
@@ -196,7 +196,7 @@ def preprocess2dVariables(vars_dict, n_components):
     return ds_2d
 
     
-def preprocessDataset(sds): 
+def preprocess_dataset(sds): 
     """Preprocess xarray dataset.
 
     Parameters
@@ -206,8 +206,10 @@ def preprocessDataset(sds):
 
     Returns
         ds_timeseries, ds_1d_vars, ds_2d_vars : Dict
-            Dictionaries obtained from preprocessTimeSeries(), preprocess1dVariables()
-            and preprocess2dVariables() (with handle_mode='toDissimilarity'), respectively
+            Dictionaries obtained from 
+                preprocess_time_series(), 
+                preprocess_1d_variables(),
+            and preprocess_2d_variables(), respectively
     """
     ds_extracted = sds.xr_dataset
 
@@ -237,18 +239,18 @@ def preprocessDataset(sds):
             warnings.warn(f'Variable {varname} has dimensions {str(da.dims)} which are not considered for spatial aggregation.')
 
     #STEP 1. Preprocess Time Series
-    ds_timeseries = preprocessTimeSeries(vars_ts, n_regions, n_components)
+    ds_timeseries = preprocess_time_series(vars_ts, n_regions, n_components)
 
     #STEP 2. Preprocess 1d Variables
-    ds_1d_vars = preprocess1dVariables(vars_1d, n_components)
+    ds_1d_vars = preprocess_1d_variables(vars_1d, n_components)
 
     #STEP 3. Preprocess 2d Variables 
-    ds_2d_vars = preprocess2dVariables(vars_2d, n_components)
+    ds_2d_vars = preprocess_2d_variables(vars_2d, n_components)
 
     return ds_timeseries, ds_1d_vars, ds_2d_vars
     
 
-def selfDistance(ds_ts, ds_1d, ds_2d, 
+def get_custom_distance(ds_ts, ds_1d, ds_2d, 
                 n_regions, 
                 region_index_x, 
                 region_index_y):  
@@ -257,7 +259,7 @@ def selfDistance(ds_ts, ds_1d, ds_2d,
     Parameters
     ----------
     ds_ts, ds_1d, ds_2d : Dict
-        Dictionaries obtained as a result of preprocessDataset() with handle_mode='toDissimilarity' 
+        Dictionaries obtained as a result of preprocess_dataset()
     n_regions : int
         Total number of regions in the given data 
     region_index_x, region_index_y : int 
@@ -318,13 +320,13 @@ def selfDistance(ds_ts, ds_1d, ds_2d,
     #STEP 4. Add all three distances with part_weightings of each category
     return distance_ts + distance_1d + distance_2d 
 
-def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions):
-    """For every region combination, calculates the custom distance by calling selfDistance().
+def get_custom_distance_matrix(ds_ts, ds_1d, ds_2d, n_regions):
+    """For every region combination, calculates the custom distance by calling get_custom_distance().
                                                       
     Parameters
     ----------
     ds_ts, ds_1d, ds_2d : Dict
-        Dictionaries obtained as a result of preprocessDataset() with handle_mode='toDissimilarity' 
+        Dictionaries obtained as a result of preprocess_dataset() 
     n_regions : int
         Total number of regions in the given data 
         range of these indices - [0, n_regions)
@@ -339,7 +341,7 @@ def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions):
     #STEP 1. For every region pair, calculate the distance 
     for i in range(n_regions):
         for j in range(i+1,n_regions):
-            distMatrix[i,j] = selfDistance(ds_ts,ds_1d, ds_2d, n_regions, i,j)
+            distMatrix[i,j] = get_custom_distance(ds_ts,ds_1d, ds_2d, n_regions, i,j)
 
     #STEP 2. Only upper triangle has values, reflect these values in lower triangle to make it a hollow, symmetric matrix
     distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())  
@@ -347,7 +349,7 @@ def selfDistanceMatrix(ds_ts, ds_1d, ds_2d, n_regions):
     return distMatrix
 
 
-def generateConnectivityMatrix(sds):
+def get_connectivity_matrix(sds):
     """Generates connectiviy matrix. #TODO: update docstring
         - In this matrix, if two regions are connected, it is indicated as 1 and 0 otherwise. 
         - For every region pair, as long as they have atleast one non-zero 2d-variable value, 
@@ -402,55 +404,5 @@ def generateConnectivityMatrix(sds):
             connectivity_matrix[valid_comps_xr.values>0] = 1 #if a pos, non-zero value exits, make a connection!
     
     return connectivity_matrix
-
-def computeSilhouetteCoefficient(regions_list, distanceMatrix, aggregation_dict):
-    """Silhouette Coefficient for different region groups. 
-                                                  
-    Parameters
-    ----------
-    regions_list : List[str]
-        List of all region_ids present in the data. 
-        - Ex. ['01_reg','02_reg','03_reg']  
-    distanceMatrix : np.ndarray 
-        Matrix containing distances between regions that is used for clustering 
-    aggregation_dict : Dict[int, Dict[str, List[str]]]
-        A nested dictionary containing results of spatial grouping at various levels/number of groups
-        - Ex. {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},
-               2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
-               1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
-
-    Returns
-    -------
-    scores : List[float] 
-        - length of the list - 2 to one less than the total number of regions. 
-          Silhouette Coefficient can only be computed for 2 to n_samples - 1 (inclusive). First and 
-          last level in the hierarchy (first is original and last is one region) are to be eliminated
-        - Range of Silhouette Coefficient (each float value in list) - [-1 and +1]. 
-          Higher the score, better the clustering
-    """ 
-    n_regions = len(regions_list)
-    scores = [0 for i in range(1, n_regions-1)]   
-    labels = [0 for i in range(n_regions)]    
-
-    for k, regions_dict in aggregation_dict.items():
-
-        #STEP 1. Check if k is an intermediate level in the hierarchy
-        if k == 1 or k == n_regions:
-            continue                         #INFO: again, eliminate computing for first and last level 
-
-        #STEP 2. Assign labels to each group of regions (starting from 0)
-        label = 0
-        for sub_regions_list in regions_dict.values():  
-            for region in sub_regions_list:
-                ind = regions_list.index(region)
-                labels[ind] = label
-            
-            label += 1
-        
-        #STEP 3. Get Silhouette Coefficient for current level in the hierarchy 
-        s = metrics.silhouette_score(distanceMatrix, labels, metric='precomputed')
-        scores[k-2] = s
-
-    return scores
 
 

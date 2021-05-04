@@ -471,13 +471,13 @@ def parameter_based_clustering(sds,
                                                                                           # Notice that it is dict within dict
     
     #STEP 1. Preprocess the whole dataset 
-    dict_ts, dict_1d, dict_2d = gu.preprocessDataset(sds) 
+    dict_ts, dict_1d, dict_2d = gu.preprocess_dataset(sds) 
 
     #STEP 2. Calculate the overall distance between each region pair (uses custom distance)
-    precomputed_dist_matrix = gu.selfDistanceMatrix(dict_ts, dict_1d, dict_2d, n_regions)
+    precomputed_dist_matrix = gu.get_custom_distance_matrix(dict_ts, dict_1d, dict_2d, n_regions)
     
     #STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not. 
-    connectMatrix = gu.generateConnectivityMatrix(sds)
+    connectMatrix = gu.get_connectivity_matrix(sds)
 
     #TODO: check connectivity and raise error if isolated regions are present 
 
