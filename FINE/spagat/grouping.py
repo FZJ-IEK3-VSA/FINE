@@ -420,10 +420,11 @@ def parameter_based_clustering(sds,
                             ax_illustration=None, 
                             save_path=None, 
                             fig_name=None,  
-                            verbose=False):
+                            verbose=False,
+                            linkage='complete'):
     """Groups regions based on the Energy System Model instance's data. 
 
-    Parameters #TODO: update this 
+    Parameters
     ----------
     sds : Instance of SpagatDataset
         Refer to SpagatDataset class in dataset.py for more information 
@@ -433,14 +434,17 @@ def parameter_based_clustering(sds,
         Provide axis to an existing figure, to include the generated plots to the same figure 
     save_path :  str, optional (default=None)
         The path to which to save the figure. 
-        Valid only if `agg_mode` is 'scipy_hierarchical'
         If default None, figure is not saved
     fig_name : str, optional (default=None)
         Name of the saved figure. 
         Valid only if `save_path` is not None. 
-        If default None, the figure is saved under the name 'scipy_hierarchical_dendrogram'    
+        If default None, the figure is saved as 'dendrogram.png'    
     verbose : bool, optional (default=False)
         If True, the grouping results are printed. Supressed if False 
+    linkage : str, optional (default='complete')
+        The linkage criterion to be used with agglomerative hierarchical clustering. 
+        Can be 'complete', 'single', etc.
+        Refer to Sklearn's documentation for more info.
         
     Returns
     -------
@@ -500,7 +504,7 @@ def parameter_based_clustering(sds,
         #STEP 2a. Hierarchical clustering with average linkage
         model = skc.AgglomerativeClustering(n_clusters=i,
                                             affinity='precomputed',
-                                            linkage='average',
+                                            linkage=linkage,
                                             connectivity=connectMatrix).fit(precomputed_dist_matrix)
         regions_label_list = model.labels_
 

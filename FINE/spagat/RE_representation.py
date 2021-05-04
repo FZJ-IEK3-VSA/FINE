@@ -63,6 +63,7 @@ def represent_RE_technology(gridded_RE_ds,
     linkage : str, optional (default='average') 
         The linkage criterion to be used with agglomerative hierarchical clustering. 
         Can be 'complete', 'single', etc.
+        Refer to Sklearn's documentation for more info.
 
     Returns
     -------
