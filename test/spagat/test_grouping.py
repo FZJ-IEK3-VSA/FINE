@@ -18,13 +18,13 @@ expected_file = os.path.join(path_to_test_dir, f'{file_name}.png')
                          [(['01_es', '02_es', '01_de', '02_de', '03_de'], ['es', 'de']),
                          (['01_es', '02_es', '01_de', '02_de', '03_de', '01_nl'], ['es', 'de', 'nl']),
                          (['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'])]) 
-def test_string_based_clustering(string_list, expected):
-     clustered_regions_dict = spg.string_based_clustering(string_list)
+def test_perform_string_based_grouping(string_list, expected):
+     clustered_regions_dict = spg.perform_string_based_grouping(string_list)
      assert list(clustered_regions_dict.keys()).sort() == expected.sort()   
       #TODO: check values also       
 
 @pytest.mark.parametrize("mode", ['sklearn_kmeans', 'sklearn_hierarchical', 'sklearn_spectral', 'scipy_kmeans', 'scipy_hierarchical'])
-def test_distance_based_clustering(mode):    
+def test_perform_distance_based_grouping(mode):    
      #TEST DATA
      component_list = ['c1','c2']  
      space_list = ['01_reg','02_reg','03_reg','04_reg','05_reg']
@@ -56,7 +56,10 @@ def test_distance_based_clustering(mode):
 
      
      #FUNCTION CALL 
-     output_dict = spg.distance_based_clustering(sds, agg_mode = mode, save_path = path_to_test_dir, fig_name=file_name)  
+     output_dict = spg.perform_distance_based_grouping(sds, 
+                                                       agg_mode = mode, 
+                                                       save_path = path_to_test_dir, 
+                                                       fig_name=file_name)  
      
 
      #ASSERTION 
@@ -72,7 +75,7 @@ def test_distance_based_clustering(mode):
      
 
 
-def test_parameter_based_clustering(): #TODO: check what happens when you restrict connections. Hint: take more regions and make a complex structure 
+def test_perform_parameter_based_grouping(): #TODO: check what happens when you restrict connections. Hint: take more regions and make a complex structure 
      #TEST DATA     
      component_list = ['c1','c2', 'c3']  
      space_list = ['01_reg','02_reg','03_reg']
@@ -133,7 +136,7 @@ def test_parameter_based_clustering(): #TODO: check what happens when you restri
      spr.add_centroid_distances(sds)
      
      #FUNCTION CALL
-     output_dict = spg.parameter_based_clustering(sds, dimension_description='space')  
+     output_dict = spg.perform_parameter_based_grouping(sds, dimension_description='space')  
      
      #ASSERTION
      for key, value in output_dict.get(2).items():     #sample labels array([0, 0, 1])

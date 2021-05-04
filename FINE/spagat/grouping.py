@@ -21,7 +21,7 @@ import FINE.spagat.grouping_utils as gu
 logger_grouping = logging.getLogger("spagat_grouping")
 
 
-def string_based_clustering(regions):
+def perform_string_based_grouping(regions):
     """Groups regions based on their names/ids.
 
     Parameters
@@ -51,13 +51,13 @@ def string_based_clustering(regions):
 
 
 @spu.timer
-def distance_based_clustering(sds, 
-                            agg_mode = 'sklearn_hierarchical', 
-                            dimension_description='space',
-                            ax_illustration=None, 
-                            save_path = None, 
-                            fig_name=None, 
-                            verbose=False):
+def perform_distance_based_grouping(sds, 
+                                agg_mode = 'sklearn_hierarchical', 
+                                dimension_description='space',
+                                ax_illustration=None, 
+                                save_path = None, 
+                                fig_name=None, 
+                                verbose=False):
     """Groups regions based on the regions' centroid distances. 
 
     Parameters
@@ -416,9 +416,9 @@ def distance_based_clustering(sds,
 
 
 @spu.timer
-def parameter_based_clustering(sds,
-                            dimension_description='space', 
-                            linkage='complete'):
+def perform_parameter_based_grouping(sds,
+                                    dimension_description='space', 
+                                    linkage='complete'):
     """Groups regions based on the Energy System Model instance's data. 
 
     Parameters

@@ -465,10 +465,10 @@ class EnergySystemModel:
         #STEP 4. Spatial grouping
         if grouping_mode == 'string_based':
 
-            print('Performing string-based clustering on the regions')
+            print('Performing string-based grouping on the regions')
             
             locations = sds.xr_dataset.space.values
-            aggregation_dict = spg.string_based_clustering(locations)
+            aggregation_dict = spg.perform_string_based_grouping(locations)
 
         elif grouping_mode == 'distance_based':
 
@@ -479,26 +479,26 @@ class EnergySystemModel:
             fig_name = kwargs.get('fig_name', None)
             verbose = kwargs.get('verbose', False)
              
-            print(f'Performing distance-based clustering on the regions. Clustering mode: {agg_mode}')
+            print(f'Performing distance-based grouping on the regions. Clustering mode: {agg_mode}')
 
-            aggregation_dict = spg.distance_based_clustering(sds, 
-                                                            agg_mode, 
-                                                            dimension_description, 
-                                                            ax_illustration, 
-                                                            save_path,
-                                                            fig_name, 
-                                                            verbose)
+            aggregation_dict = spg.perform_distance_based_grouping(sds, 
+                                                                agg_mode, 
+                                                                dimension_description, 
+                                                                ax_illustration, 
+                                                                save_path,
+                                                                fig_name, 
+                                                                verbose)
 
         elif grouping_mode == 'parameter_based':
 
             dimension_description = kwargs.get('dimension_description', 'space') 
             linkage = kwargs.get('linkage', 'complete') 
 
-            print(f'Performing parameter-based clustering on the regions.')
+            print(f'Performing parameter-based grouping on the regions.')
 
-            aggregation_dict = spg.parameter_based_clustering(sds, 
-                                                            dimension_description,
-                                                            linkage)
+            aggregation_dict = spg.perform_parameter_based_grouping(sds, 
+                                                                    dimension_description,
+                                                                    linkage)
         
         #STEP 5. Representation of the new regions
         if grouping_mode == 'string_based':
