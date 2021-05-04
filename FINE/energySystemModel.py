@@ -463,19 +463,22 @@ class EnergySystemModel:
         spr.add_centroid_distances(sds)
         
         #STEP 4. Spatial grouping
-        dimension_description = kwargs.get('dimension_description', 'space')  
-        ax_illustration = kwargs.get('ax_illustration', None) 
-        save_path = kwargs.get('save_path', None) 
-        fig_name = kwargs.get('fig_name', None)
-        verbose = kwargs.get('verbose', False)
-
         if grouping_mode == 'string_based':
+
             print('Performing string-based clustering on the regions')
+            
             locations = sds.xr_dataset.space.values
             aggregation_dict = spg.string_based_clustering(locations)
 
         elif grouping_mode == 'distance_based':
-            agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical')  
+
+            agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical') 
+            dimension_description = kwargs.get('dimension_description', 'space') 
+            ax_illustration = kwargs.get('ax_illustration', None) 
+            save_path = kwargs.get('save_path', None) 
+            fig_name = kwargs.get('fig_name', None)
+            verbose = kwargs.get('verbose', False)
+             
             print(f'Performing distance-based clustering on the regions. Clustering mode: {agg_mode}')
 
             aggregation_dict = spg.distance_based_clustering(sds, 
@@ -487,14 +490,15 @@ class EnergySystemModel:
                                                             verbose)
 
         elif grouping_mode == 'parameter_based':
+
+            dimension_description = kwargs.get('dimension_description', 'space') 
+            linkage = kwargs.get('linkage', 'complete') 
+
             print(f'Performing parameter-based clustering on the regions.')
 
             aggregation_dict = spg.parameter_based_clustering(sds, 
                                                             dimension_description,
-                                                            ax_illustration, 
-                                                            save_path, 
-                                                            fig_name,  
-                                                            verbose)
+                                                            linkage)
         
         #STEP 5. Representation of the new regions
         if grouping_mode == 'string_based':

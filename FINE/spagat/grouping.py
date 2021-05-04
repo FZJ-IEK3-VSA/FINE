@@ -51,7 +51,8 @@ def string_based_clustering(regions):
 
 
 @spu.timer
-def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical', 
+def distance_based_clustering(sds, 
+                            agg_mode = 'sklearn_hierarchical', 
                             dimension_description='space',
                             ax_illustration=None, 
                             save_path = None, 
@@ -416,11 +417,7 @@ def distance_based_clustering(sds, agg_mode = 'sklearn_hierarchical',
 
 @spu.timer
 def parameter_based_clustering(sds,
-                            dimension_description='space',
-                            ax_illustration=None, 
-                            save_path=None, 
-                            fig_name=None,  
-                            verbose=False,
+                            dimension_description='space', 
                             linkage='complete'):
     """Groups regions based on the Energy System Model instance's data. 
 
@@ -430,22 +427,11 @@ def parameter_based_clustering(sds,
         Refer to SpagatDataset class in dataset.py for more information 
     dimension_description : str, optional (default='space')
         The name/description of the dimension in the sds data that corresponds to regions 
-    ax_illustration : Axis
-        Provide axis to an existing figure, to include the generated plots to the same figure 
-    save_path :  str, optional (default=None)
-        The path to which to save the figure. 
-        If default None, figure is not saved
-    fig_name : str, optional (default=None)
-        Name of the saved figure. 
-        Valid only if `save_path` is not None. 
-        If default None, the figure is saved as 'dendrogram.png'    
-    verbose : bool, optional (default=False)
-        If True, the grouping results are printed. Supressed if False 
     linkage : str, optional (default='complete')
         The linkage criterion to be used with agglomerative hierarchical clustering. 
         Can be 'complete', 'single', etc.
         Refer to Sklearn's documentation for more info.
-        
+
     Returns
     -------
     aggregation_dict : Dict[int, Dict[str, List[str]]]
@@ -462,9 +448,10 @@ def parameter_based_clustering(sds,
       This matrix should indicate which region pairs are connected (or contiguous).
 
     Overall steps involved:
-        - Preprocessing data -> preprocessDataset() with handle_mode='toDissimilarity'
+        - Preprocessing data -> preprocessDataset()
         - Custom distance -> selfDistanceMatrix()
-        - Clustering method -> sklearn's agglomerative hierarchical clustering with average linkage  
+        - Clustering method -> sklearn's agglomerative hierarchical clustering with specified 
+                                `linkage`
         - Spatial contiguity -> Connectivity matrix is passed to the clustering method. 
                                 generateConnectivityMatrix() to obtain Connectivity matrix.
         - Accuracy indicators -> (a) Cophenetic correlation coefficients are printed

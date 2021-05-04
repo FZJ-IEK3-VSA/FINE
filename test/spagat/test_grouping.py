@@ -133,12 +133,7 @@ def test_parameter_based_clustering(): #TODO: check what happens when you restri
      spr.add_centroid_distances(sds)
      
      #FUNCTION CALL
-     output_dict = spg.parameter_based_clustering(sds,
-                                                  dimension_description='space',
-                                                  ax_illustration=None, 
-                                                  save_path=path_to_test_dir, 
-                                                  fig_name=file_name,  
-                                                  verbose=False)  
+     output_dict = spg.parameter_based_clustering(sds, dimension_description='space')  
      
      #ASSERTION
      for key, value in output_dict.get(2).items():     #sample labels array([0, 0, 1])
