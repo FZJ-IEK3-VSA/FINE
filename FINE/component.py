@@ -1590,6 +1590,9 @@ class ComponentModel(metaclass=ABCMeta):
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=''):
         """
         Set the optimal values for the considered components and return a summary of them.
+        The function is called after optimization was successful and an optimal solution was found. 
+        Each sub class of the component class calls this function for setting the common optimal values, 
+        e.g. investment and maintenance costs proportional to optimal capacity expansion. 
 
         **Required arguments**
 
