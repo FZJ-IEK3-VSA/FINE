@@ -53,7 +53,7 @@ def exportToDict(esM):
     return esmDict, compDict
 
 
-def importFromDict(esmDict, compDict, esM=None):
+def importFromDict(esmDict, compDict):
     """
     Writes the dictionaries created by the exportToDict function to an EnergySystemModel.
 
@@ -64,9 +64,11 @@ def importFromDict(esmDict, compDict, esM=None):
     :type dict: dictionary instance
     """
 
-    if esM is None:
-        # TODO: drop LinearOptimalPowerFlow ?
-        esM = fn.EnergySystemModel(**esmDict)
+    
+    # TODO: drop LinearOptimalPowerFlow ?
+    # compDict.pop("LinearOptimalPowerFlow", None)
+
+    esM = fn.EnergySystemModel(**esmDict)
 
     # add components
     for classname in compDict:
