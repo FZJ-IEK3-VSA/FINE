@@ -132,26 +132,25 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx', engine='openpy
 
     :return: esM, esMData - an EnergySystemModel class instance and general esMData as a Series
     """
-    file = pd.ExcelFile(fileName)
-
-    esMData = pd.read_excel(file, sheet_name ='EnergySystemModel', index_col=0, squeeze=True, engine=engine)
+    file = pd.ExcelFile(fileName, engine=engine)
+    esMData = pd.read_excel(file, sheet_name ='EnergySystemModel', index_col=0, squeeze=True).dropna(axis='index', how='all')
     esMData = esMData.apply(lambda v: ast.literal_eval(v) if type(v) == str and v[0] == '{' else v)
 
     kw = inspect.getargspec(fn.EnergySystemModel.__init__).args
     esM = fn.EnergySystemModel(**esMData[esMData.index.isin(kw)])
 
     for comp in esMData['componentClasses']:
-        data = pd.read_excel(file, sheet_name =comp, engine=engine)
+        data = pd.read_excel(file, sheet_name =comp).dropna(axis='index', how='all')
         dataKeys = set(data['name'].values)
         if comp + 'LocSpecs' in file.sheet_names:
-            dataLoc = pd.read_excel(file, sheet_name =comp + 'LocSpecs', index_col=[0, 1, 2], engine=engine).sort_index()
+            dataLoc = pd.read_excel(file, sheet_name =comp + 'LocSpecs', index_col=[0, 1, 2]).dropna(axis='columns', how='all').sort_index()
             dataLocKeys = set(dataLoc.index.get_level_values(0).unique())
             if not dataLocKeys <= dataKeys:
                 raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataLocKeys - dataKeys)
             if dataLoc.isnull().any().any():
                 raise ValueError('NaN values in ' + comp + 'LocSpecs data detected.')
         if comp + 'TimeSeries' in file.sheet_names:
-            dataTS = pd.read_excel(file, sheet_name =comp + 'TimeSeries', index_col=[0, 1, 2], engine=engine).sort_index()
+            dataTS = pd.read_excel(file, sheet_name =comp + 'TimeSeries', index_col=[0, 1, 2]).dropna(axis='columns', how='all').sort_index()
             dataTSKeys = set(dataTS.index.get_level_values(0).unique())
             if not dataTSKeys <= dataKeys:
                 raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataTSKeys - dataKeys)
@@ -237,7 +236,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx', engine=
     """
 
     # Read excel file with optimization output
-    file = pd.ExcelFile(fileName)
+    file = pd.ExcelFile(fileName, engine=engine)
     # Check if optimization output matches the given energy system model (sufficient condition)
     utils.checkModelClassEquality(esM, file)
     utils.checkComponentsEquality(esM, file)
@@ -248,8 +247,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx', engine=
         idColumns2dim = [0, 1, 2, 3]
         idColumns = idColumns1dim if '1' in dim else idColumns2dim
         setattr(esM.componentModelingDict[mdl], 'optSummary',
-                pd.read_excel(file, sheet_name =mdl[0:-5] + 'OptSummary_' + dim, 
-                              index_col=idColumns, engine=engine))
+                pd.read_excel(fileName, sheet_name =mdl[0:-5] + 'OptSummary_' + dim, index_col=idColumns, engine=engine))
         sheets = []
         sheets += (sheet for sheet in file.sheet_names if mdl[0:-5] in sheet and 'optVar' in sheet)
         if len(sheets) > 0:
@@ -264,7 +262,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx', engine=
                     index_col = idColumns2dim[:-1]
                 else:
                     continue
-                optVal = pd.read_excel(file, sheet_name =sheet, index_col=index_col, engine=engine)
+                optVal = pd.read_excel(fileName, sheet_name =sheet, index_col=index_col, engine=engine)
                 for var in optVal.index.levels[0]: setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
     return esM
 
