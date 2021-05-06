@@ -252,7 +252,7 @@ def get_one_REtech_per_region(gridded_RE_ds,
                                                         longitude=longitude, 
                                                         latitude=latitude)
 
-    #STEP 2. Create DataArrays to store the aggregated time series and capacities
+    #STEP 4. Create DataArrays to store the aggregated time series and capacities
     ## DataArray to store the aggregated time series
     region_ids = rasterized_RE_ds['region_ids'].values
     time_steps = rasterized_RE_ds[time].values
@@ -267,16 +267,16 @@ def get_one_REtech_per_region(gridded_RE_ds,
 
     aggr_capacity_da = xr.DataArray(data, [('region_ids', region_ids)])
     
-    #STEP 3. Aggregation in every region...
+    #STEP 5. Aggregation in every region...
     for region in region_ids:
         #STEP 3a. Get time series and capacities of current region 
         regional_ds = rasterized_RE_ds.sel(region_ids = region)
         regional_capfac_da = regional_ds[capfac_var_name].where(regional_ds.rasters == 1)
         regional_capacity_da = regional_ds[capacity_var_name].where(regional_ds.rasters == 1)
         
-        #STEP 3b. Preprocess regional capfac and capacity dataArrays 
+        #STEP 5b. Preprocess regional capfac and capacity dataArrays 
         
-        #STEP 3b (i). Restructure data
+        #STEP 5b (i). Restructure data
         #INFO: The clustering model, takes <= 2 dimensions. So, x and y coordinates are fused 
         # Transposing dimensions to make sure clustering is performed along x_y dimension (i.e., space not time)
         regional_capfac_da = regional_capfac_da.stack(x_y = ['x', 'y']) 
@@ -285,11 +285,11 @@ def get_one_REtech_per_region(gridded_RE_ds,
         regional_capacity_da = regional_capacity_da.stack(x_y = ['x', 'y'])
         regional_capacity_da = regional_capacity_da.transpose(transpose_coords= True)
             
-        #STEP 3b (ii). Remove all time series with 0 values 
+        #STEP 5b (ii). Remove all time series with 0 values 
         regional_capfac_da = regional_capfac_da.where(regional_capacity_da>0)
         regional_capacity_da = regional_capacity_da.where(regional_capacity_da>0)
         
-        #STEP 3b (iii). Drop NAs 
+        #STEP 5b (iii). Drop NAs 
         regional_capfac_da = regional_capfac_da.dropna(dim='x_y')
         regional_capacity_da = regional_capacity_da.dropna(dim='x_y')
         
@@ -297,10 +297,10 @@ def get_one_REtech_per_region(gridded_RE_ds,
         n_ts = len(regional_capfac_da['x_y'].values)
         print(f'Number of time series in {region}: {n_ts}')
         
-        #STEP 3c. Get power curves from capacity factor time series and capacities 
+        #STEP 5c. Get power curves from capacity factor time series and capacities 
         regional_power_da = regional_capacity_da * regional_capfac_da
         
-        #STEP 3d. Aggregation
+        #STEP 5d. Aggregation
         ## capacity
         capacity_total = regional_capacity_da.sum(dim = 'x_y').values
         aggr_capacity_da.loc[region] = capacity_total
@@ -311,7 +311,7 @@ def get_one_REtech_per_region(gridded_RE_ds,
         
         aggr_capfac_da.loc[:,region] = capfac_total
         
-    #STEP 4. Create resulting dataset 
+    #STEP 6. Create resulting dataset 
     aggregated_RE_ds = xr.Dataset({capacity_var_name: aggr_capacity_da,
                                 capfac_var_name: aggr_capfac_da}) 
             

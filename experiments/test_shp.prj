@@ -1,1 +1,0 @@
-PROJCS["ECOWAS_centered_LAEA",GEOGCS["GCS_GRS 1980(IUGG, 1980)",DATUM["D_unknown",SPHEROID["GRS80",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Lambert_Azimuthal_Equal_Area"],PARAMETER["latitude_of_origin",13.56414],PARAMETER["central_meridian",0.79749],PARAMETER["false_easting",0],PARAMETER["false_northing",0],UNIT["Meter",1]]
