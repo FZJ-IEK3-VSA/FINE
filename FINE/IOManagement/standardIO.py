@@ -210,7 +210,7 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx', engine='openpyx
     return esM
 
 
-def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx', engine=engine):
+def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx', engine='openpyxl'):
     """
     Read optimization output from an excel file.
 
