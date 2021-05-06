@@ -530,9 +530,18 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
                 return data
             # Problems here ? Adapt this?
             elif dimension == '2dim':
-                data = operationTimeSeries.copy().sum()
+                # New for perfect foresight
+                data = 0
+                # sum values over ips
+                for ip in esM.investmentPeriods:
+                    data += operationTimeSeries[ip].copy().sum()
+
+                #data = operationTimeSeries.copy().sum()
+                #data[data > 0] = 1
+                #return data
                 data.loc[:] = 1
                 locationalEligibility = data
+                print(locationalEligibility)
                 return locationalEligibility
             else:
                 raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
@@ -836,8 +845,9 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
         # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
         
         # Results in a one dimensional DataFrame
-
         df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-2).sort_index() #swap location with periods --> periods is first column
+        print("df_1Dim_after")
+        print(df)
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level
@@ -850,12 +860,20 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
         # regions and sort the index
         # Results in a one dimensional DataFrame
         df = pd.DataFrame(data, index=[0]).T
+        print("df_Trans_start")
+        print(df)
         indexNew = []
         for tup in df.index.tolist():
             loc1, loc2 = compDict[tup[1]]._mapC[tup[0]]
-            indexNew.append((loc1, loc2, tup[1], tup[2], tup[3]))
+            indexNew.append((loc1, loc2, tup[1], tup[2], tup[3], tup[4]))
+            # indexNew.append((loc1, loc2, tup[1], tup[2], tup[3]))
         df.index = pd.MultiIndex.from_tuples(indexNew)
-        df = df.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=3, axis=0).swaplevel(i=2, j=3, axis=0).sort_index()
+        print("df_Trans")
+        print(df)
+        df = df.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=4, axis=0).swaplevel(i=2, j=3, axis=0).sort_index()
+        print("df_Trans_after")
+        print(df)
+        # df = df.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=3, axis=0).swaplevel(i=2, j=3, axis=0).sort_index()
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level

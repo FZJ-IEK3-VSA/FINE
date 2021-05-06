@@ -157,9 +157,24 @@ class Conversion(Component):
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
 
-        # Set additional economic data: opexPerOperation
-        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
-                                                                locationalEligibility)
+        ## New code for perfect foresight!
+        # create emtpy dicts
+        self.opexPerOperation = {}      
+        
+        # iterate over all ips
+        for ip in esM.investmentPeriods:
+            
+            # opexPerOperation 
+            if (isinstance(opexPerOperation, int) or isinstance(opexPerOperation, float) or isinstance(opexPerOperation, pd.Series)): #opexPerOperation is series/float/int
+                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',locationalEligibility)
+            elif isinstance(opexPerOperation, dict): # opexPerOperations is dict
+                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'1dim', locationalEligibility)
+            else:
+                raise TypeError('opexPerOperation should be a pandas series or a dictionary.')
+
+        # # Set additional economic data: opexPerOperation
+        # self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
+        #                                                         locationalEligibility)
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
         if operationRateMax is not None and operationRateFix is not None:
@@ -461,7 +476,7 @@ class ConversionModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
+    def setOptimalValues(self, esM, pyM, ip):
         """
         Set the optimal values of the components.
 
@@ -470,6 +485,9 @@ class ConversionModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param ip: investment period
+        :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
@@ -495,8 +513,18 @@ class ConversionModel(ComponentModel):
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
 
         if optVal is not None:
+            print("optVal_Conversion_before")
+            print(optVal)
+            idx = pd.IndexSlice
+            optVal = optVal.loc[idx[:,ip,:],:] # perfect foresight: added ip
+            optVal = optVal.droplevel([1])
+            print("optVal_Conversion_after")
+            print(optVal)
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
+            print("opSum_Conversion")
+            print(opSum)
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[ip][op.index], axis=1)
+            #ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h/a]') for ix in opSum.index],
                            opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h]') for ix in opSum.index],

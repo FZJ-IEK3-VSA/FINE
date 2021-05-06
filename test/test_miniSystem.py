@@ -91,7 +91,7 @@ def test_miniSystem():
     
     #esM.cluster(numberOfTypicalPeriods=4, numberOfTimeStepsPerPeriod=1)
 
-    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
+    esM.optimize(timeSeriesAggregation=False, solver = 'gurobi')
 
 
     # test if solve fits to the original results

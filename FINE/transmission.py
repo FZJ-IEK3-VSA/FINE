@@ -190,8 +190,24 @@ class Transmission(Component):
         self.opexIfBuilt *= (self.distances * 0.5)
         
         # Set additional economic data
-        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',
-                                                               self.locationalEligibility)
+
+        ## New code for perfect foresight!
+        # create emtpy dicts
+        self.opexPerOperation = {}       
+        
+        # iterate over all ips
+        for ip in esM.investmentPeriods:
+            
+            # opexPerOperation 
+            if (isinstance(opexPerOperation, int) or isinstance(opexPerOperation, float) or isinstance(opexPerOperation, pd.Series)): #opexPerOperation is series/float/int
+                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',self.locationalEligibility)
+            elif isinstance(opexPerOperation, dict): # opexPerOperations is dict
+                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'2dim', self.locationalEligibility)
+            else:
+                raise TypeError('opexPerOperation should be a pandas series or a dictionary.')
+
+        # self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',
+        #                                                        self.locationalEligibility)
 
         # Set location-specific operation parameters
         if operationRateMax is not None and operationRateFix is not None:
@@ -484,7 +500,7 @@ class TransmissionModel(ComponentModel):
 
         return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
 
-    def setOptimalValues(self, esM, pyM):
+    def setOptimalValues(self, esM, pyM, ip):
         """
         Set the optimal values of the components.
 
@@ -493,6 +509,9 @@ class TransmissionModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param ip: investment period
+        :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, 'op_' + abbrvName)
@@ -525,8 +544,18 @@ class TransmissionModel(ComponentModel):
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(mapC.keys())).sort_index()
 
         if optVal is not None:
+            # new code
+            print("optVal_trans_before")
+            print(optVal)
+            idx = pd.IndexSlice
+            optVal = optVal.loc[idx[:,ip,:],:] # perfect foresight: added ip
+            optVal = optVal.droplevel([1])
+            print("optVal_trans_after")
+            print(optVal)
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation, axis=1)
+            print("opSum")
+            print(opSum)
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[ip][op.index], axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],

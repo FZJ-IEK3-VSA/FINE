@@ -256,11 +256,38 @@ class Storage(Component):
         self.socOffsetDown = socOffsetDown
         self.modelingClass = StorageModel
 
-        # Set additional economic data: opexPerChargeOperation, opexPerDischargeOperation
-        self.opexPerChargeOperation = utils.checkAndSetCostParameter(esM, name, opexPerChargeOperation, '1dim',
-                                                                     locationalEligibility)
-        self.opexPerDischargeOperation = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation, '1dim',
-                                                                        locationalEligibility)
+
+        ## New code for perfect foresight!
+        # create emtpy dicts
+        self.opexPerChargeOperation = {}
+        self.opexPerDischargeOperation = {}
+        
+        
+        # iterate over all ips
+        for ip in esM.investmentPeriods:
+            
+            # opexPerChargeOperation 
+            if (isinstance(opexPerChargeOperation, int) or isinstance(opexPerChargeOperation, float) or isinstance(opexPerChargeOperation, pd.Series)): #opexPerChargeOperation is series/float/int
+                self.opexPerChargeOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerChargeOperation, '1dim',locationalEligibility)
+            elif isinstance(opexPerChargeOperation, dict): # opexPerChargeOperation is dict
+                self.opexPerChargeOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerChargeOperation[ip],'1dim', locationalEligibility)
+            else:
+                raise TypeError('opexPerChargeOperation should be a pandas series or a dictionary.')
+        
+            # opexPerDischargeOperation 
+            if (isinstance(opexPerDischargeOperation, int) or isinstance(opexPerDischargeOperation, float) or isinstance(opexPerDischargeOperation, pd.Series)): #opexPerDischargeOperation is series/float/int
+                self.opexPerDischargeOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation, '1dim',locationalEligibility)
+            elif isinstance(opexPerDischargeOperation, dict): # opexPerDischargeOperation is dict
+                self.opexPerDischargeOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation[ip],'1dim', locationalEligibility)
+            else:
+                raise TypeError('opexPerDischargeOperation should be a pandas series or a dictionary.')
+
+
+        # # Set additional economic data: opexPerChargeOperation, opexPerDischargeOperation
+        # self.opexPerChargeOperation = utils.checkAndSetCostParameter(esM, name, opexPerChargeOperation, '1dim',
+        #                                                              locationalEligibility)
+        # self.opexPerDischargeOperation = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation, '1dim',
+        #                                                                 locationalEligibility)
 
         # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
         # and time series aggregation weighting factor
@@ -1023,7 +1050,7 @@ class StorageModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
+    def setOptimalValues(self, esM, pyM, ip):
         """
         Set the optimal values of the components.
 
@@ -1032,6 +1059,9 @@ class StorageModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        
+        :param ip: investment period
+        :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         chargeOp, dischargeOp = getattr(pyM, 'chargeOp_' + abbrvName), getattr(pyM, 'dischargeOp_' + abbrvName)
@@ -1063,8 +1093,15 @@ class StorageModel(ComponentModel):
         self.chargeOperationVariablesOptimum = optVal
 
         if optVal is not None:
+            idx = pd.IndexSlice
+            optVal = optVal.loc[idx[:,ip,:],:] # perfect foresight: added ip
+            optVal = optVal.droplevel([1])
+
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerChargeOperation[op.index], axis=1)
+            print("opSum_Storage_charge")
+            print(opSum)
+
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerChargeOperation[ip][op.index], axis=1)
             optSummary.loc[[(ix, 'operationCharge', '[' + compDict[ix].commodityUnit + '*h/a]')
                              for ix in opSum.index], opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'operationCharge', '[' + compDict[ix].commodityUnit + '*h]')
@@ -1087,8 +1124,14 @@ class StorageModel(ComponentModel):
                         "Charge and discharge at the same time for component {}".format(compName), UserWarning)
 
         if optVal is not None:
+            idx = pd.IndexSlice
+            optVal = optVal.loc[idx[:,ip,:],:] # perfect foresight: added ip
+            optVal = optVal.droplevel([1])
+
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerDischargeOperation[op.index], axis=1)
+            print("opSum_Storage2")
+            print(opSum)
+            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerDischargeOperation[ip][op.index], axis=1)
             optSummary.loc[[(ix, 'operationDischarge', '[' + compDict[ix].commodityUnit + '*h/a]')
                              for ix in opSum.index], opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'operationDischarge', '[' + compDict[ix].commodityUnit + '*h]')
