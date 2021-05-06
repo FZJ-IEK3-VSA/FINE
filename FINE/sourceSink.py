@@ -239,6 +239,7 @@ class Source(Component):
             else:
                 raise TypeError('commodityCost should be a pandas series or a dictionary.')
 
+        
             # Commodity Revenue
             if (isinstance(commodityRevenue, int) or isinstance(commodityRevenue, float) or isinstance(commodityRevenue, pd.Series)): #commodityRevenue is series/float/int
                 self.commodityRevenue[ip] = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',locationalEligibility)
@@ -358,15 +359,37 @@ class Source(Component):
                 raise TypeError('OperationRateFix should be a pandas dataframe or a dictionary.')
             
             self.aggregatedOperationRateFix[ip], self.operationRateFix[ip] = None, None
-        
 
+        # new code for perfect foresight
+        self.partLoadMin = {}
+
+        # iterate over all ips
+        for ip in esM.investmentPeriods:
+            if isinstance(partLoadMin, float) or partLoadMin is None:
+                self.partLoadMin[ip] = partLoadMin
+            elif isinstance(partLoadMin, dict):
+                self.partLoadMin[ip] = partLoadMin[ip]
+
+        if not any(value for value in self.partLoadMin.values()):
+            self.partLoadMin = None
+        
         if self.partLoadMin is not None:
-            if self.fullOperationRateMax is not None:
-                if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
-                    raise ValueError('"fullOperationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
-            if self.fullOperationRateFix is not None:
-                if ((self.fullOperationRateFix > 0) & (self.fullOperationRateFix < self.partLoadMin)).any().any():
-                    raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
+            for ip in esM.investmentPeriods:
+                if self.partLoadMin[ip] is not None:
+                    if self.fullOperationRateMax[ip] is not None:
+                        if ((self.fullOperationRateMax[ip] > 0) & (self.fullOperationRateMax[ip] < self.partLoadMin[ip])).any().any():
+                            raise ValueError('"operationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+                    if self.fullOperationRateFix[ip] is not None:
+                        if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.partLoadMin[ip])).any().any():
+                            raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name ) 
+
+       # if self.partLoadMin is not None:
+        #    if self.fullOperationRateMax is not None:
+        #        if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
+        #            raise ValueError('"fullOperationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+        #    if self.fullOperationRateFix is not None:
+        #        if ((self.fullOperationRateFix > 0) & (self.fullOperationRateFix < self.partLoadMin)).any().any():
+        #            raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
@@ -846,19 +869,19 @@ class SourceSinkModel(ComponentModel):
             optVal = optVal.loc[idx[:,ip,:],:] # perfect foresight: added ip
             optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
-            print("opSum")
-            print(opSum)
+            #print("opSum")
+            #print(opSum)
 
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[ip][op.index], axis=1)           
             cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[ip][op.index], axis=1)
             cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[ip][op.index], axis=1)
             # tests
-            print('ox')
-            print(ox)
-            print('cCost')
-            print(cCost)
-            print('cRevenue')
-            print(cRevenue)
+            #print('ox')
+            #print(ox)
+            #print('cCost')
+            #print(cCost)
+            #print('cRevenue')
+            #print(cRevenue)
 
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
@@ -868,10 +891,12 @@ class SourceSinkModel(ComponentModel):
                 ox.values/esM.numberOfYears
 
             # get empty datframe for resulting time dependent (TD) cost sum
-            cRevenueTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)
-            cCostTD = pd.DataFrame(0., index=list(compDict.keys()), columns=opSum.columns)
+            # bugfix for wrong allocation of costs in optSummary
+            cRevenueTD = pd.DataFrame(0., index=opSum.index, columns=opSum.columns)
+            cCostTD = pd.DataFrame(0., index=opSum.index, columns=opSum.columns)
             
-            for compName in compDict.keys():
+            #for compName in compDict.keys():
+            for compName in opSum.index:
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
                     calcCostTD = utils.buildFullTimeSeries(

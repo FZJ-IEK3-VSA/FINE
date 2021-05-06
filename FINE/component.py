@@ -1084,12 +1084,19 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetMinPartLoad = getattr(pyM, constrSetName + 'partLoadMin_' + abbrvName)
         
         def opMinPartLoad1(pyM, loc, compName, ip, p, t):
+            # To-DO: look into the usage of opVarBin in the testcases
+            # old code:
+            #opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
+            #print("opVarBin")
+            #print(opVarBin)
             bigM = getattr(compDict[compName], 'bigM')
             return opVar[loc, compName, ip, p, t] <= opVarBin[loc, compName, ip, p, t]*bigM
         setattr(pyM, constrName + 'partLoadMin_1_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad1))
         
         def opMinPartLoad2(pyM, loc, compName, ip, p, t):
-            partLoadMin = getattr(compDict[compName], 'partLoadMin')
+            #old code:
+            #opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
+            partLoadMin = getattr(compDict[compName], 'partLoadMin')[ip]
             bigM = getattr(compDict[compName], 'bigM')
             return opVar[loc, compName, ip, p, t] >= partLoadMin*capVar[loc, compName]-(1-opVarBin[loc, compName, ip, p, t])*bigM
         setattr(pyM, constrName + 'partLoadMin_2_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2))
@@ -1280,8 +1287,6 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean        
         """
-        print(self.abbrvName, factorNames)
-        print(getattr(self.componentsDict[compName], factorNames[0]))
         var = getattr(pyM, varName + '_' + self.abbrvName)
         factors = [getattr(self.componentsDict[compName], factorName)[ip][loc] for factorName in factorNames]
         factor = 1.

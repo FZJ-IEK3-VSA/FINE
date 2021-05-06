@@ -1,0 +1,28 @@
+
+Gurobi 9.0.2 (win64) logging started Thu May  6 17:05:10 2021
+
+Changed value of parameter logfile to log_2030
+   Prev:   Default: 
+Changed value of parameter LogToConsole to 0
+   Prev: 1  Min: 0  Max: 1  Default: 1
+Gurobi Optimizer version 9.0.2 build v9.0.2rc0 (win64)
+Optimize a model with 96 rows, 66 columns and 236 nonzeros
+Model fingerprint: 0xf5e1c6a6
+Coefficient statistics:
+  Matrix range     [3e-01, 2e+03]
+  Objective range  [1e-02, 9e+01]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [2e-12, 2e+09]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 71 rows and 47 columns
+Presolve time: 0.00s
+Presolved: 25 rows, 19 columns, 84 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    8.7103916e+05   9.855000e+06   0.000000e+00      0s
+       9    3.8832062e+06   0.000000e+00   0.000000e+00      0s
+
+Solved in 9 iterations and 0.00 seconds
+Optimal objective  3.883206206e+06

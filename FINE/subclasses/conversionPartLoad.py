@@ -236,8 +236,8 @@ class ConversionPartLoadModel(ConversionModel):
         discretizationSegmentBinVar = getattr(pyM, 'discretizationSegmentBin_' + self.abbrvName)
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
-        def segmentSOS1(pyM, loc, compName, p, t):
-            return sum(discretizationSegmentBinVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].nSegments)) == 1
+        def segmentSOS1(pyM, loc, compName, ip, p, t):
+            return sum(discretizationSegmentBinVar[loc, compName, discretStep, ip, p, t] for discretStep in range(compDict[compName].nSegments)) == 1
         setattr(pyM, 'ConstrSegmentSOS1_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentSOS1))
 
 
@@ -254,8 +254,8 @@ class ConversionPartLoadModel(ConversionModel):
         discretizationSegmentBinVar = getattr(pyM, 'discretizationSegmentBin_' + self.abbrvName)
         discretizationSegmentVarSet = getattr(pyM, 'discretizationSegmentVarSet_' + self.abbrvName)
 
-        def segmentBigM(pyM, loc, compName, discretStep, p, t):
-            return discretizationSegmentConVar[loc, compName, discretStep, p, t] <= discretizationSegmentBinVar[loc, compName, discretStep, p, t] * compDict[compName].bigM
+        def segmentBigM(pyM, loc, compName, discretStep, ip, p, t):
+            return discretizationSegmentConVar[loc, compName, discretStep, ip, p, t] <= discretizationSegmentBinVar[loc, compName, discretStep, ip, p, t] * compDict[compName].bigM
         setattr(pyM, 'ConstrSegmentBigM_' + abbrvName,  pyomo.Constraint(discretizationSegmentVarSet, pyM.timeSet, rule=segmentBigM))
 
 
@@ -273,12 +273,12 @@ class ConversionPartLoadModel(ConversionModel):
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         if not pyM.hasSegmentation:
-            def segmentCapacityConstraint(pyM, loc, compName, p, t):
-                return sum(discretizationSegmentConVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].nSegments)) == esM.hoursPerTimeStep * capVar[loc, compName]
+            def segmentCapacityConstraint(pyM, loc, compName, ip, p, t):
+                return sum(discretizationSegmentConVar[loc, compName, discretStep, ip, p, t] for discretStep in range(compDict[compName].nSegments)) == esM.hoursPerTimeStep * capVar[loc, compName]
             setattr(pyM, 'ConstrSegmentCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint))
         else:
-            def segmentCapacityConstraint(pyM, loc, compName, p, t):
-                return sum(discretizationSegmentConVar[loc, compName, discretStep, p, t] for discretStep in range(compDict[compName].nSegments)) == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+            def segmentCapacityConstraint(pyM, loc, compName, ip, p, t):
+                return sum(discretizationSegmentConVar[loc, compName, discretStep, ip, p, t] for discretStep in range(compDict[compName].nSegments)) == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
             setattr(pyM, 'ConstrSegmentCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint))
 
 
@@ -296,14 +296,14 @@ class ConversionPartLoadModel(ConversionModel):
         opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
 
         if not pyM.hasSegmentation:
-            def pointCapacityConstraint(pyM, loc, compName, p, t):
+            def pointCapacityConstraint(pyM, loc, compName, ip, p, t):
                 nPoints = compDict[compName].nSegments+1
-                return sum(discretizationPointConVar[loc, compName, discretStep, p, t] for discretStep in range(nPoints)) == esM.hoursPerTimeStep * capVar[loc, compName]
+                return sum(discretizationPointConVar[loc, compName, discretStep, ip, p, t] for discretStep in range(nPoints)) == esM.hoursPerTimeStep * capVar[loc, compName]
             setattr(pyM, 'ConstrPointCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint))
         else:
-            def pointCapacityConstraint(pyM, loc, compName, p, t):
+            def pointCapacityConstraint(pyM, loc, compName, ip, p, t):
                 nPoints = compDict[compName].nSegments+1
-                return sum(discretizationPointConVar[loc, compName, discretStep, p, t] for discretStep in range(nPoints)) == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                return sum(discretizationPointConVar[loc, compName, discretStep, ip, p, t] for discretStep in range(nPoints)) == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
             setattr(pyM, 'ConstrPointCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint))
 
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
@@ -331,16 +331,16 @@ class ConversionPartLoadModel(ConversionModel):
         discretizationSegmentConVar = getattr(pyM, 'discretizationSegmentCon_' + self.abbrvName)
         discretizationPointVarSet = getattr(pyM, 'discretizationPointVarSet_' + self.abbrvName)
 
-        def pointSOS2(pyM, loc, compName, discretStep, p, t):
+        def pointSOS2(pyM, loc, compName, discretStep, ip, p, t):
             points = list(range(compDict[compName].nSegments+1))
             segments = list(range(compDict[compName].nSegments))
 
             if discretStep == points[0]:
-                return discretizationPointConVar[loc, compName, points[0], p, t] <= discretizationSegmentConVar[loc, compName, segments[0], p, t]
+                return discretizationPointConVar[loc, compName, points[0], ip, p, t] <= discretizationSegmentConVar[loc, compName, segments[0], ip, p, t]
             elif discretStep == points[-1]:
-                return discretizationPointConVar[loc, compName, points[-1], p, t] <= discretizationSegmentConVar[loc, compName, segments[-1], p, t]
+                return discretizationPointConVar[loc, compName, points[-1], ip, p, t] <= discretizationSegmentConVar[loc, compName, segments[-1], ip, p, t]
             else:
-                return discretizationPointConVar[loc, compName, discretStep, p, t] <= discretizationSegmentConVar[loc, compName, discretStep-1, p, t] + discretizationSegmentConVar[loc, compName, discretStep, p, t]
+                return discretizationPointConVar[loc, compName, discretStep, ip, p, t] <= discretizationSegmentConVar[loc, compName, discretStep-1, ip, p, t] + discretizationSegmentConVar[loc, compName, discretStep, ip, p, t]
 
         setattr(pyM, 'ConstrPointSOS2_' + abbrvName,  pyomo.Constraint(discretizationPointVarSet, pyM.timeSet, rule=pointSOS2))
 
@@ -357,10 +357,10 @@ class ConversionPartLoadModel(ConversionModel):
         discretizationPointConVar = getattr(pyM, 'discretizationPoint_' + self.abbrvName)
         opVar, opVarSet = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarSet_' + abbrvName)
 
-        def partLoadOperationOutput(pyM, loc, compName, p, t):        
+        def partLoadOperationOutput(pyM, loc, compName, ip, p, t):        
             nPoints = compDict[compName].nSegments+1
 
-            return opVar[loc, compName, p, t] == sum(discretizationPointConVar[loc, compName, discretStep, p, t] * \
+            return opVar[loc, compName, ip, p, t] == sum(discretizationPointConVar[loc, compName, discretStep, ip, p, t] * \
                                                  compDict[compName].discretizedPartLoad[list(compDict[compName].discretizedPartLoad.keys())[0]]['xSegments'][discretStep] \
                                                  for discretStep in range(nPoints))
         setattr(pyM, 'ConstrpartLoadOperationOutput_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=partLoadOperationOutput))
@@ -413,13 +413,13 @@ class ConversionPartLoadModel(ConversionModel):
         """
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         """ Get contribution to a commodity balance. """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVarDict = getattr(pyM, 'operationVarDict_' + abbrvName)
         discretizationPointConVar = getattr(pyM, 'discretizationPoint_' + self.abbrvName)
         
-        return sum(sum(discretizationPointConVar[loc, compName, discretStep, p, t] * \
+        return sum(sum(discretizationPointConVar[loc, compName, discretStep, ip, p, t] * \
                        compDict[compName].discretizedPartLoad[commod]['xSegments'][discretStep] * \
                        compDict[compName].discretizedPartLoad[commod]['ySegments'][discretStep] for discretStep in range(compDict[compName].nSegments+1)) \
                    for compName in opVarDict[loc] if commod in compDict[compName].discretizedPartLoad)
