@@ -157,10 +157,16 @@ class Conversion(Component):
         self.commodityConversionFactors = commodityConversionFactors
         self.fullCommodityConversionFactors = {}
         self.aggregatedCommodityConversionFactors = {}
+        self.processedCommodityConversionFactors = {}
         for commod in self.commodityConversionFactors.keys():
-            if not isinstance(commodityConversionFactors[commod], (int, float)):
-                self.fullCommodityConversionFactors[commod] = utils.checkAndSetTimeSeriesConversionFactors(esM, self.commodityConversionFactors[commod], self.locationalEligibility)
-                self.aggregatedCommodityConversionFactors[commod], self.commodityConversionFactors[commod] = None, None
+            if not isinstance(self.commodityConversionFactors[commod], (int, float)):
+                self.fullCommodityConversionFactors[commod] = utils.checkAndSetTimeSeriesConversionFactors(esM, commodityConversionFactors[commod], self.locationalEligibility)
+                self.aggregatedCommodityConversionFactors[commod] = None
+            elif isinstance(self.commodityConversionFactors[commod], (int, float)):
+                # self.fullCommodityConversionFactors[commod] = None
+                # self.aggregatedCommodityConversionFactors[commod] = None
+                self.processedCommodityConversionFactors[commod] = self.commodityConversionFactors[commod]
+            
 
         self.physicalUnit = physicalUnit
         self.modelingClass = ConversionModel
@@ -170,6 +176,9 @@ class Conversion(Component):
         self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
                                                                 locationalEligibility)
 
+        self.operationRateMax = operationRateMax
+        self.operationRateFix = operationRateFix
+
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
@@ -178,11 +187,11 @@ class Conversion(Component):
                               'The operationRateMax time series was set to None.')
 
         self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
-        self.aggregatedOperationRateMax, self.operationRateMax = None, None
-
+        self.aggregatedOperationRateMax, self.processedOperationRateMax = None, None
+        
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
-        self.aggregatedOperationRateFix, self.operationRateFix = None, None
-
+        self.aggregatedOperationRateFix, self.processedOperationRateFix = None, None
+       
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:
                 if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
@@ -218,10 +227,11 @@ class Conversion(Component):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
-        self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
-        self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
-        for commod in self.fullCommodityConversionFactors:
-            self.commodityConversionFactors[commod] = self.aggregatedCommodityConversionFactors[commod] if hasTSA else self.fullCommodityConversionFactors[commod]
+        self.processedOperationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
+        self.processedOperationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
+        if self.fullCommodityConversionFactors != {}:
+            for commod in self.fullCommodityConversionFactors:
+                self.processedCommodityConversionFactors[commod] = self.aggregatedCommodityConversionFactors[commod] if hasTSA else self.fullCommodityConversionFactors[commod]
 
     def getDataForTimeSeriesAggregation(self):
         """ Function for getting the required data if a time series aggregation is requested. """
@@ -243,8 +253,9 @@ class Conversion(Component):
         """
         self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
         self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
-        for commod in self.fullCommodityConversionFactors:
-            self.aggregatedCommodityConversionFactors[commod] = self.getTSAOutput(self.fullCommodityConversionFactors[commod], '_commodityConversionFactorTimeSeries'+ str(commod) + '_', data)
+        if self.fullCommodityConversionFactors != {}:
+            for commod in self.fullCommodityConversionFactors:
+                self.aggregatedCommodityConversionFactors[commod] = self.getTSAOutput(self.fullCommodityConversionFactors[commod], '_commodityConversionFactorTimeSeries'+ str(commod) + '_', data)
 
 
 class ConversionModel(ComponentModel):
@@ -318,7 +329,7 @@ class ConversionModel(ComponentModel):
         self.declareOperationBinarySet(pyM)
 
         # Declare operation mode sets
-        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
+        self.declareOperationModeSets(pyM, 'opConstrSet', 'processedOperationRateMax', 'processedOperationRateFix')
 
         # Declare linked components dictionary
         self.declareLinkedCapacityDict(pyM)
@@ -450,7 +461,7 @@ class ConversionModel(ComponentModel):
         :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
         :param commod: string
         """
-        return any([(commod in comp.commodityConversionFactors and (comp.commodityConversionFactors[commod] is not
+        return any([(commod in comp.processedCommodityConversionFactors and (comp.processedCommodityConversionFactors[commod] is not
                                                                     None))
                     and comp.locationalEligibility[loc] == 1 for comp in self.componentsDict.values()])
 
@@ -472,9 +483,9 @@ class ConversionModel(ComponentModel):
             else:
                 return commodCommodityConversionFactors[loc][p,t]
 
-        return sum(opVar[loc, compName, p, t] * getFactor(compDict[compName].commodityConversionFactors[commod], loc,
+        return sum(opVar[loc, compName, p, t] * getFactor(compDict[compName].processedCommodityConversionFactors[commod], loc,
                                                           p, t)
-                   for compName in opVarDict[loc] if commod in compDict[compName].commodityConversionFactors)
+                   for compName in opVarDict[loc] if commod in compDict[compName].processedCommodityConversionFactors)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """

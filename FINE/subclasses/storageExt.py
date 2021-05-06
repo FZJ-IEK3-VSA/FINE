@@ -66,6 +66,8 @@ class StorageExtBETA(Storage):
 
         # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
         # and time series aggregation weighting factor
+        self.stateOfChargeOpRateFix = stateOfChargeOpRateFix
+        self.stateOfChargeOpRateMax = stateOfChargeOpRateMax
 
         # The i-th state of charge (SOC) refers to the SOC before the i-th time step
         if stateOfChargeOpRateMax is not None and stateOfChargeOpRateFix is not None:
@@ -93,15 +95,16 @@ class StorageExtBETA(Storage):
 
         self.fullStateOfChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateMax,
                                                                       self.locationalEligibility)
-        self.aggregatedStateOfChargeOpRateMax, self.stateOfChargeOpRateMax = None, None
+        self.aggregatedStateOfChargeOpRateMax, self.processedStateOfChargeOpRateMax = None, None
 
         self.fullStateOfChargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateFix,
                                                                       self.locationalEligibility)
-        self.aggregatedStateOfChargeOpRateFix, self.stateOfChargeOpRateFix = None, None
+        self.aggregatedStateOfChargeOpRateFix, self.processedStateOfChargeOpRateFix = None, None
 
+        self.opexPerChargeOpTimeSeries = opexPerChargeOpTimeSeries
         self.fullOpexPerChargeOpTimeSeries = \
             utils.checkAndSetTimeSeries(esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility)
-        self.aggregatedOpexPerChargeOpTimeSeries, self.opexPerChargeOpTimeSeries = None, None
+        self.aggregatedOpexPerChargeOpTimeSeries, self.processedOpexPerChargeOpTimeSeries = None, None
 
         utils.isPositiveNumber(stateOfChargeTsaWeight), utils.isPositiveNumber(opexChargeOpTsaWeight)
         self.stateOfChargeTsaWeight, self.opexChargeOpTsaWeight = stateOfChargeTsaWeight, opexChargeOpTsaWeight
@@ -135,15 +138,15 @@ class StorageExtBETA(Storage):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
-        self.chargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullChargeOpRateMax
-        self.chargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullChargeOpRateFix
-        self.dischargeOpRateMax = self.aggregatedDischargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
-        self.dischargeOpRateFix = self.aggregatedDischargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
-        self.stateOfChargeOpRateMax = self.aggregatedStateOfChargeOpRateMax if hasTSA \
+        self.processedChargeOpRateMax = self.aggregatedChargeOpRateMax if hasTSA else self.fullChargeOpRateMax
+        self.processedChargeOpRateFix = self.aggregatedChargeOpRateFix if hasTSA else self.fullChargeOpRateFix
+        self.processedDischargeOpRateMax = self.aggregatedDischargeOpRateMax if hasTSA else self.fullDischargeOpRateMax
+        self.processedDischargeOpRateFix = self.aggregatedDischargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
+        self.processedStateOfChargeOpRateMax = self.aggregatedStateOfChargeOpRateMax if hasTSA \
             else self.fullStateOfChargeOpRateMax
-        self.stateOfChargeOpRateFix = self.aggregatedStateOfChargeOpRateFix if hasTSA \
+        self.processedDtateOfChargeOpRateFix = self.aggregatedStateOfChargeOpRateFix if hasTSA \
             else self.fullStateOfChargeOpRateFix
-        self.opexPerChargeOpTimeSeries = \
+        self.processedOpexPerChargeOpTimeSeries = \
             self.aggregatedOpexPerChargeOpTimeSeries if hasTSA else self.fullOpexPerChargeOpTimeSeries
 
     def getDataForTimeSeriesAggregation(self):
@@ -277,14 +280,14 @@ class StorageExtModel(StorageModel):
                             ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
                             SOC[loc, compName, esM.periodsOrder[pInter], t]
                             == capVar[loc, compName] *
-                            compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
+                            compDict[compName].processedStateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
                 else:
                     return (SOCinter[loc, compName, pInter] *
                             ((1 - compDict[compName].selfDischarge) **
                             (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
                             SOC[loc, compName, esM.periodsOrder[pInter], t]
                             == capVar[loc, compName] *
-                            compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
+                            compDict[compName].processedStateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise2_' + abbrvName,
@@ -313,14 +316,14 @@ class StorageExtModel(StorageModel):
                             ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
                             SOC[loc, compName, esM.periodsOrder[pInter], t]
                             <= capVar[loc, compName] *
-                            compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
+                            compDict[compName].processedStateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
                 else:
                     return (SOCinter[loc, compName, pInter] *
                             ((1 - compDict[compName].selfDischarge) **
                             (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
                             SOC[loc, compName, esM.periodsOrder[pInter], t]
                             <= capVar[loc, compName] *
-                            compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
+                            compDict[compName].processedStateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise3_' + abbrvName,
@@ -348,13 +351,13 @@ class StorageExtModel(StorageModel):
                     return (SOCinter[loc, compName, pInter] *
                             ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
                             SOC[loc, compName, esM.periodsOrder[pInter], t]
-                            == compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
+                            == compDict[compName].processedStateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
                 else:
                     return (SOCinter[loc, compName, pInter] *
                             ((1 - compDict[compName].selfDischarge) **
                             (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
                             SOC[loc, compName, esM.periodsOrder[pInter], t]
-                            == compDict[compName].stateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
+                            == compDict[compName].processedStateOfChargeOpRateFix[loc][esM.periodsOrder[pInter], t])
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise4_' + abbrvName,
@@ -382,13 +385,13 @@ class StorageExtModel(StorageModel):
                     return (SOCinter[loc, compName, pInter] *
                             ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
                             SOC[loc, compName, esM.periodsOrder[pInter], t]
-                            <= compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
+                            <= compDict[compName].processedStateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
                 else:
                     return (SOCinter[loc, compName, pInter] *
                             ((1 - compDict[compName].selfDischarge) **
                             (esM.segmentStartTime.to_dict()[esM.periodsOrder[pInter], t] * esM.hoursPerTimeStep)) +
                             SOC[loc, compName, esM.periodsOrder[pInter], t]
-                            <= compDict[compName].stateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
+                            <= compDict[compName].processedStateOfChargeOpRateMax[loc][esM.periodsOrder[pInter], t])
             else:
                 return pyomo.Constraint.Skip
         setattr(pyM, 'ConstrSOCMaxPrecise5_' + abbrvName,
@@ -436,14 +439,14 @@ class StorageExtModel(StorageModel):
         self.operationMode1(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeRate')
         # Charging of storage [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] multiplied by
         # the hours per time step [h] and the charging operation time series [1/h]
-        self.operationMode2(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateFix')
+        self.operationMode2(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateFix')
         # Charging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied by
         # the hours per time step [h] and the charging operation time series [1/h]
-        self.operationMode3(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateMax')
+        self.operationMode3(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateMax')
         # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
-        self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateFix')
+        self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateFix')
         # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
-        self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateMax')
+        self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateMax')
 
         #                             Constraints for enforcing discharging operation modes                            #
 
@@ -452,14 +455,14 @@ class StorageExtModel(StorageModel):
         self.operationMode1(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeRate')
         # Discharging of storage [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] multiplied
         # by the hours per time step [h] and the discharging operation time series [1/h]
-        self.operationMode2(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateFix')
+        self.operationMode2(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'processedDischargeOpRateFix')
         # Discharging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied
         # by the hours per time step [h] and the discharging operation time series [1/h]
-        self.operationMode3(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateMax')
+        self.operationMode3(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'processedDischargeOpRateMax')
         # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
-        self.operationMode4(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateFix')
+        self.operationMode4(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'processedDischargeOpRateFix')
         # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
-        self.operationMode5(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateMax')
+        self.operationMode5(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'processedDischargeOpRateMax')
 
         # Cyclic constraint enforcing that all storages have the same state of charge at the the beginning of the first
         # and the end of the last time step
@@ -487,14 +490,14 @@ class StorageExtModel(StorageModel):
             self.operationMode1(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeMax', True)
             # State of charge [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] and the relative
             # fixed state of charge time series [-]
-            self.operationMode2(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateFix', True)
+            self.operationMode2(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'processedStateOfChargeOpRateFix', True)
             # State of charge [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] and the relative
             # maximum state of charge time series [-]
-            self.operationMode3(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateMax', True)
+            self.operationMode3(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'processedStateOfChargeOpRateMax', True)
             # State of charge [commodityUnit*h] is equal to the absolute fixed state of charge time series [commodityUnit*h]
-            self.operationMode4(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateFix')
+            self.operationMode4(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'processedStateOfChargeOpRateFix')
             # State of charge [commodityUnit*h] is limited by the absolute maximum state of charge time series [commodityUnit*h]
-            self.operationMode5(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'stateOfChargeOpRateMax')
+            self.operationMode5(pyM, esM, 'ConstrSOC', 'stateOfChargeOpConstrSet', 'stateOfCharge', 'processedStateOfChargeOpRateMax')
 
             # The state of charge [commodityUnit*h] has to be larger than the installed capacity [commodityUnit*h]
             # multiplied with the relative minimum state of charge
@@ -566,7 +569,7 @@ class StorageExtModel(StorageModel):
         """
         
         basicContribution = super().getObjectiveFunctionContribution(esM, pyM)
-        chargeOpContribution = self.getEconomicsTimeSeries(pyM, esM, 'opexPerChargeOpTimeSeries', 'chargeOp', 'operationVarDict')
+        chargeOpContribution = self.getEconomicsTimeSeries(pyM, esM, 'processedOpexPerChargeOpTimeSeries', 'chargeOp', 'operationVarDict')
 
         return  basicContribution + chargeOpContribution
 

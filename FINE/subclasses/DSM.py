@@ -227,14 +227,14 @@ class DSMModel(SourceSinkModel):
 
             # ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
-                if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
+                if esM.getComponent(compName + '_' + str(i)).processedOpexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
                     ixDown = str(i)
                     break
 
             ixUp = [str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown]
 
             return (sum(chargeOp[loc, compName + '_' + compName_i, p, t] for compName_i in ixUp) +
-                    (esM.getComponent(compName + '_' + ixDown).chargeOpRateMax.loc[(p, t), loc] -
+                    (esM.getComponent(compName + '_' + ixDown).processedChargeOpRateMax.loc[(p, t), loc] -
                      chargeOp[loc, compName + '_' + ixDown, p, t]) <=
                     max(compDict[compName].shiftUpMax, compDict[compName].shiftDownMax))
 
@@ -261,7 +261,7 @@ class DSMModel(SourceSinkModel):
             
             # ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
-                if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
+                if esM.getComponent(compName + '_' + str(i)).processedOpexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
                     ixDown = str(i)
                     break
             ixUp = [str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown]
@@ -292,11 +292,11 @@ class DSMModel(SourceSinkModel):
 
             #ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
-                if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
+                if esM.getComponent(compName + '_' + str(i)).processedOpexPerChargeOpTimeSeries.loc[(p, t), loc] == 0:
                     ixDown = str(i)
                     break
 
-            return (esM.getComponent(compName + '_' + ixDown).chargeOpRateMax.loc[(p, t), loc] - 
+            return (esM.getComponent(compName + '_' + ixDown).processedChargeOpRateMax.loc[(p, t), loc] - 
                     chargeOp[loc, compName + '_' + ixDown, p, t] <= compDict[compName].shiftDownMax)
 
         setattr(pyM, 'shiftDownMax_' + abbrvName,
@@ -381,18 +381,18 @@ class DSMModel(SourceSinkModel):
             cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
 
             for compName in compDict.keys():
-                if not compDict[compName].commodityCostTimeSeries is None:
+                if not compDict[compName].processedCommodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
                     calcCostTD = utils.buildFullTimeSeries(
-                        compDict[compName].commodityCostTimeSeries.unstack(level=1).stack(level=0),
+                        compDict[compName].processedCommodityCostTimeSeries.unstack(level=1).stack(level=0),
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total cost
                     cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
 
-                if not compDict[compName].commodityRevenueTimeSeries is None:
+                if not compDict[compName].processedCommodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
                     calcRevenueTD = utils.buildFullTimeSeries(
-                        compDict[compName].commodityRevenueTimeSeries.unstack(level=1).stack(level=0),
+                        compDict[compName].processedCommodityRevenueTimeSeries.unstack(level=1).stack(level=0),
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
                     cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)

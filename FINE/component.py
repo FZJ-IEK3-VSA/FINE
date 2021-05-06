@@ -1018,7 +1018,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, p, t] <= factor1[p,t] * factor2 * capVar[loc, compName]
             setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
-    def operationMode2(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix',
+    def operationMode2(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='processedOperationRateFix',
                        isStateOfCharge=False):
         """
         Define operation mode 2. The operation [commodityUnit*h] is equal to the installed capacity multiplied
@@ -1048,7 +1048,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, p, t] == capVar[loc, compName] * rate[loc][p, t] * factor[p,t]
             setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
 
-    def operationMode3(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax',
+    def operationMode3(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='processedOperationRateMax',
                        isStateOfCharge=False):
         """
         Define operation mode 3. The operation [commodityUnit*h] is limited by an installed capacity multiplied
@@ -1077,7 +1077,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, p, t] <= capVar[loc, compName] * rate[loc][p, t] * factor[p,t]
             setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
 
-    def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix'):
+    def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='processedOperationRateFix'):
         """
         Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
         
@@ -1100,7 +1100,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, p, t] == rate[loc][p, t] * esM.timeStepsPerSegment.to_dict()[p, t]
             setattr(pyM, constrName + '4_' + abbrvName, pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4))
 
-    def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax'):
+    def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='processedOperationRateMax'):
         """
         Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
         
