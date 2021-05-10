@@ -56,22 +56,28 @@ def rasterize_geometry(geometry, coords, latitude='y', longitude='x'):
     
     return raster 
 
-def add_shapes_from_shp(gridded_RE_ds, 
-                        shp_file, 
-                        index_col='region_ids', 
-                        geometry_col='geometry',
-                        longitude='x', 
-                        latitude='y'):
-    """Given a gridded xarray dataset and a shapefile, 
-    for each geometry in the shapefile it returns a mask 
-    of geolocations. 
 
+def rasterize_xr_ds(gridded_RE_ds, 
+                    CRS_attr,
+                    shp_file, 
+                    index_col='region_ids', 
+                    geometry_col='geometry',
+                    longitude='x', 
+                    latitude='y'):
+    """Converts the gridded data in an xarray dataset to raster data 
+    based on the given shapefile.
+    
     Parameters
     ----------
-    gridded_RE_ds : xr.Dataset 
-        2 mandatory dimensions in this data - latitude and longitude  
-    shp_file : Shapefile
-        The read-in shapefile that should be added to `gridded_RE_ds`
+    gridded_RE_ds : str/xr.Dataset 
+        Either the path to the dataset or the read-in xr.Dataset 
+        2 mandatory dimensions in this data - `latitude` and `longitude`  
+    CRS_attr : str
+        The attribute in `gridded_RE_ds` that holds its 
+        Coordinate Reference System (CRS) information 
+    shp_file : str/Shapefile
+        Either the path to the shapefile or the read-in shapefile 
+        that should be added to `gridded_RE_ds`
     index_col : str, optional (default='region_ids')
         The column in `shp_file` that needs to be taken as location-index in `gridded_RE_ds`
     geometry_col : str, optional (default='geometry')
@@ -88,15 +94,28 @@ def add_shapes_from_shp(gridded_RE_ds,
         - Additional variable with name 'rasters' and values as rasters 
           corresponding to each geometry in `shp_file`
     """
-        
-    #STEP 1. Add geometries 
+
+    #STEP 1. Read in the files 
+    if isinstance(gridded_RE_ds, str): 
+        gridded_RE_ds = xr.open_dataset(gridded_RE_ds)
+    elif not isinstance(gridded_RE_ds, xr.Dataset):
+        raise TypeError("gridded_RE_ds must either be a path to a netcdf file or xarray dataset")
+    
+    if isinstance(shp_file, str): 
+        shp_file = gpd.read_file(shp_file)
+    elif not isinstance(shp_file, gpd.geodataframe.GeoDataFrame):
+        raise TypeError("shp_file must either be a path to a shapefile or a geopandas dataframe")
+
+    #STEP 2. Match the CRS of shapefile to that of the dataset
+    shp_file = shp_file.to_crs(gridded_RE_ds.attrs[CRS_attr])
+    
+    #STEP 3. rasterize each geometry and add it to new data_var "rasters"
+
     region_geometries = shp_file[geometry_col]
     region_indices = shp_file[index_col]
-    
-    rasterized_RE_ds = gridded_RE_ds.expand_dims({'region_ids' : region_indices})  
-    
-        
-    #STEP 2. rasterize each geometry and add it to new data_var "rasters"
+
+    rasterized_RE_ds = gridded_RE_ds.expand_dims({'region_ids' : region_indices}) 
+
     coords = rasterized_RE_ds.coords 
     
     rasterized_RE_ds['rasters'] = (['region_ids', latitude, longitude],
@@ -105,9 +124,9 @@ def add_shapes_from_shp(gridded_RE_ds,
                                                         longitude=longitude, 
                                                         latitude=latitude)
                                             for geometry in region_geometries])
+
     return rasterized_RE_ds
-
-
+    
 #PLOTS =================================================================================================
 #TODO: update docstrings 
 #VIOLIN PLOT ------------------------------------------------------

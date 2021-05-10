@@ -429,8 +429,7 @@ def perform_parameter_based_grouping(sds,
         The name/description of the dimension in the sds data that corresponds to regions 
     linkage : str, optional (default='complete')
         The linkage criterion to be used with agglomerative hierarchical clustering. 
-        Can be 'complete', 'single', etc.
-        Refer to Sklearn's documentation for more info.
+        Can be 'complete', 'single', etc. Refer to Sklearn's documentation for more info.
 
     Returns
     -------

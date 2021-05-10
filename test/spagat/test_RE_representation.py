@@ -1,10 +1,35 @@
 import pytest 
 import numpy as np
 
-from FINE.spagat.RE_representation import represent_RE_technology, get_one_REtech_per_region
+from FINE.spagat.RE_representation import represent_RE_technology
  
 
-def test_represent_RE_technology(gridded_RE_data, sample_shapefile):
+def test_represent_RE_technology_1ts(gridded_RE_data, sample_shapefile):
+
+    #Function call 
+    represented_RE_ds = represent_RE_technology(gridded_RE_data, 
+                                                'SRS',
+                                                sample_shapefile,
+                                                n_timeSeries_perRegion=1,
+                                                capacity_var_name='capacity',
+                                                capfac_var_name='capfac')
+
+    print(represented_RE_ds)
+    #Assertion
+    ## first region 
+    assert represented_RE_ds['capacity'].loc['reg_01'] == 9
+
+    capfac = np.round(represented_RE_ds['capfac'].loc[:, 'reg_01'], 2)
+    assert np.all(capfac == 1.33)
+
+    ## second region
+    assert represented_RE_ds['capacity'].loc['reg_02'] == 6
+    assert np.all(np.isclose(represented_RE_ds['capfac'].loc[:, 'reg_02'], 1.5))
+   
+    
+
+def test_represent_RE_technology_2ts(gridded_RE_data, sample_shapefile):
+
     #Expected 
     expected_capfac = np.array([[1, 2] for i in range(10)])
     expected_capfac_shuffled = expected_capfac[:, [1, 0]]
@@ -41,22 +66,5 @@ def test_represent_RE_technology(gridded_RE_data, sample_shapefile):
     assert np.array_equal(represented_RE_ds['capacity'].loc['reg_02',:], expected_capacities_reg02) 
 
 
-def test_get_one_REtech_per_region(gridded_RE_data, sample_shapefile):
-
-    #Function call 
-    aggregated_RE_ds = get_one_REtech_per_region(gridded_RE_data, 
-                                                'SRS',
-                                                sample_shapefile,
-                                                capacity_var_name='capacity',
-                                                capfac_var_name='capfac')
     
-    #Assertion
-    ## first region 
-    assert aggregated_RE_ds['capacity'].loc['reg_01'] == 9
-
-    capfac = np.round(aggregated_RE_ds['capfac'].loc[:, 'reg_01'], 2)
-    assert np.all(capfac == 1.33)
-
-    ## second region
-    assert aggregated_RE_ds['capacity'].loc['reg_02'] == 6
-    assert np.all(np.isclose(aggregated_RE_ds['capfac'].loc[:, 'reg_02'], 1.5))
+    
