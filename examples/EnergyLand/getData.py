@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 
-def getData():
+def getData(engine='openpyxl'):
     cwd = os.getcwd()
     inProfileDataPath = os.path.join(cwd, "Input_profiles_fine.xlsx")
     outProfileDataPath = os.path.join(cwd, "Output_profiles_fine.xlsx")
@@ -10,9 +10,9 @@ def getData():
    
     data = {}
     
-    inProfile = pd.read_excel(inProfileDataPath, index_col=0, engine='openpyxl')
-    outProfile = pd.read_excel(outProfileDataPath, index_col=0, engine='openpyxl')
-    esMaxCap = pd.read_excel(esDataPath, index_col=0, engine='openpyxl')
+    inProfile = pd.read_excel(inProfileDataPath, index_col=0, engine=engine)
+    outProfile = pd.read_excel(outProfileDataPath, index_col=0, engine=engine)
+    esMaxCap = pd.read_excel(esDataPath, index_col=0, engine=engine)
     
     # Onshore data
    
