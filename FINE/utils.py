@@ -843,6 +843,49 @@ def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
 
 
 def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDict=None, esM=None):
+    '''
+    Functionality for formatting the optimization output. The function is used in the 
+    setOptimalValues()-method of the ComponentModel class. 
+
+    **Required arguments:**
+
+    :param data: Optimized values that should be formatted given as dictionary with the keys (component, location). 
+    :type data: dict
+
+    :param varType: Define which type of variables are formatted. Options:
+        * 'designVariables',
+        * 'operationVariables'.
+    :type varType: string
+
+    :param dimension: Define the dimension of the data. Options: 
+        * '1dim',
+        * '2dim'.
+    :type dimension: string 
+
+    **Default arguments:** 
+    :param periodsOrder: order of the periods of the time series data
+        (list, [0] when considering a full temporal resolution, 
+        [typicalPeriod(0), ... ,typicalPeriod(totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod-1)] 
+        when applying time series aggregation).
+        The periodsOrder must be given if the varType is operationVariables because the full time series has to 
+        be re-engineered (not necessarily required if no time series aggregation methods are used).
+        |br| * the default value is None.
+    :type periodsOrder: list
+
+    :param compDict: Dictionary of the component instances of interest. 
+        compDict is required if dimension is set to 2.
+        |br| * the default value is None. 
+    :type compDict: dict
+
+    :param esM: EnergySystemModel instance representing the energy system in which the components are modeled.
+        An esM instance must be given if the varType is operationVariables because the full time series has to 
+        be re-engineered (not necessarily required if no time series aggregation methods are used).
+        |br| * the default value is None
+    :type esM: EnergySystemModel instance
+
+    :return: formatted version of data. If data is an empty dictionary, it returns None.
+    :rtype: pandas DataFrame
+    '''
     # If data is an empty dictionary (because no variables of that type were declared) return None
     if not data:
         return None
