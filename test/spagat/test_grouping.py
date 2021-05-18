@@ -3,8 +3,8 @@ import pytest
 
 import numpy as np
 import xarray as xr
-from shapely.geometry import Point, Polygon
 from sklearn.datasets import make_blobs
+from shapely.geometry import Point, Polygon
 
 import FINE.spagat.dataset as spd
 import FINE.spagat.grouping as spg
@@ -74,73 +74,28 @@ def test_perform_distance_based_grouping(mode):
           os.remove(expected_file)
      
 
-
-def test_perform_parameter_based_grouping(): #TODO: check what happens when you restrict connections. Hint: take more regions and make a complex structure 
-     #TEST DATA     
-     component_list = ['c1','c2', 'c3']  
-     space_list = ['01_reg','02_reg','03_reg']
-     TimeStep_list = ['T0','T1']
-     Period_list = [0]
-
-     ## time series variable data
-     sample_ts_data, sample_ts_labels = make_blobs(n_samples=3, centers=2, n_features=2, random_state=0)
-     var_ts_data = np.array([ [sample_ts_data.T],
-                              [sample_ts_data.T], 
-                              [[[np.nan]*3 for i in range(2)]]  ])
-
-     var_ts_DataArray = xr.DataArray(var_ts_data, 
-                                   coords=[component_list, Period_list, TimeStep_list, space_list], 
-                                   dims=['component', 'Period', 'TimeStep','space'])
+@pytest.mark.parametrize("var_category_weights, var_weights, expected_region_groups", 
+                        [ (None, None, ['02_reg', '03_reg'] ),
+                          ({'1d_vars' : 10}, None,  ['01_reg', '02_reg'] ), 
+                          (None, {'transmissionDistance' : 10}, ['01_reg', '03_reg'] )
+                        ])
+def test_perform_parameter_based_grouping(var_category_weights, 
+                                        var_weights,
+                                        expected_region_groups,
+                                        sds_for_parameter_based_grouping): 
      
-     
-     ## 1d variable data
-     var_1d_data = np.array([ [1, 1, 2],
-                              [1, 1, 2],
-                              [np.nan]*3 ])
+     regions_list = sds_for_parameter_based_grouping.xr_dataset.space.values 
 
-     var_1d_DataArray = xr.DataArray(var_1d_data, 
-                                        coords=[component_list, space_list], 
-                                        dims=['component', 'space'])
-     
-     ## 2d variable data
-     var_2d_data = np.array([ [[0, 2, 1], 
-                              [2, 0, 1], 
-                              [1, 1, 0]],
-                              [[0, 2, 1], 
-                              [2, 0, 1], 
-                              [1, 1, 0]],
-                         [[np.nan]*3 for i in range(3)]])
-
-     var_2d_DataArray = xr.DataArray(var_2d_data, 
-                                        coords=[component_list, space_list, space_list], 
-                                        dims=['component', 'space', 'space_2'])
-     
-     ds = xr.Dataset({'ts_var': var_ts_DataArray,
-                    '1d_var': var_1d_DataArray,  
-                    '2d_var': var_2d_DataArray}) 
-
-     sds = spd.SpagatDataset()
-     sds.xr_dataset = ds
-
-     #Geometries 
-     test_geometries = [Polygon([(0,3), (1,3), (1,4), (0,4)]),
-                         Polygon([(1,3), (2,3), (2,4), (4,1)]),
-                         Polygon([(0,2), (1,2), (1,3), (0,3)]) ] 
-                    
-
-     sds.add_objects(description ='gpd_geometries',   
-                    dimension_list =['space'], 
-                    object_list = test_geometries)   
-     
-     spr.add_region_centroids(sds) 
-     spr.add_centroid_distances(sds)
-     
      #FUNCTION CALL
-     output_dict = spg.perform_parameter_based_grouping(sds, dimension_description='space')  
+     output_dict = spg.perform_parameter_based_grouping(sds_for_parameter_based_grouping, 
+                                                       dimension_description='space',
+                                                       var_category_weights=var_category_weights,
+                                                       var_weights=var_weights)  
      
      #ASSERTION
-     for key, value in output_dict.get(2).items():     #sample labels array([0, 0, 1])
+     for key, value in output_dict.get(2).items():   
           if len(value)==2:                            #NOTE: required to assert separately, because they are permuted
-               assert (key == '01_reg_02_reg') & (value == ['01_reg', '02_reg'])
+               assert (key == '_'.join(expected_region_groups)) & (value == expected_region_groups)
           else:
-               assert (key == '03_reg') & (value == ['03_reg'] )
+               remaining_region = np.setdiff1d(regions_list, expected_region_groups)
+               assert (key == remaining_region.item()) & (value == remaining_region)

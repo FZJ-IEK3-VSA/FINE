@@ -67,7 +67,8 @@ def test_spatial_aggregation_parameter_based(multi_node_test_esM_init,
                                                                 grouping_mode = 'parameter_based', 
                                                                 nRegionsForRepresentation = n_regions, 
                                                                 aggregatedResultsPath=None,
-                                                                aggregation_function_dict=aggregation_function_dict)   
+                                                                aggregation_function_dict=aggregation_function_dict,
+                                                                var_weights={'1d_vars' : 10})   
 
     #ASSERTION 
     assert len(aggregated_esM.locations) == n_regions

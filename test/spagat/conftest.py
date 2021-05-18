@@ -15,7 +15,7 @@ import FINE.spagat.representation as spr
 
 
 @pytest.fixture()
-def sds_for_Connectivity():  
+def sds_for_connectivity():  
 
   component_list = ['source_comp','sink_comp', 'transmission_comp']  
   space_list = ['01_reg','02_reg','03_reg','04_reg', '05_reg','06_reg', '07_reg','08_reg']
@@ -113,6 +113,117 @@ def sds_for_Connectivity():
 
   return sds  
 
+@pytest.fixture()
+def data_for_distance_measure():  
+
+  test_ts_dict = {}            
+
+  var_ts_1_c2_matrix = np.array([ [1, 1],
+                                  [2, 2],
+                                  [3, 3] ])
+
+  var_ts_1_c4_matrix = np.array([ [1, 1],
+                                  [2, 2],
+                                  [3, 3]])
+
+  test_ts_dict['ts_operationRateMax'] = np.concatenate((var_ts_1_c2_matrix, var_ts_1_c4_matrix), axis=1)
+
+  var_ts_2_c3_matrix = np.array([ [1, 1],
+                                  [2, 2],
+                                  [3, 3] ])
+
+  var_ts_2_c4_matrix = np.array([ [1, 1],
+                                  [2, 2],
+                                  [3, 3]])
+
+  test_ts_dict['ts_operationRateFix'] = np.concatenate((var_ts_2_c3_matrix, var_ts_2_c4_matrix), axis=1)
+
+  ## 1d dict
+  test_1d_dict = {}
+
+  test_1d_dict['1d_capacityMax'] = np.array([ [1, 1],
+                                      [2, 2],
+                                      [3, 3]])
+
+  test_1d_dict['1d_capacityFix'] = np.array([ [1, 1],
+                                      [2, 2],
+                                      [3, 3]])
+
+  ## 2d dict 
+  test_2d_dict = {}
+
+  var_2d_1_c1_array = np.array([1, 2, 3])
+  var_2d_1_c3_array = np.array([1, 2, 3])
+  test_2d_dict['2d_distance'] = {0: var_2d_1_c1_array, 2: var_2d_1_c3_array}
+
+  var_2d_2_c3_array = np.array([1, 2, 3])
+  var_2d_2_c4_array = np.array([1, 2, 3])
+  test_2d_dict['2d_losses'] = {2: var_2d_2_c3_array, 3: var_2d_2_c4_array}    
+
+  return namedtuple("test_ts_1d_2s_dicts", "test_ts_dict test_1d_dict test_2d_dict")(test_ts_dict, test_1d_dict, test_2d_dict)  
+
+
+@pytest.fixture()
+def sds_for_parameter_based_grouping(): 
+
+  component_list = ['c1','c2', 'c3']  
+  space_list = ['01_reg','02_reg','03_reg']
+  TimeStep_list = ['T0','T1']
+  Period_list = [0]
+
+  ## time series variables data
+  operationRateMax = np.array([ [[[0.2, 0.1, 0.1] for i in range(2)]],
+                                [[[np.nan]*3 for i in range(2)]], 
+                                [[[0.2, 0.1, 0.1] for i in range(2)]]  ])
+
+  operationRateMax = xr.DataArray(operationRateMax, 
+                                coords=[component_list, Period_list, TimeStep_list, space_list], 
+                                dims=['component', 'Period', 'TimeStep','space'])
+  
+  
+  ## 1d variable data
+  capacityMax = np.array([ [1, 1, 0.2],
+                          [1, 1, 0.2],
+                          [1, 1, 0.2] ])
+
+  capacityMax = xr.DataArray(capacityMax, 
+                            coords=[component_list, space_list], 
+                            dims=['component', 'space'])
+  
+  ## 2d variable data
+  transmissionDistance = np.array([ [[0, 0.2, 0.7], 
+                                    [0.2, 0, 0.2], 
+                                    [0.7, 0.2, 0]],
+                                  [[0, 0.2, 0.7], 
+                                    [0.2, 0, 0.2], 
+                                    [0.7, 0.2, 0]],
+                      [[np.nan]*3 for i in range(3)]])
+
+  transmissionDistance = xr.DataArray(transmissionDistance, 
+                                    coords=[component_list, space_list, space_list], 
+                                    dims=['component', 'space', 'space_2'])
+  
+  ds = xr.Dataset({'ts_operationRateMax': operationRateMax,
+                '1d_capacityMax': capacityMax,  
+                '2d_transmissionDistance': transmissionDistance}) 
+
+  sds = spd.SpagatDataset()
+  sds.xr_dataset = ds
+
+  #Geometries 
+  test_geometries = [Polygon([(0,3), (1,3), (1,4), (0,4)]),
+                      Polygon([(1,3), (2,3), (2,4), (4,1)]),
+                      Polygon([(0,2), (1,2), (1,3), (0,3)]) ] 
+                
+
+  sds.add_objects(description ='gpd_geometries',   
+                dimension_list =['space'], 
+                object_list = test_geometries)   
+  
+  spr.add_region_centroids(sds) 
+  spr.add_centroid_distances(sds)
+
+  return sds 
 #============================================Fixtures for Basic Representation==================================================#
 
 @pytest.fixture()

@@ -401,123 +401,41 @@ def test_preprocess_dataset():
             
             assert np.array_equal(output_comp_array, expected_comp_array)
 
-      
-        
-@pytest.mark.parametrize("reg_m, reg_n, dist_expected", [(0, 1, 16), (0, 2, 64), (1, 2, 48)])
-def test_get_custom_distance(reg_m, reg_n, dist_expected):
-    #TEST DATA 
-    test_ts_dict = {}                  #TODO: add this data to a fixture as the next test also uses the same. 
-                                         #check how you can pass this and parameters at the same time
 
-    var_ts_1_c2_matrix = np.array([ [1, 1],
-                                    [2, 2],
-                                    [3, 3] ])
 
-    var_ts_1_c4_matrix = np.array([ [1, 1],
-                                    [2, 2],
-                                    [3, 3]])
-
-    test_ts_dict['var_ts_1'] = np.concatenate((var_ts_1_c2_matrix, var_ts_1_c4_matrix), axis=1)
-
-    var_ts_2_c3_matrix = np.array([ [1, 1],
-                                    [2, 2],
-                                    [3, 3] ])
-
-    var_ts_2_c4_matrix = np.array([ [1, 1],
-                                    [2, 2],
-                                    [3, 3]])
-
-    test_ts_dict['var_ts_2'] = np.concatenate((var_ts_2_c3_matrix, var_ts_2_c4_matrix), axis=1)
-
-    ## 1d dict
-    test_1d_dict = {}
-
-    test_1d_dict['var_1d_1'] = np.array([ [1, 1],
-                                        [2, 2],
-                                        [3, 3]])
-
-    test_1d_dict['var_1d_2'] = np.array([ [1, 1],
-                                        [2, 2],
-                                        [3, 3]])
-
-    ## 2d dict 
-    test_2d_dict = {}
-
-    var_2d_1_c1_array = np.array([1, 2, 3])
-    var_2d_1_c3_array = np.array([1, 2, 3])
-    test_2d_dict['var_2d_1'] = {0: var_2d_1_c1_array, 2: var_2d_1_c3_array}
-
-    var_2d_2_c3_array = np.array([1, 2, 3])
-    var_2d_2_c4_array = np.array([1, 2, 3])
-    test_2d_dict['var_2d_2'] = {2: var_2d_2_c3_array, 3: var_2d_2_c4_array}          
-
-    #FUNCTION CALL 
-    n_regions = 3
-    dist_output = gu.get_custom_distance(test_ts_dict, 
-                                test_1d_dict, 
-                                test_2d_dict, 
-                                n_regions, reg_m, reg_n)  
-
-    #ASSERTION 
-    assert dist_output == dist_expected
-
-def test_get_custom_distance_matrix():
-    #TEST DATA                   #TODO: once a fixture is implemented, use that here 
-    test_ts_dict = {}          
-
-    var_ts_1_c2_matrix = np.array([ [1, 1],
-                                    [2, 2],
-                                    [3, 3] ])
-
-    var_ts_1_c4_matrix = np.array([ [1, 1],
-                                    [2, 2],
-                                    [3, 3]])
-
-    test_ts_dict['var_ts_1'] = np.concatenate((var_ts_1_c2_matrix, var_ts_1_c4_matrix), axis=1)
-
-    var_ts_2_c3_matrix = np.array([ [1, 1],
-                                    [2, 2],
-                                    [3, 3] ])
-
-    var_ts_2_c4_matrix = np.array([ [1, 1],
-                                    [2, 2],
-                                    [3, 3]])
-
-    test_ts_dict['var_ts_2'] = np.concatenate((var_ts_2_c3_matrix, var_ts_2_c4_matrix), axis=1)
-
-    ## 1d dict
-    test_1d_dict = {}
-
-    test_1d_dict['var_1d_1'] = np.array([ [1, 1],
-                                        [2, 2],
-                                        [3, 3]])
-
-    test_1d_dict['var_1d_2'] = np.array([ [1, 1],
-                                        [2, 2],
-                                        [3, 3]])
-
-    ## 2d dict 
-    test_2d_dict = {}
-
-    var_2d_1_c1_array = np.array([1, 2, 3])
-    var_2d_1_c3_array = np.array([1, 2, 3])
-    test_2d_dict['var_2d_1'] = {0: var_2d_1_c1_array, 2: var_2d_1_c3_array}
-
-    var_2d_2_c3_array = np.array([1, 2, 3])
-    var_2d_2_c4_array = np.array([1, 2, 3])
-    test_2d_dict['var_2d_2'] = {2: var_2d_2_c3_array, 3: var_2d_2_c4_array}
-
-    #EXPECTED DATA 
-    expected_dist_matrix = np.array([ [0, 16, 64],
-                                      [16, 0, 48],
-                                      [64, 48, 0] ])
+@pytest.mark.parametrize("var_category_weights, var_weights, expected_dist_matrix", 
+                        [ (None, None, np.array([ [0, 16, 64],
+                                                [16, 0, 48],
+                                                [64, 48, 0] ]) 
+                        ),
+                          ({'ts_vars' : 1, '1d_vars' : 2, '2d_vars' : 3}, None,  np.array([ [0, 28, 112],
+                                                                                            [28, 0, 124],
+                                                                                            [112, 124, 0] ]) 
+                        ), 
+                          (None, {'operationRateMax' : 2, 'losses' : 3}, np.array([ [0, 24, 96],
+                                                                                    [24, 0, 88],
+                                                                                    [96, 88, 0] ]) 
+                        ),
+                          ({'2d_vars' : 3}, {'capacityMax' : 2, 'capacityFix': 2}, np.array([ [0, 28, 112],
+                                                                                                                [28, 0, 124],
+                                                                                                                [112, 124, 0] ])
+                        )
+                        ])
+def test_get_custom_distance_matrix(var_category_weights, 
+                                    var_weights, 
+                                    expected_dist_matrix,
+                                    data_for_distance_measure):
     
+    test_ts_dict, test_1d_dict, test_2d_dict = data_for_distance_measure 
+
     #FUNCTION CALL 
     n_regions = 3
     output_dist_matrix = gu.get_custom_distance_matrix(test_ts_dict, 
                                                     test_1d_dict, 
                                                     test_2d_dict, 
-                                                    n_regions)     
+                                                    n_regions,
+                                                    var_category_weights,
+                                                    var_weights)     
     
     #ASSERTION 
     #floating points and ints need to be converted to decimals, otherwise they do not match 
@@ -527,7 +445,7 @@ def test_get_custom_distance_matrix():
     assert np.array_equal(expected_dist_matrix, output_dist_matrix)
 
 
-def test_get_connectivity_matrix(sds_for_Connectivity):
+def test_get_connectivity_matrix(sds_for_connectivity):
     #EXPECTED 
     expected_matrix = np.array([[ 1, 1, 0, 1, 1, 0, 0, 0],
                                 [ 1, 1, 1, 1, 1, 1, 0, 0],
@@ -539,7 +457,7 @@ def test_get_connectivity_matrix(sds_for_Connectivity):
                                 [ 0, 0, 0, 0, 0, 1, 1, 1]])
 
     #FUNCTION CALL 
-    output_matrix = gu.get_connectivity_matrix(sds_for_Connectivity)
+    output_matrix = gu.get_connectivity_matrix(sds_for_connectivity)
 
     #ASSERTION 
     assert np.array_equal(output_matrix, expected_matrix)

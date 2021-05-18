@@ -418,7 +418,9 @@ def perform_distance_based_grouping(sds,
 @spu.timer
 def perform_parameter_based_grouping(sds,
                                     dimension_description='space', 
-                                    linkage='complete'):
+                                    linkage='complete',
+                                    var_category_weights=None,
+                                    var_weights=None):
     """Groups regions based on the Energy System Model instance's data. 
 
     Parameters
@@ -430,6 +432,15 @@ def perform_parameter_based_grouping(sds,
     linkage : str, optional (default='complete')
         The linkage criterion to be used with agglomerative hierarchical clustering. 
         Can be 'complete', 'single', etc. Refer to Sklearn's documentation for more info.
+    var_category_weights : None/Dict, optional (default=None)
+        A dictionary with weights for different variable categories i.e., ts, 1d and 2d.
+        These weights are used while calculating custom distance.  
+        Template: {'ts_vars' : 1, '1d_vars' : 1, '2d_vars' : 1}
+        A subset of these can be provided too, rest are considered to be 1 
+    var_weights : None/Dict, optional (default=None)
+        A dictionay with weights for different variables. For the variables not found 
+        in dictionary, a default weight of 1 is assigned.
+        These weights are used while calculating custom distance.   
 
     Returns
     -------
@@ -473,7 +484,7 @@ def perform_parameter_based_grouping(sds,
     dict_ts, dict_1d, dict_2d = gu.preprocess_dataset(sds) 
 
     #STEP 2. Calculate the overall distance between each region pair (uses custom distance)
-    precomputed_dist_matrix = gu.get_custom_distance_matrix(dict_ts, dict_1d, dict_2d, n_regions)
+    precomputed_dist_matrix = gu.get_custom_distance_matrix(dict_ts, dict_1d, dict_2d, n_regions, var_category_weights, var_weights)
     
     #STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not. 
     connectMatrix = gu.get_connectivity_matrix(sds)
@@ -513,7 +524,7 @@ def perform_parameter_based_grouping(sds,
     clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, 
                                                     n_clusters=None, 
                                                     affinity='precomputed', 
-                                                    linkage='average',
+                                                    linkage=linkage,
                                                     connectivity=connectMatrix).fit(precomputed_dist_matrix)
 
     #STEP 4. Cophenetic correlation coefficient                                              

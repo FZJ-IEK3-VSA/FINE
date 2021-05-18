@@ -101,7 +101,7 @@ def preprocess_1d_variables(vars_dict, n_components):
 
     min_max_scaler = prep.MinMaxScaler()
     
-    # For each time series variable, data pair...
+    # For each 1d variable, data pair...
     for var, da in vars_dict.items():
         
         #STEP 1. Find the corresponding valid components: valid_comp_weight=1, otherwise=0
@@ -149,7 +149,7 @@ def preprocess_2d_variables(vars_dict, n_components):
     """
     ds_2d = {}
 
-    # For each time series variable, data pair...
+    # For each 2d variable, data pair...
     for var, da in vars_dict.items():
         
         ds_2d_var = {}
@@ -253,7 +253,9 @@ def preprocess_dataset(sds):
 def get_custom_distance(ds_ts, ds_1d, ds_2d, 
                 n_regions, 
                 region_index_x, 
-                region_index_y):  
+                region_index_y,
+                var_category_weights=None,
+                var_weights=None):  
     """Custom distance function.
 
     Parameters
@@ -265,6 +267,13 @@ def get_custom_distance(ds_ts, ds_1d, ds_2d,
     region_index_x, region_index_y : int 
         Indicate the two regions between which the custom distance is to be calculated 
         range of these indices - [0, n_regions)
+    var_category_weights : None/Dict, optional (default=None)
+        A dictionay with weights for different variable categories i.e., ts, 1d and 2d 
+        Template: {'ts_vars' : 1, '1d_vars' : 1, '2d_vars' : 1}
+        A subset of these can be provided too, rest are considered to be 1 
+    var_weights : None/Dict, optional (default=None)
+        A dictionay with weights for different variables. For the variables not found 
+        in dictionary, a default weight of 1 is assigned. 
 
     Returns
     -------
@@ -272,11 +281,29 @@ def get_custom_distance(ds_ts, ds_1d, ds_2d,
         Custom distance value 
     """
 
+    if var_category_weights is None:
+        var_category_weights = {'ts_vars' : 1, '1d_vars' : 1, '2d_vars' : 1}
+
+
+    if var_weights is None:
+        var_list = list(ds_ts.keys()) + list(ds_1d.keys()) + list(ds_2d.keys())
+        var_weights = dict.fromkeys(var_list, 1)
+
+    else:
+        #INFO: xarray dataset has prefix 1d_,  2d_ and ts_
+        # Therefore, in order to match that, the prefix is added here for each variable  
+        var_weights = {f"{dimension}_{key}": value      
+                                        for key, value in var_weights.items()
+                                            for dimension in ["ts", "1d", "2d"]}
+    
+
     #STEP 3. Find distance for each variable category separately 
 
     #STEP 3a. Distance of Time Series category
     distance_ts = 0
     for var, var_matr in ds_ts.items():
+
+        var_weight = var_weights[var] if var in var_weights.keys() else 1 
 
         # (i) Extract data corresponding to the variable in both regions  
         region_x_data = var_matr[region_index_x]
@@ -286,11 +313,13 @@ def get_custom_distance(ds_ts, ds_1d, ds_2d,
         #INFO: ts_region_x and ts_region_y are vectors, 
         # subtract the vectors, square each element and add all elements. 
         # (notice subtraction happens per time step, per component)
-        distance_ts += sum(np.power((region_x_data - region_y_data),2))    
+        distance_ts += sum(np.power((region_x_data - region_y_data),2))  * var_weight  
 
     #STEP 3b. Distance of 1d Variables category
     distance_1d = 0
     for var, var_matr in ds_1d.items():
+
+        var_weight = var_weights[var] if var in var_weights.keys() else 1 
 
         # (i) Extract data corresponding to the variable in both regions 
         region_x_data = var_matr[region_index_x]
@@ -298,7 +327,7 @@ def get_custom_distance(ds_ts, ds_1d, ds_2d,
 
         # (ii) Calculate distance
         #INFO: same as previous but subtraction happens per component
-        distance_1d += sum(np.power((region_x_data - region_y_data),2))
+        distance_1d += sum(np.power((region_x_data - region_y_data),2))  * var_weight  
 
     #STEP 3c. Distance of 2d Variables category
     distance_2d = 0
@@ -307,6 +336,8 @@ def get_custom_distance(ds_ts, ds_1d, ds_2d,
     region_index_x_y = region_index_x * (n_regions - region_index_x) + (region_index_y - region_index_x) -1                
                                                                       
     for var, var_dict in ds_2d.items():
+
+        var_weight = var_weights[var] if var in var_weights.keys() else 1 
         
         #STEP 3c (ii). For each var, component pair...
         for component, data in var_dict.items():
@@ -315,12 +346,22 @@ def get_custom_distance(ds_ts, ds_1d, ds_2d,
 
             if not np.isnan(value_var_c):        #INFO: if the regions are not connected the value will be na
                 # Calculate the distance 
-                distance_2d += (value_var_c*value_var_c) 
+                distance_2d += (value_var_c*value_var_c) * var_weight
 
-    #STEP 4. Add all three distances with part_weightings of each category
-    return distance_ts + distance_1d + distance_2d 
+    #STEP 4. Add all three distances with weights for each variable category
+    var_ts_weight = var_category_weights['ts_vars'] if 'ts_vars' in var_category_weights.keys() else 1
+    var_1d_weight = var_category_weights['1d_vars'] if '1d_vars' in var_category_weights.keys() else 1
+    var_2d_weight = var_category_weights['2d_vars'] if '2d_vars' in var_category_weights.keys() else 1
 
-def get_custom_distance_matrix(ds_ts, ds_1d, ds_2d, n_regions):
+    return distance_ts * var_ts_weight + distance_1d * var_1d_weight + distance_2d * var_2d_weight
+
+def get_custom_distance_matrix(ds_ts, 
+                            ds_1d, 
+                            ds_2d, 
+                            n_regions,
+                            var_category_weights=None,
+                            var_weights=None):
+
     """For every region combination, calculates the custom distance by calling get_custom_distance().
                                                       
     Parameters
@@ -330,7 +371,14 @@ def get_custom_distance_matrix(ds_ts, ds_1d, ds_2d, n_regions):
     n_regions : int
         Total number of regions in the given data 
         range of these indices - [0, n_regions)
-
+    var_category_weights : None/Dict, optional (default=None)
+        A dictionay with weights for different variable categories i.e., ts, 1d and 2d 
+        Template: {'ts_vars' : 1, '1d_vars' : 1, '2d_vars' : 1}
+        A subset of these can be provided too, rest are considered to be 1 
+    var_weights : None/Dict, optional (default=None)
+        A dictionay with weights for different variables. For the variables not found 
+        in dictionary, a default weight of 1 is assigned. 
+        
     Returns
     -------
     distMatrix : np.ndarray 
@@ -341,7 +389,13 @@ def get_custom_distance_matrix(ds_ts, ds_1d, ds_2d, n_regions):
     #STEP 1. For every region pair, calculate the distance 
     for i in range(n_regions):
         for j in range(i+1,n_regions):
-            distMatrix[i,j] = get_custom_distance(ds_ts,ds_1d, ds_2d, n_regions, i,j)
+            distMatrix[i,j] = get_custom_distance(ds_ts,
+                                                ds_1d, 
+                                                ds_2d, 
+                                                n_regions, 
+                                                i,j,
+                                                var_category_weights,
+                                                var_weights)
 
     #STEP 2. Only upper triangle has values, reflect these values in lower triangle to make it a hollow, symmetric matrix
     distMatrix += distMatrix.T - np.diag(distMatrix.diagonal())  

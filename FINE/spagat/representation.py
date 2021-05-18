@@ -407,7 +407,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
     aggregated_sds = spd.SpagatDataset()
 
     if aggregation_function_dict != None:
-        #INFO: xarray dataset has prefix 1d_ and 2d_. 
+        #INFO: xarray dataset has prefix 1d_,  2d_ and ts_
         # Therefore, in order to match that, the prefix is added here for each variable  
         aggregation_function_dict = {f"{dimension}_{key}": value      
                                         for key, value in aggregation_function_dict.items()
