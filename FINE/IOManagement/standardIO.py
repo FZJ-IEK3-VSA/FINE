@@ -179,7 +179,7 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
     esM, esMData = readEnergySystemModelFromExcel(fileName)
 
     if esMData['cluster'] != {}:
-        esM.cluster(**esMData['cluster'])
+        esM.aggregateTemporally(**esMData['cluster'])
     esM.optimize(**esMData['optimize'])
 
     writeOptimizationOutputToExcel(esM, **esMData['output'])

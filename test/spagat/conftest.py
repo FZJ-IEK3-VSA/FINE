@@ -385,7 +385,7 @@ def sample_shapefile(scope="session"):
 
   df = pd.DataFrame({'region_ids': ['reg_01', 'reg_02']})
 
-  gdf = gpd.GeoDataFrame(df, geometry=test_geometries, crs='epsg:3035') 
+  gdf = gpd.GeoDataFrame(df, geometry=test_geometries, crs={'init': 'epsg:3035'}) 
 
   return gdf
 

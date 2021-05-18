@@ -116,7 +116,7 @@ def optimizeSimpleMyopic(esM,
 
         # Optimization
         if timeSeriesAggregation:
-            esM.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod)
+            esM.aggregateTemporally(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod)
 
         esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=timeSeriesAggregation, 
                         logFileName=logFileName, threads=threads, solver=solver, timeLimit=timeLimit, 

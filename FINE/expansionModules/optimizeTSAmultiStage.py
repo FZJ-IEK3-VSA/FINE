@@ -111,7 +111,7 @@ def optimizeTSAmultiStage(esM,
                     optimizationSpecs=optimizationSpecs, warmstart=warmstart)
         lowerBound = esM.objectiveValue
 
-    esM.cluster(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+    esM.aggregateTemporally(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
                     clusterMethod=clusterMethod, solver=solver, sortValues=True)
     
     esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=True, relaxIsBuiltBinary=False,
