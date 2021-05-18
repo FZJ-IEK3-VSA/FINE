@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 import geopandas as gpd 
 from sklearn.cluster import AgglomerativeClustering
-from dask.distributed import Client, progress
 
 import FINE.spagat.utils as spu
 import FINE.spagat.RE_representation_utils as RE_rep_utils
@@ -235,39 +234,14 @@ def represent_RE_technology(gridded_RE_ds,
 
     region_ids = rasterized_RE_ds['region_ids'].values 
 
-    results = []
-
-    client = Client(threads_per_worker=4, n_workers=len(region_ids))
-
-    futures = []
+    results =[]
     if n_timeSeries_perRegion==1:
         for region in region_ids:
-            future = client.submit(_simply_aggregate_RE_technology, region)
-            futures.append(future)
-
+            results.append(_simply_aggregate_RE_technology(region))
     else:
         for region in region_ids:
-            future = client.submit(_cluster_RE_technology, region)
-            futures.append(future)
-
-    results = client.gather(futures)  
+            results.append(_cluster_RE_technology(region))
+    
     represented_RE_ds =  xr.merge(results)
-
     
-    #TODO: the below code is using concurrent.futures. Delete this later
-    #import concurrent.futures
-    # if n_timeSeries_perRegion==1:
-    #     with concurrent.futures.ThreadPoolExecutor() as executor:
-    #         for region in region_ids:
-    #             results.append(executor.submit(_simply_aggregate_RE_technology, region))
-    
-    # else:
-    #     with concurrent.futures.ThreadPoolExecutor() as executor:
-    #         for region in region_ids:
-    #             results.append(executor.submit(_cluster_RE_technology, region))
-
-    # represented_RE_ds = xr.Dataset()
-    # for r in results: 
-    #     represented_RE_ds = xr.merge([represented_RE_ds, r.result()])
-   
     return represented_RE_ds 

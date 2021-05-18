@@ -20,7 +20,7 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init):
     #ASSERTION 
     assert len(aggregated_esM.locations) == 8
     # Additional check - if the optimization runs through
-    aggregated_esM.cluster(numberOfTypicalPeriods=2)
+    aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=2)
     aggregated_esM.optimize(timeSeriesAggregation=True, solver='glpk')
 
 
@@ -43,7 +43,7 @@ def test_spatial_aggregation_distance_based(multi_node_test_esM_init, agg_mode, 
     #ASSERTION 
     assert len(aggregated_esM.locations) == n_regions
     # Additional check - if the optimization runs through
-    aggregated_esM.cluster(numberOfTypicalPeriods=2)
+    aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=2)
     aggregated_esM.optimize(timeSeriesAggregation=True, solver='glpk')
     #TODO: add test to check if optimization summary is available
 
@@ -73,6 +73,6 @@ def test_spatial_aggregation_parameter_based(multi_node_test_esM_init,
     #ASSERTION 
     assert len(aggregated_esM.locations) == n_regions
     # Additional check - if the optimization runs through
-    aggregated_esM.cluster(numberOfTypicalPeriods=2)
+    aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=2)
     aggregated_esM.optimize(timeSeriesAggregation=True, solver='glpk')
     #TODO: add test to check if optimization summary is available 

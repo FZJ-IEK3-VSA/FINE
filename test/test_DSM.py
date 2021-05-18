@@ -68,7 +68,7 @@ def test_DSM(dsm_test_esM):
     pd.testing.assert_series_equal(generator_outputs.loc[('expensive', 'location')], expensive_with_dsm)
     pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand', 'location')], load_with_dsm)
 
-    esM_with.cluster(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)
+    esM_with.aggregateTemporally(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)
     esM_with.optimize(timeSeriesAggregation=True, solver='glpk')
 
     # benchmark generation and load with dsm
@@ -94,7 +94,7 @@ def test_DSM(dsm_test_esM):
     pd.testing.assert_series_equal(generator_outputs.loc[('expensive', 'location')], expensive_with_dsm)
     pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand', 'location')], load_with_dsm)
 
-    esM_with.cluster(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)
+    esM_with.aggregateTemporally(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)
     esM_with.optimize(timeSeriesAggregation=True, solver='glpk')
 
     # benchmark generation and load with dsm
