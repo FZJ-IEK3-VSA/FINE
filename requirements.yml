@@ -25,7 +25,6 @@ dependencies:
 - statsmodels
 - seaborn
 - conda-forge::rasterio
-- libiconv
 - pip:
     - tsam
     - wquantiles
