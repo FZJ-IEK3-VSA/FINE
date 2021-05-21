@@ -16,3 +16,4 @@ xarray
 wquantiles
 statsmodels
 seaborn
+r-essentials

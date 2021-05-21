@@ -1,4 +1,6 @@
 name: FINE
+channels:
+    - r
 dependencies:
 - python=3.6
 - conda-forge::gdal=2.4.1
@@ -25,6 +27,8 @@ dependencies:
 - statsmodels
 - seaborn
 - conda-forge::rasterio
+- r-essentials
+
 - pip:
     - tsam
     - wquantiles
