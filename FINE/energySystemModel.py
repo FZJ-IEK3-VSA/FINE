@@ -459,67 +459,93 @@ class EnergySystemModel:
         # (a) append the time series data from all components stored in all initialized modeling classes to a pandas
         #     DataFrame with unique column names
         # (b) thereby collect the weights which should be considered for each time series as well in a dictionary
-        timeSeriesData, weightDict = [], {}
-        for mdlName, mdl in self.componentModelingDict.items():
-            for compName, comp in mdl.componentsDict.items():
-                compTimeSeriesData, compWeightDict = comp.getDataForTimeSeriesAggregation()
-                if compTimeSeriesData is not None:
-                    timeSeriesData.append(compTimeSeriesData), weightDict.update(compWeightDict)
-        timeSeriesData = pd.concat(timeSeriesData, axis=1)
-        # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
-        timeSeriesData.index = pd.date_range('2050-01-01 00:30:00', periods=len(self.totalTimeSteps),
-                                             freq=(str(self.hoursPerTimeStep) + 'H'), tz='Europe/Berlin')
 
-        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
-        # call) depending on whether segmentation is activated or not
-        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
-        if segmentation:
-            clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
-                                                 segmentation=segmentation, noSegments=numberOfSegmentsPerPeriod,
-                                                 hoursPerPeriod=hoursPerPeriod,
-                                                 clusterMethod=clusterMethod, sortValues=sortValues,
-                                                 weightDict=weightDict, **kwargs)
-            # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-            # second index as segment number per typical period.
-            data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict).reset_index(level=2, drop=True)
-            # Get the length of each segment in each typical period with the first index as typical period number and
-            # the second index as segment number per typical period.
-            timeStepsPerSegment = pd.DataFrame.from_dict(clusterClass.segmentDurationDict)['Segment Duration']
-        else:
-            clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
-                                                 hoursPerPeriod=hoursPerPeriod,
-                                                 clusterMethod=clusterMethod, sortValues=sortValues,
-                                                 weightDict=weightDict, **kwargs)
-            # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-            # second index as time step number per typical period.
-            data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
-        # Store the respective clustered time series data in the associated components
-        # To-Do: Continue here
+        #############################################################################################################
+        # adjusted for perfect foresight approach
+        # periodsOrder and Occurrences now dictionaries
+        self.periodsOrder = {}
+        self.periodOccurrences = {}
+
+        # loop over all ips
+        for ip in self.investmentPeriods:
+
+            timeSeriesData, weightDict = [], {}
+            for mdlName, mdl in self.componentModelingDict.items():
+                for compName, comp in mdl.componentsDict.items():
+                    #compTimeSeriesData, compWeightDict = comp.getDataForTimeSeriesAggregation()
+                    compTimeSeriesData, compWeightDict = comp.getDataForTimeSeriesAggregation(ip)
+                    if compTimeSeriesData is not None:
+                        timeSeriesData.append(compTimeSeriesData), weightDict.update(compWeightDict)
+            timeSeriesData = pd.concat(timeSeriesData, axis=1)
+            # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
+            timeSeriesData.index = pd.date_range('2050-01-01 00:30:00', periods=len(self.totalTimeSteps),
+                                                freq=(str(self.hoursPerTimeStep) + 'H'), tz='Europe/Berlin')
+
+            # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
+            # call) depending on whether segmentation is activated or not
+            timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
+            if segmentation:
+                clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
+                                                    segmentation=segmentation, noSegments=numberOfSegmentsPerPeriod,
+                                                    hoursPerPeriod=hoursPerPeriod,
+                                                    clusterMethod=clusterMethod, sortValues=sortValues,
+                                                    weightDict=weightDict, **kwargs)
+                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
+                # second index as segment number per typical period.
+                data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict).reset_index(level=2, drop=True)
+                # Get the length of each segment in each typical period with the first index as typical period number and
+                # the second index as segment number per typical period.
+                timeStepsPerSegment = pd.DataFrame.from_dict(clusterClass.segmentDurationDict)['Segment Duration']
+            else:
+                clusterClass = TimeSeriesAggregation(timeSeries=timeSeriesData, noTypicalPeriods=numberOfTypicalPeriods,
+                                                    hoursPerPeriod=hoursPerPeriod,
+                                                    clusterMethod=clusterMethod, sortValues=sortValues,
+                                                    weightDict=weightDict, **kwargs)
+                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
+                # second index as time step number per typical period.
+                data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+            # Store the respective clustered time series data in the associated components
+            # To-Do: Continue here
+            for mdlName, mdl in self.componentModelingDict.items(): ### for-loop for ip
+                for compName, comp in mdl.componentsDict.items():
+                    #comp.setAggregatedTimeSeriesData(data)
+                    comp.setAggregatedTimeSeriesData(data, ip)
+
+            # Store time series aggregation parameters in class instance
+            if storeTSAinstance:
+                self.tsaInstance = clusterClass
+            self.typicalPeriods = clusterClass.clusterPeriodIdx
+            self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
+            self.segmentation = segmentation
+            if segmentation:
+                self.segmentsPerPeriod = list(range(numberOfSegmentsPerPeriod))
+                self.timeStepsPerSegment = timeStepsPerSegment
+                self.hoursPerSegment = self.hoursPerTimeStep * self.timeStepsPerSegment
+                # Define start time hour of each segment in each typical period
+                segmentStartTime = self.hoursPerSegment.groupby(level=0).cumsum()
+                segmentStartTime.index = segmentStartTime.index.set_levels(segmentStartTime.index.levels[1] + 1, level=1)
+                lvl0, lvl1 = segmentStartTime.index.levels
+                segmentStartTime = segmentStartTime.reindex(pd.MultiIndex.from_product([lvl0, [0, *lvl1]]))
+                segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
+                self.segmentStartTime = segmentStartTime
+            self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
+            self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
+            self.periodsOrder[ip] = clusterClass.clusterOrder
+            self.periodOccurrences[ip] = [(self.periodsOrder[ip] == tp).sum() for tp in self.typicalPeriods]
+
+        # Ask Max if this new set makes sense
+        # Ask Max if SOCmin and SOCmax should be dependent on ip as well. (see line 901 in storage.py)
+
+        self.interPeriodTimeSteps = ((ip, t_inter) for ip in self.investmentPeriods for t_inter in range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
+        self.numberOfInterPeriodTimeSteps = int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
+
+        #self.testSet = ((ip, p) for ip in self.investmentPeriods for p in range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
+
+        ################################################################################################################
+
         for mdlName, mdl in self.componentModelingDict.items(): ### for-loop for ip
             for compName, comp in mdl.componentsDict.items():
-                comp.setAggregatedTimeSeriesData(data)
-
-        # Store time series aggregation parameters in class instance
-        if storeTSAinstance:
-            self.tsaInstance = clusterClass
-        self.typicalPeriods = clusterClass.clusterPeriodIdx
-        self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
-        self.segmentation = segmentation
-        if segmentation:
-            self.segmentsPerPeriod = list(range(numberOfSegmentsPerPeriod))
-            self.timeStepsPerSegment = timeStepsPerSegment
-            self.hoursPerSegment = self.hoursPerTimeStep * self.timeStepsPerSegment
-            # Define start time hour of each segment in each typical period
-            segmentStartTime = self.hoursPerSegment.groupby(level=0).cumsum()
-            segmentStartTime.index = segmentStartTime.index.set_levels(segmentStartTime.index.levels[1] + 1, level=1)
-            lvl0, lvl1 = segmentStartTime.index.levels
-            segmentStartTime = segmentStartTime.reindex(pd.MultiIndex.from_product([lvl0, [0, *lvl1]]))
-            segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
-            self.segmentStartTime = segmentStartTime
-        self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
-        self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
-        self.periodsOrder = clusterClass.clusterOrder
-        self.periodOccurrences = [(self.periodsOrder == tp).sum() for tp in self.typicalPeriods]
+                comp.checkAggregatedTimeSeriesData()
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
@@ -570,8 +596,16 @@ class EnergySystemModel:
             self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) /
                                                         len(self.timeStepsPerPeriod)) + 1))
             self.periods = [0]
-            self.periodsOrder = [0]
-            self.periodOccurrences = [1]
+            # self.periodsOrder = [0]
+            # self.periodOccurrences = [1]
+            # now as dictionary
+            self.periodsOrder = {}
+            self.periodOccurrences = {}
+
+            # fill dictionaries with zeros or ones, if no TSA
+            for ip in self.investmentPeriods:
+                self.periodsOrder[ip] = [0]
+                self.periodOccurrences[ip] = [1]
 
             # Define sets
             def initTimeSet(pyM):
@@ -597,6 +631,10 @@ class EnergySystemModel:
 
                 def initInterTimeStepsSet(pyM):
                     return ((ip, p, t) for ip in self.investmentPeriods for p in self.typicalPeriods for t in range(len(self.timeStepsPerPeriod) + 1))
+
+                def initInvestSet(pyM):
+                    return(ip for ip in self.investmentPeriods)
+
             else:
                 utils.output('Time series aggregation specifications:\n'
                              'Number of typical periods:' + str(len(self.typicalPeriods)) +
@@ -610,6 +648,9 @@ class EnergySystemModel:
 
                 def initInterTimeStepsSet(pyM):
                     return ((ip, p, t) for ip in self.investmentPeriods for p in self.typicalPeriods for t in range(len(self.segmentsPerPeriod) + 1))
+
+                def initInvestSet(pyM):
+                    return(ip for ip in self.investmentPeriods)
 
         # Initialize sets
         pyM.timeSet = pyomo.Set(dimen=3, initialize=initTimeSet)

@@ -402,7 +402,7 @@ class Component(metaclass=ABCMeta):
             esM.componentModelingDict.update({mdl: self.modelingClass()})
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
-    def prepareTSAInput(self, rateFix, rateMax, rateName, rateWeight, weightDict, data):
+    def prepareTSAInput(self, rateFix, rateMax, rateName, rateWeight, weightDict, data, ip):
         """
         Format the time series data of a component to fit the requirements of the time series aggregation package and
         return a list of formatted data.
@@ -425,9 +425,24 @@ class Component(metaclass=ABCMeta):
         :param data: list to which the formatted data is added
         :type data: list of Pandas DataFrames
 
+        :param ip: investment period of transformation path analysis (perfect foresight).
+        :type ip: int
+
         :return: data
         :rtype: Pandas DataFrame
         """
+
+        # rateFix/rateMax are either dictionaries for perfect foresight or None
+        if rateFix is None:
+            pass
+        else:
+            rateFix = rateFix[ip]
+        
+        if rateMax is None:
+            pass
+        else:
+            rateMax = rateMax[ip]
+
         data_ = rateFix if rateFix is not None else rateMax
         if data_ is not None:
             data_ = data_.copy()
@@ -436,7 +451,7 @@ class Component(metaclass=ABCMeta):
             weightDict.update({id: rateWeight for id in uniqueIdentifiers}), data.append(data_)
         return weightDict, data
 
-    def getTSAOutput(self, rate, rateName, data):
+    def getTSAOutput(self, rate, rateName, data, ip):
         """
         Return a reformatted time series data after applying time series aggregation, if the original time series
         data is not None.
@@ -450,13 +465,16 @@ class Component(metaclass=ABCMeta):
         :param data: Pandas DataFrame with the clustered time series data of all components in the energy system
         :type data: Pandas DataFrame
 
+        :param ip: investment period of transformation path analysis (perfect foresight).
+        :type ip: int
+
         :return: reformatted data or None
         :rtype: Pandas DataFrame
         """
         if rate is not None:
-            uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
+            uniqueIdentifiers = [self.name + rateName + loc for loc in rate[ip].columns]
             data_ = data[uniqueIdentifiers].copy()
-            data_.rename(columns={self.name + rateName + loc: loc for loc in rate.columns}, inplace=True)
+            data_.rename(columns={self.name + rateName + loc: loc for loc in rate[ip].columns}, inplace=True)
             return data_
         else:
             return None
@@ -474,21 +492,37 @@ class Component(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def getDataForTimeSeriesAggregation(self):
+    def getDataForTimeSeriesAggregation(self,ip):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Get
         all time series data of a component for time series aggregation.
+
+        :param ip: investment period of transformation path analysis (perfect foresight).
+        :type ip: int
         """
         raise NotImplementedError
 
     @abstractmethod
-    def setAggregatedTimeSeriesData(self, data):
+    def setAggregatedTimeSeriesData(self, data, ip):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Set
         aggregated time series data after applying time series aggregation.
 
         :param data: time series data
         :type data: Pandas DataFrame
+        
+        :param ip: investment period of transformation path analysis (perfect foresight).
+        :type ip: int
+        """
+        raise NotImplementedError
+    
+    # new method for TimeSeriesAggregation with perfect foresight
+    @abstractmethod
+    def checkAggregatedTimeSeriesData(self):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Check
+        aggregated time series data after applying time series aggregation. If all entries of dictionary are None
+        the parameter itself is set to None.
         """
         raise NotImplementedError
 
@@ -1121,7 +1155,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         def yearlyFullLoadHoursMinConstraint(pyM, loc, compName):
             full_load_hours = (
-                sum(opVar[loc, compName, ip, p, t] * esM.periodOccurrences[p] for ip, p, t in pyM.timeSet) / esM.numberOfYears
+                sum(opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p] for ip, p, t in pyM.timeSet) / esM.numberOfYears
             )
             return full_load_hours >= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMin[loc]
 
@@ -1145,7 +1179,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName):
             full_load_hours = (
-                sum(opVar[loc, compName, ip, p, t] * esM.periodOccurrences[p] for ip, p, t in pyM.timeSet) / esM.numberOfYears
+                sum(opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p] for ip, p, t in pyM.timeSet) / esM.numberOfYears
             )
             return full_load_hours <= capVar[loc, compName] * compDict[compName].yearlyFullLoadHoursMax[loc]
 
@@ -1299,14 +1333,14 @@ class ComponentModel(metaclass=ABCMeta):
             # return (factor * sum(var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
             #                      for ip, p, t in pyM.timeSet)/esM.numberOfYears)
             # new with timeSet for current ip
-            return (factor * sum(var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
+            return (factor * sum(var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
                                  for p, t in timeSet_pt)/esM.numberOfYears)
         else:
             # old code:
             # return (factor * sum(var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
             #                      for ip, p, t in pyM.timeSet)/esM.numberOfYears)
             # new with timeSet for current ip
-            return (factor * sum(var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
+            return (factor * sum(var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
                                  for p, t in timeSet_pt)/esM.numberOfYears)
 
     def getLocEconomicsTI(self, pyM, factorNames, varName, loc, compName, divisorName='', QPfactorNames=[], QPdivisorNames=[], getOptValue=False):
@@ -1506,14 +1540,14 @@ class ComponentModel(metaclass=ABCMeta):
                 # return sum(factor[p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
                 #                        for ip, p, t in pyM.timeSet)/esM.numberOfYears
                 # new with timeSet for current ip
-                return sum(factor[p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
+                return sum(factor[p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
                                        for p, t in timeSet_pt)/esM.numberOfYears
             else:
                 # old code
                 # return sum(factor[p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
                 #                        for ip, p, t in pyM.timeSet)/esM.numberOfYears
                 # new with timeSet for current ip
-                return sum(factor[p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
+                return sum(factor[p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
                                        for p, t in timeSet_pt)/esM.numberOfYears
         else:
             return 0

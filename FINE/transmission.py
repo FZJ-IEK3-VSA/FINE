@@ -321,22 +321,39 @@ class Transmission(Component):
         self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
         self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
 
-    def getDataForTimeSeriesAggregation(self):
-        """ Function for getting the required data if a time series aggregation is requested. """
+    def getDataForTimeSeriesAggregation(self,ip):
+        """ Function for getting the required data if a time series aggregation is requested. 
+        :param ip: investment period of transformation path analysis (perfect foresight).
+        :type ip: int
+        """
         weightDict, data = {}, []
         weightDict, data = self.prepareTSAInput(self.fullOperationRateFix, self.fullOperationRateMax,
-                                                '_operationRate_', self.tsaWeight, weightDict, data)
+                                                '_operationRate_', self.tsaWeight, weightDict, data, ip)
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
-    def setAggregatedTimeSeriesData(self, data):
+    def setAggregatedTimeSeriesData(self, data,ip):
         """
         Function for determining the aggregated maximum rate and the aggregated fixed operation rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the conversion component
         :type data: Pandas DataFrame
+
+        :param ip: investment period of transformation path analysis (perfect foresight).
+        :type ip: int
         """
-        self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
-        self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
+        self.aggregatedOperationRateFix[ip] = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data, ip)
+        self.aggregatedOperationRateMax[ip] = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data, ip)
+
+    def checkAggregatedTimeSeriesData(self):
+        """
+        Check aggregated time series data after applying time series aggregation. If all entries of dictionary are None
+        the parameter itself is set to None.
+        """
+
+        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateFix.values()):
+            self.aggregatedOperationRateFix=None
+        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateMax.values()):
+            self.aggregatedOperationRateMax=None
 
 
 class TransmissionModel(ComponentModel):
@@ -593,9 +610,9 @@ class TransmissionModel(ComponentModel):
                 optSummaryBasic.loc[compName, cost] = (data).values
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder[ip],
                                                 esM=esM)
-        optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', esM.periodsOrder,
+        optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', esM.periodsOrder[ip],
                                                  compDict=compDict, esM=esM)
         self.operationVariablesOptimum = optVal_
 

@@ -21,6 +21,7 @@
 
 # 1. Import required packages and set input data path
 
+from numpy.core.numeric import True_
 import FINE as fn
 import numpy as np
 import pandas as pd
@@ -88,10 +89,10 @@ def test_miniSystem():
 
     # 8. Optimize energy system model
     
-    
-    #esM.cluster(numberOfTypicalPeriods=4, numberOfTimeStepsPerPeriod=1)
+    # Time Series Aggregation
+    esM.cluster(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=2)
 
-    esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
+    esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
 
     # test if solve fits to the original results
