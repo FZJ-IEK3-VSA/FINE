@@ -74,13 +74,20 @@ def test_perform_distance_based_grouping(mode):
           os.remove(expected_file)
      
 
-@pytest.mark.parametrize("var_category_weights, var_weights, expected_region_groups", 
-                        [ (None, None, ['02_reg', '03_reg'] ),
-                          ({'1d_vars' : 10}, None,  ['01_reg', '02_reg'] ), 
-                          (None, {'transmissionDistance' : 10}, ['01_reg', '03_reg'] )
+@pytest.mark.parametrize("weights, expected_region_groups", 
+                        [ 
+                             # no weights 
+                             (None, ['02_reg', '03_reg'] ),
+
+                              # particular components, particular variables
+                         ({'components' : {'AC cables' : 5,  'PV' : 10}, 'variables' : ['capacityMax'] }, 
+                              ['01_reg', '02_reg'] ),
+
+                              # particular component, all variables 
+                         ({'components' : {'AC cables' : 10}, 'variables' : 'all' }, 
+                              ['01_reg', '02_reg'] )
                         ])
-def test_perform_parameter_based_grouping(var_category_weights, 
-                                        var_weights,
+def test_perform_parameter_based_grouping(weights,
                                         expected_region_groups,
                                         sds_for_parameter_based_grouping): 
      
@@ -89,8 +96,7 @@ def test_perform_parameter_based_grouping(var_category_weights,
      #FUNCTION CALL
      output_dict = spg.perform_parameter_based_grouping(sds_for_parameter_based_grouping, 
                                                        dimension_description='space',
-                                                       var_category_weights=var_category_weights,
-                                                       var_weights=var_weights)  
+                                                       weights=weights)  
      
      #ASSERTION
      for key, value in output_dict.get(2).items():   

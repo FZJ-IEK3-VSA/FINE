@@ -493,16 +493,14 @@ class EnergySystemModel:
 
             dimension_description = kwargs.get('dimension_description', 'space') 
             linkage = kwargs.get('linkage', 'complete') 
-            var_category_weights = kwargs.get('var_category_weights', None) 
-            var_weights = kwargs.get('var_weights', None) 
+            weights = kwargs.get('weights', None) 
 
             print(f'Performing parameter-based grouping on the regions.')
 
             aggregation_dict = spg.perform_parameter_based_grouping(sds, 
                                                                     dimension_description,
                                                                     linkage,
-                                                                    var_category_weights,
-                                                                    var_weights)
+                                                                    weights)
         
         #STEP 5. Representation of the new regions
         if grouping_mode == 'string_based':

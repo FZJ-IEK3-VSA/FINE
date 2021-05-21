@@ -115,50 +115,24 @@ def sds_for_connectivity():
 
 @pytest.fixture()
 def data_for_distance_measure():  
+  ## ts dict            
+  matrix_ts = np.array([ [1, 1], [2, 2], [3, 3] ])
 
-  test_ts_dict = {}            
+  test_ts_dict = {} 
+  test_ts_dict['ts_operationRateMax'] = {'Source, wind turbine' : matrix_ts, 'Source, PV' : matrix_ts}
+  test_ts_dict['ts_operationRateFix'] = {'Sink, electricity demand' : matrix_ts, 'Sink, hydrogen demand' : matrix_ts}
 
-  var_ts_1_c2_matrix = np.array([ [1, 1],
-                                  [2, 2],
-                                  [3, 3] ])
-
-  var_ts_1_c4_matrix = np.array([ [1, 1],
-                                  [2, 2],
-                                  [3, 3]])
-
-  test_ts_dict['ts_operationRateMax'] = np.concatenate((var_ts_1_c2_matrix, var_ts_1_c4_matrix), axis=1)
-
-  var_ts_2_c3_matrix = np.array([ [1, 1],
-                                  [2, 2],
-                                  [3, 3] ])
-
-  var_ts_2_c4_matrix = np.array([ [1, 1],
-                                  [2, 2],
-                                  [3, 3]])
-
-  test_ts_dict['ts_operationRateFix'] = np.concatenate((var_ts_2_c3_matrix, var_ts_2_c4_matrix), axis=1)
+  array_1d_2d = np.array([1, 2, 3])
 
   ## 1d dict
-  test_1d_dict = {}
-
-  test_1d_dict['1d_capacityMax'] = np.array([ [1, 1],
-                                      [2, 2],
-                                      [3, 3]])
-
-  test_1d_dict['1d_capacityFix'] = np.array([ [1, 1],
-                                      [2, 2],
-                                      [3, 3]])
+  test_1d_dict = {}            
+  test_1d_dict['1d_capacityMax'] = {'Source, wind turbine' : array_1d_2d, 'Source, PV' : array_1d_2d}
+  test_1d_dict['1d_capacityFix'] = {'Sink, electricity demand' : array_1d_2d, 'Sink, hydrogen demand' : array_1d_2d}
 
   ## 2d dict 
   test_2d_dict = {}
-
-  var_2d_1_c1_array = np.array([1, 2, 3])
-  var_2d_1_c3_array = np.array([1, 2, 3])
-  test_2d_dict['2d_distance'] = {0: var_2d_1_c1_array, 2: var_2d_1_c3_array}
-
-  var_2d_2_c3_array = np.array([1, 2, 3])
-  var_2d_2_c4_array = np.array([1, 2, 3])
-  test_2d_dict['2d_losses'] = {2: var_2d_2_c3_array, 3: var_2d_2_c4_array}    
+  test_2d_dict['2d_distance'] = {'Transmission, AC cables': array_1d_2d, 'Transmission, DC cables': array_1d_2d}
+  test_2d_dict['2d_losses'] = {'Transmission, AC cables': array_1d_2d, 'Transmission, DC cables': array_1d_2d}    
 
   return namedtuple("test_ts_1d_2s_dicts", "test_ts_dict test_1d_dict test_2d_dict")(test_ts_dict, test_1d_dict, test_2d_dict)  
 
@@ -166,7 +140,7 @@ def data_for_distance_measure():
 @pytest.fixture()
 def sds_for_parameter_based_grouping(): 
 
-  component_list = ['c1','c2', 'c3']  
+  component_list = ['Source, wind turbine', 'Transmission, AC cables', 'Source, PV']  
   space_list = ['01_reg','02_reg','03_reg']
   TimeStep_list = ['T0','T1']
   Period_list = [0]
@@ -191,13 +165,11 @@ def sds_for_parameter_based_grouping():
                             dims=['component', 'space'])
   
   ## 2d variable data
-  transmissionDistance = np.array([ [[0, 0.2, 0.7], 
-                                    [0.2, 0, 0.2], 
-                                    [0.7, 0.2, 0]],
-                                  [[0, 0.2, 0.7], 
-                                    [0.2, 0, 0.2], 
-                                    [0.7, 0.2, 0]],
-                      [[np.nan]*3 for i in range(3)]])
+  transmissionDistance = np.array([ [[np.nan]*3 for i in range(3)],
+                                    [[0, 0.2, 0.7], 
+                                      [0.2, 0, 0.2], 
+                                      [0.7, 0.2, 0]],
+                                  [[np.nan]*3 for i in range(3)]])
 
   transmissionDistance = xr.DataArray(transmissionDistance, 
                                     coords=[component_list, space_list, space_list], 

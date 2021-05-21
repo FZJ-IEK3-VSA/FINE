@@ -419,8 +419,7 @@ def perform_distance_based_grouping(sds,
 def perform_parameter_based_grouping(sds,
                                     dimension_description='space', 
                                     linkage='complete',
-                                    var_category_weights=None,
-                                    var_weights=None):
+                                    weights=None):
     """Groups regions based on the Energy System Model instance's data. 
 
     Parameters
@@ -432,15 +431,20 @@ def perform_parameter_based_grouping(sds,
     linkage : str, optional (default='complete')
         The linkage criterion to be used with agglomerative hierarchical clustering. 
         Can be 'complete', 'single', etc. Refer to Sklearn's documentation for more info.
-    var_category_weights : None/Dict, optional (default=None)
-        A dictionary with weights for different variable categories i.e., ts, 1d and 2d.
-        These weights are used while calculating custom distance.  
-        Template: {'ts_vars' : 1, '1d_vars' : 1, '2d_vars' : 1}
-        A subset of these can be provided too, rest are considered to be 1 
-    var_weights : None/Dict, optional (default=None)
-        A dictionay with weights for different variables. For the variables not found 
-        in dictionary, a default weight of 1 is assigned.
-        These weights are used while calculating custom distance.   
+    weights : Dict 
+        Through the `weights` dictionary, one can assign weights to variable-component pairs. 
+        It must be in one of the formats:
+        - If you want to specify weights for particular variables and particular corresponding components:
+            { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
+        - If you want to specify weights for particular variables, but all corresponding components:
+            { 'components' : {'all' : <weight>}, 'variables' : List[<variable_name>] }
+        - If you want to specify weights for all variables, but particular corresponding components:
+            { 'components' : Dict[<component_name>, <weight>}], 'variables' : 'all' }
+        
+        <weight> can be of type int/float 
+
+        When calculating distance corresonding to each variable-component pair, these specified weights are 
+        considered, otherwise taken as 1.  
 
     Returns
     -------
@@ -484,7 +488,7 @@ def perform_parameter_based_grouping(sds,
     dict_ts, dict_1d, dict_2d = gu.preprocess_dataset(sds) 
 
     #STEP 2. Calculate the overall distance between each region pair (uses custom distance)
-    precomputed_dist_matrix = gu.get_custom_distance_matrix(dict_ts, dict_1d, dict_2d, n_regions, var_category_weights, var_weights)
+    precomputed_dist_matrix = gu.get_custom_distance_matrix(dict_ts, dict_1d, dict_2d, n_regions, weights)
     
     #STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not. 
     connectMatrix = gu.get_connectivity_matrix(sds)
