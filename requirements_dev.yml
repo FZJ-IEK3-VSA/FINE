@@ -1,9 +1,7 @@
 name: FINE
 
-channels:
-  - conda-forge
-
 dependencies:
   - pytest
   - pytest-cov
   - pylint
+  - conda-forge::nbval
