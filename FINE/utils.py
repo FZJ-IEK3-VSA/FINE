@@ -1,5 +1,5 @@
 """
-Last edited: February 21, 2020
+Last edited: March 02, 2021
 
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
@@ -64,7 +64,7 @@ def isEnergySystemModelInstance(esM):
 
 
 def checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numberOfTimeSteps, hoursPerTimeStep,
-                                costUnit, lengthUnit):
+                                costUnit, lengthUnit, balanceLimit):
     """ Check input arguments of an EnergySystemModel instance for value/type correctness. """
 
     # Locations and commodities have to be sets
@@ -84,6 +84,14 @@ def checkEnergySystemModelInput(locations, commodities, commodityUnitsDict, numb
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
 
+    # balanceLimit has to be DataFrame with locations as columns or Series, if valid for whole model
+    if balanceLimit is not None:
+        if not type(balanceLimit) == pd.DataFrame and not type(balanceLimit) == pd.Series:
+            raise TypeError("The balanceLimit input argument has to be a pandas.DataFrame or a pd.Series.")
+        if type(balanceLimit) == pd.DataFrame and set(balanceLimit.columns) != locations:
+            raise ValueError('Location indices in the balanceLimit do not match the input locations.\n' +
+                             'balanceLimit columns: ' + str(set(balanceLimit.columns)) + '\n' +
+                             'Input regions: ' + str(locations))
 
 def checkTimeUnit(timeUnit):
     """
@@ -99,9 +107,7 @@ def checkTimeSeriesIndex(esM, data):
     Check if the row-indices of the data match the time indices of the energy system model.
     """
     if list(data.index) != esM.totalTimeSteps:
-        raise ValueError('Time indices do not match the one of the specified energy system model.\n' +
-                         'Data indices: ' + str(set(data.index)) + '\n' +
-                         'Energy system model time steps: ' + str(esM._timeSteps))
+        raise ValueError('Time indices do not match the one of the specified energy system model.')
 
 
 def checkRegionalColumnTitles(esM, data):
@@ -527,21 +533,25 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
             elif dimension == '2dim':
                 data = operationTimeSeries.copy().sum()
                 data.loc[:] = 1
-                locationalEligibility = data
-                return locationalEligibility
+                return data
             else:
                 raise ValueError("The dimension parameter has to be either \'1dim\' or \'2dim\' ")
-        elif capacityFix is None and capacityMax is None and isBuiltFix is None:
-            # If no information is given all values are set to 1
+        elif (capacityFix is None or isinstance(capacityFix,float) or isinstance(capacityFix,int)) \
+            and (capacityMax is None or isinstance(capacityMax,float) or isinstance(capacityMax,int)) \
+            and (isBuiltFix is None or isinstance(isBuiltFix,int)):
+            # If no information is given, or all information is given as float or integer, all values are set to 1
             if dimension == '1dim':
                 return pd.Series([1 for loc in esM.locations], index=esM.locations)
             else:
                 keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations if loc1 != loc2}
-                return pd.Series([1 for key in keys], index=keys)
-        elif isBuiltFix is not None:
+                data = pd.Series([1 for key in keys], index=keys)
+                data.sort_index(inplace=True)
+                return data
+        elif isBuiltFix is not None and isinstance(isBuiltFix,pd.Series):
             # If the isBuiltFix is not empty, the eligibility is set based on the fixed capacity
             data = isBuiltFix.copy()
             data[data > 0] = 1
+            data.sort_index(inplace=True)
             return data
         else:
             # If the fixCapacity is not empty, the eligibility is set based on the fixed capacity
@@ -550,7 +560,7 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
             return data
 
 
-def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimension='1dim'):
+def checkAndSetTimeSeries(esM, name, operationTimeSeries, locationalEligibility, dimension='1dim'):
     if operationTimeSeries is not None:
         if not isinstance(operationTimeSeries, pd.DataFrame):
             if len(esM.locations) == 1:
@@ -558,49 +568,57 @@ def checkAndSetTimeSeries(esM, operationTimeSeries, locationalEligibility, dimen
                     operationTimeSeries = pd.DataFrame(operationTimeSeries.values, index=operationTimeSeries.index,
                                                        columns=list(esM.locations))
                 else:
-                    raise TypeError('The operation time series data type has to be a pandas DataFrame or Series')
+                    raise TypeError('Type error in ' + name + ' detected.\n' +
+                            'operationTimeSeries parameters have to be a pandas DataFrame.')
             else:
-                raise TypeError('The operation time series data type has to be a pandas DataFrame')
+                raise TypeError('Type error in ' + name + ' detected.\n' +
+                            'operationTimeSeries parameters have to be a pandas DataFrame.')
         checkTimeSeriesIndex(esM, operationTimeSeries)
 
         if dimension == '1dim':
             checkRegionalColumnTitles(esM, operationTimeSeries)
 
-            if locationalEligibility is not None and operationTimeSeries is not None:
+            if locationalEligibility is not None:
                 # Check if given capacities indicate the same eligibility
                 data = operationTimeSeries.copy().sum()
                 data[data > 0] = 1
                 if (data > locationalEligibility).any().any():
-                    raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
+                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
                                      ' eligibilities.')
         elif dimension == '2dim':
             keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations}
             columns = set(operationTimeSeries.columns)
             if not columns <= keys:
-                raise ValueError('False column index detected in time series. ' +
+                raise ValueError('False column index detected in' + name + ' time series. ' +
                                  'The indicies have to be in the format \'loc1_loc2\' ' +
                                  'with loc1 and loc2 being locations in the energy system model.')
 
             for loc1 in esM.locations:
                 for loc2 in esM.locations:
                     if loc1 + '_' + loc2 in columns and not loc2 + '_' + loc1 in columns:
-                        raise ValueError('Missing data in time series DataFrame of a location connecting \n' +
+                        raise ValueError('Missing data in ' + name + ' time series DataFrame of a location connecting \n' +
                                          'component. If the flow is specified from loc1 to loc2, \n' +
                                          'then it must also be specified from loc2 to loc1.\n')
 
-            if locationalEligibility is not None and operationTimeSeries is not None:
+            if locationalEligibility is not None:
                 # Check if given capacities indicate the same eligibility
                 keys = set(locationalEligibility.index)
                 if not columns == keys:
-                    raise ValueError('The locationalEligibility and operationTimeSeries parameters indicate different' +
+                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
                                      ' eligibilities.')
 
-        if (operationTimeSeries < 0).any().any():
-            raise ValueError('operationTimeSeries values smaller than 0 were detected.')
+        _operationTimeSeries = operationTimeSeries.astype(float)
+        if _operationTimeSeries.isnull().any().any():
+            raise ValueError('Value error in ' + name + ' detected.\n' +
+                            'An operationTimeSeries parameter contains values which are not numbers.')
+        if (_operationTimeSeries < 0).any().any():
+            raise ValueError('Value error in ' + name + ' detected.\n' +
+                            'All entries in operationTimeSeries parameter series have to be positive.')
 
-        operationTimeSeries = operationTimeSeries.copy()
-        operationTimeSeries["Period"], operationTimeSeries["TimeStep"] = 0, operationTimeSeries.index
-        return operationTimeSeries.set_index(['Period', 'TimeStep'])
+        _operationTimeSeries = _operationTimeSeries.copy()		
+        _operationTimeSeries["Period"], _operationTimeSeries["TimeStep"] = 0, _operationTimeSeries.index		
+        return _operationTimeSeries.set_index(['Period', 'TimeStep'])
+            
     else:
         return None
 
@@ -669,65 +687,42 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     return _data
 
 
-def checkAndSetTimeSeriesCostParameter(esM, name, data, locationalEligibility, dimension = 1):
-    if data is not None:
-        if not isinstance(data, pd.DataFrame):
+def checkAndSetTimeSeriesConversionFactors(esM, commodityConversionFactorsTimeSeries, locationalEligibility):
+    if commodityConversionFactorsTimeSeries is not None:
+        if not isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
             if len(esM.locations) == 1:
-                if isinstance(data, pd.Series):
-                    data = pd.DataFrame(data.values, index=data.index, columns=list(esM.locations))
+                if isinstance(commodityConversionFactorsTimeSeries, pd.Series):
+                    fullCommodityConversionFactorsTimeSeries = pd.DataFrame(commodityConversionFactorsTimeSeries.values, index=commodityConversionFactorsTimeSeries.index,
+                                                                        columns=list(esM.locations))
                 else:
-                    raise TypeError('Type error in ' + name + ' detected.\n' +
-                            'Economic time series parameters have to be a pandas DataFrame.')
+                    raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame or Series')
             else:
-                raise TypeError('Type error in ' + name + ' detected.\n' +
-                            'Economic time series parameters have to be a pandas DataFrame.')
-        checkTimeSeriesIndex(esM, data)
+                raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame')
+        elif isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
+            fullCommodityConversionFactorsTimeSeries = commodityConversionFactorsTimeSeries 
+        else:
+            raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame or Series')
 
-        if dimension == '1dim':
-            checkRegionalColumnTitles(esM, data)
+        checkTimeSeriesIndex(esM, fullCommodityConversionFactorsTimeSeries)
 
-            if locationalEligibility is not None and data is not None:
-                auxiliary = data.copy().sum()
-                auxiliary[auxiliary > 0] = 1
-                if (auxiliary > locationalEligibility).any().any():
-                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
-                                     ' eligibilities.')
-        elif dimension == '2dim':
-            keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations}
-            columns = set(data.columns)
-            if not columns <= keys:
-                raise ValueError('False column index detected in ' + name + ' time series. ' +
-                                 'The indicies have to be in the format \'loc1_loc2\' ' +
-                                 'with loc1 and loc2 being locations in the energy system model.')
+        checkRegionalColumnTitles(esM, fullCommodityConversionFactorsTimeSeries)
 
-            for loc1 in esM.locations:
-                for loc2 in esM.locations:
-                    if loc1 + '_' + loc2 in columns and not loc2 + '_' + loc1 in columns:
-                        raise ValueError('Missing data in ' + name + ' time series DataFrame of a location \n' +
-                                         'connecting component. If the flow is specified from loc1 to loc2, \n' +
-                                         'then it must also be specified from loc2 to loc1.\n')
+        if locationalEligibility is not None and fullCommodityConversionFactorsTimeSeries is not None:
+            # Check if given conversion factors indicate the same eligibility
+            data = fullCommodityConversionFactorsTimeSeries.copy().sum().abs()
+            data[data > 0] = 1
+            if (data.sort_index() > locationalEligibility.sort_index()).any().any():
+                warnings.warn('The locationalEligibility and commodityConversionFactorsTimeSeries parameters '
+                                'indicate different eligibilities.')
 
-            if locationalEligibility is not None and data is not None:
-                keys = set(locationalEligibility.index)
-                if not columns == keys:
-                    raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
-                                     ' eligibilities.')
+        fullCommodityConversionFactorsTimeSeries = fullCommodityConversionFactorsTimeSeries.copy()
+        fullCommodityConversionFactorsTimeSeries["Period"], fullCommodityConversionFactorsTimeSeries["TimeStep"] = 0, fullCommodityConversionFactorsTimeSeries.index
 
-        _data = data.astype(float)
-        if _data.isnull().any().any():
-            raise ValueError('Value error in ' + name + ' detected.\n' +
-                             'An economic parameter contains values which are not numbers.')
-        if (_data < 0).any().any():
-            raise ValueError('Value error in ' + name + ' detected.\n' +
-                             'All entries in economic parameter series have to be positive.\n' +
-                             'Time series containing positive and negative values can be split into \n' +
-                             'seperate time series with absolute values for costs and revenues.')
-        _data = _data.copy()		
-        _data["Period"], _data["TimeStep"] = 0, _data.index		
-        return _data.set_index(['Period', 'TimeStep'])
+        return fullCommodityConversionFactorsTimeSeries.set_index(['Period', 'TimeStep'])
 
     else:
         return None
+
 
 def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalEligibility):
     if data is None:
@@ -922,6 +917,9 @@ def setOptimalComponentVariables(optVal, varType, compDict):
                 setattr(comp, varType, None)
 
 def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
+    """
+    Change format of 2-dimensional data (for transmission components). 
+    """
     if data is not None and isinstance(data, pd.DataFrame):
         if mapC is None:
             index, data_ = [], []
@@ -934,13 +932,25 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                     else:
                         if data[loc1][loc2] >= 0:
                             index.append(loc1 + '_' + loc2), data_.append(data[loc1][loc2])
-            return pd.Series(data_, index=index)
+            data_ = pd.Series(data_, index=index)
+            data_.sort_index(inplace=True)
+            return data_
         else:
-            return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+            data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+            data_.sort_index(inplace=True)
+            return data_
     elif isinstance(data, float) and locationalEligibility is not None:
-        data2 = data*locationalEligibility
-        return data2
-    else:
+        data_ = data*locationalEligibility
+        data_.sort_index(inplace=True)
+        return data_
+    elif isinstance(data, int) and locationalEligibility is not None:
+        data_ = data*locationalEligibility
+        data_.sort_index(inplace=True)
+        return data_    
+    elif isinstance(data, pd.Series):
+        data_ = data.sort_index()
+        return data_
+    else: 
         return data
 
 def map2dimData(data, mapC):
@@ -1184,11 +1194,31 @@ def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
         else:
             return CO2ReductionTargets
 
+def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
+    """
+    Check if simultaneous charge and discharge occurs for StorageComponent.
+    :param tsCharge: Charge time series of component, which is checked. Can be retrieved from
+        chargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
+    :type tsCharge: pd.DataFrame
+    :param tsDischarge: Discharge time series of component, which is checked. Can be retrieved from
+        dischargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
+    :type tsDischarge: pd.DataFrame
+
+    :return: simultaneousChargeDischarge: Boolean with information if simultaneous charge & discharge happens
+    :type simultaneousChargeDischarge: bool
+    """
+    # Merge Charge and Discharge Series
+    ts = pd.concat([tsCharge.T, tsDischarge.T], axis=1)
+    # If no simultaneous charge and discharge occurs ts[region][ts[region] > 0] will only return nan values. After
+    # dropping them the len() is 0 and the check returns False. This is done for all regions in the list comprehension.
+    # If any() region returns True the check returns True.
+    simultaneousChargeDischarge = \
+        any([len(ts[region][ts[region] > 0].dropna()) > 0 for region in set(ts.columns.values)])
+    return simultaneousChargeDischarge
+
 def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
     """
     If CO2ReductionTargets are given, set the new value for each iteration.
     """
     if CO2ReductionTargets is not None: 
         setattr(esM.componentModelingDict['SourceSinkModel'].componentsDict['CO2 to environment'], 'yearlyLimit', CO2Reference*(1-CO2ReductionTargets[step]/100))
-
- 
