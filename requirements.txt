@@ -11,5 +11,4 @@ networkx>=2.4
 scipy>=1.4.1
 shapely
 openpyxl
-libiconv
 
