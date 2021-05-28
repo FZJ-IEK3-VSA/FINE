@@ -1,14 +1,7 @@
-from math import nan
-import os
-import warnings
-
 import numpy as np
 import pandas as pd
-import geopandas as gpd
-from pandas.core import series
 import xarray as xr
 
-import FINE as fn
 from FINE import utils
 from FINE.IOManagement import dictIO
 
@@ -24,6 +17,7 @@ def generateIterationDicts(component_dict):
     
     df_iteration_dict, series_iteration_dict, constants_iteration_dict = {}, {}, {}
 
+    # Loop through every class-component-variable combination 
     for classname in component_dict:
 
         for component in component_dict[classname]:            
@@ -31,11 +25,14 @@ def generateIterationDicts(component_dict):
             for variable_description, data in component_dict[classname][component].items():
                 description_tuple = (classname, component)
                 
+                #private function to check if the current variable is a dict, df, series or constant. 
+                # If its a dict (in the case of commodityConversionFactors), this is unpacked and the 
+                # the function is run on each value in dict 
                 def _append_to_iteration_dicts(_variable_description, _data):
 
                     if isinstance(_data, dict):
                         for key, value in _data.items():
-                            nested_variable_description = f'{_variable_description}.{key}'
+                            nested_variable_description = f'{_variable_description}.{key}' #NOTE: a . is introduced in the variable here  
 
                             _append_to_iteration_dicts(nested_variable_description, value)
 
@@ -68,16 +65,21 @@ def generateIterationDicts(component_dict):
 
 
 def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.nc4'):  
-    """Takes esM instance and converts it into an xarray dataset,
-    which can be saved in netCDF format.  #TODO: update the docstring 
+    """Takes esM instance and converts it into an xarray dataset. Optionally, the 
+    dataset can be saved as a netcdf file.
     
-    :param esm_dict: dictionary containing information about the esM instance
-    :type esm_dict: dict
+    :param esM: EnergySystemModel instance in which the optimized model is held
+    :type esM: EnergySystemModel instance
 
-    :param component_dict: dictionary containing information about the esM instance's components
-    :type component_dict: dict
+    :param save: indicates if the created xarray dataset should be saved
+        |br| * the default value is False
+    :type save: boolean
+
+    :param file_name: output file name (can include full path)
+        |br| * the default value is 'esM_instance.nc4'
+    :type file_name: string
  
-    :return: ds - xarray dataset containing all dimensional data of an esM instance
+    :return: ds - esM instance data in xarray dataset format 
     """
     
     #STEP 1. Get the esm and component dicts 
@@ -94,29 +96,29 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
 
     #STEP 3a. Add all regional time series (dimensions - space, time)
     for variable_description, description_tuple_list in df_iteration_dict.items():
-        df_dict = {} # fn.dictionary of multiindex data frames that contain all data for one variable
+        df_dict = {} 
+
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
 
             df_description = f"{classname}, {component}"
-
-            if '.' in variable_description:
+            
+            # If a . is present in variable name, then the data would be another level further in the component_dict 
+            if '.' in variable_description:      
                 nested_variable_description = variable_description.split(".")
                 data = component_dict[classname][component][nested_variable_description[0]][nested_variable_description[1]]
             else:
                 data = component_dict[classname][component][variable_description]
 
-            if isinstance(data, pd.DataFrame):
-                
-                multi_index_dataframe = data.stack()
-                
-                multi_index_dataframe.index.set_names("time", level=0, inplace=True)
-                multi_index_dataframe.index.set_names("space", level=1, inplace=True)
-                
-                df_dict[df_description] = multi_index_dataframe # append or concat or so
+
+            multi_index_dataframe = data.stack()
+            multi_index_dataframe.index.set_names("time", level=0, inplace=True)
+            multi_index_dataframe.index.set_names("space", level=1, inplace=True)
+            
+            df_dict[df_description] = multi_index_dataframe 
                                         
         df_variable = pd.concat(df_dict)
-        df_variable.index.set_names("component", level=0, inplace=True) # ?
+        df_variable.index.set_names("component", level=0, inplace=True) 
 
         ds_component = xr.Dataset()
         ds_component[f"ts_{variable_description}"] = df_variable.sort_index().to_xarray()
@@ -125,7 +127,7 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
 
     #STEP 3b. Add all 2d data (dimensions - space, space)
     for variable_description, description_tuple_list in series_iteration_dict.items():
-        df_dict = {} # dictionary of multiindex data frames that contain all data for one variable
+        df_dict = {} 
     
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
@@ -137,21 +139,19 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
                 data = component_dict[classname][component][nested_variable_description[0]][nested_variable_description[1]]
             else:
                 data = component_dict[classname][component][variable_description]
-            # data = component_dict[classname][component][variable_description]
 
-            if isinstance(data, pd.Series):
+            
+            if classname in ['Transmission', 'LinearOptimalPowerFlow']:    #NOTE: only ['Transmission', 'LinearOptimalPowerFlow'] are 2d classes 
 
-                if classname in ['Transmission', 'LinearOptimalPowerFlow']:    #NOTE: only ['Transmission', 'LinearOptimalPowerFlow'] are 2d classes 
+                df = utils.transform1dSeriesto2dDataFrame(data, locations)
+                multi_index_dataframe = df.stack()
+                multi_index_dataframe.index.set_names(["space", "space_2"], inplace=True)
 
-                    df = utils.transform1dSeriesto2dDataFrame(data, locations)
-                    multi_index_dataframe = df.stack()
-                    multi_index_dataframe.index.set_names(["space", "space_2"], inplace=True)
-
-                    df_dict[df_description] = multi_index_dataframe
+                df_dict[df_description] = multi_index_dataframe
 
         if len(df_dict) > 0:
             df_variable = pd.concat(df_dict)
-            df_variable.index.set_names("component", level=0, inplace=True) # ?
+            df_variable.index.set_names("component", level=0, inplace=True) 
             ds_component = xr.Dataset()
             ds_component[f"2d_{variable_description}"] = df_variable.sort_index().to_xarray()  #NOTE: prefix 2d and 1d are added in this function
 
@@ -160,7 +160,7 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
     #STEP 3c. Add all 1d data (dimension - space)
     for variable_description, description_tuple_list in series_iteration_dict.items():
 
-        df_dict = {} # dictionary of multiindex data frames that all contain all data for one variable
+        df_dict = {} 
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
     
@@ -172,16 +172,13 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
             else:
                 data = component_dict[classname][component][variable_description]
 
-            if isinstance(data, pd.Series): #TODO: remove this line, as all data should be series (?)
-                # if classname not in ['Transmission', 'LinearOptimalPowerFlow'] and len(data>= len(locations)):
-                if classname not in ['Transmission', 'LinearOptimalPowerFlow']:
-                    if len(data) >= len(locations): # TODO: this is a bugfix to remove '1d_locationalEligibility', do this properly
-                        df_dict[df_description] = data.rename_axis("space")
+            if classname not in ['Transmission', 'LinearOptimalPowerFlow']:
+                if len(data) >= len(locations): 
+                    df_dict[df_description] = data.rename_axis("space")
             
-        
         if len(df_dict) > 0:
             df_variable = pd.concat(df_dict)
-            df_variable.index.set_names("component", level=0, inplace=True) # ?
+            df_variable.index.set_names("component", level=0, inplace=True) 
             ds_component = xr.Dataset()
             ds_component[f"1d_{variable_description}"] = df_variable.sort_index().to_xarray()
             
@@ -204,7 +201,7 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
             df_dict[df_description] = data
             
         if len(df_dict) > 0:
-            df_variable = pd.Series(df_dict)       #TODO: optimize the code, maybe directly take series instead of dict 
+            df_variable = pd.Series(df_dict)      
             df_variable.index.set_names("component", inplace=True)
             
             ds_component = xr.Dataset()
@@ -244,7 +241,13 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
 
 
 def convertXarrayDatasetToEsmInstance(xarray_dataset):
-    #TODO: doc string 
+    """Takes xarray dataset and converts it into an esM instance. 
+    
+    :param xarray_dataset: The dataset holding all data required to set up an esM instance 
+    :type xarray_dataset: xr.Dataset
+ 
+    :return: esM - EnergySystemModel instance in which the optimized model is held
+    """
 
     #STEP 1. Read in the netcdf file
     if isinstance(xarray_dataset, str): 
@@ -268,16 +271,24 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
         xarray_dataset.attrs['commodityUnitsDict'] = new_commodityUnitsDict
 
         ## balanceLimit
+        balanceLimit_dict = {}
+        keys_to_delete = []
+
         for key in xarray_dataset.attrs.keys():
-            balanceLimit_dict = {}
             if key[:12] == 'balanceLimit':
                 [bl, idx] = key.split('_') 
-                balanceLimit_dict.update({idx : xarray_dataset.attrs.get(key)})
+                balanceLimit_dict.update({idx : xarray_dataset.attrs.get(key)}) 
+
+                keys_to_delete.append(key)
+
+        # cleaning up the many keys belonging to balanceLimit
+        for key in keys_to_delete:
+            xarray_dataset.attrs.pop(key)
 
         if balanceLimit_dict == {}:
             xarray_dataset.attrs.update({'balanceLimit' : None})
-
-        elif all(isinstance(e, (int, float)) for e in list(balanceLimit_dict.values())):
+            
+        elif all([True for n in list(balanceLimit_dict.values()) if str(n).isdigit()]):
             series = pd.Series(balanceLimit_dict)
             xarray_dataset.attrs.update({'balanceLimit' : series})
         
@@ -346,7 +357,7 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
                     #NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other 
                     # attributes. Removing 0 values ensures the match. If all are 0, empty series is fed in, leading to error. 
                     # Therefore, if series is empty, it is replaced by a 0. Else, sort index before adding to component_dict. 
-                    series = series[series>0] #drop 0 values 
+                    series = series[series>0]  
 
                     if len(series.index) == 0:
                         series = 0 
@@ -406,4 +417,6 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
                             component_dict.get(class_name).get(comp_name).update({variable[3:]: var_value.item()})
 
     #STEP 4. Create esm from esm_dict and component_dict
-    return dictIO.importFromDict(esm_dict, component_dict)
+    esM = dictIO.importFromDict(esm_dict, component_dict)
+
+    return esM 

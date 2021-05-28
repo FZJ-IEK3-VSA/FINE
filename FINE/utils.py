@@ -1006,7 +1006,7 @@ def checkComponentsEquality(esM, file):
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
-#the below function and the following class are coming from spatial aggregation #TODO: investigate this!
+
 def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
     values = np.zeros((len(locations), len(locations)))
 

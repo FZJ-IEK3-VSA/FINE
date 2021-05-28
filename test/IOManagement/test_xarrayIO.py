@@ -2,10 +2,7 @@ import os
 import pytest
 
 import numpy as np
-import xarray as xr
-import geopandas as gpd
-
-import FINE as fn
+import pandas as pd 
 
 from FINE.IOManagement import dictIO
 import FINE.IOManagement.xarrayIO as xrIO 
@@ -37,7 +34,9 @@ def test_generateIterationDicts(minimal_test_esM):
 
  
 def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
-
+    """
+    Tests if conversion of esm instance to xarray dataset is correct 
+    """
     #FUNCTION CALL
     output_xarray = xrIO.convertEsmInstanceToXarrayDataset(multi_node_test_esM_init)
     
@@ -84,7 +83,9 @@ def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
    
     
 def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
-    
+    """
+    Tests if conversion of xarray dataset back to esm instance is correct 
+    """
     #FUNCTION CALL 
     test_xarray = xrIO.convertEsmInstanceToXarrayDataset(multi_node_test_esM_init)
     output_esM = xrIO.convertXarrayDatasetToEsmInstance(test_xarray)
@@ -149,21 +150,47 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
     output_esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
 
-def test_savingAndReadingNetcdfFiles(multi_node_test_esM_init):
 
-    #TODO: add balanceLimit as series and as df and check what happens 
+
+@pytest.mark.parametrize("balanceLimit", [pd.Series([100, 200], index=['electricity', 'hydrogen']),
+
+                                        pd.DataFrame(np.array([[100] * 8, [50] * 8]), 
+                                        columns= ['cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'],
+                                        index=['electricity', 'hydrogen'])
+                    ])
+def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
+    """
+    Tests if esm instance can be saved as a netcdf file and read back in 
+    to set up the instance again. 
+    """
+
+    multi_node_test_esM_init.balanceLimit = balanceLimit 
+
     PATH_TO_SAVE = os.path.join(os.path.dirname(__file__))
     file = os.path.join(PATH_TO_SAVE, 'esM_instance.nc4')
 
     # convert esm instance to xarray dataset and save a netcdf file 
-    output_xarray = xrIO.convertEsmInstanceToXarrayDataset(multi_node_test_esM_init,
+    xrIO.convertEsmInstanceToXarrayDataset(multi_node_test_esM_init,
                                                            save = True, 
-                                                           file_name = file)
-
-    assert os.path.isfile(file)
+                                                           file_name = file)  
 
     #set up an esm instance directly from a netcdf file 
     output_esM = xrIO.convertXarrayDatasetToEsmInstance(file)
+
+    o_bl = output_esM.balanceLimit 
+    e_bl = multi_node_test_esM_init.balanceLimit
+
+    assert output_esM.getComponentAttribute('Biogas purchase', 'commodity') == \
+        multi_node_test_esM_init.getComponentAttribute('Biogas purchase', 'commodity')
+    
+    assert output_esM.getComponentAttribute('New CCGT plants (biogas)', 'commodityConversionFactors') == \
+        multi_node_test_esM_init.getComponentAttribute('New CCGT plants (biogas)', 'commodityConversionFactors')
+    
+    assert np.array_equal(output_esM.getComponentAttribute('PV', 'capacityMax'), \
+        multi_node_test_esM_init.getComponentAttribute('PV', 'capacityMax'))
+
+    assert np.array_equal(output_esM.getComponentAttribute('Li-ion batteries', 'investPerCapacity'), \
+        multi_node_test_esM_init.getComponentAttribute('Li-ion batteries', 'investPerCapacity'))
 
     # if there are no problems setting it up, delete the create file 
     os.remove(file)
