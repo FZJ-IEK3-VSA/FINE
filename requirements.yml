@@ -22,5 +22,7 @@ dependencies:
 - pyDOE
 - sphinx_rtd_theme
 - scikit-learn
+- xarray
+
 - pip:
     - tsam
