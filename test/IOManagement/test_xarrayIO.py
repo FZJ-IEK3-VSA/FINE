@@ -152,7 +152,7 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
 def test_savingAndReadingNetcdfFiles(multi_node_test_esM_init):
 
     #TODO: add balanceLimit as series and as df and check what happens 
-    PATH_TO_SAVE = 'C:/Users/s.patil/Documents/code/fine/test/_testInputFiles'
+    PATH_TO_SAVE = os.path.join(os.path.dirname(__file__))
     file = os.path.join(PATH_TO_SAVE, 'esM_instance.nc4')
 
     # convert esm instance to xarray dataset and save a netcdf file 
