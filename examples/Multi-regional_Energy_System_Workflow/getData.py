@@ -46,68 +46,68 @@ def getData(engine='openpyxl'):
     data.update({'Existing run-of-river plants, operationRateFix': operationRateFix})
 
     # Biogas data
-    operationRateMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'Biogas',
+    operationRateMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Biogas',
                                                   'biogasPotential_GWh_biogas.xlsx'),
                                                   header = 0, index_col = 0, engine=engine)
 
     data.update({'Biogas, operationRateMax': operationRateMax})
 
-    biogasCommodityCostTimeSeries = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'Biogas',
+    biogasCommodityCostTimeSeries = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Biogas',
                                                   'biogasPriceTimeSeries_MrdEuro_GWh.xlsx'),
                                                   header = 0, index_col = 0, engine=engine)
 
     data.update({'Biogas, commodityCostTimeSeries': biogasCommodityCostTimeSeries})
 
     # Natural gas data
-    naturalGasCommodityCostTimeSeries = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'NaturalGas',
+    naturalGasCommodityCostTimeSeries = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'NaturalGas',
                                                   'naturalGasPriceTimeSeries_MrdEuro_GWh.xlsx'),
                                                   header = 0, index_col = 0, engine=engine)
 
     data.update({'Natural Gas, commodityCostTimeSeries': naturalGasCommodityCostTimeSeries})
 
     # Natural gas plant data
-    capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'NaturalGasPlants',
+    capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'NaturalGasPlants',
                                              'existingCombinedCycleGasTurbinePlantsCapacity_GW_el.xlsx'),
                                 index_col=0, squeeze=True, engine=engine)
 
     data.update({'Existing CCGT plants (methane), capacityMax': capacityMax})
 
     # Hydrogen salt cavern data
-    capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'GeologicalStorage',
+    capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'GeologicalStorage',
                                              'existingSaltCavernsCapacity_GWh_methane.xlsx'),
                                 index_col=0, squeeze=True, engine=engine) * 3 / 10
 
     data.update({'Salt caverns (hydrogen), capacityMax': capacityMax})
 
     # Methane salt cavern data
-    capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'GeologicalStorage',
+    capacityMax = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'GeologicalStorage',
                                              'existingSaltCavernsCapacity_GWh_methane.xlsx'),
                                 index_col=0, squeeze=True, engine=engine)
 
     data.update({'Salt caverns (methane), capacityMax': capacityMax})
 
     # Pumped hydro storage data
-    capacityFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'HydroPower',
+    capacityFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'HydroPower',
                                              'fixCapacityPHS_storage_GWh_energyPHS.xlsx'),
                                 index_col=0, squeeze=True, engine=engine)
 
     data.update({'Pumped hydro storage, capacityFix': capacityFix})
 
     # AC cables data
-    capacityFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'ElectricGrid',
+    capacityFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'ElectricGrid',
                                              'ACcableExistingCapacity_GW_el.xlsx'),
                                 index_col=0, header=0, engine=engine)
 
     data.update({'AC cables, capacityFix': capacityFix})
 
-    reactances = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'ElectricGrid',
+    reactances = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'ElectricGrid',
                                             'ACcableReactance.xlsx'),
                                 index_col=0, header=0, engine=engine)
 
     data.update({'AC cables, reactances': reactances})
 
     # DC cables data
-    capacityFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'ElectricGrid',
+    capacityFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'ElectricGrid',
                                              'DCcableExistingCapacity_GW_el.xlsx'),
                                 index_col=0, header=0, engine=engine)
     distances = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'ElectricGrid',
@@ -131,14 +131,14 @@ def getData(engine='openpyxl'):
     data.update({'Pipelines, distances': distances})
 
     # Electricity demand data
-    operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'Demands',
+    operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Demands',
                                                   'electricityDemand_GWh_el.xlsx'),
                                                   header = 0, index_col = 0, engine=engine)
 
     data.update({'Electricity demand, operationRateFix': operationRateFix})
 
     # Hydrogen demand data
-    operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData_Germany', 'Demands',
+    operationRateFix = pd.read_excel(os.path.join(inputDataPath, 'SpatialData', 'Demands',
                                                   'hydrogenDemand_GWh_hydrogen.xlsx'),
                                                   header = 0, index_col = 0, engine=engine)
 

@@ -94,7 +94,7 @@ def dimensional_data_to_xarray_dataset(esm_dict, component_dict):
                 if classname == 'LinearOptimalPowerFlow':
                     multi_index_dataframe.index.set_names("space", level=1, inplace=True)
                 else:
-                    multi_index_dataframe.index.set_names("space", level=2, inplace=True)
+                    multi_index_dataframe.index.set_names("space", level=1, inplace=True)
                     
 
                 df_dict[df_description] = multi_index_dataframe # append or concat or so

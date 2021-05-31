@@ -46,7 +46,7 @@ def test_dimensional_data_to_xarray_dataset(minimal_test_esM):
     ## a time series variable
     output_locations = list(output_xarray.space.values).sort()
     output_Electricitymarket_operationRateMax = \
-                    output_xarray['ts_operationRateMax'].loc['Source, Electricity market', 0, :, :].values
+                    output_xarray['ts_operationRateMax'].loc['Source, Electricity market', 0, :].values
     ## a 1d variable
     output_Electrolyzers_investPerCapacity = \
         output_xarray['1d_investPerCapacity'].loc['Conversion, Electrolyzers', :].values

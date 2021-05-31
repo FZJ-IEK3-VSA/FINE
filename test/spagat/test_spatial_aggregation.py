@@ -10,7 +10,7 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init):
     
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
-            'InputData/SpatialData_Germany/ShapeFiles/clusteredRegions.shp')
+            'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
 
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
@@ -31,7 +31,7 @@ def test_spatial_aggregation_distance_based(multi_node_test_esM_init, agg_mode, 
     n_regions = 3
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
-            'InputData/SpatialData_Germany/ShapeFiles/clusteredRegions.shp')
+            'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
 
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
@@ -60,7 +60,7 @@ def test_spatial_aggregation_parameter_based(multi_node_test_esM_init,
     
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
-            'InputData/SpatialData_Germany/ShapeFiles/clusteredRegions.shp')
+            'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
 
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
