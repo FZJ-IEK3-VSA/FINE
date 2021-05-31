@@ -714,29 +714,33 @@ def checkAndSetTimeSeriesConversionFactors(esM, commodityConversionFactorsTimeSe
         if not isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
             if len(esM.locations) == 1:
                 if isinstance(commodityConversionFactorsTimeSeries, pd.Series):
-                    commodityConversionFactorsTimeSeries = pd.DataFrame(commodityConversionFactorsTimeSeries.values, index=commodityConversionFactorsTimeSeries.index,
+                    fullCommodityConversionFactorsTimeSeries = pd.DataFrame(commodityConversionFactorsTimeSeries.values, index=commodityConversionFactorsTimeSeries.index,
                                                                         columns=list(esM.locations))
                 else:
                     raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame or Series')
             else:
                 raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame')
+        elif isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
+            fullCommodityConversionFactorsTimeSeries = commodityConversionFactorsTimeSeries 
+        else:
+            raise TypeError('The commodityConversionFactorsTimeSeries data type has to be a pandas DataFrame or Series')
 
-        checkTimeSeriesIndex(esM, commodityConversionFactorsTimeSeries)
+        checkTimeSeriesIndex(esM, fullCommodityConversionFactorsTimeSeries)
 
-        checkRegionalColumnTitles(esM, commodityConversionFactorsTimeSeries)
+        checkRegionalColumnTitles(esM, fullCommodityConversionFactorsTimeSeries)
 
-        if locationalEligibility is not None and commodityConversionFactorsTimeSeries is not None:
+        if locationalEligibility is not None and fullCommodityConversionFactorsTimeSeries is not None:
             # Check if given conversion factors indicate the same eligibility
-            data = commodityConversionFactorsTimeSeries.copy().sum().abs()
+            data = fullCommodityConversionFactorsTimeSeries.copy().sum().abs()
             data[data > 0] = 1
             if (data.sort_index() > locationalEligibility.sort_index()).any().any():
                 warnings.warn('The locationalEligibility and commodityConversionFactorsTimeSeries parameters '
                                 'indicate different eligibilities.')
 
-        commodityConversionFactorsTimeSeries = commodityConversionFactorsTimeSeries.copy()
-        commodityConversionFactorsTimeSeries["Period"], commodityConversionFactorsTimeSeries["TimeStep"] = 0, commodityConversionFactorsTimeSeries.index
+        fullCommodityConversionFactorsTimeSeries = fullCommodityConversionFactorsTimeSeries.copy()
+        fullCommodityConversionFactorsTimeSeries["Period"], fullCommodityConversionFactorsTimeSeries["TimeStep"] = 0, fullCommodityConversionFactorsTimeSeries.index
 
-        return commodityConversionFactorsTimeSeries.set_index(['Period', 'TimeStep'])
+        return fullCommodityConversionFactorsTimeSeries.set_index(['Period', 'TimeStep'])
 
     else:
         return None
@@ -862,6 +866,49 @@ def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
 
 
 def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDict=None, esM=None):
+    '''
+    Functionality for formatting the optimization output. The function is used in the 
+    setOptimalValues()-method of the ComponentModel class. 
+
+    **Required arguments:**
+
+    :param data: Optimized values that should be formatted given as dictionary with the keys (component, location). 
+    :type data: dict
+
+    :param varType: Define which type of variables are formatted. Options:
+        * 'designVariables',
+        * 'operationVariables'.
+    :type varType: string
+
+    :param dimension: Define the dimension of the data. Options: 
+        * '1dim',
+        * '2dim'.
+    :type dimension: string 
+
+    **Default arguments:** 
+    :param periodsOrder: order of the periods of the time series data
+        (list, [0] when considering a full temporal resolution, 
+        [typicalPeriod(0), ... ,typicalPeriod(totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod-1)] 
+        when applying time series aggregation).
+        The periodsOrder must be given if the varType is operationVariables because the full time series has to 
+        be re-engineered (not necessarily required if no time series aggregation methods are used).
+        |br| * the default value is None.
+    :type periodsOrder: list
+
+    :param compDict: Dictionary of the component instances of interest. 
+        compDict is required if dimension is set to 2.
+        |br| * the default value is None. 
+    :type compDict: dict
+
+    :param esM: EnergySystemModel instance representing the energy system in which the components are modeled.
+        An esM instance must be given if the varType is operationVariables because the full time series has to 
+        be re-engineered (not necessarily required if no time series aggregation methods are used).
+        |br| * the default value is None
+    :type esM: EnergySystemModel instance
+
+    :return: formatted version of data. If data is an empty dictionary, it returns None.
+    :rtype: pandas DataFrame
+    '''
     # If data is an empty dictionary (because no variables of that type were declared) return None
     if not data:
         return None

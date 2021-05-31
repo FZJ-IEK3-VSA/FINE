@@ -225,13 +225,18 @@ class Source(Component):
         self.commodityRevenue = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',
                                                                locationalEligibility)
 
+        self.commodityCostTimeSeries = commodityCostTimeSeries
         self.fullCommodityCostTimeSeries = \
             utils.checkAndSetTimeSeries(esM, name, commodityCostTimeSeries, locationalEligibility)
-        self.aggregatedCommodityCostTimeSeries, self.commodityCostTimeSeries = None, self.fullCommodityCostTimeSeries
+        self.aggregatedCommodityCostTimeSeries, self.processedCommodityCostTimeSeries= None, None
 
+        self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
         self.fullCommodityRevenueTimeSeries = \
             utils.checkAndSetTimeSeries(esM, name, commodityRevenueTimeSeries, locationalEligibility)
-        self.aggregatedCommodityRevenueTimeSeries, self.commodityRevenueTimeSeries = None, self.fullCommodityRevenueTimeSeries
+        self.aggregatedCommodityRevenueTimeSeries, self.processedCommodityRevenueTimeSeries = None, None
+
+        self.operationRateMax = operationRateMax
+        self.operationRateFix = operationRateFix
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
         if operationRateMax is not None and operationRateFix is not None:
@@ -241,10 +246,10 @@ class Source(Component):
                               'The operationRateMax time series was set to None.')
 
         self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
-        self.aggregatedOperationRateMax, self.operationRateMax = None, self.fullOperationRateMax
-
+        self.aggregatedOperationRateMax, self.processedOperationRateMax = None, None
+        
         self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
-        self.aggregatedOperationRateFix, self.operationRateFix = None, self.fullOperationRateFix
+        self.aggregatedOperationRateFix, self.processedOperationRateFix = None, None
 
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:
@@ -282,11 +287,11 @@ class Source(Component):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
-        self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
-        self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
-        self.commodityCostTimeSeries = \
+        self.processedOperationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
+        self.processedOperationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
+        self.processedCommodityCostTimeSeries = \
             self.aggregatedCommodityCostTimeSeries if hasTSA else self.fullCommodityCostTimeSeries
-        self.commodityRevenueTimeSeries = \
+        self.processedCommodityRevenueTimeSeries = \
             self.aggregatedCommodityRevenueTimeSeries if hasTSA else self.fullCommodityRevenueTimeSeries
 
     def getDataForTimeSeriesAggregation(self):
@@ -465,7 +470,7 @@ class SourceSinkModel(ComponentModel):
         self.declareOperationBinarySet(pyM)
 
         # Declare sets for case differentiation of operating modes
-        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
+        self.declareOperationModeSets(pyM, 'opConstrSet', 'processedOperationRateMax', 'processedOperationRateFix')
 
         # Declare commodity limitation dictionary
         self.declareYearlyCommodityLimitationDict(pyM)
@@ -693,9 +698,9 @@ class SourceSinkModel(ComponentModel):
         commodCost = self.getEconomicsTD(pyM, esM, ['commodityCost'], 'op', 'operationVarDict')
         commodRevenue = self.getEconomicsTD(pyM, esM, ['commodityRevenue'], 'op', 'operationVarDict')
         commodCostTimeSeries = \
-            self.getEconomicsTimeSeries(pyM, esM, 'commodityCostTimeSeries', 'op', 'operationVarDict')
+            self.getEconomicsTimeSeries(pyM, esM, 'processedCommodityCostTimeSeries', 'op', 'operationVarDict')
         commodRevenueTimeSeries = \
-            self.getEconomicsTimeSeries(pyM, esM, 'commodityRevenueTimeSeries', 'op', 'operationVarDict')
+            self.getEconomicsTimeSeries(pyM, esM, 'processedCommodityRevenueTimeSeries', 'op', 'operationVarDict')
 
         return super().getObjectiveFunctionContribution(esM, pyM) + opexOp + commodCost + commodCostTimeSeries - \
             (commodRevenue + commodRevenueTimeSeries)
@@ -744,7 +749,6 @@ class SourceSinkModel(ComponentModel):
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
             cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[op.index], axis=1)
             cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[op.index], axis=1)
-
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],
@@ -757,18 +761,19 @@ class SourceSinkModel(ComponentModel):
             cCostTD = pd.DataFrame(0., index=opSum.index, columns=opSum.columns)
 
             for compName in opSum.index:
-                if not compDict[compName].commodityCostTimeSeries is None:
+                if not compDict[compName].processedCommodityCostTimeSeries is None:
+
                     # in case of time series aggregation rearange clustered cost time series
                     calcCostTD = utils.buildFullTimeSeries(
-                        compDict[compName].commodityCostTimeSeries.unstack(level=1).stack(level=0),
+                        compDict[compName].processedCommodityCostTimeSeries.unstack(level=1).stack(level=0),
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total cost
                     cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
 
-                if not compDict[compName].commodityRevenueTimeSeries is None:
+                if not compDict[compName].processedCommodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
                     calcRevenueTD = utils.buildFullTimeSeries(
-                        compDict[compName].commodityRevenueTimeSeries.unstack(level=1).stack(level=0),
+                        compDict[compName].processedCommodityRevenueTimeSeries.unstack(level=1).stack(level=0),
                         esM.periodsOrder, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
                     cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)

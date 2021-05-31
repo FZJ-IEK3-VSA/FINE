@@ -1018,7 +1018,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, p, t] <= factor1[p,t] * factor2 * capVar[loc, compName]
             setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
-    def operationMode2(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix',
+    def operationMode2(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='processedOperationRateFix',
                        isStateOfCharge=False):
         """
         Define operation mode 2. The operation [commodityUnit*h] is equal to the installed capacity multiplied
@@ -1048,7 +1048,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, p, t] == capVar[loc, compName] * rate[loc][p, t] * factor[p,t]
             setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
 
-    def operationMode3(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax',
+    def operationMode3(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='processedOperationRateMax',
                        isStateOfCharge=False):
         """
         Define operation mode 3. The operation [commodityUnit*h] is limited by an installed capacity multiplied
@@ -1077,7 +1077,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, p, t] <= capVar[loc, compName] * rate[loc][p, t] * factor[p,t]
             setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
 
-    def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateFix'):
+    def operationMode4(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='processedOperationRateFix'):
         """
         Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
         
@@ -1100,7 +1100,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, p, t] == rate[loc][p, t] * esM.timeStepsPerSegment.to_dict()[p, t]
             setattr(pyM, constrName + '4_' + abbrvName, pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4))
 
-    def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='operationRateMax'):
+    def operationMode5(self, pyM, esM, constrName, constrSetName, opVarName, opRateName='processedOperationRateMax'):
         """
         Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
         
@@ -1590,6 +1590,9 @@ class ComponentModel(metaclass=ABCMeta):
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=''):
         """
         Set the optimal values for the considered components and return a summary of them.
+        The function is called after optimization was successful and an optimal solution was found. 
+        Each sub class of the component class calls this function for setting the common optimal values, 
+        e.g. investment and maintenance costs proportional to optimal capacity expansion. 
 
         **Required arguments**
 
@@ -1634,7 +1637,7 @@ class ComponentModel(metaclass=ABCMeta):
         mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(indexColumns)).sort_index()
 
-        # Get and set optimal variable values and contributions to the total annual cost and invest
+        # Get and set optimal variable values for expanded capacities 
         values = capVar.get_values()
         optVal = utils.formatOptimizationOutput(values, 'designVariables', '1dim')
         optVal_ = utils.formatOptimizationOutput(values, 'designVariables', self.dimension, compDict=compDict)
@@ -1650,20 +1653,24 @@ class ComponentModel(metaclass=ABCMeta):
                                   'or equal to the chosen Big M. Consider rerunning the simulation with a higher' +
                                   ' Big M.')
 
+            # Calculate the investment costs i (proportional to capacity expansion)
             i = optVal.apply(lambda cap: cap * compDict[cap.name].investPerCapacity * compDict[cap.name].QPcostDev
             + (compDict[cap.name].investPerCapacity * compDict[cap.name].QPcostScale
             / (compDict[cap.name].QPbound)
             * cap * cap), axis=1)
+            # Calculate the annualized investment costs cx (CAPEX) 
             cx = optVal.apply(lambda cap: (cap * compDict[cap.name].investPerCapacity * compDict[cap.name].QPcostDev / compDict[cap.name].CCF)
             + (compDict[cap.name].investPerCapacity / compDict[cap.name].CCF * compDict[cap.name].QPcostScale
             / (compDict[cap.name].QPbound)
             * cap * cap), axis=1)
+            # Calculate the annualized operational costs ox (OPEX)
             ox = optVal.apply(lambda cap: cap * compDict[cap.name].opexPerCapacity * compDict[cap.name].QPcostDev
             + (compDict[cap.name].opexPerCapacity * compDict[cap.name].QPcostScale
             / (compDict[cap.name].QPbound)
             * cap * cap), axis=1)                
 
-
+            # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX 
+            # (due to capacity expansion).
             optSummary.loc[[(ix, 'capacity', '[' + getattr(compDict[ix], plantUnit) + unitApp + ']') 
             for ix in optVal.index], optVal.columns] = optVal.values
             optSummary.loc[[(ix, 'invest', '[' + esM.costUnit + ']') for ix in i.index], i.columns] = \
@@ -1673,16 +1680,23 @@ class ComponentModel(metaclass=ABCMeta):
             optSummary.loc[[(ix, 'opexCap', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
                 ox.values
 
+        # Get and set optimal variable values for binary investment decisions (isBuiltBinary). 
         values = binVar.get_values()
         optVal = utils.formatOptimizationOutput(values, 'designVariables', '1dim')
         optVal_ = utils.formatOptimizationOutput(values, 'designVariables', self.dimension, compDict=compDict)
         self.isBuiltVariablesOptimum = optVal_
 
         if optVal is not None:
+            # Calculate the investment costs i (fix value if component is built)
             i = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt, axis=1)
+            # Calculate the annualized investment costs cx (fix value if component is built)
             cx = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt /
                               compDict[dec.name].CCF, axis=1)
+            # Calculate the annualized operational costs ox (fix value if component is built)
             ox = optVal.apply(lambda dec: dec * compDict[dec.name].opexIfBuilt, axis=1)
+
+            # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX 
+            # (due to isBuilt decisions).
             optSummary.loc[[(ix, 'isBuilt', '[-]') for ix in optVal.index], optVal.columns] = optVal.values
             optSummary.loc[[(ix, 'invest', '[' + esM.costUnit + ']') for ix in cx.index], cx.columns] += \
                 i.values
@@ -1691,7 +1705,7 @@ class ComponentModel(metaclass=ABCMeta):
             optSummary.loc[[(ix, 'opexIfBuilt', '[' + esM.costUnit + '/a]') for ix in ox.index],
                            ox.columns] = ox.values
 
-        # Summarize all contributions to the total annual cost
+        # Summarize all annualized contributions to the total annual cost
         optSummary.loc[optSummary.index.get_level_values(1) == 'TAC'] = \
             optSummary.loc[(optSummary.index.get_level_values(1) == 'capexCap') |
                            (optSummary.index.get_level_values(1) == 'opexCap') |
