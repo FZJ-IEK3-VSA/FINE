@@ -37,7 +37,7 @@ def preprocess_time_series(vars_dict):
     ----------
     vars_dict : Dict[str, xr.DataArray]
         Dictionary of each time series variable and it's corresponding data in a xr.DataArray. 
-        - Dimensions of xr.DataArray - 'component','space','TimeStep'
+        - Dimensions of xr.DataArray - 'component', 'space', 'time'
 
     Returns
     -------
@@ -55,7 +55,7 @@ def preprocess_time_series(vars_dict):
         ds_ts.update({var_name: {}})
 
         #STEP 2. Find the corresponding valid components: valid_component_weight=1, otherwise=0
-        var_mean_df = da.mean(dim="space").mean(dim="TimeStep").to_dataframe()
+        var_mean_df = da.mean(dim='space').mean(dim='time').to_dataframe()
         valid_components = list(var_mean_df[var_mean_df[var_name].notna()].index.values)
 
         #STEP 2. For each valid component, scale the corresponding matrix. Add to resulting dict 
@@ -73,7 +73,7 @@ def preprocess_1d_variables(vars_dict):
     ----------
     vars_dict : Dict[str, xr.DataArray]
         Dictionary of each 1-dimensional variable and it's corresponding data in a xr.DataArray. 
-        - Dimensions of xr.DataArray - 'component','space'
+        - Dimensions of xr.DataArray - 'component', 'space'
 
     Returns
     -------
@@ -90,7 +90,7 @@ def preprocess_1d_variables(vars_dict):
         ds_1d.update({var_name: {}})
 
         #STEP 2. Find the corresponding valid components: valid_comp_weight=1, otherwise=0
-        var_mean_df = da.mean(dim="space").to_dataframe()
+        var_mean_df = da.mean(dim='space').to_dataframe()
         valid_components = list(var_mean_df[var_mean_df[var_name].notna()].index.values)
         
         #STEP 2. For each valid component, scale the corresponding matrix. Add to resulting dict 
@@ -141,7 +141,7 @@ def preprocess_2d_variables(vars_dict):
         space2 = da.space_2.values
         
         #STEP 2. Find the corresponding valid components: valid_comp_weight=1, otherwise=0
-        var_mean_df = da.mean(dim="space").mean(dim="space_2").to_dataframe()
+        var_mean_df = da.mean(dim='space').mean(dim='space_2').to_dataframe()
         valid_components = list(var_mean_df[var_mean_df[var_name].notna()].index.values)
         
         #STEP 2. For each valid component...
@@ -197,8 +197,8 @@ def preprocess_dataset(sds):
 
     for varname, da in ds_extracted.data_vars.items():
         
-        if sorted(da.dims) == sorted(('component','Period','TimeStep', 'space')):   #TODO: maybe space should be generalized with additional variable - dimension_description ?
-            da = da.transpose('Period','component','space','TimeStep')[0]  #NOTE: eg. (component: 4, Period: 1, TimeStep: 2, space: 3) converted to (component: 4, space: 3, TimeStep: 2) (in coordinates period is still shown without *)
+        if sorted(da.dims) == sorted(('component', 'time', 'space')):   
+            da = da.transpose('component','space','time') #require sorting dimensions 
             vars_ts[varname] = da
 
         elif sorted(da.dims) == sorted(('component','space')):

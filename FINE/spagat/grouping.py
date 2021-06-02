@@ -53,7 +53,6 @@ def perform_string_based_grouping(regions):
 @spu.timer
 def perform_distance_based_grouping(sds, 
                                 agg_mode = 'sklearn_hierarchical', 
-                                dimension_description='space',
                                 ax_illustration=None, 
                                 save_path = None, 
                                 fig_name=None, 
@@ -66,8 +65,6 @@ def perform_distance_based_grouping(sds,
         Refer to SpagatDataset class in dataset.py for more information 
     agg_mode : {'sklearn_hierarchical', 'sklearn_kmeans', 'sklearn_spectral', 'scipy_kmeans', 'scipy_hierarchical'}, optional 
         Specifies which python package and which clustering method to choose for grouping 
-    dimension_description : str, optional (default='space')
-        The name/description of the dimension in the sds data that corresponds to regions 
     ax_illustration : Axis
         Provide axis to an existing figure, to include the generated plots to the same figure 
     save_path :  str, optional (default=None)
@@ -96,7 +93,7 @@ def perform_distance_based_grouping(sds,
     #TODO: maybe scipy can be dropped ?
 
     centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000  # km
-    regions_list = sds.xr_dataset[dimension_description].values
+    regions_list = sds.xr_dataset['space'].values
     n_regions = len(regions_list)
     
     aggregation_dict = {}
@@ -199,7 +196,7 @@ def perform_distance_based_grouping(sds,
         if ax_illustration is not None:
             R = hierarchy.dendrogram(linkage_matrix, 
                                     orientation="top",
-                                    labels=sds.xr_dataset[dimension_description].values, 
+                                    labels=sds.xr_dataset['space'].values, 
                                     ax=ax_illustration, 
                                     leaf_font_size=14
                                     )
@@ -212,7 +209,7 @@ def perform_distance_based_grouping(sds,
 
             R = hierarchy.dendrogram(linkage_matrix, 
                                     orientation="top",
-                                    labels=sds.xr_dataset[dimension_description].values, 
+                                    labels=sds.xr_dataset['space'].values, 
                                     ax=ax, 
                                     leaf_font_size=14
                                     )
@@ -349,7 +346,7 @@ def perform_distance_based_grouping(sds,
             R = hierarchy.dendrogram(
                 Z,
                 orientation="top",
-                labels=sds.xr_dataset[dimension_description].values,
+                labels=sds.xr_dataset['space'].values,
                 ax=ax_illustration,
                 leaf_font_size=14,
             )
@@ -363,7 +360,7 @@ def perform_distance_based_grouping(sds,
             R = hierarchy.dendrogram(
                 Z,
                 orientation="top",
-                labels=sds.xr_dataset[dimension_description].values,
+                labels=sds.xr_dataset['space'].values,
                 ax=ax,
                 leaf_font_size=14,
             )
@@ -417,7 +414,6 @@ def perform_distance_based_grouping(sds,
 
 @spu.timer
 def perform_parameter_based_grouping(sds,
-                                    dimension_description='space', 
                                     linkage='complete',
                                     weights=None):
     """Groups regions based on the Energy System Model instance's data. 
@@ -426,8 +422,6 @@ def perform_parameter_based_grouping(sds,
     ----------
     sds : Instance of SpagatDataset
         Refer to SpagatDataset class in dataset.py for more information 
-    dimension_description : str, optional (default='space')
-        The name/description of the dimension in the sds data that corresponds to regions 
     linkage : str, optional (default='complete')
         The linkage criterion to be used with agglomerative hierarchical clustering. 
         Can be 'complete', 'single', etc. Refer to Sklearn's documentation for more info.
@@ -474,7 +468,7 @@ def perform_parameter_based_grouping(sds,
     """
 
     # Original region list
-    regions_list = sds.xr_dataset[dimension_description].values
+    regions_list = sds.xr_dataset['space'].values
     n_regions = len(regions_list)
 
     aggregation_dict = {}

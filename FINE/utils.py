@@ -4,6 +4,9 @@ Last edited: March 02, 2021
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
 import warnings
+import math
+import os
+
 import pandas as pd
 import numpy as np
 import FINE as fn
@@ -110,8 +113,7 @@ def checkTimeSeriesIndex(esM, data):
     Check if the row-indices of the data match the time indices of the energy system model.
     """
     #----
-    #NOTE: this part only specific to spatial aggregation, 
-    # therefore at the moment only present in spatial_aggregation branch 
+    #NOTE: this part only specific to spatial aggregation
     if isinstance(data.index, pd.MultiIndex):
         data.index = data.index.droplevel() # Removes "Period" index level
     #------
@@ -125,8 +127,7 @@ def checkRegionalColumnTitles(esM, data):
     Check if the columns indices match the location indices of the energy system model.
     """
     #----
-    #NOTE: this part only specific to spatial aggregation, 
-    # therefore at the moment only present in spatial_aggregation branch
+    #NOTE: this part only specific to spatial aggregation
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.droplevel() # Removes <data's name> column level
     #------
@@ -146,8 +147,8 @@ def checkRegionalIndex(esM, data):
     """
     if set(data.index) != esM.locations:
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
-                        'Data indices: ' + str(set(data.index)) + '\n' +
-                        'Energy system model regions: ' + str(esM.locations))
+                         'Data indices: ' + str(set(data.index)) + '\n' +
+                         'Energy system model regions: ' + str(esM.locations))
     elif not np.array_equal(data.index, esM._locationsOrdered):
         data.sort_index(inplace=True)
     return data
@@ -604,9 +605,12 @@ def checkAndSetTimeSeries(esM, name, operationTimeSeries, locationalEligibility,
                 # Check if given capacities indicate the same eligibility
                 data = operationTimeSeries.copy().sum()
                 data[data > 0] = 1
+                
                 if (data > locationalEligibility).any().any():
                     raise ValueError('The locationalEligibility and ' + name + ' parameters indicate different' +
-                                     ' eligibilities.')
+                                    ' eligibilities.')
+                
+
         elif dimension == '2dim':
             keys = {loc1 + '_' + loc2 for loc1 in esM.locations for loc2 in esM.locations}
             columns = set(operationTimeSeries.columns)
@@ -1067,8 +1071,6 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
         df.loc[id_1, id_2] = row[1]
 
     return df
-
-
 class PowerDict(dict):  
     '''
     Dictionary with additional functions

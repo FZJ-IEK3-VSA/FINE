@@ -20,7 +20,7 @@ def test_add_region_centroids_and_distances():
 
     #FUNCTION CALL                                         
     sds = spd.SpagatDataset()
-    sds.add_objects(description ='gpd_geometries',   #NOTE: not sure if it is ok to call another function here
+    sds.add_objects(description ='gpd_geometries',  
                     dimension_list =['space'], 
                     object_list = test_geometries)
     
@@ -57,9 +57,9 @@ def test_aggregate_geometries(sds_and_dict_for_basic_representation):
         assert len(joined_polygon.exterior.coords) == 7 
         assert (joined_polygon.geom_type in ('MultiPolygon'))
 
-
-@pytest.mark.parametrize("mode, expected", [("mean", 3), ("weighted mean", 3), ("sum", 6)])
-def test_aggregate_time_series(sds_and_dict_for_basic_representation, 
+ 
+@pytest.mark.parametrize("mode, expected", [("mean", 3), ("sum", 6)])
+def test_aggregate_time_series_mean_and_sum(sds_and_dict_for_basic_representation, 
                                mode, 
                                expected):
 
@@ -67,23 +67,85 @@ def test_aggregate_time_series(sds_and_dict_for_basic_representation,
 
     test_xarray = sds_for_basic_representation.xr_dataset['ts_operationRateMax']
     
+    
     #FUNCTION CALL
     time_series_aggregated = spr.aggregate_time_series(test_xarray, 
                                                         sub_to_sup_region_id_dict, 
-                                                        mode=mode, 
-                                                        xr_weight_array=test_xarray)
+                                                        mode=mode)
     
     #ASSERTION 
     ## for valid component, source_comp
-    assert time_series_aggregated.loc['source_comp', 0, 'T0', '01_reg_02_reg'].values == expected
+    assert time_series_aggregated.loc['source_comp', 'T0', '01_reg_02_reg'].values == expected
     
     ## for invalid component, sink_comp
-    assert time_series_aggregated.loc['sink_comp', 0, 'T0', '01_reg_02_reg'].values == 0
+    assert np.isnan(time_series_aggregated.loc['sink_comp', 'T0', '01_reg_02_reg'].values)
     
+@pytest.mark.parametrize("data, weight, expected_grp1, expected_grp2", 
+                           [ 
+                            # all non zero values for valid components 
+                            ( np.array([ [ [3, 3, 3, 3] for i in range(2)],
 
+                                  [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ]),
 
-@pytest.mark.parametrize("mode", ["mean", "sum", "bool"])       
-def test_aggregate_values(sds_and_dict_for_basic_representation, mode):
+                            np.array([ [3,  3,  3, 3], [np.nan] *4  ]),
+                            
+                            3, 3), 
+
+                            # all zero values for valid components in one region group
+                            ( np.array([ [ [3, 3, 0, 0] for i in range(2)],
+
+                                  [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ]),
+
+                            np.array([ [3,  3,  0, 0], [np.nan] *4  ]),
+                            
+                            3, 0), 
+
+                            # all zero values for valid components in one region 
+                            ( np.array([ [ [3, 3, 3, 0] for i in range(2)],
+
+                                  [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ]),
+
+                            np.array([ [3,  3,  3, 0], [np.nan] *4  ]),
+                            
+                            3, 3)
+                           ])
+def test_aggregate_time_series_weighted_mean(data, weight, expected_grp1, expected_grp2):
+
+    component_list = ['source_comp','sink_comp']  
+    space_list = ['01_reg','02_reg','03_reg','04_reg']
+    time_list = ['T0','T1']
+
+    data_xr = xr.DataArray(data, 
+                            coords=[component_list, time_list, space_list], 
+                            dims=['component', 'time','space'])
+    
+    weight_xr = xr.DataArray(weight, 
+                            coords=[component_list, space_list], 
+                            dims=['component', 'space'])
+
+    sub_to_sup_region_id_dict = {'01_reg_02_reg': ['01_reg','02_reg'], 
+                                 '03_reg_04_reg': ['03_reg','04_reg']}
+
+    #FUNCTION CALL
+    time_series_aggregated = spr.aggregate_time_series(data_xr, 
+                                                        sub_to_sup_region_id_dict, 
+                                                        mode="weighted mean", 
+                                                        xr_weight_array=weight_xr)
+    
+    #ASSERTION 
+    ## for valid component, source_comp
+    assert time_series_aggregated.loc['source_comp', 'T0', '01_reg_02_reg'].values == expected_grp1
+    assert time_series_aggregated.loc['source_comp', 'T0', '03_reg_04_reg'].values == expected_grp2
+
+    ## for invalid component, sink_comp
+    assert np.isnan(time_series_aggregated.loc['sink_comp', 'T0', '01_reg_02_reg'].values)
+
+@pytest.mark.parametrize("mode, expected_grp1, expected_grp2", [("mean", 15, 0), ("sum", 30, 0), ("bool", 1, 0)])    
+def test_aggregate_values(sds_and_dict_for_basic_representation, 
+                        mode, 
+                        expected_grp1,
+                        expected_grp2):
+
     sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
 
     test_xarray = sds_for_basic_representation.xr_dataset['1d_capacityMax']
@@ -94,24 +156,22 @@ def test_aggregate_values(sds_and_dict_for_basic_representation, mode):
                                             mode=mode)
     
     #ASSERTION
-    if mode == "mean":
-        assert values_aggregated.loc['source_comp', '01_reg_02_reg'].values == 15
-        assert math.isnan(values_aggregated.loc['sink_comp', '01_reg_02_reg'].values)
+    ## for valid component, source_comp
+    assert values_aggregated.loc['source_comp', '01_reg_02_reg'].values == expected_grp1 
+    assert values_aggregated.loc['source_comp', '03_reg_04_reg'].values == expected_grp2 
 
-    elif mode == "sum":
-        assert values_aggregated.loc['source_comp', '01_reg_02_reg'].values == 30
-        assert values_aggregated.loc['sink_comp', '01_reg_02_reg'].values == 0
+    ## for invalid component, sink_comp
+    assert np.isnan(values_aggregated.loc['sink_comp', '01_reg_02_reg'].values)
+
     
-    elif mode == "bool":  #NOTE: bool uses any. It outputs 1 if at least one value is TRUE. NA is also considered as TRUE #TODO: does bool mode make sense in this function
-        assert  values_aggregated.loc['source_comp', '01_reg_02_reg'].values == 1
-        assert  values_aggregated.loc['sink_comp', '01_reg_02_reg'].values == 1
-
-
-@pytest.mark.parametrize("set_diagonal_to_zero", [True, False])
-@pytest.mark.parametrize("mode", ["mean", "sum", "bool"])
+@pytest.mark.parametrize("mode, expected_for_valid_component", 
+                                                [ ("mean", np.array([ [0, 5], [5, 0] ])), 
+                                                  ("sum", np.array([ [0, 20], [20, 0] ])), 
+                                                  ("bool", np.array([ [0, 1], [1, 0] ]) )
+                                            ])
 def test_aggregate_connections(sds_and_dict_for_basic_representation,
-                               set_diagonal_to_zero,
-                               mode):
+                               mode,
+                               expected_for_valid_component):
 
     sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
     
@@ -120,54 +180,21 @@ def test_aggregate_connections(sds_and_dict_for_basic_representation,
     #FUNCTION CALL
     connections_aggregated = spr.aggregate_connections(test_xarray,
                                                     sub_to_sup_region_id_dict,
-                                                    mode=mode,
-                                                    set_diagonal_to_zero=set_diagonal_to_zero, 
-                                                    spatial_dim="space")
+                                                    mode=mode)
 
     #ASSERTION 
     output_for_valid_component = connections_aggregated.loc['transmission_comp'].values
     output_for_invalid_component = connections_aggregated.loc['sink_comp'].values
 
-    if set_diagonal_to_zero is True: 
-        if mode == "mean":
-            expected_for_valid_component = np.array([ [0, 5], [5, 0] ])
-
-            assert np.array_equal(output_for_valid_component, expected_for_valid_component)
-            assert output_for_invalid_component[0][0] == 0 and np.isnan(output_for_invalid_component[0][1]) #NOTE: cannot directly compare np.nan and nan
-        
-        else:
-            if mode == "sum":
-                expected_for_valid_component = np.array([ [0, 20], [20, 0] ])
-                expected_for_invalid_component = np.array([ [0, 0], [0, 0] ]) 
-            
-            elif mode == "bool":
-                expected_for_valid_component = np.array([ [0, 1], [1, 0] ])
-                expected_for_invalid_component = np.array([ [0, 0], [0, 0] ]) 
-
-            assert np.array_equal(output_for_valid_component, expected_for_valid_component)
-            assert np.array_equal(output_for_invalid_component, expected_for_invalid_component)  
     
-    else: 
-        if mode == "mean":
-            expected_for_valid_component = np.array([ [2.5, 5], [5, 2.5] ])
-
-            assert np.array_equal(output_for_valid_component, expected_for_valid_component)
-            assert np.isnan(output_for_invalid_component[0][0]) and np.isnan(output_for_invalid_component[0][1]) 
-        
-        else:
-            if mode == "sum":
-                expected_for_valid_component = np.array([ [10, 20], [20, 10] ])
-                expected_for_invalid_component = np.array([ [0, 0], [0, 0] ])
-            
-            elif mode == "bool":
-                expected_for_valid_component = np.array([ [1, 1], [1, 1] ])
-                expected_for_invalid_component = np.array([ [0, 0], [0, 0] ]) 
-
-            assert np.array_equal(output_for_valid_component, expected_for_valid_component)
-            assert np.array_equal(output_for_invalid_component, expected_for_invalid_component)
+    assert np.array_equal(output_for_valid_component, expected_for_valid_component)
+    assert output_for_invalid_component[0][0] == 0 and np.isnan(output_for_invalid_component[0][1])  
+    
 
 
-test_data = [(None, 6, 10, 30, 10, np.array([ [0, 20], [20, 0] ]), np.array([ [0, 1], [0, 0] ]) ), 
+test_data = [
+            # no aggregation_function_dict provided 
+            (None, 6, 10, 30, 10, np.array([ [0, 20], [20, 0] ]), np.array([ [0, 1], [0, 0] ]) ), 
 
             ({'operationRateMax': ('weighted mean', xr.DataArray(np.array([ [15,  15,  15, 15],
                                                                             [np.nan] *4, 
@@ -217,8 +244,8 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict(sds_and_dict_for_basic_rep
     output_xarray = output_sds.xr_dataset
     
     ## 3. Time series variables 
-    assert  output_xarray['ts_operationRateMax'].loc['source_comp', 0, 'T0','01_reg_02_reg'].values == expected_ts_operationRateMax
-    assert output_xarray['ts_operationRateFix'].loc['sink_comp', 0, 'T0','01_reg_02_reg'].values == expected_ts_operationRateFix
+    assert  output_xarray['ts_operationRateMax'].loc['source_comp', 'T0', '01_reg_02_reg'].values == expected_ts_operationRateMax
+    assert output_xarray['ts_operationRateFix'].loc['sink_comp', 'T0','01_reg_02_reg'].values == expected_ts_operationRateFix
     
     ## 4. 1d variable 
     assert output_xarray['1d_capacityMax'].loc['source_comp', '01_reg_02_reg'].values == expected_1d_capacityMax
@@ -270,8 +297,7 @@ def test_create_grid_shapefile(sds_and_dict_for_basic_representation):
                             variable_description="2d_capacityMax",
                             component_description="transmission_comp",
                             file_path=path_to_test_dir,
-                            files_name=files_name,
-                            spatial_dim="space")
+                            files_name=files_name)
     
     #EXPECTED 
     ## File extensions 

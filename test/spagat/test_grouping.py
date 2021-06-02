@@ -20,7 +20,7 @@ expected_file = os.path.join(path_to_test_dir, f'{file_name}.png')
                          (['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'])]) 
 def test_perform_string_based_grouping(string_list, expected):
      clustered_regions_dict = spg.perform_string_based_grouping(string_list)
-     assert list(clustered_regions_dict.keys()).sort() == expected.sort()   
+     assert sorted(clustered_regions_dict.keys()) == sorted(expected)
       #TODO: check values also       
 
 @pytest.mark.parametrize("mode", ['sklearn_kmeans', 'sklearn_hierarchical', 'sklearn_spectral', 'scipy_kmeans', 'scipy_hierarchical'])
@@ -28,16 +28,15 @@ def test_perform_distance_based_grouping(mode):
      #TEST DATA
      component_list = ['c1','c2']  
      space_list = ['01_reg','02_reg','03_reg','04_reg','05_reg']
-     TimeStep_list = ['T0','T1']
-     Period_list = [0]
+     time_list = ['T0','T1']
 
-     dummy_data = np.array([[ [[np.nan for i in range(5)] for i in range(2)] ],
-                              [ [[np.nan for i in range(5)] for i in range(2)] ]
+     dummy_data = np.array([ [[np.nan for i in range(5)] for i in range(2)] ,
+                             [[np.nan for i in range(5)] for i in range(2)] 
                            ])
 
      dummy_DataArray = xr.DataArray(dummy_data, 
-                                   coords=[component_list, Period_list, TimeStep_list, space_list], 
-                                   dims=['component', 'Period', 'TimeStep','space'])    
+                                   coords=[component_list, time_list, space_list], 
+                                   dims=['component', 'time','space'])    
 
      dummy_ds = xr.Dataset({'var': dummy_DataArray}) 
 
@@ -95,7 +94,6 @@ def test_perform_parameter_based_grouping(weights,
 
      #FUNCTION CALL
      output_dict = spg.perform_parameter_based_grouping(sds_for_parameter_based_grouping, 
-                                                       dimension_description='space',
                                                        weights=weights)  
      
      #ASSERTION

@@ -19,21 +19,20 @@ def sds_for_connectivity():
 
   component_list = ['source_comp','sink_comp', 'transmission_comp']  
   space_list = ['01_reg','02_reg','03_reg','04_reg', '05_reg','06_reg', '07_reg','08_reg']
-  TimeStep_list = ['T0','T1']
-  Period_list = [0]
+  time_list = ['T0','T1']
 
   ## ts variable data
-  operationRateMax = np.array([ [ [[1] * 8 for i in range(2)] ], 
+  operationRateMax = np.array([  [[1] * 8 for i in range(2)], 
 
-                                [ [[np.nan] * 8 for i in range(2)] ], 
+                                 [[np.nan] * 8 for i in range(2)], 
 
-                                [ [[np.nan] * 8 for i in range(2)] ] 
+                                 [[np.nan] * 8 for i in range(2)]
 
                           ])
 
   operationRateMax_da = xr.DataArray(operationRateMax, 
-                                  coords=[component_list, Period_list, TimeStep_list, space_list], 
-                                  dims=['component', 'Period', 'TimeStep','space'])
+                                  coords=[component_list, time_list, space_list], 
+                                  dims=['component', 'time', 'space'])
 
 
   ## 1d variable data
@@ -142,17 +141,16 @@ def sds_for_parameter_based_grouping():
 
   component_list = ['Source, wind turbine', 'Transmission, AC cables', 'Source, PV']  
   space_list = ['01_reg','02_reg','03_reg']
-  TimeStep_list = ['T0','T1']
-  Period_list = [0]
+  time_list = ['T0','T1']
 
   ## time series variables data
-  operationRateMax = np.array([ [[[0.2, 0.1, 0.1] for i in range(2)]],
-                                [[[np.nan]*3 for i in range(2)]], 
-                                [[[0.2, 0.1, 0.1] for i in range(2)]]  ])
+  operationRateMax = np.array([ [[0.2, 0.1, 0.1] for i in range(2)],
+                                [[np.nan]*3 for i in range(2)], 
+                                [[0.2, 0.1, 0.1] for i in range(2)]  ])
 
   operationRateMax = xr.DataArray(operationRateMax, 
-                                coords=[component_list, Period_list, TimeStep_list, space_list], 
-                                dims=['component', 'Period', 'TimeStep','space'])
+                                coords=[component_list, time_list, space_list], 
+                                dims=['component', 'time','space'])
   
   
   ## 1d variable data
@@ -216,36 +214,35 @@ def sds_and_dict_for_basic_representation():
   #SDS
   component_list = ['source_comp','sink_comp', 'transmission_comp']  
   space_list = ['01_reg','02_reg','03_reg','04_reg']
-  TimeStep_list = ['T0','T1']
-  Period_list = [0]
+  time_list = ['T0','T1']
 
   ## ts variable data
-  operationRateMax = np.array([ [ [ [3, 3, 3, 3] for i in range(2)] ],
+  operationRateMax = np.array([  [ [3, 3, 3, 3] for i in range(2)] ,
 
-                          [ [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ], 
+                           [[np.nan, np.nan, np.nan, np.nan] for i in range(2)], 
 
-                          [ [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ]
+                           [[np.nan, np.nan, np.nan, np.nan] for i in range(2)]
 
                           ])
 
   operationRateMax_da = xr.DataArray(operationRateMax, 
-                                  coords=[component_list, Period_list, TimeStep_list, space_list], 
-                                  dims=['component', 'Period', 'TimeStep','space'])
+                                  coords=[component_list, time_list, space_list], 
+                                  dims=['component', 'time','space'])
 
-  operationRateFix = np.array([ [ [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ], 
+  operationRateFix = np.array([  [[np.nan, np.nan, np.nan, np.nan] for i in range(2)], 
 
-                          [ [ [5, 5, 5, 5] for i in range(2)] ],
+                          [  [5, 5, 5, 5] for i in range(2)],
 
-                          [ [[np.nan, np.nan, np.nan, np.nan] for i in range(2)] ]
+                           [[np.nan, np.nan, np.nan, np.nan] for i in range(2)]
 
                           ])
 
   operationRateFix_da = xr.DataArray(operationRateFix, 
-                                  coords=[component_list, Period_list, TimeStep_list, space_list], 
-                                  dims=['component', 'Period', 'TimeStep','space'])
+                                  coords=[component_list, time_list, space_list], 
+                                  dims=['component', 'time','space'])
 
   ## 1d variable data
-  capacityMax_1d = np.array([ [15,  15,  15, 15],
+  capacityMax_1d = np.array([ [15,  15,  0, 0],
                             [np.nan] *4, 
                             [np.nan] *4, 
                           ])

@@ -129,9 +129,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
 def aggregate_time_series(xr_data_array_in,
                         sub_to_sup_region_id_dict,
                         mode="mean",
-                        xr_weight_array=None,
-                        spatial_dim="space",
-                        time_dim="TimeStep"):
+                        xr_weight_array=None):
     """For each region group, aggregates the given time series variable. 
 
     Parameters
@@ -147,10 +145,6 @@ def aggregate_time_series(xr_data_array_in,
     xr_weight_array : xr.DataArray
         Required if `mode` is "weighted mean". `xr_weight_array` in this case would provide weights. 
         The dimensions and coordinates of it should be same as `xr_data_array_in`
-    spatial_dim : str, optional (default='space')
-        The name/description of the dimension in the sds data that corresponds to regions 
-    time_dim : str, optional (default='TimeStep')
-        The name/description of the dimension in the sds data that corresponds to time  
 
     Returns
     -------
@@ -159,22 +153,20 @@ def aggregate_time_series(xr_data_array_in,
         Coordinates correspond to new regions 
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     """
-    # TODO: maybe add this to SpagatDataset as method?
-    # TODO: generalize dims -> 'space' could be replaced by sth more general such as 'locs'
-
+    
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
     aggregated_coords = { key: value.values 
                             for key, value in xr_data_array_in.coords.items()
                         }
     
-    aggregated_coords["space"] = space_coords
+    aggregated_coords['space'] = space_coords
 
     coord_list = [value for value in aggregated_coords.values()]
     dim_list = [key for key in aggregated_coords.keys()]
 
     data_out_dummy = np.empty(tuple(len(coord) for coord in aggregated_coords.values()))
-    data_out_dummy[:] = np.nan
+    data_out_dummy[:] = np.nan 
 
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
@@ -182,32 +174,36 @@ def aggregate_time_series(xr_data_array_in,
         if mode == "mean":
             xr_data_array_out.loc[dict(space=sup_region_id)] = (
                 xr_data_array_in.sel(space=sub_region_id_list)
-                .mean(dim=spatial_dim)
+                .mean(dim='space')
                 .values
             )
 
         if mode == "weighted mean":
             weighted_xr_data_array_in = xr_data_array_in * xr_weight_array
 
-            xr_data_array_out.loc[
-                dict(space=sup_region_id)
+            xr_data_array_out.loc[dict(space=sup_region_id)
             ] = weighted_xr_data_array_in.sel(space=sub_region_id_list).sum(
-                dim=spatial_dim, skipna=True
+                dim='space', skipna=False
             ) / xr_weight_array.sel(
                 space=sub_region_id_list
             ).sum(
-                dim=spatial_dim, skipna=True
+                dim='space', skipna=False
             )
 
         if mode == "sum":
             xr_data_array_out.loc[dict(space=sup_region_id)] = (
                 xr_data_array_in.sel(space=sub_region_id_list)
-                .sum(dim=spatial_dim)
+                .sum(dim='space', skipna=False) #INFO: if skipna=Flase not specified, sum of nas results in 0. 
                 .values
             )
-    #set NAs to 0
-    xr_data_array_out = xr_data_array_out.where(xr_data_array_out >= 0.0, 0.0)
 
+    #NOTE: If its a valid component, but theres a 0 in weight (ex: capacity being 0),
+    # it results in na during weighted mean calculation. These are converted to 0s
+    if mode == "weighted mean":
+        for comp in xr_data_array_out.component.values:
+            if not xr_data_array_out.loc[comp].isnull().all(): 
+                xr_data_array_out.loc[comp] = (xr_data_array_out.loc[comp]).fillna(0)
+        
     return xr_data_array_out
 
 
@@ -246,7 +242,7 @@ def aggregate_values(xr_data_array_in,
         key: value.values for key, value in xr_data_array_in.coords.items()
     }
 
-    aggregated_coords["space"] = space_coords
+    aggregated_coords['space'] = space_coords
 
     coord_list = [value for value in aggregated_coords.values()]
     dim_list = [key for key in aggregated_coords.keys()]
@@ -258,20 +254,23 @@ def aggregate_values(xr_data_array_in,
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
         if mode == "mean":
             xr_data_array_out.loc[dict(space=sup_region_id)] = (
-                xr_data_array_in.sel(space=sub_region_id_list).mean(dim="space").values
-            )
-        elif mode == "sum":
-            xr_data_array_out.loc[dict(space=sup_region_id)] = (
-                xr_data_array_in.sel(space=sub_region_id_list).sum(dim="space").values
-            )
-        elif mode == "bool":
-            xr_data_array_out.loc[dict(space=sup_region_id)] = (
-                xr_data_array_in.sel(space=sub_region_id_list).any(dim="space").values
+                xr_data_array_in.sel(space=sub_region_id_list).mean(dim='space').values
             )
         else:
-            logger_representation.error(
-                'Please select one of the modes "mean", "bool" or "sum"'
-            )
+            _sum_xr = \
+                xr_data_array_in.sel(space=sub_region_id_list).sum(dim='space', skipna=False)
+                
+            if mode == "sum":
+                xr_data_array_out.loc[dict(space=sup_region_id)] = _sum_xr
+
+            elif mode == "bool":
+                xr_data_array_out.loc[dict(space=sup_region_id)] = \
+                    _sum_xr.where(np.logical_or(_sum_xr.isnull(), _sum_xr==0), 1)  #only replace positive non nas 
+                
+            else:
+                logger_representation.error(
+                    'Please select one of the modes "mean", "bool" or "sum"'
+                )
 
     if output_unit == "GW": #TODO: show a warning if it is differnt and just return it!
         return xr_data_array_out
@@ -281,9 +280,7 @@ def aggregate_values(xr_data_array_in,
 
 def aggregate_connections(xr_data_array_in,
                         sub_to_sup_region_id_dict,
-                        mode="bool",
-                        set_diagonal_to_zero=True,
-                        spatial_dim="space"):
+                        mode="bool"):
     """For each region group, aggregates the given 2d variable.
 
     Parameters
@@ -296,10 +293,6 @@ def aggregate_connections(xr_data_array_in,
              '03_reg_04_reg': ['03_reg','04_reg']}
     mode : {"bool", "mean", "sum"}, optional
         Specifies how the connections should be aggregated 
-    set_diagonal_to_zero : bool, optional (default=True)
-        If True, the diagonal values (a region's connection to itself) are set to 0
-    spatial_dim : str, optional (default='space')
-        The name/description of the dimension in the sds data that corresponds to regions
     
     Returns
     -------
@@ -308,6 +301,7 @@ def aggregate_connections(xr_data_array_in,
         Coordinates correspond to new regions 
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     """
+
     # TODO: make sure that region and region_2 ids don't get confused
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
@@ -315,8 +309,8 @@ def aggregate_connections(xr_data_array_in,
         key: value.values for key, value in xr_data_array_in.coords.items()
     }
 
-    aggregated_coords[f"{spatial_dim}"] = space_coords
-    aggregated_coords[f"{spatial_dim}_2"] = space_coords
+    aggregated_coords['space'] = space_coords
+    aggregated_coords['space_2'] = space_coords
 
     coord_list = [value for value in aggregated_coords.values()]
     dim_list = [key for key in aggregated_coords.keys()]
@@ -327,6 +321,7 @@ def aggregate_connections(xr_data_array_in,
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
         for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():  #TODO: aggregates both ways (ex. sum -> (a+b) + (b+a)), is this required ? maybe it is for birectional connections
+
             if mode == "mean":
                 xr_data_array_out.loc[
                     dict(space=sup_region_id, space_2=sup_region_id_2)
@@ -334,32 +329,31 @@ def aggregate_connections(xr_data_array_in,
                     xr_data_array_in.sel(
                         space=sub_region_id_list, space_2=sub_region_id_list_2
                     )
-                    .mean(dim=["space", "space_2"])
+                    .mean(dim=['space', 'space_2'])
                     .values
                 )
-            elif mode == "bool":
-                sum_array = xr_data_array_in.sel(
-                    space=sub_region_id_list, space_2=sub_region_id_list_2
-                ).sum(dim=["space", "space_2"])
-
-                xr_data_array_out.loc[
-                    dict(space=sup_region_id, space_2=sup_region_id_2)
-                ] = sum_array.where(sum_array == 0, 1)
-
-            elif mode == "sum":
-                xr_data_array_out.loc[
-                    dict(space=sup_region_id, space_2=sup_region_id_2)
-                ] = xr_data_array_in.sel(
-                    space=sub_region_id_list, space_2=sub_region_id_list_2
-                ).sum(
-                    dim=["space", "space_2"]
-                )
+            
             else:
-                logger_representation.error(
-                    'Please select one of the modes "mean", "bool" or "sum"'
-                )
+                _sum_xr = xr_data_array_in.sel(space=sub_region_id_list, space_2=sub_region_id_list_2) \
+                    .sum(dim=['space', 'space_2'], skipna=False) 
 
-            if set_diagonal_to_zero and sup_region_id == sup_region_id_2:
+                if mode == "sum":
+                    xr_data_array_out.loc[
+                    dict(space=sup_region_id, space_2=sup_region_id_2)
+                    ] = _sum_xr
+
+                elif mode == "bool":
+                    xr_data_array_out.loc[
+                        dict(space=sup_region_id, space_2=sup_region_id_2)
+                    ] = _sum_xr.where(np.logical_or(_sum_xr.isnull(), _sum_xr==0), 1)  #only replace positive non nas 
+
+                else:
+                    logger_representation.error(
+                        'Please select one of the modes "mean", "bool" or "sum"'
+                    )
+
+            # set diagonal values to 0 
+            if sup_region_id == sup_region_id_2:
                 xr_data_array_out.loc[
                     dict(space=sup_region_id, space_2=sup_region_id_2)
                 ] = 0
@@ -373,9 +367,7 @@ def aggregate_connections(xr_data_array_in,
 
 def aggregate_based_on_sub_to_sup_region_id_dict(sds,
                                                 sub_to_sup_region_id_dict,
-                                                aggregation_function_dict=None,
-                                                spatial_dim="space",
-                                                time_dim="TimeStep" ):
+                                                aggregation_function_dict=None):
     """After spatial grouping, for each region group, spatially aggregates the data. 
 
     Parameters
@@ -392,10 +384,6 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
                                       <variable_name>: (<mode_of_aggregation>, None)} 
           <weights>, which is a xr.DataArray, is required only if <mode_of_aggregation> is 
           'weighted mean'. Can be None otherwise. 
-    spatial_dim : str, optional (default='space')
-        The name/description of the dimension in the sds data that corresponds to regions 
-    time_dim : str, optional (default='TimeStep')
-        The name/description of the dimension in the sds data that corresponds to time  
     
     Returns
     -------
@@ -404,7 +392,13 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
         Coordinates correspond to new regions 
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     """
+    
+    # Create a new sds
     aggregated_sds = spd.SpagatDataset()
+    # copy attributes to its xr dataset 
+    aggregated_sds.xr_dataset.attrs = sds.xr_dataset.attrs
+    # update locations 
+    aggregated_sds.xr_dataset.attrs['locations'] = set(sub_to_sup_region_id_dict.keys())
 
     if aggregation_function_dict != None:
         #INFO: xarray dataset has prefix 1d_,  2d_ and ts_
@@ -468,37 +462,37 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
             aggregated_sds.add_region_data(list(sub_to_sup_region_id_dict.keys()))
 
             aggregated_sds.add_objects(description="gpd_geometries", #TODO: based on the current and possible future use of add_objects() simplify the method
-                                    dimension_list=(spatial_dim),  #TODO: check why the brackets are necessary
+                                    dimension_list=("space"),  #TODO: check why the brackets are necessary
                                     object_list=shapes_aggregated)
 
             add_region_centroids(aggregated_sds)
         
         #STEP 2b. For other variables except "gpd_centroids", call respective 
-        # aggregation functions based on dimensions  
+        # aggregation functions based on dimensions. If no dimension present (0d vars),
+        # directly data is directly added to aggregated_sds.xr_dataset.
         elif varname != "gpd_centroids":
             ## Time series 
-            if spatial_dim in da.dims and time_dim in da.dims:  
+            if "space" in da.dims and "time" in da.dims:  
                 da = aggregate_time_series(sds.xr_dataset[varname],
                                         sub_to_sup_region_id_dict,
                                         mode=aggregation_mode,
                                         xr_weight_array=aggregation_weight)
 
-                aggregated_sds.xr_dataset[varname] = da
-
             ## 1d variables
-            elif (spatial_dim in da.dims and f"{spatial_dim}_2" not in da.dims):  
+            elif ("space" in da.dims and "space_2" not in da.dims):  
                 da = aggregate_values(sds.xr_dataset[varname],
                                     sub_to_sup_region_id_dict,
                                     mode=aggregation_mode)
-                aggregated_sds.xr_dataset[varname] = da
             
             ## 2d variables
-            elif (spatial_dim in da.dims and f"{spatial_dim}_2" in da.dims):  
+            elif ("space" in da.dims and "space_2" in da.dims):  
                 da = aggregate_connections(sds.xr_dataset[varname],
                                         sub_to_sup_region_id_dict,
                                         mode=aggregation_mode)
+            
+            ## aggregated or 0d variables 
+            aggregated_sds.xr_dataset[varname] = da
 
-                aggregated_sds.xr_dataset[varname] = da
 
     return aggregated_sds
 
@@ -508,8 +502,7 @@ def create_grid_shapefile(sds,
                         variable_description,
                         component_description,
                         file_path, 
-                        files_name="AC_lines",
-                        spatial_dim="space"):
+                        files_name="AC_lines"):
     """Creates a geodataframe which indicates whether two regions are connected for the 
     given variable-component pair. 
 
@@ -525,8 +518,6 @@ def create_grid_shapefile(sds,
         The path to which to save the geodataframe
     files_name : str, optional (default="AC_lines")
         The name of the saved geodataframe
-    spatial_dim : str, optional (default='space')
-        The name/description of the dimension in the sds data that corresponds to regions 
     
     """
     # TODO: dataset class
@@ -539,8 +530,8 @@ def create_grid_shapefile(sds,
 
     eligibility_xr_array = sds.xr_dataset[variable_description].sel(component=component_description)
     
-    for region_id_1 in sds.xr_dataset[f"{spatial_dim}"].values:
-        for region_id_2 in sds.xr_dataset[f"{spatial_dim}_2"].values:
+    for region_id_1 in sds.xr_dataset["space"].values:
+        for region_id_2 in sds.xr_dataset["space_2"].values:
             if eligibility_xr_array.sel(space=region_id_1, space_2=region_id_2).values: 
                 buses_0.append(region_id_1)
                 buses_1.append(region_id_2)

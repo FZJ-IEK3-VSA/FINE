@@ -28,7 +28,7 @@ def test_preprocess_time_series():
     var_list = ['var1', 'var2']
     component_list = ['c1','c2','c3','c4']
     space_list = ['01_reg','02_reg','03_reg']
-    TimeStep_list = ['T0','T1']
+    time_list = ['T0','T1']
 
     var1_data = np.array([ [[ 0, 1],
                             [ 1, 1],
@@ -43,8 +43,8 @@ def test_preprocess_time_series():
                             [[np.nan] * 2 for i in range(3)] ])
 
     test_dict['var1'] = xr.DataArray(var1_data, 
-                                  coords=[component_list, space_list, TimeStep_list], 
-                                  dims=['component', 'space', 'TimeStep'],
+                                  coords=[component_list, space_list, time_list], 
+                                  dims=['component', 'space', 'time'],
                                   name = 'var1')
 
 
@@ -61,8 +61,8 @@ def test_preprocess_time_series():
                              [ 9, 10]] ])
                         
     test_dict['var2'] = xr.DataArray(var2_data, 
-                                    coords=[component_list, space_list, TimeStep_list], 
-                                    dims=['component', 'space', 'TimeStep'],
+                                    coords=[component_list, space_list, time_list], 
+                                    dims=['component', 'space', 'time'],
                                     name = 'var2')
 
     
@@ -229,38 +229,36 @@ def test_preprocess_dataset():
     component_list = ['c1','c2','c3','c4']
 
     space_list = ['01_reg','02_reg','03_reg']
-    TimeStep_list = ['T0','T1']
-
-    Period_list = [0]
+    time_list = ['T0','T1']
 
     ## time series variable data
-    var_ts_1_data = np.array([ [ [[np.nan, np.nan, np.nan] for i in range(2)] ],
+    var_ts_1_data = np.array([  [[np.nan, np.nan, np.nan] for i in range(2)],
                             
-                                [ [[0, 1,  1],
-                                    [1, 1,  10]] ],
+                                 [[0, 1,  1],
+                                    [1, 1,  10]],
                                 
-                                [ [[np.nan,np.nan, np.nan] for i in range(2)]  ],
+                                 [[np.nan,np.nan, np.nan] for i in range(2)],
                                 
-                                [ [[0,   2, 2],
-                                    [2, 2, 10]] ] ])
+                                 [[0,   2, 2],
+                                    [2, 2, 10]]  ])
 
     var_ts_1_DataArray = xr.DataArray(var_ts_1_data, 
-                                    coords=[component_list, Period_list, TimeStep_list, space_list], 
-                                    dims=['component', 'Period', 'TimeStep','space'])
+                                    coords=[component_list, time_list, space_list], 
+                                    dims=['component', 'time', 'space'])
 
-    var_ts_2_data = np.array([ [ [[np.nan, np.nan, np.nan] for i in range(2)] ],
+    var_ts_2_data = np.array([  [[np.nan, np.nan, np.nan] for i in range(2)],
                             
-                                [ [[np.nan,np.nan, np.nan] for i in range(2)]  ],
+                                 [[np.nan,np.nan, np.nan] for i in range(2)],
                                 
-                                [ [[0, 8,  8],
-                                    [8, 8,  10]] ],
+                                 [[0, 8,  8],
+                                    [8, 8,  10]],
                                 
-                                [ [[0,   9, 9],
-                                    [9, 9, 10]] ] ])
+                                 [[0,   9, 9],
+                                    [9, 9, 10]] ])
 
     var_ts_2_DataArray = xr.DataArray(var_ts_2_data, 
-                                    coords=[component_list, Period_list, TimeStep_list, space_list], 
-                                    dims=['component', 'Period', 'TimeStep','space'])
+                                    coords=[component_list, time_list, space_list], 
+                                    dims=['component', 'time', 'space'])
         
     ## 1d variable data
     var_1d_1_data = np.array([ [0,  1,  10],

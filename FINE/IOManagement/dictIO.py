@@ -1,15 +1,18 @@
+import inspect
+
 import FINE as fn
 import FINE.utils as utils
 
-import inspect
-import json
 
 def exportToDict(esM):
     """
     Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
 
-    :param esM: EnergySystemModel instance in which the optimized model is hold
+    :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
+
+    :return: esmDict, compDict - dicts containing input arguments of 
+            EnergySysteModel and its Components input, respectively 
     """
 
     # Get all input properties of the esM
@@ -53,20 +56,20 @@ def exportToDict(esM):
     return esmDict, compDict
 
 
-def importFromDict(esmDict, compDict, esM=None):
+def importFromDict(esmDict, compDict):
     """
-    Writes the dictionaries created by the exportToDict function to an EnergySystemModel.
+    Converts the dictionaries created by the exportToDict function to an EnergySystemModel.
 
     :param esMDict: dictionary created from exportToDict contains all esM information
     :type dict: dictionary instance
 
     :param compDict: dictionary create from exportToDict containing all component information
     :type dict: dictionary instance
+
+    :return: esM - EnergySystemModel instance in which the optimized model is held
     """
 
-    if esM is None:
-        # TODO: drop LinearOptimalPowerFlow ?
-        esM = fn.EnergySystemModel(**esmDict)
+    esM = fn.EnergySystemModel(**esmDict)
 
     # add components
     for classname in compDict:
@@ -74,30 +77,6 @@ def importFromDict(esmDict, compDict, esM=None):
         class_ = getattr(fn, classname)
 
         for comp in compDict[classname]:
-            # if classname != 'LinearOptimalPowerFlow':
             esM.add(class_(esM, **compDict[classname][comp]))
 
     return esM
-
-#NOTE: Writing the dicts to a json file throws error because there are some "set" type objects within these dicts which 
-# are not json serializable. Only other way is to use pickle or cPickle package and save .txt files. However, this is 
-# also throwing error at the moment
-#TODO: check if it is absolutely necessary to save these dicts, if yes, try again with the above mentioned packages
-# otherwise, just delete the functions!
-
-# def exportToJSON(esM, filename):
-#     esmDict, compDict = exportToDict(esM)
-
-#     entireEsmDict = {'esmDict': esmDict, 'compDict': compDict}
-
-#     with open(filename, 'w') as fp:
-#         json.dump(entireEsmDict, fp)
-
-# def importFromJSON(filename):
-
-#     with open(filename, 'r') as fp:
-#         entireEsmDict = json.load(fp)
-
-#     esM = importFromDict(entireEsmDict['esmDict'], entireEsmDict['compDict'])
-
-#     return esM

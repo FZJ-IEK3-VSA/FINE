@@ -8,8 +8,6 @@ import pandas as pd
 import json
 
 import FINE as fn
-sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional_Energy_System_Workflow'))
-from getData import getData
 
 
 def test_allDFs_present_in_esM_instance(minimal_test_esM):
@@ -198,13 +196,3 @@ def test_import_from_dict(test_esM_fixture, request):
 
     assert output_df.equals(expected_df)
     assert output_series.equals(expected_series)
-
-    
-
-
-
-
-
-
-    
-

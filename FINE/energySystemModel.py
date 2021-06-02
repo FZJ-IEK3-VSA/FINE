@@ -452,8 +452,7 @@ class EnergySystemModel:
 
         #STEP 2. Obtain xr dataset from esM 
         sds = spd.SpagatDataset()
-        esm_dict, comp_dict = dictIO.exportToDict(self)
-        sds.xr_dataset = xrIO.dimensional_data_to_xarray_dataset(esm_dict, comp_dict)
+        sds.xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
         
         #STEP 3. Add shapefile information to sds
         sds.add_objects(description='gpd_geometries',
@@ -473,7 +472,6 @@ class EnergySystemModel:
         elif grouping_mode == 'distance_based':
 
             agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical') 
-            dimension_description = kwargs.get('dimension_description', 'space') 
             ax_illustration = kwargs.get('ax_illustration', None) 
             save_path = kwargs.get('save_path', None) 
             fig_name = kwargs.get('fig_name', None)
@@ -482,8 +480,7 @@ class EnergySystemModel:
             print(f'Performing distance-based grouping on the regions. Clustering mode: {agg_mode}')
 
             aggregation_dict = spg.perform_distance_based_grouping(sds, 
-                                                                agg_mode, 
-                                                                dimension_description, 
+                                                                agg_mode,  
                                                                 ax_illustration, 
                                                                 save_path,
                                                                 fig_name, 
@@ -491,14 +488,12 @@ class EnergySystemModel:
 
         elif grouping_mode == 'parameter_based':
 
-            dimension_description = kwargs.get('dimension_description', 'space') 
             linkage = kwargs.get('linkage', 'complete') 
             weights = kwargs.get('weights', None) 
 
             print(f'Performing parameter-based grouping on the regions.')
 
             aggregation_dict = spg.perform_parameter_based_grouping(sds, 
-                                                                    dimension_description,
                                                                     linkage,
                                                                     weights)
         
@@ -513,23 +508,15 @@ class EnergySystemModel:
         else: 
             print('aggregation_function_dict found in kwargs')
             aggregation_function_dict = kwargs.get('aggregation_function_dict')
-            
-        spatial_dim = kwargs.get('spatial_dim', 'space')
-        time_dim = kwargs.get('time_dim', 'TimeStep')
         
         aggregated_sds = spr.aggregate_based_on_sub_to_sup_region_id_dict(sds,
                                                                     sub_to_sup_region_id_dict,
-                                                                    aggregation_function_dict,
-                                                                    spatial_dim,        #TODO: check how useful these parameters would be, 
-                                                                    time_dim)       # if you decide to keep them, make it uniform, 
-                                                                                                # ex.: in grouping functions, spatial_dim is called dimension_description
+                                                                    aggregation_function_dict)       
+                                                                                                
         
         #STEP 6. Obtain aggregated esM
-        new_esm_dict, new_comp_dict = xrIO.update_dicts_based_on_xarray_dataset(esm_dict, 
-                                                                        comp_dict, 
-                                                                        xarray_dataset=aggregated_sds.xr_dataset)
         
-        aggregated_esM = dictIO.importFromDict(new_esm_dict, new_comp_dict)
+        aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(aggregated_sds.xr_dataset)
         
         #STEP 7. Save shapefiles and aggregated data if user chooses
         if aggregatedResultsPath is not None:   #TODO: test if they are saved as intented 
