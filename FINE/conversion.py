@@ -320,6 +320,14 @@ class Conversion(Component):
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
         """
+        #needed for test_segmentation, as ESM is not built from scratch everytime, see test_segmentation
+        #To-Do: to discuss with Max and Theresa if necessary and correct
+        if ip == 0:
+            if self.aggregatedOperationRateFix == None:
+                self.aggregatedOperationRateFix = {}
+            if self.aggregatedOperationRateMax == None:
+                self.aggregatedOperationRateMax = {}
+
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data, ip)
         self.aggregatedOperationRateMax[ip] = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data, ip)
 
@@ -585,7 +593,7 @@ class ConversionModel(ComponentModel):
         optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'physicalUnit')
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder[ip],
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
                                                 esM=esM)
         self.operationVariablesOptimum = optVal
 

@@ -465,6 +465,9 @@ class EnergySystemModel:
         # periodsOrder and Occurrences now dictionaries
         self.periodsOrder = {}
         self.periodOccurrences = {}
+        self.timeStepsPerSegment = {}
+        self.hoursPerSegment = {}
+        self.segmentStartTime = {}
 
         # loop over all ips
         for ip in self.investmentPeriods:
@@ -519,15 +522,28 @@ class EnergySystemModel:
             self.segmentation = segmentation
             if segmentation:
                 self.segmentsPerPeriod = list(range(numberOfSegmentsPerPeriod))
-                self.timeStepsPerSegment = timeStepsPerSegment
-                self.hoursPerSegment = self.hoursPerTimeStep * self.timeStepsPerSegment
+                self.timeStepsPerSegment[ip] = timeStepsPerSegment # ip-dependent
+                self.hoursPerSegment[ip] = self.hoursPerTimeStep * self.timeStepsPerSegment[ip] #ip-dependent
                 # Define start time hour of each segment in each typical period
-                segmentStartTime = self.hoursPerSegment.groupby(level=0).cumsum()
+                segmentStartTime = self.hoursPerSegment[ip].groupby(level=0).cumsum()
                 segmentStartTime.index = segmentStartTime.index.set_levels(segmentStartTime.index.levels[1] + 1, level=1)
                 lvl0, lvl1 = segmentStartTime.index.levels
                 segmentStartTime = segmentStartTime.reindex(pd.MultiIndex.from_product([lvl0, [0, *lvl1]]))
                 segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
-                self.segmentStartTime = segmentStartTime
+                self.segmentStartTime[ip] = segmentStartTime # ip-dependent
+            # old code:
+            # if segmentation:
+            #     self.segmentsPerPeriod = list(range(numberOfSegmentsPerPeriod))
+            #     self.timeStepsPerSegment = timeStepsPerSegment # ip-dependent
+            #     self.hoursPerSegment = self.hoursPerTimeStep * self.timeStepsPerSegment #ip-dependent
+            #     # Define start time hour of each segment in each typical period
+            #     segmentStartTime = self.hoursPerSegment.groupby(level=0).cumsum() # ip-dependent
+            #     segmentStartTime.index = segmentStartTime.index.set_levels(segmentStartTime.index.levels[1] + 1, level=1) # ip-dependent
+            #     lvl0, lvl1 = segmentStartTime.index.levels
+            #     segmentStartTime = segmentStartTime.reindex(pd.MultiIndex.from_product([lvl0, [0, *lvl1]]))
+            #     segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
+            #     self.segmentStartTime = segmentStartTime
+
             self.periods = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))))
             self.interPeriodTimeSteps = list(range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
             self.periodsOrder[ip] = clusterClass.clusterOrder

@@ -331,6 +331,9 @@ class Source(Component):
 
         self.fullOperationRateFix = {}
         self.aggregatedOperationRateFix = {}
+        # test purpose for segmentation
+        print('agFix1')
+        print(self.aggregatedOperationRateFix)
         self.operationRateFix = {}
         
         # iterate over all ips
@@ -359,6 +362,9 @@ class Source(Component):
                 raise TypeError('OperationRateFix should be a pandas dataframe or a dictionary.')
             
             self.aggregatedOperationRateFix[ip], self.operationRateFix[ip] = None, None
+            # test for segmentation
+            print('agFix2')
+            print(self.aggregatedOperationRateFix)
 
         # new code for perfect foresight
         self.partLoadMin = {}
@@ -469,6 +475,9 @@ class Source(Component):
         :type hasTSA: boolean
         """
         self.operationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
+        # test for segmentation
+        print('agFix3')
+        print(self.aggregatedOperationRateFix)
         self.operationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
         self.commodityCostTimeSeries = \
             self.aggregatedCommodityCostTimeSeries if hasTSA else self.fullCommodityCostTimeSeries
@@ -503,6 +512,22 @@ class Source(Component):
 
         """
         #adjusted for perfect foresight with time series aggregation: added ip
+        #needed for test_segmentation, as ESM is not built from scratch everytime
+        #To-Do: to discuss with Max and Theresa if necessary and correct
+        if ip == 0:
+            if self.aggregatedOperationRateFix == None:
+                self.aggregatedOperationRateFix = {}
+            if self.aggregatedOperationRateMax == None:
+                self.aggregatedOperationRateMax = {}
+            if self.aggregatedCommodityCostTimeSeries == None:
+                self.aggregatedCommodityCostTimeSeries = {}
+            if self.aggregatedCommodityRevenueTimeSeries == None:
+                self.aggregatedCommodityRevenueTimeSeries = {}
+
+        # test for segmentation                
+        print('agFix4')
+        print(self.name)
+        print(self.aggregatedOperationRateFix)
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data, ip)
         self.aggregatedOperationRateMax[ip] = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data, ip)
         self.aggregatedCommodityCostTimeSeries[ip] = \
@@ -516,9 +541,14 @@ class Source(Component):
         Check aggregated time series data after applying time series aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
-
+        # test for segmentation
+        print('agFix5')
+        print(self.aggregatedOperationRateFix)
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateFix.values()):
             self.aggregatedOperationRateFix=None
+        # test for segmentation
+        print('agFix6')
+        print(self.aggregatedOperationRateFix)
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateMax.values()):
             self.aggregatedOperationRateMax=None
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedCommodityCostTimeSeries.values()):
@@ -870,7 +900,7 @@ class SourceSinkModel(ComponentModel):
         optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'commodityUnit')
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder[ip],
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
                                                 esM=esM)
         self.operationVariablesOptimum = optVal
 
@@ -925,7 +955,7 @@ class SourceSinkModel(ComponentModel):
                     # in case of time series aggregation rearange clustered cost time series
                     calcCostTD = utils.buildFullTimeSeries(
                         compDict[compName].commodityCostTimeSeries[ip].unstack(level=1).stack(level=0),
-                        esM.periodsOrder[ip], esM=esM, divide=False)
+                        esM.periodsOrder[ip], ip, esM=esM, divide=False)
                     # multiply with operation values to get the total cost
 
                     cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
@@ -938,7 +968,7 @@ class SourceSinkModel(ComponentModel):
                     # in case of time series aggregation rearange clustered revenue time series
                     calcRevenueTD = utils.buildFullTimeSeries(
                         compDict[compName].commodityRevenueTimeSeries[ip].unstack(level=1).stack(level=0),
-                        esM.periodsOrder[ip], esM=esM, divide=False)
+                        esM.periodsOrder[ip], ip, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
                     cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
                 

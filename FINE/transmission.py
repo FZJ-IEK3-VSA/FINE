@@ -341,6 +341,14 @@ class Transmission(Component):
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
         """
+        #needed for test_segmentation, as ESM is not built from scratch everytime
+        #To-Do: to discuss with Max and Theresa if necessary and correct
+        if ip == 0:
+            if self.aggregatedOperationRateFix == None:
+                self.aggregatedOperationRateFix = {}
+            if self.aggregatedOperationRateMax == None:
+                self.aggregatedOperationRateMax = {}
+
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data, ip)
         self.aggregatedOperationRateMax[ip] = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data, ip)
 
@@ -474,7 +482,7 @@ class TransmissionModel(ComponentModel):
         else:
             def op1(pyM, loc, compName, ip, p, t):
                 return opVar[loc, compName, ip, p, t] + opVar[compDict[compName]._mapI[loc], compName, ip, p, t] <= \
-                       capVar[loc, compName] * esM.hoursPerSegment.to_dict()[p,t]
+                       capVar[loc, compName] * esM.hoursPerSegment[ip].to_dict()[p,t]
             setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
 
     def declareComponentConstraints(self, esM, pyM):
@@ -610,9 +618,9 @@ class TransmissionModel(ComponentModel):
                 optSummaryBasic.loc[compName, cost] = (data).values
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder[ip],
+        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
                                                 esM=esM)
-        optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', esM.periodsOrder[ip],
+        optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', ip, esM.periodsOrder[ip],
                                                  compDict=compDict, esM=esM)
         self.operationVariablesOptimum = optVal_
 

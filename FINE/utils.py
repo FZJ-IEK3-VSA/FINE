@@ -779,7 +779,7 @@ def setFormattedTimeSeries(timeSeries):
         return data.set_index(['Period', 'TimeStep'])
 
 
-def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
+def buildFullTimeSeries(df, periodsOrder, ip, axis=1, esM=None, divide=True):
     # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
     # time steps first
     if esM is not None and esM.segmentation:
@@ -787,7 +787,7 @@ def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
         for p in esM.typicalPeriods:
             # Repeat each segment in each period as often as time steps are represented by the corresponding
             # segment
-            repList = esM.timeStepsPerSegment.loc[p, :].tolist()
+            repList = esM.timeStepsPerSegment[ip].loc[p, :].tolist() # timeStepsPerSegment now ip-dependent
             # if divide is set to True, the values are divided when being unravelled, e.g. in order to fit provided
             # energy per segment provided energy per time step
             if divide:
@@ -809,7 +809,7 @@ def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
     return pd.concat(data, axis=axis, ignore_index=True)
 
 
-def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDict=None, esM=None):
+def formatOptimizationOutput(data, varType, dimension, ip=None, periodsOrder=None, compDict=None, esM=None):
     # If data is an empty dictionary (because no variables of that type were declared) return None
     if not data:
         return None
@@ -852,7 +852,7 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
         df.columns = df.columns.droplevel()
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
-        return buildFullTimeSeries(df, periodsOrder, esM=esM)
+        return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
     elif varType == 'operationVariables' and dimension == '2dim':
         # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
         # regions and sort the index
@@ -872,7 +872,7 @@ def formatOptimizationOutput(data, varType, dimension, periodsOrder=None, compDi
         df.columns = df.columns.droplevel()
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
-        return buildFullTimeSeries(df, periodsOrder, esM=esM)
+        return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
     else:
         raise ValueError('The varType parameter has to be either \'designVariables\' or \'operationVariables\'\n' +
                          'and the dimension parameter has to be either \'1dim\' or \'2dim\'.')

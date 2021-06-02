@@ -10,6 +10,7 @@ def test_segmentation(minimal_test_esM):
     # For this, the mini system is first optimized without any aggregation at all.
     esM1 = minimal_test_esM
     esM1.optimize(solver='glpk')
+
     # Then, the four time steps of the model are represented by two 4380-hourly typical periods with two segments per
     # typical period, so effectively the data is not aggregated.
     esM2 = minimal_test_esM
@@ -27,8 +28,8 @@ def test_segmentation(minimal_test_esM):
     # so that the first segment is twice as long as the first and the second segment.
     esM3 = minimal_test_esM
     esM3.cluster(numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=4, storeTSAinstance=False,
-                 segmentation=True, numberOfSegmentsPerPeriod=3, clusterMethod='hierarchical',
-                 sortValues=False, rescaleClusterPeriods=False)
+                segmentation=True, numberOfSegmentsPerPeriod=3, clusterMethod='hierarchical',
+                sortValues=False, rescaleClusterPeriods=False)
     esM3.optimize(timeSeriesAggregation=True, solver='glpk')
     # Then, the model is optimized again with two 4380-hourly periods that are segmented to one segment per period, i.e.
     # the model contains only two time steps in total with averaged values in each period.
