@@ -3,6 +3,7 @@ import pytest
 
 import numpy as np
 import pandas as pd 
+import xarray as xr 
 
 from FINE.IOManagement import dictIO
 import FINE.IOManagement.xarrayIO as xrIO 
@@ -145,20 +146,21 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
 
     assert init_esm_0d_bool == test_xarray_0d_bool == output_esm_0d_bool
 
-    #additionally check if ptimizaiton actually runs through 
+    #additionally check if otimizaiton actually runs through 
     output_esM.cluster(numberOfTypicalPeriods=3)
     output_esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
 
 
+@pytest.mark.parametrize("balanceLimit", [None, 
 
-@pytest.mark.parametrize("balanceLimit", [pd.Series([100, 200], index=['electricity', 'hydrogen']),
+                                        pd.Series([100, 200], index=['electricity', 'hydrogen']),
 
                                         pd.DataFrame(np.array([[100] * 8, [50] * 8]), 
                                         columns= ['cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'],
                                         index=['electricity', 'hydrogen'])
                     ])
-def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
+def test_savingAndReadingNetcdfFiles(manuallyReadIn, balanceLimit, multi_node_test_esM_init):
     """
     Tests if esm instance can be saved as a netcdf file and read back in 
     to set up the instance again. 
@@ -173,6 +175,7 @@ def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
     xrIO.convertEsmInstanceToXarrayDataset(multi_node_test_esM_init,
                                                            save = True, 
                                                            file_name = file)  
+
 
     #set up an esm instance directly from a netcdf file 
     output_esM = xrIO.convertXarrayDatasetToEsmInstance(file)

@@ -42,8 +42,6 @@ def test_allDFs_present_in_esM_instance(minimal_test_esM):
     assert commodityRevenueTimeSeries.equals(revenues)
     assert operationRateFix.equals(demand)
 
-    #TODO: maybe move this to FINE tests and assert for other data like pd.series 
-
 
 def test_export_to_dict_minimal(minimal_test_esM):
     #EXPECTED 
@@ -174,9 +172,7 @@ def test_import_from_dict(test_esM_fixture, request):
         expected_series = test_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity').sort_index() 
         ## output 
         output_df = output_esM.getComponentAttribute('Electricity market', 'operationRateMax')
-        output_df.reset_index(level=0, drop=True, inplace=True) #TODO: check why output_esM's dfs 
-                                                                # have multiindex (Period, TimeStep)
-                                                                # whereas test_esM's just 1 (TimeStep)
+        output_df.reset_index(level=0, drop=True, inplace=True) 
 
         output_series = output_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity').sort_index() 
 

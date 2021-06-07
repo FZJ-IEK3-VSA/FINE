@@ -241,10 +241,11 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
 
 
 def convertXarrayDatasetToEsmInstance(xarray_dataset):
-    """Takes xarray dataset and converts it into an esM instance. 
+    """Takes as its input xarray dataset or path to a netcdf file, converts it into an esM instance. 
     
-    :param xarray_dataset: The dataset holding all data required to set up an esM instance 
-    :type xarray_dataset: xr.Dataset
+    :param xarray_dataset: The dataset holding all data required to set up an esM instance. 
+        Can be a read-in xarray dataset. Alternatively, full path to a netcdf file is also acceptable. 
+    :type xarray_dataset: xr.Dataset or string 
  
     :return: esM - EnergySystemModel instance in which the optimized model is held
     """
@@ -252,25 +253,39 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
     #STEP 1. Read in the netcdf file
     if isinstance(xarray_dataset, str): 
         xarray_dataset = xr.open_dataset(xarray_dataset)
+    
+    elif not isinstance(xarray_dataset, xr.Dataset):
+        raise TypeError("xarray_dataset must either be a path to a netcdf file or xarray dataset")
+    
+    #STEP 2. Convert data types of attributes if necessary 
+    #NOTE: data types such as sets, dicts, bool, pandas df/series and Nonetype
+    #  are not serializable. Therefore, they are converted to lists/strings while saving.
+    # They need to be converted back to right formats 
 
-        #NOTE: data types such as sets, dicts, bool, pandas df/series and Nonetype
-        #  are not serializable. Therefore, they are converted to lists/strings while saving.
-        # They need to be converted back to right formats 
-
-        ## locations 
+    ## locations 
+    if isinstance(xarray_dataset.attrs['locations'], list):
         xarray_dataset.attrs['locations'] = set(xarray_dataset.attrs['locations'])
 
-        ## commodities 
+    ## commodities 
+    if isinstance(xarray_dataset.attrs['commodities'], list):
         xarray_dataset.attrs['commodities'] = set(xarray_dataset.attrs['commodities'])
 
-        ## commoditiesUnitsDict 
+    ## commoditiesUnitsDict 
+    if isinstance(xarray_dataset.attrs['commodityUnitsDict'], list):
         new_commodityUnitsDict = {}
+
         for item in xarray_dataset.attrs['commodityUnitsDict']:
             [commodity, unit] = item.split(' : ')
             new_commodityUnitsDict.update({commodity : unit})
+
         xarray_dataset.attrs['commodityUnitsDict'] = new_commodityUnitsDict
 
-        ## balanceLimit
+    ## balanceLimit
+    try:
+        xarray_dataset.attrs['balanceLimit']
+
+    except KeyError:
+    
         balanceLimit_dict = {}
         keys_to_delete = []
 
@@ -301,16 +316,17 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
             
             xarray_dataset.attrs.update({'balanceLimit' : df})
 
-        ## lowerBound
+    ## lowerBound
+    if isinstance(xarray_dataset.attrs['lowerBound'], str):
         xarray_dataset.attrs['lowerBound'] = True if xarray_dataset.attrs['lowerBound'] == "True" else False
 
-        #NOTE: ints are converted to floats while saving, but these should strictly be ints. 
+    #NOTE: ints are converted to numpy ints while saving, but these should strictly be ints. 
+    if not isinstance(xarray_dataset.attrs['numberOfTimeSteps'], int):
         xarray_dataset.attrs['numberOfTimeSteps'] = int(xarray_dataset.attrs['numberOfTimeSteps'])
+    
+    if not isinstance(xarray_dataset.attrs['hoursPerTimeStep'], int):
         xarray_dataset.attrs['hoursPerTimeStep'] = int(xarray_dataset.attrs['hoursPerTimeStep'])
         
-
-    elif not isinstance(xarray_dataset, xr.Dataset):
-        raise TypeError("xarray_dataset must either be a path to a netcdf file or xarray dataset")
 
     #STEP 2. Create esm_dict 
     esm_dict = xarray_dataset.attrs
