@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.core.defchararray import array
 import pandas as pd
 import xarray as xr
 
@@ -85,7 +86,7 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
     #STEP 1. Get the esm and component dicts 
     esm_dict, component_dict = dictIO.exportToDict(esM)
 
-    locations = list(esm_dict['locations'])
+    locations = sorted(esm_dict['locations'])
 
     #STEP 2. Get the iteration dicts 
     df_iteration_dict, series_iteration_dict, constants_iteration_dict = generateIterationDicts(component_dict)
@@ -105,7 +106,7 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
             
             # If a . is present in variable name, then the data would be another level further in the component_dict 
             if '.' in variable_description:      
-                nested_variable_description = variable_description.split(".")
+                nested_variable_description = variable_description.split('.')
                 data = component_dict[classname][component][nested_variable_description[0]][nested_variable_description[1]]
             else:
                 data = component_dict[classname][component][variable_description]
@@ -135,7 +136,7 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
             df_description = f"{classname}, {component}"
 
             if '.' in variable_description:
-                nested_variable_description = variable_description.split(".")
+                nested_variable_description = variable_description.split('.')
                 data = component_dict[classname][component][nested_variable_description[0]][nested_variable_description[1]]
             else:
                 data = component_dict[classname][component][variable_description]
@@ -216,8 +217,8 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
         #NOTE: data types such as sets, dicts, bool, pandas df/series and Nonetype
         #  are not serializable. Therefore, they are converted to lists/strings while saving
         
-        ds.attrs['locations'] = list(ds.attrs['locations'])
-        ds.attrs['commodities'] = list(ds.attrs['commodities'])
+        ds.attrs['locations'] = sorted(ds.attrs['locations'])
+        ds.attrs['commodities'] = sorted(ds.attrs['commodities'])
 
         ds.attrs['commodityUnitsDict'] = list(f"{k} : {v}" for (k,v) in ds.attrs['commodityUnitsDict'].items())
 
@@ -302,20 +303,21 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
 
         if balanceLimit_dict == {}:
             xarray_dataset.attrs.update({'balanceLimit' : None})
-            
-        elif all([True for n in list(balanceLimit_dict.values()) if str(n).isdigit()]):
-            series = pd.Series(balanceLimit_dict)
-            xarray_dataset.attrs.update({'balanceLimit' : series})
-        
-        else:
+
+        elif all([isinstance(value, np.ndarray) for value in list(balanceLimit_dict.values())]):   
             data = np.stack(balanceLimit_dict.values())
-            columns = xarray_dataset.attrs['locations']
+            columns = sorted(xarray_dataset.attrs['locations'])
             index = balanceLimit_dict.keys()
 
             df = pd.DataFrame(data, columns=columns, index=index)
             
             xarray_dataset.attrs.update({'balanceLimit' : df})
 
+        else: 
+            series = pd.Series(balanceLimit_dict)
+            xarray_dataset.attrs.update({'balanceLimit' : series})
+        
+        
     ## lowerBound
     if isinstance(xarray_dataset.attrs['lowerBound'], str):
         xarray_dataset.attrs['lowerBound'] = True if xarray_dataset.attrs['lowerBound'] == "True" else False
@@ -328,23 +330,21 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
         xarray_dataset.attrs['hoursPerTimeStep'] = int(xarray_dataset.attrs['hoursPerTimeStep'])
         
 
-    #STEP 2. Create esm_dict 
+    #STEP 3. Create esm_dict 
     esm_dict = xarray_dataset.attrs
 
-    #STEP 3. Iterate through each component-variable pair, depending on the variable's prefix 
+    #STEP 4. Iterate through each component-variable pair, depending on the variable's prefix 
     # restructure the data and add it to component_dict 
-    component_dict = {}
+    component_dict = utils.PowerDict()
 
     for component in xarray_dataset.component.values:
         comp_xr = xarray_dataset.sel(component=component)
         
-        for variable in comp_xr.data_vars:
-
-            comp_var_xr = comp_xr[variable]
+        for variable, comp_var_xr in comp_xr.data_vars.items():
 
             if not pd.isnull(comp_var_xr.values).all():
                 
-                #STEP 3 (i). Set all regional time series (region, time)
+                #STEP 4 (i). Set all regional time series (region, time)
                 if variable[:3]== 'ts_':
             
                     df = comp_var_xr.drop("component").to_dataframe().unstack(level=1)
@@ -352,67 +352,50 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
                         df.columns = df.columns.droplevel(0)
                     
                     [class_name, comp_name] = component.split(', ')
-                    if class_name not in component_dict.keys():
-                        component_dict.update({class_name: {}})
-                    if comp_name not in component_dict.get(class_name).keys():
-                        component_dict.get(class_name).update({comp_name: {}})
-                    if "." in variable:
-                        [var_name, nested_var_name] = variable.split(".")
-                        if var_name[3:] not in component_dict.get(class_name).get(comp_name).keys():
-                            component_dict.get(class_name).get(comp_name).update({var_name[3:]: {}})
-                        component_dict.get(class_name).get(comp_name).get(var_name[3:]).update({nested_var_name: df.sort_index()})
-                    else:
-                        component_dict.get(class_name).get(comp_name).update({variable[3:]: df.sort_index()})
 
-                #STEP 3 (ii). Set all 2d data (region, region)
+                    if '.' in variable:
+                        [var_name, nested_var_name] = variable.split('.')
+                        component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = df.sort_index() #NOTE: thanks to utils.PowerDict(), the nested dictionaries need not be created before adding the data. 
+
+                    else:
+                        component_dict[class_name][comp_name][variable[3:]] = df.sort_index()
+
+                #STEP 4 (ii). Set all 2d data (region, region)
                 elif variable[:3]== '2d_':
                     
                     series = comp_var_xr.drop("component").to_dataframe().stack(level=0)
                     series.index = series.index.droplevel(level=2).map('_'.join)
 
                     #NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other 
-                    # attributes. Removing 0 values ensures the match. If all are 0, empty series is fed in, leading to error. 
-                    # Therefore, if series is empty, it is replaced by a 0. Else, sort index before adding to component_dict. 
+                    # attributes. Removing 0 values ensures the match. If all are 0s, empty series is fed in, leading to error. 
+                    # Therefore, if series is empty, the variable is not added. 
                     series = series[series>0]  
 
-                    if len(series.index) == 0:
-                        series = 0 
-                    else:
-                        series.sort_index(inplace=True)
+                    if not len(series.index) == 0:
 
-                    [class_name, comp_name] = component.split(', ')
-                    if class_name not in component_dict.keys():
-                        component_dict.update({class_name: {}})
-                    if comp_name not in component_dict.get(class_name).keys():
-                        component_dict.get(class_name).update({comp_name: {}})
-                    if "." in variable:
-                        [var_name, nested_var_name] = variable.split(".")
-                        if var_name[3:] not in component_dict.get(class_name).get(comp_name).keys():
-                            component_dict.get(class_name).get(comp_name).update({var_name[3:]: {}})
-                        component_dict.get(class_name).get(comp_name).get(var_name[3:]).update({nested_var_name: series})
-                    else:
-                        component_dict.get(class_name).get(comp_name).update({variable[3:]: series})
+                        [class_name, comp_name] = component.split(', ')
 
-                #STEP 3 (iii). Set all 1d data (region)
+                        if '.' in variable:
+                            [var_name, nested_var_name] = variable.split('.')
+                            component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = series.sort_index()
+                        else:
+                            component_dict[class_name][comp_name][variable[3:]] = series.sort_index()
+
+                #STEP 4 (iii). Set all 1d data (region)
                 elif variable[:3]== '1d_':
 
                     series = comp_var_xr.drop("component").to_dataframe().unstack(level=0)
                     series.index = series.index.droplevel(level=0)
                     
                     [class_name, comp_name] = component.split(', ')
-                    if class_name not in component_dict.keys():
-                        component_dict.update({class_name: {}})
-                    if comp_name not in component_dict.get(class_name).keys():
-                        component_dict.get(class_name).update({comp_name: {}})
-                    if "." in variable:
-                        [var_name, nested_var_name] = variable.split(".")
-                        if var_name[3:] not in component_dict.get(class_name).get(comp_name).keys():
-                            component_dict.get(class_name).get(comp_name).update({var_name[3:]: {}})
-                        component_dict.get(class_name).get(comp_name).get(var_name[3:]).update({nested_var_name: series.sort_index()})
-                    else:
-                        component_dict.get(class_name).get(comp_name).update({variable[3:]: series.sort_index()})
 
-                #STEP 3 (iv). Set all 0d data 
+                    if '.' in variable:
+                        [var_name, nested_var_name] = variable.split('.')
+                        component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = series.sort_index()
+                    else:
+                        component_dict[class_name][comp_name][variable[3:]] = series.sort_index()
+
+                #STEP 4 (iv). Set all 0d data 
                 elif variable[:3]== '0d_':
 
                     var_value = comp_var_xr.values
@@ -420,19 +403,14 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
                                             # to empty string (''). These need to be skipped. 
                     
                         [class_name, comp_name] = component.split(', ')
-                        if class_name not in component_dict.keys():
-                            component_dict.update({class_name: {}})
-                        if comp_name not in component_dict.get(class_name).keys():
-                            component_dict.get(class_name).update({comp_name: {}})
-                        if "." in variable:
-                            [var_name, nested_var_name] = variable.split(".")
-                            if var_name[3:] not in component_dict.get(class_name).get(comp_name).keys():
-                                component_dict.get(class_name).get(comp_name).update({var_name[3:]: {}})
-                            component_dict.get(class_name).get(comp_name).get(var_name[3:]).update({nested_var_name: var_value.item()})
-                        else:
-                            component_dict.get(class_name).get(comp_name).update({variable[3:]: var_value.item()})
 
-    #STEP 4. Create esm from esm_dict and component_dict
+                        if '.' in variable:
+                            [var_name, nested_var_name] = variable.split('.')
+                            component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = var_value.item()
+                        else:
+                            component_dict[class_name][comp_name][variable[3:]] = var_value.item()
+
+    #STEP 5. Create esm from esm_dict and component_dict
     esM = dictIO.importFromDict(esm_dict, component_dict)
 
     return esM 
