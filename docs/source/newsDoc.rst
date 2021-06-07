@@ -14,6 +14,7 @@ FINE release (2.2.0) provides some changes in code including bug fixes for
 * postprocessing: optimizationSummary is ordered correctly s.t. properties are assigned to the corresponding component.
 
 New features were included: 
+
 * New keyword argument linkedQuantityID: The number of different components can be forced to be the same. 
 * Enable time-dependent conversion factors (e.g. for modeling heat pumps)
 * Add warning for simultaneous charge and discharge of storage components; users can check if and when simultaneous charge and discharge of storage components occur
