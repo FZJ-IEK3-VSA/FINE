@@ -1,4 +1,5 @@
 import os
+from numpy.core.numeric import array_equal
 import pytest
 
 import numpy as np
@@ -156,11 +157,11 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
 
                                         pd.Series([100, 200], index=['electricity', 'hydrogen']),
 
-                                        pd.DataFrame(np.array([[100] * 8, [50] * 8]), 
+                                        pd.DataFrame(np.array([[1, 2, 3, 4, 5, 6, 7, 8], [5, 6, 7, 8, 9, 0, 1, 2]]), 
                                         columns= ['cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'],
                                         index=['electricity', 'hydrogen'])
                     ])
-def test_savingAndReadingNetcdfFiles(manuallyReadIn, balanceLimit, multi_node_test_esM_init):
+def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
     """
     Tests if esm instance can be saved as a netcdf file and read back in 
     to set up the instance again. 
@@ -183,6 +184,11 @@ def test_savingAndReadingNetcdfFiles(manuallyReadIn, balanceLimit, multi_node_te
     o_bl = output_esM.balanceLimit 
     e_bl = multi_node_test_esM_init.balanceLimit
 
+    if balanceLimit is None:
+        assert o_bl == e_bl
+    else: 
+        assert o_bl.equals(e_bl)
+
     assert output_esM.getComponentAttribute('Biogas purchase', 'commodity') == \
         multi_node_test_esM_init.getComponentAttribute('Biogas purchase', 'commodity')
     
@@ -194,6 +200,10 @@ def test_savingAndReadingNetcdfFiles(manuallyReadIn, balanceLimit, multi_node_te
 
     assert np.array_equal(output_esM.getComponentAttribute('Li-ion batteries', 'investPerCapacity'), \
         multi_node_test_esM_init.getComponentAttribute('Li-ion batteries', 'investPerCapacity'))
+
+    #additionally check if otimizaiton actually runs through 
+    output_esM.cluster(numberOfTypicalPeriods=3)
+    output_esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
     # if there are no problems setting it up, delete the create file 
     os.remove(file)
