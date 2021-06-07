@@ -25,33 +25,28 @@ def exportToDict(esM):
             esmDict[arg] = getattr(esM,arg)
 
     compDict = utils.PowerDict()
-    # Loop over all components
-    for modelname in esM.componentModelingDict.keys():
-
-        # Get all component models
-        componentModel = esM.componentModelingDict[modelname]
+    # Loop over all component models 
+    for componentModel in esM.componentModelingDict.values():
 
         # Loop over all components belonging to the model
         for componentname in componentModel.componentsDict:
             
             # Get class name of component
             classname = type(componentModel.componentsDict[componentname]).__name__
-            if not classname in compDict:
-                compDict[classname] = utils.PowerDict()
 
-            compDict[classname][componentname] = utils.PowerDict()
-            component = componentModel.componentsDict[componentname]
-            
             # Get class
             class_ = getattr(fn, classname)
 
             # Get input arguments of the class
             inputkwargs = inspect.getfullargspec(class_.__init__)
 
+            # Get component data
+            component = componentModel.componentsDict[componentname]
+            
             # Loop over all input props
             for prop in inputkwargs.args:
                 if (prop is not 'self') and (prop is not 'esM'):
-                    compDict[classname][componentname][prop] = getattr(component,prop)
+                    compDict[classname][componentname][prop] = getattr(component,prop) #NOTE: thanks to utils.PowerDict(), the nested dictionaries need not be created before adding the data. 
 
     return esmDict, compDict
 
