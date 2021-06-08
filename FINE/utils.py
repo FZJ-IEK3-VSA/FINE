@@ -1073,7 +1073,8 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
     return df
 class PowerDict(dict):  
     '''
-    Dictionary with additional functions
+    Dictionary with additional functions. 
+    Helps in creating nested dictionaries on the fly.
     '''
     def __init__(self, parent=None, key=None):
         self.parent = parent

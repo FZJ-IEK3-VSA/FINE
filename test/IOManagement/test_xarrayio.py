@@ -1,8 +1,10 @@
 import os
+from numpy.core.numeric import array_equal
 import pytest
 
 import numpy as np
 import pandas as pd 
+import xarray as xr 
 
 from FINE.IOManagement import dictIO
 import FINE.IOManagement.xarrayIO as xrIO 
@@ -151,10 +153,11 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
 
 
 
+@pytest.mark.parametrize("balanceLimit", [None, 
 
-@pytest.mark.parametrize("balanceLimit", [pd.Series([100, 200], index=['electricity', 'hydrogen']),
+                                        pd.Series([100, 200], index=['electricity', 'hydrogen']),
 
-                                        pd.DataFrame(np.array([[100] * 8, [50] * 8]), 
+                                        pd.DataFrame(np.array([[1, 2, 3, 4, 5, 6, 7, 8], [5, 6, 7, 8, 9, 0, 1, 2]]), 
                                         columns= ['cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'],
                                         index=['electricity', 'hydrogen'])
                     ])
@@ -174,11 +177,17 @@ def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
                                                            save = True, 
                                                            file_name = file)  
 
+
     #set up an esm instance directly from a netcdf file 
     output_esM = xrIO.convertXarrayDatasetToEsmInstance(file)
 
     o_bl = output_esM.balanceLimit 
     e_bl = multi_node_test_esM_init.balanceLimit
+
+    if balanceLimit is None:
+        assert o_bl == e_bl
+    else: 
+        assert o_bl.equals(e_bl)
 
     assert output_esM.getComponentAttribute('Biogas purchase', 'commodity') == \
         multi_node_test_esM_init.getComponentAttribute('Biogas purchase', 'commodity')
@@ -191,6 +200,10 @@ def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
 
     assert np.array_equal(output_esM.getComponentAttribute('Li-ion batteries', 'investPerCapacity'), \
         multi_node_test_esM_init.getComponentAttribute('Li-ion batteries', 'investPerCapacity'))
+
+    #additionally check if otimizaiton actually runs through 
+    output_esM.aggregateTemporally(numberOfTypicalPeriods=3)
+    output_esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
     # if there are no problems setting it up, delete the create file 
     os.remove(file)
