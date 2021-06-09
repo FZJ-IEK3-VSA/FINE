@@ -149,7 +149,6 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
             else:
                 data = component_dict[classname][component][variable_description]
 
-
             multi_index_dataframe = data.stack()
             multi_index_dataframe.index.set_names("time", level=0, inplace=True)
             multi_index_dataframe.index.set_names("space", level=1, inplace=True)
@@ -196,10 +195,11 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
 
             ds = xr.merge([ds, ds_component])
 
-    #STEP 3c. Add all 1d data (dimension - space)
+    #STEP 3c. Add all 1d data (dimension - space) or time series (dimension - space (1) and time)
     for variable_description, description_tuple_list in series_iteration_dict.items():
 
-        df_dict = {} 
+        df_space_dict = {} 
+        df_time_dict = {} 
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
     
@@ -212,18 +212,30 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
                 data = component_dict[classname][component][variable_description]
 
             if classname not in ['Transmission', 'LinearOptimalPowerFlow']:
-                if len(data) >= len(locations): 
-                    df_dict[df_description] = data.rename_axis("space")
+                if sorted(list(locations)) == sorted(list(data.index.values)):
+                    df_space_dict[df_description] = data.rename_axis("space")
+                else:
+                    df_time_dict[df_description] = data.rename_axis("time")
+                    df_time_dict[df_description] = pd.concat({locations[0]: df_time_dict[df_description]}, names=['space'])
+                    df_time_dict[df_description] = df_time_dict[df_description].reorder_levels(["time", "space"])
             
-        if len(df_dict) > 0:
-            df_variable = pd.concat(df_dict)
+        if len(df_space_dict) > 0:
+            df_variable = pd.concat(df_space_dict)
             df_variable.index.set_names("component", level=0, inplace=True) 
             ds_component = xr.Dataset()
             ds_component[f"1d_{variable_description}"] = df_variable.sort_index().to_xarray()
             
             ds = xr.merge([ds, ds_component])
 
-    #STEP 3d. Add all constants 
+        if len(df_time_dict) > 0:
+            df_variable = pd.concat(df_time_dict)
+            df_variable.index.set_names("component", level=0, inplace=True) 
+            ds_component = xr.Dataset()
+            ds_component[f"ts_{variable_description}"] = df_variable.sort_index().to_xarray()
+            
+            ds = xr.merge([ds, ds_component])
+
+    #STEP 3e. Add all constants 
     for variable_description, description_tuple_list in constants_iteration_dict.items():
         
         df_dict = {} 
@@ -372,7 +384,8 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
 
                     if '.' in variable:
                         [var_name, nested_var_name] = variable.split('.')
-                        component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = df.sort_index() #NOTE: thanks to utils.PowerDict(), the nested dictionaries need not be created before adding the data. 
+                        component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = df.sort_index()
+                        #NOTE: Thanks to utils.PowerDict(), the nested dictionaries need not be created before adding the data. 
 
                     else:
                         component_dict[class_name][comp_name][variable[3:]] = df.sort_index()
