@@ -63,7 +63,7 @@ def create_dir(directory):
     if not os.path.exists(directory): os.makedirs(directory)
 
 
-def create_gdf(df, geometries, crs=3035, file_path=None, files_name = 'sds_regions'):
+def create_gdf(df, geometries, crs=3035, files = 'sds_regions'):
     """Creates a geodataframe.   
 
     Parameters

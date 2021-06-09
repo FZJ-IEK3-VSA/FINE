@@ -13,6 +13,7 @@ import FINE.spagat.utils as spu
 
 logger_dataset = logging.getLogger("spagat_dataset")
 
+#TODO: check if SpagatDataset can be deleted and code optimized
 class SpagatDataset:
     """
     The SpagatDataset (sds) contains all the spatially-resolved data that is necessary for Energy System Optimization.

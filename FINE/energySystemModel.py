@@ -411,7 +411,7 @@ class EnergySystemModel:
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
 
-    def aggregateSpatially(self, 
+    def aggregateSpatially(self,             #TODO: make argument case unfirom (snake or camel case)
                         shapefilePath, 
                         grouping_mode='parameter_based', 
                         nRegionsForRepresentation=2,
@@ -452,7 +452,17 @@ class EnergySystemModel:
 
         #STEP 2. Obtain xr dataset from esM 
         sds = spd.SpagatDataset()
-        sds.xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
+
+        if aggregatedResultsPath is None:
+            save = False
+        else:
+            sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')
+            file_name = os.path.join(aggregatedResultsPath, sds_xr_dataset_filename)
+            save = True 
+
+        sds.xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self, 
+                                                                save=save, 
+                                                                file_name=file_name)
         
         #STEP 3. Add shapefile information to sds
         sds.add_objects(description='gpd_geometries',
@@ -496,6 +506,11 @@ class EnergySystemModel:
             aggregation_dict = spg.perform_parameter_based_grouping(sds, 
                                                                     linkage,
                                                                     weights)
+
+        else:
+            raise ValueError(f'The grouping mode {grouping_mode} is not valid. Please choosen one of \
+            the valid grouping mode among: string_based, distance_based, parameter_based')
+
         
         #STEP 5. Representation of the new regions
         if grouping_mode == 'string_based':
@@ -518,10 +533,10 @@ class EnergySystemModel:
         
         aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(aggregated_sds.xr_dataset)
         
-        #STEP 7. Save shapefiles and aggregated data if user chooses
-        if aggregatedResultsPath is not None:   #TODO: test if they are saved as intented 
+        #STEP 7. Save shapefiles if user chooses
+        if aggregatedResultsPath is not None:   
             sds_region_filename = kwargs.get('sds_region_filename', 'sds_regions.shp') 
-            sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')
+            
             
             aggregated_sds.save_sds(aggregatedResultsPath,
                         sds_region_filename,
