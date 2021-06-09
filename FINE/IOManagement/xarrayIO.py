@@ -6,6 +6,44 @@ import xarray as xr
 from FINE import utils
 from FINE.IOManagement import dictIO
 
+def saveNetcdfFile(xarray_dataset,  file_name='esM_instance.nc4'):
+    """Saves the given xarray dataset as a netcdf file 
+    
+    :param xarray_dataset: The dataset holding all data required to set up an esM instance. 
+        Can be a read-in xarray dataset. Alternatively, full path to a netcdf file is also acceptable. 
+    :type xarray_dataset: xr.Dataset or string 
+
+    :param file_name: output file name (can include full path)
+        |br| * the default value is 'esM_instance.nc4'
+    :type file_name: string
+    """
+
+    #NOTE: data types such as sets, dicts, bool, pandas df/series and Nonetype
+    #  are not serializable. Therefore, they are converted to lists/strings while saving
+
+    xarray_dataset.attrs['locations'] = sorted(xarray_dataset.attrs['locations'])
+    xarray_dataset.attrs['commodities'] = sorted(xarray_dataset.attrs['commodities'])
+
+    xarray_dataset.attrs['commodityUnitsDict'] = \
+        list(f"{k} : {v}" for (k,v) in xarray_dataset.attrs['commodityUnitsDict'].items())
+
+    if isinstance(xarray_dataset.attrs['balanceLimit'], pd.Series):
+        for idx, value in xarray_dataset.attrs['balanceLimit'].items():
+            xarray_dataset.attrs.update({f"balanceLimit_{idx}" : value})
+    
+    elif isinstance(xarray_dataset.attrs['balanceLimit'], pd.DataFrame):
+        df = xarray_dataset.attrs['balanceLimit']
+        df = df.reindex(sorted(df.columns), axis=1)
+        for idx, row in xarray_dataset.attrs['balanceLimit'].iterrows():
+            xarray_dataset.attrs.update({f"balanceLimit_{idx}" : row.to_numpy()})
+    
+    del xarray_dataset.attrs['balanceLimit']  
+
+    xarray_dataset.attrs['lowerBound'] = "True" if xarray_dataset.attrs['lowerBound'] == True else "False"
+    xarray_dataset.to_netcdf(file_name)
+
+
+
 def generateIterationDicts(component_dict):
     """Creates iteration dictionaries that contain descriptions of all 
     dataframes, series, and constants present in component_dict.
@@ -214,29 +252,8 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
     ds.attrs = esm_dict
 
     if save:
-        #NOTE: data types such as sets, dicts, bool, pandas df/series and Nonetype
-        #  are not serializable. Therefore, they are converted to lists/strings while saving
+        saveNetcdfFile(ds, file_name)
         
-        ds.attrs['locations'] = sorted(ds.attrs['locations'])
-        ds.attrs['commodities'] = sorted(ds.attrs['commodities'])
-
-        ds.attrs['commodityUnitsDict'] = list(f"{k} : {v}" for (k,v) in ds.attrs['commodityUnitsDict'].items())
-
-        if isinstance(ds.attrs['balanceLimit'], pd.Series):
-            for idx, value in ds.attrs['balanceLimit'].items():
-                ds.attrs.update({f"balanceLimit_{idx}" : value})
-        
-        elif isinstance(ds.attrs['balanceLimit'], pd.DataFrame):
-            df = ds.attrs['balanceLimit']
-            df = df.reindex(sorted(df.columns), axis=1)
-            for idx, row in ds.attrs['balanceLimit'].iterrows():
-                ds.attrs.update({f"balanceLimit_{idx}" : row.to_numpy()})
-        
-        del ds.attrs['balanceLimit']  
-
-        ds.attrs['lowerBound'] = "True" if ds.attrs['lowerBound'] == True else "False"
-        ds.to_netcdf(file_name)
-
     return ds
 
 
