@@ -6,6 +6,44 @@ import xarray as xr
 from FINE import utils
 from FINE.IOManagement import dictIO
 
+def saveNetcdfFile(xarray_dataset,  file_name='esM_instance.nc4'):
+    """Saves the given xarray dataset as a netcdf file 
+    
+    :param xarray_dataset: The dataset holding all data required to set up an esM instance. 
+        Can be a read-in xarray dataset. Alternatively, full path to a netcdf file is also acceptable. 
+    :type xarray_dataset: xr.Dataset or string 
+
+    :param file_name: output file name (can include full path)
+        |br| * the default value is 'esM_instance.nc4'
+    :type file_name: string
+    """
+
+    #NOTE: data types such as sets, dicts, bool, pandas df/series and Nonetype
+    #  are not serializable. Therefore, they are converted to lists/strings while saving
+
+    xarray_dataset.attrs['locations'] = sorted(xarray_dataset.attrs['locations'])
+    xarray_dataset.attrs['commodities'] = sorted(xarray_dataset.attrs['commodities'])
+
+    xarray_dataset.attrs['commodityUnitsDict'] = \
+        list(f"{k} : {v}" for (k,v) in xarray_dataset.attrs['commodityUnitsDict'].items())
+
+    if isinstance(xarray_dataset.attrs['balanceLimit'], pd.Series):
+        for idx, value in xarray_dataset.attrs['balanceLimit'].items():
+            xarray_dataset.attrs.update({f"balanceLimit_{idx}" : value})
+    
+    elif isinstance(xarray_dataset.attrs['balanceLimit'], pd.DataFrame):
+        df = xarray_dataset.attrs['balanceLimit']
+        df = df.reindex(sorted(df.columns), axis=1)
+        for idx, row in xarray_dataset.attrs['balanceLimit'].iterrows():
+            xarray_dataset.attrs.update({f"balanceLimit_{idx}" : row.to_numpy()})
+    
+    del xarray_dataset.attrs['balanceLimit']  
+
+    xarray_dataset.attrs['lowerBound'] = "True" if xarray_dataset.attrs['lowerBound'] == True else "False"
+    xarray_dataset.to_netcdf(file_name)
+
+
+
 def generateIterationDicts(component_dict):
     """Creates iteration dictionaries that contain descriptions of all 
     dataframes, series, and constants present in component_dict.
@@ -111,7 +149,6 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
             else:
                 data = component_dict[classname][component][variable_description]
 
-
             multi_index_dataframe = data.stack()
             multi_index_dataframe.index.set_names("time", level=0, inplace=True)
             multi_index_dataframe.index.set_names("space", level=1, inplace=True)
@@ -158,10 +195,11 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
 
             ds = xr.merge([ds, ds_component])
 
-    #STEP 3c. Add all 1d data (dimension - space)
+    #STEP 3c. Add all 1d data (dimension - space) or time series (dimension - space (1) and time)
     for variable_description, description_tuple_list in series_iteration_dict.items():
 
-        df_dict = {} 
+        df_space_dict = {} 
+        df_time_dict = {} 
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
     
@@ -174,18 +212,30 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
                 data = component_dict[classname][component][variable_description]
 
             if classname not in ['Transmission', 'LinearOptimalPowerFlow']:
-                if len(data) >= len(locations): 
-                    df_dict[df_description] = data.rename_axis("space")
+                if sorted(list(locations)) == sorted(list(data.index.values)):
+                    df_space_dict[df_description] = data.rename_axis("space")
+                else:
+                    df_time_dict[df_description] = data.rename_axis("time")
+                    df_time_dict[df_description] = pd.concat({locations[0]: df_time_dict[df_description]}, names=['space'])
+                    df_time_dict[df_description] = df_time_dict[df_description].reorder_levels(["time", "space"])
             
-        if len(df_dict) > 0:
-            df_variable = pd.concat(df_dict)
+        if len(df_space_dict) > 0:
+            df_variable = pd.concat(df_space_dict)
             df_variable.index.set_names("component", level=0, inplace=True) 
             ds_component = xr.Dataset()
             ds_component[f"1d_{variable_description}"] = df_variable.sort_index().to_xarray()
             
             ds = xr.merge([ds, ds_component])
 
-    #STEP 3d. Add all constants 
+        if len(df_time_dict) > 0:
+            df_variable = pd.concat(df_time_dict)
+            df_variable.index.set_names("component", level=0, inplace=True) 
+            ds_component = xr.Dataset()
+            ds_component[f"ts_{variable_description}"] = df_variable.sort_index().to_xarray()
+            
+            ds = xr.merge([ds, ds_component])
+
+    #STEP 3e. Add all constants 
     for variable_description, description_tuple_list in constants_iteration_dict.items():
         
         df_dict = {} 
@@ -214,29 +264,8 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
     ds.attrs = esm_dict
 
     if save:
-        #NOTE: data types such as sets, dicts, bool, pandas df/series and Nonetype
-        #  are not serializable. Therefore, they are converted to lists/strings while saving
+        saveNetcdfFile(ds, file_name)
         
-        ds.attrs['locations'] = sorted(ds.attrs['locations'])
-        ds.attrs['commodities'] = sorted(ds.attrs['commodities'])
-
-        ds.attrs['commodityUnitsDict'] = list(f"{k} : {v}" for (k,v) in ds.attrs['commodityUnitsDict'].items())
-
-        if isinstance(ds.attrs['balanceLimit'], pd.Series):
-            for idx, value in ds.attrs['balanceLimit'].items():
-                ds.attrs.update({f"balanceLimit_{idx}" : value})
-        
-        elif isinstance(ds.attrs['balanceLimit'], pd.DataFrame):
-            df = ds.attrs['balanceLimit']
-            df = df.reindex(sorted(df.columns), axis=1)
-            for idx, row in ds.attrs['balanceLimit'].iterrows():
-                ds.attrs.update({f"balanceLimit_{idx}" : row.to_numpy()})
-        
-        del ds.attrs['balanceLimit']  
-
-        ds.attrs['lowerBound'] = "True" if ds.attrs['lowerBound'] == True else "False"
-        ds.to_netcdf(file_name)
-
     return ds
 
 
@@ -355,7 +384,8 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
 
                     if '.' in variable:
                         [var_name, nested_var_name] = variable.split('.')
-                        component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = df.sort_index() #NOTE: thanks to utils.PowerDict(), the nested dictionaries need not be created before adding the data. 
+                        component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = df.sort_index()
+                        #NOTE: Thanks to utils.PowerDict(), the nested dictionaries need not be created before adding the data. 
 
                     else:
                         component_dict[class_name][comp_name][variable[3:]] = df.sort_index()

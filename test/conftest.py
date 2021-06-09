@@ -81,6 +81,64 @@ def minimal_test_esM(scope="session"):
     return esM
 
 @pytest.fixture
+def single_node_test_esM():
+    """Returns minimal instance of esM with one node"""
+
+    numberOfTimeSteps = 4
+    hoursPerTimeStep = 2190
+
+    # Create an energy system model instance 
+    esM = fn.EnergySystemModel(locations={'Location'}, 
+                                commodities={'electricity', 'hydrogen'}, 
+                                numberOfTimeSteps=numberOfTimeSteps,
+                                commodityUnitsDict={'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'},
+                                hoursPerTimeStep=hoursPerTimeStep, costUnit='1 Euro', 
+                                lengthUnit='km', 
+                                verboseLogLevel=1,
+                                balanceLimit=None,
+                                lowerBound=False)
+
+    # time step length [h]
+    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
+
+
+    ### Buy electricity at the electricity market
+    costs = pd.Series(np.array([ 0.05, 0., 0.1, 0.051,]))
+    revenues = pd.Series(np.array([ 0., 0.01, 0., 0.,]))
+    maxpurchase = pd.Series(np.array([1e6, 1e6, 1e6, 1e6,])* hoursPerTimeStep)
+    esM.add(fn.Source(esM=esM, name='Electricity market', commodity='electricity', 
+                        hasCapacityVariable=False, operationRateMax = maxpurchase,
+                        commodityCostTimeSeries = costs,  
+                        commodityRevenueTimeSeries = revenues,  
+                        )) # eur/kWh
+
+    ### Electrolyzers
+    esM.add(fn.Conversion(esM=esM, name='Electrolyzers', physicalUnit=r'kW$_{el}$',
+                          commodityConversionFactors={'electricity':-1, 'hydrogen':0.7},
+                          hasCapacityVariable=True, 
+                          investPerCapacity=500, # euro/kW
+                          opexPerCapacity=500*0.025, 
+                          interestRate=0.08,
+                          economicLifetime=10))
+
+    ### Hydrogen filled somewhere
+    esM.add(fn.Storage(esM=esM, name='Pressure tank', commodity='hydrogen',
+                       hasCapacityVariable=True, capacityVariableDomain='continuous',
+                       stateOfChargeMin=0.33, 
+                       investPerCapacity=0.5, # eur/kWh
+                       interestRate=0.08,
+                       economicLifetime=30))
+
+    ### Industry site
+    demand = pd.Series(np.array([6e3, 6e3, 6e3, 6e3,]) * hoursPerTimeStep)
+ 
+    esM.add(fn.Sink(esM=esM, name='Industry site', commodity='hydrogen', hasCapacityVariable=False,
+                    operationRateFix = demand,
+                    ))
+
+    return esM
+
+@pytest.fixture
 def multi_node_test_esM_init(scope="session"):
     data = getData()
 
@@ -1103,4 +1161,3 @@ def dsm_test_esM(scope="session"):
                       operationRateMax=pd.Series(1000, index=t_index), opexPerOperation=1000))
 
     return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
-

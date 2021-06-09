@@ -152,6 +152,102 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
     output_esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
 
+def test_convertEsmInstanceToXarrayDataset_singlenode(single_node_test_esM):
+    """
+    Tests if conversion of esm instance to xarray dataset is correct 
+    """
+    #FUNCTION CALL
+    output_xarray = xrIO.convertEsmInstanceToXarrayDataset(single_node_test_esM)
+    
+    #ASSERTION 
+    ## locations 
+    expected_location = single_node_test_esM.locations
+    output_location = output_xarray.locations
+
+    # time steps
+    expected_time_steps = single_node_test_esM.totalTimeSteps
+    output_time_steps = list(output_xarray.time.values)
+
+    assert output_location == expected_location
+    assert output_time_steps == expected_time_steps
+
+    ## commodities 
+    assert output_xarray.attrs.get('commodities') == single_node_test_esM.commodities
+
+    ## time series
+    expected_ts = single_node_test_esM.getComponentAttribute('Electricity market', 'operationRateMax').values
+    output_ts = output_xarray['ts_operationRateMax'].loc['Source, Electricity market', :, "Location"].values
+
+    assert np.array_equal(output_ts, expected_ts)
+
+    ## constant 
+    expected_0d = single_node_test_esM.getComponentAttribute('Electrolyzers', 'commodityConversionFactors').get('electricity')
+    output_0d = output_xarray['0d_commodityConversionFactors.electricity'].loc['Conversion, Electrolyzers'].values
+    
+    assert output_0d == expected_0d
+
+    ## constant bool 
+    expected_0d_bool = single_node_test_esM.getComponentAttribute('Pressure tank', 'hasCapacityVariable')
+    output_0d_bool = output_xarray['0d_hasCapacityVariable'].loc['Storage, Pressure tank'].values
+    
+    assert output_0d_bool == expected_0d_bool
+
+   
+    
+def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
+    """
+    Tests if conversion of xarray dataset back to esm instance is correct 
+    """
+    #FUNCTION CALL 
+    test_xarray = xrIO.convertEsmInstanceToXarrayDataset(single_node_test_esM)
+    output_esM = xrIO.convertXarrayDatasetToEsmInstance(test_xarray)
+
+    #ASSERTION 
+    ## locations 
+    init_esm_locations = list(single_node_test_esM.locations).sort()
+    test_xarray_locations = list(test_xarray.space.values).sort()
+    output_esm_locations = list(output_esM.locations).sort()
+
+    assert init_esm_locations == test_xarray_locations == output_esm_locations
+
+    ## commodities 
+    init_esm_commodities = single_node_test_esM.commodities
+    test_xarray_commodities = test_xarray.attrs.get('commodities')
+    output_esm_commodities = output_esM.commodities
+
+    assert init_esm_commodities == test_xarray_commodities == output_esm_commodities
+
+    ## a time series variable
+    init_esm_ts = single_node_test_esM.getComponentAttribute('Industry site', 'operationRateFix').values
+    test_xarray_ts = test_xarray['ts_operationRateFix'].loc['Sink, Industry site', :, :].values
+    output_esm_ts = output_esM.getComponentAttribute('Industry site', 'operationRateFix').values
+    
+    assert np.isclose(init_esm_ts, test_xarray_ts, output_esm_ts).all()
+
+    ## a 1d variable
+    init_esm_1d = single_node_test_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity').values
+    test_xarray_1d = test_xarray['1d_investPerCapacity'].loc['Conversion, Electrolyzers', :].values
+    output_esm_1d = output_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity').values
+
+    assert np.isclose(init_esm_1d, test_xarray_1d, output_esm_1d).all()
+
+    ## a constant
+    init_esm_0d = single_node_test_esM.getComponentAttribute('Electricity market', 'commodity')
+    test_xarray_0d = test_xarray['0d_commodity'].loc['Source, Electricity market'].values
+    output_esm_0d = output_esM.getComponentAttribute('Electricity market', 'commodity')
+
+    assert init_esm_0d == test_xarray_0d == output_esm_0d
+
+    ## a constant, bool 
+    init_esm_0d_bool = single_node_test_esM.getComponentAttribute('Pressure tank', 'hasCapacityVariable')
+    test_xarray_0d_bool = test_xarray['0d_hasCapacityVariable'].loc['Storage, Pressure tank'].values
+    output_esm_0d_bool = output_esM.getComponentAttribute('Pressure tank', 'hasCapacityVariable')
+
+    assert init_esm_0d_bool == test_xarray_0d_bool == output_esm_0d_bool
+
+    #additionally check if otimizaiton actually runs through 
+    output_esM.cluster(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
+    output_esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
 @pytest.mark.parametrize("balanceLimit", [None, 
 
@@ -207,6 +303,3 @@ def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
 
     # if there are no problems setting it up, delete the create file 
     os.remove(file)
-
-
-

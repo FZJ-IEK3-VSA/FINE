@@ -82,6 +82,46 @@ def test_export_to_dict_minimal(minimal_test_esM):
     assert expected_Electricitymarket_operationRateMax.equals(output_Source_operationRateMax)
     assert expected_Industrysite_operationRateFix.equals(output_Sink_operationRateFix)
 
+def test_export_to_dict_singlenode(single_node_test_esM):
+    #EXPECTED 
+    expected_esm_dict = dict(zip(('locations',
+                              'commodities',
+                              'commodityUnitsDict',
+                              'numberOfTimeSteps', 
+                              'hoursPerTimeStep',
+                              'costUnit', 
+                              'lengthUnit',
+                              'verboseLogLevel',
+                              'balanceLimit',
+                              'lowerBound'), 
+                            (single_node_test_esM.locations,
+                             single_node_test_esM.commodities, 
+                             single_node_test_esM.commodityUnitsDict,
+                             single_node_test_esM.numberOfTimeSteps, 
+                             single_node_test_esM.hoursPerTimeStep,
+                             single_node_test_esM.costUnit, 
+                             single_node_test_esM.lengthUnit,
+                             single_node_test_esM.verboseLogLevel, 
+                             single_node_test_esM.balanceLimit, 
+                             single_node_test_esM.lowerBound)))
+    
+    expected_Electrolyzers_investPerCapacity = single_node_test_esM.getComponentAttribute('Electrolyzers', 'investPerCapacity')
+    expected_Electricitymarket_operationRateMax = single_node_test_esM.getComponentAttribute('Electricity market', 'operationRateMax')
+    expected_Industrysite_operationRateFix = single_node_test_esM.getComponentAttribute('Industry site', 'operationRateFix')
+    
+    #FUNCTION CALL 
+    output_esm_dict, output_comp_dict = fn.dictIO.exportToDict(single_node_test_esM)
+
+    output_Conversion_investPerCapacity = output_comp_dict.get('Conversion').get('Electrolyzers').get('investPerCapacity')
+    output_Source_operationRateMax = output_comp_dict.get('Source').get('Electricity market').get('operationRateMax')
+    output_Sink_operationRateFix = output_comp_dict.get('Sink').get('Industry site').get('operationRateFix')
+
+    #ASSERTION
+    assert output_esm_dict == expected_esm_dict
+    assert expected_Electrolyzers_investPerCapacity.equals(output_Conversion_investPerCapacity)
+    assert expected_Electricitymarket_operationRateMax.equals(output_Source_operationRateMax)
+    assert expected_Industrysite_operationRateFix.equals(output_Sink_operationRateFix)
+
 
 def test_export_to_dict_multinode(multi_node_test_esM_init):
     #EXPECTED 
