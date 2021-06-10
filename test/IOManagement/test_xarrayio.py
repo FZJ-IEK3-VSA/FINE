@@ -246,7 +246,7 @@ def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
     assert init_esm_0d_bool == test_xarray_0d_bool == output_esm_0d_bool
 
     #additionally check if otimizaiton actually runs through 
-    output_esM.cluster(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
+    output_esM.aggregateTemporally(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
     output_esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
 @pytest.mark.parametrize("balanceLimit", [None, 
