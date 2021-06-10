@@ -84,7 +84,7 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init):   #TODO: ru
 
 
 @pytest.mark.parametrize("agg_mode", ['sklearn_kmeans', 'sklearn_spectral', 'scipy_hierarchical'])
-@pytest.mark.parametrize("n_regions", [2, 3]) #TODO: test for 1 region 
+@pytest.mark.parametrize("n_regions", [2, 3])
 def test_spatial_aggregation_distance_based(multi_node_test_esM_init, agg_mode, n_regions):   
 
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
@@ -111,7 +111,7 @@ def test_spatial_aggregation_distance_based(multi_node_test_esM_init, agg_mode, 
                                                             'capacityMax': ('sum', None), 
                                                             'capacityFix': ('sum', None), 
                                                             'locationalEligibility': ('bool', None)} ]) 
-@pytest.mark.parametrize("n_regions", [3, 6])         #TODO: test for 1 region                                                     
+@pytest.mark.parametrize("n_regions", [3, 6])                                                           
 def test_spatial_aggregation_parameter_based(multi_node_test_esM_init, 
                                             aggregation_function_dict,
                                             n_regions):   
