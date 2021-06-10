@@ -11,16 +11,24 @@ import FINE as fn
 def test_esm_to_xr_and_back_during_spatial_aggregation(grouping_mode, multi_node_test_esM_init):
     """Resulting number of regions would be the same as the original number. No aggregation 
     actually takes place. Tests if the esm instance, created after spatial aggregation
-    is run, has all the info originally present. 
+    is run, has all the info originally present. Also, if the aggregation results 
+    save successfully. 
     """
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
             'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
 
+    PATH_TO_SAVE = os.path.join(os.path.dirname(__file__))
+    netcdf_file_name = 'my_xr.nc4'
+    shp_file_name = 'my_shp'
+
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
                                                                 grouping_mode = grouping_mode, 
-                                                                nRegionsForRepresentation = 8)   
+                                                                nRegionsForRepresentation = 8,
+                                                                aggregatedResultsPath = PATH_TO_SAVE,
+                                                                sds_xr_dataset_filename = netcdf_file_name,
+                                                                sds_region_filename = shp_file_name )   
     
     #ASSERTION 
     if grouping_mode == 'string_based':
@@ -48,6 +56,14 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(grouping_mode, multi_node
     expected_0d_bool = multi_node_test_esM_init.getComponentAttribute('CO2 from enviroment', 'hasCapacityVariable')
     output_0d_bool = aggregated_esM.getComponentAttribute('CO2 from enviroment', 'hasCapacityVariable')
     assert output_0d_bool  == expected_0d_bool 
+
+    # if there are no problems, delete the saved files 
+    os.remove(os.path.join(PATH_TO_SAVE, netcdf_file_name))
+
+    file_extensions_list = ['.cpg', '.dbf', '.prj', '.shp', '.shx']
+
+    for ext in file_extensions_list:
+        os.remove(os.path.join(PATH_TO_SAVE, f'{shp_file_name}{ext}'))
 
 def test_spatial_aggregation_string_based(multi_node_test_esM_init):   #TODO: run test for dummy data where some regions actually merge!
     

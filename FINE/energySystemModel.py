@@ -19,15 +19,11 @@ from FINE.component import Component, ComponentModel
 
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
-from FINE.IOManagement import dictIO 
-from FINE.IOManagement import xarrayIO as xrIO
-try:
-    import FINE.spagat.dataset as spd
-    import FINE.spagat.grouping as spg
-    import FINE.spagat.representation as spr 
-except ImportError:
-    warnings.warn('The Spagat python package could not be imported.')
+import FINE.spagat.dataset as spd
+import FINE.spagat.grouping as spg
+import FINE.spagat.representation as spr 
 
+from FINE.IOManagement import xarrayIO as xrIO
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -453,16 +449,7 @@ class EnergySystemModel:
         #STEP 2. Obtain xr dataset from esM 
         sds = spd.SpagatDataset()
 
-        if aggregatedResultsPath is None:
-            save = False
-        else:
-            sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')
-            file_name = os.path.join(aggregatedResultsPath, sds_xr_dataset_filename)
-            save = True 
-
-        sds.xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self, 
-                                                                save=save, 
-                                                                file_name=file_name)
+        sds.xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
         
         #STEP 3. Add shapefile information to sds
         sds.add_objects(description='gpd_geometries',
@@ -530,17 +517,26 @@ class EnergySystemModel:
                                                                                                 
         
         #STEP 6. Obtain aggregated esM
-        
         aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(aggregated_sds.xr_dataset)
         
-        #STEP 7. Save shapefiles if user chooses
+        #STEP 7. Save shapefiles and aggregated xarray dataset if user chooses
         if aggregatedResultsPath is not None:   
+            # get file names 
             sds_region_filename = kwargs.get('sds_region_filename', 'sds_regions.shp') 
+            sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')
             
-            
-            aggregated_sds.save_sds(aggregatedResultsPath,
-                        sds_region_filename,
-                        sds_xr_dataset_filename)
+            # save shapefiles 
+            aggregated_sds.save_sds_regions(aggregatedResultsPath,
+                                            sds_region_filename)
+
+            # remove geometry related data vars from aggregated xarray dataset as these cannot be saved 
+            aggregated_sds.xr_dataset = aggregated_sds.xr_dataset.drop_vars(['gpd_geometries', 'gpd_centroids', 'centroid_distances'])
+
+            # save aggregated xarray dataset 
+            file_name_with_path = os.path.join(aggregatedResultsPath, sds_xr_dataset_filename)
+            xrIO.saveNetcdfFile(aggregated_sds.xr_dataset, file_name_with_path)
+
+
             
 
         return aggregated_esM
