@@ -819,7 +819,7 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
 
 def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, perArea=True, areaFactor=1e3,
                            crs='epsg:3035', variableName='capacityVariablesOptimum', doSum=False, cmap='viridis', vmin=0,
-                           vmax=-1, zlabel='Installed capacity\nper kilometer\n', figsize=(6, 6), fontsize=12, save=False,
+                           vmax=-1, zlabel=None, figsize=(6, 6), fontsize=12, save=False,
                            fileName='capacity.png', dpi=200, **kwargs):
     """
     Plot the data of a component for each location.
@@ -916,8 +916,25 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     if perArea:
         gdf.loc[gdf[indexColumn] == data.index, "data"] = \
             data.fillna(0).values/(gdf.loc[gdf[indexColumn] == data.index].geometry.area/areaFactor**2)
+        if zlabel is None:
+            unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+            if areaFactor == 1e3:
+                area_unit = 'km$^2$'
+            elif areaFactor == 1:
+                area_unit = 'm$^2$'
+            else:
+                raise NotImplementedError('Area Factor not supported. Supported Area Factors {0},{1}'.format(1,1e3))
+
+            unit = ' [' + unit + '/' + area_unit + ']'
+            zlabel = 'Installed capacity \n' + unit + '\n'
+
     else:
         gdf.loc[gdf[indexColumn] == data.index, "data"] = data.fillna(0).values
+        if zlabel is None:
+            unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+            unit = ' [' + unit + ']'
+            zlabel = 'Installed capacity \n' + unit + '\n'
+
     vmax = gdf["data"].max() if vmax == -1 else vmax
 
     fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
