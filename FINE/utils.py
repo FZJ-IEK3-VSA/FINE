@@ -112,11 +112,6 @@ def checkTimeSeriesIndex(esM, data):
     Necessary if the data rows represent the time-dependent data:
     Check if the row-indices of the data match the time indices of the energy system model.
     """
-    #----
-    #NOTE: this part only specific to spatial aggregation
-    if isinstance(data.index, pd.MultiIndex):
-        data.index = data.index.droplevel() # Removes "Period" index level
-    #------
     if list(data.index) != esM.totalTimeSteps:
         raise ValueError('Time indices do not match the one of the specified energy system model.')
 
@@ -126,15 +121,11 @@ def checkRegionalColumnTitles(esM, data):
     Necessary if the data columns represent the location-dependent data:
     Check if the columns indices match the location indices of the energy system model.
     """
-    #----
-    #NOTE: this part only specific to spatial aggregation
-    if isinstance(data.columns, pd.MultiIndex):
-        data.columns = data.columns.droplevel() # Removes <data's name> column level
-    #------
     if set(data.columns) != esM.locations:
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data columns: ' + str(set(data.columns)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
+    # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.columns, esM._locationsOrdered):
         data.sort_index(inplace=True, axis=1)    
     return data
@@ -149,8 +140,11 @@ def checkRegionalIndex(esM, data):
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
+    
+    # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.index, esM._locationsOrdered):
         data.sort_index(inplace=True)
+
     return data
 
 def checkConnectionIndex(data, locationalEligibility):
@@ -162,8 +156,11 @@ def checkConnectionIndex(data, locationalEligibility):
         raise ValueError('Indices do not match the eligible connections of the component.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
                          'Eligible connections: ' + str(set(locationalEligibility.index)))
+    
+    # Sort data according to _locationsOrdered, if not already sorted 
     elif not np.array_equal(data.index,locationalEligibility.index):
         data = data.reindex(locationalEligibility.index)
+        
     return data
 
 def checkCommodities(esM, commodities):
