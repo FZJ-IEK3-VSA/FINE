@@ -1,7 +1,7 @@
 import inspect
 
 import FINE as fn
-import FINE.utils as utils
+from FINE.IOManagement import utilsIO
 
 
 def exportToDict(esM):
@@ -24,7 +24,7 @@ def exportToDict(esM):
         if not arg is 'self':
             esmDict[arg] = getattr(esM,arg)
 
-    compDict = utils.PowerDict()
+    compDict = utilsIO.PowerDict()
     # Loop over all component models 
     for componentModel in esM.componentModelingDict.values():
 
