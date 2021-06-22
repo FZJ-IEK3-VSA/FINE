@@ -5,13 +5,13 @@ import pytest
 import numpy as np
 import pandas as pd 
 
-from FINE.IOManagement import dictIO
+from FINE.IOManagement import dictIO, utilsIO
 import FINE.IOManagement.xarrayIO as xrIO 
 
 
 def test_generateIterationDicts(minimal_test_esM):
     esm_dict, component_dict = dictIO.exportToDict(minimal_test_esM)
-    output_df_dict, output_series_dict, output_constants_dict = xrIO.generateIterationDicts(component_dict)
+    output_df_dict, output_series_dict, output_constants_dict = utilsIO.generateIterationDicts(component_dict)
 
     # check output_df_dict
     assert output_df_dict == {'operationRateMax': [('Source', 'Electricity market')],
