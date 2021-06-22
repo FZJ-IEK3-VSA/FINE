@@ -4,7 +4,6 @@ import pytest
 
 import numpy as np
 import pandas as pd 
-import xarray as xr 
 
 from FINE.IOManagement import dictIO
 import FINE.IOManagement.xarrayIO as xrIO 
