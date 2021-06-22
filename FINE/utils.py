@@ -5,18 +5,14 @@ Last edited: March 02, 2021
 """
 import warnings
 import math
-import os
 
 import pandas as pd
 import numpy as np
-import FINE as fn
-import numpy as np
-import math
-import os
 import pwlf
-import matplotlib.pyplot as plt
 from GPyOpt.methods import BayesianOptimization
-import sys
+
+import FINE as fn
+
 
 def isString(string):
     """ Check if the input argument is a string. """
