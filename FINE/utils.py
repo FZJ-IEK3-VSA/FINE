@@ -116,10 +116,17 @@ def checkRegionalColumnTitles(esM, data):
     Necessary if the data columns represent the location-dependent data:
     Check if the columns indices match the location indices of the energy system model.
     """
+    # If its a single node esM set up via netCDF file, time series data is 
+    # pd.series with multiindex columns. First column index is the variables's 
+    # name. This needs to be dropped before checking Column Titles.
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.droplevel() 
+    
     if set(data.columns) != esM.locations:
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data columns: ' + str(set(data.columns)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
+
     # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.columns, esM._locationsOrdered):
         data.sort_index(inplace=True, axis=1)    
