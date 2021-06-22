@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.core.defchararray import array
 import pandas as pd
 import xarray as xr
 
@@ -7,11 +6,10 @@ from FINE import utils
 from FINE.IOManagement import dictIO
 
 def saveNetcdfFile(xarray_dataset,  file_name='esM_instance.nc4'):
-    """Saves the given xarray dataset as a netcdf file 
+    """Saves the given xarray dataset as a netcdf file. 
     
     :param xarray_dataset: The dataset holding all data required to set up an esM instance. 
-        Can be a read-in xarray dataset. Alternatively, full path to a netcdf file is also acceptable. 
-    :type xarray_dataset: xr.Dataset or string 
+    :type xarray_dataset: xr.Dataset
 
     :param file_name: output file name (can include full path)
         |br| * the default value is 'esM_instance.nc4'
