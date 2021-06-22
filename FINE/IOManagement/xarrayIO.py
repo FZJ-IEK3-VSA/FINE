@@ -73,7 +73,8 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
     xr_ds = utilsIO.addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict) 
 
     #STEP 5. Add all series variables to xr_ds
-    xr_ds = utilsIO.addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, esm_dict['locations'])
+    locations = esm_dict['locations']
+    xr_ds = utilsIO.addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, locations)
 
     #STEP 6. Add all constant value variables to xr_ds
     xr_ds = utilsIO.addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict) 
