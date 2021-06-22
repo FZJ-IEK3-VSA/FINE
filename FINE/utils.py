@@ -1060,11 +1060,14 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
     df = pd.DataFrame(values, columns=locations, index=locations)
 
     for row in series.iteritems():
-        row_center_id = math.ceil(len(row[0])/2)
-
+        
         try:
-            id_1, id_2 = row[0].split(separator)  # TODO: add warning
+            id_1, id_2 = row[0].split(separator) 
         except:
+            warnings.warn(f'More than one {separator} found in series index. \
+            Therefore, {separator} is not used to split the index')
+
+            row_center_id = math.ceil(len(row[0])/2)
             id_1, id_2 = row[0][:row_center_id-1], row[0][row_center_id:]
 
         df.loc[id_1, id_2] = row[1]
