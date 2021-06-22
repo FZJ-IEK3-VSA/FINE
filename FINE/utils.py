@@ -4,7 +4,6 @@ Last edited: March 02, 2021
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
 import warnings
-import math
 
 import pandas as pd
 import numpy as np
@@ -1053,55 +1052,6 @@ def checkComponentsEquality(esM, file):
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
-
-def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
-    values = np.zeros((len(locations), len(locations)))
-
-    df = pd.DataFrame(values, columns=locations, index=locations)
-
-    for row in series.iteritems():
-        
-        try:
-            id_1, id_2 = row[0].split(separator) 
-        except:
-            warnings.warn(f'More than one {separator} found in series index. \
-            Therefore, {separator} is not used to split the index')
-
-            row_center_id = math.ceil(len(row[0])/2)
-            id_1, id_2 = row[0][:row_center_id-1], row[0][row_center_id:]
-
-        df.loc[id_1, id_2] = row[1]
-
-    return df
-class PowerDict(dict):  
-    '''
-    Dictionary with additional functions. 
-    Helps in creating nested dictionaries on the fly.
-    '''
-    def __init__(self, parent=None, key=None):
-        self.parent = parent
-        self.key = key
-
-    def __missing__(self, key): 
-        '''
-        Creation of subdictionaries on fly
-        '''
-        self[key] = PowerDict(self, key)
-        return self[key]
-
-    def append(self, item):
-        '''
-        Additional append function for lists in dict
-        '''
-        self.parent[self.key] = [item]
-
-    def __setitem__(self, key, val):
-        dict.__setitem__(self, key, val)
-        try:
-            val.parent = self
-            val.key = key
-        except AttributeError:
-            pass
 
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     """ 
