@@ -5,15 +5,13 @@ Last edited: March 02, 2021
 """
 import warnings
 import math
-import os
 
 import pandas as pd
 import numpy as np
 import pwlf
-import FINE as fn
-import matplotlib.pyplot as plt
 from GPyOpt.methods import BayesianOptimization
-import sys
+
+import FINE as fn
 
 def isString(string):
     """ Check if the input argument is a string. """
@@ -109,11 +107,6 @@ def checkTimeSeriesIndex(esM, data):
     Necessary if the data rows represent the time-dependent data:
     Check if the row-indices of the data match the time indices of the energy system model.
     """
-    #----
-    #NOTE: this part only specific to spatial aggregation
-    if isinstance(data.index, pd.MultiIndex):
-        data.index = data.index.droplevel() # Removes "Period" index level
-    #------
     if list(data.index) != esM.totalTimeSteps:
         raise ValueError('Time indices do not match the one of the specified energy system model.')
 
@@ -123,15 +116,11 @@ def checkRegionalColumnTitles(esM, data):
     Necessary if the data columns represent the location-dependent data:
     Check if the columns indices match the location indices of the energy system model.
     """
-    #----
-    #NOTE: this part only specific to spatial aggregation
-    if isinstance(data.columns, pd.MultiIndex):
-        data.columns = data.columns.droplevel() # Removes <data's name> column level
-    #------
     if set(data.columns) != esM.locations:
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data columns: ' + str(set(data.columns)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
+    # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.columns, esM._locationsOrdered):
         data.sort_index(inplace=True, axis=1)    
     return data
@@ -146,8 +135,11 @@ def checkRegionalIndex(esM, data):
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
+
+    # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.index, esM._locationsOrdered):
         data.sort_index(inplace=True)
+
     return data
 
 def checkConnectionIndex(data, locationalEligibility):
@@ -159,10 +151,12 @@ def checkConnectionIndex(data, locationalEligibility):
         raise ValueError('Indices do not match the eligible connections of the component.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
                          'Eligible connections: ' + str(set(locationalEligibility.index)))
+
+    # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.index,locationalEligibility.index):
         data = data.reindex(locationalEligibility.index)
-    return data
 
+    return data
 
 def checkCommodities(esM, commodities):
     """ Check if the commodity is considered in the energy system model. """
@@ -785,6 +779,7 @@ def checkAndSetFullLoadHoursParameter(esM, name, data, dimension, locationalElig
                              'All entries in economic parameter series have to be positive.')
         return _data
 
+
 def checkClusteringInput(numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps):
     isStrictlyPositiveInt(numberOfTypicalPeriods), isStrictlyPositiveInt(numberOfTimeStepsPerPeriod)
     if not totalNumberOfTimeSteps % numberOfTimeStepsPerPeriod == 0:
@@ -1031,6 +1026,7 @@ def output(output, verbose, val):
     if verbose == val:
         print(output)
 
+
 def checkModelClassEquality(esM, file):
     mdlListFromModel = list(esM.componentModelingDict.keys())
     mdlListFromExcel = []
@@ -1038,6 +1034,7 @@ def checkModelClassEquality(esM, file):
         mdlListFromExcel += [cl for cl in mdlListFromModel if (cl[0:-5] in sheet and cl not in mdlListFromExcel)]
     if set(mdlListFromModel) != set(mdlListFromExcel):
         raise ValueError('Loaded Output does not match the given energy system model.')
+
 
 def checkComponentsEquality(esM, file):
     compListFromExcel = []
