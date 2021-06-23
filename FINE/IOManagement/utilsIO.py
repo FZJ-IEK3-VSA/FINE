@@ -5,7 +5,25 @@ import numpy as np
 import pandas as pd
 import xarray as xr 
 
-def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
+def transform1dSeriesto2dDataFrame(series, locations, separator='_'):
+    """Expands pandas Series into a pandas DataFrame. 
+
+    :param series: the series that need to be converted  
+    :type series: pd.Series
+
+    :param locations: sorted esM locations 
+    :type locations: list 
+
+    :param separator: the indices of the series are compact like loc1_loc2. 
+        These are then used as row and column index in the created 
+        Dataframe. The separator indicates the char that separates the two 
+        locs in the series indices. 
+        |br| * the default value is '_'
+    :type separator: string 
+ 
+    :return: df_iteration_dict, series_iteration_dict, constants_iteration_dict
+
+    """
     values = np.zeros((len(locations), len(locations)))
 
     df = pd.DataFrame(values, columns=locations, index=locations)
@@ -26,10 +44,9 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
     return df
 
 class PowerDict(dict):  
-    '''
-    Dictionary with additional functions. 
+    """Dictionary with additional functions. 
     Helps in creating nested dictionaries on the fly.
-    '''
+    """
     def __init__(self, parent=None, key=None):
         self.parent = parent
         self.key = key
@@ -219,7 +236,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             else:
                 # If the data indices correspond to esM locations, then the 
                 # data is appended to df_space_dict, else df_time_dict
-                if sorted(locations) == sorted(data.index.values):
+                if locations == sorted(data.index.values):
                     space_dict[df_description] = data.rename_axis("space")
                 else:
                     time_dict[df_description] = data.rename_axis("time")
@@ -296,11 +313,229 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
         xr_ds = xr.merge([xr_ds, ds_component])
 
     return xr_ds
-    
 
-        
+def processXarrayAttributes(xarray_dataset):
+    """Data types such as sets, dicts, bool, pandas df/series and Nonetype
+    are not serializable. Therefore, they are converted to lists/strings while saving.
+    They are converted back to right formats while setting up the esM instance. 
     
+    :param xarray_dataset: The dataset holding all data required to set up an esM instance. 
+    :type xarray_dataset: xr.Dataset
+
+    :return: xarray_dataset
+    """
+
+    _xarray_dataset = xarray_dataset.copy() #Copying to avoid errors due to change of size during iteration
+
+    dot_attrs_dict = PowerDict()
+    keys_to_delete = []
+
+    #STEP 1. Loop through each attribute, convert datatypes 
+    # or append to dot_attrs_dict for conversion in a later step 
+    for attr_name, attr_value in _xarray_dataset.attrs.items():
+
+        if isinstance(attr_value, list):
+            # If its a "flattened" list, convert it to dict 
+            if all(':' in v for v in attr_value):
+
+                _dict = {}
+                for item in attr_value:
+                    [k, v] = item.split(' : ')
+                    _dict.update({k : v})
+
+                xarray_dataset.attrs[attr_name] = _dict
             
+            # Otherwise, convert it to set
+            else:
+                xarray_dataset.attrs[attr_name] = set(attr_value)
+
+        # if there is a . in attr_name, collect the values in dot_attrs_dict
+        # to reconstruct pandas series or df later   
+        elif '.' in attr_name:
+            [new_attr_name, sub_attr_name] = attr_name.split('.')
+            dot_attrs_dict[new_attr_name][sub_attr_name] = attr_value
+
+            keys_to_delete.append(attr_name)
+        
+        # convert string values 
+        elif isinstance(attr_name, str):
+            if attr_value == 'None':
+                xarray_dataset.attrs[attr_name] = None
+
+            elif attr_value == 'True':
+                xarray_dataset.attrs[attr_name] = True 
+            
+            elif attr_value == 'False':
+                xarray_dataset.attrs[attr_name] = False
+            
+        # ints are converted to numpy ints while saving, but these should strictly be ints
+        if isinstance(attr_value, np.int32):
+            xarray_dataset.attrs[attr_name] = int(attr_value)
+
+    #STEP 2. Reconstruct pandas series or df for each item in dot_attrs_dict 
+    if len(dot_attrs_dict) > 0:
+        
+        for new_attr_name, new_attr_dict in dot_attrs_dict.items():
+            if all([isinstance(value, np.ndarray) for value in list(new_attr_dict.values())]):   
+                data = np.stack(new_attr_dict.values())
+                columns = sorted(xarray_dataset.attrs['locations'])
+                index = new_attr_dict.keys()
+
+                df = pd.DataFrame(data, columns=columns, index=index)
+                
+                xarray_dataset.attrs.update({new_attr_name : df})
+
+            else: 
+                series = pd.Series(new_attr_dict)
+                xarray_dataset.attrs.update({new_attr_name : series})
+
+        # cleaning up the many keys 
+        for key in keys_to_delete:
+            xarray_dataset.attrs.pop(key)
+
+
+    return xarray_dataset
+    
+def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable):
+    """Converts the time series variable data to required format and adds it to 
+    component_dict 
+    
+    :param component_dict: The dict to which the variable data needs to be added 
+    :type component_dict: dict 
+
+    :param comp_var_xr: The xarray DataArray that holds the data  
+    :type comp_var_xr: xr.DataArray
+
+    :param component: The component name corresponding to the variable 
+    :type component: string  
+
+    :param variable: The variable name 
+    :type variable: string 
+
+    :return: component_dict
+    """
+
+    df = comp_var_xr.drop("component").to_dataframe().unstack(level=1)
+
+    if len(df.columns) > 1:
+        df.columns = df.columns.droplevel(0)
+    
+    [class_name, comp_name] = component.split(', ')
+
+    if '.' in variable:
+        [var_name, nested_var_name] = variable.split('.')
+        component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = df.sort_index()
+        #NOTE: Thanks to utils.PowerDict(), the nested dictionaries need not be created before adding the data. 
+
+    else:
+        component_dict[class_name][comp_name][variable[3:]] = df.sort_index()
+
+    return component_dict
+
+def add2dVariableToDict(component_dict, comp_var_xr, component, variable):
+    """Converts the 2d variable data to required format and adds it to 
+    component_dict 
+    
+    :param component_dict: The dict to which the variable data needs to be added 
+    :type component_dict: dict 
+
+    :param comp_var_xr: The xarray DataArray that holds the data  
+    :type comp_var_xr: xr.DataArray
+
+    :param component: The component name corresponding to the variable 
+    :type component: string  
+
+    :param variable: The variable name 
+    :type variable: string 
+
+    :return: component_dict
+    """
+    series = comp_var_xr.drop("component").to_dataframe().stack(level=0)
+    series.index = series.index.droplevel(level=2).map('_'.join)
+
+    #NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other 
+    # attributes. Removing 0 values ensures the match. If all are 0s, empty series is fed in, leading to error. 
+    # Therefore, if series is empty, the variable is not added. 
+    series = series[series>0]  
+
+    if not len(series.index) == 0:
+
+        [class_name, comp_name] = component.split(', ')
+
+        if '.' in variable:
+            [var_name, nested_var_name] = variable.split('.')
+            component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = series.sort_index()
+        else:
+            component_dict[class_name][comp_name][variable[3:]] = series.sort_index()
+
+    return component_dict
+
+def add1dVariableToDict(component_dict, comp_var_xr, component, variable):
+    """Converts the 1d variable data to required format and adds it to 
+    component_dict 
+    
+    :param component_dict: The dict to which the variable data needs to be added 
+    :type component_dict: dict 
+
+    :param comp_var_xr: The xarray DataArray that holds the data  
+    :type comp_var_xr: xr.DataArray
+
+    :param component: The component name corresponding to the variable 
+    :type component: string  
+
+    :param variable: The variable name 
+    :type variable: string 
+
+    :return: component_dict
+    """
+    series = comp_var_xr.drop("component").to_dataframe().unstack(level=0)
+    series.index = series.index.droplevel(level=0)
+    
+    [class_name, comp_name] = component.split(', ')
+
+    if '.' in variable:
+        [var_name, nested_var_name] = variable.split('.')
+        component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = series.sort_index()
+    else:
+        component_dict[class_name][comp_name][variable[3:]] = series.sort_index()
+
+    return component_dict
+
+def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
+    """Converts the dimensionless variable data to required format and adds it to 
+    component_dict 
+    
+    :param component_dict: The dict to which the variable data needs to be added 
+    :type component_dict: dict 
+
+    :param comp_var_xr: The xarray DataArray that holds the data  
+    :type comp_var_xr: xr.DataArray
+
+    :param component: The component name corresponding to the variable 
+    :type component: string  
+
+    :param variable: The variable name 
+    :type variable: string 
+
+    :return: component_dict
+    """
+    var_value = comp_var_xr.values
+
+    if not var_value == '': #NOTE: when saving to netcdf, the nans in string arrays are converted 
+                            # to empty string (''). These need to be skipped. 
+    
+        [class_name, comp_name] = component.split(', ')
+
+        if '.' in variable:
+            [var_name, nested_var_name] = variable.split('.')
+            component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = var_value.item()
+        else:
+            component_dict[class_name][comp_name][variable[3:]] = var_value.item()
+        
+    return component_dict
+            
+        
+                
 
             
 
