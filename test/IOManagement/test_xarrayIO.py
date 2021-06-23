@@ -93,9 +93,9 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
 
     #ASSERTION 
     ## locations 
-    init_esm_locations = list(multi_node_test_esM_init.locations).sort()
-    test_xarray_locations = list(test_xarray.space.values).sort()
-    output_esm_locations = list(output_esM.locations).sort()
+    init_esm_locations = sorted(multi_node_test_esM_init.locations)
+    test_xarray_locations = sorted(test_xarray.space.values)
+    output_esm_locations = sorted(output_esM.locations)
 
     assert init_esm_locations == test_xarray_locations == output_esm_locations
 
@@ -203,9 +203,9 @@ def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
 
     #ASSERTION 
     ## locations 
-    init_esm_locations = list(single_node_test_esM.locations).sort()
-    test_xarray_locations = list(test_xarray.space.values).sort()
-    output_esm_locations = list(output_esM.locations).sort()
+    init_esm_locations = sorted(single_node_test_esM.locations)
+    test_xarray_locations = sorted(test_xarray.space.values)
+    output_esm_locations = sorted(output_esM.locations)
 
     assert init_esm_locations == test_xarray_locations == output_esm_locations
 
