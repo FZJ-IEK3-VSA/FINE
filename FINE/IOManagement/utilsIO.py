@@ -369,7 +369,7 @@ def processXarrayAttributes(xarray_dataset):
                 xarray_dataset.attrs[attr_name] = False
             
         # ints are converted to numpy ints while saving, but these should strictly be ints
-        if isinstance(attr_value, (int, np.int32)):
+        if isinstance(attr_value, np.int32):
             xarray_dataset.attrs[attr_name] = int(attr_value)
 
     #STEP 2. Reconstruct pandas series or df for each item in dot_attrs_dict 
