@@ -21,7 +21,7 @@ def transform1dSeriesto2dDataFrame(series, locations, separator='_'):
         |br| * the default value is '_'
     :type separator: string 
  
-    :return: df_iteration_dict, series_iteration_dict, constants_iteration_dict
+    :return: df - converted pandas DataFrame
 
     """
     values = np.zeros((len(locations), len(locations)))
