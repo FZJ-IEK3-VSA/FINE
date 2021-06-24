@@ -16,7 +16,8 @@ def saveNetcdfFile(xarray_dataset, file_name='esM_instance.nc4'):
 
     #STEP 1. Convertion of datatypes 
     #NOTE: data types such as sets, dicts, bool, pandas df/series and Nonetype
-    # are not serializable. Therefore, they are converted to lists/strings while saving
+    # are not serializable. Therefore, they are converted to lists/strings while saving 
+    # (Applied only to xarray_dataset.attrs where esM init info is stored)
     
     _xarray_dataset = xarray_dataset.copy() #Copying to avoid errors due to change of size during iteration
 
@@ -102,7 +103,8 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
     #STEP 6. Add all constant value variables to xr_ds
     xr_ds = utilsIO.addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict) 
 
-    #STEP 7. Add the data present in esm_dict as xarray attributes (these are dimensionless data). 
+    #STEP 7. Add the data present in esm_dict as xarray attributes 
+    # (These attributes contain esM init info). 
     xr_ds.attrs = esm_dict
 
     #STEP 8. Save to netCDF file 
@@ -119,7 +121,7 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
         Can be a read-in xarray dataset. Alternatively, full path to a netcdf file is also acceptable. 
     :type xarray_dataset: xr.Dataset or string 
  
-    :return: esM - EnergySystemModel instance in which the optimized model is held
+    :return: esM - EnergySystemModel instance in which the optimization model is held
     """
 
     #STEP 1. Read in the netcdf file
@@ -144,7 +146,7 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
         
         for variable, comp_var_xr in comp_xr.data_vars.items():
 
-            if not pd.isnull(comp_var_xr.values).all():
+            if not pd.isnull(comp_var_xr.values).all(): # Skip if all are NAs 
                 
                 #STEP 4 (i). Set regional time series (region, time)
                 if variable[:3]== 'ts_':

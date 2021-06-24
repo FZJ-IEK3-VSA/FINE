@@ -350,7 +350,7 @@ def processXarrayAttributes(xarray_dataset):
                 xarray_dataset.attrs[attr_name] = set(attr_value)
 
         # sometimes ints are converted to numpy ints while saving, but these should strictly be ints
-        elif isinstance(attr_value, np.int32):
+        elif isinstance(attr_value, np.number):
             xarray_dataset.attrs[attr_name] = int(attr_value)
 
         # convert string values 
