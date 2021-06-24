@@ -3,6 +3,16 @@ FINE's News Feed
 ################
 
 *********************
+Release version 2.2.1
+*********************
+- Not published yet - 
+FINE release (2.2.1) provides some changes in code including 
+
+* compatibility to newer versions of pandas (bugs due to reading .xlsx files are fixed)
+* correct zlabel description for plotLocationalColorMap in standardIO.py
+* add some more documentation to functions
+
+*********************
 Release version 2.2.0
 *********************
 FINE release (2.2.0) provides some changes in code including bug fixes for 
