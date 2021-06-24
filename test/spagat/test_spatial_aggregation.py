@@ -1,8 +1,6 @@
 
 import os
 import pytest
-
-import xarray as xr
 import numpy as np 
 
 import FINE as fn
@@ -83,9 +81,8 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init):   #TODO: ru
     aggregated_esM.optimize(timeSeriesAggregation=True, solver='glpk')
 
 
-@pytest.mark.parametrize("agg_mode", ['sklearn_kmeans', 'sklearn_spectral', 'scipy_hierarchical'])
 @pytest.mark.parametrize("n_regions", [2, 3])
-def test_spatial_aggregation_distance_based(multi_node_test_esM_init, agg_mode, n_regions):   
+def test_spatial_aggregation_distance_based(multi_node_test_esM_init, n_regions):   
 
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
@@ -95,15 +92,13 @@ def test_spatial_aggregation_distance_based(multi_node_test_esM_init, agg_mode, 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
                                                                 grouping_mode = "distance_based", 
                                                                 nRegionsForRepresentation = n_regions, 
-                                                                aggregatedResultsPath=None,
-                                                                agg_mode=agg_mode)   
+                                                                aggregatedResultsPath=None)   
 
     #ASSERTION 
     assert len(aggregated_esM.locations) == n_regions
     # Additional check - if the optimization runs through
     aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=2)
     aggregated_esM.optimize(timeSeriesAggregation=True, solver='glpk')
-    #TODO: add test to check if optimization summary is available
 
 
 @pytest.mark.parametrize("aggregation_function_dict", [None, {'operationRateMax': ('weighted mean', 'capacityMax'), 
@@ -133,4 +128,3 @@ def test_spatial_aggregation_parameter_based(multi_node_test_esM_init,
     # Additional check - if the optimization runs through
     aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=2)
     aggregated_esM.optimize(timeSeriesAggregation=True, solver='glpk')
-    #TODO: add test to check if optimization summary is available 

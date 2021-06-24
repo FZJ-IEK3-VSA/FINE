@@ -407,7 +407,7 @@ class EnergySystemModel:
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
 
-    def aggregateSpatially(self,             #TODO: make argument case unfirom (snake or camel case)
+    def aggregateSpatially(self,             
                         shapefilePath, 
                         grouping_mode='parameter_based', 
                         nRegionsForRepresentation=2,
@@ -468,17 +468,13 @@ class EnergySystemModel:
 
         elif grouping_mode == 'distance_based':
 
-            agg_mode = kwargs.get('agg_mode', 'sklearn_hierarchical') 
-            ax_illustration = kwargs.get('ax_illustration', None) 
             save_path = kwargs.get('save_path', None) 
             fig_name = kwargs.get('fig_name', None)
             verbose = kwargs.get('verbose', False)
              
-            print(f'Performing distance-based grouping on the regions. Clustering mode: {agg_mode}')
+            print(f'Performing distance-based grouping on the regions')
 
-            aggregation_dict = spg.perform_distance_based_grouping(sds, 
-                                                                agg_mode,  
-                                                                ax_illustration, 
+            aggregation_dict = spg.perform_distance_based_grouping(sds,
                                                                 save_path,
                                                                 fig_name, 
                                                                 verbose)
