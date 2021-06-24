@@ -149,7 +149,7 @@ def perform_distance_based_grouping(xarray_dataset,
     distance_matrix = hierarchy.distance.pdist(centroids)
 
     #STEP 4. Evaluation 
-    print('Statistics on this hiearchical clustering:')
+    print('Statistics on clustering:')
 
     #STEP 4a. Cophenetic correlation coefficients
     cophenetic_correlation_coefficient = hierarchy.cophenet(linkage_matrix, distance_matrix)[0]
@@ -159,7 +159,7 @@ def perform_distance_based_grouping(xarray_dataset,
     fig, ax = plt.subplots(figsize=(18,7))
     inconsistency = hierarchy.inconsistent(linkage_matrix)
     ax.plot(range(1,len(linkage_matrix)+1),list(inconsistency[:,3]),'go-')
-    ax.set_title('Inconsistency Coefficients: indicate where to cut the hierarchy', fontsize=14)
+    ax.set_title('Inconsistency Coefficients: indicates where to cut the hierarchy', fontsize=14)
     ax.set_xlabel('Linkage height', fontsize=12)
     ax.set_ylabel('Inconsistencies', fontsize=12)
 
@@ -245,23 +245,21 @@ def perform_parameter_based_grouping(xarray_dataset,
     silhouette_scores = []
 
     #STEP 4. Clustering for every number of regions from 1 to one less than n_regions 
-    for i in range(1,n_regions):           #NOTE: each level in the hierarchy shows one merge. Looks like here it does not. 
-                                            #Hence, for loop is used to perform clustering for every number of desired regions 
-                                            #TODO: maybe investigate this?
+    for i in range(1,n_regions):           
 
-        #STEP 2a. Hierarchical clustering with average linkage
+        #STEP 4a. Hierarchical clustering with average linkage
         model = skc.AgglomerativeClustering(n_clusters=i,
                                             affinity='precomputed',
                                             linkage=linkage,
                                             connectivity=connectMatrix).fit(precomputed_dist_matrix)
         regions_label_list = model.labels_
 
-        #STEP 2b. Silhouette Coefficient score 
+        #STEP 4b. Silhouette Coefficient score 
         if i != 1:
             s = metrics.silhouette_score(precomputed_dist_matrix, regions_label_list, metric='precomputed')
             silhouette_scores.append(s)
 
-        #STEP 2c. Aggregated regions dict
+        #STEP 4c. Aggregated regions dict
         regions_dict = {}
         for label in range(i):
             # Group the regions of this regions label
@@ -271,14 +269,14 @@ def perform_parameter_based_grouping(xarray_dataset,
 
         aggregation_dict[i] = regions_dict.copy()
 
-    #STEP 3. Plot the hierarchical tree dendrogram
+    #STEP 5. Plot the hierarchical tree dendrogram
     clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, 
                                                     n_clusters=None, 
                                                     affinity='precomputed', 
                                                     linkage=linkage,
                                                     connectivity=connectMatrix).fit(precomputed_dist_matrix)
 
-    #STEP 4. Cophenetic correlation coefficient                                              
+    #STEP 6. Cophenetic correlation coefficient                                              
     counts = np.zeros(clustering_tree.children_.shape[0])
     n_samples = len(clustering_tree.labels_)
     for i, merge in enumerate(clustering_tree.children_):
@@ -295,11 +293,11 @@ def perform_parameter_based_grouping(xarray_dataset,
     distance_matrix = hierarchy.distance.squareform(precomputed_dist_matrix)
     print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
     
-    #STEP 5. Check for inconsistency                        #TODO: more info regarding this should be displayed. Otherwise, it is not very informative
+    #STEP 7. Check for inconsistency                    
     inconsistency = hierarchy.inconsistent(linkage_matrix)
     print('Inconsistencies:',list(inconsistency[:,3]))
     
-    #STEP 6. Print Silhouette scores 
+    #STEP 8. Print Silhouette scores 
     print('Silhouette scores: ',silhouette_scores)
 
 

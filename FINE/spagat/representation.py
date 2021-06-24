@@ -6,8 +6,6 @@ import logging
 import warnings
 
 import numpy as np
-import pandas as pd
-import copy
 import shapely
 import xarray as xr
 from shapely.ops import cascaded_union
@@ -36,30 +34,23 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     """
     space = list(sub_to_sup_region_id_dict.keys())
-    
-    # multipolygon_dimension = [0, 1, 2, 3]
-    # TODO: maybe iteratively add increasing buffer size to avoid multipolygons
 
     shape_list = []
     
     for sub_region_id_list in sub_to_sup_region_id_dict.values():
         
-        temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values) #TODO: spatial_dim generalization!
+        temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values) 
         
         shape_union = cascaded_union(temp_shape_list)
         
         shape_list.append(shape_union)
 
-    # TODO: why the convertion to numpy array results in a list of polygons when n_regions = 1 ???
     data = None
     if len(shape_list) == 1:
         data = np.array([shapely.geometry.asMultiPolygon(x) for x in shape_list])
     else:
         data = np.array(shape_list)
     
-    # TODO: understand the multipolygon_dimension's origin: Why does shapely do these four polygons instead of one?
-    # xr_data_array_out = xr.DataArray(data, coords=[space, multipolygon_dimension],
-    #                                  dims=['space', 'multipolygon_dimension'])
     xr_data_array_out = xr.DataArray(data, coords=[space], dims=["space"])
 
     return xr_data_array_out
@@ -171,8 +162,6 @@ def aggregate_values(xr_data_array_in,
         Coordinates correspond to new regions 
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     """
-    # TODO: maybe add this to SpagatDataset as method?
-    # TODO: add unit information to xr_data_array_out
 
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
@@ -210,10 +199,7 @@ def aggregate_values(xr_data_array_in,
                     'Please select one of the modes "mean", "bool" or "sum"'
                 )
 
-    if output_unit == "GW": #TODO: show a warning if it is differnt and just return it!
-        return xr_data_array_out
-    elif output_unit == "KW":
-        return xr_data_array_out
+    return xr_data_array_out
 
 
 def aggregate_connections(xr_data_array_in,
@@ -239,8 +225,6 @@ def aggregate_connections(xr_data_array_in,
         Coordinates correspond to new regions 
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     """
-
-    # TODO: make sure that region and region_2 ids don't get confused
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
     aggregated_coords = {
@@ -258,7 +242,7 @@ def aggregate_connections(xr_data_array_in,
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
-        for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():  #TODO: aggregates both ways (ex. sum -> (a+b) + (b+a)), is this required ? maybe it is for birectional connections
+        for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():  
 
             if mode == "mean":
                 xr_data_array_out.loc[
@@ -295,9 +279,6 @@ def aggregate_connections(xr_data_array_in,
                 xr_data_array_out.loc[
                     dict(space=sup_region_id, space_2=sup_region_id_2)
                 ] = 0
-
-                # TODO: make sure, that setting NAN values to 0 does not cause troubles
-                # -> find a better, such that only non-nan diagonal entries are set to zero
 
     return xr_data_array_out
 

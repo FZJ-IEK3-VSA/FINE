@@ -125,7 +125,6 @@ def rasterize_xr_ds(gridded_RE_ds,
     return rasterized_RE_ds
     
 #PLOTS =================================================================================================
-#TODO: update docstrings 
 #VIOLIN PLOT ------------------------------------------------------
 def vdensity_with_weights(weights):
     ''' Outer function allows innder function access to weights. Matplotlib
@@ -154,10 +153,6 @@ def custom_violin_stats(data, weights):
     # Update result dictionary with our updated info
     results[0][u"mean"] = mean
     results[0][u"median"] = median
-    
-    # No need to do this, since it should be populated from violin_stats
-    # results[0][u"min"] =  np.min(data)
-    # results[0][u"max"] =  np.max(data)
 
     return results
 
@@ -174,7 +169,6 @@ def plot_violin_plot(data, weights, position, color, ax, widths=2):
         pc.set_edgecolor('black')
         pc.set_alpha = 0.3
 
-#TODO: require testing (with optimization results) (all functions below)
 # PERCENTILE PLOT ----------------------------------------------------
 def plot_percentile_plot(original_capfac, RESULTS_PATH, data = 'Wind', clusters_list=['mean', 2, 5, 10]):
     
