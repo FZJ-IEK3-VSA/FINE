@@ -17,7 +17,10 @@ except ImportError:
     warnings.warn('Matplotlib.pyplot could not be imported.')
 
 
-def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumOutputLevel=2, optValOutputLevel=1):
+def writeOptimizationOutputToExcel(esM, 
+                                   outputFileName='scenarioOutput', 
+                                   optSumOutputLevel=2, 
+                                   optValOutputLevel=1):
     """
     Write optimization output to an Excel file.
 
@@ -108,36 +111,46 @@ def writeOptimizationOutputToExcel(esM, outputFileName='scenarioOutput', optSumO
     utils.output('Done. (%.4f' % (time.time() - _t) + ' sec)', esM.verbose, 0)
 
 
-def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
+def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx', engine='openpyxl'):
     """
     Read energy system model from excel file.
+
+    ** Default arguments ** 
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
     :type fileName: string
 
+    :param engine: Used engine for reading the excel file. Please consider that the corresponding 
+        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE. 
+        For further information see the documentation of pandas.read_excel().
+        * 'openpyxl' supports newer Excel file formats
+        * 'xlrd' supports old-style Excel files (.xls)
+        * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
+        |br| * the default value is 'openpyxl'. 
+    :type engine: string
+
     :return: esM, esMData - an EnergySystemModel class instance and general esMData as a Series
     """
-    file = pd.ExcelFile(fileName)
-
-    esMData = pd.read_excel(file, sheet_name ='EnergySystemModel', index_col=0, squeeze=True)
+    file = pd.ExcelFile(fileName, engine=engine)
+    esMData = pd.read_excel(file, sheet_name ='EnergySystemModel', index_col=0, squeeze=True).dropna(axis='index', how='all')
     esMData = esMData.apply(lambda v: ast.literal_eval(v) if type(v) == str and v[0] == '{' else v)
 
     kw = inspect.getargspec(fn.EnergySystemModel.__init__).args
     esM = fn.EnergySystemModel(**esMData[esMData.index.isin(kw)])
 
     for comp in esMData['componentClasses']:
-        data = pd.read_excel(file, sheet_name =comp)
+        data = pd.read_excel(file, sheet_name =comp).dropna(axis='index', how='all')
         dataKeys = set(data['name'].values)
         if comp + 'LocSpecs' in file.sheet_names:
-            dataLoc = pd.read_excel(file, sheet_name =comp + 'LocSpecs', index_col=[0, 1, 2]).sort_index()
+            dataLoc = pd.read_excel(file, sheet_name =comp + 'LocSpecs', index_col=[0, 1, 2]).dropna(axis='columns', how='all').sort_index()
             dataLocKeys = set(dataLoc.index.get_level_values(0).unique())
             if not dataLocKeys <= dataKeys:
                 raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataLocKeys - dataKeys)
             if dataLoc.isnull().any().any():
                 raise ValueError('NaN values in ' + comp + 'LocSpecs data detected.')
         if comp + 'TimeSeries' in file.sheet_names:
-            dataTS = pd.read_excel(file, sheet_name =comp + 'TimeSeries', index_col=[0, 1, 2]).sort_index()
+            dataTS = pd.read_excel(file, sheet_name =comp + 'TimeSeries', index_col=[0, 1, 2]).dropna(axis='columns', how='all').sort_index()
             dataTSKeys = set(dataTS.index.get_level_values(0).unique())
             if not dataTSKeys <= dataKeys:
                 raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataTSKeys - dataKeys)
@@ -165,17 +178,28 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx'):
     return esM, esMData
 
 
-def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
+def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx', engine='openpyxl'):
     """
     Run an energy system model from excel file.
+
+    **Default arguments**
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
     :type fileName: string
 
+    :param engine: Used engine for reading the excel file. Please consider that the corresponding 
+        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE. 
+        For further information see the documentation of pandas.read_excel().
+        * 'openpyxl' supports newer Excel file formats
+        * 'xlrd' supports old-style Excel files (.xls)
+        * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
+        |br| * the default value is 'openpyxl'. 
+    :type engine: string
+
     :return: esM - an EnergySystemModel class instance and general esMData as a Series
     """
-    esM, esMData = readEnergySystemModelFromExcel(fileName)
+    esM, esMData = readEnergySystemModelFromExcel(fileName, engine=engine)
 
     if esMData['cluster'] != {}:
         esM.cluster(**esMData['cluster'])
@@ -185,23 +209,34 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx'):
     return esM
 
 
-def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
+def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx', engine='openpyxl'):
     """
     Read optimization output from an excel file.
 
     :param esM: EnergySystemModel instance which includes the setting of the optimized model
     :type esM: EnergySystemModel instance
 
+    **Default arguments**
+
     :param fileName: excel file name oder path (including .xlsx ending) to an execl file written by
         writeOptimizationOutputToExcel()
         |br| * the default value is 'scenarioOutput.xlsx'
     :type fileName: string
 
+    :param engine: Used engine for reading the excel file. Please consider that the corresponding 
+        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE. 
+        For further information see the documentation of pandas.read_excel().
+        * 'openpyxl' supports newer Excel file formats
+        * 'xlrd' supports old-style Excel files (.xls)
+        * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
+        |br| * the default value is 'openpyxl'. 
+    :type engine: string
+
     :return: esM - an EnergySystemModel class instance
     """
 
     # Read excel file with optimization output
-    file = pd.ExcelFile(fileName)
+    file = pd.ExcelFile(fileName, engine=engine)
     # Check if optimization output matches the given energy system model (sufficient condition)
     utils.checkModelClassEquality(esM, file)
     utils.checkComponentsEquality(esM, file)
@@ -212,7 +247,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
         idColumns2dim = [0, 1, 2, 3]
         idColumns = idColumns1dim if '1' in dim else idColumns2dim
         setattr(esM.componentModelingDict[mdl], 'optSummary',
-                pd.read_excel(file, sheet_name =mdl[0:-5] + 'OptSummary_' + dim, index_col=idColumns))
+                pd.read_excel(fileName, sheet_name =mdl[0:-5] + 'OptSummary_' + dim, index_col=idColumns, engine=engine))
         sheets = []
         sheets += (sheet for sheet in file.sheet_names if mdl[0:-5] in sheet and 'optVar' in sheet)
         if len(sheets) > 0:
@@ -227,7 +262,7 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx'):
                     index_col = idColumns2dim[:-1]
                 else:
                     continue
-                optVal = pd.read_excel(file, sheet_name =sheet, index_col=index_col)
+                optVal = pd.read_excel(fileName, sheet_name =sheet, index_col=index_col, engine=engine)
                 for var in optVal.index.levels[0]: setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
     return esM
 
@@ -784,7 +819,7 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
 
 def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, perArea=True, areaFactor=1e3,
                            crs='epsg:3035', variableName='capacityVariablesOptimum', doSum=False, cmap='viridis', vmin=0,
-                           vmax=-1, zlabel='Installed capacity\nper kilometer\n', figsize=(6, 6), fontsize=12, save=False,
+                           vmax=-1, zlabel=None, figsize=(6, 6), fontsize=12, save=False,
                            fileName='capacity.png', dpi=200, **kwargs):
     """
     Plot the data of a component for each location.
@@ -881,8 +916,25 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     if perArea:
         gdf.loc[gdf[indexColumn] == data.index, "data"] = \
             data.fillna(0).values/(gdf.loc[gdf[indexColumn] == data.index].geometry.area/areaFactor**2)
+        if zlabel is None:
+            unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+            if areaFactor == 1e3:
+                area_unit = 'km$^2$'
+            elif areaFactor == 1:
+                area_unit = 'm$^2$'
+            else:
+                raise NotImplementedError('Area Factor not supported. Supported Area Factors {0},{1}'.format(1,1e3))
+
+            unit = ' [' + unit + '/' + area_unit + ']'
+            zlabel = 'Installed capacity \n' + unit + '\n'
+
     else:
         gdf.loc[gdf[indexColumn] == data.index, "data"] = data.fillna(0).values
+        if zlabel is None:
+            unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+            unit = ' [' + unit + ']'
+            zlabel = 'Installed capacity \n' + unit + '\n'
+
     vmax = gdf["data"].max() if vmax == -1 else vmax
 
     fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
