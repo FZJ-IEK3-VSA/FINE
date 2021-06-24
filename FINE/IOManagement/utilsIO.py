@@ -16,7 +16,7 @@ def transform1dSeriesto2dDataFrame(series, locations, separator='_'):
 
     :param separator: the indices of the series are compact like loc1_loc2. 
         These are then used as row and column index in the created 
-        Dataframe. The separator indicates the char that separates the two 
+        DataFrame. `separator` indicates the char that separates the two 
         locs in the series indices. 
         |br| * the default value is '_'
     :type separator: string 
@@ -141,7 +141,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
 
     :param df_iteration_dict: dictionary with:
         keys - DF variable names
-        values - tuple of component class and component name
+        values - list of tuple of component class and component name
     :type df_iteration_dict: dict
 
     :return: xr_ds
@@ -196,7 +196,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
     :param series_iteration_dict: dictionary with:
         keys - series variable names
-        values - tuple of component class and component name
+        values - list of tuple of component class and component name
     :type series_iteration_dict: dict
 
     :param locations: sorted esM locations 
@@ -224,7 +224,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 data = component_dict[classname][component][variable_description]
 
             # Only ['Transmission', 'LinearOptimalPowerFlow'] are 2d classes.
-            # So, if classname is one of these, append the data to df_space_space_dict 
+            # So, if classname is one of these, append the data to space_space_dict 
             if classname in ['Transmission', 'LinearOptimalPowerFlow']: 
 
                 df = transform1dSeriesto2dDataFrame(data, locations)
@@ -235,7 +235,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
             else:
                 # If the data indices correspond to esM locations, then the 
-                # data is appended to df_space_dict, else df_time_dict
+                # data is appended to space_dict, else time_dict
                 if locations == sorted(data.index.values):
                     space_dict[df_description] = data.rename_axis("space")
                 else:
@@ -282,7 +282,7 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
 
     :param constants_iteration_dict: dictionary with:
         keys - constant value variable names
-        values - tuple of component class and component name
+        values - list of tuple of component class and component name
     :type constants_iteration_dict: dict
 
     :return: xr_ds
@@ -296,8 +296,8 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
             df_description = f"{classname}, {component}"
 
             if '.' in variable_description:
-                nested_variable_description = variable_description.split(".")
-                data = component_dict[classname][component][nested_variable_description[0]][nested_variable_description[1]]
+                [var_name, subvar_name] = variable_description.split('.')
+                data = component_dict[classname][component][var_name][subvar_name]
             else:
                 data = component_dict[classname][component][variable_description]
 
@@ -349,7 +349,7 @@ def processXarrayAttributes(xarray_dataset):
             else:
                 xarray_dataset.attrs[attr_name] = set(attr_value)
 
-        # sometimes ints are converted to numpy ints while saving, but these should strictly be ints
+        # sometimes ints are converted to numpy numbers while saving, but these should strictly be ints
         elif isinstance(attr_value, np.number):
             xarray_dataset.attrs[attr_name] = int(attr_value)
 
@@ -426,7 +426,7 @@ def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable
     if '.' in variable:
         [var_name, nested_var_name] = variable.split('.')
         component_dict[class_name][comp_name][var_name[3:]][nested_var_name] = df.sort_index()
-        #NOTE: Thanks to utils.PowerDict(), the nested dictionaries need not be created before adding the data. 
+        #NOTE: Thanks to PowerDict(), the nested dictionaries need not be created before adding the data. 
 
     else:
         component_dict[class_name][comp_name][variable[3:]] = df.sort_index()

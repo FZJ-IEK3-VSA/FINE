@@ -154,6 +154,7 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
 def test_convertEsmInstanceToXarrayDataset_singlenode(single_node_test_esM):
     """
     Tests if conversion of esm instance to xarray dataset is correct 
+    for a single node esM case 
     """
     #FUNCTION CALL
     output_xarray = xrIO.convertEsmInstanceToXarrayDataset(single_node_test_esM)
@@ -196,6 +197,7 @@ def test_convertEsmInstanceToXarrayDataset_singlenode(single_node_test_esM):
 def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
     """
     Tests if conversion of xarray dataset back to esm instance is correct 
+    for a single node esM case 
     """
     #FUNCTION CALL 
     test_xarray = xrIO.convertEsmInstanceToXarrayDataset(single_node_test_esM)
@@ -258,7 +260,7 @@ def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
                     ])
 def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
     """
-    Tests if esm instance can be saved as a netcdf file and read back in 
+    Tests if esM instance can be saved as a netcdf file and read back in 
     to set up the instance again. 
     """
 
