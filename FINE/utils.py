@@ -4,7 +4,6 @@ Last edited: March 02, 2021
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
 import warnings
-import math
 
 import pandas as pd
 import numpy as np
@@ -12,7 +11,6 @@ import pwlf
 from GPyOpt.methods import BayesianOptimization
 
 import FINE as fn
-
 
 def isString(string):
     """ Check if the input argument is a string. """
@@ -117,6 +115,12 @@ def checkRegionalColumnTitles(esM, data):
     Necessary if the data columns represent the location-dependent data:
     Check if the columns indices match the location indices of the energy system model.
     """
+    # If its a single node esM set up via netCDF file, time series data is 
+    # pd.series with multiindex columns. First column index is the variables's 
+    # name. This needs to be dropped before checking Column Titles.
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.droplevel() 
+    
     if set(data.columns) != esM.locations:
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data columns: ' + str(set(data.columns)) + '\n' +
@@ -136,7 +140,6 @@ def checkRegionalIndex(esM, data):
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
-    
     # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.index, esM._locationsOrdered):
         data.sort_index(inplace=True)
@@ -152,11 +155,11 @@ def checkConnectionIndex(data, locationalEligibility):
         raise ValueError('Indices do not match the eligible connections of the component.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
                          'Eligible connections: ' + str(set(locationalEligibility.index)))
-    
-    # Sort data according to _locationsOrdered, if not already sorted 
+
+    # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.index,locationalEligibility.index):
         data = data.reindex(locationalEligibility.index)
-        
+
     return data
 
 def checkCommodities(esM, commodities):
@@ -1047,52 +1050,6 @@ def checkComponentsEquality(esM, file):
     if not set(compListFromExcel) <= set(compListFromModel):
             raise ValueError('Loaded Output does not match the given energy system model.')
 
-
-def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
-    values = np.zeros((len(locations), len(locations)))
-
-    df = pd.DataFrame(values, columns=locations, index=locations)
-
-    for row in series.iteritems():
-        row_center_id = math.ceil(len(row[0])/2)
-
-        try:
-            id_1, id_2 = row[0].split(separator)  # TODO: add warning
-        except:
-            id_1, id_2 = row[0][:row_center_id-1], row[0][row_center_id:]
-
-        df.loc[id_1, id_2] = row[1]
-
-    return df
-class PowerDict(dict):  
-    '''
-    Dictionary with additional functions. 
-    Helps in creating nested dictionaries on the fly.
-    '''
-    def __init__(self, parent=None, key=None):
-        self.parent = parent
-        self.key = key
-
-    def __missing__(self, key): 
-        '''
-        Creation of subdictionaries on fly
-        '''
-        self[key] = PowerDict(self, key)
-        return self[key]
-
-    def append(self, item):
-        '''
-        Additional append function for lists in dict
-        '''
-        self.parent[self.key] = [item]
-
-    def __setitem__(self, key, val):
-        dict.__setitem__(self, key, val)
-        try:
-            val.parent = self
-            val.key = key
-        except AttributeError:
-            pass
 
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     """ 

@@ -1,14 +1,14 @@
 import inspect
 
 import FINE as fn
-import FINE.utils as utils
+from FINE.IOManagement import utilsIO
 
 
 def exportToDict(esM):
     """
     Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
 
-    :param esM: EnergySystemModel instance in which the optimized model is held
+    :param esM: EnergySystemModel instance in which the optimization model is held
     :type esM: EnergySystemModel instance
 
     :return: esmDict, compDict - dicts containing input arguments of 
@@ -24,7 +24,7 @@ def exportToDict(esM):
         if not arg is 'self':
             esmDict[arg] = getattr(esM,arg)
 
-    compDict = utils.PowerDict()
+    compDict = utilsIO.PowerDict()
     # Loop over all component models 
     for componentModel in esM.componentModelingDict.values():
 
@@ -46,7 +46,10 @@ def exportToDict(esM):
             # Loop over all input props
             for prop in inputkwargs.args:
                 if (prop is not 'self') and (prop is not 'esM'):
-                    compDict[classname][componentname][prop] = getattr(component,prop) #NOTE: thanks to utils.PowerDict(), the nested dictionaries need not be created before adding the data. 
+                    #NOTE: thanks to utilsIO.PowerDict(), the nested dictionaries need 
+                    # not be created before adding the data.
+                    compDict[classname][componentname][prop] = getattr(component,prop) 
+                     
 
     return esmDict, compDict
 

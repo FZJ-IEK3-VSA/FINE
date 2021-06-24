@@ -1,45 +1,8 @@
 import pytest
-import os
-import sys
-
 import numpy as np
-import xarray as xr
 import pandas as pd 
-import json
 
 import FINE as fn
-
-
-def test_allDFs_present_in_esM_instance(minimal_test_esM):
-    #EXPECTED (obtained from minimal_test_esM fixture)
-    hoursPerTimeStep = 2190
-
-    costs = pd.DataFrame([np.array([ 0.05, 0., 0.1, 0.051,]),np.array([0., 0., 0., 0.,])],
-                            index = ['ElectrolyzerLocation', 'IndustryLocation']).T
-    revenues = pd.DataFrame([np.array([ 0., 0.01, 0., 0.,]),np.array([0., 0., 0., 0.,])],
-                            index = ['ElectrolyzerLocation', 'IndustryLocation']).T
-    maxpurchase = pd.DataFrame([np.array([1e6, 1e6, 1e6, 1e6,]),np.array([0., 0., 0., 0.,])],
-                            index = ['ElectrolyzerLocation', 'IndustryLocation']).T * hoursPerTimeStep
-
-    demand = pd.DataFrame([np.array([0., 0., 0., 0.,]), np.array([6e3, 6e3, 6e3, 6e3,]),],
-                    index = ['ElectrolyzerLocation', 'IndustryLocation']).T * hoursPerTimeStep
-
-    #OUTPUT 
-    operationRateMax = minimal_test_esM.getComponentAttribute('Electricity market', 'operationRateMax')
-    commodityCostTimeSeries = minimal_test_esM.getComponentAttribute('Electricity market', 'commodityCostTimeSeries')
-    commodityRevenueTimeSeries = minimal_test_esM.getComponentAttribute('Electricity market', 'commodityRevenueTimeSeries')
-    operationRateFix = minimal_test_esM.getComponentAttribute('Industry site', 'operationRateFix')
-
-    operationRateMax.reset_index(drop=True, inplace=True)
-    commodityCostTimeSeries.reset_index(drop=True, inplace=True)
-    commodityRevenueTimeSeries.reset_index(drop=True, inplace=True)
-    operationRateFix.reset_index(drop=True, inplace=True)
-
-    #ASSERTION
-    assert operationRateMax.equals(maxpurchase)
-    assert commodityCostTimeSeries.equals(costs)
-    assert commodityRevenueTimeSeries.equals(revenues)
-    assert operationRateFix.equals(demand)
 
 
 def test_export_to_dict_minimal(minimal_test_esM):
@@ -169,25 +132,6 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
     assert expected_ACcables_reactances.equals(output_ACcables_reactances)
     assert expected_Hydrogendemand_operationRateFix.equals(output_Hydrogendemand_operationRateFix)
 
-
-
-# @pytest.mark.parametrize("test_esM_fixture", "expected_locations", "expected_commodityUnitsDict", 
-#                               [( 'minimal_test_esM', 
-#                                  {'ElectrolyzerLocation', 'IndustryLocation'}, 
-#                                  {'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'} 
-#                                  ),
-#                                ( 'multi_node_test_esM_init', 
-#                                  {'cluster_0', 'cluster_1', 'cluster_2', 'cluster_3', 
-#                                   'cluster_4', 'cluster_5', 'cluster_6', 'cluster_7'},
-#                                  {'electricity': r'GW$_{el}$', 'methane': r'GW$_{CH_{4},LHV}$', 
-#                                  'biogas': r'GW$_{biogas,LHV}$','CO2': r'Mio. t$_{CO_2}$/h', 
-#                                  'hydrogen': r'GW$_{H_{2},LHV}$'}
-#                                  )
-#                               ]
-#                             )
-
-# def test_import_from_dict_minimal(test_esM_fixture, expected_locations, expected_commodityUnitsDict, request):
-#TODO: check how to pass fixtures and other parameters at the same time. if it's possible use the above
 
 
 @pytest.mark.parametrize("test_esM_fixture", ['minimal_test_esM', 'multi_node_test_esM_init'])

@@ -4,15 +4,14 @@ import pytest
 
 import numpy as np
 import pandas as pd 
-import xarray as xr 
 
-from FINE.IOManagement import dictIO
+from FINE.IOManagement import dictIO, utilsIO
 import FINE.IOManagement.xarrayIO as xrIO 
 
 
 def test_generateIterationDicts(minimal_test_esM):
     esm_dict, component_dict = dictIO.exportToDict(minimal_test_esM)
-    output_df_dict, output_series_dict, output_constants_dict = xrIO.generateIterationDicts(component_dict)
+    output_df_dict, output_series_dict, output_constants_dict = utilsIO.generateIterationDicts(component_dict)
 
     # check output_df_dict
     assert output_df_dict == {'operationRateMax': [('Source', 'Electricity market')],
@@ -94,9 +93,9 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
 
     #ASSERTION 
     ## locations 
-    init_esm_locations = list(multi_node_test_esM_init.locations).sort()
-    test_xarray_locations = list(test_xarray.space.values).sort()
-    output_esm_locations = list(output_esM.locations).sort()
+    init_esm_locations = sorted(multi_node_test_esM_init.locations)
+    test_xarray_locations = sorted(test_xarray.space.values)
+    output_esm_locations = sorted(output_esM.locations)
 
     assert init_esm_locations == test_xarray_locations == output_esm_locations
 
@@ -155,6 +154,7 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
 def test_convertEsmInstanceToXarrayDataset_singlenode(single_node_test_esM):
     """
     Tests if conversion of esm instance to xarray dataset is correct 
+    for a single node esM case 
     """
     #FUNCTION CALL
     output_xarray = xrIO.convertEsmInstanceToXarrayDataset(single_node_test_esM)
@@ -197,6 +197,7 @@ def test_convertEsmInstanceToXarrayDataset_singlenode(single_node_test_esM):
 def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
     """
     Tests if conversion of xarray dataset back to esm instance is correct 
+    for a single node esM case 
     """
     #FUNCTION CALL 
     test_xarray = xrIO.convertEsmInstanceToXarrayDataset(single_node_test_esM)
@@ -204,9 +205,9 @@ def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
 
     #ASSERTION 
     ## locations 
-    init_esm_locations = list(single_node_test_esM.locations).sort()
-    test_xarray_locations = list(test_xarray.space.values).sort()
-    output_esm_locations = list(output_esM.locations).sort()
+    init_esm_locations = sorted(single_node_test_esM.locations)
+    test_xarray_locations = sorted(test_xarray.space.values)
+    output_esm_locations = sorted(output_esM.locations)
 
     assert init_esm_locations == test_xarray_locations == output_esm_locations
 
@@ -259,7 +260,7 @@ def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
                     ])
 def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
     """
-    Tests if esm instance can be saved as a netcdf file and read back in 
+    Tests if esM instance can be saved as a netcdf file and read back in 
     to set up the instance again. 
     """
 
