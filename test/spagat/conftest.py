@@ -298,7 +298,7 @@ def xr_and_dict_for_basic_representation():
                     Polygon([(0,0), (1,0), (1,1), (0,1)])]   
 
   test_xr = spu.add_objects_to_xarray(test_xr,
-                              description ='gpd_geometries',   #NOTE: not sure if it is ok to call another function here
+                              description ='gpd_geometries',  
                               dimension_list =['space'], 
                               object_list = test_geometries)   
 

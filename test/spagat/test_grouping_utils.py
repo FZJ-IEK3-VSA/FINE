@@ -156,7 +156,7 @@ def test_preprocess_2d_variables():
     test_dict = {} 
 
     component_list = ['c1','c2','c3','c4']
-    space_list = ['01_reg','02_reg','03_reg']  #TODO: test a scenario where order of space and space_2 are different
+    space_list = ['01_reg','02_reg','03_reg']  
     var_list = ['var1', 'var2']
     
     var1_data = np.array([ [[ 0,  1,  10],
