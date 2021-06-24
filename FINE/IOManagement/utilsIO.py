@@ -349,16 +349,12 @@ def processXarrayAttributes(xarray_dataset):
             else:
                 xarray_dataset.attrs[attr_name] = set(attr_value)
 
-        # if there is a . in attr_name, collect the values in dot_attrs_dict
-        # to reconstruct pandas series or df later   
-        elif '.' in attr_name:
-            [new_attr_name, sub_attr_name] = attr_name.split('.')
-            dot_attrs_dict[new_attr_name][sub_attr_name] = attr_value
+        # sometimes ints are converted to numpy ints while saving, but these should strictly be ints
+        elif isinstance(attr_value, np.int32):
+            xarray_dataset.attrs[attr_name] = int(attr_value)
 
-            keys_to_delete.append(attr_name)
-        
         # convert string values 
-        elif isinstance(attr_name, str):
+        elif isinstance(attr_value, str):
             if attr_value == 'None':
                 xarray_dataset.attrs[attr_name] = None
 
@@ -367,11 +363,16 @@ def processXarrayAttributes(xarray_dataset):
             
             elif attr_value == 'False':
                 xarray_dataset.attrs[attr_name] = False
-            
-        # ints are converted to numpy ints while saving, but these should strictly be ints
-        if isinstance(attr_value, np.int32):
-            xarray_dataset.attrs[attr_name] = int(attr_value)
 
+        # if there is a . in attr_name, collect the values in dot_attrs_dict
+        # to reconstruct pandas series or df later   
+        if '.' in attr_name:
+            [new_attr_name, sub_attr_name] = attr_name.split('.')
+            dot_attrs_dict[new_attr_name][sub_attr_name] = attr_value
+
+            keys_to_delete.append(attr_name)
+        
+        
     #STEP 2. Reconstruct pandas series or df for each item in dot_attrs_dict 
     if len(dot_attrs_dict) > 0:
         
