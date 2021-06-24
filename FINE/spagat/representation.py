@@ -10,73 +10,11 @@ import pandas as pd
 import copy
 import shapely
 import xarray as xr
-from shapely.geometry import LineString
 from shapely.ops import cascaded_union
-from typing import Dict, List, Tuple
 
 import FINE.spagat.utils as spu
-import FINE.spagat.dataset as spd
 
 logger_representation = logging.getLogger('spagat_representation')
-
-#TODO: standardize all dimension descriptions and pass only once. spatial_dim here and 
-#  dimension_description in grouping.py refer to the same thing. 
-def add_region_centroids(sds, spatial_dim="space"):
-    """Calculates centroid of region and adds this to the data. 
-
-    Parameters
-    ----------
-    sds : Instance of SpagatDataset
-        Refer to SpagatDataset class in dataset.py for more information 
-    spatial_dim : str, optional (default='space')
-        The name/description of the dimension in the sds data that corresponds to regions 
-    
-    Notes
-    -----
-    The addition of region centroids is Inplace. Therefore, nothing is returned. 
-    """
-    gpd_centroids = pd.Series(
-        [geom.centroid for geom in sds.xr_dataset.gpd_geometries.values]
-    )
-    sds.xr_dataset["gpd_centroids"] = (spatial_dim, gpd_centroids.values)
-
-
-def add_centroid_distances(sds, spatial_dim="space"):
-    """Calculates distance between centroids and add this to the data.  
-
-    Parameters
-    ----------
-    sds : Instance of SpagatDataset
-        Refer to SpagatDataset class in dataset.py for more information 
-    spatial_dim : str, optional (default='space')
-        The name/description of the dimension in the sds data that corresponds to regions 
-    
-    Notes
-    -----
-    The addition of region centroid distances is Inplace. Therefore, nothing is returned.  
-    """
-    data_out_dummy = np.zeros(
-        (len(sds.xr_dataset[spatial_dim]), len(sds.xr_dataset[spatial_dim]))
-    )
-
-    space = sds.xr_dataset[spatial_dim].values
-
-    xr_data_array_out = xr.DataArray(
-        data_out_dummy, coords=[space, space], dims=["space", "space_2"]
-    )
-
-    for region_id_1 in sds.xr_dataset[spatial_dim]:
-        for region_id_2 in sds.xr_dataset[spatial_dim]:
-            centroid_1 = sds.xr_dataset.sel(space=region_id_1).gpd_centroids.item(0)
-            centroid_2 = sds.xr_dataset.sel(space=region_id_2).gpd_centroids.item(0)
-            xr_data_array_out.loc[dict(space=region_id_1, space_2=region_id_2)] = (
-                centroid_1.distance(centroid_2) / 1e3
-            )  # distances in km
-
-    sds.xr_dataset["centroid_distances"] = (
-        ["space", "space_2"],     #TODO: Use spatial_dim instead ??
-        xr_data_array_out.values,
-    )
 
 
 def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
@@ -85,7 +23,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     Parameters
     ----------
     xr_data_array_in :  xr.DataArray 
-        subset of the sds data that corresponds to geometry variable
+        subset of the xarray dataset data that corresponds to geometry variable
     sub_to_sup_region_id_dict : Dict[str, List[str]]
         Dictionary new regions' ids and their corresponding group of regions 
         Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
@@ -135,7 +73,7 @@ def aggregate_time_series(xr_data_array_in,
     Parameters
     ----------
     xr_data_array_in :  xr.DataArray 
-        subset of the sds data that corresponds to a time series variable
+        subset of the xarray dataset data that corresponds to a time series variable
     sub_to_sup_region_id_dict :  Dict[str, List[str]]
         Dictionary new regions' ids and their corresponding group of regions 
         Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
@@ -216,7 +154,7 @@ def aggregate_values(xr_data_array_in,
     Parameters
     ----------
     xr_data_array_in : xr.DataArray 
-        subset of the sds data that corresponds to a 1d variable
+        subset of the xarray dataset data that corresponds to a 1d variable
     sub_to_sup_region_id_dict :  Dict[str, List[str]]
         Dictionary new regions' ids and their corresponding group of regions 
         Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
@@ -286,7 +224,7 @@ def aggregate_connections(xr_data_array_in,
     Parameters
     ----------
     xr_data_array_in : xr.DataArray 
-        subset of the sds data that corresponds to a 2d variable
+        subset of the xarray dataset that corresponds to a 2d variable
     sub_to_sup_region_id_dict :  Dict[str, List[str]]
         Dictionary new regions' ids and their corresponding group of regions 
         Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
@@ -365,15 +303,15 @@ def aggregate_connections(xr_data_array_in,
 
 
 
-def aggregate_based_on_sub_to_sup_region_id_dict(sds,
+def aggregate_based_on_sub_to_sup_region_id_dict(xarray_dataset,
                                                 sub_to_sup_region_id_dict,
                                                 aggregation_function_dict=None):
     """After spatial grouping, for each region group, spatially aggregates the data. 
 
     Parameters
     ----------
-    sds : Instance of SpagatDataset
-        Refer to SpagatDataset class in dataset.py for more information 
+    xarray_dataset : xr.Dataset
+        The xarray dataset holding the esM's info 
     sub_to_sup_region_id_dict :  Dict[str, List[str]]
         Dictionary new regions' ids and their corresponding group of regions 
         Ex. {'01_reg_02_reg': ['01_reg','02_reg'], 
@@ -387,18 +325,18 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
     
     Returns
     -------
-    aggregated_sds :  Instance of SpagatDataset
-        New sds with aggregated information 
+    aggregated_xr_dataset :  xr.Dataset
+        New xarray dataset with aggregated information 
         Coordinates correspond to new regions 
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     """
     
-    # Create a new sds
-    aggregated_sds = spd.SpagatDataset()
+    # Create a new xarray dataset 
+    aggregated_xr_dataset = xr.Dataset()
     # copy attributes to its xr dataset 
-    aggregated_sds.xr_dataset.attrs = sds.xr_dataset.attrs
+    aggregated_xr_dataset.attrs = xarray_dataset.attrs
     # update locations 
-    aggregated_sds.xr_dataset.attrs['locations'] = set(sub_to_sup_region_id_dict.keys())
+    aggregated_xr_dataset.attrs['locations'] = set(sub_to_sup_region_id_dict.keys())
 
     if aggregation_function_dict != None:
         #INFO: xarray dataset has prefix 1d_,  2d_ and ts_
@@ -407,7 +345,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
                                         for key, value in aggregation_function_dict.items()
                                             for dimension in ["ts", "1d", "2d"]}
     
-    for varname, da in sds.xr_dataset.data_vars.items():
+    for varname, da in xarray_dataset.data_vars.items():
 
         #STEP 1. Check and set aggregation mode and weights
         # If aggregation_function_dict is passed AND the current variable is in it...   
@@ -434,9 +372,9 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
                 #  matched based on the current variable's dimension 
                 elif isinstance(aggregation_weight, str):
                     if varname[:3] == "2d_":
-                        aggregation_weight = sds.xr_dataset.data_vars.get(f'2d_{aggregation_weight}')
+                        aggregation_weight = xarray_dataset.data_vars.get(f'2d_{aggregation_weight}')
                     else:
-                        aggregation_weight = sds.xr_dataset.data_vars.get(f'1d_{aggregation_weight}')
+                        aggregation_weight = xarray_dataset.data_vars.get(f'1d_{aggregation_weight}')
 
 
         # If aggregation_function_dict is not passed OR the current variable is not in it    
@@ -456,103 +394,48 @@ def aggregate_based_on_sub_to_sup_region_id_dict(sds,
         #STEP 2. Aggregation 
         #STEP 2a. Aggregate geometries if varname == "gpd_geometries"    
         if varname == "gpd_geometries":
-            shapes_aggregated = aggregate_geometries(sds.xr_dataset[varname], 
+            shapes_aggregated = aggregate_geometries(xarray_dataset[varname], 
                                                     sub_to_sup_region_id_dict)
 
-            aggregated_sds.add_region_data(list(sub_to_sup_region_id_dict.keys()))
+            aggregated_xr_dataset = spu.add_space_coords_to_xarray(aggregated_xr_dataset, 
+                                                    list(sub_to_sup_region_id_dict.keys()))
 
-            aggregated_sds.add_objects(description="gpd_geometries", #TODO: based on the current and possible future use of add_objects() simplify the method
-                                    dimension_list=("space"),  #TODO: check why the brackets are necessary
-                                    object_list=shapes_aggregated)
+            aggregated_xr_dataset = spu.add_objects_to_xarray(aggregated_xr_dataset,
+                                                        description="gpd_geometries", 
+                                                        dimension_list=("space"), 
+                                                        object_list=shapes_aggregated)
 
-            add_region_centroids(aggregated_sds)
+            spu.add_region_centroids_to_xarray(aggregated_xr_dataset)
         
         #STEP 2b. For other variables except "gpd_centroids", call respective 
         # aggregation functions based on dimensions. If no dimension present (0d vars),
-        # directly data is directly added to aggregated_sds.xr_dataset.
+        # directly data is directly added to aggregated_xr_dataset.
         elif varname != "gpd_centroids":
             ## Time series 
             if "space" in da.dims and "time" in da.dims:  
-                da = aggregate_time_series(sds.xr_dataset[varname],
+                da = aggregate_time_series(xarray_dataset[varname],
                                         sub_to_sup_region_id_dict,
                                         mode=aggregation_mode,
                                         xr_weight_array=aggregation_weight)
 
             ## 1d variables
             elif ("space" in da.dims and "space_2" not in da.dims):  
-                da = aggregate_values(sds.xr_dataset[varname],
+                da = aggregate_values(xarray_dataset[varname],
                                     sub_to_sup_region_id_dict,
                                     mode=aggregation_mode)
             
             ## 2d variables
             elif ("space" in da.dims and "space_2" in da.dims):  
-                da = aggregate_connections(sds.xr_dataset[varname],
+                da = aggregate_connections(xarray_dataset[varname],
                                         sub_to_sup_region_id_dict,
                                         mode=aggregation_mode)
             
             ## aggregated or 0d variables 
-            aggregated_sds.xr_dataset[varname] = da
+            aggregated_xr_dataset[varname] = da
 
 
-    return aggregated_sds
+    return aggregated_xr_dataset
 
-
-# spagat.output:
-def create_grid_shapefile(sds,
-                        variable_description,
-                        component_description,
-                        file_path, 
-                        files_name="AC_lines"):
-    """Creates a geodataframe which indicates whether two regions are connected for the 
-    given variable-component pair. 
-
-    Parameters
-    ----------
-    sds : Instance of SpagatDataset
-        Refer to SpagatDataset class in dataset.py for more information 
-    variable_description :  str
-        Variable in sds that should be considered 
-    component_description :  str
-        Component in sds that should be considered
-    file_path : str
-        The path to which to save the geodataframe
-    files_name : str, optional (default="AC_lines")
-        The name of the saved geodataframe
-    
-    """
-    # TODO: dataset class
-    
-    add_region_centroids(sds)
-
-    buses_0 = []
-    buses_1 = []
-    geoms = []
-
-    eligibility_xr_array = sds.xr_dataset[variable_description].sel(component=component_description)
-    
-    for region_id_1 in sds.xr_dataset["space"].values:
-        for region_id_2 in sds.xr_dataset["space_2"].values:
-            if eligibility_xr_array.sel(space=region_id_1, space_2=region_id_2).values: 
-                buses_0.append(region_id_1)
-                buses_1.append(region_id_2)
-
-                point_1 = sds.xr_dataset.gpd_centroids.sel(space=region_id_1).item(0)
-                point_2 = sds.xr_dataset.gpd_centroids.sel(space=region_id_2).item(0)
-                line = LineString([(point_1.x, point_1.y), (point_2.x, point_2.y)])
-
-                geoms.append(line)
-
-    # TODO: understand what s_nom and x stand for (look into FINE?) and add or delete them below
-    df = pd.DataFrame(
-        {
-            "bus0": buses_0,
-            "bus1": buses_1,
-            #      's_nom': ,
-            #      'x': ,
-        }
-    )
-
-    spu.create_gdf(df, geoms, crs=3035, file_path=file_path, files_name=files_name)
 
     
 

@@ -6,13 +6,10 @@ import xarray as xr
 from sklearn.datasets import make_blobs
 from shapely.geometry import Point, Polygon
 
-import FINE.spagat.dataset as spd
 import FINE.spagat.grouping as spg
 import FINE.spagat.representation as spr
+import FINE.spagat.utils as spu
 
-path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/')  
-file_name = 'test_fig'
-expected_file = os.path.join(path_to_test_dir, f'{file_name}.png')
 
 @pytest.mark.parametrize("string_list, expected", 
                          [(['01_es', '02_es', '01_de', '02_de', '03_de'], ['es', 'de']),
@@ -20,11 +17,9 @@ expected_file = os.path.join(path_to_test_dir, f'{file_name}.png')
                          (['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'])]) 
 def test_perform_string_based_grouping(string_list, expected):
      clustered_regions_dict = spg.perform_string_based_grouping(string_list)
-     assert sorted(clustered_regions_dict.keys()) == sorted(expected)
-      #TODO: check values also       
+     assert sorted(clustered_regions_dict.keys()) == sorted(expected)    
 
-@pytest.mark.parametrize("mode", ['sklearn_kmeans', 'sklearn_hierarchical', 'sklearn_spectral', 'scipy_kmeans', 'scipy_hierarchical'])
-def test_perform_distance_based_grouping(mode):    
+def test_perform_distance_based_grouping():    
      #TEST DATA
      component_list = ['c1','c2']  
      space_list = ['01_reg','02_reg','03_reg','04_reg','05_reg']
@@ -38,10 +33,7 @@ def test_perform_distance_based_grouping(mode):
                                    coords=[component_list, time_list, space_list], 
                                    dims=['component', 'time','space'])    
 
-     dummy_ds = xr.Dataset({'var': dummy_DataArray}) 
-
-     sds = spd.SpagatDataset()
-     sds.xr_dataset = dummy_ds       
+     dummy_ds = xr.Dataset({'var': dummy_DataArray})   
 
      sample_data, sample_labels = make_blobs(n_samples=5, centers=3, n_features=2, random_state=0)
      
@@ -49,14 +41,18 @@ def test_perform_distance_based_grouping(mode):
      for i, data_point in enumerate(sample_data):
           test_centroids[i] = Point(data_point)
      
-     sds.add_objects(description ='gpd_centroids',   
-                dimension_list =['space'], 
-                object_list = test_centroids)
+     dummy_ds = spu.add_objects_to_xarray(dummy_ds, 
+                                        description ='gpd_centroids',   
+                                        dimension_list =['space'], 
+                                        object_list = test_centroids)
 
      
      #FUNCTION CALL 
-     output_dict = spg.perform_distance_based_grouping(sds, 
-                                                       agg_mode = mode, 
+     path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/')  
+     file_name = 'test_fig.png'
+     expected_file = os.path.join(path_to_test_dir, file_name)
+
+     output_dict = spg.perform_distance_based_grouping(dummy_ds,
                                                        save_path = path_to_test_dir, 
                                                        fig_name=file_name)  
      
@@ -68,9 +64,8 @@ def test_perform_distance_based_grouping(mode):
                               '02_reg_03_reg': ['02_reg', '03_reg'],
                               '04_reg_05_reg': ['04_reg', '05_reg']}  
      
-     if mode is not 'sklearn_spectral':
-          assert os.path.isfile(expected_file) 
-          os.remove(expected_file)
+     os.remove(expected_file)
+     
      
 
 @pytest.mark.parametrize("weights, expected_region_groups", 
@@ -88,12 +83,12 @@ def test_perform_distance_based_grouping(mode):
                         ])
 def test_perform_parameter_based_grouping(weights,
                                         expected_region_groups,
-                                        sds_for_parameter_based_grouping): 
+                                        xr_for_parameter_based_grouping): 
      
-     regions_list = sds_for_parameter_based_grouping.xr_dataset.space.values 
+     regions_list = xr_for_parameter_based_grouping.space.values 
 
      #FUNCTION CALL
-     output_dict = spg.perform_parameter_based_grouping(sds_for_parameter_based_grouping, 
+     output_dict = spg.perform_parameter_based_grouping(xr_for_parameter_based_grouping, 
                                                        weights=weights)  
      
      #ASSERTION

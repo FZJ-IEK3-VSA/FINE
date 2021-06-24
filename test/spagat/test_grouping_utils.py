@@ -5,7 +5,6 @@ import xarray as xr
 from sklearn.datasets import make_blobs
 
 import FINE.spagat.grouping_utils as gu 
-import FINE.spagat.dataset as spd
 
 @pytest.mark.parametrize("test_array", 
                         [ np.array([ [10, 9, 8], 
@@ -313,14 +312,12 @@ def test_preprocess_dataset():
                                         coords=[component_list, space_list, space_list], 
                                         dims=['component', 'space', 'space_2'])
     
-    ds = xr.Dataset({'var_ts_1': var_ts_1_DataArray, 
+    xr_ds = xr.Dataset({'var_ts_1': var_ts_1_DataArray, 
                     'var_ts_2': var_ts_2_DataArray,
                     'var_1d_1': var_1d_1_DataArray, 
                     'var_1d_2': var_1d_2_DataArray, 
                     'var_2d_1': var_2d_1_DataArray,
                     'var_2d_2': var_2d_2_DataArray})
-    sds = spd.SpagatDataset()
-    sds.xr_dataset = ds
 
     #EXPECTED DATA
     ## time series dict
@@ -360,7 +357,7 @@ def test_preprocess_dataset():
     expected_2d_dict['var_2d_2'] = {'c3': var_2d_2_c3_array, 'c4': var_2d_2_c4_array}
         
     #FUNCTION CALL 
-    output_ts_dict, output_1d_dict, output_2d_dict = gu.preprocess_dataset(sds) 
+    output_ts_dict, output_1d_dict, output_2d_dict = gu.preprocess_dataset(xr_ds) 
     
     # ASSERTION 
     ## ts 
@@ -457,7 +454,7 @@ def test_get_custom_distance_matrix_with_unusual_weights(weights,
                                                         n_regions,
                                                         weights)     
     
-def test_get_connectivity_matrix(sds_for_connectivity):
+def test_get_connectivity_matrix(xr_for_connectivity):
     #EXPECTED 
     expected_matrix = np.array([[ 1, 1, 0, 1, 1, 0, 0, 0],
                                 [ 1, 1, 1, 1, 1, 1, 0, 0],
@@ -469,7 +466,7 @@ def test_get_connectivity_matrix(sds_for_connectivity):
                                 [ 0, 0, 0, 0, 0, 1, 1, 1]])
 
     #FUNCTION CALL 
-    output_matrix = gu.get_connectivity_matrix(sds_for_connectivity)
+    output_matrix = gu.get_connectivity_matrix(xr_for_connectivity)
 
     #ASSERTION 
     assert np.array_equal(output_matrix, expected_matrix)

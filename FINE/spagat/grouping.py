@@ -48,8 +48,7 @@ def perform_string_based_grouping(regions):
 
 
 @spu.timer
-def perform_distance_based_grouping(sds, 
-                                ax_illustration=None, 
+def perform_distance_based_grouping(xarray_dataset, 
                                 save_path = None, 
                                 fig_name=None, 
                                 verbose=False):
@@ -58,8 +57,8 @@ def perform_distance_based_grouping(sds,
 
     Parameters
     ----------
-    sds : Instance of SpagatDataset
-        Refer to SpagatDataset class in dataset.py for more information 
+    xarray_dataset : xr.Dataset
+        The xarray dataset holding the esM's info 
     save_path :  str, optional (default=None)
         The path to save the figures. 
         If default None, figure is not saved
@@ -80,8 +79,8 @@ def perform_distance_based_grouping(sds,
                1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
     """
     
-    centroids = np.asarray([[point.item().x, point.item().y] for point in sds.xr_dataset.gpd_centroids])/1000  # km
-    regions_list = sds.xr_dataset['space'].values
+    centroids = np.asarray([[point.item().x, point.item().y] for point in xarray_dataset.gpd_centroids])/1000  # km
+    regions_list = xarray_dataset['space'].values
     n_regions = len(regions_list)
     
     aggregation_dict = {}
@@ -139,7 +138,7 @@ def perform_distance_based_grouping(sds,
 
         R = hierarchy.dendrogram(linkage_matrix, 
                                 orientation="top",
-                                labels=sds.xr_dataset['space'].values, 
+                                labels=xarray_dataset['space'].values, 
                                 ax=ax, 
                                 leaf_font_size=14
                                 )
@@ -173,15 +172,15 @@ def perform_distance_based_grouping(sds,
 
 
 @spu.timer
-def perform_parameter_based_grouping(sds,
+def perform_parameter_based_grouping(xarray_dataset,
                                     linkage='complete',
                                     weights=None):
     """Groups regions based on the Energy System Model instance's data. 
 
     Parameters
     ----------
-    sds : Instance of SpagatDataset
-        Refer to SpagatDataset class in dataset.py for more information 
+    xarray_dataset : xr.Dataset
+        The xarray dataset holding the esM's info 
     linkage : str, optional (default='complete')
         The linkage criterion to be used with agglomerative hierarchical clustering. 
         Can be 'complete', 'single', etc. Refer to Sklearn's documentation for more info.
@@ -228,20 +227,20 @@ def perform_parameter_based_grouping(sds,
     """
 
     # Original region list
-    regions_list = sds.xr_dataset['space'].values
+    regions_list = xarray_dataset['space'].values
     n_regions = len(regions_list)
 
     aggregation_dict = {}
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}  
     
     #STEP 1. Preprocess the whole dataset 
-    dict_ts, dict_1d, dict_2d = gu.preprocess_dataset(sds) 
+    dict_ts, dict_1d, dict_2d = gu.preprocess_dataset(xarray_dataset) 
 
     #STEP 2. Calculate the overall distance between each region pair (uses custom distance)
     precomputed_dist_matrix = gu.get_custom_distance_matrix(dict_ts, dict_1d, dict_2d, n_regions, weights)
     
     #STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not. 
-    connectMatrix = gu.get_connectivity_matrix(sds)
+    connectMatrix = gu.get_connectivity_matrix(xarray_dataset)
 
     silhouette_scores = []
 

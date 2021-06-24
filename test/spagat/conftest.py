@@ -8,14 +8,13 @@ import xarray as xr
 from shapely.geometry import Polygon, MultiPolygon
 from collections import namedtuple
 
-import FINE.spagat.dataset as spd
-import FINE.spagat.representation as spr
+import FINE.spagat.utils as spu
 
 #============================================Fixtures for Grouping==================================================#
 
 
 @pytest.fixture()
-def sds_for_connectivity():  
+def xr_for_connectivity():  
 
   component_list = ['source_comp','sink_comp', 'transmission_comp']  
   space_list = ['01_reg','02_reg','03_reg','04_reg', '05_reg','06_reg', '07_reg','08_reg']
@@ -89,9 +88,6 @@ def sds_for_connectivity():
                         '2d_locationalEligibility': locationalEligibility_2d_da
                         })    
 
-  sds = spd.SpagatDataset()
-  sds.xr_dataset = test_ds 
-
   #Geometries 
   test_geometries = [Polygon([(0,3), (1,3), (1,4), (0,4)]),
                   Polygon([(1,3), (2,3), (2,4), (4,1)]),
@@ -103,14 +99,15 @@ def sds_for_connectivity():
                   Polygon([(2.5,0), (3.5,0), (3.5,1), (2.5,1)])] 
                 
 
-  sds.add_objects(description ='gpd_geometries',   
-                dimension_list =['space'], 
-                object_list = test_geometries)   
+  test_ds = spu.add_objects_to_xarray(test_ds,
+                                  description ='gpd_geometries',   
+                                  dimension_list =['space'], 
+                                  object_list = test_geometries)   
   
-  spr.add_region_centroids(sds) 
-  spr.add_centroid_distances(sds)
+  test_ds = spu.add_region_centroids_to_xarray(test_ds) 
+  test_ds = spu.add_centroid_distances_to_xarray(test_ds)
 
-  return sds  
+  return test_ds
 
 @pytest.fixture()
 def data_for_distance_measure():  
@@ -137,7 +134,7 @@ def data_for_distance_measure():
 
 
 @pytest.fixture()
-def sds_for_parameter_based_grouping(): 
+def xr_for_parameter_based_grouping(): 
 
   component_list = ['Source, wind turbine', 'Transmission, AC cables', 'Source, PV']  
   space_list = ['01_reg','02_reg','03_reg']
@@ -173,12 +170,9 @@ def sds_for_parameter_based_grouping():
                                     coords=[component_list, space_list, space_list], 
                                     dims=['component', 'space', 'space_2'])
   
-  ds = xr.Dataset({'ts_operationRateMax': operationRateMax,
+  xr_ds = xr.Dataset({'ts_operationRateMax': operationRateMax,
                 '1d_capacityMax': capacityMax,  
                 '2d_transmissionDistance': transmissionDistance}) 
-
-  sds = spd.SpagatDataset()
-  sds.xr_dataset = ds
 
   #Geometries 
   test_geometries = [Polygon([(0,3), (1,3), (1,4), (0,4)]),
@@ -186,20 +180,21 @@ def sds_for_parameter_based_grouping():
                       Polygon([(0,2), (1,2), (1,3), (0,3)]) ] 
                 
 
-  sds.add_objects(description ='gpd_geometries',   
-                dimension_list =['space'], 
-                object_list = test_geometries)   
+  xr_ds = spu.add_objects_to_xarray(xr_ds,
+                          description ='gpd_geometries',   
+                          dimension_list =['space'], 
+                          object_list = test_geometries)   
   
-  spr.add_region_centroids(sds) 
-  spr.add_centroid_distances(sds)
+  xr_ds = spu.add_region_centroids_to_xarray(xr_ds) 
+  xr_ds = spu.add_centroid_distances_to_xarray(xr_ds)
 
-  return sds 
+  return xr_ds
 #============================================Fixtures for Basic Representation==================================================#
 
 @pytest.fixture()
-def sds_and_dict_for_basic_representation():  
+def xr_and_dict_for_basic_representation():  
   '''
-  sds data to test basic representation functions-
+  xarray to test basic representation functions-
   1. test_aggregate_based_on_sub_to_sup_region_id_dict()
   2. test_aggregate_time_series()
   3. test_aggregate_values()
@@ -211,7 +206,7 @@ def sds_and_dict_for_basic_representation():
   sub_to_sup_region_id_dict = {'01_reg_02_reg': ['01_reg','02_reg'], 
                                  '03_reg_04_reg': ['03_reg','04_reg']}
   
-  #SDS
+  #xr
   component_list = ['source_comp','sink_comp', 'transmission_comp']  
   space_list = ['01_reg','02_reg','03_reg','04_reg']
   time_list = ['T0','T1']
@@ -289,27 +284,25 @@ def sds_and_dict_for_basic_representation():
                               coords=[component_list, space_list, space_list], 
                               dims=['component', 'space', 'space_2'])
 
-  test_ds = xr.Dataset({'ts_operationRateMax': operationRateMax_da, 
+  test_xr = xr.Dataset({'ts_operationRateMax': operationRateMax_da, 
                         'ts_operationRateFix': operationRateFix_da,
                         '1d_capacityMax': capacityMax_1d_da, 
                         '1d_capacityFix': capacityFix_1d_da, 
                         '2d_capacityMax': capacityMax_2d_da, 
                         '2d_locationalEligibility': locationalEligibility_2d_da
                         })    
-
-  sds = spd.SpagatDataset()
-  sds.xr_dataset = test_ds            
-
+         
   test_geometries = [Polygon([(0,0), (2,0), (2,2), (0,2)]),
                     Polygon([(2,0), (4,0), (4,2), (2,2)]),
                     Polygon([(0,0), (4,0), (4,4), (0,4)]),
                     Polygon([(0,0), (1,0), (1,1), (0,1)])]   
 
-  sds.add_objects(description ='gpd_geometries',   #NOTE: not sure if it is ok to call another function here
-                dimension_list =['space'], 
-                object_list = test_geometries)   
+  test_xr = spu.add_objects_to_xarray(test_xr,
+                              description ='gpd_geometries',   #NOTE: not sure if it is ok to call another function here
+                              dimension_list =['space'], 
+                              object_list = test_geometries)   
 
-  return namedtuple("dict_and_sds", "sub_to_sup_region_id_dict sds")(sub_to_sup_region_id_dict, sds)    
+  return namedtuple("dict_and_xr", "sub_to_sup_region_id_dict test_xr")(sub_to_sup_region_id_dict, test_xr)    
 
 #============================================Fixtures for RE Representation==================================================#
 

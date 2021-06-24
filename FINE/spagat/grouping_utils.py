@@ -1,13 +1,9 @@
 import warnings
 
-import xarray as xr
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from sklearn import preprocessing as prep
 from scipy.cluster import hierarchy
-from sklearn import metrics
-from typing import Dict, List
 
 def get_scaled_array(array):
     """Scale the given matrix to [0,1].
@@ -168,13 +164,13 @@ def preprocess_2d_variables(vars_dict):
     return ds_2d
 
     
-def preprocess_dataset(sds): 
+def preprocess_dataset(xarray_dataset): 
     """Preprocess xarray dataset.
 
     Parameters
     ----------
-    sds : Instance of SpagatDataset
-        Refer to SpagatDataset class in dataset.py for more information 
+    xarray_dataset : xr.Dataset
+        the xarray dataset that needs to be preprocessed
 
     Returns
         dict_ts, dict_1d, dict_2d : Dict
@@ -183,11 +179,8 @@ def preprocess_dataset(sds):
                 preprocess_1d_variables(),
             and preprocess_2d_variables(), respectively
     """
-    ds_extracted = sds.xr_dataset
-
-    component_list = list(ds_extracted['component'].values)
-    n_components = len(component_list)
-    n_regions = len(ds_extracted['space'].values)
+    
+    component_list = list(xarray_dataset['component'].values)
 
     #STEP 0. Traverse all variables in the dataset, and put them in separate categories
     #NOTE: vars_ts, vars_1d, vars_2d -> dicts of variables and their corresponding dataArrays
@@ -195,7 +188,7 @@ def preprocess_dataset(sds):
     vars_1d = {}
     vars_2d = {}
 
-    for varname, da in ds_extracted.data_vars.items():
+    for varname, da in xarray_dataset.data_vars.items():
         
         if sorted(da.dims) == sorted(('component', 'time', 'space')):   
             da = da.transpose('component','space','time') #require sorting dimensions 
@@ -384,32 +377,36 @@ def get_custom_distance_matrix(ds_ts,
     return distMatrix
 
 
-def get_connectivity_matrix(sds):
-    """Generates connectiviy matrix. #TODO: update docstring
-        - In this matrix, if two regions are connected, it is indicated as 1 and 0 otherwise. 
-        - For every region pair, as long as they have atleast one non-zero 2d-variable value, 
-          related to 'pipeline' component, they are regarded as connected.
-        - If no component related to 'pipeline' is present in the data, then all components
-          are considered.
-                                                      
+def get_connectivity_matrix(xarray_dataset):
+    """Generates connectiviy matrix for the given `xarray_dataset`. 
+                                               
     Parameters
     ----------
-    sds : Instance of SpagatDataset
-        Refer to SpagatDataset class in dataset.py for more information
+    xarray_dataset : xr.Dataset
+        the xarray dataset for which connectiviy matrix needs 
+        to be generated 
     
     Returns
     -------
     connectivity_matrix : np.ndarray 
         A n_regions by n_regions symmetric matrix 
+
+    Notes
+    -----
+    The `connectivity_matrix` indicates if two regions are connected or not.
+    - In this matrix, if two regions are connected, it is indicated as 1 and 0 otherwise. 
+    - A given region pair if connected if:
+        - Their borders touch at least at one point
+        - In case of islands, its nearest mainland region, or
+        - If the regions are connected via a transmission line or pipeline 
     """
-    ds_extracted = sds.xr_dataset
     
-    n_regions = len(ds_extracted['space'].values)
+    n_regions = len(xarray_dataset['space'].values)
 
     connectivity_matrix = np.zeros((n_regions,n_regions))
 
     #STEP 1: Check for contiguous neighbors 
-    geometries = gpd.GeoSeries(ds_extracted['gpd_geometries']) #NOTE: disjoint seems to work only on geopandas or geoseries object
+    geometries = gpd.GeoSeries(xarray_dataset['gpd_geometries']) #NOTE: disjoint seems to work only on geopandas or geoseries object
     for ix, geom in enumerate(geometries):
         neighbors = geometries[~geometries.disjoint(geom)].index.tolist()
         connectivity_matrix[ix, neighbors] = 1
@@ -419,7 +416,7 @@ def get_connectivity_matrix(sds):
         if np.count_nonzero(connectivity_matrix[row,:] == 1) == 1: #if a region is connected only to itself
             
             #get the nearest neighbor based on regions centroids 
-            centroid_distances = ds_extracted.centroid_distances.values[row,:] 
+            centroid_distances = xarray_dataset.centroid_distances.values[row,:] 
             nearest_neighbor_idx = np.argmin(centroid_distances[np.nonzero(centroid_distances)])
             
             #make the connection between the regions (both ways to keep it symmetric)
@@ -427,9 +424,9 @@ def get_connectivity_matrix(sds):
             
     #STEP 3: Additionally, check if there are transmission between regions that are not yet connected in the 
     #connectivity matrix 
-    for data_var in ds_extracted.data_vars:
+    for data_var in xarray_dataset.data_vars:
         if data_var[:3] == "2d_":
-            comp_xr = ds_extracted[data_var]
+            comp_xr = xarray_dataset[data_var]
             valid_comps_xr = comp_xr.dropna(dim='component') #drop invalid components
 
             valid_comps_xr = valid_comps_xr.fillna(0) #for safety purpose, does not affect further steps anyway

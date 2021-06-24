@@ -7,11 +7,8 @@ import xarray as xr
 import weighted
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-import seaborn as sns
 from matplotlib import cm
 from matplotlib.cbook import violin_stats
-import matplotlib.patches as mpatches
-from typing import Dict, List
 
 
 def rasterize_geometry(geometry, coords, latitude='y', longitude='x'):

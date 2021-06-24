@@ -7,7 +7,6 @@ import time
 import os
 import warnings
 
-import numpy as np
 import pandas as pd
 import geopandas as gpd
 import pyomo.environ as pyomo
@@ -19,7 +18,7 @@ from FINE.component import Component, ComponentModel
 
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
-import FINE.spagat.dataset as spd
+import FINE.spagat.utils as spu
 import FINE.spagat.grouping as spg
 import FINE.spagat.representation as spr 
 
@@ -447,23 +446,23 @@ class EnergySystemModel:
         gdfRegions = gpd.read_file(shapefilePath)
 
         #STEP 2. Obtain xr dataset from esM 
-        sds = spd.SpagatDataset()
-
-        sds.xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
+        xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
         
-        #STEP 3. Add shapefile information to sds
-        sds.add_objects(description='gpd_geometries',
-                        dimension_list=['space'],
-                        object_list=gdfRegions.geometry)
-        spr.add_region_centroids(sds, spatial_dim='space') 
-        spr.add_centroid_distances(sds)
+        #STEP 3. Add shapefile information to xr_dataset
+        xr_dataset = spu.add_objects_to_xarray(xr_dataset,
+                                            description='gpd_geometries',
+                                            dimension_list=['space'],
+                                            object_list=gdfRegions.geometry)
+
+        xr_dataset = spu.add_region_centroids_to_xarray(xr_dataset) 
+        xr_dataset = spu.add_centroid_distances_to_xarray(xr_dataset)
         
         #STEP 4. Spatial grouping
         if grouping_mode == 'string_based':
 
             print('Performing string-based grouping on the regions')
             
-            locations = sds.xr_dataset.space.values
+            locations = xr_dataset.space.values
             aggregation_dict = spg.perform_string_based_grouping(locations)
 
         elif grouping_mode == 'distance_based':
@@ -474,7 +473,7 @@ class EnergySystemModel:
              
             print(f'Performing distance-based grouping on the regions')
 
-            aggregation_dict = spg.perform_distance_based_grouping(sds,
+            aggregation_dict = spg.perform_distance_based_grouping(xr_dataset,
                                                                 save_path,
                                                                 fig_name, 
                                                                 verbose)
@@ -486,7 +485,7 @@ class EnergySystemModel:
 
             print(f'Performing parameter-based grouping on the regions.')
 
-            aggregation_dict = spg.perform_parameter_based_grouping(sds, 
+            aggregation_dict = spg.perform_parameter_based_grouping(xr_dataset, 
                                                                     linkage,
                                                                     weights)
 
@@ -507,36 +506,34 @@ class EnergySystemModel:
             print('aggregation_function_dict found in kwargs')
             aggregation_function_dict = kwargs.get('aggregation_function_dict')
         
-        aggregated_sds = spr.aggregate_based_on_sub_to_sup_region_id_dict(sds,
+        aggregated_xr_dataset = spr.aggregate_based_on_sub_to_sup_region_id_dict(xr_dataset,
                                                                     sub_to_sup_region_id_dict,
                                                                     aggregation_function_dict)       
                                                                                                 
         
         #STEP 6. Obtain aggregated esM
-        aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(aggregated_sds.xr_dataset)
+        aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(aggregated_xr_dataset)
         
         #STEP 7. Save shapefiles and aggregated xarray dataset if user chooses
         if aggregatedResultsPath is not None:   
             # get file names 
-            sds_region_filename = kwargs.get('sds_region_filename', 'sds_regions.shp') 
-            sds_xr_dataset_filename = kwargs.get('sds_xr_dataset_filename', 'sds_xr_dataset.nc4')
+            shp_name = kwargs.get('shp_name', 'aggregated_regions') 
+            aggregated_xr_filename = kwargs.get('aggregated_xr_filename', 'aggregated_xr_dataset.nc4')
             
             # save shapefiles 
-            aggregated_sds.save_sds_regions(aggregatedResultsPath,
-                                            sds_region_filename)
+            spu.save_shapefile_from_xarray(aggregated_xr_dataset,
+                                            aggregatedResultsPath,
+                                            shp_name
+                                             )
 
             # remove geometry related data vars from aggregated xarray dataset as these cannot be saved 
-            aggregated_sds.xr_dataset = aggregated_sds.xr_dataset.drop_vars(['gpd_geometries', 'gpd_centroids', 'centroid_distances'])
+            aggregated_xr_dataset = aggregated_xr_dataset.drop_vars(['gpd_geometries', 'gpd_centroids', 'centroid_distances'])
 
             # save aggregated xarray dataset 
-            file_name_with_path = os.path.join(aggregatedResultsPath, sds_xr_dataset_filename)
-            xrIO.saveNetcdfFile(aggregated_sds.xr_dataset, file_name_with_path)
-
-
-            
+            file_name_with_path = os.path.join(aggregatedResultsPath, aggregated_xr_filename)
+            xrIO.saveNetcdfFile(aggregated_xr_dataset, file_name_with_path)
 
         return aggregated_esM
-            # TODO: write esM_aggregated back to "self" instead of returning a new esM_aggregated instance
 
     def aggregateTemporally(self,                
                 numberOfTypicalPeriods=7, 

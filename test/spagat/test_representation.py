@@ -1,47 +1,16 @@
 import os
-import pathlib
 
 import pytest
 import numpy as np
 import xarray as xr
-import math 
-from shapely.geometry import Point, Polygon
 
 import FINE.spagat.representation as spr
-import FINE.spagat.grouping as spg
-import FINE.spagat.dataset as spd
 
-def test_add_region_centroids_and_distances():
-    test_geometries = [Polygon([(0,0), (2,0), (2,2), (0,2)]),
-                       Polygon([(2,0), (4,0), (4,2), (2,2)])] 
+def test_aggregate_geometries(xr_and_dict_for_basic_representation):
 
-    expected_centroids = [Point(1, 1), Point(3,1)]
-    expected_centroid_distances = .001 * np.array([ [0, 2], [2, 0] ]) #Distances in km
-
-    #FUNCTION CALL                                         
-    sds = spd.SpagatDataset()
-    sds.add_objects(description ='gpd_geometries',  
-                    dimension_list =['space'], 
-                    object_list = test_geometries)
+    sub_to_sup_region_id_dict, xr_for_basic_representation = xr_and_dict_for_basic_representation
     
-    spr.add_region_centroids(sds) 
-    spr.add_centroid_distances(sds)
-
-    output_centroids = sds.xr_dataset['gpd_centroids'].values
-    output_centroid_distances = sds.xr_dataset['centroid_distances'].values
-
-    #ASSERTION 
-    for output, expected in zip(output_centroids, expected_centroids):
-        assert output.coords[:] == expected.coords[:]
-    
-    assert np.array_equal(output_centroid_distances, expected_centroid_distances)
-
-
-def test_aggregate_geometries(sds_and_dict_for_basic_representation):
-
-    sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
-    
-    test_xarray = sds_for_basic_representation.xr_dataset['gpd_geometries']
+    test_xarray = xr_for_basic_representation['gpd_geometries']
 
     #FUNCTION CALL 
     output_xarray = spr.aggregate_geometries(test_xarray, sub_to_sup_region_id_dict)   
@@ -59,13 +28,13 @@ def test_aggregate_geometries(sds_and_dict_for_basic_representation):
 
  
 @pytest.mark.parametrize("mode, expected", [("mean", 3), ("sum", 6)])
-def test_aggregate_time_series_mean_and_sum(sds_and_dict_for_basic_representation, 
+def test_aggregate_time_series_mean_and_sum(xr_and_dict_for_basic_representation, 
                                mode, 
                                expected):
 
-    sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
+    sub_to_sup_region_id_dict, xr_for_basic_representation = xr_and_dict_for_basic_representation
 
-    test_xarray = sds_for_basic_representation.xr_dataset['ts_operationRateMax']
+    test_xarray = xr_for_basic_representation['ts_operationRateMax']
     
     
     #FUNCTION CALL
@@ -141,14 +110,14 @@ def test_aggregate_time_series_weighted_mean(data, weight, expected_grp1, expect
     assert np.isnan(time_series_aggregated.loc['sink_comp', 'T0', '01_reg_02_reg'].values)
 
 @pytest.mark.parametrize("mode, expected_grp1, expected_grp2", [("mean", 15, 0), ("sum", 30, 0), ("bool", 1, 0)])    
-def test_aggregate_values(sds_and_dict_for_basic_representation, 
+def test_aggregate_values(xr_and_dict_for_basic_representation, 
                         mode, 
                         expected_grp1,
                         expected_grp2):
 
-    sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
+    sub_to_sup_region_id_dict, xr_for_basic_representation = xr_and_dict_for_basic_representation
 
-    test_xarray = sds_for_basic_representation.xr_dataset['1d_capacityMax']
+    test_xarray = xr_for_basic_representation['1d_capacityMax']
     
     #FUNCTION CALL 
     values_aggregated = spr.aggregate_values(test_xarray, 
@@ -169,13 +138,13 @@ def test_aggregate_values(sds_and_dict_for_basic_representation,
                                                   ("sum", np.array([ [0, 20], [20, 0] ])), 
                                                   ("bool", np.array([ [0, 1], [1, 0] ]) )
                                             ])
-def test_aggregate_connections(sds_and_dict_for_basic_representation,
+def test_aggregate_connections(xr_and_dict_for_basic_representation,
                                mode,
                                expected_for_valid_component):
 
-    sub_to_sup_region_id_dict, sds_for_basic_representation = sds_and_dict_for_basic_representation
+    sub_to_sup_region_id_dict, xr_for_basic_representation = xr_and_dict_for_basic_representation
     
-    test_xarray = sds_for_basic_representation.xr_dataset['2d_capacityMax']
+    test_xarray = xr_for_basic_representation['2d_capacityMax']
 
     #FUNCTION CALL
     connections_aggregated = spr.aggregate_connections(test_xarray,
@@ -224,7 +193,7 @@ test_data = [
                           expected_1d_capacityFix, expected_2d_capacityMax, \
                           expected_2d_locationalEligibility", test_data)
 
-def test_aggregate_based_on_sub_to_sup_region_id_dict(sds_and_dict_for_basic_representation,
+def test_aggregate_based_on_sub_to_sup_region_id_dict(xr_and_dict_for_basic_representation,
                                                       aggregation_function_dict, 
                                                       expected_ts_operationRateMax, 
                                                       expected_ts_operationRateFix, 
@@ -233,25 +202,23 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict(sds_and_dict_for_basic_rep
                                                       expected_2d_capacityMax,
                                                       expected_2d_locationalEligibility):  
     
-    sub_to_sup_region_id_dict, sds = sds_and_dict_for_basic_representation
+    sub_to_sup_region_id_dict, test_xr = xr_and_dict_for_basic_representation
 
-    output_sds = spr.aggregate_based_on_sub_to_sup_region_id_dict(sds,
+    output_xarray = spr.aggregate_based_on_sub_to_sup_region_id_dict(test_xr,
                                                                   sub_to_sup_region_id_dict,
                                                                   aggregation_function_dict=aggregation_function_dict,
                                                                   )
 
-    #ASSERTION
-    output_xarray = output_sds.xr_dataset
-    
-    ## 3. Time series variables 
+    #ASSERTION    
+    ## Time series variables 
     assert  output_xarray['ts_operationRateMax'].loc['source_comp', 'T0', '01_reg_02_reg'].values == expected_ts_operationRateMax
     assert output_xarray['ts_operationRateFix'].loc['sink_comp', 'T0','01_reg_02_reg'].values == expected_ts_operationRateFix
     
-    ## 4. 1d variable 
+    ## 1d variable 
     assert output_xarray['1d_capacityMax'].loc['source_comp', '01_reg_02_reg'].values == expected_1d_capacityMax
     assert output_xarray['1d_capacityFix'].loc['sink_comp', '01_reg_02_reg'].values == expected_1d_capacityFix
 
-    ## 5. 2d variable 
+    ## 2d variable 
     output_2d_capacityMax = output_xarray['2d_capacityMax'].loc['transmission_comp'].values
     assert  np.array_equal(output_2d_capacityMax, expected_2d_capacityMax)
 
@@ -259,61 +226,9 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict(sds_and_dict_for_basic_rep
     assert  np.array_equal(output_2d_locationalEligibility, expected_2d_locationalEligibility)
 
 
-# spagat.output
-def test_create_grid_shapefile(sds_and_dict_for_basic_representation):
-    sds_for_basic_representation = sds_and_dict_for_basic_representation.sds
-
-    
-    path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output')
-    files_name="test_ac_lines"
-
-    spr.create_grid_shapefile(sds_for_basic_representation,
-                            variable_description="var_2d",
-                            component_description='c1',
-                            file_path=path_to_test_dir,
-                            files_name=files_name,
-                            spatial_dim="space")
-    
-    #EXPECTED 
-    ## File extensions 
-    file_extensions_list = ['.cpg', '.dbf', '.prj', '.shp', '.shx']
-
-    #ASSERTION
-    for file_extension in file_extensions_list:
-        expected_file = os.path.join(path_to_test_dir, f'{files_name}{file_extension}')
-        assert os.path.isfile(expected_file)
-
-        os.remove(expected_file)
 
 
-# spagat.output
-def test_create_grid_shapefile(sds_and_dict_for_basic_representation):
-    sds_for_basic_representation = sds_and_dict_for_basic_representation.sds
 
-    path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output')
-    files_name="test_ac_lines"
-
-    spr.create_grid_shapefile(sds_for_basic_representation,
-                            variable_description="2d_capacityMax",
-                            component_description="transmission_comp",
-                            file_path=path_to_test_dir,
-                            files_name=files_name)
-    
-    #EXPECTED 
-    ## File extensions 
-    file_extensions_list = ['.cpg', '.dbf', '.prj', '.shp', '.shx']
-
-    #ASSERTION
-    for file_extension in file_extensions_list:
-        expected_file = os.path.join(path_to_test_dir, f'{files_name}{file_extension}')
-        assert os.path.isfile(expected_file)
-
-        os.remove(expected_file)
-
-
-test_data = [(None, 10, 10, np.array([ [0, 20], [20, 0] ]) ), 
-             ({'var_ts': ('mean', None), 'var_1d': ('sum', None), 'var_2d': ('bool', None)}, 5, 10, np.array([ [0, 1], [1, 0] ]) ) 
-            ]  
 
 
 
