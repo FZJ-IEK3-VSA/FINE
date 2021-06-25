@@ -2,7 +2,6 @@ import pytest
 
 import numpy as np 
 import xarray as xr 
-from sklearn.datasets import make_blobs
 
 import FINE.spagat.grouping_utils as gu 
 

@@ -4,10 +4,9 @@ import pytest
 import numpy as np
 import xarray as xr
 from sklearn.datasets import make_blobs
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point
 
 import FINE.spagat.grouping as spg
-import FINE.spagat.representation as spr
 import FINE.spagat.utils as spu
 
 

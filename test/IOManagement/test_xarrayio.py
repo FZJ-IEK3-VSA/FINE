@@ -1,5 +1,4 @@
 import os
-from numpy.core.numeric import array_equal
 import pytest
 
 import numpy as np

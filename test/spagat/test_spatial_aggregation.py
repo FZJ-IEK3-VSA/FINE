@@ -1,9 +1,6 @@
-
 import os
 import pytest
 import numpy as np 
-
-import FINE as fn
 
 def test_esm_to_xr_and_back_during_spatial_aggregation(multi_node_test_esM_init):
     """Resulting number of regions would be the same as the original number. No aggregation 

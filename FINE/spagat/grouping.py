@@ -1,7 +1,6 @@
 """Grouping algorithms determine how to reduce the number of input regions to 
 fewer regions while minimizing information loss.
 """
-import os
 import logging
 
 import numpy as np
@@ -9,7 +8,6 @@ import matplotlib.pyplot as plt
 
 from scipy.cluster import hierarchy
 from sklearn import metrics
-from scipy.cluster import vq
 import sklearn.cluster as skc
 
 import FINE.spagat.utils as spu

@@ -4,7 +4,6 @@ Functions to represent RE time series
 
 import numpy as np
 import xarray as xr
-import geopandas as gpd 
 from sklearn.cluster import AgglomerativeClustering
 
 import FINE.spagat.utils as spu
