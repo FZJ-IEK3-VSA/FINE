@@ -138,8 +138,7 @@ def aggregate_time_series(xr_data_array_in,
 
 def aggregate_values(xr_data_array_in, 
                     sub_to_sup_region_id_dict, 
-                    mode="mean", 
-                    output_unit="GW"):
+                    mode="mean"):
     """For each region group, aggregates the given 1d variable.
 
     Parameters
@@ -152,8 +151,6 @@ def aggregate_values(xr_data_array_in,
              '03_reg_04_reg': ['03_reg','04_reg']}
     mode : {"mean", "sum", "bool"}, optional
         Specifies how the values should be aggregated 
-    output_unit : {"GW", "KW"}, optional
-        Unit of the values. Values are normally capacities. 
     
     Returns
     -------
