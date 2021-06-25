@@ -49,7 +49,7 @@ def test_perform_distance_based_grouping():
      
      #FUNCTION CALL 
      path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/')  
-     file_name = 'test_fig.png'
+     file_name = 'test_fig'
      expected_file = os.path.join(path_to_test_dir, file_name)
 
      output_dict = spg.perform_distance_based_grouping(dummy_ds,
@@ -64,7 +64,8 @@ def test_perform_distance_based_grouping():
                               '02_reg_03_reg': ['02_reg', '03_reg'],
                               '04_reg_05_reg': ['04_reg', '05_reg']}  
      
-     os.remove(expected_file)
+     # remove the saved figure 
+     os.remove(os.path.join(path_to_test_dir, f'{file_name}.png'))
      
      
 
