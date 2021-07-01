@@ -535,6 +535,16 @@ class EnergySystemModel:
 
         return aggregated_esM
 
+
+    def cluster(self, *args, **kwargs):
+        warnings.warn(
+            "EnergySystemModel.cluster() is deprecated and will be removed in a future release, "
+            "use EnergySystemModel.aggregateTemporally() instead.",
+            DeprecationWarning
+        )
+        self.aggregateTemporally(*args, **kwargs)
+
+
     def aggregateTemporally(self,                
                 numberOfTypicalPeriods=7, 
                 numberOfTimeStepsPerPeriod=24,
