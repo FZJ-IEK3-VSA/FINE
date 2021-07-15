@@ -525,6 +525,9 @@ def setLocationalEligibility(esM, locationalEligibility, capacityMax, capacityFi
                 data = 0
                 # sum values over ips
                 for ip in esM.investmentPeriods:
+                    # tests for checking the operationtimeseries
+                    #print('operationTimeSeries1')
+                    #print(operationTimeSeries)
                     data += operationTimeSeries[ip].copy().sum()
                 data[data > 0] = 1
                 return data

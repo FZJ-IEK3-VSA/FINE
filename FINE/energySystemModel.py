@@ -1076,6 +1076,8 @@ class EnergySystemModel:
             for ip in self.investmentPeriods:
                 for key, mdl in self.componentModelingDict.items():
                     __t = time.time()
+                    # test for DSM 
+                    #print(mdl)
                     mdl.setOptimalValues(self, self.pyM, ip)
                     outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
                     utils.output(outputString, self.verbose, 0)

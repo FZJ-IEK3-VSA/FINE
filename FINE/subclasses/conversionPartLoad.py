@@ -436,7 +436,7 @@ class ConversionPartLoadModel(ConversionModel):
         """
         return super().getObjectiveFunctionContribution(esM, pyM)
 
-    def setOptimalValues(self, esM, pyM):
+    def setOptimalValues(self, esM, pyM, ip):
         """
         Set the optimal values of the components.
 
@@ -445,9 +445,12 @@ class ConversionPartLoadModel(ConversionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
+
+        :param ip: investment period
+        :type ip: int
         """
 
-        super().setOptimalValues(esM, pyM)
+        super().setOptimalValues(esM, pyM, ip)
 
         abbrvName = self.abbrvName
         discretizationPointVariables = getattr(pyM, 'discretizationPoint_' + abbrvName)
@@ -455,11 +458,11 @@ class ConversionPartLoadModel(ConversionModel):
         discretizationSegmentBinVariables = getattr(pyM, 'discretizationSegmentBin_' + abbrvName)
 
         discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(discretizationPointVariables.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder, esM=esM)
+                                                 ip, esM.periodsOrder[ip], esM=esM)
         discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(discretizationSegmentConVariables.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder, esM=esM)
+                                                 ip, esM.periodsOrder[ip], esM=esM)
         discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(discretizationSegmentBinVariables.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder, esM=esM)
+                                                 ip, esM.periodsOrder[ip], esM=esM)
 
         self.discretizationPointVariablesOptimun = discretizationPointVariablesOptVal_
         self.discretizationSegmentConVariablesOptimun = discretizationSegmentConVariablesOptVal_

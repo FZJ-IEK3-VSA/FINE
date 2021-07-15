@@ -158,7 +158,7 @@ def test_conversionPartLoad():
     np.testing.assert_allclose(convPartloadSummary.loc[('PEMEC', 'opexCap', '[1 Euro/a]'),'GlassProductionSite'], 92026.5561585, rtol = 0.002) # relative toerlance < 0.2%
     np.testing.assert_allclose(convPartloadSummary.loc[('PEMEC', 'operation', '[kW$_{el}$*h/a]'),'GlassProductionSite'], 8.82488e+07, rtol = 0.01) # relative toerlance < 1%
     # PEM operation results 
-    opVarOptPartLoad = esM.componentModelingDict["ConversionPartLoadModel"].operationVariablesOptimum.loc[('PEMEC', 'GlassProductionSite')]
+    opVarOptPartLoad = esM.componentModelingDict["ConversionPartLoadModel"].operationVariablesOptimum.loc[('PEMEC', 0, 'GlassProductionSite')]
     opVarOptConstLoad = [2480.73776181,2481.6941601,2482.65055839,2483.60695668,2484.56335497,2485.51975325,2486.47615154,
                         2487.43254983,2488.38894812,2489.34534641,2490.3017447,2491.25814299,2492.21454128,2493.17093957,2494.12733785,
                         2495.08373614,2496.04013443,2496.99653272,2497.95293101,2498.9093293,2499.86572759,2500.82212588,

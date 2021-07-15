@@ -236,7 +236,7 @@ class Transmission(Component):
         for ip in esM.investmentPeriods:
 
             # Operation Rate Max
-            if isinstance(operationRateMax, pd.DataFrame) or operationRateMax is None: #operationRate is dataframe
+            if isinstance(operationRateMax, pd.DataFrame) or isinstance(operationRateMax, pd.Series) or operationRateMax is None: #operationRate is dataframe or series
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax, self.locationalEligibility)
             elif isinstance(operationRateMax, dict): # operationRate is dict
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax[ip], self.locationalEligibility)
@@ -248,7 +248,7 @@ class Transmission(Component):
             self.aggregatedOperationRateMax[ip], self.operationRateMax[ip] = None, None
             
             # Operation Rate Fix
-            if isinstance(operationRateFix, pd.DataFrame) or operationRateFix is None: #operationRate is dataframe
+            if isinstance(operationRateFix, pd.DataFrame) or isinstance(operationRateFix, pd.Series) or operationRateFix is None: #operationRate is dataframe or series
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix, self.locationalEligibility)
             elif isinstance(operationRateFix, dict): #operationRate is dict
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix[ip], self.locationalEligibility)
@@ -341,14 +341,7 @@ class Transmission(Component):
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
         """
-        #needed for test_segmentation, as ESM is not built from scratch everytime
-        #To-Do: to discuss with Max and Theresa if necessary and correct
-        if ip == 0:
-            if self.aggregatedOperationRateFix == None:
-                self.aggregatedOperationRateFix = {}
-            if self.aggregatedOperationRateMax == None:
-                self.aggregatedOperationRateMax = {}
-
+       
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data, ip)
         self.aggregatedOperationRateMax[ip] = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data, ip)
 

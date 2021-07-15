@@ -317,7 +317,7 @@ class Storage(Component):
         for ip in esM.investmentPeriods:
 
             # chargeOpRateMax
-            if isinstance(chargeOpRateMax, pd.DataFrame) or chargeOpRateMax is None: #chargeOpRateMax is dataframe
+            if isinstance(chargeOpRateMax, pd.DataFrame) or isinstance(chargeOpRateMax, pd.Series) or chargeOpRateMax is None: #chargeOpRateMax is dataframe or series
                 self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
             elif isinstance(chargeOpRateMax, dict): # chargeOpRateMax is dict
                 self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax[ip], locationalEligibility)
@@ -329,7 +329,7 @@ class Storage(Component):
             self.aggregatedChargeOpRateMax[ip], self.chargeOpRateMax[ip] = None, None
             
             # chargeOpRateFix
-            if isinstance(chargeOpRateFix, pd.DataFrame) or chargeOpRateFix is None: #chargeOpRateFix is dataframe
+            if isinstance(chargeOpRateFix, pd.DataFrame) or isinstance(chargeOpRateFix, pd.Series) or chargeOpRateFix is None: #chargeOpRateFix is dataframe or series
                 self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix, locationalEligibility)
             elif isinstance(chargeOpRateFix, dict): #chargeOpRateFix is dict
                 self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix[ip], locationalEligibility)
@@ -400,7 +400,7 @@ class Storage(Component):
         for ip in esM.investmentPeriods:
 
             # dischargeOpRateMax
-            if isinstance(dischargeOpRateMax, pd.DataFrame) or dischargeOpRateMax is None: #dischargeOpRateMax is dataframe
+            if isinstance(dischargeOpRateMax, pd.DataFrame) or isinstance(dischargeOpRateMax, pd.Series) or dischargeOpRateMax is None: #dischargeOpRateMax is dataframe or series
                 self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax, locationalEligibility)
             elif isinstance(dischargeOpRateMax, dict): # dischargeOpRateMax is dict
                 self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax[ip], locationalEligibility)
@@ -412,7 +412,7 @@ class Storage(Component):
             self.aggregatedDischargeOpRateMax[ip], self.dischargeOpRateMax[ip] = None, None
             
             # dischargeOpRateFix
-            if isinstance(dischargeOpRateFix, pd.DataFrame) or dischargeOpRateFix is None: #dischargeOpRateFix is dataframe
+            if isinstance(dischargeOpRateFix, pd.DataFrame) or isinstance(dischargeOpRateFix, pd.Series) or dischargeOpRateFix is None: #dischargeOpRateFix is dataframe or series
                 self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix, locationalEligibility)
             elif isinstance(dischargeOpRateFix, dict): #dischargeOpRateFix is dict
                 self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix[ip], locationalEligibility)
@@ -454,7 +454,7 @@ class Storage(Component):
             tsNb = sum([0 if data is None else 1 for data in [self.fullChargeOpRateMax[ip], self.fullChargeOpRateFix[ip],
                                                             self.fullDischargeOpRateMax[ip], self.fullDischargeOpRateFix[ip]]])
             if tsNb > 0:
-                timeSeriesData = sum([data for data in [self.fullChargeOpRateMax[ip], self.fullChargeOpRateFix[ip],
+                timeSeriesData[ip] = sum([data for data in [self.fullChargeOpRateMax[ip], self.fullChargeOpRateFix[ip],
                                     self.fullDischargeOpRateMax[ip], self.fullDischargeOpRateFix[ip]] if data is not None])
 
         self.locationalEligibility = \
@@ -503,8 +503,6 @@ class Storage(Component):
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
-        :type ip: int
         """
         weightDict, data = {}, []
         I = [(self.fullChargeOpRateFix, self.fullChargeOpRateMax, 'chargeRate_', self.chargeTsaWeight),
@@ -525,17 +523,6 @@ class Storage(Component):
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
         """
-        #needed for test_segmentation, as ESM is not built from scratch everytime
-        #To-Do: to discuss with Max and Theresa if necessary and correct
-        if ip == 0:
-            if self.aggregatedChargeOpRateFix == None:
-                self.aggregatedChargeOpRateFix = {}
-            if self.aggregatedChargeOpRateMax == None:
-                self.aggregatedChargeOpRateMax = {}
-            if self.aggregatedDischargeOpRateFix == None:
-                self.aggregatedDischargeOpRateFix = {}
-            if self.aggregatedDischargeOpRateMax == None:
-                self.aggregatedDischargeOpRateMax = {}
 
         self.aggregatedChargeOpRateFix[ip] = self.getTSAOutput(self.fullChargeOpRateFix, 'chargeRate_', data, ip)
         self.aggregatedChargeOpRateMax[ip] = self.getTSAOutput(self.fullChargeOpRateMax, 'chargeRate_', data, ip)
