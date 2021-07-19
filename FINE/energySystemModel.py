@@ -538,8 +538,8 @@ class EnergySystemModel:
 
     def cluster(self, *args, **kwargs):
         warnings.warn(
-            "EnergySystemModel.cluster() is deprecated and will be removed in a future release, "
-            "use EnergySystemModel.aggregateTemporally() instead.",
+            "EnergySystemModel.cluster() is deprecated and will be removed in a future release. \
+            use EnergySystemModel.aggregateTemporally() instead.",
             DeprecationWarning
         )
         self.aggregateTemporally(*args, **kwargs)
