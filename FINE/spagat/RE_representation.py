@@ -34,7 +34,7 @@ def represent_RE_technology(gridded_RE_ds,
     CRS_attr : str
         The attribute in `gridded_RE_ds` that holds its 
         Coordinate Reference System (CRS) information 
-    shp_file : str/Shapefile
+    shp_file : str/GeoDataFrame
         Either the path to the shapefile or the read-in shapefile 
         that should be added to `gridded_RE_ds`
     n_timeSeries_perRegion : strictly positive int, optional (default=1)

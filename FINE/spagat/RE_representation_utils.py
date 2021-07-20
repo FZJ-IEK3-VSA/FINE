@@ -1,3 +1,4 @@
+import os 
 import numpy as np 
 import geopandas as gpd 
 from rasterio import features
@@ -72,7 +73,7 @@ def rasterize_xr_ds(gridded_RE_ds,
     CRS_attr : str
         The attribute in `gridded_RE_ds` that holds its 
         Coordinate Reference System (CRS) information 
-    shp_file : str/Shapefile
+    shp_file : str/GeoDataFrame
         Either the path to the shapefile or the read-in shapefile 
         that should be added to `gridded_RE_ds`
     index_col : str, optional (default='region_ids')
@@ -93,13 +94,23 @@ def rasterize_xr_ds(gridded_RE_ds,
     """
 
     #STEP 1. Read in the files 
+    ## gridded_RE_ds 
     if isinstance(gridded_RE_ds, str): 
-        gridded_RE_ds = xr.open_dataset(gridded_RE_ds)
+        try:
+            gridded_RE_ds = xr.open_dataset(gridded_RE_ds)
+        except:
+            raise FileNotFoundError("The gridded_RE_ds path specified is not valid")
+        
     elif not isinstance(gridded_RE_ds, xr.Dataset):
         raise TypeError("gridded_RE_ds must either be a path to a netcdf file or xarray dataset")
     
+    ## shp_file 
     if isinstance(shp_file, str): 
-        shp_file = gpd.read_file(shp_file)
+        if not os.path.isfile(shp_file):
+            raise FileNotFoundError("The shp_file path specified is not valid")
+        else:
+            shp_file = gpd.read_file(shp_file)
+        
     elif not isinstance(shp_file, gpd.geodataframe.GeoDataFrame):
         raise TypeError("shp_file must either be a path to a shapefile or a geopandas dataframe")
 

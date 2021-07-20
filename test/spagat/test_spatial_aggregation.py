@@ -17,7 +17,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(multi_node_test_esM_init)
     shp_file_name = 'my_shp'
 
     #FUNCTION CALL 
-    aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
+    aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefile = SHAPEFILE_PATH, 
                                                                 nRegionsForRepresentation = 8,
                                                                 aggregatedResultsPath = PATH_TO_SAVE,
                                                                 aggregated_xr_filename = netcdf_file_name,
@@ -54,6 +54,35 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(multi_node_test_esM_init)
     for ext in file_extensions_list:
         os.remove(os.path.join(PATH_TO_SAVE, f'{shp_file_name}{ext}'))
 
+def test_error_in_reading_shp(multi_node_test_esM_init):
+    """Checks if relevant errors are raised when invalid shapefile
+    is passed to aggregateSpatially().
+    """
+    
+    ## Case 1: invalid path 
+    with pytest.raises(FileNotFoundError):
+        SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
+            '../../examples/Multi-regional_Energy_System_Workflow/', 
+                'InputData/SpatialData/ShapeFiles')
+    
+        aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefile = SHAPEFILE_PATH, 
+                                                                    nRegionsForRepresentation = 7)  
+    
+    ## Case 2: invalid shapefile type
+    with pytest.raises(TypeError):
+        aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefile = multi_node_test_esM_init, 
+                                                                    nRegionsForRepresentation = 7) 
+
+    ## Case 3: invalid nRegionsForRepresentation for the shapefile 
+    with pytest.raises(ValueError):
+        SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
+        '../../examples/Multi-regional_Energy_System_Workflow/', 
+            'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
+    
+        aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefile = SHAPEFILE_PATH, 
+                                                                    nRegionsForRepresentation = 10) 
+
+
 def test_spatial_aggregation_string_based(multi_node_test_esM_init):  
     
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
@@ -61,7 +90,7 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init):
             'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
 
     #FUNCTION CALL 
-    aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
+    aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefile = SHAPEFILE_PATH, 
                                                                 grouping_mode = 'string_based',                              
                                                                 aggregatedResultsPath=None)   
 
@@ -80,7 +109,7 @@ def test_spatial_aggregation_distance_based(multi_node_test_esM_init, n_regions)
             'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
 
     #FUNCTION CALL 
-    aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
+    aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefile = SHAPEFILE_PATH, 
                                                                 grouping_mode = "distance_based", 
                                                                 nRegionsForRepresentation = n_regions, 
                                                                 aggregatedResultsPath=None)   
@@ -107,7 +136,7 @@ def test_spatial_aggregation_parameter_based(multi_node_test_esM_init,
             'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
 
     #FUNCTION CALL 
-    aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefilePath = SHAPEFILE_PATH, 
+    aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefile = SHAPEFILE_PATH, 
                                                                 grouping_mode = 'parameter_based', 
                                                                 nRegionsForRepresentation = n_regions, 
                                                                 aggregatedResultsPath=None,

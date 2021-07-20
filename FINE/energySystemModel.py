@@ -407,7 +407,7 @@ class EnergySystemModel:
 
 
     def aggregateSpatially(self,             
-                        shapefilePath, 
+                        shapefile, 
                         grouping_mode='parameter_based', 
                         nRegionsForRepresentation=2,
                         aggregatedResultsPath=None,
@@ -415,9 +415,9 @@ class EnergySystemModel:
         """Spatially clusters the data of all components considered in the Energy System Model (esM) instance 
         and returns a new esM instance with the aggregated data. 
 
-        :param shapefilePath: Indicates FULL path to the shapefile 
-        :type shapefileFolder: string   
-
+        :param shapefile: Either the path to the shapefile or the read-in shapefile
+        :type shapefile: string, GeoDataFrame 
+        
         **Default arguments:**   
         
         :param grouping_mode: Defines how to spatially group the regions. 
@@ -442,8 +442,24 @@ class EnergySystemModel:
 
         :returns: Aggregated esM instance 
         """    
-        #STEP 1. Read in the shapefile 
-        gdfRegions = gpd.read_file(shapefilePath)
+        #STEP 1. Read and check shapefile 
+        if isinstance(shapefile, str): 
+            if not os.path.isfile(shapefile):
+                raise FileNotFoundError("The shapefile path specified is not valid")
+            else:
+                shapefile = gpd.read_file(shapefile)
+                
+        elif not isinstance(shapefile, gpd.geodataframe.GeoDataFrame):
+            raise TypeError("shapefile must either be a path to a shapefile or a geopandas dataframe")
+
+        n_geometries = len(shapefile.index)
+        if n_geometries < 2: 
+            raise ValueError("Atleast two regions must be present in shapefile and data \
+                in order to perform spatial aggregation")
+        
+        if n_geometries < nRegionsForRepresentation:
+            raise ValueError(f"{n_geometries} regions cannot be reduced to {nRegionsForRepresentation} \
+                regions. Please provide a valid number for nRegionsForRepresentation")
 
         #STEP 2. Obtain xr dataset from esM 
         xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
@@ -452,7 +468,7 @@ class EnergySystemModel:
         xr_dataset = spu.add_objects_to_xarray(xr_dataset,
                                             description='gpd_geometries',
                                             dimension_list=['space'],
-                                            object_list=gdfRegions.geometry)
+                                            object_list=shapefile.geometry)
 
         xr_dataset = spu.add_region_centroids_to_xarray(xr_dataset) 
         xr_dataset = spu.add_centroid_distances_to_xarray(xr_dataset)
