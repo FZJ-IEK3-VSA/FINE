@@ -1,4 +1,5 @@
 import os 
+import xarray as xr 
 import geopandas as gpd
 
 import FINE.spagat.utils as spu
@@ -20,8 +21,9 @@ def perform_spatial_aggregation(xr_dataset,
 
     Parameters
     ----------
-    xr_dataset : xr.Dataset
-        The xarray dataset holding the esM's info 
+    xr_dataset : str/xr.Dataset 
+        Either the path to the dataset or the read-in xr.Dataset
+        - Dimensions in this data - 'component', 'space', 'space_2', and 'time' 
     shapefile : str/GeoDataFrame
         Either the path to the shapefile or the read-in shapefile
     grouping_mode : {'parameter_based', 'string_based', 'distance_based'}, optional
@@ -63,7 +65,14 @@ def perform_spatial_aggregation(xr_dataset,
         raise ValueError(f"{n_geometries} regions cannot be reduced to {nRegionsForRepresentation} \
             regions. Please provide a valid number for nRegionsForRepresentation")
 
-    #STEP 2. Add shapefile information to xr_dataset
+    #STEP 2. Read xr_dataset
+    if isinstance(xr_dataset, str): 
+        try:
+            xr_dataset = xr.open_dataset(xr_dataset)
+        except:
+            raise FileNotFoundError("The xr_dataset path specified is not valid")
+
+    #STEP 3. Add shapefile information to xr_dataset
     xr_dataset = spu.add_objects_to_xarray(xr_dataset,
                                         description='gpd_geometries',
                                         dimension_list=['space'],
@@ -72,7 +81,7 @@ def perform_spatial_aggregation(xr_dataset,
     xr_dataset = spu.add_region_centroids_to_xarray(xr_dataset) 
     xr_dataset = spu.add_centroid_distances_to_xarray(xr_dataset)
     
-    #STEP 3. Spatial grouping
+    #STEP 4. Spatial grouping
     if grouping_mode == 'string_based':
 
         print('Performing string-based grouping on the regions')
@@ -109,7 +118,7 @@ def perform_spatial_aggregation(xr_dataset,
         the valid grouping mode among: string_based, distance_based, parameter_based')
 
     
-    #STEP 4. Representation of the new regions
+    #STEP 5. Representation of the new regions
     if grouping_mode == 'string_based':
         sub_to_sup_region_id_dict = aggregation_dict #INFO: Not a nested dict for different #regions
     else:
@@ -125,7 +134,7 @@ def perform_spatial_aggregation(xr_dataset,
                                                                 sub_to_sup_region_id_dict,
                                                                 aggregation_function_dict) 
     
-    #STEP 5. Save shapefiles and aggregated xarray dataset if user chooses
+    #STEP 6. Save shapefiles and aggregated xarray dataset if user chooses
     if aggregatedResultsPath is not None:   
         # get file names 
         shp_name = kwargs.get('shp_name', 'aggregated_regions') 
