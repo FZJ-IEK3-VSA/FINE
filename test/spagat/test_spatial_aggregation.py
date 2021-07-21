@@ -2,12 +2,20 @@ import os
 import pytest
 import numpy as np 
 
-def test_esm_to_xr_and_back_during_spatial_aggregation(multi_node_test_esM_init):
+import FINE.IOManagement.xarrayIO as xrIO
+
+@pytest.mark.parametrize("use_saved_file", [True, False])
+def test_esm_to_xr_and_back_during_spatial_aggregation(use_saved_file,
+                                                    multi_node_test_esM_init):
     """Resulting number of regions would be the same as the original number. No aggregation 
-    actually takes place. Tests if the esm instance, created after spatial aggregation
-    is run, has all the info originally present. Also, if the aggregation results 
-    save successfully. 
+    actually takes place. Tests:
+        - if the esm instance, created after spatial aggregation
+        is run, has all the info originally present. 
+        - If the saved netcdf file can be reconstructed into an esm instance 
+            and has all the info originally present.
+        - If temporal aggregation and optimization run successfully  
     """
+
     SHAPEFILE_PATH = os.path.join(os.path.dirname(__file__), \
         '../../examples/Multi-regional_Energy_System_Workflow/', 
             'InputData/SpatialData/ShapeFiles/clusteredRegions.shp')
@@ -23,6 +31,10 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(multi_node_test_esM_init)
                                                                 aggregated_xr_filename = netcdf_file_name,
                                                                 shp_name = shp_file_name )   
     
+    if use_saved_file:
+        saved_file = os.path.join(PATH_TO_SAVE, netcdf_file_name)
+        aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(saved_file)
+
     #ASSERTION 
     assert sorted(aggregated_esM.locations) == sorted(multi_node_test_esM_init.locations)
 
@@ -45,6 +57,10 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(multi_node_test_esM_init)
     expected_0d_bool = multi_node_test_esM_init.getComponentAttribute('CO2 from enviroment', 'hasCapacityVariable')
     output_0d_bool = aggregated_esM.getComponentAttribute('CO2 from enviroment', 'hasCapacityVariable')
     assert output_0d_bool  == expected_0d_bool 
+
+    # additionally, check if clustering and optimization run through 
+    aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=4) 
+    aggregated_esM.optimize(timeSeriesAggregation=True)
 
     # if there are no problems, delete the saved files 
     os.remove(os.path.join(PATH_TO_SAVE, netcdf_file_name))
