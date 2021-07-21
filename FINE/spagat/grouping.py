@@ -17,7 +17,9 @@ logger_grouping = logging.getLogger("spagat_grouping")
 
 
 def perform_string_based_grouping(regions):
-    """Groups regions based on their names/ids.
+    """Groups regions based on their names/ids. Looks for a match in ids after 
+    a '_'. For example: '01_es', '02_es' both have 'es' after the '_'. 
+    Therefore, the regions appear in the same group.
 
     Parameters
     ----------
@@ -174,6 +176,16 @@ def perform_parameter_based_grouping(xarray_dataset,
                                     linkage='complete',
                                     weights=None):
     """Groups regions based on the Energy System Model instance's data. 
+    This data may consist of -
+        a. regional time series variables such as operationRateMax of PVs
+        b. regional values such as capacityMax of PVs
+        c. connection values such as distances of DCCables 
+        d. values constant across all regions such as CommodityConversionFactors 
+
+    All variables that vary across regions (a,b, and c) belonging to different 
+    ESM components are considered while determining similarity between regions. 
+    Sklearn's agglomerative hierarchical clustering is used to cluster the 
+    regions.
 
     Parameters
     ----------
@@ -220,8 +232,8 @@ def perform_parameter_based_grouping(xarray_dataset,
         - Spatial contiguity -> Connectivity matrix is passed to the clustering method. 
                                 generateConnectivityMatrix() to obtain Connectivity matrix.
         - Accuracy indicators -> (a) Cophenetic correlation coefficients are printed
-                                (b) Inconsistencies are printed. 
-                                (c) Silhouette scores are printed. 
+                                 (b) Inconsistencies are printed. 
+                                 (c) Silhouette scores are printed. 
     """
 
     # Original region list
@@ -232,10 +244,14 @@ def perform_parameter_based_grouping(xarray_dataset,
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}  
     
     #STEP 1. Preprocess the whole dataset 
-    dict_ts, dict_1d, dict_2d = gu.preprocess_dataset(xarray_dataset) 
+    processed_ts_dict, processed_1d_dict, processed_2d_dict = gu.preprocess_dataset(xarray_dataset) 
 
     #STEP 2. Calculate the overall distance between each region pair (uses custom distance)
-    precomputed_dist_matrix = gu.get_custom_distance_matrix(dict_ts, dict_1d, dict_2d, n_regions, weights)
+    precomputed_dist_matrix = gu.get_custom_distance_matrix(processed_ts_dict, 
+                                                            processed_1d_dict, 
+                                                            processed_2d_dict, 
+                                                            n_regions, 
+                                                            weights)
     
     #STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not. 
     connectMatrix = gu.get_connectivity_matrix(xarray_dataset)
