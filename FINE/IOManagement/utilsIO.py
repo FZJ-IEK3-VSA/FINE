@@ -523,7 +523,7 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
     var_value = comp_var_xr.values
 
     if var_value.dtype == 'int8': #NOTE: when saving to netcdf, the bool values are changed to int8 sometimes 
-        var_value.astype('bool')
+        var_value = var_value.astype('bool')
 
     if not var_value == '': #NOTE: when saving to netcdf, the nans in string arrays are converted 
                             # to empty string (''). These need to be skipped. 
