@@ -5,26 +5,27 @@ import pandas as pd
 import geopandas as gpd
 from scipy.cluster import hierarchy
 
-def get_scaled_array(array):
-    """Scale the given matrix to [0,1].
+def get_normalized_array(array):
+    """Normalize the given matrix to [0,1].
 
     Parameters
     ----------
     matrix : np.ndarray
-        Matrix to be scaled
+        Matrix to be normalized
     
     Returns
     -------
     np.ndarray
-        Scaled matrix 
+        Normalized matrix 
     """
 
-    scaled_min, scaled_max = 0, 1
+    norm_min, norm_max = 0, 1
 
     if np.max(array) == np.min(array): 
-        return array
+        warnings.warn("The minimum and maximum values are the same in the array to be normalized. Setting all values to 1")
+        return np.ones(array.shape)
 
-    return ((array - np.min(array)) / (np.max(array) - np.min(array))) * (scaled_max - scaled_min) + scaled_min
+    return ((array - np.min(array)) / (np.max(array) - np.min(array))) * (norm_max - norm_min) + norm_min
 
 def preprocess_time_series(vars_dict):
     """Preprocess time series variables.
@@ -37,30 +38,30 @@ def preprocess_time_series(vars_dict):
 
     Returns
     -------
-    ds_ts : Dict[str, Dict[str, np.ndarray]]
+    processed_ts_dict : Dict[str, Dict[str, np.ndarray]]
         For each key (variable name), the corresponding value is a dictionary. This dictionary 
-        consists of each valid component name and the corresponding scaled (between [0, 1]) data matrix
+        consists of each valid component name and the corresponding nomalized data matrix
         - Size of each matrix: n_regions * n_timesteps 
     """
      
-    ds_ts = {}
+    processed_ts_dict = {}
     
     # For each time series variable-data pair...
     for var_name, da in vars_dict.items():
         #STEP 1. Add the variable to the resuting dict 
-        ds_ts.update({var_name: {}})
+        processed_ts_dict.update({var_name: {}})
 
         #STEP 2. Find the corresponding valid components: valid_component_weight=1, otherwise=0
         var_mean_df = da.mean(dim='space').mean(dim='time').to_dataframe()
         valid_components = list(var_mean_df[var_mean_df[var_name].notna()].index.values)
 
-        #STEP 2. For each valid component, scale the corresponding matrix. Add to resulting dict 
+        #STEP 2. For each valid component, Normalize the corresponding matrix. Add to resulting dict 
         for comp_name in valid_components:
-            scaled_comp_matrix = get_scaled_array(da.sel(component=comp_name).values) 
+            norm_comp_matrix = get_normalized_array(da.sel(component=comp_name).values) 
 
-            ds_ts.get(var_name).update({comp_name : scaled_comp_matrix})
+            processed_ts_dict.get(var_name).update({comp_name : norm_comp_matrix})
            
-    return ds_ts
+    return processed_ts_dict
 
 def preprocess_1d_variables(vars_dict):
     """Preprocess 1-dimensional variables.
@@ -73,30 +74,30 @@ def preprocess_1d_variables(vars_dict):
 
     Returns
     -------
-    ds_1d : Dict[str, Dict[str, np.ndarray]]
+    processed_1d_dict : Dict[str, Dict[str, np.ndarray]]
         For each key (variable name), the corresponding value is a dictionary. This dictionary 
-        consists of each valid component name and the corresponding scaled (between [0, 1]) data array
+        consists of each valid component name and the corresponding normalized data array
         - Size of each array: n_regions   
     """
-    ds_1d = {}
+    processed_1d_dict = {}
     
     # For each 1d variable-data pair...
     for var_name, da in vars_dict.items():
         #STEP 1. Add the variable to the resuting dict 
-        ds_1d.update({var_name: {}})
+        processed_1d_dict.update({var_name: {}})
 
         #STEP 2. Find the corresponding valid components: valid_comp_weight=1, otherwise=0
         var_mean_df = da.mean(dim='space').to_dataframe()
         valid_components = list(var_mean_df[var_mean_df[var_name].notna()].index.values)
         
-        #STEP 2. For each valid component, scale the corresponding matrix. Add to resulting dict 
+        #STEP 2. For each valid component, normalize the corresponding matrix. Add to resulting dict 
         for comp_name in valid_components:
             #data = da.sel(component=comp_name).values
-            scaled_comp_array = get_scaled_array(da.sel(component=comp_name).values) 
+            norm_comp_array = get_normalized_array(da.sel(component=comp_name).values) 
 
-            ds_1d.get(var_name).update({comp_name : scaled_comp_array})
+            processed_1d_dict.get(var_name).update({comp_name : norm_comp_array})
 
-    return ds_1d
+    return processed_1d_dict
 
 def preprocess_2d_variables(vars_dict):  
     """Preprocess 2-dimensional variables.
@@ -109,29 +110,29 @@ def preprocess_2d_variables(vars_dict):
     
     Returns
     -------
-    ds_2d : Dict[str, Dict[str, np.ndarray]]
+    processed_2d_dict : Dict[str, Dict[str, np.ndarray]]
         For each key (variable name), the corresponding value is a dictionary. This dictionary consists of 
-        each valid component name and the corresponding data scaled (between [0, 1]), converted to vector form,
-        and translated to distance meaning.
+        each valid component name and the corresponding data normalized (between [0, 1]), 
+        converted to vector form, and translated to distance meaning.
         - Size of each data array: n_regions
     
     Notes
     -----
     For each variable, find it's valid components (components without all NAs)
     For each of these variable-valid component pair, a symmetric connectivity matrix of n_regions * n_regions is obtained
-    - Flatten each matrix in `ds_2d` to obtain it's vector form: 
+    - Flatten each matrix in `processed_2d_dict` to obtain it's vector form: 
                     [[0.  0.1 0.2]
                     [0.1 0.  1. ]       -->  [0.1 0.2 1. ]   (only the elements from upper or lower triangle 
                     [0.2 1.  0. ]]                            as the other is always redundant in a dist matrix )
     - Translate connectivity (similarity) to distance (dissimilarity) : (1- connectivity vector)
-    - Update `ds_2d`    
+    - Update `processed_2d_dict`    
     """
-    ds_2d = {}
+    processed_2d_dict = {}
 
     # For each 2d variable-data pair...
     for var_name, da in vars_dict.items():
         #STEP 1. Add the variable to the resuting dict 
-        ds_2d.update({var_name: {}})
+        processed_2d_dict.update({var_name: {}})
         
         space1 = da.space.values
         space2 = da.space_2.values
@@ -149,19 +150,19 @@ def preprocess_2d_variables(vars_dict):
             data_df = pd.DataFrame(data=data_matrix, columns=space2)            
             data_df = data_df[space1]
             
-            #STEP 2c: Scale the matrix
-            scaled_comp_matrix = get_scaled_array(data_df.to_numpy())
+            #STEP 2c: Normalize the matrix
+            norm_comp_matrix = get_normalized_array(data_df.to_numpy())
 
             #STEP 4d. Obtain the vector form of this symmetric connectivity matrix
-            scaled_comp_vector = hierarchy.distance.squareform(scaled_comp_matrix, checks=False)   
+            norm_comp_vector = hierarchy.distance.squareform(norm_comp_matrix, checks=False)   
 
             #STEP 4c. Convert the value of connectivity (similarity) to distance (dissimilarity)
-            scaled_comp_vector = 1 - scaled_comp_vector
+            norm_comp_vector = 1 - norm_comp_vector
 
             #STEP 4d. Add to resulting dict
-            ds_2d.get(var_name).update({comp_name : scaled_comp_vector})
+            processed_2d_dict.get(var_name).update({comp_name : norm_comp_vector})
 
-    return ds_2d
+    return processed_2d_dict
 
     
 def preprocess_dataset(xarray_dataset): 
@@ -204,18 +205,20 @@ def preprocess_dataset(xarray_dataset):
             warnings.warn(f'Variable {varname} has dimensions {str(da.dims)} which are not considered for spatial aggregation.')
 
     #STEP 1. Preprocess Time Series
-    dict_ts = preprocess_time_series(vars_ts)
+    processed_ts_dict = preprocess_time_series(vars_ts)
 
     #STEP 2. Preprocess 1d Variables
-    dict_1d = preprocess_1d_variables(vars_1d)
+    processed_1d_dict = preprocess_1d_variables(vars_1d)
 
     #STEP 3. Preprocess 2d Variables 
-    dict_2d = preprocess_2d_variables(vars_2d)
+    processed_2d_dict = preprocess_2d_variables(vars_2d)
 
-    return dict_ts, dict_1d, dict_2d
+    return processed_ts_dict, processed_1d_dict, processed_2d_dict
     
 
-def get_custom_distance(dict_ts, dict_1d, dict_2d, 
+def get_custom_distance(processed_ts_dict, 
+                        processed_1d_dict, 
+                        processed_2d_dict, 
                         n_regions, 
                         region_index_x, 
                         region_index_y,
@@ -224,7 +227,7 @@ def get_custom_distance(dict_ts, dict_1d, dict_2d,
 
     Parameters
     ----------
-    dict_ts, dict_1d, dict_2d : Dict
+    processed_ts_dict, processed_1d_dict, processed_2d_dict : Dict
         Dictionaries obtained as a result of preprocess_dataset()
     n_regions : int
         Total number of regions in the given data 
@@ -286,7 +289,7 @@ def get_custom_distance(dict_ts, dict_1d, dict_2d,
 
     #STEP 3a. Distance of Time Series category
     distance_ts = 0
-    for var_name, var_dict in dict_ts.items():
+    for var_name, var_dict in processed_ts_dict.items():
         for comp_name, data_matrix in var_dict.items():
             # (i) Get weight
             var_comp_weight = _get_var_comp_weight(var_name, comp_name)
@@ -302,7 +305,7 @@ def get_custom_distance(dict_ts, dict_1d, dict_2d,
 
     #STEP 3b. Distance of 1d Variables category
     distance_1d = 0
-    for var_name, var_dict in dict_1d.items():
+    for var_name, var_dict in processed_1d_dict.items():
         for comp_name, data_array in var_dict.items():
             # (i) Get weight
             var_comp_weight = _get_var_comp_weight(var_name, comp_name)
@@ -317,10 +320,10 @@ def get_custom_distance(dict_ts, dict_1d, dict_2d,
     #STEP 3c. Distance of 2d Variables category
     distance_2d = 0
 
-    #STEP 3c (i). Since ds_2d is a condensed matrix, we have to get dist. corresponding to the two given regions
+    #STEP 3c (i). Since processed_2d_dict is a condensed matrix, we have to get dist. corresponding to the two given regions
     region_index_x_y = region_index_x * (n_regions - region_index_x) + (region_index_y - region_index_x) -1                
 
-    for var_name, var_dict in dict_2d.items():
+    for var_name, var_dict in processed_2d_dict.items():
         for comp_name, data_array in var_dict.items():
             # (i) Get weight
             var_comp_weight = _get_var_comp_weight(var_name, comp_name)
@@ -336,9 +339,9 @@ def get_custom_distance(dict_ts, dict_1d, dict_2d,
     return distance_ts + distance_1d + distance_2d 
 
 
-def get_custom_distance_matrix(ds_ts, 
-                            ds_1d, 
-                            ds_2d, 
+def get_custom_distance_matrix(processed_ts_dict, 
+                            processed_1d_dict, 
+                            processed_2d_dict, 
                             n_regions,
                             weights=None):
 
@@ -346,7 +349,7 @@ def get_custom_distance_matrix(ds_ts,
                                                       
     Parameters
     ----------
-    ds_ts, ds_1d, ds_2d : Dict
+    processed_ts_dict, processed_1d_dict, processed_2d_dict : Dict
         Dictionaries obtained as a result of preprocess_dataset() 
     n_regions : int
         Total number of regions in the given data 
@@ -364,9 +367,9 @@ def get_custom_distance_matrix(ds_ts,
     #STEP 1. For every region pair, calculate the distance 
     for i in range(n_regions):
         for j in range(i+1,n_regions):
-            distMatrix[i,j] = get_custom_distance(ds_ts,
-                                                ds_1d, 
-                                                ds_2d, 
+            distMatrix[i,j] = get_custom_distance(processed_ts_dict, 
+                                                processed_1d_dict, 
+                                                processed_2d_dict, 
                                                 n_regions, 
                                                 i,j,
                                                 weights)
