@@ -15,7 +15,7 @@ from FINE import utils
 from FINE.component import Component, ComponentModel
 
 from FINE.IOManagement import xarrayIO as xrIO
-from FINE.spagat.spatial_aggregation import perform_spatial_aggregation
+import FINE.spagat.spatial_aggregation as spa 
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 
@@ -442,7 +442,7 @@ class EnergySystemModel:
         xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
         
         #STEP 2. Perform spatial aggregation 
-        aggregated_xr_dataset = perform_spatial_aggregation(xr_dataset,
+        aggregated_xr_dataset = spa.perform_spatial_aggregation(xr_dataset,
                                                             shapefile, 
                                                             grouping_mode, 
                                                             nRegionsForRepresentation,
