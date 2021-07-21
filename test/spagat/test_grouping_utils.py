@@ -1,4 +1,5 @@
 import pytest 
+import warnings
 
 import numpy as np 
 import xarray as xr 
@@ -11,14 +12,29 @@ import FINE.spagat.grouping_utils as gu
                                      [2, 1, 0] ]), 
                           np.array([10, 5, 0])
                         ])
-def test_get_scaled_array(test_array):
+def test_get_normalized_array(test_array):
 
     expected_array = 0.1 * test_array
 
-    output_array = gu.get_scaled_array(test_array)
+    output_array = gu.get_normalized_array(test_array)
 
     assert np.isclose(output_array, expected_array).all()
 
+
+def test_get_normalized_array_flat():
+
+    test_array = np.array([5, 5, 5])
+    expected_array = np.array([1, 1, 1])
+
+    with warnings.catch_warnings(record=True) as w:
+        output_array = gu.get_normalized_array(test_array)
+        
+        assert "The minimum and maximum values are the same in the array to be normalized. Setting all values to 1" in str(w[-1].message)
+        
+        assert np.isclose(output_array, expected_array).all()
+    
+
+    
 def test_preprocess_time_series():
     #TEST DATA 
     test_dict = {}
