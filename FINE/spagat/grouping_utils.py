@@ -223,7 +223,29 @@ def get_custom_distance(processed_ts_dict,
                         region_index_x, 
                         region_index_y,
                         weights=None):  
-    """Custom distance function.
+    """Calculates and returns a customized distance between two regions. 
+    This distance is based on residual sum of squares, and is defined for 
+    two regions 'm' and 'n' as: 
+        D(m, n) = D_ts(m, n) + D_1d(m, n) + D_2d(m, n) 
+
+        where, 
+            D_ts(m, n) is cumulative distance of all time series variables:
+                Sum of square of the difference between the values
+                    - summed over all time stpes 
+                    - summed over all time series variables
+                
+            D_1d(m, n) is cumulative distance of all 1d variables:
+                Sum of square of the difference between the values 
+                    - summed over all 1d variables 
+
+            D_2d(m, n) is cumulative distance of all 2d variables:
+                Sum of square of (1 - value)
+                    - summed over all 2d variables 
+
+                (2d values define how strong the connection is between 
+                two regions. They are converted to distance meaning by 
+                subtracting in from 1).     
+
 
     Parameters
     ----------
