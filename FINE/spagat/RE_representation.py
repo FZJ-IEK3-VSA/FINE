@@ -1,6 +1,4 @@
-'''
-Functions to represent RE time series 
-'''
+import logging
 
 import numpy as np
 import xarray as xr
@@ -8,6 +6,8 @@ from sklearn.cluster import AgglomerativeClustering
 
 import FINE.spagat.utils as spu
 import FINE.spagat.RE_representation_utils as RE_rep_utils
+
+logger_RERep = logging.getLogger('spatial_RE_representation')
 
 @spu.timer
 def represent_RE_technology(gridded_RE_ds, 
@@ -23,7 +23,22 @@ def represent_RE_technology(gridded_RE_ds,
                             geometry_col='geometry',
                             linkage='average'):
 
-    """Represents RE time series and their corresponding capacities, within each region.
+    """Reduces the number of a particular RE technology (e.g. onshore wind turbine)
+    to a desired number, within each region. NOTE: The explanation below uses wind 
+    turbines as an example. It could, in reality, be any variable RE technology like 
+    PV, offshore wind turbine, etc.
+
+    The number of simulated wind turbines could be huge. This function reduces them to a 
+    few turbine types, in each of the defined region. Each wind turbine is characterised by 
+    its capacity and capacity factor time series. 
+    
+    The basic idea here is to group the turbines, within each region, such that the turbines 
+    with most similar capacity factor time series appear in the same group. Next, the turbines in 
+    each group are aggregated to obtain one turbine type, per group, thereby reducing the total
+    number of turbines. 
+
+    Please go through the parameters list below for more information. 
+    
     
     Parameters
     ----------
@@ -36,15 +51,16 @@ def represent_RE_technology(gridded_RE_ds,
         Coordinate Reference System (CRS) information 
     shp_file : str/GeoDataFrame
         Either the path to the shapefile or the read-in shapefile 
-        that should be added to `gridded_RE_ds`
+        that should be overlapped with `gridded_RE_ds`, in order to 
+        obtain regions' information 
     n_timeSeries_perRegion : strictly positive int, optional (default=1)
         The number of time series to which the original set should be aggregated,
         within each region. 
         - If set to 1, performs simple aggregation
             - Within every region, calculates the weighted mean of RE 
               time series (capacities being weights), and sums the capacities.
-        - If set to a value greateer than 1, time series clustering is employed
-            - Clustering method: agglomerative hierarchical clustering
+        - If set to a value greater than 1, time series clustering is employed
+            - Clustering method: Sklearn's agglomerative hierarchical clustering
             - Distance measure: Euclidean distance
             - Aggregation within each resulting cluster is the same as simple 
               aggregation
@@ -105,7 +121,7 @@ def represent_RE_technology(gridded_RE_ds,
 
         #Print out number of time series in the region 
         n_ts = len(regional_capfac_da['x_y'].values)
-        print(f'Number of time series in {region}: {n_ts}')
+        logger_RERep.info(f'Number of time series in {region}: {n_ts}')
 
         #Get power curves from capacity factor time series and capacities 
         regional_power_da = regional_capacity_da * regional_capfac_da
