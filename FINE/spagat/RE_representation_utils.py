@@ -62,8 +62,9 @@ def rasterize_xr_ds(gridded_RE_ds,
                     geometry_col='geometry',
                     longitude='x', 
                     latitude='y'):
-    """Converts the gridded data in an xarray dataset to raster data 
-    based on the given shapefile.
+    """For each geometry in the specified `shp_file`, a binary mask 
+    is added to the `gridded_RE_ds`, so that subsetting the data 
+    for each region is possible. 
     
     Parameters
     ----------
