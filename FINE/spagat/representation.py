@@ -12,7 +12,7 @@ from shapely.ops import cascaded_union
 
 import FINE.spagat.utils as spu
 
-logger_representation = logging.getLogger('spagat_representation')
+logger_representation = logging.getLogger('spatial_representation')
 
 
 def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
@@ -362,7 +362,8 @@ def aggregate_based_on_sub_to_sup_region_id_dict(xarray_dataset,
                 aggregation_mode = "bool"
                 aggregation_weight = None 
 
-                print(f"Aggregation mode for {varname} set to bool as only binary values are acceptable for this variable")
+                warnings.warn(f"Aggregation mode for {varname} set to bool as only binary \
+                    values are acceptable for this variable")
 
             ## For all other variables set default
             else:

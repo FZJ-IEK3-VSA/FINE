@@ -1,4 +1,7 @@
+
 import os 
+import logging
+
 import xarray as xr 
 import geopandas as gpd
 
@@ -8,6 +11,7 @@ import FINE.spagat.representation as spr
 
 from FINE.IOManagement import xarrayIO as xrIO
 
+logger_spagat = logging.getLogger('spatial_aggregation')
 
 def perform_spatial_aggregation(xr_dataset,
                             shapefile, 
@@ -84,7 +88,7 @@ def perform_spatial_aggregation(xr_dataset,
     #STEP 4. Spatial grouping
     if grouping_mode == 'string_based':
 
-        print('Performing string-based grouping on the regions')
+        logger_spagat.info('Performing string-based grouping on the regions')
         
         locations = xr_dataset.space.values
         aggregation_dict = spg.perform_string_based_grouping(locations)
@@ -95,7 +99,7 @@ def perform_spatial_aggregation(xr_dataset,
         fig_name = kwargs.get('fig_name', None)
         verbose = kwargs.get('verbose', False)
             
-        print(f'Performing distance-based grouping on the regions')
+        logger_spagat.info(f'Performing distance-based grouping on the regions')
 
         aggregation_dict = spg.perform_distance_based_grouping(xr_dataset,
                                                             save_path,
@@ -107,7 +111,7 @@ def perform_spatial_aggregation(xr_dataset,
         linkage = kwargs.get('linkage', 'complete') 
         weights = kwargs.get('weights', None) 
 
-        print(f'Performing parameter-based grouping on the regions.')
+        logger_spagat.info(f'Performing parameter-based grouping on the regions.')
 
         aggregation_dict = spg.perform_parameter_based_grouping(xr_dataset, 
                                                                 linkage,
@@ -127,7 +131,7 @@ def perform_spatial_aggregation(xr_dataset,
     if 'aggregation_function_dict' not in kwargs:
         aggregation_function_dict = None
     else: 
-        print('aggregation_function_dict found in kwargs')
+        logger_spagat.info('aggregation_function_dict found in kwargs')
         aggregation_function_dict = kwargs.get('aggregation_function_dict')
     
     aggregated_xr_dataset = spr.aggregate_based_on_sub_to_sup_region_id_dict(xr_dataset,
