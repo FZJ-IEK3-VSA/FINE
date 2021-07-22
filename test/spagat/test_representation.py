@@ -36,7 +36,7 @@ def test_aggregate_time_series_mean_and_sum(xr_and_dict_for_basic_representation
     
     
     #FUNCTION CALL
-    time_series_aggregated = spr.aggregate_time_series(test_xarray, 
+    time_series_aggregated = spr.aggregate_time_series_spatially(test_xarray, 
                                                         sub_to_sup_region_id_dict, 
                                                         mode=mode)
     
@@ -94,7 +94,7 @@ def test_aggregate_time_series_weighted_mean(data, weight, expected_grp1, expect
                                  '03_reg_04_reg': ['03_reg','04_reg']}
 
     #FUNCTION CALL
-    time_series_aggregated = spr.aggregate_time_series(data_xr, 
+    time_series_aggregated = spr.aggregate_time_series_spatially(data_xr, 
                                                         sub_to_sup_region_id_dict, 
                                                         mode="weighted mean", 
                                                         xr_weight_array=weight_xr)
@@ -108,7 +108,7 @@ def test_aggregate_time_series_weighted_mean(data, weight, expected_grp1, expect
     assert np.isnan(time_series_aggregated.loc['sink_comp', 'T0', '01_reg_02_reg'].values)
 
 @pytest.mark.parametrize("mode, expected_grp1, expected_grp2", [("mean", 15, 0), ("sum", 30, 0), ("bool", 1, 0)])    
-def test_aggregate_values(xr_and_dict_for_basic_representation, 
+def test_aggregate_values_spatially(xr_and_dict_for_basic_representation, 
                         mode, 
                         expected_grp1,
                         expected_grp2):
@@ -118,7 +118,7 @@ def test_aggregate_values(xr_and_dict_for_basic_representation,
     test_xarray = xr_for_basic_representation['1d_capacityMax']
     
     #FUNCTION CALL 
-    values_aggregated = spr.aggregate_values(test_xarray, 
+    values_aggregated = spr.aggregate_values_spatially(test_xarray, 
                                             sub_to_sup_region_id_dict, 
                                             mode=mode)
     

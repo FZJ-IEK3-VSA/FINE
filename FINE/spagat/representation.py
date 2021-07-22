@@ -55,10 +55,10 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
 
     return xr_data_array_out
 
-def aggregate_time_series(xr_data_array_in,
-                        sub_to_sup_region_id_dict,
-                        mode="mean",
-                        xr_weight_array=None):
+def aggregate_time_series_spatially(xr_data_array_in,
+                                    sub_to_sup_region_id_dict,
+                                    mode="mean",
+                                    xr_weight_array=None):
     """For each region group, aggregates the given time series variable. 
 
     Parameters
@@ -136,7 +136,7 @@ def aggregate_time_series(xr_data_array_in,
     return xr_data_array_out
 
 
-def aggregate_values(xr_data_array_in, 
+def aggregate_values_spatially(xr_data_array_in, 
                     sub_to_sup_region_id_dict, 
                     mode="mean"):
     """For each region group, aggregates the given 1d variable.
@@ -392,14 +392,14 @@ def aggregate_based_on_sub_to_sup_region_id_dict(xarray_dataset,
         elif varname != "gpd_centroids":
             ## Time series 
             if "space" in da.dims and "time" in da.dims:  
-                da = aggregate_time_series(xarray_dataset[varname],
+                da = aggregate_time_series_spatially(xarray_dataset[varname],
                                         sub_to_sup_region_id_dict,
                                         mode=aggregation_mode,
                                         xr_weight_array=aggregation_weight)
 
             ## 1d variables
             elif ("space" in da.dims and "space_2" not in da.dims):  
-                da = aggregate_values(xarray_dataset[varname],
+                da = aggregate_values_spatially(xarray_dataset[varname],
                                     sub_to_sup_region_id_dict,
                                     mode=aggregation_mode)
             
