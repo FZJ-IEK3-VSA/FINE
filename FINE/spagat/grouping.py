@@ -13,7 +13,7 @@ import sklearn.cluster as skc
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping_utils as gu
 
-logger_grouping = logging.getLogger("spagat_grouping")
+logger_grouping = logging.getLogger("spatial_grouping")
 
 
 def perform_string_based_grouping(regions):
@@ -103,10 +103,10 @@ def perform_distance_based_grouping(xarray_dataset,
             regions_dict[sup_region_id] = sub_regions_list.copy()
         
         if verbose:
-            print(i)
-            print('\t', 'lables:', regions_label_list)
+            logger_grouping.info(f'{i}')
+            logger_grouping.info(f'lables: {regions_label_list}')
             for sup_region_id, sub_regions_list in regions_dict.items():
-                print('\t', sup_region_id, ': ', sub_regions_list)
+                logger_grouping.info(f'sup_region_id: {sub_regions_list}')
 
         #STEP 1c. Append the dict to main dict 
         aggregation_dict[i] = regions_dict.copy()
@@ -149,11 +149,11 @@ def perform_distance_based_grouping(xarray_dataset,
     distance_matrix = hierarchy.distance.pdist(centroids)
 
     #STEP 4. Evaluation 
-    print('Statistics on clustering:')
+    logger_grouping.info('Statistics on clustering:')
 
     #STEP 4a. Cophenetic correlation coefficients
     cophenetic_correlation_coefficient = hierarchy.cophenet(linkage_matrix, distance_matrix)[0]
-    print('The cophenetic correlation coefficient is ', cophenetic_correlation_coefficient)
+    logger_grouping.info(f'The cophenetic correlation coefficient is {cophenetic_correlation_coefficient}')
 
     #STEP 4b. Inconsistency coefficients (in a plot)
     fig, ax = plt.subplots(figsize=(18,7))
@@ -305,15 +305,15 @@ def perform_parameter_based_grouping(xarray_dataset,
     linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
     
     distance_matrix = hierarchy.distance.squareform(precomputed_dist_matrix)
-    print('The cophenetic correlation coefficient of the hiearchical clustering is ', hierarchy.cophenet(linkage_matrix, distance_matrix)[0])
+    logger_grouping.info(f'The cophenetic correlation coefficient of the hiearchical \
+        clustering is {hierarchy.cophenet(linkage_matrix, distance_matrix)[0]}')
     
     #STEP 7. Check for inconsistency                    
     inconsistency = hierarchy.inconsistent(linkage_matrix)
-    print('Inconsistencies:',list(inconsistency[:,3]))
+    logger_grouping.info(f'Inconsistencies: {list(inconsistency[:,3])}')
     
     #STEP 8. Print Silhouette scores 
-    print('Silhouette scores: ',silhouette_scores)
-
+    logger_grouping.info(f'Silhouette scores: {silhouette_scores}')
 
     return aggregation_dict
 
