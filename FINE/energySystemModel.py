@@ -3,15 +3,21 @@ Last edited: November 12 2020
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
-from FINE.component import Component, ComponentModel
-from FINE import utils
-from tsam.timeseriesaggregation import TimeSeriesAggregation
+import time
+import os
+import warnings
+
 import pandas as pd
-import numpy as np
 import pyomo.environ as pyomo
 import pyomo.opt as opt
-import time
-import warnings
+
+from FINE import utils
+from FINE.component import Component, ComponentModel
+
+from FINE.IOManagement import xarrayIO as xrIO
+import FINE.spagat.spatial_aggregation as spa 
+from tsam.timeseriesaggregation import TimeSeriesAggregation
+
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -177,6 +183,7 @@ class EnergySystemModel:
         # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
         self.locations, self.lengthUnit = locations, lengthUnit
         self._locationsOrdered = sorted(locations)
+
         self.numberOfTimeSteps = numberOfTimeSteps
         self.balanceLimit = balanceLimit
         self.lowerBound = lowerBound
@@ -278,7 +285,7 @@ class EnergySystemModel:
         # warnings are displayed, the optimization solver logging is set to a minimum.
         # The optimization solver logging can be separately enabled in the optimizationSpecs of the optimize function.
         self.verbose = verboseLogLevel
-        self.verboseLogLevel = verboseLogLevel # TODO replace
+        self.verboseLogLevel = verboseLogLevel # TODO replace 
 
     def add(self, component):
         """
@@ -291,7 +298,6 @@ class EnergySystemModel:
         if not issubclass(type(component), Component):
             raise TypeError('The added component has to inherit from the FINE class Component.')
         if not issubclass(component.modelingClass, ComponentModel):
-            print(component.name, component.modelingClass, ComponentModel)
             raise TypeError('The added component has to inherit from the FINE class ComponentModel.')
         component.addToEnergySystemModel(self)
 
@@ -394,8 +400,72 @@ class EnergySystemModel:
             df = self.componentModelingDict[modelingClass].optSummary.dropna(how='all')
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def cluster(self,
-                numberOfTypicalPeriods=7,
+
+    def aggregateSpatially(self,             
+                        shapefile, 
+                        grouping_mode='parameter_based', 
+                        nRegionsForRepresentation=2,
+                        aggregatedResultsPath=None,
+                        **kwargs): 
+        """Spatially clusters the data of all components considered in the Energy System Model (esM) instance 
+        and returns a new esM instance with the aggregated data. 
+
+        :param shapefile: Either the path to the shapefile or the read-in shapefile
+        :type shapefile: string, GeoDataFrame 
+        
+        **Default arguments:**   
+        
+        :param grouping_mode: Defines how to spatially group the regions. 
+        Refer to grouping.py for more information.
+            |br| * the default value is 'parameter_based'
+        :type grouping_mode: string, Options - 'string_based', 'distance_based', 'parameter_based'
+
+        :param nRegionsForRepresentation: Indicates the number of regions chosen for representation of data. 
+        If 'distance_based' or 'parameter_based' is chosen for `grouping_mode`, grouping is performed for 
+        1 to number of regions initially present in the `esM`. Here, the number of groups finally chosen for 
+        representation of data is to be specified. This parameter is irrelevant if `grouping_mode` is 
+        'string_based'.
+            |br| * the default value is 2
+        :type nRegionsForRepresentation: strictly positive integer, None
+
+        :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved. 
+        If None, results are not saved.  
+            |br| * the default value is None
+        :type shapefileFolder: string, None
+
+        Additional keyword arguments can be added passed via kwargs.
+
+        :returns: Aggregated esM instance 
+        """    
+
+        #STEP 1. Obtain xr dataset from esM 
+        xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
+        
+        #STEP 2. Perform spatial aggregation 
+        aggregated_xr_dataset = spa.perform_spatial_aggregation(xr_dataset,
+                                                            shapefile, 
+                                                            grouping_mode, 
+                                                            nRegionsForRepresentation,
+                                                            aggregatedResultsPath,
+                                                            **kwargs)
+                                              
+        #STEP 3. Obtain aggregated esM
+        aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(aggregated_xr_dataset)
+        
+        return aggregated_esM
+
+
+    def cluster(self, *args, **kwargs):
+        warnings.warn(
+            "EnergySystemModel.cluster() is deprecated and will be removed in a future release. \
+            use EnergySystemModel.aggregateTemporally() instead.",
+            DeprecationWarning
+        )
+        self.aggregateTemporally(*args, **kwargs)
+
+
+    def aggregateTemporally(self,                
+                numberOfTypicalPeriods=7, 
                 numberOfTimeStepsPerPeriod=24,
                 segmentation=False,
                 numberOfSegmentsPerPeriod=24,
@@ -404,7 +474,7 @@ class EnergySystemModel:
                 storeTSAinstance=False,
                 **kwargs):
         """
-        Cluster the time series data of all components considered in the EnergySystemModel instance and then
+        Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
         stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
         days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
@@ -549,6 +619,8 @@ class EnergySystemModel:
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
         utils.output("\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", self.verbose, 0)
+
+
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """

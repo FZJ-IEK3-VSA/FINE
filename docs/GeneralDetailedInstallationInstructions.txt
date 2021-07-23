@@ -48,7 +48,7 @@ install the latest gurobi version (just follow the instructions on the gurobi we
 
 RUN THE TEST CASE
 
-run the FINE example "Multi-regional Energy System Workflow.ipynb" (a jupyter notebook) located under FINE//example; for running it, put it (and its data folder) in a directory which you can access when calling
+run the FINE example "Multi-regional_Energy_System_Workflow.ipynb" (a jupyter notebook) located under FINE//example; for running it, put it (and its data folder) in a directory which you can access when calling
 ###
 jupyter notebook
 ###

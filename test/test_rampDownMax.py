@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional Energy System Workflow'))
+sys.path.append(os.path.join(os.path.dirname(__file__),'..','examples','Multi-regional_Energy_System_Workflow'))
 
 def test_rampDownMax():
     # read in original results

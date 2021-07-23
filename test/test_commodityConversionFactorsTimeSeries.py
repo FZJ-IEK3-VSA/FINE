@@ -107,16 +107,16 @@ def test_variable_conversion_simple_no_tsa():
 
 def test_variable_conversion_simple_with_tsa():
     """
-    This is to test if the conversion time series are clustered properly.
-    Clustering with 2 typical periods leads to two distinguished demand values
-    instead of 4 in the case without clustered timeseries.
+    This is to test if the conversion time series are temporally clustered properly.
+    Temporal clustering with 2 typical periods leads to two distinguished demand values
+    instead of 4 in the case without temporally clustered timeseries.
     """
 
     esM = create_simple_esm()
 
-    # Cluster
-    esM.cluster(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
-    # optimize
+    # Temporal clustering 
+    esM.aggregateTemporally(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
+    # Optimization 
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     df = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
@@ -278,7 +278,7 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
         )
     )
 
-    esM.cluster(numberOfTypicalPeriods=3, numberOfTimeStepsPerPeriod=1)
+    esM.aggregateTemporally(numberOfTypicalPeriods=3, numberOfTimeStepsPerPeriod=1)
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     # Get optimal electrolyzer operations

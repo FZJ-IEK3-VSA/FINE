@@ -125,7 +125,6 @@ def checkRegionalColumnTitles(esM, data):
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data columns: ' + str(set(data.columns)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
-
     # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.columns, esM._locationsOrdered):
         data.sort_index(inplace=True, axis=1)    
@@ -141,7 +140,6 @@ def checkRegionalIndex(esM, data):
         raise ValueError('Location indices do not match the one of the specified energy system model.\n' +
                          'Data indices: ' + str(set(data.index)) + '\n' +
                          'Energy system model regions: ' + str(esM.locations))
-
     # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.index, esM._locationsOrdered):
         data.sort_index(inplace=True)
@@ -849,8 +847,9 @@ def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
             # if divide is set to True, the values are divided when being unravelled, e.g. in order to fit provided
             # energy per segment provided energy per time step
             if divide:
-                dataPeriod = pd.DataFrame(np.repeat(np.divide(df.loc[p].values, repList), repList, axis=1),
+                dataPeriod = pd.DataFrame(np.repeat(np.divide(df.loc[p].values, repList), repList, axis=1),  
                                           index=df.xs(p, level=0, drop_level=False).index)
+                
             # if divide is set to Frue, the values are not divided when being unravelled e.g. in case of time-
             # independent costs
             else:

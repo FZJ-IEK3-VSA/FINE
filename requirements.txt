@@ -13,4 +13,6 @@ shapely
 openpyxl
 netcdf4
 xarray
-
+wquantiles
+statsmodels
+seaborn

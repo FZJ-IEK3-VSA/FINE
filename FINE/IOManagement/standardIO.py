@@ -6,6 +6,7 @@ import inspect
 import time
 import warnings
 
+
 try:
     import geopandas as gpd
 except ImportError:
@@ -202,7 +203,7 @@ def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx', engine='openpyx
     esM, esMData = readEnergySystemModelFromExcel(fileName, engine=engine)
 
     if esMData['cluster'] != {}:
-        esM.cluster(**esMData['cluster'])
+        esM.aggregateTemporally(**esMData['cluster'])
     esM.optimize(**esMData['optimize'])
 
     writeOptimizationOutputToExcel(esM, **esMData['output'])
@@ -621,7 +622,7 @@ def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='
 
     **Required arguments:**
 
-    :param locationsShapeFileName: file name or path to a shape file
+    :param locationsShapeFileName: file name or path to a shape file 
     :type locationsShapeFileName: string
 
     :param indexColumn: name of the column in which the location indices are stored
@@ -677,6 +678,7 @@ def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='
         |br| * the default value is 200
     :type dpi: scalar > 0
     """
+    
     gdf = gpd.read_file(locationsShapeFileName).to_crs({'init': crs})
 
     if ax is None:
@@ -900,6 +902,8 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     """
     data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(variableName)
     data = data['values'].loc[(compName)]
+
+
     if doSum:
         data = data.sum(axis=1)
     gdf = gpd.read_file(locationsShapeFileName).to_crs({'init': crs})
