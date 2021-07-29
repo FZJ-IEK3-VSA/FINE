@@ -347,5 +347,7 @@ aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=7)
 # # Step 5. Optimization
 
 # %%
-aggregated_esM.optimize(timeSeriesAggregation=True, 
-                        optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0')
+aggregated_esM.optimize(timeSeriesAggregation=True)
+# The following `optimizationSpecs` are recommended if you use the Gurobi solver.
+# aggregated_esM.optimize(timeSeriesAggregation=True, 
+#                         optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0')
