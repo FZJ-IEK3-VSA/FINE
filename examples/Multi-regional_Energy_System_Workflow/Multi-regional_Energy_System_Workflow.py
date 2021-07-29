@@ -383,7 +383,9 @@ esM.aggregateTemporally(numberOfTypicalPeriods=7)
 # ### Optimization
 
 # %% tags=["nbval-ignore-output"]
-esM.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0 MIPGap=5e-3')
+esM.optimize(timeSeriesAggregation=True)
+# If you have Gurobi installed, use this with optimizationSpecs
+# esM.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0 MIPGap=5e-3')
 
 # %% [markdown]
 # # 9. Selected results output
