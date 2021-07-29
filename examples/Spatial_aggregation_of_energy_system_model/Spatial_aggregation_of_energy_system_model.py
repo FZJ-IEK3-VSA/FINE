@@ -219,7 +219,7 @@ aggregated_esM.getComponentAttribute('Wind (onshore)', 'operationRateMax')
 # Here, both PV and wind turbines are represented 
 
 ONSHORE_WIND_DATA_PATH = os.path.join(cwd, 'input_RE_representation_data', 'DEU_wind.nc4')
-PV_DATA_PATH = os.path.join(cwd, 'input_RE_representation_data', 'DEU_PV.nc4')
+PV_DATA_PATH = os.path.join(cwd, 'input_RE_representation_data', 'DEU_pv.nc4')
 
 # %%
 # Let us first take a look at one of these datasets 
