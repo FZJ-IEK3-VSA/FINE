@@ -1,18 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:percent
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.11.4
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
-
 # %%
 import os 
 import sys
@@ -189,8 +174,6 @@ sds_region_filename='aggregated_regions'
 sds_xr_dataset_filename='aggregated_xr_ds.nc4'
 
 # %%
-# NBVAL_IGNORE_OUTPUT
-
 # Spatial grouping 
 aggregated_esM = esM.aggregateSpatially(shapefile=SHAPEFILE_PATH, 
                                        grouping_mode='parameter_based', 
@@ -204,8 +187,6 @@ aggregated_esM = esM.aggregateSpatially(shapefile=SHAPEFILE_PATH,
 # geometry related varialbes are not considered for spatial grouping. 
 
 # %%
-# NBVAL_SKIP
-
 # Original spatial resolution
 fig, ax = fn.plotLocations(SHAPEFILE_PATH, plotLocNames=True, indexColumn='index')
 
@@ -214,13 +195,9 @@ fig, ax = fn.plotLocations(SHAPEFILE_PATH, plotLocNames=True, indexColumn='index
 AGGREGATED_SHP_PATH = os.path.join(cwd, 'output_data', f'{sds_region_filename}.shp')
 
 # %%
-# NBVAL_SKIP
-
-fig, ax = fn.plotLocations(AGGREGATED_SHP_PATH, plotLocNames=True, indexColumn='space')
+fig, ax = fn.plotLocations(AGGREGATED_SHP_PATH, plotLocNames=True, indexColumn='id')
 
 # %%
-# NBVAL_IGNORE_OUTPUT
-
 # The locations in the resulting esM instance are now 6.
 new_locations = list(aggregated_esM.locations)
 new_locations
@@ -245,15 +222,11 @@ ONSHORE_WIND_DATA_PATH = os.path.join(cwd, 'input_RE_representation_data', 'DEU_
 PV_DATA_PATH = os.path.join(cwd, 'input_RE_representation_data', 'DEU_PV.nc4')
 
 # %%
-# NBVAL_IGNORE_OUTPUT
-
 # Let us first take a look at one of these datasets 
 
 xr.open_dataset(ONSHORE_WIND_DATA_PATH)
 
 # %%
-# NBVAL_IGNORE_OUTPUT
-
 ## Representation 
 represented_wind_ds = represent_RE_technology(ONSHORE_WIND_DATA_PATH, 
                                             'xy_reference_system',
@@ -261,7 +234,7 @@ represented_wind_ds = represent_RE_technology(ONSHORE_WIND_DATA_PATH,
                                             n_timeSeries_perRegion=5,
                                             capacity_var_name='capacity',
                                             capfac_var_name='capfac',
-                                            index_col = 'space')
+                                            index_col = 'id')
 
 represented_pv_ds = represent_RE_technology(PV_DATA_PATH, 
                                             'xy_reference_system',
@@ -269,16 +242,12 @@ represented_pv_ds = represent_RE_technology(PV_DATA_PATH,
                                             n_timeSeries_perRegion=5,
                                             capacity_var_name='capacity',
                                             capfac_var_name='capfac',
-                                            index_col = 'space')
+                                            index_col = 'id')
 
 # %%
-# NBVAL_IGNORE_OUTPUT
-
 represented_wind_ds
 
 # %%
-# NBVAL_IGNORE_OUTPUT
-
 represented_pv_ds
 
 # %% [markdown]
@@ -306,8 +275,6 @@ aggregated_esM.removeComponent('Wind (onshore)')
 aggregated_esM.removeComponent('PV')
 
 # %%
-# NBVAL_SKIP
-
 aggregated_esM.componentModelingDict['SourceSinkModel'].componentsDict
 
 # %%
@@ -360,8 +327,6 @@ for i, cluster in enumerate(clusters):
                       economicLifetime=pv_economicLifetime))
 
 # %%
-# NBVAL_SKIP
-
 aggregated_esM.componentModelingDict['SourceSinkModel'].componentsDict
 
 # %% [markdown]
@@ -376,15 +341,11 @@ aggregated_esM.componentModelingDict['SourceSinkModel'].componentsDict
 # With spatial and temporal aggregation, you need not compromise on either the temporal or spatial resolution of your model. 
 
 # %%
-# NBVAL_IGNORE_OUTPUT
-
 aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=7)
 
 # %% [markdown]
 # # Step 5. Optimization
 
 # %%
-# NBVAL_IGNORE_OUTPUT
-
 aggregated_esM.optimize(timeSeriesAggregation=True, 
                         optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0')
