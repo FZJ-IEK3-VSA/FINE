@@ -382,10 +382,10 @@ esM.aggregateTemporally(numberOfTypicalPeriods=7)
 # %% [markdown]
 # ### Optimization
 
-# %% tags=["nbval-ignore-output"]
-esM.optimize(timeSeriesAggregation=True)
-# If you have Gurobi installed, use this with optimizationSpecs
-# esM.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0 MIPGap=5e-3')
+# %% tags=["nbval-skip"]
+# The `optimizationSpecs` only work with the Gurobi solver. If you are using another solver you need to choose 
+# specs spcecific to this solver or no specs.
+esM.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0 MIPGap=5e-3')
 
 # %% [markdown]
 # # 9. Selected results output
@@ -396,7 +396,7 @@ esM.optimize(timeSeriesAggregation=True)
 # Import the geopandas package for plotting the locations
 import geopandas as gpd
 
-# %%
+# %% tags=["nbval-skip"]
 locFilePath = os.path.join(cwd, 'InputData', 'SpatialData','ShapeFiles', 'clusteredRegions.shp')
 
 # %% tags=["nbval-skip"]
@@ -407,13 +407,13 @@ fig, ax = fn.plotLocations(locFilePath, plotLocNames=True, indexColumn='index')
 #
 # Show optimization summary
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
 
 # %% [markdown]
 # Plot installed capacities
 
-# %%
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotLocationalColorMap(esM, 'Wind (offshore)', locFilePath, 'index', perArea=False)
 
 # %% tags=["nbval-skip"]
@@ -425,10 +425,10 @@ fig, ax = fn.plotLocationalColorMap(esM, 'PV', locFilePath, 'index', perArea=Fal
 # %% [markdown]
 # Plot operation time series (either one or two dimensional)
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotOperation(esM, 'Electricity demand', 'cluster_0')
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotOperationColorMap(esM, 'Electricity demand', 'cluster_0')
 
 # %% [markdown]
@@ -436,13 +436,13 @@ fig, ax = fn.plotOperationColorMap(esM, 'Electricity demand', 'cluster_0')
 #
 # Show optimization summary
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 esM.getOptimizationSummary("ConversionModel", outputLevel=2)
 
 # %% tags=["nbval-skip"]
 fig, ax = fn.plotLocationalColorMap(esM, 'Electrolyzer', locFilePath, 'index', perArea=False)
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotOperationColorMap(esM, 'New CCGT plants (biogas)', 'cluster_2')
 
 # %% [markdown]
@@ -450,22 +450,22 @@ fig, ax = fn.plotOperationColorMap(esM, 'New CCGT plants (biogas)', 'cluster_2')
 #
 # Show optimization summary
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 esM.getOptimizationSummary("StorageModel", outputLevel=2)
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotOperationColorMap(esM, 'Li-ion batteries', 'cluster_2', 
                                    variableName='stateOfChargeOperationVariablesOptimum')
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotOperationColorMap(esM, 'Pumped hydro storage', 'cluster_2',
                                   variableName='stateOfChargeOperationVariablesOptimum')
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotOperationColorMap(esM, 'Salt caverns (biogas)', 'cluster_2',
                                   variableName='stateOfChargeOperationVariablesOptimum')
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotOperationColorMap(esM, 'Salt caverns (hydrogen)', 'cluster_2',
                                   variableName='stateOfChargeOperationVariablesOptimum')
 
@@ -474,16 +474,16 @@ fig, ax = fn.plotOperationColorMap(esM, 'Salt caverns (hydrogen)', 'cluster_2',
 #
 # Show optimization summary
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 esM.getOptimizationSummary("TransmissionModel", outputLevel=2)
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 esM.getOptimizationSummary("TransmissionModel", outputLevel=2).loc['Pipelines (hydrogen)']
 
 # %% [markdown]
 # Check that the shared capacity of the pipelines are not exceeded
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 df=esM.componentModelingDict["TransmissionModel"].capacityVariablesOptimum
 df.loc['Pipelines (biogas)']+df.loc['Pipelines (hydrogen)']
 
@@ -509,7 +509,7 @@ fig, ax = fn.plotLocations(locFilePath, indexColumn='index')
 fig, ax = fn.plotTransmission(esM, 'Pipelines (hydrogen)', transFilePath, loc0='loc1', loc1='loc2',
                               fig=fig, ax=ax)
 
-# %% tags=["nbval-ignore-output"]
+# %% tags=["nbval-skip"]
 df=esM.componentModelingDict["TransmissionModel"].capacityVariablesOptimum
 df.loc['Pipelines (biogas)']+df.loc['Pipelines (hydrogen)']
 
