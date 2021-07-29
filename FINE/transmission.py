@@ -635,6 +635,13 @@ class TransmissionModel(ComponentModel):
             optVal = optVal.loc[idx[:,ip,:],:] # perfect foresight: added ip
             optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
+            
+            # New index for opex is required as indexing with list with missing labels is deprecated
+            # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-with-list-with-missing-labels-is-deprecated
+            newIndex = opSum.columns.tolist()
+            for name in compDict.keys():
+                compDict[name].opexPerOperation[ip] = compDict[name].opexPerOperation[ip].reindex(newIndex, fill_value=0.0)
+            
             ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[ip][op.index], axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears

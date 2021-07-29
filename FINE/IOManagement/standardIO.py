@@ -244,7 +244,7 @@ def getDualValues(pyM):
     return pd.Series(list(pyM.dual.values()), index=pd.Index(list(pyM.dual.keys())))
 
 
-def getShadowPrices(esM, constraint, dualValues=None, hasTimeSeries=False, periodOccurrences=None,
+def getShadowPrices(esM, constraint, ip=0, dualValues=None, hasTimeSeries=False, periodOccurrences=None,
     periodsOrder=None):
     """
     Get dual values of constraint ("shadow prices").
@@ -254,6 +254,9 @@ def getShadowPrices(esM, constraint, dualValues=None, hasTimeSeries=False, perio
 
     :param constraint: constraint from which the dual values should be obtained (e.g. pyM.commodityBalanceConstraint)
     :type constraint: pyomo.core.base.constraint.SimpleConstraint
+
+    :param ip: investment period of transformation path analysis (perfect foresight).
+    :type ip: int
 
     :param dualValues: dual values of the optimized model instance. If it is not specified, it is set by using the
         function getDualValues().
@@ -279,13 +282,17 @@ def getShadowPrices(esM, constraint, dualValues=None, hasTimeSeries=False, perio
         dualValues = getDualValues(esM.pyM)
 
     SP = pd.Series(list(constraint.values()), index=pd.Index(list(constraint.keys()))).map(dualValues)
+    # Select rows where ip is equal to investigated ip
+    SP = SP.iloc[SP.index.get_level_values(2) == ip]
+    # Delete ip from multiindex
+    SP = SP.droplevel(2, axis=0)
 
     if hasTimeSeries:
         SP = pd.DataFrame(SP).swaplevel(i=0, j=-2).sort_index()
         SP = SP.unstack(level=-1)
         SP.columns = SP.columns.droplevel()
-        SP = SP.apply(lambda x: x/(periodOccurrences[x.name[0]]), axis=1)
-        SP = fn.utils.buildFullTimeSeries(SP, periodsOrder, esM=esM, divide=False)
+        SP = SP.apply(lambda x: x/(periodOccurrences[ip][x.name[0]]), axis=1)
+        SP = fn.utils.buildFullTimeSeries(SP, periodsOrder[ip], ip, esM=esM, divide=False)
         SP = SP.stack()
 
     return SP
@@ -383,7 +390,7 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
     return fig, ax
 
 
-def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTimeStepsPerPeriod=24,
+def plotOperationColorMap(esM, compName, loc, ip=0, locTrans=None, nbPeriods=365, nbTimeStepsPerPeriod=24,
                           variableName='operationVariablesOptimum', cmap='viridis', vmin=0, vmax=-1,
                           xlabel='period', ylabel='timestep per period', zlabel='', figsize=(12, 4),
                           fontsize=12, save=False, fileName='', xticks=None, yticks=None,
@@ -404,6 +411,9 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
     :type loc: string
 
     **Default arguments:**
+
+    :param ip: investment period of transformation path analysis (perfect foresight).
+    :type ip: int
 
     :param locTrans: second location, required when Transmission components are plotted
     :type locTrans: string
@@ -518,9 +528,9 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
     data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(variableName)
 
     if locTrans is None:
-        timeSeries = data['values'].loc[(compName, loc)].values
+        timeSeries = data['values'].loc[(compName, ip, loc)].values
     else:
-        timeSeries = data['values'].loc[(compName, loc, locTrans)].values
+        timeSeries = data['values'].loc[(compName, ip, loc, locTrans)].values
     timeSeries = timeSeries/esM.hoursPerTimeStep if not isStorage else timeSeries
 
     try:

@@ -867,12 +867,19 @@ def formatOptimizationOutput(data, varType, dimension, ip=None, periodsOrder=Non
             indexNew.append((loc1, loc2, tup[1], tup[2], tup[3], tup[4]))
             # indexNew.append((loc1, loc2, tup[1], tup[2], tup[3]))
         df.index = pd.MultiIndex.from_tuples(indexNew)
-        df = df.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=4, axis=0).swaplevel(i=2, j=3, axis=0).sort_index()
-        # df = df.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=3, axis=0).swaplevel(i=2, j=3, axis=0).sort_index()
+
+        # Select rows where ip is equal to investigated ip
+        df = df.iloc[df.index.get_level_values(3) == ip]
+        # Delete ip from multiindex
+        df = df.droplevel(3, axis=0)
+
+        df = df.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=3, axis=0).swaplevel(i=2, j=3, axis=0).sort_index()
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
+
         # Get rid of the unnecessary 0 level
         df.columns = df.columns.droplevel()
+
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
         return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
