@@ -263,34 +263,47 @@ esM.optimize(
     optimizationSpecs="OptimalityTol=1e-3 method=2 cuts=0 MIPGap=5e-3",
 )
 
+#%%
+_, xr_dss_parameter = xrIO.convertEsmInstanceToXarrayDataset(esM, save=True, file_name="test_esm.nc4", groups=True)
 
 # %% tags=["nbval-ignore-output"]
-xr_dss = xrIO.writeOptimizationOutputToNetCDF(
+xr_dss_results = xrIO.writeOptimizationOutputToNetCDF(
     esM,
-    outputFileName="my_esm_results.nc4",
-    overwrite_existing=True,
+    outputFileName="grouped_test_esm.nc4",
+    overwrite_existing=False,
     optSumOutputLevel=2,
     optValOutputLevel=1,
 )
 
 # %% tags=["nbval-ignore-output"]
-xr_dss["SourceSinkModel"]["Wind (onshore)"]
+# Read from netCDF file
+xr_dss = xrIO.readOptimizationOutputFromNetCDF(
+    inputFileName="grouped_test_esm.nc4"
+)
 
 # %% tags=["nbval-ignore-output"]
-xr_dss["SourceSinkModel"]["Wind (onshore)"].drop_dims("time").to_dataframe().T
+xr_dss.keys()
+# xr_dss["Parameters"]["Source"]["Wind (onshore)"]
 
 # %% tags=["nbval-ignore-output"]
-xr_dss["SourceSinkModel"]["Wind (onshore)"]["operationVariablesOptimum"].plot(
+xr_dss["Results"]["SourceSinkModel"]["Wind (onshore)"]
+
+# %% tags=["nbval-ignore-output"]
+xr_dss["Results"]["SourceSinkModel"]["Wind (onshore)"].drop_dims("time").to_dataframe().T
+
+# %% tags=["nbval-ignore-output"]
+xr_dss["Results"]["SourceSinkModel"]["Wind (onshore)"]["operationVariablesOptimum"].plot(
     col="space"
 )
 
 # %% tags=["nbval-ignore-output"]
-xr_dss["StorageModel"]["Salt caverns (hydrogen)"][
+xr_dss["Results"]["StorageModel"]["Salt caverns (hydrogen)"][
     "stateOfChargeOperationVariablesOptimum"
 ].plot(hue="space");
 
 # %% tags=["nbval-ignore-output"]
-# Read from netCDF file
 xr_dss_imported = xrIO.readOptimizationOutputFromNetCDF(
     inputFileName="my_esm_results.nc4"
 )
+
+# %% tags=["nbval-ignore-output"]

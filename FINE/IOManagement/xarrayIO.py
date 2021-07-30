@@ -228,19 +228,19 @@ def writeOptimizationOutputToNetCDF(
     if Path(file_path).is_file():
         if overwrite_existing:
             Path(file_path).unlink()
+            rootgrp = Dataset(file_path, "w", format="NETCDF4")
+            rootgrp.close()
 
     utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
     _t = time.time()
 
     # Create the netCDF file and the xr.Dataset dict for all components
     xr_dss = dict.fromkeys(esM.componentModelingDict.keys())
-    rootgrp = Dataset(file_path, "w", format="NETCDF4")
     for model_dict in esM.componentModelingDict.keys():
         xr_dss[model_dict] = {
             key: xr.Dataset()
             for key in esM.componentModelingDict[model_dict].componentsDict.keys()
         }
-    rootgrp.close()
 
     # Write output from esM.getOptimizationSummary to datasets
     for name in esM.componentModelingDict.keys():
@@ -406,11 +406,12 @@ def readOptimizationOutputFromNetCDF(
     """
 
     rootgrp = Dataset(inputFileName, "r", format="NETCDF4")
-    xr_dss = {key: None for key in rootgrp.groups}
-    for group in rootgrp.groups:
-        xr_dss[group] = {
-            key: xr.open_dataset(inputFileName, group=f"/{group}/{key}")
-            for key in rootgrp[group].groups
-        }
+    xr_dss = {parameter_result_key: 
+                 {model_key: 
+                    {comp_key: 
+                        xr.open_dataset(inputFileName, group=f"{parameter_result_key}/{model_key}/{comp_key}")
+                    for comp_key in rootgrp[parameter_result_key][model_key].groups}
+                for model_key in rootgrp[parameter_result_key].groups} 
+            for parameter_result_key in rootgrp.groups}
 
     return xr_dss
