@@ -147,6 +147,7 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
                             for var in list(xr_dss[model][component].data_vars)
                         },
                     )
+    xr_dss = {"Parameters": xr_dss}
         
     return xr_ds, xr_dss
 
