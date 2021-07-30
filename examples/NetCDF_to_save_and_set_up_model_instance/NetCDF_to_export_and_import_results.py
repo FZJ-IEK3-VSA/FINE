@@ -27,6 +27,9 @@ import FINE.IOManagement.xarrayIO as xrIO
 
 import sys
 
+%load_ext autoreload
+%autoreload 2
+
 sys.path.append(
     os.path.join(os.getcwd(), "..", "Multi-regional_Energy_System_Workflow")
 )
@@ -282,8 +285,7 @@ xr_dss = xrIO.readOptimizationOutputFromNetCDF(
 )
 
 # %% tags=["nbval-ignore-output"]
-xr_dss.keys()
-# xr_dss["Parameters"]["Source"]["Wind (onshore)"]
+xr_dss["Parameters"]["Source"]["Wind (onshore)"]
 
 # %% tags=["nbval-ignore-output"]
 xr_dss["Results"]["SourceSinkModel"]["Wind (onshore)"]
@@ -300,10 +302,5 @@ xr_dss["Results"]["SourceSinkModel"]["Wind (onshore)"]["operationVariablesOptimu
 xr_dss["Results"]["StorageModel"]["Salt caverns (hydrogen)"][
     "stateOfChargeOperationVariablesOptimum"
 ].plot(hue="space");
-
-# %% tags=["nbval-ignore-output"]
-xr_dss_imported = xrIO.readOptimizationOutputFromNetCDF(
-    inputFileName="my_esm_results.nc4"
-)
 
 # %% tags=["nbval-ignore-output"]
