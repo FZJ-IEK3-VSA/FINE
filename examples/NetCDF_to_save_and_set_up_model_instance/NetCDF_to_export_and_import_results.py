@@ -263,6 +263,7 @@ esM.optimize(
     optimizationSpecs="OptimalityTol=1e-3 method=2 cuts=0 MIPGap=5e-3",
 )
 
+
 # %% tags=["nbval-ignore-output"]
 xr_dss = xrIO.writeOptimizationOutputToNetCDF(
     esM,
