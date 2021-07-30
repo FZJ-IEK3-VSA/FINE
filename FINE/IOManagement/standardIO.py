@@ -921,7 +921,11 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
         gdf.loc[gdf[indexColumn] == data.index, "data"] = \
             data.fillna(0).values/(gdf.loc[gdf[indexColumn] == data.index].geometry.area/areaFactor**2)
         if zlabel is None:
-            unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+            if isinstance(esM.getComponent(compName), fn.Conversion):
+                unit = esM.getComponent(compName).physicalUnit
+            else:
+                unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+                
             if areaFactor == 1e3:
                 area_unit = 'km$^2$'
             elif areaFactor == 1:
@@ -935,9 +939,11 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     else:
         gdf.loc[gdf[indexColumn] == data.index, "data"] = data.fillna(0).values
         if zlabel is None:
-            unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
-            unit = ' [' + unit + ']'
-            zlabel = 'Installed capacity \n' + unit + '\n'
+            if isinstance(esM.getComponent(compName), fn.Conversion):
+                unit = esM.getComponent(compName).physicalUnit
+            else:
+                unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+            zlabel = f'Installed capacity \n [ {unit} ] \n'
 
     vmax = gdf["data"].max() if vmax == -1 else vmax
 
