@@ -301,5 +301,17 @@ def test_savingAndReadingNetcdfFiles(balanceLimit, multi_node_test_esM_init):
     output_esM.aggregateTemporally(numberOfTypicalPeriods=3)
     output_esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
+    # Test results files  
+    xr_dss = xrIO.writeOptimizationOutputToNetCDF(output_esM, 
+                                    outputFileName="my_esm_results.nc4",
+                                    overwrite_existing=True,
+                                    optSumOutputLevel=2, 
+                                    optValOutputLevel=1)
+                                    
+    xr_dss_imported = xrIO.readOptimizationOutputFromNetCDF(
+                                    inputFileName="my_esm_results.nc4")
+
+    assert xr_dss == xr_dss_imported
+
     # if there are no problems setting it up, delete the create file 
     os.remove(file)
