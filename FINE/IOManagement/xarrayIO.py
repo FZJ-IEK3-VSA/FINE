@@ -71,7 +71,7 @@ def saveNetcdfFile(xarray_dataset, file_name='esM_instance.nc4'):
 
 
 
-def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.nc4'):  
+def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.nc4', groups=False):  
     """Takes esM instance and converts it into an xarray dataset. Optionally, the 
     dataset can be saved as a netcdf file.
     
@@ -97,17 +97,23 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
         utilsIO.generateIterationDicts(component_dict)
     
     #STEP 3. Initiate xarray dataset 
+    xr_dss= dict.fromkeys(component_dict.keys())
+    for classname in component_dict:
+            xr_dss[classname] = {
+                component: xr.Dataset()
+                for component in component_dict[classname]
+            }
     xr_ds = xr.Dataset()
 
     #STEP 4. Add all df variables to xr_ds
-    xr_ds = utilsIO.addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict) 
+    xr_ds, xr_dss = utilsIO.addDFVariablesToXarray(xr_ds, xr_dss, component_dict, df_iteration_dict) 
 
     #STEP 5. Add all series variables to xr_ds
     locations = sorted(esm_dict['locations'])
-    xr_ds = utilsIO.addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, locations)
+    xr_ds, xr_dss = utilsIO.addSeriesVariablesToXarray(xr_ds, xr_dss, component_dict, series_iteration_dict, locations)
 
     #STEP 6. Add all constant value variables to xr_ds
-    xr_ds = utilsIO.addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict) 
+    xr_ds, xr_dss = utilsIO.addConstantsToXarray(xr_ds, xr_dss, component_dict, constants_iteration_dict) 
 
     #STEP 7. Add the data present in esm_dict as xarray attributes 
     # (These attributes contain esM init info). 
@@ -116,8 +122,33 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
     #STEP 8. Save to netCDF file 
     if save:
         saveNetcdfFile(xr_ds, file_name)
+
+        if groups:
+
+            # Create netCDF file, remove existant
+            grouped_file_path = f"grouped_{file_name}"
+            if Path(grouped_file_path).is_file():
+                Path(grouped_file_path).unlink()
+            rootgrp = Dataset(grouped_file_path, "w", format="NETCDF4")
+            rootgrp.close()
+
+            for model, comps  in xr_dss.items():
+                for component in comps.keys():
+                    xr_dss[model][component].to_netcdf(
+                        path=f"grouped_{file_name}",
+                        # Datasets per component will be reflectes as groups in the NetCDF file.
+                        group=f"parameters/{model}/{component}",
+                        # Use mode='a' to append datasets to existing file. Variables will be overwritten.
+                        mode="a",
+                        # Use zlib variable compression to reduce filesize with little performance loss
+                        # for our use-case. Complevel 9 for best compression.
+                        encoding={
+                            var: {"zlib": True, "complevel": 9}
+                            for var in list(xr_dss[model][component].data_vars)
+                        },
+                    )
         
-    return xr_ds
+    return xr_ds, xr_dss
 
 
 def convertXarrayDatasetToEsmInstance(xarray_dataset):

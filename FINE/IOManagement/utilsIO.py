@@ -3,7 +3,7 @@ import warnings
 import math
 import numpy as np
 import pandas as pd
-import xarray as xr 
+import xarray as xr
 
 def transform1dSeriesto2dDataFrame(series, locations, separator='_'):
     """Expands pandas Series into a pandas DataFrame. 
@@ -129,7 +129,7 @@ def generateIterationDicts(component_dict):
     return df_iteration_dict, series_iteration_dict, constants_iteration_dict
 
 
-def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
+def addDFVariablesToXarray(xr_ds, xr_dss, component_dict, df_iteration_dict):
     """Adds all variables whose data is contained in a pd.DataFrame to xarray dataset. 
     These variables are normally regional time series (dimensions - space, time) 
     
@@ -148,7 +148,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
     """
 
     for variable_description, description_tuple_list in df_iteration_dict.items():
-        df_dict = {} 
+        df_dict = {}
 
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
@@ -176,10 +176,29 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
         ds_component[f"ts_{variable_description}"] = df_variable.sort_index().to_xarray() 
 
         xr_ds = xr.merge([xr_ds, ds_component])
-    
-    return xr_ds
+        for comp in df_variable.index.get_level_values(0).unique():
+            this_class = comp.split(", ")[0]
+            this_comp = comp.split(", ")[1]
 
-def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, locations):
+            this_ds_component = (
+                ds_component.sel(component=comp)
+                .squeeze()
+                .reset_coords(names=["component"], drop=True)
+            )
+
+            try:
+                xr_dss[this_class][this_comp] = xr.merge(
+                    [xr_dss[this_class][this_comp], this_ds_component]
+                )
+            except Exception:
+                pass
+
+    return xr_ds, xr_dss
+
+
+def addSeriesVariablesToXarray(
+    xr_ds, xr_dss, component_dict, series_iteration_dict, locations
+):
     """Adds all variables whose data is contained in a pd.Series to xarray dataset. 
     These variables can be either:
         - 2d (dimensions - space, space). Series indices in this case are packed like loc1_loc2
@@ -252,7 +271,23 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             ds_component[f"2d_{variable_description}"] = df_variable.sort_index().to_xarray()  
 
             xr_ds = xr.merge([xr_ds, ds_component])
-        
+
+            for comp in df_variable.index.get_level_values(0).unique():
+                this_class = comp.split(", ")[0]
+                this_comp = comp.split(", ")[1]
+                this_ds_component = (
+                    ds_component.sel(component=comp)
+                    .squeeze()
+                    .reset_coords(names=["component"], drop=True)
+                )
+
+                try:
+                    xr_dss[this_class][this_comp] = xr.merge(
+                        [xr_dss[this_class][this_comp], this_ds_component]
+                    )
+                except Exception:
+                    pass
+
         if len(space_dict) > 0:
             df_variable = pd.concat(space_dict)
             df_variable.index.set_names("component", level=0, inplace=True) 
@@ -260,6 +295,22 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             ds_component[f"1d_{variable_description}"] = df_variable.sort_index().to_xarray()
             
             xr_ds = xr.merge([xr_ds, ds_component])
+
+            for comp in df_variable.index.get_level_values(0).unique():
+                this_class = comp.split(", ")[0]
+                this_comp = comp.split(", ")[1]
+                this_ds_component = (
+                    ds_component.sel(component=comp)
+                    .squeeze()
+                    .reset_coords(names=["component"], drop=True)
+                )
+
+                try:
+                    xr_dss[this_class][this_comp] = xr.merge(
+                        [xr_dss[this_class][this_comp], this_ds_component]
+                    )
+                except Exception:
+                    print(f"No {this_class}.")
 
         if len(time_dict) > 0:
             df_variable = pd.concat(time_dict)
@@ -269,9 +320,27 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             
             xr_ds = xr.merge([xr_ds, ds_component])
 
-    return xr_ds
+            for comp in df_variable.index.get_level_values(0).unique():
+                this_class = comp.split(", ")[0]
+                this_comp = comp.split(", ")[1]
+                this_ds_component = (
+                    ds_component.sel(component=comp)
+                    .squeeze()
+                    .reset_coords(names=["component"], drop=True)
+                )
 
-def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
+                try:
+                    xr_dss[this_class][this_comp] = xr.merge(
+                        [xr_dss[this_class][this_comp], this_ds_component]
+                    )
+                except Exception:
+                    pass
+
+
+    return xr_ds, xr_dss
+
+
+def addConstantsToXarray(xr_ds, xr_dss, component_dict, constants_iteration_dict):
     """Adds all variables whose data is just a constant value, to xarray dataset. 
     
     :param xr_ds: xarray dataset to which the constant value variables should be added 
@@ -311,8 +380,24 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
         ds_component[f"0d_{variable_description}"] = xr.DataArray.from_series(df_variable)
         
         xr_ds = xr.merge([xr_ds, ds_component])
+        for comp in df_variable.index.get_level_values(0).unique():
+            this_class = comp.split(", ")[0]
+            this_comp = comp.split(", ")[1]
+            this_ds_component = (
+                ds_component.sel(component=comp)
+                .squeeze()
+                .reset_coords(names=["component"], drop=True)
+            )
 
-    return xr_ds
+            try:
+                xr_dss[this_class][this_comp] = xr.merge(
+                    [xr_dss[this_class][this_comp], this_ds_component]
+                )
+            except Exception:
+                print(f"No {this_class}.")
+
+    return xr_ds, xr_dss
+
 
 def processXarrayAttributes(xarray_dataset):
     """Data types such as sets, dicts, bool, pandas df/series and Nonetype
