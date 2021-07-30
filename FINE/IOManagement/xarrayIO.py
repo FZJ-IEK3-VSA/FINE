@@ -137,7 +137,7 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
                     xr_dss[model][component].to_netcdf(
                         path=f"grouped_{file_name}",
                         # Datasets per component will be reflectes as groups in the NetCDF file.
-                        group=f"parameters/{model}/{component}",
+                        group=f"Parameters/{model}/{component}",
                         # Use mode='a' to append datasets to existing file. Variables will be overwritten.
                         mode="a",
                         # Use zlib variable compression to reduce filesize with little performance loss
