@@ -228,10 +228,6 @@ def writeOptimizationOutputToNetCDF(
     if Path(file_path).is_file():
         if overwrite_existing:
             Path(file_path).unlink()
-        else:
-            raise FileExistsError(
-                f"{file_path} exists. Set `overwrite_existing` to True to overwrite the file."
-            )
 
     utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
     _t = time.time()
@@ -380,7 +376,7 @@ def writeOptimizationOutputToNetCDF(
             xr_dss[name][component].to_netcdf(
                 path=file_path,
                 # Datasets per component will be reflectes as groups in the NetCDF file.
-                group=f"/{name}/{component}",
+                group=f"Results/{name}/{component}",
                 # Use mode='a' to append datasets to existing file. Variables will be overwritten.
                 mode="a",
                 # Use zlib variable compression to reduce filesize with little performance loss
@@ -392,7 +388,9 @@ def writeOptimizationOutputToNetCDF(
             )
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
-    return xr_dss
+    xr_dss_results = {"Results": xr_dss}
+
+    return xr_dss_results
 
 
 def readOptimizationOutputFromNetCDF(
