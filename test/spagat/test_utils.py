@@ -5,6 +5,7 @@ import shutil
 import pandas as pd
 import numpy as np 
 import xarray as xr 
+import geopandas as gpd
 from shapely.geometry import Point, Polygon
 import matplotlib.pyplot as plt
 
@@ -57,16 +58,12 @@ def test_create_gdf():
     spu.create_gdf(df, geometries, crs, file_path=path_to_test_dir, files_name = file_name)
     
     #EXPECTED 
-    ## File extensions 
-    file_extensions_list = ['.cpg', '.dbf', '.prj', '.shp', '.shx']
-
-    #ASSERTION
-    for file_extension in file_extensions_list:
-        expected_file_path = os.path.join(path_to_test_dir, f'{file_name}.shp')
-        assert os.path.isfile(expected_file_path)
+    output_shp = gpd.read_file(os.path.join(path_to_test_dir, f'{file_name}.shp'))
+    assert list(output_shp.columns) == ['space', 'geometry']
 
     #Delete test_dir 
-    shutil.rmtree(path_to_test_dir)   #INFO: os.rmdir() does not delete folder that is not empty 
+    shutil.rmtree(path_to_test_dir)  
+
 
 def test_add_objects_and_space_coords_to_xarray():
 
