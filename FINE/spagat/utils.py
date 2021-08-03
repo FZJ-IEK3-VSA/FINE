@@ -93,7 +93,7 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name = 'xr_region
     gdf = gpd.GeoDataFrame(df, geometry=geometries, crs=f'epsg:{crs}') 
 
     if file_path is not None:  
-        gdf['geometry'].to_file(file_path, layer = f'{files_name}') 
+        gdf.to_file(file_path, layer = f'{files_name}') 
 
     return gdf
 
