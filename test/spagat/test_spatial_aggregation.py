@@ -26,7 +26,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(use_saved_file,
 
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefile = SHAPEFILE_PATH, 
-                                                                nRegionsForRepresentation = 8,
+                                                                n_groups = 8,
                                                                 aggregatedResultsPath = PATH_TO_SAVE,
                                                                 aggregated_xr_filename = netcdf_file_name,
                                                                 shp_name = shp_file_name )   

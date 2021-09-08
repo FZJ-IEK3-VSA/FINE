@@ -14,12 +14,12 @@ from FINE.IOManagement import xarrayIO as xrIO
 logger_spagat = logging.getLogger('spatial_aggregation')
 
 def perform_spatial_aggregation(xr_dataset,
-                            shapefile, 
-                            grouping_mode='parameter_based', 
-                            nRegionsForRepresentation=2,
-                            aggregatedResultsPath=None,
-                            **kwargs):
-    """Performs spatial grouping of regions (by calling the functions in grouping.py) 
+                                shapefile, 
+                                grouping_mode='parameter_based', 
+                                n_groups = 3, 
+                                aggregatedResultsPath=None,
+                                **kwargs):
+    """Performs spatial grouping of regions (by calling the functions in grouping.py) #TODO: update docstring 
     and then representation of the data within each region group (by calling functions 
     in representation.py).
 
@@ -65,9 +65,9 @@ def perform_spatial_aggregation(xr_dataset,
         raise ValueError("Atleast two regions must be present in shapefile and data \
             in order to perform spatial aggregation")
     
-    if n_geometries < nRegionsForRepresentation:
-        raise ValueError(f"{n_geometries} regions cannot be reduced to {nRegionsForRepresentation} \
-            regions. Please provide a valid number for nRegionsForRepresentation")
+    if n_geometries < n_groups:
+        raise ValueError(f"{n_geometries} regions cannot be reduced to {n_groups} \
+            regions. Please provide a valid number for n_groups")
 
     #STEP 2. Read xr_dataset
     if isinstance(xr_dataset, str): 
@@ -95,47 +95,36 @@ def perform_spatial_aggregation(xr_dataset,
 
     elif grouping_mode == 'distance_based':
 
-        save_path = kwargs.get('save_path', None) 
-        fig_name = kwargs.get('fig_name', None)
-        verbose = kwargs.get('verbose', False)
-            
         logger_spagat.info(f'Performing distance-based grouping on the regions')
 
         aggregation_dict = spg.perform_distance_based_grouping(xr_dataset,
-                                                            save_path,
-                                                            fig_name, 
-                                                            verbose)
+                                                               n_groups)
 
     elif grouping_mode == 'parameter_based':
 
-        linkage = kwargs.get('linkage', 'complete') 
         weights = kwargs.get('weights', None) 
+        aggregation_method = kwargs.get('aggregation_method', 'skater')
 
         logger_spagat.info(f'Performing parameter-based grouping on the regions.')
 
         aggregation_dict = spg.perform_parameter_based_grouping(xr_dataset, 
-                                                                linkage,
-                                                                weights)
+                                                                n_groups = n_groups, 
+                                                                aggregation_method = aggregation_method, 
+                                                                weights = weights)
 
     else:
-        raise ValueError(f'The grouping mode {grouping_mode} is not valid. Please choosen one of \
+        raise ValueError(f'The grouping mode {grouping_mode} is not valid. Please choose one of \
         the valid grouping mode among: string_based, distance_based, parameter_based')
 
     
-    #STEP 5. Representation of the new regions
-    if grouping_mode == 'string_based':
-        sub_to_sup_region_id_dict = aggregation_dict #INFO: Not a nested dict for different #regions
-    else:
-        sub_to_sup_region_id_dict = aggregation_dict.get(nRegionsForRepresentation)
-    
+    #STEP 5. Representation of the new regions    
     if 'aggregation_function_dict' not in kwargs:
         aggregation_function_dict = None
     else: 
-        logger_spagat.info('aggregation_function_dict found in kwargs')
         aggregation_function_dict = kwargs.get('aggregation_function_dict')
     
     aggregated_xr_dataset = spr.aggregate_based_on_sub_to_sup_region_id_dict(xr_dataset,
-                                                                sub_to_sup_region_id_dict,
+                                                                aggregation_dict,
                                                                 aggregation_function_dict) 
     
     #STEP 6. Save shapefiles and aggregated xarray dataset if user chooses

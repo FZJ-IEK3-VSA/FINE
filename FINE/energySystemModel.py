@@ -404,11 +404,11 @@ class EnergySystemModel:
     def aggregateSpatially(self,             
                         shapefile, 
                         grouping_mode='parameter_based', 
-                        nRegionsForRepresentation=2,
+                        n_groups=2,
                         aggregatedResultsPath=None,
                         **kwargs): 
         """Spatially clusters the data of all components considered in the Energy System Model (esM) instance 
-        and returns a new esM instance with the aggregated data. 
+        and returns a new esM instance with the aggregated data.  #TODO: update docstrings 
 
         :param shapefile: Either the path to the shapefile or the read-in shapefile
         :type shapefile: string, GeoDataFrame 
@@ -445,7 +445,7 @@ class EnergySystemModel:
         aggregated_xr_dataset = spa.perform_spatial_aggregation(xr_dataset,
                                                             shapefile, 
                                                             grouping_mode, 
-                                                            nRegionsForRepresentation,
+                                                            n_groups,
                                                             aggregatedResultsPath,
                                                             **kwargs)
                                               

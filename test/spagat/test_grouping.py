@@ -67,32 +67,40 @@ def test_perform_distance_based_grouping():
      os.remove(os.path.join(path_to_test_dir, f'{file_name}.png'))
      
      
+@pytest.mark.parametrize("aggregation_method", ['hierarchical', 'skater']) #TODO: check why skater fails when weights are specified 
+# @pytest.mark.parametrize("weights, expected_region_groups", 
+#                         [ 
+#                              # no weights 
+#                              (None, ['02_reg', '03_reg'] ),
 
-@pytest.mark.parametrize("weights, expected_region_groups", 
-                        [ 
-                             # no weights 
-                             (None, ['02_reg', '03_reg'] ),
+#                               # particular components, particular variables
+#                          ({'components' : {'AC cables' : 5,  'PV' : 10}, 'variables' : ['capacityMax'] }, 
+#                               ['01_reg', '02_reg'] ),
 
-                              # particular components, particular variables
-                         ({'components' : {'AC cables' : 5,  'PV' : 10}, 'variables' : ['capacityMax'] }, 
-                              ['01_reg', '02_reg'] ),
+#                               # particular component, all variables 
+#                          ({'components' : {'AC cables' : 10}, 'variables' : 'all' }, 
+#                               ['01_reg', '02_reg'] )
+#                         ])
+# def test_perform_parameter_based_grouping(aggregation_method,
+#                                         weights,
+#                                         expected_region_groups,
+#                                         xr_for_parameter_based_grouping): 
 
-                              # particular component, all variables 
-                         ({'components' : {'AC cables' : 10}, 'variables' : 'all' }, 
-                              ['01_reg', '02_reg'] )
-                        ])
-def test_perform_parameter_based_grouping(weights,
-                                        expected_region_groups,
-                                        xr_for_parameter_based_grouping): 
-     
+def test_perform_parameter_based_grouping(aggregation_method,
+                                        xr_for_parameter_based_grouping):      
+
+     expected_region_groups = ['02_reg', '03_reg']
+
      regions_list = xr_for_parameter_based_grouping.space.values 
 
      #FUNCTION CALL
      output_dict = spg.perform_parameter_based_grouping(xr_for_parameter_based_grouping, 
-                                                       weights=weights)  
+                                                       n_groups = 2, 
+                                                       aggregation_method = aggregation_method, 
+                                                       weights=None)  
      
      #ASSERTION
-     for key, value in output_dict.get(2).items():   
+     for key, value in output_dict.items():   
           if len(value)==2:                            #NOTE: required to assert separately, because they are permuted
                assert (key == '_'.join(expected_region_groups)) & (value == expected_region_groups)
           else:

@@ -3,12 +3,12 @@ fewer regions while minimizing information loss.
 """
 import logging
 
+import math 
 import numpy as np
-import matplotlib.pyplot as plt
 
-from scipy.cluster import hierarchy
-from sklearn import metrics
 import sklearn.cluster as skc
+import libpysal.weights as wgt
+from spopt.region.skater import SpanningForest
 
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping_utils as gu
@@ -49,10 +49,8 @@ def perform_string_based_grouping(regions):
 
 @spu.timer
 def perform_distance_based_grouping(xarray_dataset, 
-                                save_path = None, 
-                                fig_name=None, 
-                                verbose=False):
-    """Groups regions based on the regions' centroid distances, 
+                                    n_groups = 3):
+    """Groups regions based on the regions' centroid distances,  #TODO: update docstirng 
     using sklearn's hierarchical clustering.
 
     Parameters
@@ -72,110 +70,37 @@ def perform_distance_based_grouping(xarray_dataset,
 
     Returns
     -------
-    aggregation_dict : Dict[int, Dict[str, List[str]]]
+    aggregation_dict : Dict[int, Dict[str, List[str]]] 
         A nested dictionary containing results of spatial grouping at various levels/number of groups
         - Ex. {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},
                2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
                1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
     """
-    
     centroids = np.asarray([[point.item().x, point.item().y] for point in xarray_dataset.gpd_centroids])/1000  # km
     regions_list = xarray_dataset['space'].values
-    n_regions = len(regions_list)
-    
+
+    #STEP 1. Compute hierarchical clustering
+    model = skc.AgglomerativeClustering(n_clusters=n_groups).fit(centroids)
+
+    #STEP 2. Create a regions dictionary for the aggregated regions
     aggregation_dict = {}
-    aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
-
-
-    #STEP 1. Clustering for each number of regions from 1 to total number present in the original resolution
-    for i in range(1, n_regions):
-
-        #STEP 1a. Compute hierarchical clustering
-        model = skc.AgglomerativeClustering(n_clusters=i).fit(centroids)
-        regions_label_list = model.labels_
-
-        #STEP 1b. Create a regions dictionary for the aggregated regions
-        regions_dict = {}
-        for label in range(i):
-            # Group the regions of this regions label
-            sub_regions_list = list(regions_list[regions_label_list == label])
-            sup_region_id = '_'.join(sub_regions_list)
-            regions_dict[sup_region_id] = sub_regions_list.copy()
-        
-        if verbose:
-            logger_grouping.info(f'{i}')
-            logger_grouping.info(f'lables: {regions_label_list}')
-            for sup_region_id, sub_regions_list in regions_dict.items():
-                logger_grouping.info(f'sup_region_id: {sub_regions_list}')
-
-        #STEP 1c. Append the dict to main dict 
-        aggregation_dict[i] = regions_dict.copy()
-
-    #STEP 2. Create linkage matrix 
-    #STEP 2a. Obtain clustering tree
-    clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, n_clusters=None).fit(centroids)
-
-    #STEP 2b. Create the counts of samples under each node
-    counts = np.zeros(clustering_tree.children_.shape[0])
-    n_samples = len(clustering_tree.labels_)
-    for i, merge in enumerate(clustering_tree.children_):
-        current_count = 0
-        for child_idx in merge:
-            if child_idx < n_samples:
-                current_count += 1  # leaf node
-            else:
-                current_count += counts[child_idx - n_samples]
-        counts[i] = current_count
-
-    #STEP 2c. Obtain linkage matrix    
-    linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
+    for label in range(n_groups):
+        # Group the regions of this regions label
+        sub_regions_list = list(regions_list[model.labels_== label])
+        sup_region_id = '_'.join(sub_regions_list)
+        aggregation_dict[sup_region_id] = sub_regions_list.copy()
     
-    #STEP 3. Create and save dendrogram (from linkage matrix) if user specifies 
-    if fig_name is None: fig_name = 'sklearn_hierarchical_dendrogram'
 
-    if save_path is not None:
-        fig, ax = plt.subplots(figsize=(25, 12))
-
-        R = hierarchy.dendrogram(linkage_matrix, 
-                                orientation="top",
-                                labels=xarray_dataset['space'].values, 
-                                ax=ax, 
-                                leaf_font_size=14
-                                )
-
-        spu.plt_savefig(save_name=fig_name, path=save_path)
-    
-    #STEP 3. Obtain distance matrix
-    distance_matrix = hierarchy.distance.pdist(centroids)
-
-    #STEP 4. Evaluation 
-    logger_grouping.info('Statistics on clustering:')
-
-    #STEP 4a. Cophenetic correlation coefficients
-    cophenetic_correlation_coefficient = hierarchy.cophenet(linkage_matrix, distance_matrix)[0]
-    logger_grouping.info(f'The cophenetic correlation coefficient is {cophenetic_correlation_coefficient}')
-
-    #STEP 4b. Inconsistency coefficients (in a plot)
-    fig, ax = plt.subplots(figsize=(18,7))
-    inconsistency = hierarchy.inconsistent(linkage_matrix)
-    ax.plot(range(1,len(linkage_matrix)+1),list(inconsistency[:,3]),'go-')
-    ax.set_title('Inconsistency Coefficients: indicates where to cut the hierarchy', fontsize=14)
-    ax.set_xlabel('Linkage height', fontsize=12)
-    ax.set_ylabel('Inconsistencies', fontsize=12)
-
-    plt.xticks(np.arange(1, len(linkage_matrix)+1, 1))
-    plt.show(block=False)
-
-    
     return aggregation_dict
 
 
 
 @spu.timer
 def perform_parameter_based_grouping(xarray_dataset,
-                                    linkage='complete',
+                                    n_groups = 3, 
+                                    aggregation_method = 'skater', 
                                     weights=None):
-    """Groups regions based on the Energy System Model instance's data. 
+    """Groups regions based on the Energy System Model instance's data. #TODO: update the doc string 
     This data may consist of -
         a. regional time series variables such as operationRateMax of PVs
         b. regional values such as capacityMax of PVs
@@ -254,67 +179,73 @@ def perform_parameter_based_grouping(xarray_dataset,
                                                             weights)
     
     #STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not. 
-    connectMatrix = gu.get_connectivity_matrix(xarray_dataset)
+    connectivity_matrix = gu.get_connectivity_matrix(xarray_dataset)
 
-    silhouette_scores = []
-
-    #STEP 4. Clustering for every number of regions from 1 to one less than n_regions 
-    for i in range(1,n_regions):           
-
-        #STEP 4a. Hierarchical clustering with average linkage
-        model = skc.AgglomerativeClustering(n_clusters=i,
+    if aggregation_method == 'hierarchical':
+               
+        model = skc.AgglomerativeClustering(n_clusters=n_groups,
                                             affinity='precomputed',
-                                            linkage=linkage,
-                                            connectivity=connectMatrix).fit(precomputed_dist_matrix)
-        regions_label_list = model.labels_
-
-        #STEP 4b. Silhouette Coefficient score 
-        if i != 1:
-            s = metrics.silhouette_score(precomputed_dist_matrix, regions_label_list, metric='precomputed')
-            silhouette_scores.append(s)
+                                            linkage='complete',
+                                            connectivity=connectivity_matrix).fit(precomputed_dist_matrix)
 
         #STEP 4c. Aggregated regions dict
-        regions_dict = {}
-        for label in range(i):
+        aggregation_dict = {}
+        for label in range(n_groups):
             # Group the regions of this regions label
-            sub_regions_list = list(regions_list[regions_label_list == label])
+            sub_regions_list = list(regions_list[model.labels_== label])
             sup_region_id = '_'.join(sub_regions_list)
-            regions_dict[sup_region_id] = sub_regions_list.copy()
+            aggregation_dict[sup_region_id] = sub_regions_list.copy()
 
-        aggregation_dict[i] = regions_dict.copy()
 
-    #STEP 5. Plot the hierarchical tree dendrogram
-    clustering_tree = skc.AgglomerativeClustering(distance_threshold=0, 
-                                                    n_clusters=None, 
-                                                    affinity='precomputed', 
-                                                    linkage=linkage,
-                                                    connectivity=connectMatrix).fit(precomputed_dist_matrix)
+    elif aggregation_method == 'skater':
 
-    #STEP 6. Cophenetic correlation coefficient                                              
-    counts = np.zeros(clustering_tree.children_.shape[0])
-    n_samples = len(clustering_tree.labels_)
-    for i, merge in enumerate(clustering_tree.children_):
-        current_count = 0
-        for child_idx in merge:
-            if child_idx < n_samples:
-                current_count += 1  # leaf node
-            else:
-                current_count += counts[child_idx - n_samples]
-        counts[i] = current_count
+        # get the connectivity in the format required by skater 
+        n_rows, n_cols = connectivity_matrix.shape
+        custom_neighbors = {}
+        for i in range(n_rows):
+            neighbors = []
+            for j in range(n_cols):
+                if (i!=j and connectivity_matrix[i,j] == 1):
+                    neighbors.append(j)
+            custom_neighbors.update({i:neighbors})
+
+        contiguity_weights = wgt.W(custom_neighbors)   
         
-    linkage_matrix = np.column_stack([clustering_tree.children_, clustering_tree.distances_, counts]).astype(float)   
-    
-    distance_matrix = hierarchy.distance.squareform(precomputed_dist_matrix)
-    logger_grouping.info(f'The cophenetic correlation coefficient of the hiearchical \
-        clustering is {hierarchy.cophenet(linkage_matrix, distance_matrix)[0]}')
-    
-    #STEP 7. Check for inconsistency                    
-    inconsistency = hierarchy.inconsistent(linkage_matrix)
-    logger_grouping.info(f'Inconsistencies: {list(inconsistency[:,3])}')
-    
-    #STEP 8. Print Silhouette scores 
-    logger_grouping.info(f'Silhouette scores: {silhouette_scores}')
+        # start skater algorithm 
+        n = 0
+        final_n_clusters = 0 
 
+        print(f'Original quorum per region group: {math.floor(n_regions/n_groups)}')
+
+        while final_n_clusters != n_groups:
+            
+            min_reg_per_group = math.floor(n_regions/(n_groups+n))
+            
+            model = SpanningForest(dissimilarity='precomputed', reduction=np.max).fit(n_groups,
+                                                                                        W=contiguity_weights,
+                                                                                        data=precomputed_dist_matrix,
+                                                                                        quorum=min_reg_per_group,
+                                                                                        trace=False,
+                                                                                        islands="increase")
+            final_n_clusters = len(np.unique(model.current_labels_))
+            n += 1
+
+        print(f'Final quorum per region: {min_reg_per_group}')
+
+        #STEP 4c. Aggregated regions dict
+        aggregation_dict = {}
+        for label in range(n_groups):
+            # Group the regions of this regions label
+            sub_regions_list = list(regions_list[model.current_labels_ == label])
+            sup_region_id = '_'.join(sub_regions_list)
+            aggregation_dict[sup_region_id] = sub_regions_list.copy()
+
+
+    else: 
+        raise ValueError(f'The aggregation method {aggregation_method} is not valid. Please choose either \
+        skater or hierarchical')
+
+        
     return aggregation_dict
 
 
