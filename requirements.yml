@@ -31,4 +31,4 @@ dependencies:
 - pip:
     - tsam
     - wquantiles
-    - git+https://github.com/ljwolf/spopt/main
+    - git+https://github.com/ljwolf/spopt@main
