@@ -6,6 +6,7 @@ dependencies:
 - conda-forge::geopandas
 - conda-forge::jupyter
 - conda-forge::notebook
+- conda-forge::libpysal
 - pip
 - descartes
 - glpk
@@ -30,3 +31,4 @@ dependencies:
 - pip:
     - tsam
     - wquantiles
+    - git+https://github.com/ljwolf/spopt
