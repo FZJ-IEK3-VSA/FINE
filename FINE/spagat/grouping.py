@@ -9,6 +9,7 @@ import numpy as np
 import sklearn.cluster as skc
 import libpysal.weights as wgt
 from spopt.region.skater import SpanningForest
+from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
 
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping_utils as gu
@@ -238,9 +239,31 @@ def perform_parameter_based_grouping(xarray_dataset,
             # Group the regions of this regions label
             sub_regions_list = list(regions_list[model.current_labels_ == label])
             sup_region_id = '_'.join(sub_regions_list)
-            aggregation_dict[sup_region_id] = sub_regions_list.copy()
+            aggregation_dict[sup_region_id] = sub_regions_list.copy()   
 
+    elif aggregation_method == 'kmedoids_contiguity':
+        
+        r_y, r_x, r_obj = k_medoids_contiguity(precomputed_dist_matrix, 
+                                                n_groups, 
+                                                connectivity_matrix, 
+                                                solver="gurobi")
+        labels_raw = r_x.argmax(axis=0)
 
+        # correct labels 
+        i = 0
+        for label in np.unique(labels_raw):
+            labels_raw[labels_raw == label] = i
+            i += 1
+
+        # Aggregated regions dict
+        aggregation_dict = {}
+        for label in range(n_groups):
+            # Group the regions of this regions label
+            sub_regions_list = list(regions_list[labels_raw == label])
+            sup_region_id = '_'.join(sub_regions_list)
+            aggregation_dict[sup_region_id] = sub_regions_list.copy()   
+
+        
     else: 
         raise ValueError(f'The aggregation method {aggregation_method} is not valid. Please choose either \
         skater or hierarchical')
