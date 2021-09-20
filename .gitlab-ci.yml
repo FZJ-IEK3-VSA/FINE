@@ -49,6 +49,7 @@ test-notebooks:
       - develop
       - include_dockerfile
       - 161-exclude-cells-with-gpd-from-testing
+      - fix_example_notebooks
 
 prebuild:
   stage: prebuild

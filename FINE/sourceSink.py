@@ -269,6 +269,7 @@ class Source(Component):
             utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
                                            self.isBuiltFix, self.hasCapacityVariable, operationTimeSeries)
 
+
     def addToEnergySystemModel(self, esM):
         """
         Function for adding a source component to the given energy system model.

@@ -13,7 +13,7 @@ def test_segmentation(minimal_test_esM):
     # Then, the four time steps of the model are represented by two 4380-hourly typical periods with two segments per
     # typical period, so effectively the data is not aggregated.
     esM2 = minimal_test_esM
-    esM2.cluster(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=2, storeTSAinstance=False,
+    esM2.aggregateTemporally(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=2, storeTSAinstance=False,
                  segmentation=True, numberOfSegmentsPerPeriod=2, clusterMethod='hierarchical',
                  sortValues=False, rescaleClusterPeriods=False)
     esM2.optimize(timeSeriesAggregation=True, solver='glpk')
@@ -26,14 +26,14 @@ def test_segmentation(minimal_test_esM):
     # First, the mini system is clustered to one period with four time steps that is further segmented to three segments
     # so that the first segment is twice as long as the first and the second segment.
     esM3 = minimal_test_esM
-    esM3.cluster(numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=4, storeTSAinstance=False,
+    esM3.aggregateTemporally(numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=4, storeTSAinstance=False,
                  segmentation=True, numberOfSegmentsPerPeriod=3, clusterMethod='hierarchical',
                  sortValues=False, rescaleClusterPeriods=False)
     esM3.optimize(timeSeriesAggregation=True, solver='glpk')
     # Then, the model is optimized again with two 4380-hourly periods that are segmented to one segment per period, i.e.
     # the model contains only two time steps in total with averaged values in each period.
     esM4 = minimal_test_esM
-    esM4.cluster(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=2, storeTSAinstance=False,
+    esM4.aggregateTemporally(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=2, storeTSAinstance=False,
                  segmentation=True, numberOfSegmentsPerPeriod=1, clusterMethod='hierarchical',
                  sortValues=False, rescaleClusterPeriods=False)
     esM4.optimize(timeSeriesAggregation=True, solver='glpk')

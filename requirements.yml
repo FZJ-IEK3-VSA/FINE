@@ -1,6 +1,7 @@
 name: FINE
 dependencies:
 - python=3.6
+- conda-forge::libiconv
 - conda-forge::gdal=2.4.1
 - conda-forge::geopandas
 - conda-forge::jupyter
@@ -21,5 +22,11 @@ dependencies:
 - pyDOE
 - sphinx_rtd_theme
 - scikit-learn
+- xarray
+- statsmodels
+- seaborn
+- conda-forge::rasterio
+
 - pip:
     - tsam
+    - wquantiles

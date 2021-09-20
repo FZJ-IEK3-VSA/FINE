@@ -11,4 +11,8 @@ networkx>=2.4
 scipy>=1.4.1
 shapely
 openpyxl
-
+netcdf4
+xarray
+wquantiles
+statsmodels
+seaborn

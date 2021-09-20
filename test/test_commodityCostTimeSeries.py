@@ -23,6 +23,8 @@
 
 import FINE as fn
 import pandas as pd
+import numpy as np
+import os 
 
 def test_miniSystem():
     locations = {'loc1','loc2'}
@@ -58,7 +60,7 @@ def test_miniSystem():
     assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc1'] == 730
     assert summary.loc[('Electricity purchase','TAC','[Euro/a]'),'loc2'] == 2920
 
-    esM.cluster(numberOfTypicalPeriods=5, numberOfTimeStepsPerPeriod=1)
+    esM.aggregateTemporally(numberOfTypicalPeriods=5, numberOfTimeStepsPerPeriod=1)
 
     esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 

@@ -371,16 +371,21 @@ esM.add(fn.Sink(esM=esM, name='CO2 to enviroment', commodity='CO2',
                 hasCapacityVariable=False, commodityLimitID='CO2 limit', yearlyLimit=366*(1-CO2_reductionTarget)))
 
 # %% [markdown]
-# # 8. Optimize energy system model
-
-# %% [markdown]
 # All components are now added to the model and the model can be optimized. If the computational complexity of the optimization should be reduced, the time series data of the specified components can be clustered before the optimization and the parameter timeSeriesAggregation is set to True in the optimize call.
 
-# %% tags=["nbval-skip"]
-esM.cluster(numberOfTypicalPeriods=7)
+# %% [markdown]
+# # 8 Temporal Aggregation
+
+# %% tags=["nbval-ignore-output"]
+esM.aggregateTemporally(numberOfTypicalPeriods=7)
+
+# %% [markdown]
+# ### Optimization
 
 # %% tags=["nbval-skip"]
-esM.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0')
+# The `optimizationSpecs` only work with the Gurobi solver. If you are using another solver you need to choose 
+# specs spcecific to this solver or no specs.
+esM.optimize(timeSeriesAggregation=True, optimizationSpecs='OptimalityTol=1e-3 method=2 cuts=0 MIPGap=5e-3')
 
 # %% [markdown]
 # # 9. Selected results output
@@ -393,6 +398,8 @@ import geopandas as gpd
 
 # %% tags=["nbval-skip"]
 locFilePath = os.path.join(cwd, 'InputData', 'SpatialData','ShapeFiles', 'clusteredRegions.shp')
+
+# %% tags=["nbval-skip"]
 fig, ax = fn.plotLocations(locFilePath, plotLocNames=True, indexColumn='index')
 
 # %% [markdown]
@@ -468,10 +475,39 @@ fig, ax = fn.plotOperationColorMap(esM, 'Salt caverns (hydrogen)', 'cluster_2',
 # Show optimization summary
 
 # %% tags=["nbval-skip"]
+esM.getOptimizationSummary("TransmissionModel", outputLevel=2)
+
+# %% tags=["nbval-skip"]
 esM.getOptimizationSummary("TransmissionModel", outputLevel=2).loc['Pipelines (hydrogen)']
 
 # %% [markdown]
 # Check that the shared capacity of the pipelines are not exceeded
+
+# %% tags=["nbval-skip"]
+df=esM.componentModelingDict["TransmissionModel"].capacityVariablesOptimum
+df.loc['Pipelines (biogas)']+df.loc['Pipelines (hydrogen)']
+
+# %% [markdown]
+# Plot installed transmission capacities
+
+# %% tags=["nbval-skip"]
+transFilePath = os.path.join(cwd, 'InputData', 'SpatialData','ShapeFiles', 'AClines.shp')
+
+fig, ax = fn.plotLocations(locFilePath, indexColumn='index')                                 
+fig, ax = fn.plotTransmission(esM, 'AC cables', transFilePath, loc0='bus0', loc1='bus1', fig=fig, ax=ax)
+
+# %% tags=["nbval-skip"]
+transFilePath = os.path.join(cwd, 'InputData', 'SpatialData','ShapeFiles', 'DClines.shp')
+
+fig, ax = fn.plotLocations(locFilePath, indexColumn='index')                                 
+fig, ax = fn.plotTransmission(esM, 'DC cables', transFilePath, loc0='cluster0', loc1='cluster1', fig=fig, ax=ax)
+
+# %% tags=["nbval-skip"]
+transFilePath = os.path.join(cwd, 'InputData', 'SpatialData','ShapeFiles', 'transmissionPipeline.shp')
+
+fig, ax = fn.plotLocations(locFilePath, indexColumn='index')                                 
+fig, ax = fn.plotTransmission(esM, 'Pipelines (hydrogen)', transFilePath, loc0='loc1', loc1='loc2',
+                              fig=fig, ax=ax)
 
 # %% tags=["nbval-skip"]
 df=esM.componentModelingDict["TransmissionModel"].capacityVariablesOptimum
@@ -506,7 +542,7 @@ fig, ax = fn.plotLocations(locFilePath, indexColumn='index')
 fig, ax = fn.plotTransmission(esM, 'Pipelines (biogas)', transFilePath, loc0='loc1', loc1='loc2',
                               fig=fig, ax=ax)
 
-# %% [markdown]
+# %% [markdown] tags=["nbval-skip"]
 # # Postprocessing: Determine robust pipeline design
 
 # %% tags=["nbval-skip"]
@@ -550,6 +586,7 @@ p_min_nodes = {'cluster_5': 60, 'cluster_3': 50, 'cluster_7': 50, 'cluster_1': 6
 p_max_nodes = {'cluster_5': 100, 'cluster_3': 100, 'cluster_7': 100, 'cluster_1': 90, 'cluster_6': 100,
                'cluster_4': 100, 'cluster_0': 100, 'cluster_2': 100}
 
+
 # %% tags=["nbval-skip"]
 # Specify the investment cost of the available diameter classes in €/m
 
@@ -565,13 +602,14 @@ dic_diameter_costs = {0.1063: 37.51, 0.1307: 38.45, 0.1593: 39.64, 0.2065: 42.12
 # For parallel pipes
 dic_candidateMergedDiam_costs={1.342: 235.4, 1.444: 263.66, 1.536: 293.78}
 
+
 # %% tags=["nbval-skip"]
 # Choose if a robust pipeline desin should be determined or the design should be optimized based on the
 # given injection and withdrawal rates only
 robust = True
 
 # %% [markdown]
-# ### Determine design for simple network structure
+# ## Determine design for simple network structure
 
 # %% tags=["nbval-skip"]
 # Compute with 7 threads and simple network structure
@@ -666,5 +704,3 @@ fig, ax =robustPipelineSizing.plotOptimizedNetwork(gdfEdges, gdf_regions=gdf_reg
 # %% tags=["nbval-skip"]
 fig, ax =robustPipelineSizing.plotOptimizedNetwork(gdfEdges, gdf_regions=gdf_regions, figsize=(5,5),
     line_scaling=0.9, pressureLevels=scen_max)
-
-# %%

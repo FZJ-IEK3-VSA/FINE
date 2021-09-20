@@ -17,7 +17,7 @@ def test_shadowCostOutPut(minimal_test_esM):
 
     assert np.round(SP.sum(), 4) == 0.2955
 
-    esM.cluster(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
+    esM.aggregateTemporally(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
     esM.optimize(timeSeriesAggregation=True, solver='glpk')
 
     SP = fn.getShadowPrices(esM, esM.pyM.ConstrOperation4_srcSnk,

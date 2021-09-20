@@ -132,7 +132,7 @@ def test_conversionPartLoad():
     ### Optimization ###
     # Input parameters
     timeSeriesAggregation=False
-    solver='glpk'
+    solver='glpk'  
     # Code
     esM.optimize(timeSeriesAggregation=timeSeriesAggregation, solver=solver)
 
