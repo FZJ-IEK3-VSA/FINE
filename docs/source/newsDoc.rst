@@ -5,12 +5,15 @@ FINE's News Feed
 *********************
 Release version 2.2.1
 *********************
-- Not published yet - 
 FINE release (2.2.1) provides some changes in code including 
 
 * compatibility to newer versions of pandas (bugs due to reading .xlsx files are fixed)
 * correct zlabel description for plotLocationalColorMap in standardIO.py
 * add some more documentation to functions
+
+FINE release (2.2.1) fixes a bug in storage.py
+
+* constraints for chargeOperationMax, chargeOperationFix, disChargeOperationMax and dischargeOperationFix should be set up without an error message. 
 
 *********************
 Release version 2.2.0
