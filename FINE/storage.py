@@ -960,14 +960,14 @@ class StorageModel(ComponentModel):
         self.operationMode1(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeRate')
         # Charging of storage [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] multiplied by
         # the hours per time step [h] and the charging operation time series [1/h]
-        self.operationMode2(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateFix')
+        self.operationMode2(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateFix')
         # Charging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied by
         # the hours per time step [h] and the charging operation time series [1/h]
-        self.operationMode3(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateMax')
+        self.operationMode3(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateMax')
         # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
-        self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateFix')
+        self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedCchargeOpRateFix')
         # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
-        self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOpRateMax')
+        self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateMax')
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'chargeOp_bin', 'cap')
         
@@ -978,14 +978,14 @@ class StorageModel(ComponentModel):
         self.operationMode1(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeRate')
         # Discharging of storage [commodityUnit*h] is equal to the installed capacity [commodityUnit*h] multiplied
         # by the hours per time step [h] and the discharging operation time series [1/h]
-        self.operationMode2(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateFix')
+        self.operationMode2(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'processedDischargeOpRateFix')
         # Discharging of storage [commodityUnit*h] is limited by the installed capacity [commodityUnit*h] multiplied
         # by the hours per time step [h] and the discharging operation time series [1/h]
-        self.operationMode3(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateMax')
+        self.operationMode3(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'processedDischargeOpRateMax')
         # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
-        self.operationMode4(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateFix')
+        self.operationMode4(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'processedDischargeOpRateFix')
         # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
-        self.operationMode5(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOpRateMax')
+        self.operationMode5(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'processedDischargeOpRateMax')
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(pyM, esM, 'ConstrDischarge', 'dischargeOpConstrSet', 'dischargeOp', 'dischargeOp_bin', 'cap')
 
