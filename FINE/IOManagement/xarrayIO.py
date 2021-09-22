@@ -257,11 +257,14 @@ def writeOptimizationOutputToNetCDF(
     file_path = outputFileName
 
     # Remove output file if already existant.
-    if Path(file_path).is_file():
         if overwrite_existing:
-            Path(file_path).unlink()
+        Path(file_path).unlink(missing_ok=True)
+
+    if not Path(file_path).is_file():
             rootgrp = Dataset(file_path, "w", format="NETCDF4")
             rootgrp.close()
+    else:
+        raise FileExistsError
 
     utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
     _t = time.time()
