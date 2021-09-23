@@ -121,12 +121,9 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
 
     #STEP 8. Save to netCDF file 
     if save:
-        saveNetcdfFile(xr_ds, file_name)
-
         if groups:
-
             # Create netCDF file, remove existant
-            grouped_file_path = f"grouped_{file_name}"
+            grouped_file_path = f"{file_name}"
             if Path(grouped_file_path).is_file():
                 Path(grouped_file_path).unlink()
             rootgrp = Dataset(grouped_file_path, "w", format="NETCDF4")
@@ -135,9 +132,9 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
             for model, comps  in xr_dss.items():
                 for component in comps.keys():
                     xr_dss[model][component].to_netcdf(
-                        path=f"grouped_{file_name}",
+                        path=f"{file_name}",
                         # Datasets per component will be reflectes as groups in the NetCDF file.
-                        group=f"Parameters/{model}/{component}",
+                        group=f"Input/{model}/{component}",
                         # Use mode='a' to append datasets to existing file. Variables will be overwritten.
                         mode="a",
                         # Use zlib variable compression to reduce filesize with little performance loss
@@ -147,7 +144,10 @@ def convertEsmInstanceToXarrayDataset(esM, save=False, file_name='esM_instance.n
                             for var in list(xr_dss[model][component].data_vars)
                         },
                     )
-    xr_dss = {"Parameters": xr_dss}
+        else:
+            saveNetcdfFile(xr_ds, file_name)
+
+    xr_dss = {"Input": xr_dss}
         
     return xr_ds, xr_dss
 
@@ -213,14 +213,13 @@ def convertXarrayDatasetToEsmInstance(xarray_dataset):
     return esM 
 
 
-
-
 def writeOptimizationOutputToNetCDF(
     esM,
     outputFileName="esM_results.nc4",
     overwrite_existing=False,
     optSumOutputLevel=2,
     optValOutputLevel=1,
+    includeInput=True,
 ) -> Dict[str, Dict[str, xr.Dataset]]:
     """
     Write optimization output to netCDF file.
@@ -257,7 +256,7 @@ def writeOptimizationOutputToNetCDF(
     file_path = outputFileName
 
     # Remove output file if already existant.
-        if overwrite_existing:
+    if overwrite_existing:
         Path(file_path).unlink(missing_ok=True)
 
     if not Path(file_path).is_file():
@@ -395,19 +394,28 @@ def writeOptimizationOutputToNetCDF(
                             [xr_dss[name][component], xr_da]
                         )
 
+    for name in esM.componentModelingDict.keys():
+        for component in esM.componentModelingDict[name].componentsDict.keys():
+            if list(xr_dss[name][component].data_vars) == []:
+                # Delete components that have not been built.
+                del xr_dss[name][component]
+            else:
+        # Cast space coordinats to str. If this is not done then dtype will be object.
+                xr_dss[name][component].coords["space"] = (
+                    xr_dss[name][component].coords["space"].astype(str)
+                )
+                if esM.componentModelingDict[name].dimension == "2dim":
+                    xr_dss[name][component].coords["space_2"] = (
+                        xr_dss[name][component].coords["space_2"].astype(str)
+                    )
+
     utils.output("\tSaving file...", esM.verbose, 0)
 
     # Write to netCDF
-    for name in esM.componentModelingDict.keys():
-        # Cast space coordinats to str. If this is not done then dtype will be object.
-        for component in esM.componentModelingDict[name].componentsDict.keys():
-            xr_dss[name][component].coords["space"] = (
-                xr_dss[name][component].coords["space"].astype(str)
-            )
-            if esM.componentModelingDict[name].dimension == "2dim":
-                xr_dss[name][component].coords["space_2"] = (
-                    xr_dss[name][component].coords["space_2"].astype(str)
-                )
+    # for name in esM.componentModelingDict.keys():
+    for name in xr_dss.keys():
+        for component in xr_dss[name].keys():
+            # for component in esM.componentModelingDict[name].componentsDict.keys():
             xr_dss[name][component].to_netcdf(
                 path=file_path,
                 # Datasets per component will be reflectes as groups in the NetCDF file.
@@ -421,9 +429,15 @@ def writeOptimizationOutputToNetCDF(
                     for var in list(xr_dss[name][component].data_vars)
                 },
             )
+
+    if includeInput:
+        _, input_dss = convertEsmInstanceToXarrayDataset(
+            esM, save=True, file_name=file_path, groups=True
+        )
+
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
-    xr_dss_results = {"Results": xr_dss}
+    xr_dss_results = {"Results": xr_dss, "Input": input_dss}
 
     return xr_dss_results
 
