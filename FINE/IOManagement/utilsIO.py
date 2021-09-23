@@ -482,7 +482,7 @@ def processXarrayAttributes(xarray_dataset):
 
     return xarray_dataset
     
-def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable):
+def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable, drop_component=True):
     """Converts the time series variable data to required format and adds it to 
     component_dict 
     
@@ -501,7 +501,11 @@ def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable
     :return: component_dict
     """
 
-    df = comp_var_xr.drop("component").to_dataframe().unstack(level=1)
+    if drop_component:
+        df = comp_var_xr.drop("component").to_dataframe().unstack(level=1)
+    else:
+        df = comp_var_xr.to_dataframe().unstack(level=1)
+
 
     if len(df.columns) > 1:
         df.columns = df.columns.droplevel(0)
@@ -518,7 +522,7 @@ def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable
 
     return component_dict
 
-def add2dVariableToDict(component_dict, comp_var_xr, component, variable):
+def add2dVariableToDict(component_dict, comp_var_xr, component, variable, drop_component=True):
     """Converts the 2d variable data to required format and adds it to 
     component_dict 
     
@@ -536,7 +540,10 @@ def add2dVariableToDict(component_dict, comp_var_xr, component, variable):
 
     :return: component_dict
     """
-    series = comp_var_xr.drop("component").to_dataframe().stack(level=0)
+    if drop_component:
+        series = comp_var_xr.drop("component").to_dataframe().stack(level=0)
+    else:
+        series = comp_var_xr.to_dataframe().stack(level=0)
     series.index = series.index.droplevel(level=2).map('_'.join)
 
     #NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other 
@@ -556,7 +563,7 @@ def add2dVariableToDict(component_dict, comp_var_xr, component, variable):
 
     return component_dict
 
-def add1dVariableToDict(component_dict, comp_var_xr, component, variable):
+def add1dVariableToDict(component_dict, comp_var_xr, component, variable, drop_component=True):
     """Converts the 1d variable data to required format and adds it to 
     component_dict 
     
@@ -574,7 +581,10 @@ def add1dVariableToDict(component_dict, comp_var_xr, component, variable):
 
     :return: component_dict
     """
-    series = comp_var_xr.drop("component").to_dataframe().unstack(level=0)
+    if drop_component:
+        series = comp_var_xr.drop("component").to_dataframe().unstack(level=0)
+    else:
+        series = comp_var_xr.to_dataframe().unstack(level=0)
     series.index = series.index.droplevel(level=0)
     
     [class_name, comp_name] = component.split(', ')
