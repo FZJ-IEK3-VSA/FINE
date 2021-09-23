@@ -69,11 +69,9 @@ class PowerDict(dict):
 
     def __setitem__(self, key, val):
         dict.__setitem__(self, key, val)
-        try:
+        if isinstance(val, PowerDict): 
             val.parent = self
             val.key = key
-        except AttributeError:
-            pass
 
 def generateIterationDicts(component_dict):
     """Creates iteration dictionaries that contain descriptions of all 
