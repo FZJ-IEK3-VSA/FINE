@@ -2,7 +2,7 @@ import os
 import pytest
 import numpy as np 
 
-import FINE.IOManagement.xarrayIO as xrIO
+import FINE.IOManagement.xarrayIO_spagat as xrIO
 
 @pytest.mark.parametrize("use_saved_file", [True, False])
 def test_esm_to_xr_and_back_during_spatial_aggregation(use_saved_file,

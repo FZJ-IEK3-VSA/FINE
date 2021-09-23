@@ -9,7 +9,7 @@ import FINE.spagat.utils as spu
 import FINE.spagat.grouping as spg
 import FINE.spagat.representation as spr 
 
-from FINE.IOManagement import xarrayIO as xrIO
+from FINE.IOManagement import xarrayIO_spagat as xrIO
 
 logger_spagat = logging.getLogger('spatial_aggregation')
 
