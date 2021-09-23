@@ -433,10 +433,6 @@ def esm_to_netcdf(
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
-    xr_dss_results = {"Results": xr_dss_output["Results"], "Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
-
-    return xr_dss_results
-
 def esm_to_datasets(esM):
 
     xr_dss_output = esm_output_to_datasets(esM)
@@ -448,30 +444,32 @@ def esm_to_datasets(esM):
 
 
 def netcdf_to_datasets(
-    inputFileName="my_esm.nc",
+    file_path="my_esm.nc",
 ) -> Dict[str, Dict[str, xr.Dataset]]:
     """Read optimization results from grouped netCDF file to dictionary of xr.Datasets.
 
-    :param inputFileName: Path to input netCDF file, defaults to "esM_results.nc4"
-    :type inputFileName: str, optional
+    :param file_path: Path to input netCDF file, defaults to "esM_results.nc4"
+    :type file_path: str, optional
 
     :return: Nested dictionary containing an xr.Dataset with all result values for each component.
     :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
 
-    rootgrp = Dataset(inputFileName, "r", format="NETCDF4")
+    rootgrp = Dataset(file_path, "r", format="NETCDF4")
 
     xr_dss = {group_key: 
                  {model_key: 
                     {comp_key: 
-                        xr.open_dataset(inputFileName, group=f"{group_key}/{model_key}/{comp_key}")
+                        xr.open_dataset(file_path, group=f"{group_key}/{model_key}/{comp_key}")
                     for comp_key in rootgrp[group_key][model_key].groups}
                 for model_key in rootgrp[group_key].groups} 
             for group_key in rootgrp.groups if group_key != "Parameters"}
 
-    xr_dss["Parameters"] =  xr.open_dataset(inputFileName, group=f"Parameters")
+    xr_dss["Parameters"] =  xr.open_dataset(file_path, group=f"Parameters")
 
     return xr_dss
 
-def netcdf_to_esm():
-    pass
+def netcdf_to_esm(file_path):
+    dss = netcdf_to_datasets(file_path)
+    esm = datasets_to_esm(dss)
+    return esm
