@@ -5,7 +5,6 @@ import pandas as pd
 import geopandas as gpd
 from scipy.cluster import hierarchy
 
-#TODO: check if there are any unused functions here and delete them
 
 def get_normalized_array(array):
     """Normalize the given matrix to [0,1].

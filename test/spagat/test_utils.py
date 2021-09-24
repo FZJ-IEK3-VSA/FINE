@@ -1,4 +1,3 @@
-import pytest 
 import os
 import shutil
 
@@ -27,22 +26,6 @@ def test_plt_savefig():
     
     #Delete test plot
     os.remove(expected_file)
-
-
-def test_create_dir():
-
-    path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/test_dir/')
-
-    #Test if it can create the folder
-    spu.create_dir(path_to_test_dir)
-    assert os.path.isdir(path_to_test_dir)
-    
-    #Test if it can skip if the folder is already present 
-    spu.create_dir(path_to_test_dir)
-    assert os.path.isdir(path_to_test_dir)
-
-    #Delete test_dir 
-    os.rmdir(path_to_test_dir)
 
 
 def test_create_gdf():

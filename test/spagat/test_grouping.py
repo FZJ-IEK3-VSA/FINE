@@ -47,49 +47,36 @@ def test_perform_distance_based_grouping():
 
      
      #FUNCTION CALL 
-     path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/')  
-     file_name = 'test_fig'
-     expected_file = os.path.join(path_to_test_dir, file_name)
-
-     output_dict = spg.perform_distance_based_grouping(dummy_ds,
-                                                       save_path = path_to_test_dir, 
-                                                       fig_name=file_name)  
+     output_dict = spg.perform_distance_based_grouping(dummy_ds)  
      
 
      #ASSERTION 
-     ## Results for number of aggregated regions = 3 can be checked, because test data has 3 centers 
-     #NOTE: 1 and 5 can also be tested but permutation is making it difficult to test these
-     assert output_dict.get(3) == {'01_reg': ['01_reg'],                    ## Based on sample_labels ([2, 0, 0, 1, 1])       
+     assert output_dict == {'01_reg': ['01_reg'],                    ## Based on sample_labels ([2, 0, 0, 1, 1])       
                               '02_reg_03_reg': ['02_reg', '03_reg'],
                               '04_reg_05_reg': ['04_reg', '05_reg']}  
      
-     # remove the saved figure 
-     os.remove(os.path.join(path_to_test_dir, f'{file_name}.png'))
+
      
      
-@pytest.mark.parametrize("aggregation_method", ['hierarchical', 'skater']) #TODO: check why skater fails when weights are specified 
-# @pytest.mark.parametrize("weights, expected_region_groups", 
-#                         [ 
-#                              # no weights 
-#                              (None, ['02_reg', '03_reg'] ),
+@pytest.mark.parametrize("aggregation_method", ['kmedoids_contiguity', 'hierarchical'])
+@pytest.mark.parametrize("weights, expected_region_groups", 
+                        [ 
+                             # no weights 
+                             (None, ['02_reg', '03_reg'] ),
 
-#                               # particular components, particular variables
-#                          ({'components' : {'AC cables' : 5,  'PV' : 10}, 'variables' : ['capacityMax'] }, 
-#                               ['01_reg', '02_reg'] ),
+                              # particular components, particular variables
+                         ({'components' : {'AC cables' : 5,  'PV' : 10}, 'variables' : ['capacityMax'] }, 
+                              ['01_reg', '02_reg'] ),
 
-#                               # particular component, all variables 
-#                          ({'components' : {'AC cables' : 10}, 'variables' : 'all' }, 
-#                               ['01_reg', '02_reg'] )
-#                         ])
-# def test_perform_parameter_based_grouping(aggregation_method,
-#                                         weights,
-#                                         expected_region_groups,
-#                                         xr_for_parameter_based_grouping): 
-
+                              # particular component, all variables 
+                         ({'components' : {'AC cables' : 10}, 'variables' : 'all' }, 
+                              ['01_reg', '02_reg'] )
+                        ])
 def test_perform_parameter_based_grouping(aggregation_method,
-                                        xr_for_parameter_based_grouping):      
+                                        weights,
+                                        expected_region_groups,
+                                        xr_for_parameter_based_grouping): 
 
-     expected_region_groups = ['02_reg', '03_reg']
 
      regions_list = xr_for_parameter_based_grouping.space.values 
 
@@ -97,7 +84,7 @@ def test_perform_parameter_based_grouping(aggregation_method,
      output_dict = spg.perform_parameter_based_grouping(xr_for_parameter_based_grouping, 
                                                        n_groups = 2, 
                                                        aggregation_method = aggregation_method, 
-                                                       weights=None)  
+                                                       weights=weights)  
      
      #ASSERTION
      for key, value in output_dict.items():   

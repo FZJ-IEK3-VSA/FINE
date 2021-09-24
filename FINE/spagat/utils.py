@@ -55,17 +55,6 @@ def timer(func):
     return f
 
 
-def create_dir(directory): #TODO: check if this actually is used somewhere
-    """Creates a new directory, if it doesn't exist yet. 
-
-    Parameters
-    ----------
-    directory : str
-        Format - "<path_to_new_directory>/<directory_name>"  
-    """
-    if not os.path.exists(directory): os.makedirs(directory)
-
-
 def create_gdf(df, geometries, crs=3035, file_path=None, files_name = 'xr_regions'):
     """Creates a geodataframe.   
 
