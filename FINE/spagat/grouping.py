@@ -89,7 +89,8 @@ def perform_distance_based_grouping(xarray_dataset,
 def perform_parameter_based_grouping(xarray_dataset,
                                     n_groups = 3, 
                                     aggregation_method = 'kmedoids_contiguity', 
-                                    weights=None):
+                                    weights=None,
+                                    solver="gurobi"):
     """Groups regions based on the Energy System Model instance's data. 
     This data may consist of -
         a. regional time series variables such as operationRateMax of PVs
@@ -127,6 +128,11 @@ def perform_parameter_based_grouping(xarray_dataset,
 
         When calculating distance corresonding to each variable-component pair, these specified weights are 
         considered, otherwise taken as 1.  
+
+    solver : str, optional (default="gurobi")
+        The optimization solver to be chosen. 
+        Relevant only if `aggregation_method` is 'kmedoids_contiguity'
+         
 
     Returns
     -------
@@ -180,7 +186,7 @@ def perform_parameter_based_grouping(xarray_dataset,
         r_y, r_x, r_obj = k_medoids_contiguity(precomputed_dist_matrix, 
                                                 n_groups, 
                                                 connectivity_matrix, 
-                                                solver="gurobi")
+                                                solver=solver)
         labels_raw = r_x.argmax(axis=0)
 
         # Aggregated regions dict

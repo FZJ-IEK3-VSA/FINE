@@ -101,13 +101,15 @@ def perform_spatial_aggregation(xr_dataset,
 
         weights = kwargs.get('weights', None) 
         aggregation_method = kwargs.get('aggregation_method', 'kmedoids_contiguity')
+        solver = kwargs.get('solver', "gurobi") 
 
         logger_spagat.info(f'Performing parameter-based grouping on the regions.')
 
         aggregation_dict = spg.perform_parameter_based_grouping(xr_dataset, 
                                                                 n_groups = n_groups, 
                                                                 aggregation_method = aggregation_method, 
-                                                                weights = weights)
+                                                                weights = weights,
+                                                                solver=solver)
 
     else:
         raise ValueError(f'The grouping mode {grouping_mode} is not valid. Please choose one of \

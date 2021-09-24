@@ -84,7 +84,8 @@ def test_perform_parameter_based_grouping(aggregation_method,
      output_dict = spg.perform_parameter_based_grouping(xr_for_parameter_based_grouping, 
                                                        n_groups = 2, 
                                                        aggregation_method = aggregation_method, 
-                                                       weights=weights)  
+                                                       weights=weights,
+                                                       solver="glpk")  
      
      #ASSERTION
      for key, value in output_dict.items():   
