@@ -3,12 +3,9 @@ fewer regions while minimizing information loss.
 """
 import logging
 
-import math 
 import numpy as np
 
 import sklearn.cluster as skc
-import libpysal.weights as wgt
-from spopt.region.skater import SpanningForest
 from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
 
 import FINE.spagat.utils as spu
@@ -51,23 +48,15 @@ def perform_string_based_grouping(regions):
 @spu.timer
 def perform_distance_based_grouping(xarray_dataset, 
                                     n_groups = 3):
-    """Groups regions based on the regions' centroid distances,  #TODO: update docstirng 
+    """Groups regions based on the regions' centroid distances,  
     using sklearn's hierarchical clustering.
 
     Parameters
     ----------
     xarray_dataset : xr.Dataset
         The xarray dataset holding the esM's info 
-    save_path :  str, optional (default=None)
-        The path to save the figures. 
-        If default None, figure is not saved
-    fig_name : str, optional (default=None)
-        Name of the saved figure. 
-        Valid only if `save_path` is not None. 
-        If default None, figure saves under the name 
-        'sklearn_hierarchical_dendrogram' 
-    verbose : bool, optional (default=False)
-        If True, the grouping results are printed. Supressed if False 
+    n_groups : strictly positive int, optional (default=3)
+        The number of region groups to be formed from the original region set 
 
     Returns
     -------
@@ -99,27 +88,31 @@ def perform_distance_based_grouping(xarray_dataset,
 @spu.timer
 def perform_parameter_based_grouping(xarray_dataset,
                                     n_groups = 3, 
-                                    aggregation_method = 'skater', 
+                                    aggregation_method = 'kmedoids_contiguity', 
                                     weights=None):
-    """Groups regions based on the Energy System Model instance's data. #TODO: update the doc string 
+    """Groups regions based on the Energy System Model instance's data. 
     This data may consist of -
         a. regional time series variables such as operationRateMax of PVs
         b. regional values such as capacityMax of PVs
-        c. connection values such as distances of DCCables 
+        c. connection values such as distances of DC Cables 
         d. values constant across all regions such as CommodityConversionFactors 
 
     All variables that vary across regions (a,b, and c) belonging to different 
     ESM components are considered while determining similarity between regions. 
-    Sklearn's agglomerative hierarchical clustering is used to cluster the 
-    regions.
 
     Parameters
     ----------
     xarray_dataset : xr.Dataset
         The xarray dataset holding the esM's info 
-    linkage : str, optional (default='complete')
-        The linkage criterion to be used with agglomerative hierarchical clustering. 
-        Can be 'complete', 'single', etc. Refer to Sklearn's documentation for more info.
+    n_groups : strictly positive int, optional (default=3)
+        The number of region groups to be formed from the original region set 
+    aggregation_method : {'kmedoids_contiguity', 'hierarchical'}, optional 
+        The clustering method that should be used to group the regions.
+        Options:
+            - 'kmedoids_contiguity': kmedoids clustering with added contiguity constraint
+                Refer to tsam docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+            - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity 
+                Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html           
     weights : Dict 
         Through the `weights` dictionary, one can assign weights to variable-component pairs. 
         It must be in one of the formats:
@@ -142,24 +135,7 @@ def perform_parameter_based_grouping(xarray_dataset,
         - Ex. {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},
                2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
                1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
-    
-    Notes
-    -----
-    * While clustering/grouping regions, it is important to make sure that the regions 
-      are spatially contiguous. Sklearn's agglomerative hierarchical clustering method is 
-      capable of taking care of this if additional connectivity matrix is input. 
-      This matrix should indicate which region pairs are connected (or contiguous).
-
-    Overall steps involved:
-        - Preprocessing data -> preprocessDataset()
-        - Custom distance -> selfDistanceMatrix()
-        - Clustering method -> sklearn's agglomerative hierarchical clustering with specified 
-                                `linkage`
-        - Spatial contiguity -> Connectivity matrix is passed to the clustering method. 
-                                generateConnectivityMatrix() to obtain Connectivity matrix.
-        - Accuracy indicators -> (a) Cophenetic correlation coefficients are printed
-                                 (b) Inconsistencies are printed. 
-                                 (c) Silhouette scores are printed. 
+     
     """
 
     # Original region list
@@ -182,6 +158,7 @@ def perform_parameter_based_grouping(xarray_dataset,
     #STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not. 
     connectivity_matrix = gu.get_connectivity_matrix(xarray_dataset)
 
+    #STEP 4. Cluster the regions 
     if aggregation_method == 'hierarchical':
                
         model = skc.AgglomerativeClustering(n_clusters=n_groups,
@@ -189,7 +166,7 @@ def perform_parameter_based_grouping(xarray_dataset,
                                             linkage='complete',
                                             connectivity=connectivity_matrix).fit(precomputed_dist_matrix)
 
-        #STEP 4c. Aggregated regions dict
+        
         aggregation_dict = {}
         for label in range(n_groups):
             # Group the regions of this regions label
@@ -197,49 +174,6 @@ def perform_parameter_based_grouping(xarray_dataset,
             sup_region_id = '_'.join(sub_regions_list)
             aggregation_dict[sup_region_id] = sub_regions_list.copy()
 
-
-    elif aggregation_method == 'skater':
-
-        # get the connectivity in the format required by skater 
-        n_rows, n_cols = connectivity_matrix.shape
-        custom_neighbors = {}
-        for i in range(n_rows):
-            neighbors = []
-            for j in range(n_cols):
-                if (i!=j and connectivity_matrix[i,j] == 1):
-                    neighbors.append(j)
-            custom_neighbors.update({i:neighbors})
-
-        contiguity_weights = wgt.W(custom_neighbors)   
-        
-        # start skater algorithm 
-        n = 0
-        final_n_clusters = 0 
-
-        print(f'Original quorum per region group: {math.floor(n_regions/n_groups)}')
-
-        while final_n_clusters != n_groups:
-            
-            min_reg_per_group = math.floor(n_regions/(n_groups+n))
-            
-            model = SpanningForest(dissimilarity='precomputed', reduction=np.max).fit(n_groups,
-                                                                                        W=contiguity_weights,
-                                                                                        data=precomputed_dist_matrix,
-                                                                                        quorum=min_reg_per_group,
-                                                                                        trace=False,
-                                                                                        islands="increase")
-            final_n_clusters = len(np.unique(model.current_labels_))
-            n += 1
-
-        print(f'Final quorum per region: {min_reg_per_group}')
-
-        #STEP 4c. Aggregated regions dict
-        aggregation_dict = {}
-        for label in range(n_groups):
-            # Group the regions of this regions label
-            sub_regions_list = list(regions_list[model.current_labels_ == label])
-            sup_region_id = '_'.join(sub_regions_list)
-            aggregation_dict[sup_region_id] = sub_regions_list.copy()   
 
     elif aggregation_method == 'kmedoids_contiguity':
         
@@ -249,15 +183,9 @@ def perform_parameter_based_grouping(xarray_dataset,
                                                 solver="gurobi")
         labels_raw = r_x.argmax(axis=0)
 
-        # correct labels 
-        i = 0
-        for label in np.unique(labels_raw):
-            labels_raw[labels_raw == label] = i
-            i += 1
-
         # Aggregated regions dict
         aggregation_dict = {}
-        for label in range(n_groups):
+        for label in np.unique(labels_raw):
             # Group the regions of this regions label
             sub_regions_list = list(regions_list[labels_raw == label])
             sup_region_id = '_'.join(sub_regions_list)
@@ -266,7 +194,7 @@ def perform_parameter_based_grouping(xarray_dataset,
         
     else: 
         raise ValueError(f'The aggregation method {aggregation_method} is not valid. Please choose either \
-        skater or hierarchical')
+        kmedoids_contiguity or hierarchical')
 
         
     return aggregation_dict
