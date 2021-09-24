@@ -19,7 +19,7 @@ def perform_spatial_aggregation(xr_dataset,
                                 n_groups = 3, 
                                 aggregatedResultsPath=None,
                                 **kwargs):
-    """Performs spatial grouping of regions (by calling the functions in grouping.py) #TODO: update docstring 
+    """Performs spatial grouping of regions (by calling the functions in grouping.py) 
     and then representation of the data within each region group (by calling functions 
     in representation.py).
 
@@ -33,12 +33,9 @@ def perform_spatial_aggregation(xr_dataset,
     grouping_mode : {'parameter_based', 'string_based', 'distance_based'}, optional
         Defines how to spatially group the regions. Refer to grouping.py for more 
         information.
-    nRegionsForRepresentation : strictly positive int, optional (default=2)
-        Indicates the number of regions chosen for representation of data. 
-        If 'distance_based' or 'parameter_based' is chosen for `grouping_mode`, grouping 
-        is performed for 1 to number of regions initially present in the `xr_dataset`. 
-        Here, the number of groups finally chosen for representation of data is to be 
-        specified. This parameter is irrelevant if `grouping_mode` is 'string_based'.
+    n_groups : strictly positive int, optional (default=3)
+        The number of region groups to be formed from the original region set.
+        This parameter is irrelevant if `grouping_mode` is 'string_based'.
     aggregatedResultsPath : str, optional (default=None)
         Indicates path to which the aggregated results should be saved. 
         If None, results are not saved. 
@@ -103,7 +100,7 @@ def perform_spatial_aggregation(xr_dataset,
     elif grouping_mode == 'parameter_based':
 
         weights = kwargs.get('weights', None) 
-        aggregation_method = kwargs.get('aggregation_method', 'skater')
+        aggregation_method = kwargs.get('aggregation_method', 'kmedoids_contiguity')
 
         logger_spagat.info(f'Performing parameter-based grouping on the regions.')
 
@@ -117,11 +114,8 @@ def perform_spatial_aggregation(xr_dataset,
         the valid grouping mode among: string_based, distance_based, parameter_based')
 
     
-    #STEP 5. Representation of the new regions    
-    if 'aggregation_function_dict' not in kwargs:
-        aggregation_function_dict = None
-    else: 
-        aggregation_function_dict = kwargs.get('aggregation_function_dict')
+    #STEP 5. Representation of the new regions 
+    aggregation_function_dict = kwargs.get('aggregation_function_dict', None)
     
     aggregated_xr_dataset = spr.aggregate_based_on_sub_to_sup_region_id_dict(xr_dataset,
                                                                 aggregation_dict,
