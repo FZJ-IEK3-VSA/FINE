@@ -409,9 +409,7 @@ def datasets_to_esm(xr_dss):
                 _optSum_df.index = pd.MultiIndex.from_tuples(iterables)
                 _optSum_df.index.names = ['Component','Property','Unit']
                 optSum_df = optSum_df.append(_optSum_df)
-            setattr(esM.componentModelingDict[model], 'optSummary',df)
-
-
+            setattr(esM.componentModelingDict[model], 'optSummary',optSum_df)
 
         # read optimal Values (3 types exist)
         operationVariablesOptimum_df = pd.DataFrame([])
