@@ -396,82 +396,115 @@ def datasets_to_esm(xr_dss):
     esM = dictIO.importFromDict(esm_dict, component_dict)
 
     # Read output
-    for model, comps in xr_dss['Results'].items():
+    if 'Results' in xr_dss:
+        for model, comps in xr_dss['Results'].items():
 
-        # read opt Summary
-        for component in xr_dss['Results'][model]:
+            # read opt Summary
             optSum_df = pd.DataFrame([])
-            for variable in xr_dss['Results'][model][component]:
-                if 'Optimum' in variable:
-                    continue
-                _optSum_df = xr_dss['Results'][model][component][variable].to_dataframe().T
-                iterables = [[variable,key,value] for key,value in xr_dss['Results'][model][component][variable].attrs.items()]
-                _optSum_df.index = pd.MultiIndex.from_tuples(iterables)
-                _optSum_df.index.names = ['Component','Property','Unit']
-                optSum_df = optSum_df.append(_optSum_df)
+            for component in xr_dss['Results'][model]:
+                optSum_df_comp = pd.DataFrame([])
+                for variable in xr_dss['Results'][model][component]:
+                    if 'Optimum' in variable:
+                        continue
+                    _optSum_df = xr_dss['Results'][model][component][variable].to_dataframe().T
+                    iterables = [[component,variable,unit] for variable,unit in xr_dss['Results'][model][component][variable].attrs.items()]                    
+                    _optSum_df.index = pd.MultiIndex.from_tuples(iterables)
+                    _optSum_df.index.names = ['Component','Property','Unit']
+                    optSum_df_comp = optSum_df_comp.append(_optSum_df)
+
+                optSum_df = optSum_df.append(optSum_df_comp)  
+
             setattr(esM.componentModelingDict[model], 'optSummary',optSum_df)
 
-        # read optimal Values (3 types exist)
-        operationVariablesOptimum_df = pd.DataFrame([])
-        capacityVariablesOptimum_df = pd.DataFrame([])
-        isBuiltVariablesOptimum_df = pd.DataFrame([])
-        
-        for component in xr_dss['Results'][model]:
+            # read optimal Values (3 types exist)
+            operationVariablesOptimum_df = pd.DataFrame([])
+            capacityVariablesOptimum_df = pd.DataFrame([])
+            isBuiltVariablesOptimum_df = pd.DataFrame([])
+            chargeOperationVariablesOptimum = pd.DataFrame([])
+            dischargeOperationVariablesOptimum = pd.DataFrame([])
+            stateOfChargeOperationVariablesOptimum = pd.DataFrame([])
+            
+            for component in xr_dss['Results'][model]:
 
-            _operationVariablesOptimum_df =  pd.DataFrame([])
-            _capacityVariablesOptimum_df =  pd.DataFrame([])
-            _isBuiltVariablesOptimum_df =  pd.DataFrame([])
+                _operationVariablesOptimum_df =  pd.DataFrame([])
+                _capacityVariablesOptimum_df =  pd.DataFrame([])
+                _isBuiltVariablesOptimum_df =  pd.DataFrame([])
+                _chargeOperationVariablesOptimum_df =  pd.DataFrame([])
+                _dischargeOperationVariablesOptimum_df =  pd.DataFrame([])
+                _stateOfChargeOperationVariablesOptimum_df =  pd.DataFrame([])
 
-            for variable in xr_dss['Results'][model][component]:
-                if 'Optimum' not in variable:
-                    continue
-                opt_variable = variable
-                xr_opt = None
-                if opt_variable in xr_dss['Results'][model][component]:
-                    xr_opt = xr_dss['Results'][model][component][opt_variable]
-                else:
-                    continue
-                
-                spaces = xr_opt.coords.get('space').values
-                index = [[component, space] for space in spaces]
-
-                if opt_variable == 'operationVariablesOptimum':
-                    if 'space_2' in list(xr_opt.coords):
-                        df = xr_opt.to_dataframe().unstack(level=0)
-                        _operationVariablesOptimum_df = pd.DataFrame([])
-                        for item in df.index.get_level_values(0).unique():
-                            _df= df.loc[item]
-                            _df = _df.drop(item)
-                            idx = pd.MultiIndex.from_product([[component],[item],list(_df.index)])
-                            _df = _df.set_index(idx)
-                            _operationVariablesOptimum_df = _operationVariablesOptimum_df.append(_df)
-
-                    else:    
-                        _operationVariablesOptimum_df = xr_opt.to_dataframe().unstack(level=0)
-                        _operationVariablesOptimum_df.index = pd.MultiIndex.from_tuples(index)
-
-
-                if opt_variable == 'capacityVariablesOptimum':
-                    if 'space_2' in list(xr_opt.coords):
-                        df = xr_opt.to_dataframe().unstack(level=0)
-                        idx = pd.MultiIndex.from_product([[component],list(df.index)])
-                        _df = df.set_index(idx)
-                        _capacityVariablesOptimum_df = _df
+                for variable in xr_dss['Results'][model][component]:
+                    if 'Optimum' not in variable:
+                        continue
+                    opt_variable = variable
+                    xr_opt = None
+                    if opt_variable in xr_dss['Results'][model][component]:
+                        xr_opt = xr_dss['Results'][model][component][opt_variable]
                     else:
-                        _capacityVariablesOptimum_df = xr_opt.to_dataframe().T
-                        _capacityVariablesOptimum_df = _capacityVariablesOptimum_df.set_axis([component])
+                        continue
+                    
+                    spaces = xr_opt.coords.get('space').values
+                    index = [[component, space] for space in spaces]
 
-                if opt_variable == 'isBuiltVariablesOptimum':
-                    _isBuiltVariablesOptimum_df = xr_opt.to_frame()
-                    _isBuiltVariablesOptimum_df = _isBuiltVariablesOptimum_df.set_axis([component])
+                    if opt_variable == 'operationVariablesOptimum':
+                        if 'space_2' in list(xr_opt.coords):
+                            df = xr_opt.to_dataframe().unstack(level=0)
+                            _operationVariablesOptimum_df = pd.DataFrame([])
+                            for item in df.index.get_level_values(0).unique():
+                                _df= df.loc[item]
+                                _df = _df.drop(item)
+                                idx = pd.MultiIndex.from_product([[component],[item],list(_df.index)])
+                                _df = _df.set_index(idx)
+                                _operationVariablesOptimum_df = _operationVariablesOptimum_df.append(_df)
+
+                        else:    
+                            _operationVariablesOptimum_df = xr_opt.to_dataframe().unstack(level=0)
+                            _operationVariablesOptimum_df.index = pd.MultiIndex.from_tuples(index)
+
+                    if opt_variable == 'capacityVariablesOptimum':
+                        if 'space_2' in list(xr_opt.coords):
+                            df = xr_opt.to_dataframe().unstack(level=0)
+                            idx = pd.MultiIndex.from_product([[component],list(df.index)])
+                            _df = df.set_index(idx)
+                            _capacityVariablesOptimum_df = _df
+                        else:
+                            _capacityVariablesOptimum_df = xr_opt.to_dataframe().T
+                            _capacityVariablesOptimum_df = _capacityVariablesOptimum_df.set_axis([component])
+
+                    if opt_variable == 'isBuiltVariablesOptimum':
+                        _isBuiltVariablesOptimum_df = xr_opt.to_dataframe().unstack(level=0)
+                        idx = pd.MultiIndex.from_product([[component],_isBuiltVariablesOptimum_df.index])
+                        _isBuiltVariablesOptimum_df = _isBuiltVariablesOptimum_df.set_index(idx)
+
+                    if opt_variable == 'chargeOperationVariablesOptimum':
+                        _chargeOperationVariablesOptimum_df = xr_opt.to_dataframe().unstack(level=0)
+                        idx = pd.MultiIndex.from_product([[component],_chargeOperationVariablesOptimum_df.index])
+                        _chargeOperationVariablesOptimum_df = _chargeOperationVariablesOptimum_df.set_index(idx)
+
+                    if opt_variable == 'dischargeOperationVariablesOptimum':
+                        _dischargeOperationVariablesOptimum_df = xr_opt.to_dataframe().unstack(level=0)
+                        idx = pd.MultiIndex.from_product([[component],_dischargeOperationVariablesOptimum_df.index])
+                        _dischargeOperationVariablesOptimum_df = _dischargeOperationVariablesOptimum_df.set_index(idx)
+                    
+                    if opt_variable == 'stateOfChargeOperationVariablesOptimum':
+                        _stateOfChargeOperationVariablesOptimum_df = xr_opt.to_dataframe().unstack(level=0)
+                        idx = pd.MultiIndex.from_product([[component],_stateOfChargeOperationVariablesOptimum_df.index])
+                        _stateOfChargeOperationVariablesOptimum_df = _stateOfChargeOperationVariablesOptimum_df.set_index(idx)                    
 
                 operationVariablesOptimum_df = operationVariablesOptimum_df.append(_operationVariablesOptimum_df)
                 capacityVariablesOptimum_df = capacityVariablesOptimum_df.append(_capacityVariablesOptimum_df)
                 isBuiltVariablesOptimum_df = isBuiltVariablesOptimum_df.append(_isBuiltVariablesOptimum_df)
-                
+                chargeOperationVariablesOptimum = chargeOperationVariablesOptimum.append(_chargeOperationVariablesOptimum_df)
+                dischargeOperationVariablesOptimum = dischargeOperationVariablesOptimum.append(_dischargeOperationVariablesOptimum_df)
+                stateOfChargeOperationVariablesOptimum = stateOfChargeOperationVariablesOptimum.append(_stateOfChargeOperationVariablesOptimum_df)
+                    
                 setattr(esM.componentModelingDict[model], 'operationVariablesOptimum', operationVariablesOptimum_df)
                 setattr(esM.componentModelingDict[model], 'capacityVariablesOptimum', capacityVariablesOptimum_df)
                 setattr(esM.componentModelingDict[model], 'isBuiltVariablesOptimum', isBuiltVariablesOptimum_df)
+                setattr(esM.componentModelingDict[model], 'chargeOperationVariablesOptimum', chargeOperationVariablesOptimum)
+                setattr(esM.componentModelingDict[model], 'dischargeOperationVariablesOptimum', dischargeOperationVariablesOptimum)
+                setattr(esM.componentModelingDict[model], 'stateOfChargeOperationVariablesOptimum', stateOfChargeOperationVariablesOptimum)
+
 
     return esM
 
@@ -480,7 +513,7 @@ def esm_to_netcdf(
     esM,
     outputFileName="my_esm.nc",
     overwrite_existing=False,
-    optSumOutputLevel=2,
+    optSumOutputLevel=0,
     optValOutputLevel=1,
 ) -> Dict[str, Dict[str, xr.Dataset]]:
     """
@@ -520,17 +553,27 @@ def esm_to_netcdf(
     utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
     _t = time.time()
 
-    xr_dss_output = esm_output_to_datasets(esM, optSumOutputLevel, optValOutputLevel)
-    xr_dss_input = esm_input_to_datasets(esM)
+    if esM.objectiveValue == None: # model was only built but not optimized
+        xr_dss_input = esm_input_to_datasets(esM)
+        datasets_to_netcdf(xr_dss_input, file_path)
+        utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
-    datasets_to_netcdf(xr_dss_output, file_path)
-    datasets_to_netcdf(xr_dss_input, file_path)
+        xr_dss_results = {"Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
 
-    utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
+        return xr_dss_results
 
-    xr_dss_results = {"Results": xr_dss_output["Results"], "Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
+    else:
+        xr_dss_output = esm_output_to_datasets(esM, optSumOutputLevel, optValOutputLevel)
+        xr_dss_input = esm_input_to_datasets(esM)
 
-    return xr_dss_results
+        datasets_to_netcdf(xr_dss_output, file_path)
+        datasets_to_netcdf(xr_dss_input, file_path)
+
+        utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
+
+        xr_dss_results = {"Results": xr_dss_output["Results"], "Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
+
+        return xr_dss_results
 
 def esm_to_datasets(esM):
 
