@@ -16,15 +16,22 @@ logger_grouping = logging.getLogger("spatial_grouping")
 
 
 def perform_string_based_grouping(regions, separator=None, position=None):
-    """Groups regions based on their names/ids. Looks for a match in ids after #TODO: update docstring 
-    a '_'. For example: '01_es', '02_es' both have 'es' after the '_'. 
-    Therefore, the regions appear in the same group.
+    """Groups regions based on their names/ids. 
 
     Parameters
     ----------
     regions : List[str] or np.array(str)
         List or array of region names 
-        Ex.: ['01_es', '02_es', '01_de', '02_de', '03_de'] 01_es_01 01_es_02  01_es_02
+        Ex.: ['01_es', '02_es', '01_de', '02_de', '03_de'] 
+    
+    separator : str
+        The character or string in the region IDs that defines where the ID should be split
+        Ex.: '_' would split the above IDs at _ and take the last part ('es', 'de') as the group ID
+
+    separator : int/tuple
+        Used to define the position(s) of the region IDs where the split should happen.
+        An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean 
+        the part i to j is taken at the group ID. 
 
     Returns
     -------
