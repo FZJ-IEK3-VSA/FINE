@@ -135,7 +135,6 @@ def perform_spatial_aggregation(xr_dataset,
 
         crs = kwargs.get('crs', 3035)
 
-        
         # save shapefiles 
         spu.save_shapefile_from_xarray(aggregated_xr_dataset,
                                         aggregatedResultsPath,
@@ -143,7 +142,7 @@ def perform_spatial_aggregation(xr_dataset,
                                         crs=crs)
 
         # remove geometry related data vars from aggregated xarray dataset as these cannot be saved 
-        aggregated_xr_dataset = aggregated_xr_dataset.drop_vars(['gpd_geometries', 'gpd_centroids', 'centroid_distances'])
+        aggregated_xr_dataset = aggregated_xr_dataset.drop_vars(['gpd_geometries'])
 
         # save aggregated xarray dataset 
         file_name_with_path = os.path.join(aggregatedResultsPath, aggregated_xr_filename)
