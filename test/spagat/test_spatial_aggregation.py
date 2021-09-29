@@ -112,7 +112,8 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init):
     #FUNCTION CALL 
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(shapefile = SHAPEFILE_PATH, 
                                                                 grouping_mode = 'string_based',                              
-                                                                aggregatedResultsPath=None)   
+                                                                aggregatedResultsPath=None,
+                                                                separator='_')   
 
     #ASSERTION 
     assert len(aggregated_esM.locations) == 8

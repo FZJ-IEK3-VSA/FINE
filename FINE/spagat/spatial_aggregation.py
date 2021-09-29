@@ -85,10 +85,14 @@ def perform_spatial_aggregation(xr_dataset,
     #STEP 4. Spatial grouping
     if grouping_mode == 'string_based':
 
+        separator = kwargs.get('separator', None) 
+        position = kwargs.get('position', None) 
+
+        locations = xr_dataset.space.values
+
         logger_spagat.info('Performing string-based grouping on the regions')
         
-        locations = xr_dataset.space.values
-        aggregation_dict = spg.perform_string_based_grouping(locations)
+        aggregation_dict = spg.perform_string_based_grouping(locations, separator, position)
 
     elif grouping_mode == 'distance_based':
 

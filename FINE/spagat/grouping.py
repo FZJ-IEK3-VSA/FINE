@@ -41,7 +41,7 @@ def perform_string_based_grouping(regions, separator=None, position=None):
              'de' : ['01_de', '02_de', '03_de']}
     """
 
-    sub_to_sup_region_id_dict = utilsIO.PowerDict()
+    sub_to_sup_region_id_dict = {}
 
     if isinstance(position, int):
         position = (0, position)
@@ -49,13 +49,21 @@ def perform_string_based_grouping(regions, separator=None, position=None):
     if separator != None and position == None:
         for region in regions:
             sup_region = region.split(separator)[1]
-            sub_to_sup_region_id_dict[sup_region] = region
+
+            if sup_region not in sub_to_sup_region_id_dict.keys():
+                sub_to_sup_region_id_dict[sup_region] = [region]
+            else: 
+                sub_to_sup_region_id_dict[sup_region].append(region)
 
         
     elif separator == None and position != None:
         for region in regions:
             sup_region = region[position[0]:position[1]]
-            sub_to_sup_region_id_dict[sup_region] = region
+            
+            if sup_region not in sub_to_sup_region_id_dict.keys():
+                sub_to_sup_region_id_dict[sup_region] = [region]
+            else: 
+                sub_to_sup_region_id_dict[sup_region].append(region)
     
     else:
         raise ValueError("Please input either separator or position")

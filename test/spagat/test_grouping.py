@@ -10,14 +10,18 @@ import FINE.spagat.grouping as spg
 import FINE.spagat.utils as spu
 
 
-@pytest.mark.parametrize("string_list, expected, separator, position", 
-                         [(['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'], '_', None),
-                         (['abc123', 'abc456', 'def123', 'def456'], ['abc', 'def'], None, 3),
-                         (['123abc456', '456abc345', '456def123', '897def456'], ['abc', 'def'], None, (3,6))
+@pytest.mark.parametrize("string_list, expected_keys, expected_value, separator, position", 
+                         [(['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'], ['01_es', '02_es'], '_', None),
+                         (['abc123', 'abc456', 'def123', 'def456'], ['abc', 'def'], ['abc123', 'abc456'], None, 3),
+                         (['123abc456', '456abc345', '456def123', '897def456'], ['abc', 'def'], ['123abc456', '456abc345'], None, (3,6))
                          ]) 
-def test_perform_string_based_grouping(string_list, expected, separator, position):
-     clustered_regions_dict = spg.perform_string_based_grouping(string_list, separator=separator, position=position)
-     assert sorted(clustered_regions_dict.keys()) == sorted(expected)    
+def test_perform_string_based_grouping(string_list, expected_keys, expected_value, separator, position):
+     clustered_regions_dict = spg.perform_string_based_grouping(string_list, 
+                                                                 separator=separator, 
+                                                                 position=position)
+
+     assert sorted(clustered_regions_dict.keys()) == sorted(expected_keys)    
+     assert list(clustered_regions_dict.values())[0] == expected_value
 
 def test_perform_distance_based_grouping():    
      #TEST DATA
