@@ -10,12 +10,13 @@ from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
 
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping_utils as gu
+from FINE.IOManagement import utilsIO
 
 logger_grouping = logging.getLogger("spatial_grouping")
 
 
-def perform_string_based_grouping(regions):
-    """Groups regions based on their names/ids. Looks for a match in ids after 
+def perform_string_based_grouping(regions, separator=None, position=None):
+    """Groups regions based on their names/ids. Looks for a match in ids after #TODO: update docstring 
     a '_'. For example: '01_es', '02_es' both have 'es' after the '_'. 
     Therefore, the regions appear in the same group.
 
@@ -23,7 +24,7 @@ def perform_string_based_grouping(regions):
     ----------
     regions : List[str] or np.array(str)
         List or array of region names 
-        Ex.: ['01_es', '02_es', '01_de', '02_de', '03_de']
+        Ex.: ['01_es', '02_es', '01_de', '02_de', '03_de'] 01_es_01 01_es_02  01_es_02
 
     Returns
     -------
@@ -32,15 +33,26 @@ def perform_string_based_grouping(regions):
         Ex. {'es' : ['01_es', '02_es'] , 
              'de' : ['01_de', '02_de', '03_de']}
     """
-    #FEATURE REQUEST: this is implemented spefically for the e-id: '01_es' -> generalize this!
-    nation_set = set([region_id.split("_")[1] for region_id in regions])
 
-    sub_to_sup_region_id_dict = {}
+    sub_to_sup_region_id_dict = utilsIO.PowerDict()
 
-    for nation in nation_set:
-        sub_to_sup_region_id_dict[nation] = [
-            region_id for region_id in regions if region_id.split("_")[1] == nation
-        ]
+    if isinstance(position, int):
+        position = (0, position)
+
+    if separator != None and position == None:
+        for region in regions:
+            sup_region = region.split(separator)[1]
+            sub_to_sup_region_id_dict[sup_region] = region
+
+        
+    elif separator == None and position != None:
+        for region in regions:
+            sup_region = region[position[0]:position[1]]
+            sub_to_sup_region_id_dict[sup_region] = region
+    
+    else:
+        raise ValueError("Please input either separator or position")
+
 
     return sub_to_sup_region_id_dict
 
