@@ -201,7 +201,8 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
                 ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
             ]
             for variable in dfTD1dim.index.get_level_values(0).unique():
-                for component in dfTD1dim.index.get_level_values(1).unique():
+                # for component in dfTD1dim.index.get_level_values(1).unique():
+                for component in dfTD1dim.loc[variable].index.get_level_values(0).unique():
                     df = dfTD1dim.loc[(variable, component)].T.stack()
                     # df.name = (name, component, variable)
                     df.name = variable
@@ -216,7 +217,8 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
                 ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
             ]
             for variable in dfTD2dim.index.get_level_values(0).unique():
-                for component in dfTD2dim.index.get_level_values(1).unique():
+                # for component in dfTD2dim.index.get_level_values(1).unique():
+                for component in dfTD2dim.loc[variable].index.get_level_values(0).unique():
                     df = dfTD2dim.loc[(variable, component)].stack()
                     # df.name = (name, component, variable)
                     df.name = variable
@@ -232,7 +234,8 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
                 dfTI = pd.concat(dataTI, keys=indexTI, names=names)
                 dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
                 for variable in dfTI.index.get_level_values(0).unique():
-                    for component in dfTI.index.get_level_values(1).unique():
+                    # for component in dfTI.index.get_level_values(1).unique():
+                    for component in dfTI.loc[variable].index.get_level_values(0).unique():
                         df = dfTI.loc[(variable, component)].T
                         # df.name = (name, component, variable)
                         df.name = variable
