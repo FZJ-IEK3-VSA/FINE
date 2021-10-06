@@ -339,9 +339,9 @@ def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mod
                     xarray_dataset.attrs[attr_name] = "None"
 
             if group_prefix:
-                group_path=f"{group_prefix}/{group}",
+                group_path=f"{group_prefix}/{group}"
             else:
-                group_path=f"{group}",
+                group_path=f"{group}"
 
             xarray_dataset.to_netcdf(
                 path=f"{file_path}",
@@ -363,9 +363,9 @@ def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mod
                 for component in comps.keys():
                     if component is not None:
                         if group_prefix:
-                            group_path=f"{group_prefix}/{group}/{model}/{component}",
+                            group_path=f"{group_prefix}/{group}/{model}/{component}"
                         else:
-                            group_path=f"{group}/{model}/{component}",
+                            group_path=f"{group}/{model}/{component}"
                         xr_dss[group][model][component].to_netcdf(
                             path=f"{file_path}",
                             # Datasets per component will be reflectes as groups in the NetCDF file.
