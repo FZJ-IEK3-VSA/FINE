@@ -643,18 +643,18 @@ def netcdf_to_datasets(
                     {model_key: 
                         {comp_key: 
                             xr.open_dataset(file_path, group=f"{group_key}/{model_key}/{comp_key}")
-                        for comp_key in rootgrp[group_key][model_key].groups}
-                    for model_key in rootgrp[group_key].groups} 
-                for group_key in rootgrp.groups if group_key != "Parameters"}
+                        for comp_key in group_keys[group_key][model_key].groups}
+                    for model_key in group_keys[group_key].groups} 
+                for group_key in group_keys if group_key != "Parameters"}
         xr_dss["Parameters"] =  xr.open_dataset(file_path, group=f"Parameters")
     else:
         xr_dss = {group_key: 
                     {model_key: 
                         {comp_key: 
                             xr.open_dataset(file_path, group=f"{group_prefix}/{group_key}/{model_key}/{comp_key}")
-                        for comp_key in rootgrp[group_key][model_key].groups}
-                    for model_key in rootgrp[group_key].groups} 
-                for group_key in rootgrp.groups if group_key != "Parameters"}
+                        for comp_key in group_keys[group_key][model_key].groups}
+                    for model_key in group_keys[group_key].groups} 
+                for group_key in group_keys if group_key != "Parameters"}
         xr_dss["Parameters"] =  xr.open_dataset(file_path, group=f"{group_prefix}/Parameters")
 
     yield xr_dss
