@@ -363,7 +363,7 @@ def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mod
                 for component in comps.keys():
                     if component is not None:
                         if group_prefix:
-                            group_path=f"{group_prefix}/{model}/{component}",
+                            group_path=f"{group_prefix}/{group}/{model}/{component}",
                         else:
                             group_path=f"{group}/{model}/{component}",
                         xr_dss[group][model][component].to_netcdf(
@@ -660,16 +660,6 @@ def netcdf_to_datasets(
     yield xr_dss
 
     close_dss(xr_dss)
-
-    xr_dss = {group_key: 
-                 {model_key: 
-                    {comp_key: 
-                        xr.open_dataset(inputFileName, group=f"{group_key}/{model_key}/{comp_key}")
-                    for comp_key in rootgrp[group_key][model_key].groups}
-                for model_key in rootgrp[group_key].groups} 
-            for group_key in rootgrp.groups if group_key != "Parameters"}
-
-    xr_dss["Parameters"] =  xr.open_dataset(inputFileName, group=f"Parameters")
 
 
 def netcdf_to_esm(file_path, group_prefix=None):
