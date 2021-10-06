@@ -419,8 +419,14 @@ def processXarrayAttributes(xarray_dataset):
     #STEP 1. Loop through each attribute, convert datatypes 
     # or append to dot_attrs_dict for conversion in a later step 
     for attr_name, attr_value in _xarray_dataset.attrs.items():
+        if attr_name in ["locations", "commodities"] and isinstance(attr_value, str):
+            xarray_dataset.attrs[attr_name] = set([attr_value])
+        if attr_name in ["commodityUnitsDict"] and isinstance(attr_value, str):
+            [k, v] = attr_value.split(' : ')
+            _dict = {k : v}
+            xarray_dataset.attrs[attr_name] = _dict
 
-        if isinstance(attr_value, list):
+        elif isinstance(attr_value, list):
             # If its a "flattened" list, convert it to dict 
             if all(':' in v for v in attr_value):
 
@@ -502,14 +508,17 @@ def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable
     :return: component_dict
     """
 
-    if drop_component:
+    if len(comp_var_xr.space.dims) == 0:
+        df = comp_var_xr.to_series()
+    elif drop_component:
         df = comp_var_xr.drop("component").to_dataframe().unstack(level=1)
     else:
         df = comp_var_xr.to_dataframe().unstack(level=1)
 
 
-    if len(df.columns) > 1:
-        df.columns = df.columns.droplevel(0)
+    if isinstance(df, pd.DataFrame):
+        if len(df.columns) > 1:
+            df.columns = df.columns.droplevel(0)
     
     [class_name, comp_name] = component.split(', ')
 
@@ -582,11 +591,16 @@ def add1dVariableToDict(component_dict, comp_var_xr, component, variable, drop_c
 
     :return: component_dict
     """
-    if drop_component:
+
+    if len(comp_var_xr.dims) == 0: 
+        # We check for the dimensionality again because single node models will have scalars here.
+        series = pd.Series([comp_var_xr.item()], index=[comp_var_xr.space.item()])
+    elif drop_component:
         series = comp_var_xr.drop("component").to_dataframe().unstack(level=0)
+        series.index = series.index.droplevel(level=0)
     else:
         series = comp_var_xr.to_dataframe().unstack(level=0)
-    series.index = series.index.droplevel(level=0)
+        series.index = series.index.droplevel(level=0)
     
     [class_name, comp_name] = component.split(', ')
 
