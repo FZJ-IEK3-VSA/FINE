@@ -1,6 +1,7 @@
 import time
 from pathlib import Path
 from typing import Dict
+from contextlib import contextmanager
 
 import pandas as pd
 import xarray as xr
@@ -11,6 +12,19 @@ import FINE.utils as utils
 from FINE.IOManagement import dictIO, utilsIO
 from FINE.IOManagement.utilsIO import processXarrayAttributes
 
+def close_dss(dss):
+    if isinstance(dss, dict):
+        for value in dss.values():
+            if isinstance(value, dict):
+                close_dss(value)
+            elif isinstance(value, xr.Dataset):
+                value.close()
+            else:
+                pass
+    elif isinstance(dss, xr.Dataset):
+        dss.close()
+
+@contextmanager
 def esm_input_to_datasets(esM):  
     """Takes esM instance and converts it into an xarray dataset. Optionally, the 
     dataset can be saved as a netcdf file.
@@ -44,7 +58,7 @@ def esm_input_to_datasets(esM):
                 for component in component_dict[classname]
             }
     xr_ds = xr.Dataset()
-
+    
     #STEP 4. Add all df variables to xr_ds
     xr_ds, xr_dss = utilsIO.addDFVariablesToXarray(xr_ds, xr_dss, component_dict, df_iteration_dict) 
 
@@ -92,8 +106,11 @@ def esm_input_to_datasets(esM):
 
     xr_dss = {"Input": xr_dss, "Parameters": attributes_xr}
         
-    return xr_dss
+    yield xr_dss
 
+    close_dss(xr_dss)
+
+@contextmanager
 def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
     # Create the netCDF file and the xr.Dataset dict for all components
     xr_dss = dict.fromkeys(esM.componentModelingDict.keys())
@@ -263,10 +280,11 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
 
     xr_dss = {"Results": xr_dss}
 
-    return xr_dss
+    yield xr_dss
 
+    close_dss(xr_dss)
 
-def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mode="a"):
+def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mode="a", group_prefix=None):
 
     # Create netCDF file, remove existant
     if remove_existing:
@@ -274,8 +292,8 @@ def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mod
             Path(file_path).unlink()
 
     if not Path(file_path).is_file():
-            rootgrp = Dataset(file_path, "w", format="NETCDF4")
-            rootgrp.close()
+            with Dataset(file_path, "w", format="NETCDF4") as rootgrp:
+                pass
 
     # rootgrp = Dataset(file_path, "w", format="NETCDF4")
     # rootgrp.close()
@@ -325,55 +343,104 @@ def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mod
                 elif attr_value == None:
                     xarray_dataset.attrs[attr_name] = "None"
 
-            xarray_dataset.to_netcdf(
-                path=f"{file_path}",
-                # Datasets per component will be reflectes as groups in the NetCDF file.
-                group=f"{group}",
-                # Use mode='a' to append datasets to existing file. Variables will be overwritten.
-                mode=mode,
-                # Use zlib variable compression to reduce filesize with little performance loss
-                # for our use-case. Complevel 9 for best compression.
-                # encoding={
-                #     var: {"zlib": True, "complevel": 9}
-                #     for var in list(xr_dss[group].data_vars)
-                # },
-            )
+            if group_prefix:
+                xarray_dataset.to_netcdf(
+                    path=f"{file_path}",
+                    # Datasets per component will be reflectes as groups in the NetCDF file.
+                    group=f"{group_prefix}/{group}",
+                    # Use mode='a' to append datasets to existing file. Variables will be overwritten.
+                    mode=mode,
+                    # Use zlib variable compression to reduce filesize with little performance loss
+                    # for our use-case. Complevel 9 for best compression.
+                    # encoding={
+                    #     var: {"zlib": True, "complevel": 9}
+                    #     for var in list(xr_dss[group].data_vars)
+                    # },
+                )
+            else:
+                xarray_dataset.to_netcdf(
+                    path=f"{file_path}",
+                    # Datasets per component will be reflectes as groups in the NetCDF file.
+                    group=f"{group}",
+                    # Use mode='a' to append datasets to existing file. Variables will be overwritten.
+                    mode=mode,
+                    # Use zlib variable compression to reduce filesize with little performance loss
+                    # for our use-case. Complevel 9 for best compression.
+                    # encoding={
+                    #     var: {"zlib": True, "complevel": 9}
+                    #     for var in list(xr_dss[group].data_vars)
+                    # },
+                )
             continue
 
         if group == "Input":
             for model, comps  in xr_dss[group].items():
                 for component in comps.keys():
-                    xr_dss[group][model][component].to_netcdf(
-                        path=f"{file_path}",
-                        # Datasets per component will be reflectes as groups in the NetCDF file.
-                        group=f"{group}/{model}/{component}",
-                        # Use mode='a' to append datasets to existing file. Variables will be overwritten.
-                        mode=mode,
-                        # Use zlib variable compression to reduce filesize with little performance loss
-                        # for our use-case. Complevel 9 for best compression.
-                        encoding={
-                            var: {"zlib": True, "complevel": 9}
-                            for var in list(xr_dss[group][model][component].data_vars)
-                        },
-                    )
+                    if component is not None:
+                        if group_prefix:
+                            xr_dss[group][model][component].to_netcdf(
+                                path=f"{file_path}",
+                                # Datasets per component will be reflectes as groups in the NetCDF file.
+                                group=f"{group_prefix}/{group}/{model}/{component}",
+                                # Use mode='a' to append datasets to existing file. Variables will be overwritten.
+                                mode=mode,
+                                # Use zlib variable compression to reduce filesize with little performance loss
+                                # for our use-case. Complevel 9 for best compression.
+                                encoding={
+                                    var: {"zlib": True, "complevel": 9}
+                                    for var in list(xr_dss[group][model][component].data_vars)
+                                },
+                            )
+                        else:
+                            xr_dss[group][model][component].to_netcdf(
+                                path=f"{file_path}",
+                                # Datasets per component will be reflectes as groups in the NetCDF file.
+                                group=f"{group}/{model}/{component}",
+                                # Use mode='a' to append datasets to existing file. Variables will be overwritten.
+                                mode=mode,
+                                # Use zlib variable compression to reduce filesize with little performance loss
+                                # for our use-case. Complevel 9 for best compression.
+                                encoding={
+                                    var: {"zlib": True, "complevel": 9}
+                                    for var in list(xr_dss[group][model][component].data_vars)
+                                },
+                            )
+
 
         if group == "Results":
             for model, comps  in xr_dss[group].items():
                 for result_type in comps.keys(): # optimization Summary or optimal Values
                     for component in comps[result_type].keys():
-                        xr_dss[group][model][result_type][component].to_netcdf(
+                        if group_prefix:
+                            xr_dss[group][model][result_type][component].to_netcdf(
+                                path=f"{file_path}",
+                                # Datasets per component will be reflectes as groups in the NetCDF file.
+                                group=f"{group_prefix}/{group}/{model}/{result_type}/{component}",
+                                # Use mode='a' to append datasets to existing file. Variables will be overwritten.
+                                mode=mode,
+                                # Use zlib variable compression to reduce filesize with little performance loss
+                                # for our use-case. Complevel 9 for best compression.
+                                encoding={
+                                    var: {"zlib": True, "complevel": 9}
+                                    for var in list(xr_dss[group][model][result_type][component].data_vars)
+                                },
+                            )
+                        else:
+                            xr_dss[group][model][component].to_netcdf(
                             path=f"{file_path}",
                             # Datasets per component will be reflectes as groups in the NetCDF file.
-                            group=f"{group}/{model}/{result_type}/{component}",
+                            group=f"{group}/{model}/{component}",
                             # Use mode='a' to append datasets to existing file. Variables will be overwritten.
                             mode=mode,
                             # Use zlib variable compression to reduce filesize with little performance loss
                             # for our use-case. Complevel 9 for best compression.
                             encoding={
                                 var: {"zlib": True, "complevel": 9}
-                                for var in list(xr_dss[group][model][result_type][component].data_vars)
+                                for var in list(xr_dss[group][model][component].data_vars)
                             },
                         )
+
+    close_dss(xr_dss)
 
 def datasets_to_esm(xr_dss):
 
@@ -420,63 +487,65 @@ def datasets_to_esm(xr_dss):
     esM = dictIO.importFromDict(esm_dict, component_dict)
 
     # Read output
-    for model, comps  in xr_dss['Results'].items():
-        
-        # read optSummary
-        optSummary = comps['optSummary']
-        df = pd.DataFrame([])
-        for item in optSummary:
-            _df = optSummary[item].to_dataframe().T
-            iterables = [[item,key,value] for key,value in optSummary[item].attrs.items()]
-            _df.index = pd.MultiIndex.from_tuples(iterables)
-            _df.index.names = ['Component','Property','Unit']
-            df = df.append(_df)
-        setattr(esM.componentModelingDict[model], 'optSummary',df)
-
-        # read optimal Values (3 types exist)
-        operationVariablesOptimum_df = pd.DataFrame([])
-        capacityVariablesOptimum_df = pd.DataFrame([])
-        isBuiltVariablesOptimum_df = pd.DataFrame([])
-
-        for component in xr_dss['Results']['SourceSinkModel']['optValues']:
-            xr_opt = xr_dss['Results']['SourceSinkModel']['optValues'][component]
-            spaces = xr_opt.coords.get('space').values
-            index = [[component, space] for space in spaces]
+    if "Results" in xr_dss.keys():
+        for model, comps  in xr_dss['Results'].items():
             
-            try:
-                _operationVariablesOptimum_df = xr_opt['operationVariablesOptimum'].to_dataframe().unstack(level=0)
-                _operationVariablesOptimum_df.index = pd.MultiIndex.from_tuples(index)
-            except:
-                _operationVariablesOptimum_df = None
-                raise NotImplementedError('tst')
-            try:
-                _capacityVariablesOptimum_df = xr_opt['capacityVariablesOptimum'].to_dataframe().T
-                _capacityVariablesOptimum_df = _capacityVariablesOptimum_df.set_axis([component])
-            except:
-                _capacityVariablesOptimum_df = None
-            try:
-                _isBuiltVariablesOptimum_df = xr_opt['isBuiltVariablesOptimum'].to_frame()
-                _isBuiltVariablesOptimum_df = _isBuiltVariablesOptimum_df.set_axis([component])
-            except:
-                _isBuiltVariablesOptimum_df = None
+            # read optSummary
+            optSummary = comps['optSummary']
+            df = pd.DataFrame([])
+            for item in optSummary:
+                _df = optSummary[item].to_dataframe().T
+                iterables = [[item,key,value] for key,value in optSummary[item].attrs.items()]
+                _df.index = pd.MultiIndex.from_tuples(iterables)
+                _df.index.names = ['Component','Property','Unit']
+                df = df.append(_df)
+            setattr(esM.componentModelingDict[model], 'optSummary',df)
 
-            operationVariablesOptimum_df = operationVariablesOptimum_df.append(_operationVariablesOptimum_df)
-            capacityVariablesOptimum_df = capacityVariablesOptimum_df.append(_capacityVariablesOptimum_df)
-            isBuiltVariablesOptimum_df = isBuiltVariablesOptimum_df.append(_isBuiltVariablesOptimum_df)
-            
-        setattr(esM.componentModelingDict[model], 'operationVariablesOptimum', operationVariablesOptimum_df)
-        setattr(esM.componentModelingDict[model], 'capacityVariablesOptimum', capacityVariablesOptimum_df)
-        setattr(esM.componentModelingDict[model], 'isBuiltVariablesOptimum', isBuiltVariablesOptimum_df)
+            # read optimal Values (3 types exist)
+            operationVariablesOptimum_df = pd.DataFrame([])
+            capacityVariablesOptimum_df = pd.DataFrame([])
+            isBuiltVariablesOptimum_df = pd.DataFrame([])
+
+            for component in xr_dss['Results']['SourceSinkModel']['optValues']:
+                xr_opt = xr_dss['Results']['SourceSinkModel']['optValues'][component]
+                spaces = xr_opt.coords.get('space').values
+                index = [[component, space] for space in spaces]
+                
+                try:
+                    _operationVariablesOptimum_df = xr_opt['operationVariablesOptimum'].to_dataframe().unstack(level=0)
+                    _operationVariablesOptimum_df.index = pd.MultiIndex.from_tuples(index)
+                except:
+                    _operationVariablesOptimum_df = None
+                    raise NotImplementedError('tst')
+                try:
+                    _capacityVariablesOptimum_df = xr_opt['capacityVariablesOptimum'].to_dataframe().T
+                    _capacityVariablesOptimum_df = _capacityVariablesOptimum_df.set_axis([component])
+                except:
+                    _capacityVariablesOptimum_df = None
+                try:
+                    _isBuiltVariablesOptimum_df = xr_opt['isBuiltVariablesOptimum'].to_frame()
+                    _isBuiltVariablesOptimum_df = _isBuiltVariablesOptimum_df.set_axis([component])
+                except:
+                    _isBuiltVariablesOptimum_df = None
+
+                operationVariablesOptimum_df = operationVariablesOptimum_df.append(_operationVariablesOptimum_df)
+                capacityVariablesOptimum_df = capacityVariablesOptimum_df.append(_capacityVariablesOptimum_df)
+                isBuiltVariablesOptimum_df = isBuiltVariablesOptimum_df.append(_isBuiltVariablesOptimum_df)
+                
+            setattr(esM.componentModelingDict[model], 'operationVariablesOptimum', operationVariablesOptimum_df)
+            setattr(esM.componentModelingDict[model], 'capacityVariablesOptimum', capacityVariablesOptimum_df)
+            setattr(esM.componentModelingDict[model], 'isBuiltVariablesOptimum', isBuiltVariablesOptimum_df)
 
     return esM
 
 
 def esm_to_netcdf(
     esM,
-    outputFileName="my_esm.nc",
+    file_path="my_esm.nc",
     overwrite_existing=False,
     optSumOutputLevel=0,
     optValOutputLevel=1,
+    group_prefix=None
 ) -> Dict[str, Dict[str, xr.Dataset]]:
     """
     Write esm to netCDF file.
@@ -510,35 +579,31 @@ def esm_to_netcdf(
     :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
 
-    file_path = outputFileName
-
     if overwrite_existing:
         if Path(file_path).is_file():
             Path(file_path).unlink()
 
-    utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
-    _t = time.time()
+    # utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
+    # _t = time.time()
 
-    xr_dss_output = esm_output_to_datasets(esM, optSumOutputLevel, optValOutputLevel)
-    xr_dss_input = esm_input_to_datasets(esM)
+    with esm_input_to_datasets(esM) as xr_dss_input: 
+        datasets_to_netcdf(xr_dss_input, file_path, group_prefix=group_prefix)
 
-    datasets_to_netcdf(xr_dss_output, file_path)
-    datasets_to_netcdf(xr_dss_input, file_path)
+    if not esM.getOptimizationSummary("SourceSinkModel") is None:
+        with esm_output_to_datasets(esM, optSumOutputLevel, optValOutputLevel) as xr_dss_output:
+            datasets_to_netcdf(xr_dss_output, file_path, group_prefix=group_prefix)
 
-    utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
+    # utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
+@contextmanager
 def esm_to_datasets(esM):
+    with esm_output_to_datasets(esM) as xr_dss_output, esm_input_to_datasets(esM) as xr_dss_input :
+        xr_dss_results = {"Results": xr_dss_output["Results"], "Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
+        yield xr_dss_results
 
-    xr_dss_output = esm_output_to_datasets(esM)
-    xr_dss_input = esm_input_to_datasets(esM)
-
-    xr_dss_results = {"Results": xr_dss_output["Results"], "Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
-
-    return xr_dss_results
-
-
+@contextmanager
 def netcdf_to_datasets(
-    file_path="my_esm.nc",
+    file_path="my_esm.nc", group_prefix=None
 ) -> Dict[str, Dict[str, xr.Dataset]]:
     """Read optimization results from grouped netCDF file to dictionary of xr.Datasets.
 
@@ -549,32 +614,59 @@ def netcdf_to_datasets(
     :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
 
-    rootgrp = Dataset(file_path, "r", format="NETCDF4")
+    with Dataset(file_path, "r", format="NETCDF4") as rootgrp:
+        if group_prefix:
+            group_keys = rootgrp[group_prefix].groups
+        else:
+            group_keys = rootgrp.groups
 
-    xr_dss = {group_key: 
-                 {model_key: 
-                    {comp_key: 
-                        xr.open_dataset(file_path, group=f"{group_key}/{model_key}/{comp_key}")
-                    for comp_key in rootgrp[group_key][model_key].groups}
-                for model_key in rootgrp[group_key].groups} 
-            for group_key in rootgrp.groups if group_key == "Input"}
-
-    xr_dss['Results'] = {group_key: 
-                {model_key:
-                    {result_key: 
+    if group_prefix:
+        xr_dss = {group_key: 
+                    {model_key: 
                         {comp_key: 
-                            xr.open_dataset(inputFileName, group=f"{group_key}/{model_key}/{result_key}/{comp_key}")
-                    for comp_key in rootgrp[group_key][model_key][result_key].groups}
-                for result_key in rootgrp[group_key][model_key].groups}
-            for model_key in rootgrp[group_key].groups} 
-        for group_key in rootgrp.groups if group_key == "Results"}['Results']
-    
+                            xr.open_dataset(file_path, group=f"{group_prefix}/{group_key}/{model_key}/{comp_key}")
+                        for comp_key in rootgrp[group_prefix][group_key][model_key].groups}
+                    for model_key in rootgrp[group_prefix][group_key].groups} 
+                for group_key in rootgrp[group_prefix].groups if group_key == "Input"}
 
-    xr_dss["Parameters"] =  xr.open_dataset(file_path, group=f"Parameters")
+        if "Results" in group_keys:
+            xr_dss['Results'] = {group_key: 
+                        {model_key:
+                            {result_key: 
+                                {comp_key: 
+                                    xr.open_dataset(file_path, group=f"{group_prefix}/{group_key}/{model_key}/{result_key}/{comp_key}")
+                            for comp_key in rootgrp[group_prefix][group_key][model_key][result_key].groups}
+                        for result_key in rootgrp[group_prefix][group_key][model_key].groups}
+                    for model_key in rootgrp[group_prefix][group_key].groups} 
+                for group_key in rootgrp[group_prefix].groups if group_key == "Results"}['Results']
+        xr_dss["Parameters"] =  xr.open_dataset(file_path, group=f"{group_prefix}/Parameters")
+    else:
+        xr_dss = {group_key: 
+                    {model_key: 
+                        {comp_key: 
+                            xr.open_dataset(file_path, group=f"{group_key}/{model_key}/{comp_key}")
+                        for comp_key in rootgrp[group_key][model_key].groups}
+                    for model_key in rootgrp[group_key].groups} 
+                for group_key in rootgrp.groups if group_key == "Input"}
+        if "Results" in group_keys:
+            xr_dss['Results'] = {group_key: 
+                        {model_key:
+                            {result_key: 
+                                {comp_key: 
+                                    xr.open_dataset(file_path, group=f"{group_key}/{model_key}/{result_key}/{comp_key}")
+                            for comp_key in rootgrp[group_key][model_key][result_key].groups}
+                        for result_key in rootgrp[group_key][model_key].groups}
+                    for model_key in rootgrp[group_key].groups} 
+                for group_key in rootgrp.groups if group_key == "Results"}['Results']
+        xr_dss["Parameters"] =  xr.open_dataset(file_path, group=f"Parameters")
+        
 
-    return xr_dss
+    yield xr_dss
 
-def netcdf_to_esm(file_path):
-    dss = netcdf_to_datasets(file_path)
-    esm = datasets_to_esm(dss)
+    close_dss(xr_dss)
+
+
+def netcdf_to_esm(file_path, group_prefix=None):
+    with netcdf_to_datasets(file_path, group_prefix) as dss:
+        esm = datasets_to_esm(dss)
     return esm
