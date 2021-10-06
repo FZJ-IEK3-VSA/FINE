@@ -346,7 +346,7 @@ def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mod
             xarray_dataset.to_netcdf(
                 path=f"{file_path}",
                 # Datasets per component will be reflectes as groups in the NetCDF file.
-                group=f"{group_prefix}/{group}",
+                group=group_path,
                 # Use mode='a' to append datasets to existing file. Variables will be overwritten.
                 mode=mode,
                 # Use zlib variable compression to reduce filesize with little performance loss
