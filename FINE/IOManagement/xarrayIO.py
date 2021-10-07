@@ -1,7 +1,6 @@
 import time
 from pathlib import Path
 from typing import Dict
-from contextlib import contextmanager
 
 import pandas as pd
 import xarray as xr
@@ -23,7 +22,6 @@ def close_dss(dss):
     elif isinstance(dss, xr.Dataset):
         dss.close()
 
-@contextmanager
 def esm_input_to_datasets(esM):  
     """Takes esM instance input and converts it into an xarray dataset. 
     
@@ -95,11 +93,8 @@ def esm_input_to_datasets(esM):
 
     xr_dss = {"Input": xr_dss, "Parameters": attributes_xr}
         
-    yield xr_dss
+    return xr_dss
 
-    close_dss(xr_dss)
-
-@contextmanager
 def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
     """Takes esM instance output and converts it into an xarray dataset. 
     
@@ -290,9 +285,7 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
 
     xr_dss = {"Results": xr_dss}
 
-    yield xr_dss
-
-    close_dss(xr_dss)
+    return xr_dss
 
 def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mode="a", group_prefix=None):
     """Saves xarray dataset (with esM instance data) to a netCDF file. 
@@ -418,8 +411,6 @@ def datasets_to_netcdf(xr_dss, file_path="my_esm.nc", remove_existing=False, mod
                                 for var in list(xr_dss[group][model][component].data_vars)
                             },
                         )
-
-    close_dss(xr_dss)
 
 def datasets_to_esm(xr_dss):
     """Takes xarray dataset (with esM instance data) and converts it to an esM instance.
@@ -655,16 +646,15 @@ def esm_to_netcdf(
     utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
     _t = time.time()
 
-    with esm_input_to_datasets(esM) as xr_dss_input:
-        datasets_to_netcdf(xr_dss_input, file_path,group_prefix=group_prefix)
+    xr_dss_input = esm_input_to_datasets(esM)
+    datasets_to_netcdf(xr_dss_input, file_path,group_prefix=group_prefix)
 
     if esM.objectiveValue != None: # model was optimized
-        with esm_output_to_datasets(esM, optSumOutputLevel, optValOutputLevel) as xr_dss_output:
-            datasets_to_netcdf(xr_dss_output, file_path,group_prefix=group_prefix)
+        xr_dss_output = esm_output_to_datasets(esM, optSumOutputLevel, optValOutputLevel)
+        datasets_to_netcdf(xr_dss_output, file_path,group_prefix=group_prefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
-@contextmanager
 def esm_to_datasets(esM):
     """Converts esM instance (input and output) into a xarray dataset. 
     
@@ -674,11 +664,14 @@ def esm_to_datasets(esM):
     :return: xr_dss_results - esM instance (input and output) data in xarray dataset format 
      """
 
-    with esm_output_to_datasets(esM) as xr_dss_output, esm_input_to_datasets(esM) as xr_dss_input :
-        xr_dss_results = {"Results": xr_dss_output["Results"], "Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
-        yield xr_dss_results
+    xr_dss_output = esm_output_to_datasets(esM)
+    xr_dss_input = esm_input_to_datasets(esM)
 
-@contextmanager
+    xr_dss_results = {"Results": xr_dss_output["Results"], "Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
+
+    return xr_dss_results
+
+
 def netcdf_to_datasets(
     file_path="my_esm.nc", group_prefix=None
 ) -> Dict[str, Dict[str, xr.Dataset]]:
@@ -707,24 +700,22 @@ def netcdf_to_datasets(
         xr_dss = {group_key: 
                     {model_key: 
                         {comp_key: 
-                            xr.open_dataset(file_path, group=f"{group_key}/{model_key}/{comp_key}")
+                            xr.load_dataset(file_path, group=f"{group_key}/{model_key}/{comp_key}")
                         for comp_key in group_keys[group_key][model_key].groups}
                     for model_key in group_keys[group_key].groups} 
                 for group_key in group_keys if group_key != "Parameters"}
-        xr_dss["Parameters"] =  xr.open_dataset(file_path, group=f"Parameters")
+        xr_dss["Parameters"] =  xr.load_dataset(file_path, group=f"Parameters")
     else:
         xr_dss = {group_key: 
                     {model_key: 
                         {comp_key: 
-                            xr.open_dataset(file_path, group=f"{group_prefix}/{group_key}/{model_key}/{comp_key}")
+                            xr.load_dataset(file_path, group=f"{group_prefix}/{group_key}/{model_key}/{comp_key}")
                         for comp_key in group_keys[group_key][model_key].groups}
                     for model_key in group_keys[group_key].groups} 
                 for group_key in group_keys if group_key != "Parameters"}
-        xr_dss["Parameters"] =  xr.open_dataset(file_path, group=f"{group_prefix}/Parameters")
+        xr_dss["Parameters"] =  xr.load_dataset(file_path, group=f"{group_prefix}/Parameters")
 
-    yield xr_dss
-
-    close_dss(xr_dss)
+    return xr_dss
 
 
 def netcdf_to_esm(file_path, group_prefix=None):
@@ -737,6 +728,10 @@ def netcdf_to_esm(file_path, group_prefix=None):
     :return: esM - EnergySystemModel instance   
      """
 
-    with netcdf_to_datasets(file_path, group_prefix) as dss:
-        esm = datasets_to_esm(dss)
-    return esm
+    # netcdf to xarray dataset    
+    xr_dss = netcdf_to_datasets(file_path, group_prefix)
+
+    # xarray dataset to esm
+    esM = datasets_to_esm(xr_dss)
+
+    return esM
