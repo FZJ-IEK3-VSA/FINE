@@ -56,17 +56,16 @@ def esm_input_to_datasets(esM):
                 component: xr.Dataset()
                 for component in component_dict[classname]
             }
-    xr_ds = xr.Dataset()
     
     #STEP 4. Add all df variables to xr_ds
-    xr_ds, xr_dss = utilsIO.addDFVariablesToXarray(xr_ds, xr_dss, component_dict, df_iteration_dict) 
+    xr_dss = utilsIO.addDFVariablesToXarray(xr_dss, component_dict, df_iteration_dict) 
 
     #STEP 5. Add all series variables to xr_ds
     locations = sorted(esm_dict['locations'])
-    xr_ds, xr_dss = utilsIO.addSeriesVariablesToXarray(xr_ds, xr_dss, component_dict, series_iteration_dict, locations)
+    xr_dss = utilsIO.addSeriesVariablesToXarray(xr_dss, component_dict, series_iteration_dict, locations)
 
     #STEP 6. Add all constant value variables to xr_ds
-    xr_ds, xr_dss = utilsIO.addConstantsToXarray(xr_ds, xr_dss, component_dict, constants_iteration_dict) 
+    xr_dss = utilsIO.addConstantsToXarray(xr_dss, component_dict, constants_iteration_dict) 
 
     #STEP 7. Add the data present in esm_dict as xarray attributes 
     # (These attributes contain esM init info). 
