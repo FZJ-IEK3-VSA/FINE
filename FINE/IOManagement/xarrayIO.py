@@ -204,9 +204,9 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
         if dataTD1dim:
             names = ["Variable", "Component", "Location"]
             dfTD1dim = pd.concat(dataTD1dim, keys=indexTD1dim, names=names)
-            dfTD1dim = dfTD1dim.loc[
-                ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
-            ]
+            #dfTD1dim = dfTD1dim.loc[
+            #    ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
+            #]
             for variable in dfTD1dim.index.get_level_values(0).unique():
                 # for component in dfTD1dim.index.get_level_values(1).unique():
                 for component in dfTD1dim.loc[variable].index.get_level_values(0).unique():
@@ -220,9 +220,9 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
         if dataTD2dim:
             names = ["Variable", "Component", "LocationIn", "LocationOut"]
             dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
-            dfTD2dim = dfTD2dim.loc[
-                ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
-            ]
+            #dfTD2dim = dfTD2dim.loc[
+            #    ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
+            #]
             for variable in dfTD2dim.index.get_level_values(0).unique():
                 # for component in dfTD2dim.index.get_level_values(1).unique():
                 for component in dfTD2dim.loc[variable].index.get_level_values(0).unique():
@@ -239,7 +239,7 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
             if esM.componentModelingDict[name].dimension == "1dim":
                 names = ["Variable type", "Component"]
                 dfTI = pd.concat(dataTI, keys=indexTI, names=names)
-                dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
+                #dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
                 for variable in dfTI.index.get_level_values(0).unique():
                     # for component in dfTI.index.get_level_values(1).unique():
                     for component in dfTI.loc[variable].index.get_level_values(0).unique():
@@ -255,7 +255,7 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
             elif esM.componentModelingDict[name].dimension == "2dim":
                 names = ["Variable type", "Component", "Location"]
                 dfTI = pd.concat(dataTI, keys=indexTI, names=names)
-                dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
+                #dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
                 for variable in dfTI.index.get_level_values(0).unique():
                     #for component in dfTI.index.get_level_values(1).unique():
                     for component in dfTI.loc[variable].index.get_level_values(0).unique():
