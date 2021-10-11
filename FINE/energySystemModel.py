@@ -4,7 +4,6 @@ Last edited: November 12 2020
 """
 
 import time
-import os
 import warnings
 
 import pandas as pd
@@ -404,11 +403,11 @@ class EnergySystemModel:
     def aggregateSpatially(self,             
                         shapefile, 
                         grouping_mode='parameter_based', 
-                        nRegionsForRepresentation=2,
+                        n_groups=3,
                         aggregatedResultsPath=None,
                         **kwargs): 
         """Spatially clusters the data of all components considered in the Energy System Model (esM) instance 
-        and returns a new esM instance with the aggregated data. 
+        and returns a new esM instance with the aggregated data.  
 
         :param shapefile: Either the path to the shapefile or the read-in shapefile
         :type shapefile: string, GeoDataFrame 
@@ -420,13 +419,10 @@ class EnergySystemModel:
             |br| * the default value is 'parameter_based'
         :type grouping_mode: string, Options - 'string_based', 'distance_based', 'parameter_based'
 
-        :param nRegionsForRepresentation: Indicates the number of regions chosen for representation of data. 
-        If 'distance_based' or 'parameter_based' is chosen for `grouping_mode`, grouping is performed for 
-        1 to number of regions initially present in the `esM`. Here, the number of groups finally chosen for 
-        representation of data is to be specified. This parameter is irrelevant if `grouping_mode` is 
-        'string_based'.
-            |br| * the default value is 2
-        :type nRegionsForRepresentation: strictly positive integer, None
+        :param n_groups: The number of region groups to be formed from the original region set.
+        This parameter is irrelevant if `grouping_mode` is 'string_based'.
+            |br| * the default value is 3
+        :type n_groups: strictly positive integer, None
 
         :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved. 
         If None, results are not saved.  
@@ -445,7 +441,7 @@ class EnergySystemModel:
         aggregated_xr_dataset = spa.perform_spatial_aggregation(xr_dataset,
                                                             shapefile, 
                                                             grouping_mode, 
-                                                            nRegionsForRepresentation,
+                                                            n_groups,
                                                             aggregatedResultsPath,
                                                             **kwargs)
                                               

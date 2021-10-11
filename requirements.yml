@@ -6,6 +6,7 @@ dependencies:
 - conda-forge::geopandas
 - conda-forge::jupyter
 - conda-forge::notebook
+- conda-forge::libpysal
 - pip
 - descartes
 - glpk
@@ -26,6 +27,7 @@ dependencies:
 - statsmodels
 - seaborn
 - conda-forge::rasterio
+- conda-forge::netcdf4
 
 - pip:
     - tsam

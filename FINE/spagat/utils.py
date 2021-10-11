@@ -55,17 +55,6 @@ def timer(func):
     return f
 
 
-def create_dir(directory):
-    """Creates a new directory, if it doesn't exist yet. 
-
-    Parameters
-    ----------
-    directory : str
-        Format - "<path_to_new_directory>/<directory_name>"  
-    """
-    if not os.path.exists(directory): os.makedirs(directory)
-
-
 def create_gdf(df, geometries, crs=3035, file_path=None, files_name = 'xr_regions'):
     """Creates a geodataframe.   
 
@@ -93,6 +82,7 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name = 'xr_region
     gdf = gpd.GeoDataFrame(df, geometry=geometries, crs=f'epsg:{crs}') 
 
     if file_path is not None:  
+        gdf.reset_index(drop=True, inplace=True) #NOTE: pandas different versions behave differently here!
         gdf.to_file(file_path, layer = f'{files_name}') 
 
     return gdf

@@ -10,13 +10,18 @@ import FINE.spagat.grouping as spg
 import FINE.spagat.utils as spu
 
 
-@pytest.mark.parametrize("string_list, expected", 
-                         [(['01_es', '02_es', '01_de', '02_de', '03_de'], ['es', 'de']),
-                         (['01_es', '02_es', '01_de', '02_de', '03_de', '01_nl'], ['es', 'de', 'nl']),
-                         (['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'])]) 
-def test_perform_string_based_grouping(string_list, expected):
-     clustered_regions_dict = spg.perform_string_based_grouping(string_list)
-     assert sorted(clustered_regions_dict.keys()) == sorted(expected)    
+@pytest.mark.parametrize("string_list, expected_keys, expected_value, separator, position", 
+                         [(['01_es', '02_es', '01_de', '02_de', '01_nl', '01_os'], ['es', 'de', 'nl', 'os'], ['01_es', '02_es'], '_', None),
+                         (['abc123', 'abc456', 'def123', 'def456'], ['abc', 'def'], ['abc123', 'abc456'], None, 3),
+                         (['123abc456', '456abc345', '456def123', '897def456'], ['abc', 'def'], ['123abc456', '456abc345'], None, (3,6))
+                         ]) 
+def test_perform_string_based_grouping(string_list, expected_keys, expected_value, separator, position):
+     clustered_regions_dict = spg.perform_string_based_grouping(string_list, 
+                                                                 separator=separator, 
+                                                                 position=position)
+
+     assert sorted(clustered_regions_dict.keys()) == sorted(expected_keys)    
+     assert list(clustered_regions_dict.values())[0] == expected_value
 
 def test_perform_distance_based_grouping():    
      #TEST DATA
@@ -47,27 +52,18 @@ def test_perform_distance_based_grouping():
 
      
      #FUNCTION CALL 
-     path_to_test_dir = os.path.join(os.path.dirname(__file__), 'data/output/')  
-     file_name = 'test_fig'
-     expected_file = os.path.join(path_to_test_dir, file_name)
-
-     output_dict = spg.perform_distance_based_grouping(dummy_ds,
-                                                       save_path = path_to_test_dir, 
-                                                       fig_name=file_name)  
+     output_dict = spg.perform_distance_based_grouping(dummy_ds)  
      
 
      #ASSERTION 
-     ## Results for number of aggregated regions = 3 can be checked, because test data has 3 centers 
-     #NOTE: 1 and 5 can also be tested but permutation is making it difficult to test these
-     assert output_dict.get(3) == {'01_reg': ['01_reg'],                    ## Based on sample_labels ([2, 0, 0, 1, 1])       
+     assert output_dict == {'01_reg': ['01_reg'],                    ## Based on sample_labels ([2, 0, 0, 1, 1])       
                               '02_reg_03_reg': ['02_reg', '03_reg'],
                               '04_reg_05_reg': ['04_reg', '05_reg']}  
      
-     # remove the saved figure 
-     os.remove(os.path.join(path_to_test_dir, f'{file_name}.png'))
-     
-     
 
+     
+     
+@pytest.mark.parametrize("aggregation_method", ['kmedoids_contiguity', 'hierarchical'])
 @pytest.mark.parametrize("weights, expected_region_groups", 
                         [ 
                              # no weights 
@@ -81,18 +77,23 @@ def test_perform_distance_based_grouping():
                          ({'components' : {'AC cables' : 10}, 'variables' : 'all' }, 
                               ['01_reg', '02_reg'] )
                         ])
-def test_perform_parameter_based_grouping(weights,
+def test_perform_parameter_based_grouping(aggregation_method,
+                                        weights,
                                         expected_region_groups,
                                         xr_for_parameter_based_grouping): 
-     
+
+
      regions_list = xr_for_parameter_based_grouping.space.values 
 
      #FUNCTION CALL
      output_dict = spg.perform_parameter_based_grouping(xr_for_parameter_based_grouping, 
-                                                       weights=weights)  
+                                                       n_groups = 2, 
+                                                       aggregation_method = aggregation_method, 
+                                                       weights=weights,
+                                                       solver="glpk")  
      
      #ASSERTION
-     for key, value in output_dict.get(2).items():   
+     for key, value in output_dict.items():   
           if len(value)==2:                            #NOTE: required to assert separately, because they are permuted
                assert (key == '_'.join(expected_region_groups)) & (value == expected_region_groups)
           else:

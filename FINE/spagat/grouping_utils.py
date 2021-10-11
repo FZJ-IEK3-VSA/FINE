@@ -5,6 +5,7 @@ import pandas as pd
 import geopandas as gpd
 from scipy.cluster import hierarchy
 
+
 def get_normalized_array(array):
     """Normalize the given matrix to [0,1].
 
@@ -92,7 +93,6 @@ def preprocess_1d_variables(vars_dict):
         
         #STEP 2. For each valid component, normalize the corresponding matrix. Add to resulting dict 
         for comp_name in valid_components:
-            #data = da.sel(component=comp_name).values
             norm_comp_array = get_normalized_array(da.sel(component=comp_name).values) 
 
             processed_1d_dict.get(var_name).update({comp_name : norm_comp_array})

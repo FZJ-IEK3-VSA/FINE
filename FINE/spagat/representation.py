@@ -384,12 +384,10 @@ def aggregate_based_on_sub_to_sup_region_id_dict(xarray_dataset,
                                                         dimension_list=("space"), 
                                                         object_list=shapes_aggregated)
 
-            spu.add_region_centroids_to_xarray(aggregated_xr_dataset)
-        
-        #STEP 2b. For other variables except "gpd_centroids", call respective 
+        #STEP 2b. For other variables except "gpd_centroids" and "centroid_distances", call respective 
         # aggregation functions based on dimensions. If no dimension present (0d vars),
         # directly data is directly added to aggregated_xr_dataset.
-        elif varname != "gpd_centroids":
+        elif varname not in ["gpd_centroids", "centroid_distances"]:
             ## Time series 
             if "space" in da.dims and "time" in da.dims:  
                 da = aggregate_time_series_spatially(xarray_dataset[varname],
