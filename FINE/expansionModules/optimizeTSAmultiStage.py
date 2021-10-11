@@ -8,23 +8,26 @@ from FINE import utils
 import FINE as fn
 import numpy as np
 
-def optimizeTSAmultiStage(esM, 
-                          declaresOptimizationProblem=True, 
-                          relaxIsBuiltBinary=False, 
-                          numberOfTypicalPeriods=30, 
-                          numberOfTimeStepsPerPeriod=24, 
-                          clusterMethod='hierarchical', 
-                          logFileName='', 
-                          threads=3, 
-                          solver='gurobi', 
-                          timeLimit=None, 
-                          optimizationSpecs='', 
-                          warmstart=False):
+
+def optimizeTSAmultiStage(
+    esM,
+    declaresOptimizationProblem=True,
+    relaxIsBuiltBinary=False,
+    numberOfTypicalPeriods=30,
+    numberOfTimeStepsPerPeriod=24,
+    clusterMethod="hierarchical",
+    logFileName="",
+    threads=3,
+    solver="gurobi",
+    timeLimit=None,
+    optimizationSpecs="",
+    warmstart=False,
+):
     """
     Call the optimize function for a temporally aggregated MILP (so the model has to include
     hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again
     without temporal aggregation. Furthermore, a LP with relaxed binary variables can be solved to
-    obtain both, an upper and lower bound for the fully resolved MILP. 
+    obtain both, an upper and lower bound for the fully resolved MILP.
 
     **Required arguments:**
 
@@ -39,7 +42,7 @@ def optimizeTSAmultiStage(esM,
         |br| * the default value is True
     :type declaresOptimizationProblem: boolean
 
-    :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower 
+    :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
         bound of the problem.
         |br| * the default value is False
     :type declaresOptimizationProblem: boolean
@@ -103,39 +106,76 @@ def optimizeTSAmultiStage(esM,
     Last edited: February 20, 2020
     |br| @author: FINE Developer Team (FZJ IEK-3)
     """
-    lowerBound=None
+    lowerBound = None
 
     if relaxIsBuiltBinary:
-        esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxIsBuiltBinary=True,
-                    logFileName='relaxedProblem', threads=threads, solver=solver, timeLimit=timeLimit, 
-                    optimizationSpecs=optimizationSpecs, warmstart=warmstart)
+        esM.optimize(
+            declaresOptimizationProblem=True,
+            timeSeriesAggregation=False,
+            relaxIsBuiltBinary=True,
+            logFileName="relaxedProblem",
+            threads=threads,
+            solver=solver,
+            timeLimit=timeLimit,
+            optimizationSpecs=optimizationSpecs,
+            warmstart=warmstart,
+        )
         lowerBound = esM.objectiveValue
 
-    esM.aggregateTemporally(numberOfTypicalPeriods=numberOfTypicalPeriods, numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
-                    clusterMethod=clusterMethod, solver=solver, sortValues=True)
-    
-    esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=True, relaxIsBuiltBinary=False,
-                    logFileName='firstStage', threads=threads, solver=solver, timeLimit=timeLimit, 
-                    optimizationSpecs=optimizationSpecs, warmstart=warmstart)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=numberOfTypicalPeriods,
+        numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+        clusterMethod=clusterMethod,
+        solver=solver,
+        sortValues=True,
+    )
+
+    esM.optimize(
+        declaresOptimizationProblem=True,
+        timeSeriesAggregation=True,
+        relaxIsBuiltBinary=False,
+        logFileName="firstStage",
+        threads=threads,
+        solver=solver,
+        timeLimit=timeLimit,
+        optimizationSpecs=optimizationSpecs,
+        warmstart=warmstart,
+    )
 
     # Set the binary variables to the values resulting from the first optimization step
     fn.fixBinaryVariables(esM)
 
-    esM.optimize(declaresOptimizationProblem=True, timeSeriesAggregation=False, relaxIsBuiltBinary=False,
-                    logFileName='secondStage', threads=threads, solver=solver, timeLimit=timeLimit, 
-                    optimizationSpecs=optimizationSpecs, warmstart=False)  
+    esM.optimize(
+        declaresOptimizationProblem=True,
+        timeSeriesAggregation=False,
+        relaxIsBuiltBinary=False,
+        logFileName="secondStage",
+        threads=threads,
+        solver=solver,
+        timeLimit=timeLimit,
+        optimizationSpecs=optimizationSpecs,
+        warmstart=False,
+    )
     upperBound = esM.objectiveValue
 
     if lowerBound is not None:
-        delta = upperBound - lowerBound 
-        gap = delta/upperBound 
+        delta = upperBound - lowerBound
+        gap = delta / upperBound
         esM.lowerBound, esM.upperBound = lowerBound, upperBound
         esM.gap = gap
-        print('The real optimal value lies between ' + str(round(lowerBound,2)) + ' and ' +
-                str(round(upperBound,2)) + ' with a gap of ' + str(round(gap*100,2)) + '%.')
+        print(
+            "The real optimal value lies between "
+            + str(round(lowerBound, 2))
+            + " and "
+            + str(round(upperBound, 2))
+            + " with a gap of "
+            + str(round(gap * 100, 2))
+            + "%."
+        )
+
 
 def fixBinaryVariables(esM):
-    """"
+    """ "
     Search for the optimized binary variables and set them as fixed.
 
     :param esM: energy system model to which the component should be added. Used for unit checks.
@@ -145,8 +185,16 @@ def fixBinaryVariables(esM):
     |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     for mdl in esM.componentModelingDict.keys():
-        compValues = esM.componentModelingDict[mdl].getOptimalValues('isBuiltVariablesOptimum')['values']
+        compValues = esM.componentModelingDict[mdl].getOptimalValues(
+            "isBuiltVariablesOptimum"
+        )["values"]
         if compValues is not None:
             for comp in compValues.index.get_level_values(0).unique():
-                values = utils.preprocess2dimData(compValues.loc[comp].fillna(value=-1).round(decimals=0).astype(np.int64), discard=False)
+                values = utils.preprocess2dimData(
+                    compValues.loc[comp]
+                    .fillna(value=-1)
+                    .round(decimals=0)
+                    .astype(np.int64),
+                    discard=False,
+                )
                 esM.componentModelingDict[mdl].componentsDict[comp].isBuiltFix = values

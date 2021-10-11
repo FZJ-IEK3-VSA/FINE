@@ -33,23 +33,31 @@ test-code:
   script:
     - python -m pytest --cov=FINE test/
 
+test-formatting:
+  stage: test
+  script:
+    # Dry-run black auto-formatter. If the code needs reformatting this test
+    # will fail.   
+    - conda env create -n fine --file=requirements_dev.yml
+    - source activate fine
+    - black --version
+    - black --check FINE
+    - black --check test
+
 test-notebooks:
   extends: .test_template
   script:
-    # Run nbval to test all notebooks in examples folder
-    #   and show 20 longest cell executing durations
-    # With 'nbval-lax', notebooks are only tested for execution errors
-    # Cells tagged 'nbval-check-output' are checked for consistent output
-    # Cells tagged 'nbval-skip' are skipped
+    # Run nbval to test all notebooks in examples folder and show 20 longest
+    # cell executing durations. With 'nbval-lax', notebooks are only tested for
+    # execution errors Cells tagged 'nbval-check-output' are checked for
+    # consistent output Cells tagged 'nbval-skip' are skipped.
     - python -m pytest --nbval-lax --current-env --durations=20 examples/
-  # Only test examples notebooks for branches master, develop and some others
+  # Only test examples notebooks for branches master and develop
   only:
     refs:
       - master
       - develop
-      - include_dockerfile
-      - 161-exclude-cells-with-gpd-from-testing
-      - fix_example_notebooks
+      - merge_requests
 
 prebuild:
   stage: prebuild

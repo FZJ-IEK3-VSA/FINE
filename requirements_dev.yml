@@ -5,3 +5,4 @@ dependencies:
   - pytest-cov
   - pylint
   - conda-forge::nbval
+  - conda-forge::black=21.9b0 
