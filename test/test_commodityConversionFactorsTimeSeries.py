@@ -114,9 +114,9 @@ def test_variable_conversion_simple_with_tsa():
 
     esM = create_simple_esm()
 
-    # Temporal clustering 
+    # Temporal clustering
     esM.aggregateTemporally(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
-    # Optimization 
+    # Optimization
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     df = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
