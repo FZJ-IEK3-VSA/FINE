@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def test_linkedQuantityID(minimal_test_esM):
-    """"""
+    """ """
     esM = minimal_test_esM
 
     # get components

@@ -560,7 +560,7 @@ class ComponentModel(metaclass=ABCMeta):
     """
 
     def __init__(self):
-        """ Constructor for creating a ComponentModel class instance. """
+        """Constructor for creating a ComponentModel class instance."""
         self.abbrvName = ""
         self.dimension = ""
         self.componentsDict = {}
@@ -982,7 +982,7 @@ class ComponentModel(metaclass=ABCMeta):
         abbrvName = self.abbrvName
 
         def capBounds(pyM, loc, compName):
-            """ Function for setting lower and upper capacity bounds. """
+            """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
             return (
                 comp.capacityMin[loc]

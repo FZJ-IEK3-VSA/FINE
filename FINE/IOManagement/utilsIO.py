@@ -79,6 +79,7 @@ class PowerDict(dict):
             val.key = key
 
 
+
 def generateIterationDicts(component_dict):
     """Creates iteration dictionaries that contain descriptions of all
     dataframes, series, and constants present in component_dict.
@@ -171,7 +172,6 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
     """
 
     for variable_description, description_tuple_list in df_iteration_dict.items():
-
         df_dict = {}
 
         for description_tuple in description_tuple_list:

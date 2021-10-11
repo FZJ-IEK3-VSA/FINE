@@ -189,15 +189,6 @@ class Conversion(Component):
         self.operationRateMax = operationRateMax
         self.operationRateFix = operationRateFix
 
-        # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
-        if operationRateMax is not None and operationRateFix is not None:
-            operationRateMax = None
-            if esM.verbose < 2:
-                warnings.warn(
-                    "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
-                    + "The operationRateMax time series was set to None."
-                )
-
         self.fullOperationRateMax = utils.checkAndSetTimeSeries(
             esM, name, operationRateMax, locationalEligibility
         )
@@ -207,6 +198,18 @@ class Conversion(Component):
             esM, name, operationRateFix, locationalEligibility
         )
         self.aggregatedOperationRateFix, self.processedOperationRateFix = None, None
+
+        # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
+        if (
+            self.fullOperationRateMax is not None
+            and self.fullOperationRateFix is not None
+        ):
+            self.fullOperationRateMax = None
+            if esM.verbose < 2:
+                warnings.warn(
+                    "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
+                    + "The operationRateMax time series was set to None."
+                )
 
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:

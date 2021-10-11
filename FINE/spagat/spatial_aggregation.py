@@ -8,7 +8,7 @@ import FINE.spagat.utils as spu
 import FINE.spagat.grouping as spg
 import FINE.spagat.representation as spr
 
-from FINE.IOManagement import xarrayIO_spagat as xrIO
+logger_spagat = logging.getLogger("spatial_aggregation")
 
 logger_spagat = logging.getLogger("spatial_aggregation")
 
@@ -17,7 +17,7 @@ def perform_spatial_aggregation(
     xr_dataset,
     shapefile,
     grouping_mode="parameter_based",
-    nRegionsForRepresentation=2,
+    n_groups=3,
     aggregatedResultsPath=None,
     **kwargs,
 ):
@@ -35,12 +35,9 @@ def perform_spatial_aggregation(
     grouping_mode : {'parameter_based', 'string_based', 'distance_based'}, optional
         Defines how to spatially group the regions. Refer to grouping.py for more
         information.
-    nRegionsForRepresentation : strictly positive int, optional (default=2)
-        Indicates the number of regions chosen for representation of data.
-        If 'distance_based' or 'parameter_based' is chosen for `grouping_mode`, grouping
-        is performed for 1 to number of regions initially present in the `xr_dataset`.
-        Here, the number of groups finally chosen for representation of data is to be
-        specified. This parameter is irrelevant if `grouping_mode` is 'string_based'.
+    n_groups : strictly positive int, optional (default=3)
+        The number of region groups to be formed from the original region set.
+        This parameter is irrelevant if `grouping_mode` is 'string_based'.
     aggregatedResultsPath : str, optional (default=None)
         Indicates path to which the aggregated results should be saved.
         If None, results are not saved.
@@ -71,10 +68,10 @@ def perform_spatial_aggregation(
             in order to perform spatial aggregation"
         )
 
-    if n_geometries < nRegionsForRepresentation:
+    if n_geometries < n_groups:
         raise ValueError(
-            f"{n_geometries} regions cannot be reduced to {nRegionsForRepresentation} \
-            regions. Please provide a valid number for nRegionsForRepresentation"
+            f"{n_geometries} regions cannot be reduced to {n_groups} \
+            regions. Please provide a valid number for n_groups"
         )
 
     # STEP 2. Read xr_dataset
@@ -98,56 +95,50 @@ def perform_spatial_aggregation(
     # STEP 4. Spatial grouping
     if grouping_mode == "string_based":
 
-        logger_spagat.info("Performing string-based grouping on the regions")
+        separator = kwargs.get("separator", None)
+        position = kwargs.get("position", None)
 
         locations = xr_dataset.space.values
-        aggregation_dict = spg.perform_string_based_grouping(locations)
+
+        logger_spagat.info("Performing string-based grouping on the regions")
+
+        aggregation_dict = spg.perform_string_based_grouping(
+            locations, separator, position
+        )
 
     elif grouping_mode == "distance_based":
 
-        save_path = kwargs.get("save_path", None)
-        fig_name = kwargs.get("fig_name", None)
-        verbose = kwargs.get("verbose", False)
-
         logger_spagat.info(f"Performing distance-based grouping on the regions")
 
-        aggregation_dict = spg.perform_distance_based_grouping(
-            xr_dataset, save_path, fig_name, verbose
-        )
+        aggregation_dict = spg.perform_distance_based_grouping(xr_dataset, n_groups)
 
     elif grouping_mode == "parameter_based":
 
-        linkage = kwargs.get("linkage", "complete")
         weights = kwargs.get("weights", None)
+        aggregation_method = kwargs.get("aggregation_method", "kmedoids_contiguity")
+        solver = kwargs.get("solver", "gurobi")
 
         logger_spagat.info(f"Performing parameter-based grouping on the regions.")
 
         aggregation_dict = spg.perform_parameter_based_grouping(
-            xr_dataset, linkage, weights
+            xr_dataset,
+            n_groups=n_groups,
+            aggregation_method=aggregation_method,
+            weights=weights,
+            solver=solver,
         )
 
     else:
         raise ValueError(
-            f"The grouping mode {grouping_mode} is not valid. Please choosen one of \
+            f"The grouping mode {grouping_mode} is not valid. Please choose one of \
         the valid grouping mode among: string_based, distance_based, parameter_based"
         )
 
     # STEP 5. Representation of the new regions
-    if grouping_mode == "string_based":
-        sub_to_sup_region_id_dict = (
-            aggregation_dict  # INFO: Not a nested dict for different #regions
-        )
-    else:
-        sub_to_sup_region_id_dict = aggregation_dict.get(nRegionsForRepresentation)
-
-    if "aggregation_function_dict" not in kwargs:
-        aggregation_function_dict = None
-    else:
-        logger_spagat.info("aggregation_function_dict found in kwargs")
-        aggregation_function_dict = kwargs.get("aggregation_function_dict")
+    aggregation_function_dict = kwargs.get("aggregation_function_dict", None)
 
     aggregated_xr_dataset = spr.aggregate_based_on_sub_to_sup_region_id_dict(
-        xr_dataset, sub_to_sup_region_id_dict, aggregation_function_dict
+        xr_dataset, aggregation_dict, aggregation_function_dict
     )
 
     # STEP 6. Save shapefiles and aggregated xarray dataset if user chooses
@@ -158,15 +149,15 @@ def perform_spatial_aggregation(
             "aggregated_xr_filename", "aggregated_xr_dataset.nc4"
         )
 
+        crs = kwargs.get("crs", 3035)
+
         # save shapefiles
         spu.save_shapefile_from_xarray(
-            aggregated_xr_dataset, aggregatedResultsPath, shp_name
+            aggregated_xr_dataset, aggregatedResultsPath, shp_name, crs=crs
         )
 
         # remove geometry related data vars from aggregated xarray dataset as these cannot be saved
-        aggregated_xr_dataset = aggregated_xr_dataset.drop_vars(
-            ["gpd_geometries", "gpd_centroids", "centroid_distances"]
-        )
+        aggregated_xr_dataset = aggregated_xr_dataset.drop_vars(["gpd_geometries"])
 
         # save aggregated xarray dataset
         file_name_with_path = os.path.join(

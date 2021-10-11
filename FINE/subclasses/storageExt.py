@@ -221,7 +221,7 @@ class StorageExtBETA(Storage):
         )
 
     def getDataForTimeSeriesAggregation(self):
-        """ Function for getting the required data if a time series aggregation is requested. """
+        """Function for getting the required data if a time series aggregation is requested."""
         weightDict, data = {}, []
         I = [
             (
@@ -299,7 +299,7 @@ class StorageExtModel(StorageModel):
     """
 
     def __init__(self):
-        """ Constructor for creating a StorageExtModel class instance """
+        """Constructor for creating a StorageExtModel class instance"""
         self.abbrvName = "storExt"
         self.dimension = "1dim"
         self.componentsDict = {}
@@ -876,7 +876,7 @@ class StorageExtModel(StorageModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Get contributions to shared location potential. """
+        """Get contributions to shared location potential."""
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -895,7 +895,7 @@ class StorageExtModel(StorageModel):
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ Get contribution to a commodity balance. """
+        """Get contribution to a commodity balance."""
         return super().getCommodityBalanceContribution(pyM, commod, loc, p, t)
 
     def getObjectiveFunctionContribution(self, esM, pyM):

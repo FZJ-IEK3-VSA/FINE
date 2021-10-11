@@ -150,7 +150,7 @@ def vdensity_with_weights(weights):
     to 'pass' custom density function a set of weights"""
 
     def vdensity(data, coords):
-        """ Custom matplotlib weighted violin stats function """
+        """Custom matplotlib weighted violin stats function"""
         # Using weights from closure, get KDE fomr statsmodels
         weighted_cost = sm.nonparametric.KDEUnivariate(data)
         weighted_cost.fit(fft=False, weights=weights)

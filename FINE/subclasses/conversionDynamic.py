@@ -295,10 +295,9 @@ class ConversionDynamicModel(ConversionModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         opVarBin = getattr(pyM, "op_bin_" + abbrvName)
-        opVarStartBin, opVarStopBin = (
-            getattr(pyM, "startVariable_" + abbrvName),
-            getattr(pyM, "stopVariable_" + abbrvName),
-        )
+        opVarStartBin, opVarStopBin = getattr(
+            pyM, "startVariable_" + abbrvName
+        ), getattr(pyM, "stopVariable_" + abbrvName)
         constrSetMinDownTime = getattr(pyM, "opConstrSet" + "downTimeMin_" + abbrvName)
         if not pyM.hasSegmentation:
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
@@ -363,10 +362,9 @@ class ConversionDynamicModel(ConversionModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         opVarBin = getattr(pyM, "op_bin_" + abbrvName)
-        opVarStartBin, opVarStopBin = (
-            getattr(pyM, "startVariable_" + abbrvName),
-            getattr(pyM, "stopVariable_" + abbrvName),
-        )
+        opVarStartBin, opVarStopBin = getattr(
+            pyM, "startVariable_" + abbrvName
+        ), getattr(pyM, "stopVariable_" + abbrvName)
         constrSetMinUpTime = getattr(pyM, "opConstrSet" + "upTimeMin_" + abbrvName)
         if not pyM.hasSegmentation:
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)

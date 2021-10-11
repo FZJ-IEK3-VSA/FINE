@@ -2,7 +2,6 @@ import os
 import pytest
 import numpy as np
 
-import FINE.IOManagement.xarrayIO_spagat as xrIO
 
 
 @pytest.mark.parametrize("use_saved_file", [True, False])
@@ -31,10 +30,11 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
     # FUNCTION CALL
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(
         shapefile=SHAPEFILE_PATH,
-        nRegionsForRepresentation=8,
+        n_groups=8,
         aggregatedResultsPath=PATH_TO_SAVE,
         aggregated_xr_filename=netcdf_file_name,
         shp_name=shp_file_name,
+        solver="glpk",
     )
 
     if use_saved_file:
@@ -113,13 +113,13 @@ def test_error_in_reading_shp(multi_node_test_esM_init):
         )
 
         aggregated_esM = multi_node_test_esM_init.aggregateSpatially(
-            shapefile=SHAPEFILE_PATH, nRegionsForRepresentation=7
+            shapefile=SHAPEFILE_PATH, n_groups=7, solver="glpk"
         )
 
     ## Case 2: invalid shapefile type
     with pytest.raises(TypeError):
         aggregated_esM = multi_node_test_esM_init.aggregateSpatially(
-            shapefile=multi_node_test_esM_init, nRegionsForRepresentation=7
+            shapefile=multi_node_test_esM_init, n_groups=7, solver="glpk"
         )
 
     ## Case 3: invalid nRegionsForRepresentation for the shapefile
@@ -131,7 +131,7 @@ def test_error_in_reading_shp(multi_node_test_esM_init):
         )
 
         aggregated_esM = multi_node_test_esM_init.aggregateSpatially(
-            shapefile=SHAPEFILE_PATH, nRegionsForRepresentation=10
+            shapefile=SHAPEFILE_PATH, n_groups=10, solver="glpk"
         )
 
 
@@ -148,6 +148,7 @@ def test_spatial_aggregation_string_based(multi_node_test_esM_init):
         shapefile=SHAPEFILE_PATH,
         grouping_mode="string_based",
         aggregatedResultsPath=None,
+        separator="_",
     )
 
     # ASSERTION
@@ -170,7 +171,7 @@ def test_spatial_aggregation_distance_based(multi_node_test_esM_init, n_regions)
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(
         shapefile=SHAPEFILE_PATH,
         grouping_mode="distance_based",
-        nRegionsForRepresentation=n_regions,
+        n_groups=n_regions,
         aggregatedResultsPath=None,
     )
 
@@ -209,10 +210,11 @@ def test_spatial_aggregation_parameter_based(
     aggregated_esM = multi_node_test_esM_init.aggregateSpatially(
         shapefile=SHAPEFILE_PATH,
         grouping_mode="parameter_based",
-        nRegionsForRepresentation=n_regions,
+        n_groups=n_regions,
         aggregatedResultsPath=None,
         aggregation_function_dict=aggregation_function_dict,
         var_weights={"1d_vars": 10},
+        solver="glpk",
     )
 
     # ASSERTION

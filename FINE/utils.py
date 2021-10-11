@@ -14,13 +14,13 @@ import FINE as fn
 
 
 def isString(string):
-    """ Check if the input argument is a string. """
+    """Check if the input argument is a string."""
     if not type(string) == str:
         raise TypeError("The input argument has to be a string")
 
 
 def equalStrings(ref, test):
-    """ Check if two strings are equal to each other. """
+    """Check if two strings are equal to each other."""
     if ref != test:
         print("Reference string: " + str(ref))
         print("String: " + str(test))
@@ -28,7 +28,7 @@ def equalStrings(ref, test):
 
 
 def isStrictlyPositiveInt(value):
-    """ Check if the input argument is a strictly positive integer. """
+    """Check if the input argument is a strictly positive integer."""
     if not type(value) == int:
         raise TypeError("The input argument has to be an integer")
     if not value > 0:
@@ -36,7 +36,7 @@ def isStrictlyPositiveInt(value):
 
 
 def isStrictlyPositiveNumber(value):
-    """ Check if the input argument is a strictly positive number. """
+    """Check if the input argument is a strictly positive number."""
     if not (isinstance(value, float) or isinstance(value, int)):
         raise TypeError("The input argument has to be an number")
     if not value > 0:
@@ -44,7 +44,7 @@ def isStrictlyPositiveNumber(value):
 
 
 def isPositiveNumber(value):
-    """ Check if the input argument is a positive number. """
+    """Check if the input argument is a positive number."""
     if not (isinstance(value, float) or isinstance(value, int)):
         raise TypeError("The input argument has to be an number")
     if not value >= 0:
@@ -52,7 +52,7 @@ def isPositiveNumber(value):
 
 
 def isSetOfStrings(setOfStrings):
-    """ Check if the input argument is a set of strings. """
+    """Check if the input argument is a set of strings."""
     if not type(setOfStrings) == set:
         raise TypeError("The input argument has to be a set")
     if not any([type(r) == str for r in setOfStrings]):
@@ -74,7 +74,7 @@ def checkEnergySystemModelInput(
     lengthUnit,
     balanceLimit,
 ):
-    """ Check input arguments of an EnergySystemModel instance for value/type correctness. """
+    """Check input arguments of an EnergySystemModel instance for value/type correctness."""
 
     # Locations and commodities have to be sets
     isSetOfStrings(locations), isSetOfStrings(commodities)
@@ -207,7 +207,7 @@ def checkConnectionIndex(data, locationalEligibility):
 
 
 def checkCommodities(esM, commodities):
-    """ Check if the commodity is considered in the energy system model. """
+    """Check if the commodity is considered in the energy system model."""
     if not commodities.issubset(esM.commodities):
         raise ValueError(
             "Commodity does not match the ones of the specified energy system model.\n"
@@ -220,7 +220,7 @@ def checkCommodities(esM, commodities):
 
 
 def checkCommodityUnits(esM, commodityUnit):
-    """ Check if the commodity unit matches the in the energy system model defined commodity units."""
+    """Check if the commodity unit matches the in the energy system model defined commodity units."""
     if not commodityUnit in esM.commodityUnitsDict.values():
         raise ValueError(
             "Commodity unit does not match the ones of the specified energy system model.\n"
@@ -261,7 +261,7 @@ def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
 
 
 def checkAndCorrectDiscretizedPartloads(discretizedPartLoad):
-    """ Check if the discretized points are >=0 and <=100% """
+    """Check if the discretized points are >=0 and <=100%"""
 
     for commod, conversionFactor in discretizedPartLoad.items():
         # ySegments
@@ -355,7 +355,7 @@ def checkAndCorrectDiscretizedPartloads(discretizedPartLoad):
 
 
 def checkCallableConversionFactor(conversionFactor):
-    """  Check if the callable conversion factor includes only conversion factors greater than 0 in the relevant part load range. """
+    """Check if the callable conversion factor includes only conversion factors greater than 0 in the relevant part load range."""
     nPointsForTesting = 1001
     xTest = np.linspace(0, 1, nPointsForTesting)
     yTest = [conversionFactor(xTest_i) for xTest_i in xTest]
@@ -451,7 +451,7 @@ def checkAndSetTransmissionLosses(losses, distances, locationalEligibility):
 
 
 def getCapitalChargeFactor(interestRate, economicLifetime):
-    """ Compute and return capital charge factor (inverse of annuity factor). """
+    """Compute and return capital charge factor (inverse of annuity factor)."""
     CCF = 1 / interestRate - 1 / (
         pow(1 + interestRate, economicLifetime) * interestRate
     )
@@ -469,7 +469,7 @@ def castToSeries(data, esM):
 
 
 def getQPbound(QPcostScale, capacityMax, capacityMin):
-    """ Compute and return lower and upper capacity bounds. """
+    """Compute and return lower and upper capacity bounds."""
     index = QPcostScale.index
     QPbound = pd.Series([np.inf] * len(index), index)
 
@@ -1643,7 +1643,7 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
 
 
 def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
-    """ Preprocess the conversion factors passed by the user """
+    """Preprocess the conversion factors passed by the user"""
     discretizedPartLoad = {
         commod: None for commod in commodityConversionFactorsPartLoad.keys()
     }
