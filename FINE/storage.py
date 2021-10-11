@@ -265,20 +265,19 @@ class Storage(Component):
         self.chargeOpRateMax = chargeOpRateMax
         self.chargeOpRateFix = chargeOpRateFix
 
-        # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
-        # and time series aggregation weighting factor
-        if chargeOpRateMax is not None and chargeOpRateFix is not None:
-            chargeOpRateMax = None
-            if esM.verbose < 2:
-                warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
-                              'The chargeOpRateMax time series was set to None.')
-
         self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
         self.aggregatedChargeOpRateMax, self.processedChargeOpRateMax = None, None
 
         self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix, locationalEligibility)
         self.aggregatedChargeOpRateFix, self.processedChargeOpRateFix = None, None
 
+        # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
+        # and time series aggregation weighting factor
+        if self.fullChargeOpRateMax is not None and self.fullChargeOpRateFix is not None:
+            self.fullChargeOpRateMax = None
+            if esM.verbose < 2:
+                warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
+                              'The chargeOpRateMax time series was set to None.')
         
         if self.partLoadMin is not None:
             if self.fullChargeOpRateMax is not None:
@@ -296,17 +295,17 @@ class Storage(Component):
         self.dischargeOpRateMax = dischargeOpRateMax
         self.dischargeOpRateFix = dischargeOpRateFix
 
-        if dischargeOpRateMax is not None and dischargeOpRateFix is not None:
-            dischargeOpRateMax = None
-            if esM.verbose < 2:
-                warnings.warn('If dischargeOpRateFix is specified, the dischargeOpRateMax parameter is not required.\n'
-                              + 'The dischargeOpRateMax time series was set to None.')
-
         self.fullDischargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax, locationalEligibility)
         self.aggregatedDischargeOpRateMax, self.processedDischargeOpRateMax = None, None
 
         self.fullDischargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix, locationalEligibility)
         self.aggregatedDischargeOpRateFix, self.processedDischargeOpRateFix = None, None
+
+        if self.fullDischargeOpRateMax is not None and self.fullDischargeOpRateFix is not None:
+            self.fullDischargeOpRateMax = None
+            if esM.verbose < 2:
+                warnings.warn('If dischargeOpRateFix is specified, the dischargeOpRateMax parameter is not required.\n'
+                              + 'The dischargeOpRateMax time series was set to None.')
 
         utils.isPositiveNumber(dischargeTsaWeight)
         self.dischargeTsaWeight = dischargeTsaWeight
@@ -965,7 +964,7 @@ class StorageModel(ComponentModel):
         # the hours per time step [h] and the charging operation time series [1/h]
         self.operationMode3(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateMax')
         # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
-        self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedCchargeOpRateFix')
+        self.operationMode4(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateFix')
         # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
         self.operationMode5(pyM, esM, 'ConstrCharge', 'chargeOpConstrSet', 'chargeOp', 'processedChargeOpRateMax')
         # Operation [physicalUnit*h] is limited by minimum part Load
