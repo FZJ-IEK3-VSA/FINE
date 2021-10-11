@@ -475,7 +475,7 @@ def datasets_to_esm(xr_dss):
                     if 'Optimum' in variable:
                         continue
                     if 'space_2' in list(xr_dss['Results'][model][component].coords):
-                        _optSum_df = xr_dss['Results']['TransmissionModel'][component][variable].to_dataframe().unstack()
+                        _optSum_df = xr_dss['Results'][model][component][variable].to_dataframe().unstack()
                         iterables = [[component,variable,unit] for variable,unit in xr_dss['Results'][model][component][variable].attrs.items()]                    
                         iterables2 = [[iterables[0] + [location]][0] for location in xr_dss['Results'][model][component][variable]['space'].values]
                         idx = pd.MultiIndex.from_tuples(tuple(iterables2))
