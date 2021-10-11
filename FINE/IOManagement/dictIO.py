@@ -11,26 +11,26 @@ def exportToDict(esM):
     :param esM: EnergySystemModel instance in which the optimization model is held
     :type esM: EnergySystemModel instance
 
-    :return: esmDict, compDict - dicts containing input arguments of 
-            EnergySysteModel and its Components input, respectively 
+    :return: esmDict, compDict - dicts containing input arguments of
+            EnergySysteModel and its Components input, respectively
     """
 
     # Get all input properties of the esM
     inputkwargs = inspect.getfullargspec(fn.EnergySystemModel.__init__)
 
-    esmDict = {}        
+    esmDict = {}
     # Loop over all props
     for arg in inputkwargs.args:
-        if not arg is 'self':
-            esmDict[arg] = getattr(esM,arg)
+        if not arg is "self":
+            esmDict[arg] = getattr(esM, arg)
 
     compDict = utilsIO.PowerDict()
-    # Loop over all component models 
+    # Loop over all component models
     for componentModel in esM.componentModelingDict.values():
 
         # Loop over all components belonging to the model
         for componentname in componentModel.componentsDict:
-            
+
             # Get class name of component
             classname = type(componentModel.componentsDict[componentname]).__name__
 
@@ -42,14 +42,13 @@ def exportToDict(esM):
 
             # Get component data
             component = componentModel.componentsDict[componentname]
-            
+
             # Loop over all input props
             for prop in inputkwargs.args:
-                if (prop is not 'self') and (prop is not 'esM'):
-                    #NOTE: thanks to utilsIO.PowerDict(), the nested dictionaries need 
+                if (prop is not "self") and (prop is not "esM"):
+                    # NOTE: thanks to utilsIO.PowerDict(), the nested dictionaries need
                     # not be created before adding the data.
-                    compDict[classname][componentname][prop] = getattr(component,prop) 
-                     
+                    compDict[classname][componentname][prop] = getattr(component, prop)
 
     return esmDict, compDict
 

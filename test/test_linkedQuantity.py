@@ -3,8 +3,7 @@ import pandas as pd
 
 
 def test_linkedQuantityID(minimal_test_esM):
-    """
-    """
+    """"""
     esM = minimal_test_esM
 
     # get components
@@ -31,7 +30,7 @@ def test_linkedQuantityID(minimal_test_esM):
     electrolyzer.opexPerCapacity = pd.Series(1, index=esM.locations)
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver='glpk')
+    esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
     assert (
         esM.getOptimizationSummary("ConversionModel")
@@ -43,4 +42,3 @@ def test_linkedQuantityID(minimal_test_esM):
         .loc["opexCap"]["ElectrolyzerLocation"]
         .values.astype(int)[0]
     )
-

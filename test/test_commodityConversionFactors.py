@@ -7,6 +7,7 @@ Here we are testing differnt inputs for time-invariant conversion factors that a
 not covered in the minimal test system or other tests.
 """
 
+
 def create_core_esm():
     """
     We create a core esm that only consists of a source and a sink in one location.
