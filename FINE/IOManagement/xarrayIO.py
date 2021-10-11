@@ -663,11 +663,13 @@ def esm_to_datasets(esM):
 
     :return: xr_dss_results - esM instance (input and output) data in xarray dataset format 
      """
-
-    xr_dss_output = esm_output_to_datasets(esM)
-    xr_dss_input = esm_input_to_datasets(esM)
-
-    xr_dss_results = {"Results": xr_dss_output["Results"], "Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
+    if esM.objectiveValue != None: # model was optimized
+        xr_dss_output = esm_output_to_datasets(esM)
+        xr_dss_input = esm_input_to_datasets(esM)
+        xr_dss_results = {"Results": xr_dss_output["Results"], "Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]}
+    else:
+        xr_dss_input = esm_input_to_datasets(esM)
+        xr_dss_results = {"Input": xr_dss_input["Input"], "Parameters": xr_dss_input["Parameters"]} 
 
     return xr_dss_results
 
