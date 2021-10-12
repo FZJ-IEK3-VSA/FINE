@@ -11,8 +11,6 @@ import FINE.IOManagement.xarrayIO_spagat as xrIO
 
 logger_spagat = logging.getLogger("spatial_aggregation")
 
-logger_spagat = logging.getLogger("spatial_aggregation")
-
 
 def perform_spatial_aggregation(
     xr_dataset,
