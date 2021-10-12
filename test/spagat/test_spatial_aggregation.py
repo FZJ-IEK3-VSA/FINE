@@ -3,7 +3,6 @@ import pytest
 import numpy as np
 
 
-
 @pytest.mark.parametrize("use_saved_file", [True, False])
 def test_esm_to_xr_and_back_during_spatial_aggregation(
     use_saved_file, multi_node_test_esM_init
