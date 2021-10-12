@@ -79,7 +79,6 @@ class PowerDict(dict):
             val.key = key
 
 
-
 def generateIterationDicts(component_dict):
     """Creates iteration dictionaries that contain descriptions of all
     dataframes, series, and constants present in component_dict.
