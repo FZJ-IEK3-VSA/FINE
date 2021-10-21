@@ -29,16 +29,19 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
 
     df = pd.DataFrame(values, columns=locations, index=locations)
 
+    for idx in series.index:
+        if idx.count("_") > 1:
+            warnings.warn(
+                f"More than one {separator} found in series index. \
+            Therefore, {separator} is not used to split the index"
+            )
+            break
+
     for row in series.iteritems():
 
         try:
             id_1, id_2 = row[0].split(separator)
         except:
-            warnings.warn(
-                f"More than one {separator} found in series index. \
-            Therefore, {separator} is not used to split the index"
-            )
-
             row_center_id = math.ceil(len(row[0]) / 2)
             id_1, id_2 = row[0][: row_center_id - 1], row[0][row_center_id:]
 
@@ -71,11 +74,9 @@ class PowerDict(dict):
 
     def __setitem__(self, key, val):
         dict.__setitem__(self, key, val)
-        try:
+        if isinstance(val, PowerDict):
             val.parent = self
             val.key = key
-        except AttributeError:
-            pass
 
 
 def generateIterationDicts(component_dict):
@@ -155,8 +156,8 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
     """Adds all variables whose data is contained in a pd.DataFrame to xarray dataset.
     These variables are normally regional time series (dimensions - space, time)
 
-    :param xr_ds: xarray dataset to which the DF variables should be added
-    :type xr_ds: xr.Dataset
+    :param xr_ds: xarray dataset or a dict of xarray datasets to which the DF variables should be added
+    :type xr_ds: xr.Dataset/dict
 
     :param component_dict: dictionary containing information about the esM instance's components
     :type component_dict: dict
@@ -199,7 +200,32 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
             f"ts_{variable_description}"
         ] = df_variable.sort_index().to_xarray()
 
-        xr_ds = xr.merge([xr_ds, ds_component])
+        if isinstance(xr_ds, xr.Dataset):
+            xr_ds = xr.merge([xr_ds, ds_component])
+
+        elif isinstance(xr_ds, dict):
+
+            for comp in df_variable.index.get_level_values(0).unique():
+                this_class = comp.split(", ")[0]
+                this_comp = comp.split(", ")[1]
+
+                this_ds_component = (
+                    ds_component.sel(component=comp)
+                    .squeeze()
+                    .reset_coords(names=["component"], drop=True)
+                )
+
+                try:
+                    xr_ds[this_class][this_comp] = xr.merge(
+                        [xr_ds[this_class][this_comp], this_ds_component]
+                    )
+                except Exception:
+                    pass
+
+        else:
+            raise TypeError(
+                "The variable xr_ds should be either a xarray Dataset or a dictionary of xarray Datasets"
+            )
 
     return xr_ds
 
@@ -213,8 +239,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
         or
         - time series (dimension - time). This situation is unique to single node esM model
 
-    :param xr_ds: xarray dataset to which the series variables should be added
-    :type xr_ds: xr.Dataset
+    :param xr_ds: xarray dataset or a dict of xarray datasets to which the series variables should be added
+    :type xr_ds: xr.Dataset/dict
 
     :param component_dict: dictionary containing information about the esM instance's components
     :type component_dict: dict
@@ -284,7 +310,31 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 f"2d_{variable_description}"
             ] = df_variable.sort_index().to_xarray()
 
-            xr_ds = xr.merge([xr_ds, ds_component])
+            if isinstance(xr_ds, xr.Dataset):
+                xr_ds = xr.merge([xr_ds, ds_component])
+
+            elif isinstance(xr_ds, dict):
+
+                for comp in df_variable.index.get_level_values(0).unique():
+                    this_class = comp.split(", ")[0]
+                    this_comp = comp.split(", ")[1]
+                    this_ds_component = (
+                        ds_component.sel(component=comp)
+                        .squeeze()
+                        .reset_coords(names=["component"], drop=True)
+                    )
+
+                    try:
+                        xr_ds[this_class][this_comp] = xr.merge(
+                            [xr_ds[this_class][this_comp], this_ds_component]
+                        )
+                    except Exception:
+                        pass
+
+            else:
+                raise TypeError(
+                    "The variable xr_ds should be either a xarray Dataset or a dictionary of xarray Datasets"
+                )
 
         if len(space_dict) > 0:
             df_variable = pd.concat(space_dict)
@@ -294,7 +344,31 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 f"1d_{variable_description}"
             ] = df_variable.sort_index().to_xarray()
 
-            xr_ds = xr.merge([xr_ds, ds_component])
+            if isinstance(xr_ds, xr.Dataset):
+                xr_ds = xr.merge([xr_ds, ds_component])
+
+            elif isinstance(xr_ds, dict):
+
+                for comp in df_variable.index.get_level_values(0).unique():
+                    this_class = comp.split(", ")[0]
+                    this_comp = comp.split(", ")[1]
+                    this_ds_component = (
+                        ds_component.sel(component=comp)
+                        .squeeze()
+                        .reset_coords(names=["component"], drop=True)
+                    )
+
+                    try:
+                        xr_ds[this_class][this_comp] = xr.merge(
+                            [xr_ds[this_class][this_comp], this_ds_component]
+                        )
+                    except Exception:
+                        print(f"No {this_class}.")
+
+            else:
+                raise TypeError(
+                    "The variable xr_ds should be either a xarray Dataset or a dictionary of xarray Datasets"
+                )
 
         if len(time_dict) > 0:
             df_variable = pd.concat(time_dict)
@@ -304,7 +378,31 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 f"ts_{variable_description}"
             ] = df_variable.sort_index().to_xarray()
 
-            xr_ds = xr.merge([xr_ds, ds_component])
+            if isinstance(xr_ds, xr.Dataset):
+                xr_ds = xr.merge([xr_ds, ds_component])
+
+            elif isinstance(xr_ds, dict):
+
+                for comp in df_variable.index.get_level_values(0).unique():
+                    this_class = comp.split(", ")[0]
+                    this_comp = comp.split(", ")[1]
+                    this_ds_component = (
+                        ds_component.sel(component=comp)
+                        .squeeze()
+                        .reset_coords(names=["component"], drop=True)
+                    )
+
+                    try:
+                        xr_ds[this_class][this_comp] = xr.merge(
+                            [xr_ds[this_class][this_comp], this_ds_component]
+                        )
+                    except Exception:
+                        pass
+
+            else:
+                raise TypeError(
+                    "The variable xr_ds should be either a xarray Dataset or a dictionary of xarray Datasets"
+                )
 
     return xr_ds
 
@@ -312,8 +410,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
     """Adds all variables whose data is just a constant value, to xarray dataset.
 
-    :param xr_ds: xarray dataset to which the constant value variables should be added
-    :type xr_ds: xr.Dataset
+    :param xr_ds: xarray dataset or a dict of xarray datasets to which the constant value variables should be added
+    :type xr_ds: xr.Dataset/dict
 
     :param component_dict: dictionary containing information about the esM instance's components
     :type component_dict: dict
@@ -352,7 +450,26 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
             df_variable
         )
 
-        xr_ds = xr.merge([xr_ds, ds_component])
+        if isinstance(xr_ds, xr.Dataset):
+            xr_ds = xr.merge([xr_ds, ds_component])
+
+        elif isinstance(xr_ds, dict):
+
+            for comp in df_variable.index.get_level_values(0).unique():
+                this_class = comp.split(", ")[0]
+                this_comp = comp.split(", ")[1]
+                this_ds_component = (
+                    ds_component.sel(component=comp)
+                    .squeeze()
+                    .reset_coords(names=["component"], drop=True)
+                )
+
+                try:
+                    xr_ds[this_class][this_comp] = xr.merge(
+                        [xr_ds[this_class][this_comp], this_ds_component]
+                    )
+                except Exception:
+                    print(f"No {this_class}.")
 
     return xr_ds
 
@@ -378,8 +495,14 @@ def processXarrayAttributes(xarray_dataset):
     # STEP 1. Loop through each attribute, convert datatypes
     # or append to dot_attrs_dict for conversion in a later step
     for attr_name, attr_value in _xarray_dataset.attrs.items():
+        if attr_name in ["locations", "commodities"] and isinstance(attr_value, str):
+            xarray_dataset.attrs[attr_name] = set([attr_value])
+        if attr_name in ["commodityUnitsDict"] and isinstance(attr_value, str):
+            [k, v] = attr_value.split(" : ")
+            _dict = {k: v}
+            xarray_dataset.attrs[attr_name] = _dict
 
-        if isinstance(attr_value, list):
+        elif isinstance(attr_value, list):
             # If its a "flattened" list, convert it to dict
             if all(":" in v for v in attr_value):
 
@@ -446,7 +569,9 @@ def processXarrayAttributes(xarray_dataset):
     return xarray_dataset
 
 
-def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable):
+def addTimeSeriesVariableToDict(
+    component_dict, comp_var_xr, component, variable, drop_component=True
+):
     """Converts the time series variable data to required format and adds it to
     component_dict
 
@@ -465,10 +590,16 @@ def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable
     :return: component_dict
     """
 
-    df = comp_var_xr.drop("component").to_dataframe().unstack(level=1)
+    if len(comp_var_xr.space.dims) == 0:
+        df = comp_var_xr.to_series()
+    elif drop_component:
+        df = comp_var_xr.drop("component").to_dataframe().unstack(level=1)
+    else:
+        df = comp_var_xr.to_dataframe().unstack(level=1)
 
-    if len(df.columns) > 1:
-        df.columns = df.columns.droplevel(0)
+    if isinstance(df, pd.DataFrame):
+        if len(df.columns) > 1:
+            df.columns = df.columns.droplevel(0)
 
     [class_name, comp_name] = component.split(", ")
 
@@ -485,7 +616,9 @@ def addTimeSeriesVariableToDict(component_dict, comp_var_xr, component, variable
     return component_dict
 
 
-def add2dVariableToDict(component_dict, comp_var_xr, component, variable):
+def add2dVariableToDict(
+    component_dict, comp_var_xr, component, variable, drop_component=True
+):
     """Converts the 2d variable data to required format and adds it to
     component_dict
 
@@ -503,7 +636,10 @@ def add2dVariableToDict(component_dict, comp_var_xr, component, variable):
 
     :return: component_dict
     """
-    series = comp_var_xr.drop("component").to_dataframe().stack(level=0)
+    if drop_component:
+        series = comp_var_xr.drop("component").to_dataframe().stack(level=0)
+    else:
+        series = comp_var_xr.to_dataframe().stack(level=0)
     series.index = series.index.droplevel(level=2).map("_".join)
 
     # NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other
@@ -526,7 +662,9 @@ def add2dVariableToDict(component_dict, comp_var_xr, component, variable):
     return component_dict
 
 
-def add1dVariableToDict(component_dict, comp_var_xr, component, variable):
+def add1dVariableToDict(
+    component_dict, comp_var_xr, component, variable, drop_component=True
+):
     """Converts the 1d variable data to required format and adds it to
     component_dict
 
@@ -544,8 +682,16 @@ def add1dVariableToDict(component_dict, comp_var_xr, component, variable):
 
     :return: component_dict
     """
-    series = comp_var_xr.drop("component").to_dataframe().unstack(level=0)
-    series.index = series.index.droplevel(level=0)
+
+    if len(comp_var_xr.dims) == 0:
+        # We check for the dimensionality again because single node models will have scalars here.
+        series = pd.Series([comp_var_xr.item()], index=[comp_var_xr.space.item()])
+    elif drop_component:
+        series = comp_var_xr.drop("component").to_dataframe().unstack(level=0)
+        series.index = series.index.droplevel(level=0)
+    else:
+        series = comp_var_xr.to_dataframe().unstack(level=0)
+        series.index = series.index.droplevel(level=0)
 
     [class_name, comp_name] = component.split(", ")
 

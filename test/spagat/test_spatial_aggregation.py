@@ -1,8 +1,7 @@
 import os
 import pytest
 import numpy as np
-
-import FINE.IOManagement.xarrayIO as xrIO
+import FINE.IOManagement.xarrayIO_spagat as xrIO
 
 
 @pytest.mark.parametrize("use_saved_file", [True, False])
