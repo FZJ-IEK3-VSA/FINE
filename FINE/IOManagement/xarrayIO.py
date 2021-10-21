@@ -570,8 +570,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     [[component], [item], list(_df.index)]
                                 )
                                 _df = _df.set_index(idx)
-                                _operationVariablesOptimum_df = _operationVariablesOptimum_df.append(
-                                    _df
+                                _operationVariablesOptimum_df = (
+                                    _operationVariablesOptimum_df.append(_df)
                                 )
 
                         else:
@@ -580,14 +580,14 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 .unstack(level=0)
                                 .droplevel(0, axis=1)
                             )
-                            _operationVariablesOptimum_df = _operationVariablesOptimum_df.dropna(
-                                axis=0
+                            _operationVariablesOptimum_df = (
+                                _operationVariablesOptimum_df.dropna(axis=0)
                             )
                             idx = pd.MultiIndex.from_product(
                                 [[component], _operationVariablesOptimum_df.index]
                             )
-                            _operationVariablesOptimum_df = _operationVariablesOptimum_df.set_index(
-                                idx
+                            _operationVariablesOptimum_df = (
+                                _operationVariablesOptimum_df.set_index(idx)
                             )
 
                     if opt_variable == "capacityVariablesOptimum":
@@ -604,8 +604,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                             _capacityVariablesOptimum_df = _df
                         else:
                             _capacityVariablesOptimum_df = xr_opt.to_dataframe().T
-                            _capacityVariablesOptimum_df = _capacityVariablesOptimum_df.set_axis(
-                                [component]
+                            _capacityVariablesOptimum_df = (
+                                _capacityVariablesOptimum_df.set_axis([component])
                             )
 
                     if opt_variable == "isBuiltVariablesOptimum":
@@ -615,8 +615,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                         idx = pd.MultiIndex.from_product(
                             [[component], _isBuiltVariablesOptimum_df.index]
                         )
-                        _isBuiltVariablesOptimum_df = _isBuiltVariablesOptimum_df.set_index(
-                            idx
+                        _isBuiltVariablesOptimum_df = (
+                            _isBuiltVariablesOptimum_df.set_index(idx)
                         )
 
                     if opt_variable == "chargeOperationVariablesOptimum":
@@ -626,8 +626,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                         idx = pd.MultiIndex.from_product(
                             [[component], _chargeOperationVariablesOptimum_df.index]
                         )
-                        _chargeOperationVariablesOptimum_df = _chargeOperationVariablesOptimum_df.set_index(
-                            idx
+                        _chargeOperationVariablesOptimum_df = (
+                            _chargeOperationVariablesOptimum_df.set_index(idx)
                         )
 
                     if opt_variable == "dischargeOperationVariablesOptimum":
@@ -637,8 +637,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                         idx = pd.MultiIndex.from_product(
                             [[component], _dischargeOperationVariablesOptimum_df.index]
                         )
-                        _dischargeOperationVariablesOptimum_df = _dischargeOperationVariablesOptimum_df.set_index(
-                            idx
+                        _dischargeOperationVariablesOptimum_df = (
+                            _dischargeOperationVariablesOptimum_df.set_index(idx)
                         )
 
                     if opt_variable == "stateOfChargeOperationVariablesOptimum":
@@ -651,8 +651,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 _stateOfChargeOperationVariablesOptimum_df.index,
                             ]
                         )
-                        _stateOfChargeOperationVariablesOptimum_df = _stateOfChargeOperationVariablesOptimum_df.set_index(
-                            idx
+                        _stateOfChargeOperationVariablesOptimum_df = (
+                            _stateOfChargeOperationVariablesOptimum_df.set_index(idx)
                         )
 
                 operationVariablesOptimum_df = operationVariablesOptimum_df.append(
@@ -664,14 +664,20 @@ def convertDatasetsToEnergySystemModel(datasets):
                 isBuiltVariablesOptimum_df = isBuiltVariablesOptimum_df.append(
                     _isBuiltVariablesOptimum_df
                 )
-                chargeOperationVariablesOptimum_df = chargeOperationVariablesOptimum_df.append(
-                    _chargeOperationVariablesOptimum_df
+                chargeOperationVariablesOptimum_df = (
+                    chargeOperationVariablesOptimum_df.append(
+                        _chargeOperationVariablesOptimum_df
+                    )
                 )
-                dischargeOperationVariablesOptimum_df = dischargeOperationVariablesOptimum_df.append(
-                    _dischargeOperationVariablesOptimum_df
+                dischargeOperationVariablesOptimum_df = (
+                    dischargeOperationVariablesOptimum_df.append(
+                        _dischargeOperationVariablesOptimum_df
+                    )
                 )
-                stateOfChargeOperationVariablesOptimum_df = stateOfChargeOperationVariablesOptimum_df.append(
-                    _stateOfChargeOperationVariablesOptimum_df
+                stateOfChargeOperationVariablesOptimum_df = (
+                    stateOfChargeOperationVariablesOptimum_df.append(
+                        _stateOfChargeOperationVariablesOptimum_df
+                    )
                 )
 
             # check if empty, if yes convert to None
