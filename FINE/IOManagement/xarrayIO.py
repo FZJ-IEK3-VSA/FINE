@@ -11,7 +11,7 @@ from FINE.IOManagement import dictIO, utilsIO
 from FINE.IOManagement.utilsIO import processXarrayAttributes
 
 
-def convertOptimizationInputToDataset(esM):
+def convertOptimizationInputToDatasets(esM):
     """Takes esM instance input and converts it into an xarray dataset.
 
     :param esM: EnergySystemModel instance in which the model is held
@@ -61,7 +61,7 @@ def convertOptimizationInputToDataset(esM):
     return xr_dss
 
 
-def convertOptimizationOutputToDataset(esM, optSumOutputLevel=0, optValOutputLevel=1):
+def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
     """Takes esM instance output and converts it into an xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
@@ -772,11 +772,11 @@ def writeEnergySystemModelToNetCDF(
     utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
     _t = time.time()
 
-    xr_dss_input = convertOptimizationInputToDataset(esM)
+    xr_dss_input = convertOptimizationInputToDatasets(esM)
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
 
     if esM.objectiveValue != None:  # model was optimized
-        xr_dss_output = convertOptimizationOutputToDataset(
+        xr_dss_output = convertOptimizationOutputToDatasets(
             esM, optSumOutputLevel, optValOutputLevel
         )
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
@@ -794,15 +794,15 @@ def writeEnergySystemModelToDatasets(esM):
     dataset format
     """
     if esM.objectiveValue != None:  # model was optimized
-        xr_dss_output = convertOptimizationOutputToDataset(esM)
-        xr_dss_input = convertOptimizationInputToDataset(esM)
+        xr_dss_output = convertOptimizationOutputToDatasets(esM)
+        xr_dss_input = convertOptimizationInputToDatasets(esM)
         xr_dss_results = {
             "Results": xr_dss_output["Results"],
             "Input": xr_dss_input["Input"],
             "Parameters": xr_dss_input["Parameters"],
         }
     else:
-        xr_dss_input = convertOptimizationInputToDataset(esM)
+        xr_dss_input = convertOptimizationInputToDatasets(esM)
         xr_dss_results = {
             "Input": xr_dss_input["Input"],
             "Parameters": xr_dss_input["Parameters"],
