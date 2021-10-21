@@ -11,20 +11,7 @@ from FINE.IOManagement import dictIO, utilsIO
 from FINE.IOManagement.utilsIO import processXarrayAttributes
 
 
-def close_dss(dss):
-    if isinstance(dss, dict):
-        for value in dss.values():
-            if isinstance(value, dict):
-                close_dss(value)
-            elif isinstance(value, xr.Dataset):
-                value.close()
-            else:
-                pass
-    elif isinstance(dss, xr.Dataset):
-        dss.close()
-
-
-def esm_input_to_datasets(esM):
+def convertOptimizationInputToDataset(esM):
     """Takes esM instance input and converts it into an xarray dataset.
 
     :param esM: EnergySystemModel instance in which the model is held
@@ -69,62 +56,33 @@ def esm_input_to_datasets(esM):
     attributes_xr = xr.Dataset()
     attributes_xr.attrs = esm_dict
 
-    # xr_ds.attrs = esm_dict
-
-    # STEP 8. Save to netCDF file
-    # if save:
-    #     if groups:
-    #         # Create netCDF file, remove existant
-    #         grouped_file_path = f"{file_name}"
-    #         if Path(grouped_file_path).is_file():
-    #             Path(grouped_file_path).unlink()
-    #         rootgrp = Dataset(grouped_file_path, "w", format="NETCDF4")
-    #         rootgrp.close()
-
-    #         for model, comps  in xr_dss.items():
-    #             for component in comps.keys():
-    #                 xr_dss[model][component].to_netcdf(
-    #                     path=f"{file_name}",
-    #                     # Datasets per component will be reflectes as groups in the NetCDF file.
-    #                     group=f"Input/{model}/{component}",
-    #                     # Use mode='a' to append datasets to existing file. Variables will be overwritten.
-    #                     mode="a",
-    #                     # Use zlib variable compression to reduce filesize with little performance loss
-    #                     # for our use-case. Complevel 9 for best compression.
-    #                     encoding={
-    #                         var: {"zlib": True, "complevel": 9}
-    #                         for var in list(xr_dss[model][component].data_vars)
-    #                     },
-    #                 )
-    #     else:
-    #         dataset_input_to_netcdf(xr_ds, file_name)
-
     xr_dss = {"Input": xr_dss, "Parameters": attributes_xr}
 
     return xr_dss
 
 
-def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
+def convertOptimizationOutputToDataset(esM, optSumOutputLevel=0, optValOutputLevel=1):
     """Takes esM instance output and converts it into an xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
 
-    :param optSumOutputLevel: Output level of the optimization summary (see EnergySystemModel). Either an integer
-        (0,1,2) which holds for all model classes or a dictionary with model class names as keys and an integer
+    :param optSumOutputLevel: Output level of the optimization summary (see
+        EnergySystemModel). Either an integer (0,1,2) which holds for all model
+        classes or a dictionary with model class names as keys and an integer
         (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        |br| * the default value is 2
-    :type optSumOutputLevel: int (0,1,2) or dict
+        |br| * the default value is 2 :type optSumOutputLevel: int (0,1,2) or
+        dict
 
-    :param optValOutputLevel: Output level of the optimal values. Either an integer (0,1) which holds for all
-        model classes or a dictionary with model class names as keys and an integer (0,1) for each key
-        (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        - 0: all values are kept.
-        - 1: Lines containing only zeroes are dropped.
-        |br| * the default value is 1
-    :type optValOutputLevel: int (0,1) or dict
+    :param optValOutputLevel: Output level of the optimal values. Either an
+        integer (0,1) which holds for all model classes or a dictionary with
+        model class names as keys and an integer (0,1) for each key (e.g.
+        {'StorageModel':1,'SourceSinkModel':1,...} - 0: all values are kept. -
+        1: Lines containing only zeroes are dropped. |br| * the default value is
+        1 :type optValOutputLevel: int (0,1) or dict
 
-    :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
+    :return: xr_ds - EnergySystemModel instance output data in xarray dataset
+    format
     """
 
     # Create the netCDF file and the xr.Dataset dict for all components
@@ -309,49 +267,49 @@ def esm_output_to_datasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
     return xr_dss
 
 
-def datasets_to_netcdf(
-    xr_dss, file_path="my_esm.nc", remove_existing=False, mode="a", group_prefix=None
+def writeDatasetsToNetCDF(
+    datasets,
+    outputFilePath="my_esm.nc",
+    removeExisting=False,
+    mode="a",
+    groupPrefix=None,
 ):
-    """Saves xarray dataset (with esM instance data) to a netCDF file.
+    """Saves dictionary of xarray datasets (with esM instance data) to a netCDF
+    file.
 
-    :param xr_dss: xarray dataset which holds the esM instance data
-    :type xr_dss: xr.Dataset
+    :param datasets: Dictionary of xarray datasets which holds the esM instance
+    data :type datasets: dict
 
-    :param file_path: output file name of the netCDF file (can include full path)
-        |br| * the default value is "my_esm.nc"
-    :type file_path: string
+    :param outputFilePath: output file name of the netCDF file (can include full
+        path) |br| * the default value is "my_esm.nc" :type file_path: string
 
-    :param remove_existing: indicates if an existing netCDF file should be removed
-        |br| * the default value is False
-    :type remove_existing: boolean
+    :param removeExisting: indicates if an existing netCDF file should be
+        removed |br| * the default value is False :type removeExisting: boolean
 
-    :param mode: Write (‘w’) or append (‘a’) mode. If mode=’w’, any existing file at this location will be overwritten.
-        If mode=’a’, existing variables will be overwritten.
-        |br| * the default value is 'a'
-    :type mode: string
+    :param mode: Write (‘w’) or append (‘a’) mode. If mode=’w’, any existing
+        file at this location will be overwritten. If mode=’a’, existing
+        variables will be overwritten. |br| * the default value is 'a' :type
+        mode: string
 
-    :param group_prefix: if specified, multiple xarray datasets (with esM instance data) are saved to the same netcdf file.
-        The dictionary structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None
-    :type group_prefix: string
+    :param groupPrefix: if specified, multiple xarray datasets (with esM
+        instance data) are saved to the same netcdf file. The dictionary
+        structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
+        |br| * the default value is None :type groupPrefix: string
     """
 
     # Create netCDF file, remove existant
-    if remove_existing:
-        if Path(file_path).is_file():
-            Path(file_path).unlink()
+    if removeExisting:
+        if Path(outputFilePath).is_file():
+            Path(outputFilePath).unlink()
 
-    if not Path(file_path).is_file():
-        with Dataset(file_path, "w", format="NETCDF4") as rootgrp:
+    if not Path(outputFilePath).is_file():
+        with Dataset(outputFilePath, "w", format="NETCDF4") as rootgrp:
             pass
 
-    # rootgrp = Dataset(file_path, "w", format="NETCDF4")
-    # rootgrp.close()
-
-    for group in xr_dss.keys():
+    for group in datasets.keys():
         if group == "Parameters":
 
-            xarray_dataset = xr_dss[group]
+            xarray_dataset = datasets[group]
             _xarray_dataset = (
                 xarray_dataset.copy()
             )  # Copying to avoid errors due to change of size during iteration
@@ -403,36 +361,30 @@ def datasets_to_netcdf(
                 elif attr_value == None:
                     xarray_dataset.attrs[attr_name] = "None"
 
-            if group_prefix:
-                group_path = f"{group_prefix}/{group}"
+            if groupPrefix:
+                group_path = f"{groupPrefix}/{group}"
             else:
                 group_path = f"{group}"
 
             xarray_dataset.to_netcdf(
-                path=f"{file_path}",
+                path=f"{outputFilePath}",
                 # Datasets per component will be reflectes as groups in the NetCDF file.
                 group=group_path,
                 # Use mode='a' to append datasets to existing file. Variables will be overwritten.
                 mode=mode,
-                # Use zlib variable compression to reduce filesize with little performance loss
-                # for our use-case. Complevel 9 for best compression.
-                # encoding={
-                #     var: {"zlib": True, "complevel": 9}
-                #     for var in list(xr_dss[group].data_vars)
-                # },
             )
             continue
 
         else:
-            for model, comps in xr_dss[group].items():
+            for model, comps in datasets[group].items():
                 for component in comps.keys():
                     if component is not None:
-                        if group_prefix:
-                            group_path = f"{group_prefix}/{group}/{model}/{component}"
+                        if groupPrefix:
+                            group_path = f"{groupPrefix}/{group}/{model}/{component}"
                         else:
                             group_path = f"{group}/{model}/{component}"
-                        xr_dss[group][model][component].to_netcdf(
-                            path=f"{file_path}",
+                        datasets[group][model][component].to_netcdf(
+                            path=f"{outputFilePath}",
                             # Datasets per component will be reflectes as groups in the NetCDF file.
                             group=group_path,
                             # Use mode='a' to append datasets to existing file. Variables will be overwritten.
@@ -442,34 +394,35 @@ def datasets_to_netcdf(
                             encoding={
                                 var: {"zlib": True, "complevel": 9}
                                 for var in list(
-                                    xr_dss[group][model][component].data_vars
+                                    datasets[group][model][component].data_vars
                                 )
                             },
                         )
 
 
-def datasets_to_esm(xr_dss):
-    """Takes xarray dataset (with esM instance data) and converts it to an esM instance.
+def convertDatasetsToEnergySystemModel(datasets):
+    """Takes dictionary of xarray datasets (with esM instance data) and converts
+    it to an esM instance.
 
-    :param xr_dss: xarray dataset (with esM instance data)
-    :type xr_dss: xr.Dataset
+    :param datasets: Dictonary of xarray datasets (with esM instance data) :type
+    datasets: dict
 
     :return: esM - EnergySystemModel instance
     """
 
     # Read parameters
-    xarray_dataset = utilsIO.processXarrayAttributes(xr_dss["Parameters"])
+    xarray_dataset = utilsIO.processXarrayAttributes(datasets["Parameters"])
     esm_dict = xarray_dataset.attrs
 
     # Read input
-    # Iterate through each component-variable pair, depending on the variable's prefix
-    # restructure the data and add it to component_dict
+    # Iterate through each component-variable pair, depending on the variable's
+    # prefix restructure the data and add it to component_dict
     component_dict = utilsIO.PowerDict()
 
-    for group in xr_dss.keys():
+    for group in datasets.keys():
         if (group != "Parameters") and (group == "Input"):
-            for model, comps in xr_dss[group].items():
-                for component_name, comp_xr in xr_dss[group][model].items():
+            for model, comps in datasets[group].items():
+                for component_name, comp_xr in datasets[group][model].items():
                     for variable, comp_var_xr in comp_xr.data_vars.items():
                         if not pd.isnull(
                             comp_var_xr.values
@@ -517,31 +470,31 @@ def datasets_to_esm(xr_dss):
     esM = dictIO.importFromDict(esm_dict, component_dict)
 
     # Read output
-    if "Results" in xr_dss:
-        for model, comps in xr_dss["Results"].items():
+    if "Results" in datasets:
+        for model, comps in datasets["Results"].items():
 
             # read opt Summary
             optSum_df = pd.DataFrame([])
-            for component in xr_dss["Results"][model]:
+            for component in datasets["Results"][model]:
                 optSum_df_comp = pd.DataFrame([])
-                for variable in xr_dss["Results"][model][component]:
+                for variable in datasets["Results"][model][component]:
                     if "Optimum" in variable:
                         continue
-                    if "space_2" in list(xr_dss["Results"][model][component].coords):
+                    if "space_2" in list(datasets["Results"][model][component].coords):
                         _optSum_df = (
-                            xr_dss["Results"][model][component][variable]
+                            datasets["Results"][model][component][variable]
                             .to_dataframe()
                             .unstack()
                         )
                         iterables = [
                             [component, variable, unit]
-                            for variable, unit in xr_dss["Results"][model][component][
+                            for variable, unit in datasets["Results"][model][component][
                                 variable
                             ].attrs.items()
                         ]
                         iterables2 = [
                             [iterables[0] + [location]][0]
-                            for location in xr_dss["Results"][model][component][
+                            for location in datasets["Results"][model][component][
                                 variable
                             ]["space"].values
                         ]
@@ -557,13 +510,13 @@ def datasets_to_esm(xr_dss):
                         optSum_df_comp = optSum_df_comp.append(_optSum_df)
                     else:
                         _optSum_df = (
-                            xr_dss["Results"][model][component][variable]
+                            datasets["Results"][model][component][variable]
                             .to_dataframe()
                             .T
                         )
                         iterables = [
                             [component, variable, unit]
-                            for variable, unit in xr_dss["Results"][model][component][
+                            for variable, unit in datasets["Results"][model][component][
                                 variable
                             ].attrs.items()
                         ]
@@ -583,7 +536,7 @@ def datasets_to_esm(xr_dss):
             dischargeOperationVariablesOptimum_df = pd.DataFrame([])
             stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
 
-            for component in xr_dss["Results"][model]:
+            for component in datasets["Results"][model]:
 
                 _operationVariablesOptimum_df = pd.DataFrame([])
                 _capacityVariablesOptimum_df = pd.DataFrame([])
@@ -592,13 +545,13 @@ def datasets_to_esm(xr_dss):
                 _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
                 _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
 
-                for variable in xr_dss["Results"][model][component]:
+                for variable in datasets["Results"][model][component]:
                     if "Optimum" not in variable:
                         continue
                     opt_variable = variable
                     xr_opt = None
-                    if opt_variable in xr_dss["Results"][model][component]:
-                        xr_opt = xr_dss["Results"][model][component][opt_variable]
+                    if opt_variable in datasets["Results"][model][component]:
+                        xr_opt = datasets["Results"][model][component][opt_variable]
                     else:
                         continue
 
@@ -617,8 +570,8 @@ def datasets_to_esm(xr_dss):
                                     [[component], [item], list(_df.index)]
                                 )
                                 _df = _df.set_index(idx)
-                                _operationVariablesOptimum_df = (
-                                    _operationVariablesOptimum_df.append(_df)
+                                _operationVariablesOptimum_df = _operationVariablesOptimum_df.append(
+                                    _df
                                 )
 
                         else:
@@ -627,14 +580,14 @@ def datasets_to_esm(xr_dss):
                                 .unstack(level=0)
                                 .droplevel(0, axis=1)
                             )
-                            _operationVariablesOptimum_df = (
-                                _operationVariablesOptimum_df.dropna(axis=0)
+                            _operationVariablesOptimum_df = _operationVariablesOptimum_df.dropna(
+                                axis=0
                             )
                             idx = pd.MultiIndex.from_product(
                                 [[component], _operationVariablesOptimum_df.index]
                             )
-                            _operationVariablesOptimum_df = (
-                                _operationVariablesOptimum_df.set_index(idx)
+                            _operationVariablesOptimum_df = _operationVariablesOptimum_df.set_index(
+                                idx
                             )
 
                     if opt_variable == "capacityVariablesOptimum":
@@ -651,8 +604,8 @@ def datasets_to_esm(xr_dss):
                             _capacityVariablesOptimum_df = _df
                         else:
                             _capacityVariablesOptimum_df = xr_opt.to_dataframe().T
-                            _capacityVariablesOptimum_df = (
-                                _capacityVariablesOptimum_df.set_axis([component])
+                            _capacityVariablesOptimum_df = _capacityVariablesOptimum_df.set_axis(
+                                [component]
                             )
 
                     if opt_variable == "isBuiltVariablesOptimum":
@@ -662,8 +615,8 @@ def datasets_to_esm(xr_dss):
                         idx = pd.MultiIndex.from_product(
                             [[component], _isBuiltVariablesOptimum_df.index]
                         )
-                        _isBuiltVariablesOptimum_df = (
-                            _isBuiltVariablesOptimum_df.set_index(idx)
+                        _isBuiltVariablesOptimum_df = _isBuiltVariablesOptimum_df.set_index(
+                            idx
                         )
 
                     if opt_variable == "chargeOperationVariablesOptimum":
@@ -673,8 +626,8 @@ def datasets_to_esm(xr_dss):
                         idx = pd.MultiIndex.from_product(
                             [[component], _chargeOperationVariablesOptimum_df.index]
                         )
-                        _chargeOperationVariablesOptimum_df = (
-                            _chargeOperationVariablesOptimum_df.set_index(idx)
+                        _chargeOperationVariablesOptimum_df = _chargeOperationVariablesOptimum_df.set_index(
+                            idx
                         )
 
                     if opt_variable == "dischargeOperationVariablesOptimum":
@@ -684,8 +637,8 @@ def datasets_to_esm(xr_dss):
                         idx = pd.MultiIndex.from_product(
                             [[component], _dischargeOperationVariablesOptimum_df.index]
                         )
-                        _dischargeOperationVariablesOptimum_df = (
-                            _dischargeOperationVariablesOptimum_df.set_index(idx)
+                        _dischargeOperationVariablesOptimum_df = _dischargeOperationVariablesOptimum_df.set_index(
+                            idx
                         )
 
                     if opt_variable == "stateOfChargeOperationVariablesOptimum":
@@ -698,8 +651,8 @@ def datasets_to_esm(xr_dss):
                                 _stateOfChargeOperationVariablesOptimum_df.index,
                             ]
                         )
-                        _stateOfChargeOperationVariablesOptimum_df = (
-                            _stateOfChargeOperationVariablesOptimum_df.set_index(idx)
+                        _stateOfChargeOperationVariablesOptimum_df = _stateOfChargeOperationVariablesOptimum_df.set_index(
+                            idx
                         )
 
                 operationVariablesOptimum_df = operationVariablesOptimum_df.append(
@@ -711,20 +664,14 @@ def datasets_to_esm(xr_dss):
                 isBuiltVariablesOptimum_df = isBuiltVariablesOptimum_df.append(
                     _isBuiltVariablesOptimum_df
                 )
-                chargeOperationVariablesOptimum_df = (
-                    chargeOperationVariablesOptimum_df.append(
-                        _chargeOperationVariablesOptimum_df
-                    )
+                chargeOperationVariablesOptimum_df = chargeOperationVariablesOptimum_df.append(
+                    _chargeOperationVariablesOptimum_df
                 )
-                dischargeOperationVariablesOptimum_df = (
-                    dischargeOperationVariablesOptimum_df.append(
-                        _dischargeOperationVariablesOptimum_df
-                    )
+                dischargeOperationVariablesOptimum_df = dischargeOperationVariablesOptimum_df.append(
+                    _dischargeOperationVariablesOptimum_df
                 )
-                stateOfChargeOperationVariablesOptimum_df = (
-                    stateOfChargeOperationVariablesOptimum_df.append(
-                        _stateOfChargeOperationVariablesOptimum_df
-                    )
+                stateOfChargeOperationVariablesOptimum_df = stateOfChargeOperationVariablesOptimum_df.append(
+                    _stateOfChargeOperationVariablesOptimum_df
                 )
 
             # check if empty, if yes convert to None
@@ -775,88 +722,87 @@ def datasets_to_esm(xr_dss):
     return esM
 
 
-def esm_to_netcdf(
+def writeEnergySystemModelToNetCDF(
     esM,
-    file_path="my_esm.nc",
-    overwrite_existing=False,
+    outputFilePath="my_esm.nc",
+    overwriteExisting=False,
     optSumOutputLevel=0,
     optValOutputLevel=1,
-    group_prefix=None,
-) -> Dict[str, Dict[str, xr.Dataset]]:
+    groupPrefix=None,
+):
     """
-    Write esm (input and if exists, output) to netCDF file.
+    Write energySystemModel (input and if exists, output) to netCDF file.
 
-    :param esM: EnergySystemModel instance in which the model is held
-    :type esM: EnergySystemModel instance
+    :param esM: EnergySystemModel instance in which the model is held :type esM:
+    EnergySystemModel instance
 
-    :param file_path: output file name (can include full path)
-        |br| * the default value is "my_esm.nc"
-    :type file_path: string
+    :param outputFilePath: output file name (can include full path) |br| * the
+        default value is "my_esm.nc" :type file_path: string
 
-    :param overwrite_existing: Overwrite existing netCDF file
-        |br| * the default value is False
-    :type outputFileName: boolean
+    :param overwriteExisting: Overwrite existing netCDF file |br| * the default
+        value is False :type outputFileName: boolean
 
-    :param optSumOutputLevel: Output level of the optimization summary (see EnergySystemModel). Either an integer
-        (0,1,2) which holds for all model classes or a dictionary with model class names as keys and an integer
+    :param optSumOutputLevel: Output level of the optimization summary (see
+        EnergySystemModel). Either an integer (0,1,2) which holds for all model
+        classes or a dictionary with model class names as keys and an integer
         (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        |br| * the default value is 2
-    :type optSumOutputLevel: int (0,1,2) or dict
+        |br| * the default value is 2 :type optSumOutputLevel: int (0,1,2) or
+        dict
 
-    :param optValOutputLevel: Output level of the optimal values. Either an integer (0,1) which holds for all
-        model classes or a dictionary with model class names as keys and an integer (0,1) for each key
-        (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        - 0: all values are kept.
-        - 1: Lines containing only zeroes are dropped.
-        |br| * the default value is 1
-    :type optValOutputLevel: int (0,1) or dict
+    :param optValOutputLevel: Output level of the optimal values. Either an
+        integer (0,1) which holds for all model classes or a dictionary with
+        model class names as keys and an integer (0,1) for each key (e.g.
+        {'StorageModel':1,'SourceSinkModel':1,...} - 0: all values are kept. -
+        1: Lines containing only zeroes are dropped. |br| * the default value is
+        1 :type optValOutputLevel: int (0,1) or dict
 
-    :param group_prefix: if specified, multiple xarray datasets (with esM instance data) are saved to the same netcdf file.
-        The dictionary structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None
-    :type group_prefix: string
+    :param groupPrefix: if specified, multiple xarray datasets (with esM
+        instance data) are saved to the same netcdf file. The dictionary
+        structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
+        |br| * the default value is None :type group_prefix: string
 
-    :return: Nested dictionary containing an xr.Dataset with all result values for each component.
-    :rtype: Dict[str, Dict[str, xr.Dataset]]
+    :return: Nested dictionary containing an xr.Dataset with all result values
+    for each component. :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
 
-    if overwrite_existing:
-        if Path(file_path).is_file():
-            Path(file_path).unlink()
+    if overwriteExisting:
+        if Path(outputFilePath).is_file():
+            Path(outputFilePath).unlink()
 
     utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
     _t = time.time()
 
-    xr_dss_input = esm_input_to_datasets(esM)
-    datasets_to_netcdf(xr_dss_input, file_path, group_prefix=group_prefix)
+    xr_dss_input = convertOptimizationInputToDataset(esM)
+    writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
 
     if esM.objectiveValue != None:  # model was optimized
-        xr_dss_output = esm_output_to_datasets(
+        xr_dss_output = convertOptimizationOutputToDataset(
             esM, optSumOutputLevel, optValOutputLevel
         )
-        datasets_to_netcdf(xr_dss_output, file_path, group_prefix=group_prefix)
+        writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
 
-def esm_to_datasets(esM):
+def writeEnergySystemModelToDatasets(esM):
     """Converts esM instance (input and output) into a xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
 
-    :return: xr_dss_results - esM instance (input and output) data in xarray dataset format
+    :return: xr_dss_results - esM instance (input and output) data in xarray
+    dataset format
     """
     if esM.objectiveValue != None:  # model was optimized
-        xr_dss_output = esm_output_to_datasets(esM)
-        xr_dss_input = esm_input_to_datasets(esM)
+        xr_dss_output = convertOptimizationOutputToDataset(esM)
+        xr_dss_input = convertOptimizationInputToDataset(esM)
         xr_dss_results = {
             "Results": xr_dss_output["Results"],
             "Input": xr_dss_input["Input"],
             "Parameters": xr_dss_input["Parameters"],
         }
     else:
-        xr_dss_input = esm_input_to_datasets(esM)
+        xr_dss_input = convertOptimizationInputToDataset(esM)
         xr_dss_results = {
             "Input": xr_dss_input["Input"],
             "Parameters": xr_dss_input["Parameters"],
@@ -865,36 +811,34 @@ def esm_to_datasets(esM):
     return xr_dss_results
 
 
-def netcdf_to_datasets(
-    file_path="my_esm.nc", group_prefix=None
-) -> Dict[str, Dict[str, xr.Dataset]]:
-    """Read optimization results from grouped netCDF file to dictionary of xr.Datasets.
+def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
+    """Read optimization results from grouped netCDF file to dictionary of
+    xr.Datasets.
 
-    :param file_path: output file name of netCDF file (can include full path)
-        |br| * the default value is "my_esm.nc"
-    :type file_path: string
+    :param filePath: output file name of netCDF file (can include full path)
+        |br| * the default value is "my_esm.nc" :type filePath: string
 
-    :param group_prefix: if specified, multiple xarray datasets (with esM instance data) are saved to the same netcdf file.
-        The dictionary structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None
-    :type group_prefix: string
+    :param groupPrefix: if specified, multiple xarray datasets (with esM
+        instance data) are saved to the same netcdf file. The dictionary
+        structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
+        |br| * the default value is None :type groupPrefix: string
 
-    :return: Nested dictionary containing an xr.Dataset with all result values for each component.
-    :rtype: Dict[str, Dict[str, xr.Dataset]]
+    :return: Nested dictionary containing an xr.Dataset with all result values
+    for each component.
     """
 
-    with Dataset(file_path, "r", format="NETCDF4") as rootgrp:
-        if group_prefix:
-            group_keys = rootgrp[group_prefix].groups
+    with Dataset(filePath, "r", format="NETCDF4") as rootgrp:
+        if groupPrefix:
+            group_keys = rootgrp[groupPrefix].groups
         else:
             group_keys = rootgrp.groups
 
-    if not group_prefix:
+    if not groupPrefix:
         xr_dss = {
             group_key: {
                 model_key: {
                     comp_key: xr.load_dataset(
-                        file_path, group=f"{group_key}/{model_key}/{comp_key}"
+                        filePath, group=f"{group_key}/{model_key}/{comp_key}"
                     )
                     for comp_key in group_keys[group_key][model_key].groups
                 }
@@ -903,14 +847,14 @@ def netcdf_to_datasets(
             for group_key in group_keys
             if group_key != "Parameters"
         }
-        xr_dss["Parameters"] = xr.load_dataset(file_path, group=f"Parameters")
+        xr_dss["Parameters"] = xr.load_dataset(filePath, group=f"Parameters")
     else:
         xr_dss = {
             group_key: {
                 model_key: {
                     comp_key: xr.load_dataset(
-                        file_path,
-                        group=f"{group_prefix}/{group_key}/{model_key}/{comp_key}",
+                        filePath,
+                        group=f"{groupPrefix}/{group_key}/{model_key}/{comp_key}",
                     )
                     for comp_key in group_keys[group_key][model_key].groups
                 }
@@ -920,26 +864,26 @@ def netcdf_to_datasets(
             if group_key != "Parameters"
         }
         xr_dss["Parameters"] = xr.load_dataset(
-            file_path, group=f"{group_prefix}/Parameters"
+            filePath, group=f"{groupPrefix}/Parameters"
         )
 
     return xr_dss
 
 
-def netcdf_to_esm(file_path, group_prefix=None):
+def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     """Converts netCDF file into an EnergySystemModel instance.
 
-    :param file_path: file name of netCDF file (can include full path) in which the esM data is stored
-        |br| * the default value is "my_esm.nc"
-    :type file_path: string
+    :param filePath: file name of netCDF file (can include full path) in which
+        the esM data is stored |br| * the default value is "my_esm.nc" :type
+        filePath: string
 
     :return: esM - EnergySystemModel instance
     """
 
     # netcdf to xarray dataset
-    xr_dss = netcdf_to_datasets(file_path, group_prefix)
+    xr_dss = readNetCDFToDatasets(filePath, groupPrefix)
 
     # xarray dataset to esm
-    esM = datasets_to_esm(xr_dss)
+    esM = convertDatasetsToEnergySystemModel(xr_dss)
 
     return esM
