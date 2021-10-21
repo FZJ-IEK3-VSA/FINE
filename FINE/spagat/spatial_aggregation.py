@@ -7,8 +7,7 @@ import geopandas as gpd
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping as spg
 import FINE.spagat.representation as spr
-
-from FINE.IOManagement import xarrayIO as xrIO
+import FINE.IOManagement.xarrayIO_spagat as xrIO
 
 logger_spagat = logging.getLogger("spatial_aggregation")
 
