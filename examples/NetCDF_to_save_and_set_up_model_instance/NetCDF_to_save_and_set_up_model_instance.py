@@ -60,7 +60,7 @@ esM.optimize()
 #
 
 # %%
-esm_datasets = xrIO.esm_to_datasets(esM)
+esm_datasets = xrIO.writeEnergySystemModelToDatasets(esM)
 
 # %%
 esm_datasets["Input"]["Sink"]["Industry site"][
@@ -77,7 +77,7 @@ esm_datasets["Parameters"]
 # Or save it directly to NetCDF with `esm_to_netcdf`:
 
 # %%
-_ = xrIO.esm_to_netcdf(esM, file_path="my_esm.nc", overwrite_existing=True)
+_ = xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath="my_esm.nc", overwriteExisting=True)
 
 # %% [markdown]
 # #### STEP 3. Load esM from NetCDF file or xarray datasets
@@ -85,7 +85,7 @@ _ = xrIO.esm_to_netcdf(esM, file_path="my_esm.nc", overwrite_existing=True)
 # You can load an esM from file with `netcdf_to_esm`.
 
 # %%
-esm_from_netcdf = xrIO.netcdf_to_esm("my_esm.nc")
+esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel("my_esm.nc")
 
 # %%
 esm_from_netcdf.getComponentAttribute("Industry site", "operationRateFix")
@@ -94,7 +94,7 @@ esm_from_netcdf.getComponentAttribute("Industry site", "operationRateFix")
 # Or from datasets with `datasets_to_esm`.
 
 # %%
-esm_from_datasets = xrIO.datasets_to_esm(esm_datasets)
+esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_datasets)
 
 # %%
 esm_from_datasets.getComponentAttribute("Industry site", "operationRateFix")
