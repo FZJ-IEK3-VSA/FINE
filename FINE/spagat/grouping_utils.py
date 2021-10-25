@@ -5,6 +5,8 @@ import pandas as pd
 import geopandas as gpd
 from scipy.cluster import hierarchy
 
+from FINE.IOManagement.utilsIO import PowerDict
+
 
 def get_normalized_array(array):
     """Normalize the given matrix to [0,1].
@@ -34,7 +36,7 @@ def get_normalized_array(array):
 
 
 def preprocess_time_series(vars_dict):
-    """Preprocess time series variables.
+    """Preprocess time series variables. #TODO: update docstring 
 
     Parameters
     ----------
@@ -52,18 +54,12 @@ def preprocess_time_series(vars_dict):
 
     processed_ts_dict = {}
 
-    # For each time series variable-data pair...
-    for var_name, da in vars_dict.items():
-        # STEP 1. Add the variable to the resuting dict
+    for var_name, var_dict in vars_dict.items():
         processed_ts_dict.update({var_name: {}})
 
-        # STEP 2. Find the corresponding valid components: valid_component_weight=1, otherwise=0
-        var_mean_df = da.mean(dim="space").mean(dim="time").to_dataframe()
-        valid_components = list(var_mean_df[var_mean_df[var_name].notna()].index.values)
-
-        # STEP 2. For each valid component, Normalize the corresponding matrix. Add to resulting dict
-        for comp_name in valid_components:
-            norm_comp_matrix = get_normalized_array(da.sel(component=comp_name).values)
+        # For each component, Normalize the corresponding matrix. Add to resulting dict
+        for comp_name, da in var_dict.items():
+            norm_comp_matrix = get_normalized_array(da.values)
 
             processed_ts_dict.get(var_name).update({comp_name: norm_comp_matrix})
 
@@ -71,7 +67,7 @@ def preprocess_time_series(vars_dict):
 
 
 def preprocess_1d_variables(vars_dict):
-    """Preprocess 1-dimensional variables.
+    """Preprocess 1-dimensional variables. #TODO: update docstring 
 
     Parameters
     ----------
@@ -88,18 +84,12 @@ def preprocess_1d_variables(vars_dict):
     """
     processed_1d_dict = {}
 
-    # For each 1d variable-data pair...
-    for var_name, da in vars_dict.items():
-        # STEP 1. Add the variable to the resuting dict
+    for var_name, var_dict in vars_dict.items():
         processed_1d_dict.update({var_name: {}})
 
-        # STEP 2. Find the corresponding valid components: valid_comp_weight=1, otherwise=0
-        var_mean_df = da.mean(dim="space").to_dataframe()
-        valid_components = list(var_mean_df[var_mean_df[var_name].notna()].index.values)
-
-        # STEP 2. For each valid component, normalize the corresponding matrix. Add to resulting dict
-        for comp_name in valid_components:
-            norm_comp_array = get_normalized_array(da.sel(component=comp_name).values)
+        # For each component, normalize the corresponding matrix. Add to resulting dict
+        for comp_name, da in var_dict.items():
+            norm_comp_array = get_normalized_array(da.values)
 
             processed_1d_dict.get(var_name).update({comp_name: norm_comp_array})
 
@@ -107,7 +97,7 @@ def preprocess_1d_variables(vars_dict):
 
 
 def preprocess_2d_variables(vars_dict):
-    """Preprocess 2-dimensional variables.
+    """Preprocess 2-dimensional variables. #TODO: update docstring 
 
     Parameters
     ----------
@@ -136,41 +126,25 @@ def preprocess_2d_variables(vars_dict):
     """
     processed_2d_dict = {}
 
-    # For each 2d variable-data pair...
-    for var_name, da in vars_dict.items():
-        # STEP 1. Add the variable to the resuting dict
+    
+    for var_name, var_dict in vars_dict.items():
         processed_2d_dict.update({var_name: {}})
 
-        space1 = da.space.values
-        space2 = da.space_2.values
+        # For each component...
+        for comp_name, da in var_dict.items():
 
-        # STEP 2. Find the corresponding valid components: valid_comp_weight=1, otherwise=0
-        var_mean_df = da.mean(dim="space").mean(dim="space_2").to_dataframe()
-        valid_components = list(var_mean_df[var_mean_df[var_name].notna()].index.values)
+            ## Normalize the data
+            norm_comp_matrix = get_normalized_array(da.values)
 
-        # STEP 2. For each valid component...
-        for comp_name in valid_components:
-            # STEP 2a. Get the corresponding data
-            data_matrix = da.sel(
-                component=comp_name
-            ).values  # square matrix (dim: space and space_2)
-
-            # STEP 2b: Make sure order of space and space_2 is the same
-            data_df = pd.DataFrame(data=data_matrix, columns=space2)
-            data_df = data_df[space1]
-
-            # STEP 2c: Normalize the matrix
-            norm_comp_matrix = get_normalized_array(data_df.to_numpy())
-
-            # STEP 4d. Obtain the vector form of this symmetric connectivity matrix
+            ## Obtain the vector form of this symmetric connectivity matrix
             norm_comp_vector = hierarchy.distance.squareform(
                 norm_comp_matrix, checks=False
             )
 
-            # STEP 4c. Convert the value of connectivity (similarity) to distance (dissimilarity)
+            ## Convert the value of connectivity (similarity) to distance (dissimilarity)
             norm_comp_vector = 1 - norm_comp_vector
 
-            # STEP 4d. Add to resulting dict
+            ## Add to resulting dict
             processed_2d_dict.get(var_name).update({comp_name: norm_comp_vector})
 
     return processed_2d_dict
@@ -192,32 +166,28 @@ def preprocess_dataset(xarray_dataset):
             and preprocess_2d_variables(), respectively
     """
 
-    component_list = list(xarray_dataset["component"].values)
-
     # STEP 0. Traverse all variables in the dataset, and put them in separate categories
     # NOTE: vars_ts, vars_1d, vars_2d -> dicts of variables and their corresponding dataArrays
-    vars_ts = {}
-    vars_1d = {}
-    vars_2d = {}
+    vars_ts = PowerDict()
+    vars_1d = PowerDict()
+    vars_2d = PowerDict()
 
-    for varname, da in xarray_dataset.data_vars.items():
+    for comp_class, comp_dict in xarray_dataset.items():
+        for comp, comp_ds in comp_dict.items():
+            for varname, da in comp_ds.data_vars.items():
 
-        if sorted(da.dims) == sorted(("component", "time", "space")):
-            da = da.transpose(
-                "component", "space", "time"
-            )  # require sorting dimensions
-            vars_ts[varname] = da
+                ## Time series
+                if varname[:3] == "ts_":  
+                    vars_ts[varname][comp] = da
+                    
+                ## 1d variables
+                elif varname[:3] == "1d_":
+                    vars_1d[varname][comp] = da
 
-        elif sorted(da.dims) == sorted(("component", "space")):
-            vars_1d[varname] = da
+                ## 2d variables
+                elif varname[:3] == "2d_":
+                    vars_2d[varname][comp] = da
 
-        elif sorted(da.dims) == sorted(("component", "space", "space_2")):
-            vars_2d[varname] = da
-
-        else:
-            warnings.warn(
-                f"Variable {varname} has dimensions {str(da.dims)} which are not considered for spatial aggregation."
-            )
 
     # STEP 1. Preprocess Time Series
     processed_ts_dict = preprocess_time_series(vars_ts)
@@ -319,9 +289,6 @@ def get_custom_distance(
             [var_category, var] = var_name.split(
                 "_"
             )  # strip the category and take only var
-            [comp_class, comp] = comp_name.split(
-                ", "
-            )  # strip the model class and take only comp
 
             var_weights = weights.get("variables")
             comp_weights = weights.get("components")
@@ -329,8 +296,8 @@ def get_custom_distance(
             if (var_weights == "all") or (var in var_weights):
                 if comp_weights.get("all") != None:
                     wgt = comp_weights.get("all")
-                elif comp_weights.get(comp) != None:
-                    wgt = comp_weights.get(comp)
+                elif comp_weights.get(comp_name) != None:
+                    wgt = comp_weights.get(comp_name)
 
         return wgt
 
@@ -462,14 +429,15 @@ def get_connectivity_matrix(xarray_dataset):
         - If the regions are connected via a transmission line or pipeline
     """
 
-    n_regions = len(xarray_dataset["space"].values)
+    geom_xr = xarray_dataset.get('Geometry')
+    input_xr = xarray_dataset.get('Input')
+
+    n_regions = len(geom_xr["space"].values)
 
     connectivity_matrix = np.zeros((n_regions, n_regions))
 
     # STEP 1: Check for contiguous neighbors
-    geometries = gpd.GeoSeries(
-        xarray_dataset["gpd_geometries"]
-    )  # NOTE: disjoint seems to work only on geopandas or geoseries object
+    geometries = gpd.GeoSeries(geom_xr['geometries'].values)  # NOTE: disjoint seems to work only on geopandas or geoseries object
     for ix, geom in enumerate(geometries):
         neighbors = geometries[~geometries.disjoint(geom)].index.tolist()
         connectivity_matrix[ix, neighbors] = 1
@@ -481,7 +449,7 @@ def get_connectivity_matrix(xarray_dataset):
         ):  # if a region is connected only to itself
 
             # get the nearest neighbor based on regions centroids
-            centroid_distances = xarray_dataset.centroid_distances.values[row, :]
+            centroid_distances = geom_xr['centroid_distances'].values[row, :]
             nearest_neighbor_idx = np.argmin(
                 centroid_distances[np.nonzero(centroid_distances)]
             )
@@ -494,19 +462,11 @@ def get_connectivity_matrix(xarray_dataset):
 
     # STEP 3: Additionally, check if there are transmission between regions that are not yet connected in the
     # connectivity matrix
-    for data_var in xarray_dataset.data_vars:
-        if data_var[:3] == "2d_":
-            comp_xr = xarray_dataset[data_var]
-            valid_comps_xr = comp_xr.dropna(dim="component")  # drop invalid components
-
-            valid_comps_xr = valid_comps_xr.fillna(
-                0
-            )  # for safety purpose, does not affect further steps anyway
-
-            valid_comps_xr = valid_comps_xr.sum(dim=["component"])
-
-            connectivity_matrix[
-                valid_comps_xr.values > 0
-            ] = 1  # if a pos, non-zero value exits, make a connection!
+    for comp_class, comp_dict in input_xr.items():
+        for comp, comp_ds in comp_dict.items():
+            for varname, da in comp_ds.data_vars.items():
+   
+                if varname[:3] == "2d_":
+                    connectivity_matrix[da.values > 0] = 1  # if a pos, non-zero value exits, make a connection!
 
     return connectivity_matrix

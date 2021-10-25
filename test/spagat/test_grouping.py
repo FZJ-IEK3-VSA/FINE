@@ -3,6 +3,8 @@ import pytest
 
 import numpy as np
 import xarray as xr
+import pandas as pd 
+
 from sklearn.datasets import make_blobs
 from shapely.geometry import Point
 
@@ -49,25 +51,8 @@ def test_perform_string_based_grouping(
 
 def test_perform_distance_based_grouping():
     # TEST DATA
-    component_list = ["c1", "c2"]
     space_list = ["01_reg", "02_reg", "03_reg", "04_reg", "05_reg"]
-    time_list = ["T0", "T1"]
-
-    dummy_data = np.array(
-        [
-            [[np.nan for i in range(5)] for i in range(2)],
-            [[np.nan for i in range(5)] for i in range(2)],
-        ]
-    )
-
-    dummy_DataArray = xr.DataArray(
-        dummy_data,
-        coords=[component_list, time_list, space_list],
-        dims=["component", "time", "space"],
-    )
-
-    dummy_ds = xr.Dataset({"var": dummy_DataArray})
-
+    
     sample_data, sample_labels = make_blobs(
         n_samples=5, centers=3, n_features=2, random_state=0
     )
@@ -76,15 +61,16 @@ def test_perform_distance_based_grouping():
     for i, data_point in enumerate(sample_data):
         test_centroids[i] = Point(data_point)
 
-    dummy_ds = spu.add_objects_to_xarray(
-        dummy_ds,
-        description="gpd_centroids",
-        dimension_list=["space"],
-        object_list=test_centroids,
+    centroid_da = xr.DataArray(
+        pd.Series(test_centroids).values,
+        coords=[space_list],
+        dims=["space"]
     )
 
+    test_geom_xr =  xr.Dataset({"centroids": centroid_da})
+
     # FUNCTION CALL
-    output_dict = spg.perform_distance_based_grouping(dummy_ds)
+    output_dict = spg.perform_distance_based_grouping(test_geom_xr)
 
     # ASSERTION
     assert output_dict == {

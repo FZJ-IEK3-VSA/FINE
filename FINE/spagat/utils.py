@@ -93,111 +93,58 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
     return gdf
 
 
-def add_objects_to_xarray(xarray_dataset, description, dimension_list, object_list):
-    """Adds a list of objects to the given `xarray_dataset`.
+def create_geom_xarray(shapefile, 
+                            geom_col_name='geometry', 
+                            geom_id_col_name='index'):
+    #TODO: doc string 
+    
+    # geometries and their IDs
+    geometries = shapefile[geom_col_name]
+    geom_ids = shapefile[geom_id_col_name]
 
-    Parameters
-    ----------
-    xarray_dataset : xr.Dataset
-        the xarray dataset to which the objects need to be added
-    description : str
-        description of the objects
-    dimension_list : List[str]
-        list of all xarray_dataset dimensions the objects live in
-    object_list : List[object]
-        list of objects that will be added to the xarray_dataset
+    geometries_da = xr.DataArray(
+                            geometries,
+                            coords=[geom_ids],
+                            dims=["space"],
+                        )
 
-    Returns
-    -------
-    xarray_dataset : xr.Dataset
-        `xarray_dataset` with added objects
-    """
-
-    xarray_dataset[description] = (dimension_list, pd.Series(object_list).values)
-
-    return xarray_dataset
-
-
-def add_space_coords_to_xarray(xarray_dataset, space_coords):
-    """Adds space coordinates to the given `xarray_dataset`.
-
-    Parameters
-    ----------
-    xarray_dataset : xr.Dataset
-        the xarray dataset to which the space coordinates need to be added
-    space_coords : List[object]
-        coordinates of the space, for example region names
-
-    Returns
-    -------
-    xarray_dataset : xr.Dataset
-        `xarray_dataset` with added space coordinates
-    """
-    xarray_dataset.coords["space"] = space_coords
-    xarray_dataset.coords["space_2"] = space_coords
-
-    return xarray_dataset
-
-
-def add_region_centroids_to_xarray(xarray_dataset):
-    """Calculates centroid of each region and
-    adds this to the `xarray_dataset`.
-
-    Parameters
-    ----------
-    xarray_dataset : xr.Dataset
-        the xarray dataset to which the centroid info needs to be added
-
-    Returns
-    -------
-    xarray_dataset : xr.Dataset
-        `xarray_dataset` with added centroids
-    """
-    gpd_centroids = pd.Series(
-        [geom.centroid for geom in xarray_dataset.gpd_geometries.values]
+    #centroids 
+    centroids = pd.Series(
+        [geom.centroid for geom in geometries_da.values]
     )
-    xarray_dataset["gpd_centroids"] = ("space", gpd_centroids.values)
+    centroids_da = xr.DataArray(
+                            centroids,
+                            coords=[geom_ids],
+                            dims=["space"],
+                        )
 
-    return xarray_dataset
-
-
-def add_centroid_distances_to_xarray(xarray_dataset):
-    """Calculates distance between centroids and add this to `xarray_dataset`
-
-    Parameters
-    ----------
-    xarray_dataset : xr.Dataset
-        the xarray dataset to which the centroid distance info needs to be added
-
-    Returns
-    -------
-    xarray_dataset : xr.Dataset
-        `xarray_dataset` with added centroid distances
-    """
-    data_out_dummy = np.zeros(
-        (len(xarray_dataset["space"]), len(xarray_dataset["space"]))
+    # centroid distances
+    centroid_dist_da = xr.DataArray(
+        np.zeros((len(geom_ids), len(geom_ids))), 
+        coords=[geom_ids, geom_ids], 
+        dims=["space", "space_2"]
     )
 
-    space_coords = xarray_dataset["space"].values
-
-    xr_data_array_out = xr.DataArray(
-        data_out_dummy, coords=[space_coords, space_coords], dims=["space", "space_2"]
-    )
-
-    for region_id_1 in xarray_dataset["space"]:
-        for region_id_2 in xarray_dataset["space"]:
-            centroid_1 = xarray_dataset.sel(space=region_id_1).gpd_centroids.item(0)
-            centroid_2 = xarray_dataset.sel(space=region_id_2).gpd_centroids.item(0)
-            xr_data_array_out.loc[dict(space=region_id_1, space_2=region_id_2)] = (
+    for region_id_1 in centroids_da["space"]:
+        for region_id_2 in centroids_da["space"]:
+            centroid_1 = centroids_da.sel(space=region_id_1).item(0)
+            centroid_2 = centroids_da.sel(space=region_id_2).item(0)
+            centroid_dist_da.loc[dict(space=region_id_1, space_2=region_id_2)] = (
                 centroid_1.distance(centroid_2) / 1e3
             )  # distances in km
 
-    xarray_dataset["centroid_distances"] = (
-        ["space", "space_2"],
-        xr_data_array_out.values,
+    xr_ds = xr.Dataset(
+        {
+            "geometries": geometries_da,
+            "centroids": centroids_da,
+            "centroid_distances": centroid_dist_da,
+        }
     )
+    return xr_ds
 
-    return xarray_dataset
+
+              
+
 
 
 def save_shapefile_from_xarray(
@@ -227,58 +174,58 @@ def save_shapefile_from_xarray(
     )
 
 
-def create_grid_shapefile(
-    xarray_dataset,
-    variable_description,
-    component_description,
-    file_path,
-    files_name="AC_lines",
-):
-    """Creates a geodataframe which indicates whether two regions are connected for the
-    given variable-component pair.
+# def create_grid_shapefile(
+#     xarray_dataset,
+#     variable_description,
+#     component_description,
+#     file_path,
+#     files_name="AC_lines",
+# ):
+#     """Creates a geodataframe which indicates whether two regions are connected for the
+#     given variable-component pair.
 
-    Parameters
-    ----------
-    xarray_dataset : xr.Dataset
-        The xarray dataset holding the esM's info
-    variable_description :  str
-        Variable in `xarray_dataset` that should be considered
-    component_description :  str
-        Component in `xarray_dataset` that should be considered
-    file_path : str
-        The path to which to save the geodataframe
-    files_name : str, optional (default="AC_lines")
-        The name of the saved geodataframe
+#     Parameters
+#     ----------
+#     xarray_dataset : xr.Dataset
+#         The xarray dataset holding the esM's info
+#     variable_description :  str
+#         Variable in `xarray_dataset` that should be considered
+#     component_description :  str
+#         Component in `xarray_dataset` that should be considered
+#     file_path : str
+#         The path to which to save the geodataframe
+#     files_name : str, optional (default="AC_lines")
+#         The name of the saved geodataframe
 
-    """
+#     """
 
-    xarray_dataset = add_region_centroids_to_xarray(xarray_dataset)
+#     xarray_dataset = add_region_centroids_to_xarray(xarray_dataset)
 
-    buses_0 = []
-    buses_1 = []
-    geoms = []
+#     buses_0 = []
+#     buses_1 = []
+#     geoms = []
 
-    eligibility_xr_array = xarray_dataset[variable_description].sel(
-        component=component_description
-    )
+#     eligibility_xr_array = xarray_dataset[variable_description].sel(
+#         component=component_description
+#     )
 
-    for region_id_1 in xarray_dataset["space"].values:
-        for region_id_2 in xarray_dataset["space_2"].values:
-            if eligibility_xr_array.sel(space=region_id_1, space_2=region_id_2).values:
-                buses_0.append(region_id_1)
-                buses_1.append(region_id_2)
+#     for region_id_1 in xarray_dataset["space"].values:
+#         for region_id_2 in xarray_dataset["space_2"].values:
+#             if eligibility_xr_array.sel(space=region_id_1, space_2=region_id_2).values:
+#                 buses_0.append(region_id_1)
+#                 buses_1.append(region_id_2)
 
-                point_1 = xarray_dataset.gpd_centroids.sel(space=region_id_1).item(0)
-                point_2 = xarray_dataset.gpd_centroids.sel(space=region_id_2).item(0)
-                line = LineString([(point_1.x, point_1.y), (point_2.x, point_2.y)])
+#                 point_1 = xarray_dataset.gpd_centroids.sel(space=region_id_1).item(0)
+#                 point_2 = xarray_dataset.gpd_centroids.sel(space=region_id_2).item(0)
+#                 line = LineString([(point_1.x, point_1.y), (point_2.x, point_2.y)])
 
-                geoms.append(line)
+#                 geoms.append(line)
 
-    df = pd.DataFrame(
-        {
-            "bus0": buses_0,
-            "bus1": buses_1,
-        }
-    )
+#     df = pd.DataFrame(
+#         {
+#             "bus0": buses_0,
+#             "bus1": buses_1,
+#         }
+#     )
 
-    create_gdf(df, geoms, crs=3035, file_path=file_path, files_name=files_name)
+#     create_gdf(df, geoms, crs=3035, file_path=file_path, files_name=files_name)

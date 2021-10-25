@@ -1,13 +1,12 @@
 import os
 import logging
 
-import xarray as xr
 import geopandas as gpd
 
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping as spg
 import FINE.spagat.representation as spr
-import FINE.IOManagement.xarrayIO_spagat as xrIO
+import FINE.IOManagement.xarrayIO as xrIO
 
 logger_spagat = logging.getLogger("spatial_aggregation")
 
@@ -76,20 +75,17 @@ def perform_spatial_aggregation(
     # STEP 2. Read xr_dataset
     if isinstance(xr_dataset, str):
         try:
-            xr_dataset = xr.open_dataset(xr_dataset)
+            xr_dataset = xrIO.readNetCDFToDatasets(filePath=xr_dataset)
         except:
             raise FileNotFoundError("The xr_dataset path specified is not valid")
 
-    # STEP 3. Add shapefile information to xr_dataset
-    xr_dataset = spu.add_objects_to_xarray(
-        xr_dataset,
-        description="gpd_geometries",
-        dimension_list=["space"],
-        object_list=shapefile.geometry,
-    )
+    # STEP 3. Add geometries to xr_dataset
+    geom_col_name = kwargs.get("geom_col_name", 'geometry')
+    geom_id_col_name = kwargs.get("geom_id_col_name", 'index')
 
-    xr_dataset = spu.add_region_centroids_to_xarray(xr_dataset)
-    xr_dataset = spu.add_centroid_distances_to_xarray(xr_dataset)
+    geom_xr = spu.create_geom_xarray(shapefile, geom_col_name, geom_id_col_name)
+
+    xr_dataset['Geometry'] = geom_xr
 
     # STEP 4. Spatial grouping
     if grouping_mode == "string_based":
@@ -97,7 +93,7 @@ def perform_spatial_aggregation(
         separator = kwargs.get("separator", None)
         position = kwargs.get("position", None)
 
-        locations = xr_dataset.space.values
+        locations = geom_xr.space.values
 
         logger_spagat.info("Performing string-based grouping on the regions")
 
@@ -109,7 +105,7 @@ def perform_spatial_aggregation(
 
         logger_spagat.info(f"Performing distance-based grouping on the regions")
 
-        aggregation_dict = spg.perform_distance_based_grouping(xr_dataset, n_groups)
+        aggregation_dict = spg.perform_distance_based_grouping(geom_xr, n_groups)
 
     elif grouping_mode == "parameter_based":
 

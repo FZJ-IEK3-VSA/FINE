@@ -4,13 +4,13 @@ fewer regions while minimizing information loss.
 import logging
 
 import numpy as np
+import pandas as pd 
 
 import sklearn.cluster as skc
 from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
 
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping_utils as gu
-from FINE.IOManagement import utilsIO
 
 logger_grouping = logging.getLogger("spatial_grouping")
 
@@ -71,13 +71,13 @@ def perform_string_based_grouping(regions, separator=None, position=None):
 
 
 @spu.timer
-def perform_distance_based_grouping(xarray_dataset, n_groups=3):
+def perform_distance_based_grouping(geom_xr, n_groups=3):
     """Groups regions based on the regions' centroid distances,
     using sklearn's hierarchical clustering.
 
     Parameters
     ----------
-    xarray_dataset : xr.Dataset
+    xarray_dataset : xr.Dataset #TODO: update docstirng 
         The xarray dataset holding the esM's info
     n_groups : strictly positive int, optional (default=3)
         The number of region groups to be formed from the original region set
@@ -90,16 +90,19 @@ def perform_distance_based_grouping(xarray_dataset, n_groups=3):
                2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
                1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
     """
-    centroids = (
+
+    centroids = geom_xr['centroids'].values 
+
+    centroids_x_y_points = (
         np.asarray(
-            [[point.item().x, point.item().y] for point in xarray_dataset.gpd_centroids]
+            [[point.x, point.y] for point in centroids]
         )
         / 1000
     )  # km
-    regions_list = xarray_dataset["space"].values
+    regions_list = geom_xr["space"].values
 
     # STEP 1. Compute hierarchical clustering
-    model = skc.AgglomerativeClustering(n_clusters=n_groups).fit(centroids)
+    model = skc.AgglomerativeClustering(n_clusters=n_groups).fit(centroids_x_y_points)
 
     # STEP 2. Create a regions dictionary for the aggregated regions
     aggregation_dict = {}
@@ -174,7 +177,7 @@ def perform_parameter_based_grouping(
     """
 
     # Original region list
-    regions_list = xarray_dataset["space"].values
+    regions_list = xarray_dataset.get('Geometry')["space"].values
     n_regions = len(regions_list)
 
     aggregation_dict = {}
@@ -182,7 +185,7 @@ def perform_parameter_based_grouping(
 
     # STEP 1. Preprocess the whole dataset
     processed_ts_dict, processed_1d_dict, processed_2d_dict = gu.preprocess_dataset(
-        xarray_dataset
+        xarray_dataset.get('Input')
     )
 
     # STEP 2. Calculate the overall distance between each region pair (uses custom distance)
