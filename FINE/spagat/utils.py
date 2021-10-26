@@ -94,8 +94,8 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
 
 
 def create_geom_xarray(shapefile, 
-                            geom_col_name='geometry', 
-                            geom_id_col_name='index'):
+                        geom_col_name='geometry', 
+                        geom_id_col_name='index'):
     #TODO: doc string 
     
     # geometries and their IDs
@@ -143,10 +143,7 @@ def create_geom_xarray(shapefile,
     return xr_ds
 
 
-              
-
-
-
+            
 def save_shapefile_from_xarray(
     xarray_dataset, save_path, shp_name="aggregated_regions", crs: int = 3035
 ):
@@ -173,59 +170,3 @@ def save_shapefile_from_xarray(
         df=df, geometries=geometries, crs=crs, file_path=save_path, files_name=shp_name
     )
 
-
-# def create_grid_shapefile(
-#     xarray_dataset,
-#     variable_description,
-#     component_description,
-#     file_path,
-#     files_name="AC_lines",
-# ):
-#     """Creates a geodataframe which indicates whether two regions are connected for the
-#     given variable-component pair.
-
-#     Parameters
-#     ----------
-#     xarray_dataset : xr.Dataset
-#         The xarray dataset holding the esM's info
-#     variable_description :  str
-#         Variable in `xarray_dataset` that should be considered
-#     component_description :  str
-#         Component in `xarray_dataset` that should be considered
-#     file_path : str
-#         The path to which to save the geodataframe
-#     files_name : str, optional (default="AC_lines")
-#         The name of the saved geodataframe
-
-#     """
-
-#     xarray_dataset = add_region_centroids_to_xarray(xarray_dataset)
-
-#     buses_0 = []
-#     buses_1 = []
-#     geoms = []
-
-#     eligibility_xr_array = xarray_dataset[variable_description].sel(
-#         component=component_description
-#     )
-
-#     for region_id_1 in xarray_dataset["space"].values:
-#         for region_id_2 in xarray_dataset["space_2"].values:
-#             if eligibility_xr_array.sel(space=region_id_1, space_2=region_id_2).values:
-#                 buses_0.append(region_id_1)
-#                 buses_1.append(region_id_2)
-
-#                 point_1 = xarray_dataset.gpd_centroids.sel(space=region_id_1).item(0)
-#                 point_2 = xarray_dataset.gpd_centroids.sel(space=region_id_2).item(0)
-#                 line = LineString([(point_1.x, point_1.y), (point_2.x, point_2.y)])
-
-#                 geoms.append(line)
-
-#     df = pd.DataFrame(
-#         {
-#             "bus0": buses_0,
-#             "bus1": buses_1,
-#         }
-#     )
-
-#     create_gdf(df, geoms, crs=3035, file_path=file_path, files_name=files_name)

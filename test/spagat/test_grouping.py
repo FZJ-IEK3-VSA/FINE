@@ -99,7 +99,7 @@ def test_perform_parameter_based_grouping(
     aggregation_method, weights, expected_region_groups, xr_for_parameter_based_grouping
 ):
 
-    regions_list = xr_for_parameter_based_grouping.space.values
+    regions_list = xr_for_parameter_based_grouping.get('Geometry')['space'].values
 
     # FUNCTION CALL
     output_dict = spg.perform_parameter_based_grouping(
