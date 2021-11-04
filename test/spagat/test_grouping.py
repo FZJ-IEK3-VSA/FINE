@@ -88,11 +88,11 @@ def test_perform_distance_based_grouping():
         (None, ["02_reg", "03_reg"]),
         # particular components, particular variables
         (
-            {"components": {"AC cables": 5, "PV": 10}, "variables": ["capacityMax"]},
+            {"components": {"Wind offshore": 5, "PV": 10}, "variables": ["capacityMax"]},
             ["01_reg", "02_reg"],
         ),
         # particular component, all variables
-        ({"components": {"AC cables": 10}, "variables": "all"}, ["01_reg", "02_reg"]),
+        ({"components": {"AC cables": 10}, "variables": "all"}, ["01_reg", "03_reg"]),
     ],
 )
 def test_perform_parameter_based_grouping(

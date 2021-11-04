@@ -223,6 +223,21 @@ test_data = [
         np.array([[0, 20], [20, 0]]),
         np.array([[0, 1], [0, 0]]),
     ),
+    (
+        {
+            "operationRateMax": ("weighted mean", "capacityFix"),  
+            "operationRateFix": ("sum", None),
+            "capacityMax": ("sum", None),
+            "capacityFix": ("sum", None),
+            "locationalEligibility": ("bool", None),
+        },
+        3,
+        10,
+        30,
+        10,
+        np.array([[0, 20], [20, 0]]),
+        np.array([[0, 1], [0, 0]]),
+    ),
 ]
 
 
