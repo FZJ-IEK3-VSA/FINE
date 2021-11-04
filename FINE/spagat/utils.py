@@ -164,7 +164,7 @@ def save_shapefile_from_xarray(
     """
 
     df = xarray_dataset.space.to_dataframe()
-    geometries = xarray_dataset.gpd_geometries.values
+    geometries = xarray_dataset.values
 
     create_gdf(
         df=df, geometries=geometries, crs=crs, file_path=save_path, files_name=shp_name

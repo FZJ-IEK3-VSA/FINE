@@ -37,9 +37,9 @@ def test_get_normalized_array_flat():
 
 def test_preprocess_dataset():
     # TEST DATA
-    space_list = ["01_reg", "02_reg", "03_reg"]
     time_list = ["T0", "T1"]
-
+    space_list = ["01_reg", "02_reg", "03_reg"]
+    
     ### time series 
     var_ts_data = np.array(
         [

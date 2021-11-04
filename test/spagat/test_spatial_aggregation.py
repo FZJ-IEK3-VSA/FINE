@@ -39,7 +39,8 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
 
     if use_saved_file:
         saved_file = os.path.join(PATH_TO_SAVE, netcdf_file_name)
-        aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(saved_file)
+        xr_dss = xrIO.readNetCDFToDatasets(filePath=saved_file)
+        aggregated_esM = xrIO.convertDatasetsToEnergySystemModel(xr_dss)
 
     # ASSERTION
     assert sorted(aggregated_esM.locations) == sorted(

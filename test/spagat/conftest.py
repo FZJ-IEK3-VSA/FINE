@@ -121,7 +121,7 @@ def xr_for_connectivity():
 @pytest.fixture()
 def data_for_distance_measure():
     ## ts dict
-    matrix_ts = np.array([[1, 1], [2, 2], [3, 3]])
+    matrix_ts = np.array([[1, 2, 3], [1, 2, 3]])
 
     test_ts_dict = {}
     test_ts_dict["ts_operationRateMax"] = {
@@ -164,9 +164,9 @@ def data_for_distance_measure():
 
 @pytest.fixture()
 def xr_for_parameter_based_grouping():
-    space_list = ["01_reg", "02_reg", "03_reg"]
     time_list = ["T0", "T1"]
-
+    space_list = ["01_reg", "02_reg", "03_reg"]
+    
     ## Source: wind turbine
     operationRateMax = np.array([[0.2, 0.1, 0.1] for i in range(2)])
     operationRateMax = xr.DataArray(
@@ -210,9 +210,9 @@ def xr_for_parameter_based_grouping():
         }
     )
 
-    input_xr_dict = {'Source': {'wind_offshore': wind_offshore_ds, 
-                                'pv': pv_ds}, 
-                    'Transmission': {'trans_comp': trans_ds}}
+    input_xr_dict = {'Source': {'Wind offshore': wind_offshore_ds, 
+                                'PV': pv_ds}, 
+                    'Transmission': {'AC cables': trans_ds}}
 
     # Geometries
     test_geometries = [
@@ -252,9 +252,9 @@ def xr_and_dict_for_basic_representation():
     }
 
     # input data 
-    space_list = ["01_reg", "02_reg", "03_reg", "04_reg"]
     time_list = ["T0", "T1"]
-
+    space_list = ["01_reg", "02_reg", "03_reg", "04_reg"]
+    
     ## Source comp 
     operationRateMax = np.array([[3, 3, 3, 3] for i in range(2)])
 

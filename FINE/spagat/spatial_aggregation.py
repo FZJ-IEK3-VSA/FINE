@@ -141,23 +141,23 @@ def perform_spatial_aggregation(
         # get file names
         shp_name = kwargs.get("shp_name", "aggregated_regions")
         aggregated_xr_filename = kwargs.get(
-            "aggregated_xr_filename", "aggregated_xr_dataset.nc4"
+            "aggregated_xr_filename", "aggregated_xr_dataset.nc"
         )
 
         crs = kwargs.get("crs", 3035)
 
         # save shapefiles
         spu.save_shapefile_from_xarray(
-            aggregated_xr_dataset, aggregatedResultsPath, shp_name, crs=crs
+            aggregated_xr_dataset['Geometry'], aggregatedResultsPath, shp_name, crs=crs
         )
 
         # remove geometry related data vars from aggregated xarray dataset as these cannot be saved
-        aggregated_xr_dataset = aggregated_xr_dataset.drop_vars(["gpd_geometries"])
+        aggregated_xr_dataset.pop('Geometry')
 
         # save aggregated xarray dataset
         file_name_with_path = os.path.join(
             aggregatedResultsPath, aggregated_xr_filename
         )
-        xrIO.saveNetcdfFile(aggregated_xr_dataset, file_name_with_path)
+        xrIO.writeDatasetsToNetCDF(aggregated_xr_dataset, file_name_with_path)
 
     return aggregated_xr_dataset
