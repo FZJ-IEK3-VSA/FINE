@@ -1,19 +1,4 @@
 # -*- coding: utf-8 -*-
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:percent
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.6.0
-#   kernelspec:
-#     display_name: Python [conda env:fine-dev-py36]
-#     language: python
-#     name: conda-env-fine-dev-py36-py
-# ---
-
 # %% [markdown]
 # # Workflow for a district optimization
 #
@@ -270,7 +255,7 @@ esM.add(
 # All components are now added to the model and the model can be optimized. If the computational complexity of the optimization should be reduced, the time series data of the specified components can be clustered before the optimization and the parameter timeSeriesAggregation is set to True in the optimize call.
 
 # %%
-esM.cluster(numberOfTypicalPeriods=7)
+esM.aggregateTemporally(numberOfTypicalPeriods=7)
 
 # %%
 # esM.optimize(timeSeriesAggregation=True, optimizationSpecs='cuts=0 method=2')
