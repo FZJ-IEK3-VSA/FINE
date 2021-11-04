@@ -311,8 +311,8 @@ def get_custom_distance(
             var_comp_weight = _get_var_comp_weight(var_name, comp_name)
 
             # (ii) Extract data corresponding to the variable-component pair in both regions
-            region_x_data = data_matrix[region_index_x]
-            region_y_data = data_matrix[region_index_y]
+            region_x_data = data_matrix[:, region_index_x]
+            region_y_data = data_matrix[:, region_index_y]
 
             # (ii) Calculate distance
             # INFO: ts_region_x and ts_region_y are vectors,
