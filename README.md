@@ -18,29 +18,62 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 
 A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
 
-## Installation
-You can directly install FINE via pip as follows
+## Requirements
+### Prepare and install required software
+1.  Install anaconda [by choosing your operating system here](https://docs.anaconda.com/anaconda/install/). If you are a Windows 10 user, remember to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
+2. Install git from https://git-scm.com/downloads
+### Prepare folder
+1. Open a prompt e.g. "anaconda prompt" or "cmd" from the windows start menu
+2. Make a folder where you want to work, for example C:\Users\<your username>\work with "mkdir C:\Users\<your username>\work"
+3. Go to that directory with "cd C:\Users\<your username>\work" at the command line
+## Install Fine 
+### Get source code via GIT
 
-	pip install FINE
+Clone it first
+```
+git clone https://jugit.fz-juelich.de/iek-3/shared-code/fine.git -b develop
+```
+Move into the FINE folder with
+```
+cd fine
+```
+and double check if you are on the right branch with
+```
+git branch
+```
+It should be the develop branch.
 
-However in this case, the connection to this GitHub repository is not preserved. If you want to preserve it,
-you can clone a local copy of the repository to your computer
+### Setup a clean environment
+It is recommended to create a clean environment to use FINE because it requires many dependencies. 
 
-	git clone https://github.com/FZJ-IEK3-VSA/FINE.git
+Create a user environment if you dont want to modify FINE.
+```
+conda env create -f requirements.yml
+activate FINE
+```
 
-Then install FINE via pip as follow
-	
-	cd FINE
-	pip install . 
-	
-Or install directly via python as 
+Create a development environment if you want to modify it.
+Install the requirements in a clean conda environment:
+```
+conda env create -f requirements_dev.yml
+activate FINE_dev
+```
 
-	python setup.py install
-		
-	
+The development environent includes all packages to check if FINE is working.
+```
+pytest --cov=FINE test/
+```
+If all tests run through, you have successfully installed FINE. 
 ## Examples
 
 A number of [**examples**](examples/) shows the capabilities of FINE.
+
+## Using an Integrated Developer Environment (IDE)
+In order to efficiently develop FINE further, install Visual Studio Code and open it. Make sure the Python Extension is installed by clicking this button and searching for Python. Then open the FINE folder with File > Open Folder and open it. VS-Code will automatically look for an environment but perhaps it is not the right one. In order to choose the correct environment, click Strg+Shift+P/Ctrl+Shift+P and type in the field Python: Select Interpreter and choose the correct interpreter (here: 'fine_dev',conda).Then, we can configure the tests as next step. Therefore, call again Strg+Shift+P/Ctrl+Shift+P and type Python: Configure tests and choose pytest and the root directory. If successful, following symbol should pop up on the left side with which you can navigate through the tests. In order to make the test run in Visual Studio Code an empty file with the title '__init__.py' needs to be added to the test folder (C:\Users\<your username>\work\FINE\test).
+		
+
+	
+
 
 ## License
 
