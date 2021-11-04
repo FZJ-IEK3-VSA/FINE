@@ -322,7 +322,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
         }
 
     # private function to get aggregation mode for a particular variable name 
-    def _get_aggregation_mode(varname, comp_ds):
+    def _get_aggregation_mode(varname, comp, comp_ds):
         # If aggregation_function_dict is passed AND the current variable is in it...
         if (aggregation_function_dict is not None) and (
             varname in aggregation_function_dict.keys()
@@ -336,7 +336,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
             if varname in ["1d_locationalEligibility", "2d_locationalEligibility"]:
                 if aggregation_mode != "bool":
                     warnings.warn(
-                        f"Aggregation mode for {varname} set to bool as only binary values are acceptable for this variable"
+                        f"Aggregation mode for {comp} component's {varname} set to bool as only binary values are acceptable for this variable"
                     )
                     aggregation_mode = "bool"
                     aggregation_weight = None
@@ -353,10 +353,24 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 #  matched based on the current variable's dimension
                 elif isinstance(aggregation_weight, str):
                     if varname[:3] == "2d_":
-                        aggregation_weight = comp_ds[f"2d_{aggregation_weight}"]
-                        
+                        try:
+                            aggregation_weight = comp_ds[f"2d_{aggregation_weight}"]
+                        except:
+                            warnings.warn(
+                                f"Aggregation mode for {comp} component's {varname[3:]} set to mean instead of \
+                                weighted mean because corresponding weight: {aggregation_weight} variable is not found")
+
+                            aggregation_mode = "mean"
+                    
                     else:
-                        aggregation_weight = comp_ds[f"1d_{aggregation_weight}"]
+                        try:
+                            aggregation_weight = comp_ds[f"1d_{aggregation_weight}"]
+                        except:
+                            warnings.warn(
+                                f"Aggregation mode for {comp} component's {varname[3:]} set to mean instead of \
+                                weighted mean because corresponding weight: {aggregation_weight} variable is not found")
+
+                            aggregation_mode = "mean"
                         
 
         # If aggregation_function_dict is not passed OR the current variable is not in it
@@ -399,7 +413,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
             for varname, da in comp_ds.data_vars.items():
 
                 # Check and set aggregation mode and weights
-                aggregation_mode, aggregation_weight = _get_aggregation_mode(varname, comp_ds)
+                aggregation_mode, aggregation_weight = _get_aggregation_mode(varname, comp, comp_ds)
                 
                 ## Time series
                 if varname[:3] == "ts_":
