@@ -3,7 +3,7 @@ import pytest
 
 import numpy as np
 import xarray as xr
-import pandas as pd 
+import pandas as pd
 
 from sklearn.datasets import make_blobs
 from shapely.geometry import Point
@@ -52,7 +52,7 @@ def test_perform_string_based_grouping(
 def test_perform_distance_based_grouping():
     # TEST DATA
     space_list = ["01_reg", "02_reg", "03_reg", "04_reg", "05_reg"]
-    
+
     sample_data, sample_labels = make_blobs(
         n_samples=5, centers=3, n_features=2, random_state=0
     )
@@ -62,12 +62,10 @@ def test_perform_distance_based_grouping():
         test_centroids[i] = Point(data_point)
 
     centroid_da = xr.DataArray(
-        pd.Series(test_centroids).values,
-        coords=[space_list],
-        dims=["space"]
+        pd.Series(test_centroids).values, coords=[space_list], dims=["space"]
     )
 
-    test_geom_xr =  xr.Dataset({"centroids": centroid_da})
+    test_geom_xr = xr.Dataset({"centroids": centroid_da})
 
     # FUNCTION CALL
     output_dict = spg.perform_distance_based_grouping(test_geom_xr)
@@ -88,7 +86,10 @@ def test_perform_distance_based_grouping():
         (None, ["02_reg", "03_reg"]),
         # particular components, particular variables
         (
-            {"components": {"Wind offshore": 5, "PV": 10}, "variables": ["capacityMax"]},
+            {
+                "components": {"Wind offshore": 5, "PV": 10},
+                "variables": ["capacityMax"],
+            },
             ["01_reg", "02_reg"],
         ),
         # particular component, all variables
@@ -99,7 +100,7 @@ def test_perform_parameter_based_grouping(
     aggregation_method, weights, expected_region_groups, xr_for_parameter_based_grouping
 ):
 
-    regions_list = xr_for_parameter_based_grouping.get('Geometry')['space'].values
+    regions_list = xr_for_parameter_based_grouping.get("Geometry")["space"].values
 
     # FUNCTION CALL
     output_dict = spg.perform_parameter_based_grouping(

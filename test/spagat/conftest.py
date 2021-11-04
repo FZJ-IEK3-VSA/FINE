@@ -51,16 +51,17 @@ def xr_for_connectivity():
     )
 
     ## 2d variable data
-    capacityMax_2d = np.array([
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 3],
-                [0, 0, 0, 0, 0, 0, 0, 5],
-                [0, 0, 0, 0, 0, 3, 5, 0],
-            ]
+    capacityMax_2d = np.array(
+        [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 3],
+            [0, 0, 0, 0, 0, 0, 0, 5],
+            [0, 0, 0, 0, 0, 3, 5, 0],
+        ]
     )
 
     capacityMax_2d_da = xr.DataArray(
@@ -70,14 +71,15 @@ def xr_for_connectivity():
     )
 
     locationalEligibility_2d = np.array(
-        [[0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0.2, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0.2, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0]
+        [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0.2, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0.2, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
         ]
     )
 
@@ -94,8 +96,10 @@ def xr_for_connectivity():
         }
     )
 
-    input_xr_dict = {'Source': {'source_comp': source_comp_ds}, 
-                    'Transmission': {'trans_comp': trans_comp_ds}}
+    input_xr_dict = {
+        "Source": {"source_comp": source_comp_ds},
+        "Transmission": {"trans_comp": trans_comp_ds},
+    }
 
     # Geometries
     test_geometries = [
@@ -109,11 +113,11 @@ def xr_for_connectivity():
         Polygon([(2.5, 0), (3.5, 0), (3.5, 1), (2.5, 1)]),
     ]
 
-    gdf = gpd.GeoDataFrame({'index': space_list, 'geometry': test_geometries})
+    gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
 
     geom_xr = spu.create_geom_xarray(gdf)
 
-    test_ds_dict = {'Input': input_xr_dict, 'Geometry' : geom_xr}
+    test_ds_dict = {"Input": input_xr_dict, "Geometry": geom_xr}
 
     return test_ds_dict
 
@@ -166,7 +170,7 @@ def data_for_distance_measure():
 def xr_for_parameter_based_grouping():
     time_list = ["T0", "T1"]
     space_list = ["01_reg", "02_reg", "03_reg"]
-    
+
     ## Source: wind turbine
     operationRateMax = np.array([[0.2, 0.1, 0.1] for i in range(2)])
     operationRateMax = xr.DataArray(
@@ -176,25 +180,17 @@ def xr_for_parameter_based_grouping():
     )
 
     capacityMax = np.array([1, 1, 0.2])
-    capacityMax = xr.DataArray(
-        capacityMax, coords=[space_list], dims=["space"]
-    )
+    capacityMax = xr.DataArray(capacityMax, coords=[space_list], dims=["space"])
 
     wind_offshore_ds = xr.Dataset(
-        {
-            "ts_operationRateMax": operationRateMax,
-            "1d_capacityMax": capacityMax
-        }
+        {"ts_operationRateMax": operationRateMax, "1d_capacityMax": capacityMax}
     )
 
     ## Source, PV
     pv_ds = xr.Dataset(
-        {
-            "ts_operationRateMax": operationRateMax,
-            "1d_capacityMax": capacityMax
-        }
+        {"ts_operationRateMax": operationRateMax, "1d_capacityMax": capacityMax}
     )
-    
+
     ## Transmission: AC cables
     transmissionDistance = np.array([[0, 0.2, 0.7], [0.2, 0, 0.2], [0.7, 0.2, 0]])
 
@@ -204,15 +200,12 @@ def xr_for_parameter_based_grouping():
         dims=["space", "space_2"],
     )
 
-    trans_ds = xr.Dataset(
-        {
-            "2d_transmissionDistance": transmissionDistance
-        }
-    )
+    trans_ds = xr.Dataset({"2d_transmissionDistance": transmissionDistance})
 
-    input_xr_dict = {'Source': {'Wind offshore': wind_offshore_ds, 
-                                'PV': pv_ds}, 
-                    'Transmission': {'AC cables': trans_ds}}
+    input_xr_dict = {
+        "Source": {"Wind offshore": wind_offshore_ds, "PV": pv_ds},
+        "Transmission": {"AC cables": trans_ds},
+    }
 
     # Geometries
     test_geometries = [
@@ -221,14 +214,13 @@ def xr_for_parameter_based_grouping():
         Polygon([(0, 2), (1, 2), (1, 3), (0, 3)]),
     ]
 
-    gdf = gpd.GeoDataFrame({'index': space_list, 'geometry': test_geometries})
+    gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
 
     geom_xr = spu.create_geom_xarray(gdf)
 
-    test_ds_dict = {'Input': input_xr_dict, 'Geometry' : geom_xr}
+    test_ds_dict = {"Input": input_xr_dict, "Geometry": geom_xr}
 
-    
-    return test_ds_dict 
+    return test_ds_dict
 
 
 # ============================================Fixtures for Basic Representation==================================================#
@@ -251,11 +243,11 @@ def xr_and_dict_for_basic_representation():
         "03_reg_04_reg": ["03_reg", "04_reg"],
     }
 
-    # input data 
+    # input data
     time_list = ["T0", "T1"]
     space_list = ["01_reg", "02_reg", "03_reg", "04_reg"]
-    
-    ## Source comp 
+
+    ## Source comp
     operationRateMax = np.array([[3, 3, 3, 3] for i in range(2)])
 
     operationRateMax_da = xr.DataArray(
@@ -273,11 +265,11 @@ def xr_and_dict_for_basic_representation():
     source_comp = xr.Dataset(
         {
             "ts_operationRateMax": operationRateMax_da,
-            "1d_capacityMax": capacityMax_1d_da
+            "1d_capacityMax": capacityMax_1d_da,
         }
     )
 
-    ## Sink comp 
+    ## Sink comp
     operationRateFix = np.array([[5, 5, 5, 5] for i in range(2)])
 
     operationRateFix_da = xr.DataArray(
@@ -295,11 +287,11 @@ def xr_and_dict_for_basic_representation():
     sink_comp = xr.Dataset(
         {
             "ts_operationRateFix": operationRateFix_da,
-            "1d_capacityFix": capacityFix_1d_da
+            "1d_capacityFix": capacityFix_1d_da,
         }
     )
 
-    ## transmission comp 
+    ## transmission comp
     capacityMax_2d = np.array([[0, 5, 5, 5], [5, 0, 5, 5], [5, 5, 0, 5], [5, 5, 5, 0]])
 
     capacityMax_2d_da = xr.DataArray(
@@ -308,7 +300,9 @@ def xr_and_dict_for_basic_representation():
         dims=["space", "space_2"],
     )
 
-    locationalEligibility_2d = np.array([[0, 1, 1, 1], [0, 0, 1, 1], [0, 0, 0, 1], [0, 0, 0, 0]])
+    locationalEligibility_2d = np.array(
+        [[0, 1, 1, 1], [0, 0, 1, 1], [0, 0, 0, 1], [0, 0, 0, 0]]
+    )
 
     locationalEligibility_2d_da = xr.DataArray(
         locationalEligibility_2d,
@@ -319,15 +313,17 @@ def xr_and_dict_for_basic_representation():
     trans_comp = xr.Dataset(
         {
             "2d_capacityMax": capacityMax_2d_da,
-            "2d_locationalEligibility": locationalEligibility_2d_da 
+            "2d_locationalEligibility": locationalEligibility_2d_da,
         }
     )
 
-    input_xr_dict = {'Source': {'source_comp': source_comp}, 
-                    'Sink': {'sink_comp': sink_comp}, 
-                    'Transmission': {'trans_comp': trans_comp}}
+    input_xr_dict = {
+        "Source": {"source_comp": source_comp},
+        "Sink": {"sink_comp": sink_comp},
+        "Transmission": {"trans_comp": trans_comp},
+    }
 
-    # geometry data 
+    # geometry data
     test_geometries = [
         Polygon([(0, 0), (2, 0), (2, 2), (0, 2)]),
         Polygon([(2, 0), (4, 0), (4, 2), (2, 2)]),
@@ -335,14 +331,18 @@ def xr_and_dict_for_basic_representation():
         Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]),
     ]
 
-    gdf = gpd.GeoDataFrame({'index': space_list, 'geometry': test_geometries})
+    gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
     geom_xr = spu.create_geom_xarray(gdf)
 
-    # parameter data 
+    # parameter data
     parameters_ds = xr.Dataset()
-    parameters_ds.attrs = {'locations' : space_list}
+    parameters_ds.attrs = {"locations": space_list}
 
-    test_ds_dict = {'Input': input_xr_dict, 'Geometry' : geom_xr, 'Parameters' : parameters_ds}
+    test_ds_dict = {
+        "Input": input_xr_dict,
+        "Geometry": geom_xr,
+        "Parameters": parameters_ds,
+    }
 
     return namedtuple("dict_and_xr", "sub_to_sup_region_id_dict test_xr")(
         sub_to_sup_region_id_dict, test_ds_dict

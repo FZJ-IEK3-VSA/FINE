@@ -39,15 +39,9 @@ def test_preprocess_dataset():
     # TEST DATA
     time_list = ["T0", "T1"]
     space_list = ["01_reg", "02_reg", "03_reg"]
-    
-    ### time series 
-    var_ts_data = np.array(
-        [
-            [0, 1, 1], 
-            [1, 1, 10]
-        ]
-        
-    )
+
+    ### time series
+    var_ts_data = np.array([[0, 1, 1], [1, 1, 10]])
 
     var_ts_da = xr.DataArray(
         var_ts_data,
@@ -55,13 +49,8 @@ def test_preprocess_dataset():
         dims=["time", "space"],
     )
 
-    ### 2d 
-    var_2d_data = np.array(
-        [ [0, 1, 10], 
-          [1, 0, 1], 
-          [10, 1, 0] 
-        ]
-    )
+    ### 2d
+    var_2d_data = np.array([[0, 1, 10], [1, 0, 1], [10, 1, 0]])
 
     var_2d_da = xr.DataArray(
         var_2d_data,
@@ -72,14 +61,10 @@ def test_preprocess_dataset():
     ### 1d
     var_1d_data = np.array([0, 1, 10])
 
-    var_1d_da = xr.DataArray(
-        var_1d_data, coords=[space_list], dims=["space"]
-    )
+    var_1d_da = xr.DataArray(var_1d_data, coords=[space_list], dims=["space"])
 
     ### 0d
-    var_0d_da = xr.DataArray(
-        10, coords=[], dims=[]
-    )
+    var_0d_da = xr.DataArray(10, coords=[], dims=[])
 
     classA_compA_ds = xr.Dataset(
         {
@@ -89,12 +74,7 @@ def test_preprocess_dataset():
         }
     )
 
-    classA_compB_ds = xr.Dataset(
-        {
-            "ts_var": var_ts_da
-
-        }
-    )
+    classA_compB_ds = xr.Dataset({"ts_var": var_ts_da})
 
     classB_compB_ds = xr.Dataset(
         {
@@ -103,22 +83,21 @@ def test_preprocess_dataset():
         }
     )
 
-    test_xr_dict = {'ClassA': {'CompA': classA_compA_ds, 
-                                'CompB': classA_compB_ds},
-                    'ClassB': {'CompB': classB_compB_ds}}
-
+    test_xr_dict = {
+        "ClassA": {"CompA": classA_compA_ds, "CompB": classA_compB_ds},
+        "ClassB": {"CompB": classB_compB_ds},
+    }
 
     # EXPECTED DATA
     ## time series dict
     expected_ts_dict = {}
 
-    #ts dict 
+    # ts dict
     expected_ts_dict = {}
     var_ts_data_norm = 0.1 * var_ts_data
-    expected_ts_dict["ts_var"] = {"CompA": var_ts_data_norm, 
-                                 'CompB' : var_ts_data_norm}
+    expected_ts_dict["ts_var"] = {"CompA": var_ts_data_norm, "CompB": var_ts_data_norm}
 
-    #2d dict 
+    # 2d dict
     expected_2d_dict = {}
     expected_2d_dict["2d_var"] = {"CompB": np.array([0.9, 0.0, 0.9])}
 
@@ -126,7 +105,6 @@ def test_preprocess_dataset():
     expected_1d_dict = {}
     expected_1d_data_norm = 0.1 * var_1d_data
     expected_1d_dict["1d_var"] = {"CompA": expected_1d_data_norm}
-
 
     # FUNCTION CALL
     output_ts_dict, output_1d_dict, output_2d_dict = gu.preprocess_dataset(test_xr_dict)

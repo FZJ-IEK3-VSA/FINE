@@ -92,50 +92,46 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
     return gdf
 
 
-def create_geom_xarray(shapefile, 
-                        geom_col_name='geometry', 
-                        geom_id_col_name='index'):
+def create_geom_xarray(shapefile, geom_col_name="geometry", geom_id_col_name="index"):
     """Creates an xr.Dataset with geometry info from the `shapefile`.
 
     Parameters
     ----------
     shapefile : GeoDataFrame
-        The shapefile to be converted 
+        The shapefile to be converted
     geom_col_name : str
         The geomtry column name in `shapefile`
     geom_id_col_name : str
-        The colum in `shapefile` consisting geom ids 
+        The colum in `shapefile` consisting geom ids
 
     Returns
     -------
     xr_ds : The xarray dataset holding "geometries", "centroids", "centroid_distances"
     """
-    
+
     # geometries and their IDs
     geometries = shapefile[geom_col_name]
     geom_ids = shapefile[geom_id_col_name]
 
     geometries_da = xr.DataArray(
-                            geometries,
-                            coords=[geom_ids],
-                            dims=["space"],
-                        )
-
-    #centroids 
-    centroids = pd.Series(
-        [geom.centroid for geom in geometries_da.values]
+        geometries,
+        coords=[geom_ids],
+        dims=["space"],
     )
+
+    # centroids
+    centroids = pd.Series([geom.centroid for geom in geometries_da.values])
     centroids_da = xr.DataArray(
-                            centroids,
-                            coords=[geom_ids],
-                            dims=["space"],
-                        )
+        centroids,
+        coords=[geom_ids],
+        dims=["space"],
+    )
 
     # centroid distances
     centroid_dist_da = xr.DataArray(
-        np.zeros((len(geom_ids), len(geom_ids))), 
-        coords=[geom_ids, geom_ids], 
-        dims=["space", "space_2"]
+        np.zeros((len(geom_ids), len(geom_ids))),
+        coords=[geom_ids, geom_ids],
+        dims=["space", "space_2"],
     )
 
     for region_id_1 in centroids_da["space"]:
@@ -156,7 +152,6 @@ def create_geom_xarray(shapefile,
     return xr_ds
 
 
-            
 def save_shapefile_from_xarray(
     geom_xr, save_path, shp_name="aggregated_regions", crs: int = 3035
 ):
@@ -181,4 +176,3 @@ def save_shapefile_from_xarray(
     create_gdf(
         df=df, geometries=geometries, crs=crs, file_path=save_path, files_name=shp_name
     )
-

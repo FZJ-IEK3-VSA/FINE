@@ -12,7 +12,7 @@ def test_aggregate_geometries(xr_and_dict_for_basic_representation):
         xr_for_basic_representation,
     ) = xr_and_dict_for_basic_representation
 
-    test_xarray = xr_for_basic_representation.get('Geometry')['geometries']
+    test_xarray = xr_for_basic_representation.get("Geometry")["geometries"]
 
     # FUNCTION CALL
     output_xarray = spr.aggregate_geometries(test_xarray, sub_to_sup_region_id_dict)
@@ -43,7 +43,7 @@ def test_aggregate_time_series_mean_and_sum(
         xr_for_basic_representation,
     ) = xr_and_dict_for_basic_representation
 
-    test_ds = xr_for_basic_representation.get('Input').get('Source').get('source_comp')
+    test_ds = xr_for_basic_representation.get("Input").get("Source").get("source_comp")
     test_xarray = test_ds["ts_operationRateMax"]
 
     # FUNCTION CALL
@@ -52,17 +52,13 @@ def test_aggregate_time_series_mean_and_sum(
     )
 
     # ASSERTION
-    assert (
-        time_series_aggregated.loc["T0", "01_reg_02_reg"].values
-        == expected
-    )
-
+    assert time_series_aggregated.loc["T0", "01_reg_02_reg"].values == expected
 
 
 @pytest.mark.parametrize(
     "data, weight, expected_grp1, expected_grp2",
     [
-        # all non zero values 
+        # all non zero values
         (
             np.array([[3, 3, 3, 3] for i in range(2)]),
             np.array([3, 3, 3, 3]),
@@ -98,9 +94,7 @@ def test_aggregate_time_series_weighted_mean(
         dims=["time", "space"],
     )
 
-    weight_xr = xr.DataArray(
-        weight, coords=[space_list], dims=["space"]
-    )
+    weight_xr = xr.DataArray(weight, coords=[space_list], dims=["space"])
 
     sub_to_sup_region_id_dict = {
         "01_reg_02_reg": ["01_reg", "02_reg"],
@@ -116,15 +110,8 @@ def test_aggregate_time_series_weighted_mean(
     )
 
     # ASSERTION
-    assert (
-        time_series_aggregated.loc["T0", "01_reg_02_reg"].values
-        == expected_grp1
-    )
-    assert (
-        time_series_aggregated.loc["T0", "03_reg_04_reg"].values
-        == expected_grp2
-    )
-
+    assert time_series_aggregated.loc["T0", "01_reg_02_reg"].values == expected_grp1
+    assert time_series_aggregated.loc["T0", "03_reg_04_reg"].values == expected_grp2
 
 
 @pytest.mark.parametrize(
@@ -140,7 +127,7 @@ def test_aggregate_values_spatially(
         xr_for_basic_representation,
     ) = xr_and_dict_for_basic_representation
 
-    test_ds = xr_for_basic_representation.get('Input').get('Source').get('source_comp')
+    test_ds = xr_for_basic_representation.get("Input").get("Source").get("source_comp")
     test_xarray = test_ds["1d_capacityMax"]
 
     # FUNCTION CALL
@@ -152,7 +139,6 @@ def test_aggregate_values_spatially(
     assert values_aggregated.loc["01_reg_02_reg"].values == expected_grp1
     assert values_aggregated.loc["03_reg_04_reg"].values == expected_grp2
 
-    
 
 @pytest.mark.parametrize(
     "mode, expected",
@@ -162,16 +148,16 @@ def test_aggregate_values_spatially(
         ("bool", np.array([[0, 1], [1, 0]])),
     ],
 )
-def test_aggregate_connections(
-    xr_and_dict_for_basic_representation, mode, expected
-):
+def test_aggregate_connections(xr_and_dict_for_basic_representation, mode, expected):
 
     (
         sub_to_sup_region_id_dict,
         xr_for_basic_representation,
     ) = xr_and_dict_for_basic_representation
 
-    test_ds = xr_for_basic_representation.get('Input').get('Transmission').get('trans_comp')
+    test_ds = (
+        xr_for_basic_representation.get("Input").get("Transmission").get("trans_comp")
+    )
     test_xarray = test_ds["2d_capacityMax"]
 
     # FUNCTION CALL
@@ -181,7 +167,7 @@ def test_aggregate_connections(
 
     # ASSERTION
     assert np.array_equal(connections_aggregated, expected)
-    
+
 
 test_data = [
     # no aggregation_function_dict provided
@@ -225,7 +211,7 @@ test_data = [
     ),
     (
         {
-            "operationRateMax": ("weighted mean", "capacityFix"),  
+            "operationRateMax": ("weighted mean", "capacityFix"),
             "operationRateFix": ("sum", None),
             "capacityMax": ("sum", None),
             "capacityFix": ("sum", None),
@@ -269,38 +255,44 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict(
 
     # ASSERTION
     ## Time series variables
-    output_xarray = output_ds_dict.get('Input').get('Source').get('source_comp')["ts_operationRateMax"]
+    output_xarray = (
+        output_ds_dict.get("Input")
+        .get("Source")
+        .get("source_comp")["ts_operationRateMax"]
+    )
     assert (
-        output_xarray
-        .loc["T0", "01_reg_02_reg"]
-        .values
-        == expected_ts_operationRateMax
+        output_xarray.loc["T0", "01_reg_02_reg"].values == expected_ts_operationRateMax
     )
 
-    output_xarray = output_ds_dict.get('Input').get('Sink').get('sink_comp')["ts_operationRateFix"]
+    output_xarray = (
+        output_ds_dict.get("Input").get("Sink").get("sink_comp")["ts_operationRateFix"]
+    )
     assert (
-        output_xarray
-        .loc["T0", "01_reg_02_reg"]
-        .values
-        == expected_ts_operationRateFix
+        output_xarray.loc["T0", "01_reg_02_reg"].values == expected_ts_operationRateFix
     )
 
     ## 1d variable
-    output_xarray = output_ds_dict.get('Input').get('Source').get('source_comp')["1d_capacityMax"]
-    assert (
-        output_xarray.loc["01_reg_02_reg"].values
-        == expected_1d_capacityMax
+    output_xarray = (
+        output_ds_dict.get("Input").get("Source").get("source_comp")["1d_capacityMax"]
     )
+    assert output_xarray.loc["01_reg_02_reg"].values == expected_1d_capacityMax
 
-    output_xarray = output_ds_dict.get('Input').get('Sink').get('sink_comp')["1d_capacityFix"]
-    assert (
-        output_xarray.loc["01_reg_02_reg"].values
-        == expected_1d_capacityFix
+    output_xarray = (
+        output_ds_dict.get("Input").get("Sink").get("sink_comp")["1d_capacityFix"]
     )
+    assert output_xarray.loc["01_reg_02_reg"].values == expected_1d_capacityFix
 
     ## 2d variable
-    output_xarray = output_ds_dict.get('Input').get('Transmission').get('trans_comp')["2d_capacityMax"]
+    output_xarray = (
+        output_ds_dict.get("Input")
+        .get("Transmission")
+        .get("trans_comp")["2d_capacityMax"]
+    )
     assert np.array_equal(output_xarray.values, expected_2d_capacityMax)
 
-    output_xarray = output_ds_dict.get('Input').get('Transmission').get('trans_comp')["2d_locationalEligibility"]
+    output_xarray = (
+        output_ds_dict.get("Input")
+        .get("Transmission")
+        .get("trans_comp")["2d_locationalEligibility"]
+    )
     assert np.array_equal(output_xarray.values, expected_2d_locationalEligibility)

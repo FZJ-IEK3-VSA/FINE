@@ -51,17 +51,18 @@ def test_create_gdf():
 
 
 def test_create_geom_xarray(sample_shapefile):
-   
+
     expected_centroids = [Point(2, 2), Point(5.5, 2)]
-    expected_centroid_distances = 0.001 * np.array([[0, 3.5], [3.5, 0]])  # Distances in km
+    expected_centroid_distances = 0.001 * np.array(
+        [[0, 3.5], [3.5, 0]]
+    )  # Distances in km
 
     # FUNCTION CALL
-    output_xr = spu.create_geom_xarray(sample_shapefile,
-                                        geom_id_col_name="region_ids")
-    
+    output_xr = spu.create_geom_xarray(sample_shapefile, geom_id_col_name="region_ids")
+
     # ASSERTION
-    output_centroids = output_xr['centroids'].values
-    output_centroid_distances = output_xr['centroid_distances'].values
+    output_centroids = output_xr["centroids"].values
+    output_centroid_distances = output_xr["centroid_distances"].values
 
     for output, expected in zip(output_centroids, expected_centroids):
         assert output.coords[:] == expected.coords[:]

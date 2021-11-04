@@ -39,7 +39,7 @@ def preprocess_time_series(vars_dict):
 
     Parameters
     ----------
-    vars_dict : Dict[str, Dict[str, xr.DataArray]] 
+    vars_dict : Dict[str, Dict[str, xr.DataArray]]
         For each key (variable name), the corresponding value is a dictionary. This dictionary
         consists of each component name and the corresponding xr.DataArray.
         - Dimensions of xr.DataArray - 'time', 'space'
@@ -49,7 +49,7 @@ def preprocess_time_series(vars_dict):
     processed_ts_dict : Dict[str, Dict[str, np.ndarray]]
         For each key (variable name), the corresponding value is a dictionary. This dictionary
         consists of each component name and the corresponding nomalized data matrix
-        - Size of each matrix: n_timesteps * n_regions 
+        - Size of each matrix: n_timesteps * n_regions
     """
 
     processed_ts_dict = {}
@@ -71,7 +71,7 @@ def preprocess_1d_variables(vars_dict):
 
     Parameters
     ----------
-    vars_dict : Dict[str, Dict[str, xr.DataArray]] 
+    vars_dict : Dict[str, Dict[str, xr.DataArray]]
         For each key (variable name), the corresponding value is a dictionary. This dictionary
         consists of each component name and the corresponding xr.DataArray.
         - Dimensions of xr.DataArray - 'space'
@@ -127,7 +127,6 @@ def preprocess_2d_variables(vars_dict):
     """
     processed_2d_dict = {}
 
-    
     for var_name, var_dict in vars_dict.items():
         processed_2d_dict.update({var_name: {}})
 
@@ -178,9 +177,9 @@ def preprocess_dataset(xarray_dataset):
             for varname, da in comp_ds.data_vars.items():
 
                 ## Time series
-                if varname[:3] == "ts_":  
+                if varname[:3] == "ts_":
                     vars_ts[varname][comp] = da
-                    
+
                 ## 1d variables
                 elif varname[:3] == "1d_":
                     vars_1d[varname][comp] = da
@@ -188,7 +187,6 @@ def preprocess_dataset(xarray_dataset):
                 ## 2d variables
                 elif varname[:3] == "2d_":
                     vars_2d[varname][comp] = da
-
 
     # STEP 1. Preprocess Time Series
     processed_ts_dict = preprocess_time_series(vars_ts)
@@ -430,15 +428,17 @@ def get_connectivity_matrix(xarray_datasets):
         - If the regions are connected via a transmission line or pipeline
     """
 
-    geom_xr = xarray_datasets.get('Geometry')
-    input_xr = xarray_datasets.get('Input')
+    geom_xr = xarray_datasets.get("Geometry")
+    input_xr = xarray_datasets.get("Input")
 
     n_regions = len(geom_xr["space"].values)
 
     connectivity_matrix = np.zeros((n_regions, n_regions))
 
     # STEP 1: Check for contiguous neighbors
-    geometries = gpd.GeoSeries(geom_xr['geometries'].values)  # NOTE: disjoint seems to work only on geopandas or geoseries object
+    geometries = gpd.GeoSeries(
+        geom_xr["geometries"].values
+    )  # NOTE: disjoint seems to work only on geopandas or geoseries object
     for ix, geom in enumerate(geometries):
         neighbors = geometries[~geometries.disjoint(geom)].index.tolist()
         connectivity_matrix[ix, neighbors] = 1
@@ -450,7 +450,7 @@ def get_connectivity_matrix(xarray_datasets):
         ):  # if a region is connected only to itself
 
             # get the nearest neighbor based on regions centroids
-            centroid_distances = geom_xr['centroid_distances'].values[row, :]
+            centroid_distances = geom_xr["centroid_distances"].values[row, :]
             nearest_neighbor_idx = np.argmin(
                 centroid_distances[np.nonzero(centroid_distances)]
             )
@@ -466,8 +466,10 @@ def get_connectivity_matrix(xarray_datasets):
     for comp_class, comp_dict in input_xr.items():
         for comp, comp_ds in comp_dict.items():
             for varname, da in comp_ds.data_vars.items():
-   
+
                 if varname[:3] == "2d_":
-                    connectivity_matrix[da.values > 0] = 1  # if a pos, non-zero value exits, make a connection!
+                    connectivity_matrix[
+                        da.values > 0
+                    ] = 1  # if a pos, non-zero value exits, make a connection!
 
     return connectivity_matrix

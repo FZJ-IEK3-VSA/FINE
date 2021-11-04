@@ -26,7 +26,7 @@ def perform_spatial_aggregation(
     Parameters
     ----------
     xr_dataset : str/Dict[str, xr.Dataset]
-        Either the path to .netCDF file or the read-in dictionary of xarray datasets 
+        Either the path to .netCDF file or the read-in dictionary of xarray datasets
         - Dimensions in this data - 'time', 'space', 'space_2'
     shapefile : str/GeoDataFrame
         Either the path to the shapefile or the read-in shapefile
@@ -80,12 +80,12 @@ def perform_spatial_aggregation(
             raise FileNotFoundError("The xr_dataset path specified is not valid")
 
     # STEP 3. Add geometries to xr_dataset
-    geom_col_name = kwargs.get("geom_col_name", 'geometry')
-    geom_id_col_name = kwargs.get("geom_id_col_name", 'index')
+    geom_col_name = kwargs.get("geom_col_name", "geometry")
+    geom_id_col_name = kwargs.get("geom_id_col_name", "index")
 
     geom_xr = spu.create_geom_xarray(shapefile, geom_col_name, geom_id_col_name)
 
-    xr_datasets['Geometry'] = geom_xr
+    xr_datasets["Geometry"] = geom_xr
 
     # STEP 4. Spatial grouping
     if grouping_mode == "string_based":
@@ -148,11 +148,11 @@ def perform_spatial_aggregation(
 
         # save shapefiles
         spu.save_shapefile_from_xarray(
-            aggregated_xr_dataset['Geometry'], aggregatedResultsPath, shp_name, crs=crs
+            aggregated_xr_dataset["Geometry"], aggregatedResultsPath, shp_name, crs=crs
         )
 
         # remove geometry related data vars from aggregated xarray dataset as these cannot be saved
-        aggregated_xr_dataset.pop('Geometry')
+        aggregated_xr_dataset.pop("Geometry")
 
         # save aggregated xarray dataset
         file_name_with_path = os.path.join(

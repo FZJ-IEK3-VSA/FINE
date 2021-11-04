@@ -312,7 +312,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     """
 
     # xarray_dataset has prefix 1d_, 2d_ and ts_
-    # Therefore, in order to match that, the prefix is added 
+    # Therefore, in order to match that, the prefix is added
     # in aggregation_function_dict for each variable
     if aggregation_function_dict != None:
         aggregation_function_dict = {
@@ -321,7 +321,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
             for dimension in ["ts", "1d", "2d"]
         }
 
-    # private function to get aggregation mode for a particular variable name 
+    # private function to get aggregation mode for a particular variable name
     def _get_aggregation_mode(varname, comp, comp_ds):
         # If aggregation_function_dict is passed AND the current variable is in it...
         if (aggregation_function_dict is not None) and (
@@ -358,20 +358,21 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                         except:
                             warnings.warn(
                                 f"Aggregation mode for {comp} component's {varname[3:]} set to mean instead of \
-                                weighted mean because corresponding weight: {aggregation_weight} variable is not found")
+                                weighted mean because corresponding weight: {aggregation_weight} variable is not found"
+                            )
 
                             aggregation_mode = "mean"
-                    
+
                     else:
                         try:
                             aggregation_weight = comp_ds[f"1d_{aggregation_weight}"]
                         except:
                             warnings.warn(
                                 f"Aggregation mode for {comp} component's {varname[3:]} set to mean instead of \
-                                weighted mean because corresponding weight: {aggregation_weight} variable is not found")
+                                weighted mean because corresponding weight: {aggregation_weight} variable is not found"
+                            )
 
                             aggregation_mode = "mean"
-                        
 
         # If aggregation_function_dict is not passed OR the current variable is not in it
         else:
@@ -396,16 +397,17 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     aggregated_xr_dataset = deepcopy(xarray_datasets)
 
     # update locations in 'Parameters'
-    aggregated_xr_dataset.get('Parameters').attrs['locations'] = set(sub_to_sup_region_id_dict.keys())
+    aggregated_xr_dataset.get("Parameters").attrs["locations"] = set(
+        sub_to_sup_region_id_dict.keys()
+    )
 
-    # Aggregate geometries 
-    aggregated_xr_dataset['Geometry'] = aggregate_geometries(
-                                                xarray_datasets.get('Geometry')['geometries'], 
-                                                sub_to_sup_region_id_dict
-                                            )
+    # Aggregate geometries
+    aggregated_xr_dataset["Geometry"] = aggregate_geometries(
+        xarray_datasets.get("Geometry")["geometries"], sub_to_sup_region_id_dict
+    )
 
-    # Aggregate input data 
-    for comp_class, comp_dict in xarray_datasets.get('Input').items():
+    # Aggregate input data
+    for comp_class, comp_dict in xarray_datasets.get("Input").items():
         for comp, comp_ds in comp_dict.items():
 
             aggregated_comp_ds = xr.Dataset()
@@ -413,34 +415,38 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
             for varname, da in comp_ds.data_vars.items():
 
                 # Check and set aggregation mode and weights
-                aggregation_mode, aggregation_weight = _get_aggregation_mode(varname, comp, comp_ds)
-                
+                aggregation_mode, aggregation_weight = _get_aggregation_mode(
+                    varname, comp, comp_ds
+                )
+
                 ## Time series
                 if varname[:3] == "ts_":
-                    da = aggregate_time_series_spatially(da,
-                                                        sub_to_sup_region_id_dict,
-                                                        mode=aggregation_mode,
-                                                        xr_weight_array=aggregation_weight,
-                                                    )
+                    da = aggregate_time_series_spatially(
+                        da,
+                        sub_to_sup_region_id_dict,
+                        mode=aggregation_mode,
+                        xr_weight_array=aggregation_weight,
+                    )
 
                 ## 1d variables
                 elif varname[:3] == "1d_":
-                    da = aggregate_values_spatially(da,
-                                                    sub_to_sup_region_id_dict,
-                                                    mode=aggregation_mode,
-                                                )
+                    da = aggregate_values_spatially(
+                        da,
+                        sub_to_sup_region_id_dict,
+                        mode=aggregation_mode,
+                    )
 
                 ## 2d variables
                 elif varname[:3] == "2d_":
-                    da = aggregate_connections(da,
-                                            sub_to_sup_region_id_dict,
-                                            mode=aggregation_mode,
-                                            )
+                    da = aggregate_connections(
+                        da,
+                        sub_to_sup_region_id_dict,
+                        mode=aggregation_mode,
+                    )
 
                 ## aggregated or 0d variables
                 aggregated_comp_ds[varname] = da
-            
-            aggregated_xr_dataset['Input'][comp_class][comp] = aggregated_comp_ds
 
+            aggregated_xr_dataset["Input"][comp_class][comp] = aggregated_comp_ds
 
     return aggregated_xr_dataset

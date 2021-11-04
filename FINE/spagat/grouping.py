@@ -76,7 +76,7 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
 
     Parameters
     ----------
-    geom_xr : xr.Dataset 
+    geom_xr : xr.Dataset
         The xarray dataset holding the geom info
     n_groups : strictly positive int, optional (default=3)
         The number of region groups to be formed from the original region set
@@ -90,13 +90,10 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
                1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
     """
 
-    centroids = geom_xr['centroids'].values 
+    centroids = geom_xr["centroids"].values
 
     centroids_x_y_points = (
-        np.asarray(
-            [[point.x, point.y] for point in centroids]
-        )
-        / 1000
+        np.asarray([[point.x, point.y] for point in centroids]) / 1000
     )  # km
     regions_list = geom_xr["space"].values
 
@@ -176,7 +173,7 @@ def perform_parameter_based_grouping(
     """
 
     # Original region list
-    regions_list = xarray_datasets.get('Geometry')["space"].values
+    regions_list = xarray_datasets.get("Geometry")["space"].values
     n_regions = len(regions_list)
 
     aggregation_dict = {}
@@ -184,7 +181,7 @@ def perform_parameter_based_grouping(
 
     # STEP 1. Preprocess the whole dataset
     processed_ts_dict, processed_1d_dict, processed_2d_dict = gu.preprocess_dataset(
-        xarray_datasets.get('Input')
+        xarray_datasets.get("Input")
     )
 
     # STEP 2. Calculate the overall distance between each region pair (uses custom distance)
