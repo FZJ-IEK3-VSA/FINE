@@ -13,7 +13,6 @@ import pyomo.opt as opt
 from FINE import utils
 from FINE.component import Component, ComponentModel
 
-#from FINE.IOManagement import xarrayIO_spagat as xrIO #TODO: delete me
 import FINE.IOManagement.xarrayIO as xrIO
 import FINE.spagat.spatial_aggregation as spa
 from tsam.timeseriesaggregation import TimeSeriesAggregation

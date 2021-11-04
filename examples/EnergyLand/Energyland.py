@@ -1,18 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:percent
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.6.0
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
-
 # %%
 from IPython.display import Image
 Image("images\strukturExample.png");
@@ -584,7 +569,7 @@ esM.add(fn.Sink(esM=esM, name='environment', commodity='CO2', commodityLimitID='
 # # 7. Optimization of EnergyLand
 
 # %%
-esM.cluster(numberOfTypicalPeriods=48)
+esM.aggregateTemporally(numberOfTypicalPeriods=48)
 
 # %% tags=["nbval-skip"]
 esM.optimize(timeSeriesAggregation=True, solver='gurobi')
