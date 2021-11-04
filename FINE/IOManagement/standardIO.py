@@ -1111,9 +1111,27 @@ def plotLocationalColorMap(
     gdf[indexColumn] = gdf[indexColumn].apply(lambda x: x[:20])
     data.index = data.index.str[:20]
 
+    ## 3. Merge data on the indices of the gdf, additional (pseudo) regions in data are ignored
+    ## the values of data are added to a new column <compName> in the gdf
+    data = data.fillna(0)
+    gdf = pd.merge(gdf, data, left_on=indexColumn, right_index=True, how="left")
+
+    ## 4. Print the names of the excluded (pseudo) regions
+    regions_data = list(data.index)
+    regions_gdf = list(gdf.loc[:, indexColumn])
+
+    excluded_regions = [item for item in regions_data if item not in regions_gdf]
+
+    if len(excluded_regions) > 0:
+        print(
+            f"Missing regions ({compName} - {variableName}) \n",
+            f"The following regions were not plotted as they are not contained in the provided shapefile: \n",
+            f"{excluded_regions} \n",
+        )
+
     if perArea:
-        gdf.loc[gdf[indexColumn] == data.index, "data"] = data.fillna(0).values / (
-            gdf.loc[gdf[indexColumn] == data.index].geometry.area / areaFactor ** 2
+        gdf.loc[:, "data"] = gdf.loc[:, compName] / (
+            gdf.geometry.area / areaFactor ** 2
         )
         if zlabel is None:
             if isinstance(esM.getComponent(compName), fn.Conversion):
@@ -1136,7 +1154,7 @@ def plotLocationalColorMap(
             zlabel = "Installed capacity \n" + unit + "\n"
 
     else:
-        gdf.loc[gdf[indexColumn] == data.index, "data"] = data.fillna(0).values
+        gdf.loc[:, "data"] = gdf.loc[:, compName]
         if zlabel is None:
             if isinstance(esM.getComponent(compName), fn.Conversion):
                 unit = esM.getComponent(compName).physicalUnit
