@@ -6,7 +6,6 @@ import pandas as pd
 import geopandas as gpd
 import xarray as xr
 import matplotlib.pyplot as plt
-from shapely.geometry import LineString
 
 
 def plt_savefig(fig=None, save_name="test", path=None):
@@ -96,7 +95,21 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
 def create_geom_xarray(shapefile, 
                         geom_col_name='geometry', 
                         geom_id_col_name='index'):
-    #TODO: doc string 
+    """Creates an xr.Dataset with geometry info from the `shapefile`.
+
+    Parameters
+    ----------
+    shapefile : GeoDataFrame
+        The shapefile to be converted 
+    geom_col_name : str
+        The geomtry column name in `shapefile`
+    geom_id_col_name : str
+        The colum in `shapefile` consisting geom ids 
+
+    Returns
+    -------
+    xr_ds : The xarray dataset holding "geometries", "centroids", "centroid_distances"
+    """
     
     # geometries and their IDs
     geometries = shapefile[geom_col_name]
@@ -145,16 +158,15 @@ def create_geom_xarray(shapefile,
 
             
 def save_shapefile_from_xarray(
-    xarray_dataset, save_path, shp_name="aggregated_regions", crs: int = 3035
+    geom_xr, save_path, shp_name="aggregated_regions", crs: int = 3035
 ):
     """Extracts regions and their geometries from `xarray_dataset`
     and saves to a shapefile.
 
     Parameters
     ----------
-    xarray_dataset : xr.Dataset
-        the xarray dataset from which regions and their geometries
-        are to be obtained
+    geom_xr : xr.Dataset
+        The xarray dataset holding the geom info
     save_path : str
         path to folder in which to save the shapefile
     shp_name : str, optional (default='aggregated_regions')
@@ -163,8 +175,8 @@ def save_shapefile_from_xarray(
         coordinate reference system (crs) in which to save the shapefiles
     """
 
-    df = xarray_dataset.space.to_dataframe()
-    geometries = xarray_dataset.values
+    df = geom_xr.space.to_dataframe()
+    geometries = geom_xr.values
 
     create_gdf(
         df=df, geometries=geometries, crs=crs, file_path=save_path, files_name=shp_name

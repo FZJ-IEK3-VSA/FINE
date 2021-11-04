@@ -284,14 +284,14 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
 
 
 def aggregate_based_on_sub_to_sup_region_id_dict(
-    xarray_dataset, sub_to_sup_region_id_dict, aggregation_function_dict=None
+    xarray_datasets, sub_to_sup_region_id_dict, aggregation_function_dict=None
 ):
     """After spatial grouping, for each region group, spatially aggregates the data.
 
     Parameters
     ----------
-    xarray_dataset : xr.Dataset
-        The xarray dataset holding the esM's info
+    xarray_datasets : Dict[str, xr.Dataset]
+        The dictionary of xarray datasets holding esM's info
     sub_to_sup_region_id_dict :  Dict[str, List[str]]
         Dictionary new regions' ids and their corresponding group of regions
         Ex. {'01_reg_02_reg': ['01_reg','02_reg'],
@@ -393,19 +393,19 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
         return aggregation_mode, aggregation_weight
 
     # Make a copy of xarray_dataset
-    aggregated_xr_dataset = deepcopy(xarray_dataset)
+    aggregated_xr_dataset = deepcopy(xarray_datasets)
 
     # update locations in 'Parameters'
     aggregated_xr_dataset.get('Parameters').attrs['locations'] = set(sub_to_sup_region_id_dict.keys())
 
     # Aggregate geometries 
     aggregated_xr_dataset['Geometry'] = aggregate_geometries(
-                                                xarray_dataset.get('Geometry')['geometries'], 
+                                                xarray_datasets.get('Geometry')['geometries'], 
                                                 sub_to_sup_region_id_dict
                                             )
 
     # Aggregate input data 
-    for comp_class, comp_dict in xarray_dataset.get('Input').items():
+    for comp_class, comp_dict in xarray_datasets.get('Input').items():
         for comp, comp_ds in comp_dict.items():
 
             aggregated_comp_ds = xr.Dataset()

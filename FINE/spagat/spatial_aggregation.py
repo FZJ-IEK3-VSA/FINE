@@ -12,7 +12,7 @@ logger_spagat = logging.getLogger("spatial_aggregation")
 
 
 def perform_spatial_aggregation(
-    xr_dataset,
+    xr_datasets,
     shapefile,
     grouping_mode="parameter_based",
     n_groups=3,
@@ -25,9 +25,9 @@ def perform_spatial_aggregation(
 
     Parameters
     ----------
-    xr_dataset : str/xr.Dataset
-        Either the path to the dataset or the read-in xr.Dataset
-        - Dimensions in this data - 'component', 'space', 'space_2', and 'time'
+    xr_dataset : str/Dict[str, xr.Dataset]
+        Either the path to .netCDF file or the read-in dictionary of xarray datasets 
+        - Dimensions in this data - 'time', 'space', 'space_2'
     shapefile : str/GeoDataFrame
         Either the path to the shapefile or the read-in shapefile
     grouping_mode : {'parameter_based', 'string_based', 'distance_based'}, optional
@@ -73,9 +73,9 @@ def perform_spatial_aggregation(
         )
 
     # STEP 2. Read xr_dataset
-    if isinstance(xr_dataset, str):
+    if isinstance(xr_datasets, str):
         try:
-            xr_dataset = xrIO.readNetCDFToDatasets(filePath=xr_dataset)
+            xr_datasets = xrIO.readNetCDFToDatasets(filePath=xr_datasets)
         except:
             raise FileNotFoundError("The xr_dataset path specified is not valid")
 
@@ -85,7 +85,7 @@ def perform_spatial_aggregation(
 
     geom_xr = spu.create_geom_xarray(shapefile, geom_col_name, geom_id_col_name)
 
-    xr_dataset['Geometry'] = geom_xr
+    xr_datasets['Geometry'] = geom_xr
 
     # STEP 4. Spatial grouping
     if grouping_mode == "string_based":
@@ -116,7 +116,7 @@ def perform_spatial_aggregation(
         logger_spagat.info(f"Performing parameter-based grouping on the regions.")
 
         aggregation_dict = spg.perform_parameter_based_grouping(
-            xr_dataset,
+            xr_datasets,
             n_groups=n_groups,
             aggregation_method=aggregation_method,
             weights=weights,
@@ -133,7 +133,7 @@ def perform_spatial_aggregation(
     aggregation_function_dict = kwargs.get("aggregation_function_dict", None)
 
     aggregated_xr_dataset = spr.aggregate_based_on_sub_to_sup_region_id_dict(
-        xr_dataset, aggregation_dict, aggregation_function_dict
+        xr_datasets, aggregation_dict, aggregation_function_dict
     )
 
     # STEP 6. Save shapefiles and aggregated xarray dataset if user chooses

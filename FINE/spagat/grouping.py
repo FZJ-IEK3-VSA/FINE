@@ -4,7 +4,6 @@ fewer regions while minimizing information loss.
 import logging
 
 import numpy as np
-import pandas as pd 
 
 import sklearn.cluster as skc
 from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
@@ -77,8 +76,8 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
 
     Parameters
     ----------
-    xarray_dataset : xr.Dataset #TODO: update docstirng 
-        The xarray dataset holding the esM's info
+    geom_xr : xr.Dataset 
+        The xarray dataset holding the geom info
     n_groups : strictly positive int, optional (default=3)
         The number of region groups to be formed from the original region set
 
@@ -117,7 +116,7 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
 
 @spu.timer
 def perform_parameter_based_grouping(
-    xarray_dataset,
+    xarray_datasets,
     n_groups=3,
     aggregation_method="kmedoids_contiguity",
     weights=None,
@@ -135,8 +134,8 @@ def perform_parameter_based_grouping(
 
     Parameters
     ----------
-    xarray_dataset : xr.Dataset
-        The xarray dataset holding the esM's info
+    xarray_datasets : Dict[str, xr.Dataset]
+        The dictionary of xarray datasets holding esM's info
     n_groups : strictly positive int, optional (default=3)
         The number of region groups to be formed from the original region set
     aggregation_method : {'kmedoids_contiguity', 'hierarchical'}, optional
@@ -177,7 +176,7 @@ def perform_parameter_based_grouping(
     """
 
     # Original region list
-    regions_list = xarray_dataset.get('Geometry')["space"].values
+    regions_list = xarray_datasets.get('Geometry')["space"].values
     n_regions = len(regions_list)
 
     aggregation_dict = {}
@@ -185,7 +184,7 @@ def perform_parameter_based_grouping(
 
     # STEP 1. Preprocess the whole dataset
     processed_ts_dict, processed_1d_dict, processed_2d_dict = gu.preprocess_dataset(
-        xarray_dataset.get('Input')
+        xarray_datasets.get('Input')
     )
 
     # STEP 2. Calculate the overall distance between each region pair (uses custom distance)
@@ -194,7 +193,7 @@ def perform_parameter_based_grouping(
     )
 
     # STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not.
-    connectivity_matrix = gu.get_connectivity_matrix(xarray_dataset)
+    connectivity_matrix = gu.get_connectivity_matrix(xarray_datasets)
 
     # STEP 4. Cluster the regions
     if aggregation_method == "hierarchical":
