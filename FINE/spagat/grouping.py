@@ -10,7 +10,6 @@ from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
 
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping_utils as gu
-from FINE.IOManagement import utilsIO
 
 logger_grouping = logging.getLogger("spatial_grouping")
 
@@ -71,14 +70,14 @@ def perform_string_based_grouping(regions, separator=None, position=None):
 
 
 @spu.timer
-def perform_distance_based_grouping(xarray_dataset, n_groups=3):
+def perform_distance_based_grouping(geom_xr, n_groups=3):
     """Groups regions based on the regions' centroid distances,
     using sklearn's hierarchical clustering.
 
     Parameters
     ----------
-    xarray_dataset : xr.Dataset
-        The xarray dataset holding the esM's info
+    geom_xr : xr.Dataset
+        The xarray dataset holding the geom info
     n_groups : strictly positive int, optional (default=3)
         The number of region groups to be formed from the original region set
 
@@ -90,16 +89,16 @@ def perform_distance_based_grouping(xarray_dataset, n_groups=3):
                2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
                1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
     """
-    centroids = (
-        np.asarray(
-            [[point.item().x, point.item().y] for point in xarray_dataset.gpd_centroids]
-        )
-        / 1000
+
+    centroids = geom_xr["centroids"].values
+
+    centroids_x_y_points = (
+        np.asarray([[point.x, point.y] for point in centroids]) / 1000
     )  # km
-    regions_list = xarray_dataset["space"].values
+    regions_list = geom_xr["space"].values
 
     # STEP 1. Compute hierarchical clustering
-    model = skc.AgglomerativeClustering(n_clusters=n_groups).fit(centroids)
+    model = skc.AgglomerativeClustering(n_clusters=n_groups).fit(centroids_x_y_points)
 
     # STEP 2. Create a regions dictionary for the aggregated regions
     aggregation_dict = {}
@@ -114,7 +113,7 @@ def perform_distance_based_grouping(xarray_dataset, n_groups=3):
 
 @spu.timer
 def perform_parameter_based_grouping(
-    xarray_dataset,
+    xarray_datasets,
     n_groups=3,
     aggregation_method="kmedoids_contiguity",
     weights=None,
@@ -132,8 +131,8 @@ def perform_parameter_based_grouping(
 
     Parameters
     ----------
-    xarray_dataset : xr.Dataset
-        The xarray dataset holding the esM's info
+    xarray_datasets : Dict[str, xr.Dataset]
+        The dictionary of xarray datasets holding esM's info
     n_groups : strictly positive int, optional (default=3)
         The number of region groups to be formed from the original region set
     aggregation_method : {'kmedoids_contiguity', 'hierarchical'}, optional
@@ -174,7 +173,7 @@ def perform_parameter_based_grouping(
     """
 
     # Original region list
-    regions_list = xarray_dataset["space"].values
+    regions_list = xarray_datasets.get("Geometry")["space"].values
     n_regions = len(regions_list)
 
     aggregation_dict = {}
@@ -182,7 +181,7 @@ def perform_parameter_based_grouping(
 
     # STEP 1. Preprocess the whole dataset
     processed_ts_dict, processed_1d_dict, processed_2d_dict = gu.preprocess_dataset(
-        xarray_dataset
+        xarray_datasets.get("Input")
     )
 
     # STEP 2. Calculate the overall distance between each region pair (uses custom distance)
@@ -191,7 +190,7 @@ def perform_parameter_based_grouping(
     )
 
     # STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not.
-    connectivity_matrix = gu.get_connectivity_matrix(xarray_dataset)
+    connectivity_matrix = gu.get_connectivity_matrix(xarray_datasets)
 
     # STEP 4. Cluster the regions
     if aggregation_method == "hierarchical":

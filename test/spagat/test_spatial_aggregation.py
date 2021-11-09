@@ -1,7 +1,7 @@
 import os
 import pytest
 import numpy as np
-import FINE.IOManagement.xarrayIO_spagat as xrIO
+from FINE import xarrayIO as xrIO
 
 
 @pytest.mark.parametrize("use_saved_file", [True, False])
@@ -24,7 +24,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
     )
 
     PATH_TO_SAVE = os.path.join(os.path.dirname(__file__))
-    netcdf_file_name = "my_xr.nc4"
+    netcdf_file_name = "my_xr.nc"
     shp_file_name = "my_shp"
 
     # FUNCTION CALL
@@ -39,7 +39,8 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
 
     if use_saved_file:
         saved_file = os.path.join(PATH_TO_SAVE, netcdf_file_name)
-        aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(saved_file)
+        xr_dss = xrIO.readNetCDFToDatasets(filePath=saved_file)
+        aggregated_esM = xrIO.convertDatasetsToEnergySystemModel(xr_dss)
 
     # ASSERTION
     assert sorted(aggregated_esM.locations) == sorted(

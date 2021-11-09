@@ -13,7 +13,7 @@ import pyomo.opt as opt
 from FINE import utils
 from FINE.component import Component, ComponentModel
 
-from FINE.IOManagement import xarrayIO_spagat as xrIO
+import FINE.IOManagement.xarrayIO as xrIO
 import FINE.spagat.spatial_aggregation as spa
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
@@ -493,7 +493,7 @@ class EnergySystemModel:
         """
 
         # STEP 1. Obtain xr dataset from esM
-        xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
+        xr_dataset = xrIO.convertOptimizationInputToDatasets(self)
 
         # STEP 2. Perform spatial aggregation
         aggregated_xr_dataset = spa.perform_spatial_aggregation(
@@ -506,7 +506,7 @@ class EnergySystemModel:
         )
 
         # STEP 3. Obtain aggregated esM
-        aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(aggregated_xr_dataset)
+        aggregated_esM = xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
         return aggregated_esM
 

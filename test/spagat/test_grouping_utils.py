@@ -35,339 +35,79 @@ def test_get_normalized_array_flat():
         assert np.isclose(output_array, expected_array).all()
 
 
-def test_preprocess_time_series():
-    # TEST DATA
-    test_dict = {}
-
-    var_list = ["var1", "var2"]
-    component_list = ["c1", "c2", "c3", "c4"]
-    space_list = ["01_reg", "02_reg", "03_reg"]
-    time_list = ["T0", "T1"]
-
-    var1_data = np.array(
-        [
-            [[0, 1], [1, 1], [1, 10]],
-            [[0, 2], [2, 2], [2, 10]],
-            [[np.nan] * 2 for i in range(3)],
-            [[np.nan] * 2 for i in range(3)],
-        ]
-    )
-
-    test_dict["var1"] = xr.DataArray(
-        var1_data,
-        coords=[component_list, space_list, time_list],
-        dims=["component", "space", "time"],
-        name="var1",
-    )
-
-    var2_data = np.array(
-        [
-            [[np.nan] * 2 for i in range(3)],
-            [[np.nan] * 2 for i in range(3)],
-            [[0, 8], [8, 8], [8, 10]],
-            [[0, 9], [9, 9], [9, 10]],
-        ]
-    )
-
-    test_dict["var2"] = xr.DataArray(
-        var2_data,
-        coords=[component_list, space_list, time_list],
-        dims=["component", "space", "time"],
-        name="var2",
-    )
-
-    # EXPECTED DATA
-    expected_dict = {}
-
-    c1_matrix = 0.1 * np.array([[0, 1], [1, 1], [1, 10]])
-    c2_matrix = 0.1 * np.array([[0, 2], [2, 2], [2, 10]])
-
-    expected_dict["var1"] = {"c1": c1_matrix, "c2": c2_matrix}
-
-    c3_matrix = 0.1 * np.array([[0, 8], [8, 8], [8, 10]])
-    c4_matrix = 0.1 * np.array([[0, 9], [9, 9], [9, 10]])
-
-    expected_dict["var2"] = {"c3": c3_matrix, "c4": c4_matrix}
-
-    # FUNCTION CALL
-    output_dict = gu.preprocess_time_series(test_dict)
-
-    # ASSERTION
-    assert output_dict.keys() == expected_dict.keys()
-
-    for var in output_dict.keys():
-        expected_var_dict = expected_dict[var]
-        output_var_dict = output_dict[var]
-
-        assert output_var_dict.keys() == expected_var_dict.keys()
-
-        for comp in output_var_dict.keys():
-            assert np.isclose(
-                output_var_dict.get(comp), expected_var_dict.get(comp)
-            ).all()
-
-
-def test_preprocess_1d_variables():
-
-    # TEST DATA
-    test_dict = {}
-
-    var_list = ["var1", "var2"]
-    component_list = ["c1", "c2", "c3", "c4"]
-    space_list = ["01_reg", "02_reg", "03_reg"]
-
-    var1_data = np.array([[0, 1, 10], [0, 2, 10], [np.nan] * 3, [np.nan] * 3])
-
-    test_dict["var1"] = xr.DataArray(
-        var1_data,
-        coords=[component_list, space_list],
-        dims=["component", "space"],
-        name="var1",
-    )
-
-    var2_data = np.array([[np.nan] * 3, [np.nan] * 3, [0, 8, 10], [0, 9, 10]])
-
-    test_dict["var2"] = xr.DataArray(
-        var2_data,
-        coords=[component_list, space_list],
-        dims=["component", "space"],
-        name="var2",
-    )
-
-    # EXPECTED DATA
-    expected_dict = {}
-
-    c1_array = 0.1 * np.array([0, 1, 10])
-    c2_array = 0.1 * np.array([0, 2, 10])
-
-    expected_dict["var1"] = {"c1": c1_array, "c2": c2_array}
-
-    c3_array = 0.1 * np.array([0, 8, 10])
-    c4_array = 0.1 * np.array([0, 9, 10])
-
-    expected_dict["var2"] = {"c3": c3_array, "c4": c4_array}
-
-    # FUNCTION CALL
-    output_dict = gu.preprocess_1d_variables(test_dict)
-
-    # ASSERTION
-    assert output_dict.keys() == expected_dict.keys()
-
-    for var in output_dict.keys():
-        expected_var_dict = expected_dict[var]
-        output_var_dict = output_dict[var]
-
-        assert output_var_dict.keys() == expected_var_dict.keys()
-
-        for comp in output_var_dict.keys():
-            assert np.isclose(
-                output_var_dict.get(comp), expected_var_dict.get(comp)
-            ).all()
-
-
-def test_preprocess_2d_variables():
-
-    # TEST DATA
-    test_dict = {}
-
-    component_list = ["c1", "c2", "c3", "c4"]
-    space_list = ["01_reg", "02_reg", "03_reg"]
-    var_list = ["var1", "var2"]
-
-    var1_data = np.array(
-        [
-            [[0, 1, 10], [1, 0, 1], [10, 1, 0]],
-            [[np.nan] * 3 for i in range(3)],
-            [[0, 2, 10], [2, 0, 2], [10, 2, 0]],
-            [[np.nan] * 3 for i in range(3)],
-        ]
-    )
-
-    test_dict["var1"] = xr.DataArray(
-        var1_data,
-        coords=[component_list, space_list, space_list],
-        dims=["component", "space", "space_2"],
-        name="var1",
-    )
-
-    var2_data = np.array(
-        [
-            [[np.nan] * 3 for i in range(3)],
-            [[0, 8, 10], [8, 0, 8], [10, 8, 0]],
-            [[np.nan] * 3 for i in range(3)],
-            [[0, 9, 10], [9, 0, 9], [10, 9, 0]],
-        ]
-    )
-
-    test_dict["var2"] = xr.DataArray(
-        var2_data,
-        coords=[component_list, space_list, space_list],
-        dims=["component", "space", "space_2"],
-        name="var2",
-    )
-
-    # EXPECTED DATA
-    expected_dict = {}
-
-    c1_array = np.array([0.9, 0.0, 0.9])
-    c3_array = np.array([0.8, 0.0, 0.8])
-
-    expected_dict["var1"] = {"c1": c1_array, "c3": c3_array}
-
-    c2_array = np.array([0.2, 0.0, 0.2])
-    c4_array = np.array([0.1, 0.0, 0.1])
-
-    expected_dict["var2"] = {"c2": c2_array, "c4": c4_array}
-
-    # FUNCTION CALL
-    output_dict = gu.preprocess_2d_variables(test_dict)
-
-    # ASSERTION
-    assert output_dict.keys() == expected_dict.keys()
-
-    for var in output_dict.keys():
-        expected_var_dict = expected_dict[var]
-        output_var_dict = output_dict[var]
-
-        assert output_var_dict.keys() == expected_var_dict.keys()
-
-        for comp in output_var_dict.keys():
-            assert np.isclose(
-                output_var_dict.get(comp), expected_var_dict.get(comp)
-            ).all()
-
-
 def test_preprocess_dataset():
     # TEST DATA
-    # var_list = ['var_ts_1', 'var_ts_2', 'var_1d_1', 'var_1d_2', 'var_2d_1', 'var_2d_2']
-    component_list = ["c1", "c2", "c3", "c4"]
-
-    space_list = ["01_reg", "02_reg", "03_reg"]
     time_list = ["T0", "T1"]
+    space_list = ["01_reg", "02_reg", "03_reg"]
 
-    ## time series variable data
-    var_ts_1_data = np.array(
-        [
-            [[np.nan, np.nan, np.nan] for i in range(2)],
-            [[0, 1, 1], [1, 1, 10]],
-            [[np.nan, np.nan, np.nan] for i in range(2)],
-            [[0, 2, 2], [2, 2, 10]],
-        ]
+    ### time series
+    var_ts_data = np.array([[0, 1, 1], [1, 1, 10]])
+
+    var_ts_da = xr.DataArray(
+        var_ts_data,
+        coords=[time_list, space_list],
+        dims=["time", "space"],
     )
 
-    var_ts_1_DataArray = xr.DataArray(
-        var_ts_1_data,
-        coords=[component_list, time_list, space_list],
-        dims=["component", "time", "space"],
+    ### 2d
+    var_2d_data = np.array([[0, 1, 10], [1, 0, 1], [10, 1, 0]])
+
+    var_2d_da = xr.DataArray(
+        var_2d_data,
+        coords=[space_list, space_list],
+        dims=["space", "space_2"],
     )
 
-    var_ts_2_data = np.array(
-        [
-            [[np.nan, np.nan, np.nan] for i in range(2)],
-            [[np.nan, np.nan, np.nan] for i in range(2)],
-            [[0, 8, 8], [8, 8, 10]],
-            [[0, 9, 9], [9, 9, 10]],
-        ]
-    )
+    ### 1d
+    var_1d_data = np.array([0, 1, 10])
 
-    var_ts_2_DataArray = xr.DataArray(
-        var_ts_2_data,
-        coords=[component_list, time_list, space_list],
-        dims=["component", "time", "space"],
-    )
+    var_1d_da = xr.DataArray(var_1d_data, coords=[space_list], dims=["space"])
 
-    ## 1d variable data
-    var_1d_1_data = np.array([[0, 1, 10], [0, 2, 10], [np.nan] * 3, [np.nan] * 3])
+    ### 0d
+    var_0d_da = xr.DataArray(10, coords=[], dims=[])
 
-    var_1d_1_DataArray = xr.DataArray(
-        var_1d_1_data, coords=[component_list, space_list], dims=["component", "space"]
-    )
-
-    var_1d_2_data = np.array([[0, 8, 10], [np.nan] * 3, [np.nan] * 3, [0, 9, 10]])
-
-    var_1d_2_DataArray = xr.DataArray(
-        var_1d_2_data, coords=[component_list, space_list], dims=["component", "space"]
-    )
-
-    ## 2d variable data
-    var_2d_1_data = np.array(
-        [
-            [[0, 1, 10], [1, 0, 1], [10, 1, 0]],
-            [[np.nan] * 3 for i in range(3)],
-            [[0, 2, 10], [2, 0, 2], [10, 2, 0]],
-            [[np.nan] * 3 for i in range(3)],
-        ]
-    )
-
-    var_2d_1_DataArray = xr.DataArray(
-        var_2d_1_data,
-        coords=[component_list, space_list, space_list],
-        dims=["component", "space", "space_2"],
-    )
-
-    var_2d_2_data = np.array(
-        [
-            [[np.nan] * 3 for i in range(3)],
-            [[np.nan] * 3 for i in range(3)],
-            [[0, 8, 10], [8, 0, 8], [10, 8, 0]],
-            [[0, 9, 10], [9, 0, 9], [10, 9, 0]],
-        ]
-    )
-
-    var_2d_2_DataArray = xr.DataArray(
-        var_2d_2_data,
-        coords=[component_list, space_list, space_list],
-        dims=["component", "space", "space_2"],
-    )
-
-    xr_ds = xr.Dataset(
+    classA_compA_ds = xr.Dataset(
         {
-            "var_ts_1": var_ts_1_DataArray,
-            "var_ts_2": var_ts_2_DataArray,
-            "var_1d_1": var_1d_1_DataArray,
-            "var_1d_2": var_1d_2_DataArray,
-            "var_2d_1": var_2d_1_DataArray,
-            "var_2d_2": var_2d_2_DataArray,
+            "ts_var": var_ts_da,
+            "1d_var": var_1d_da,
+            "0d_var": var_0d_da,
         }
     )
+
+    classA_compB_ds = xr.Dataset({"ts_var": var_ts_da})
+
+    classB_compB_ds = xr.Dataset(
+        {
+            "2d_var": var_2d_da,
+            "0d_var": var_0d_da,
+        }
+    )
+
+    test_xr_dict = {
+        "ClassA": {"CompA": classA_compA_ds, "CompB": classA_compB_ds},
+        "ClassB": {"CompB": classB_compB_ds},
+    }
 
     # EXPECTED DATA
     ## time series dict
     expected_ts_dict = {}
 
-    var_ts_1_c2_matrix = 0.1 * np.array([[0, 1], [1, 1], [1, 10]])
-    var_ts_1_c4_matrix = 0.1 * np.array([[0, 2], [2, 2], [2, 10]])
+    # ts dict
+    expected_ts_dict = {}
+    var_ts_data_norm = 0.1 * var_ts_data
+    expected_ts_dict["ts_var"] = {"CompA": var_ts_data_norm, "CompB": var_ts_data_norm}
 
-    expected_ts_dict["var_ts_1"] = {"c2": var_ts_1_c2_matrix, "c4": var_ts_1_c4_matrix}
-
-    var_ts_2_c3_matrix = 0.1 * np.array([[0, 8], [8, 8], [8, 10]])
-    var_ts_2_c4_matrix = 0.1 * np.array([[0, 9], [9, 9], [9, 10]])
-
-    expected_ts_dict["var_ts_2"] = {"c3": var_ts_2_c3_matrix, "c4": var_ts_2_c4_matrix}
+    # 2d dict
+    expected_2d_dict = {}
+    expected_2d_dict["2d_var"] = {"CompB": np.array([0.9, 0.0, 0.9])}
 
     ## 1d dict
     expected_1d_dict = {}
-    var_1d_1_c1_array = 0.1 * np.array([0, 1, 10])
-    var_1d_1_c2_array = 0.1 * np.array([0, 2, 10])
-    expected_1d_dict["var_1d_1"] = {"c1": var_1d_1_c1_array, "c2": var_1d_1_c2_array}
-
-    var_1d_2_c1_array = 0.1 * np.array([0, 8, 10])
-    var_1d_2_c4_array = 0.1 * np.array([0, 9, 10])
-    expected_1d_dict["var_1d_2"] = {"c1": var_1d_2_c1_array, "c4": var_1d_2_c4_array}
-
-    ## 2d dict
-    expected_2d_dict = {}
-
-    var_2d_1_c1_array = np.array([0.9, 0.0, 0.9])
-    var_2d_1_c3_array = np.array([0.8, 0.0, 0.8])
-    expected_2d_dict["var_2d_1"] = {"c1": var_2d_1_c1_array, "c3": var_2d_1_c3_array}
-
-    var_2d_2_c3_array = np.array([0.2, 0.0, 0.2])
-    var_2d_2_c4_array = np.array([0.1, 0.0, 0.1])
-    expected_2d_dict["var_2d_2"] = {"c3": var_2d_2_c3_array, "c4": var_2d_2_c4_array}
+    expected_1d_data_norm = 0.1 * var_1d_data
+    expected_1d_dict["1d_var"] = {"CompA": expected_1d_data_norm}
 
     # FUNCTION CALL
-    output_ts_dict, output_1d_dict, output_2d_dict = gu.preprocess_dataset(xr_ds)
+    output_ts_dict, output_1d_dict, output_2d_dict = gu.preprocess_dataset(test_xr_dict)
 
     # ASSERTION
     ## ts
