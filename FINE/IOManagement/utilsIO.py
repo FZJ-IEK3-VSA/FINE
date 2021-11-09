@@ -1,12 +1,10 @@
-import warnings
-
 import math
 import numpy as np
 import pandas as pd
 import xarray as xr
 
 
-def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
+def transform1dSeriesto2dDataFrame(series, locations):
     """Expands pandas Series into a pandas DataFrame.
 
     :param series: the series that need to be converted
@@ -15,13 +13,6 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
     :param locations: sorted esM locations
     :type locations: list
 
-    :param separator: the indices of the series are compact like loc1_loc2.
-        These are then used as row and column index in the created
-        DataFrame. `separator` indicates the char that separates the two
-        locs in the series indices.
-        |br| * the default value is '_'
-    :type separator: string
-
     :return: df - converted pandas DataFrame
 
     """
@@ -29,23 +20,24 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
 
     df = pd.DataFrame(values, columns=locations, index=locations)
 
-    for idx in series.index:
-        if idx.count("_") > 1:
-            warnings.warn(
-                f"More than one {separator} found in series index. \
-            Therefore, {separator} is not used to split the index"
-            )
-            break
-
     for row in series.iteritems():
 
-        try:
-            id_1, id_2 = row[0].split(separator)
-        except:
-            row_center_id = math.ceil(len(row[0]) / 2)
-            id_1, id_2 = row[0][: row_center_id - 1], row[0][row_center_id:]
+        n_seperators = row[0].count("_")
 
-        df.loc[id_1, id_2] = row[1]
+        if (n_seperators % 2) == 0:
+            raise ValueError(
+                "Even number of _s found in the locations. Please rename your locations"
+            )
+
+        else:
+            # get the point of cut -> would be the middle _
+            _cut = math.ceil(n_seperators / 2)
+
+            split_id_list = row[0].split("_")
+            id_1 = "_".join(split_id_list[:_cut])
+            id_2 = "_".join(split_id_list[_cut:])
+
+            df.loc[id_1, id_2] = row[1]
 
     return df
 
