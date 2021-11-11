@@ -130,31 +130,34 @@ def perform_spatial_aggregation(
         )
 
     # STEP 5. Representation of the new regions
-    aggregation_function_dict_default = {'operationRateMax': ('weighted mean', 'capacityMax'),
-                                        'operationRateFix': ('sum', None),
-                                        'locationalEligibility': ('bool', None),
-                                        'capacityMax': ('sum', None),
-                                        'investPerCapacity': ('mean', None),
-                                        'investIfBuilt': ('bool', None),
-                                        'opexPerOperation': ('mean', None),
-                                        'opexPerCapacity': ('mean', None),
-                                        'opexIfBuilt': ('bool', None),
-                                        'interestRate': ('mean', None),
-                                        'economicLifetime': ('mean', None),
-                                        'capacityFix': ('sum', None),
-                                        'losses': ('mean', None),
-                                        'distances': ('mean', None),
-                                        'commodityCost': ('mean', None),
-                                        'commodityRevenue': ('mean', None),
-                                        'opexPerChargeOperation': ('mean', None),
-                                        'opexPerDischargeOperation': ('mean', None),
-                                        'QPcostScale': ('sum', None), 
-                                        'technicalLifetime': ('sum', None),
-                                        'reactances': ('sum', None), 
-                                        }
-    
-    aggregation_function_dict = kwargs.get("aggregation_function_dict", aggregation_function_dict_default)
-    aggregation_function_dict_default.update(aggregation_function_dict)
+    aggregation_function_dict_default = {
+        "operationRateMax": ("weighted mean", "capacityMax"),
+        "operationRateFix": ("sum", None),
+        "locationalEligibility": ("bool", None),
+        "capacityMax": ("sum", None),
+        "investPerCapacity": ("mean", None),
+        "investIfBuilt": ("bool", None),
+        "opexPerOperation": ("mean", None),
+        "opexPerCapacity": ("mean", None),
+        "opexIfBuilt": ("bool", None),
+        "interestRate": ("mean", None),
+        "economicLifetime": ("mean", None),
+        "capacityFix": ("sum", None),
+        "losses": ("mean", None),
+        "distances": ("mean", None),
+        "commodityCost": ("mean", None),
+        "commodityRevenue": ("mean", None),
+        "opexPerChargeOperation": ("mean", None),
+        "opexPerDischargeOperation": ("mean", None),
+        "QPcostScale": ("sum", None),
+        "technicalLifetime": ("sum", None),
+        "reactances": ("sum", None),
+    }
+
+    aggregation_function_dict = kwargs.get("aggregation_function_dict", None)
+
+    if aggregation_function_dict != None:
+        aggregation_function_dict_default.update(aggregation_function_dict)
 
     aggregated_xr_dataset = spr.aggregate_based_on_sub_to_sup_region_id_dict(
         xr_datasets, aggregation_dict, aggregation_function_dict_default
