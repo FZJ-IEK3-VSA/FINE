@@ -141,10 +141,10 @@ def perform_parameter_based_grouping(
             - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity
                 Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
     weights : Dict
-        Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating 
+        Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating
         distance corresonding to each variable-component pair, these specified weights are
         considered, otherwise taken as 1.
-        
+
         It must be in one of the formats:
         - If you want to specify weights for particular variables and particular corresponding components:
             { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
@@ -155,7 +155,7 @@ def perform_parameter_based_grouping(
 
         <weight> can be of type int/float
 
-    solver : {"gurobi", "glpk"}, optional 
+    solver : {"gurobi", "glpk"}, optional
         The optimization solver to be chosen.
         Relevant only if `aggregation_method` is 'kmedoids_contiguity'
 

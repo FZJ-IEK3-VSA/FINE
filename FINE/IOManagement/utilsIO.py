@@ -192,7 +192,6 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
             f"ts_{variable_description}"
         ] = df_variable.sort_index().to_xarray()
 
-        
         for comp in df_variable.index.get_level_values(0).unique():
             this_class = comp.split(", ")[0]
             this_comp = comp.split(", ")[1]
@@ -293,7 +292,6 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 f"2d_{variable_description}"
             ] = df_variable.sort_index().to_xarray()
 
-        
             for comp in df_variable.index.get_level_values(0).unique():
                 this_class = comp.split(", ")[0]
                 this_comp = comp.split(", ")[1]
@@ -309,8 +307,6 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                     )
                 except Exception:
                     pass
-
-           
 
         if len(space_dict) > 0:
             df_variable = pd.concat(space_dict)
@@ -320,7 +316,6 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 f"1d_{variable_description}"
             ] = df_variable.sort_index().to_xarray()
 
-            
             for comp in df_variable.index.get_level_values(0).unique():
                 this_class = comp.split(", ")[0]
                 this_comp = comp.split(", ")[1]
@@ -337,7 +332,6 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 except Exception:
                     pass
 
-
         if len(time_dict) > 0:
             df_variable = pd.concat(time_dict)
             df_variable.index.set_names("component", level=0, inplace=True)
@@ -346,7 +340,6 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 f"ts_{variable_description}"
             ] = df_variable.sort_index().to_xarray()
 
-            
             for comp in df_variable.index.get_level_values(0).unique():
                 this_class = comp.split(", ")[0]
                 this_comp = comp.split(", ")[1]
@@ -409,7 +402,6 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
             df_variable
         )
 
-        
         for comp in df_variable.index.get_level_values(0).unique():
             this_class = comp.split(", ")[0]
             this_comp = comp.split(", ")[1]
@@ -424,7 +416,7 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
                     [xr_ds[this_class][this_comp], this_ds_component]
                 )
             except Exception:
-                pass 
+                pass
 
     return xr_ds
 

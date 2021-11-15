@@ -14,7 +14,9 @@ from matplotlib.cbook import violin_stats
 try:
     from rasterio import features
 except ImportError:
-    warnings.warn("The package rasterio is not installed. Spatial aggregation cannot be used without it.")
+    warnings.warn(
+        "The package rasterio is not installed. Spatial aggregation cannot be used without it."
+    )
 
 try:
     import geopandas as gpd

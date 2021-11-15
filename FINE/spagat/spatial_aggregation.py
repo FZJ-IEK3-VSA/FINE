@@ -60,26 +60,26 @@ def perform_spatial_aggregation(
     geom_id_col_name : str, optional (default="index")
         The colum in `shapefile` consisting geom IDs
 
-    separator : str, optional (default=None) 
+    separator : str, optional (default=None)
         * Relevant only if `grouping_mode` is 'string_based'.
 
-        The character or string in the region IDs that defines where the ID should be split. 
-        E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _ 
+        The character or string in the region IDs that defines where the ID should be split.
+        E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _
         and the last part ('es') is taken as the group ID
 
-    position : int/tuple, optional (default=None)  
-        * Relevant only if `grouping_mode` is 'string_based'. 
+    position : int/tuple, optional (default=None)
+        * Relevant only if `grouping_mode` is 'string_based'.
 
         Used to define the position(s) of the region IDs where the split should happen.
         An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean
         the part i to j is taken at the group ID.
 
-        NOTE: either `separator` or `position` must be passed in order to perform string_based_grouping 
+        NOTE: either `separator` or `position` must be passed in order to perform string_based_grouping
 
     weights : Dict
         * Relevant only if `grouping_mode` is 'parameter_based'.
 
-        Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating 
+        Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating
         distance corresonding to each variable-component pair, these specified weights are
         considered, otherwise taken as 1.
 
@@ -103,21 +103,21 @@ def perform_spatial_aggregation(
             - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity
                 Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
 
-    solver : {"gurobi", "glpk"}, optional 
+    solver : {"gurobi", "glpk"}, optional
         * Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
 
         The optimization solver to be chosen.
-        
+
     aggregation_function_dict : Dict[str, Tuple(str, None/str)]
-        - Contains information regarding the mode of aggregation for each individual variable. 
+        - Contains information regarding the mode of aggregation for each individual variable.
         - Possibilities: mean, weighted mean, sum, bool(boolean OR).
         - Format of the dictionary - {<variable_name>: (<mode_of_aggregation>, <weights>),
                                       <variable_name>: (<mode_of_aggregation>, None)}
           <weights> is required only if <mode_of_aggregation> is
-          'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise. 
+          'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
 
-        - NOTE: A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is 
-        passed, this default dictionary is updated. 
+        - NOTE: A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is
+        passed, this default dictionary is updated.
 
         {
         "operationRateMax": ("weighted mean", "capacityMax"),
@@ -142,7 +142,7 @@ def perform_spatial_aggregation(
         "technicalLifetime": ("mean", None)
     }
     aggregated_shp_name : str, optional (default='aggregated_regions')
-        Name to be given to the saved shapefiles after aggregation 
+        Name to be given to the saved shapefiles after aggregation
 
     crs : int, optional (default=3035)
         Coordinate reference system (crs) in which to save the shapefiles
@@ -150,7 +150,7 @@ def perform_spatial_aggregation(
     aggregated_xr_filename : str, optional (default='aggregated_xr_dataset.nc')
         Name to be given to the saved netCDF file containing aggregated esM data
 
-    
+
     Returns
     -------
     aggregated_xr_dataset : The xarray dataset holding aggregated data
@@ -259,7 +259,7 @@ def perform_spatial_aggregation(
         "opexPerChargeOperation": ("mean", None),
         "opexPerDischargeOperation": ("mean", None),
         "QPcostScale": ("sum", None),
-        "technicalLifetime": ("mean", None)
+        "technicalLifetime": ("mean", None),
     }
 
     aggregation_function_dict = kwargs.get("aggregation_function_dict", None)
@@ -283,7 +283,10 @@ def perform_spatial_aggregation(
 
         # save shapefiles
         spu.save_shapefile_from_xarray(
-            aggregated_xr_dataset["Geometry"], aggregatedResultsPath, aggregated_shp_name, crs=crs
+            aggregated_xr_dataset["Geometry"],
+            aggregatedResultsPath,
+            aggregated_shp_name,
+            crs=crs,
         )
 
         # remove geometry related data vars from aggregated xarray dataset as these cannot be saved

@@ -492,34 +492,34 @@ class EnergySystemModel:
         :param geom_col_name : The geomtry column name in `shapefile`
             |br| * the default value is 'geometry'
         :type geom_col_name : string
-        
+
         :param geom_id_col_name : The colum in `shapefile` consisting geom IDs
             |br| * the default value is 'index'
         :type geom_id_col_name : string
 
         :param separator : * Relevant only if `grouping_mode` is 'string_based'.
 
-            The character or string in the region IDs that defines where the ID should be split. 
-            E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _ 
+            The character or string in the region IDs that defines where the ID should be split.
+            E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _
             and the last part ('es') is taken as the group ID
 
             |br| * the default value is None
         :type separator : string
-            
+
         :param position : * Relevant only if `grouping_mode` is 'string_based'.
 
             Used to define the position(s) of the region IDs where the split should happen.
             An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean
             the part i to j is taken at the group ID.
 
-            NOTE: either `separator` or `position` must be passed in order to perform string_based_grouping 
+            NOTE: either `separator` or `position` must be passed in order to perform string_based_grouping
 
             |br| * the default value is None
         :type position : integer/tuple
 
         :param weights : * Relevant only if `grouping_mode` is 'parameter_based'.
 
-            Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating 
+            Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating
             distance corresonding to each variable-component pair, these specified weights are
             considered, otherwise taken as 1.
 
@@ -534,7 +534,7 @@ class EnergySystemModel:
             <weight> can be of type integer/float
 
             |br| * the default value is None
-        :type weights : dictionary 
+        :type weights : dictionary
 
         :param aggregation_method : * Relevant only if `grouping_mode` is 'parameter_based'.
 
@@ -545,7 +545,7 @@ class EnergySystemModel:
                     Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
                 - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
                     Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
-            
+
             |br| * the default value is 'kmedoids_contiguity'
         :type aggregation_method : string, Options - 'kmedoids_contiguity', 'hierarchical'
 
@@ -555,18 +555,18 @@ class EnergySystemModel:
 
             |br| * the default value is 'gurobi'
         :type solver : string, Options - 'gurobi', 'glpk'
-        
-        :param aggregation_function_dict : Contains information regarding the mode of aggregation for each individual variable. 
+
+        :param aggregation_function_dict : Contains information regarding the mode of aggregation for each individual variable.
 
             - Possibilities: mean, weighted mean, sum, bool (boolean OR).
 
             - Format of the dictionary - {<variable_name>: (<mode_of_aggregation>, <weights>),
                                         <variable_name>: (<mode_of_aggregation>, None)}.
             <weights> is required only if <mode_of_aggregation> is
-            'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise. 
+            'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
 
-            |br| * A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is 
-                passed, this default dictionary is updated. 
+            |br| * A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is
+                passed, this default dictionary is updated.
 
                 {"operationRateMax": ("weighted mean", "capacityMax"),
                 "operationRateFix": ("sum", None),
@@ -588,20 +588,20 @@ class EnergySystemModel:
                 "opexPerDischargeOperation": ("mean", None),
                 "QPcostScale": ("sum", None),
                 "technicalLifetime": ("mean", None)}
-        :type aggregation_function_dict : dictionary 
-    
-        :param aggregated_shp_name : Name to be given to the saved shapefiles after aggregation 
+        :type aggregation_function_dict : dictionary
+
+        :param aggregated_shp_name : Name to be given to the saved shapefiles after aggregation
             |br| * the default value is 'aggregated_regions'
         :type aggregated_shp_name : string
-        
+
         :param crs : Coordinate reference system (crs) in which to save the shapefiles
             |br| * the default value is 3035
         :type crs : integer
-        
+
         :param crs : Coordinate reference system (crs) in which to save the shapefiles
             |br| * the default value is 3035
         :type crs : integer
-  
+
         :param aggregated_xr_filename : Name to be given to the saved netCDF file containing aggregated esM data
             |br| * the default value is 'aggregated_xr_dataset.nc'
         :type aggregated_xr_filename : string

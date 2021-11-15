@@ -404,7 +404,7 @@ def convertDatasetsToEnergySystemModel(datasets):
     """Takes dictionary of xarray datasets (with esM instance data) and converts
     it to an esM instance.
 
-    :param datasets: The xarray datasets holding all data required to set up an esM instance. 
+    :param datasets: The xarray datasets holding all data required to set up an esM instance.
     :type datasets: Dict[xr.Dataset]
 
     :return: esM - EnergySystemModel instance
