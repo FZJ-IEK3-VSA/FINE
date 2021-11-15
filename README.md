@@ -22,7 +22,7 @@ You can directly install FINE via pip as follows
 
 	pip install FINE
 
-However in this case, the connection to this GitHub repository is not preserved. If you want to preserve it,
+However, in this case, the connection to this GitHub repository is not preserved. If you want to preserve it,
 you can clone a local copy of the repository to your computer
 
 	git clone https://github.com/FZJ-IEK3-VSA/FINE.git
@@ -35,6 +35,28 @@ Then install FINE via pip as follow
 Or install directly via python as 
 
 	python setup.py install
+
+### Setup a clean environment
+Due to the required dependencies, it is recommended to create a clean environment to use FINE.
+Therefore, you can find a yml-file (called requirements.yml) for easy environment creation with Anaconda. 
+
+```
+conda env create -f requirements.yml
+activate FINE
+```
+
+If you would like to contribute, update your environment with the requirements-dev.cml. 
+It add some packages for testing and formatting the code.
+
+```
+conda env update --file requirements_dev.yml
+```
+
+The development environent includes all packages to check if FINE is working.
+```
+pytest --cov=FINE test/
+```
+If all tests run through, you have successfully installed FINE. 
 		
 	
 ## Examples

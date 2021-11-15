@@ -24,8 +24,8 @@ easily, derived from the instructions below.
 
 **Python installation**
 
-FINE runs on Python 3 platforms (i.e. Anaconda). Currently, it is advised not to use a Python version exceeding
-Python 3.6. Note: When installing the Python platform Anaconda the options
+FINE runs on Python 3 platforms (e.g. Anaconda). 
+Note: When installing the Python platform Anaconda the options
 
     $ Add Anaconda to the system PATH environment variable
 
@@ -35,9 +35,30 @@ pip, jupyter etc. are remotely set and do not have to be manually set.
 A development platform which can be used to work with/on the code and which comes with Anaconda is Spyder.
 Other development platforms are PyCharm or Visua Studio Code.
 
-**FINE installation**
+**FINE installation within an environment (recommended)**
+Due to the dependencies, it´s recommended to use a virtual environment for the installation of FINE. 
+For example, Anaconda provides the option, to create and extend environments easily. 
+The instructions for installing FINE within a virtual environment set up with Anaconda is described in the following steps: 
+#. Install git from https://git-scm.com/downloads
+#. Clone the repository of FINE 
+    $ git clone https://github.com/FZJ-IEK3-VSA/FINE.git
+#. Navigate to the directory of the cloned repository, e.g. by calling
+    $ cd FINE
+#. Create a virtual environment based on the provided yml-file
+    $ conda env create -f requirements.yml
+    You can activate the environment by calling 
+    $ activate FINE
+#. If you would like to contribute to the development of FINE, install packages for testing and formatting the code by calling
+    $ conda env update --file requirements_dev.yml
+#. Activate your repository and install FINE (if your in the FINE-directory)
+    $ conda activate FINE
+    $ pip install . 
+    If you would like to install an editable version of FINE, use 
+    $ pip install -e .
+    In that case, you can also add changes to the code. 
 
-Install via pip by typing
+**FINE installation without environment**
+You can easily install FINE via pip by typing
 
     $ pip install FINE
 
@@ -53,9 +74,13 @@ or install directly via python as
 
     $ python setup.py install
 
-**Installation of additional packages**
+***Installation of additional packages***
+There could be errors occuring due to missing dependencies. The core functions of FINE should work. 
+If you´re interested in using plotting functions for visualization of your models and/or the spatial aggregation tool,
+it´s recommended to use the installation via an virtual environment. 
+Otherwise, you have to install additional packages like GeoPandas manually.
 
-The Python packages `tsam <https://github.com/FZJ-IEK3-VSA/tsam>`_ and `PYOMO <http://www.pyomo.org/>`_ should be
+The Python packages `tsam <https://github.com/FZJ-IEK3-VSA/tsam>`_ and `PYOMO <http://www.pyomo.org/>`_ are
 installed by pip alongside FINE. Some plots in FINE require the GeoPandas package to be installed (nice-to-have).
 Installation instructions are given `here <http://geopandas.org/install.html>`_. In some cases, the dependencies of
 the GeoPandas package have to be installed manually before the package itself can be installed.
@@ -90,7 +115,7 @@ studies for integrating new technologies into future energy market frameworks.
 
 **Contributions and Users**
 
-Within the BMWi funded project `METIS <http://www.metis-platform.net/>` we develop together with the RWTH-Aachen 
+Within the BMWi funded project `METIS <http://www.metis-platform.net/>`_ we develop together with the RWTH-Aachen 
 `(Prof. Aaron Praktiknjo) <http://www.wiwi.rwth-aachen.de/cms/Wirtschaftswissenschaften/Die-Fakultaet/Institute-und-Lehrstuehle/Professoren/~jgfr/Praktiknjo-Aaron/?allou=1&lidx=1>`_,
 the EDOM Team at FAU `(PD Bismark Singh) <https://www.math.fau.de/wirtschaftsmathematik/team/bismark-singh/>`_ and the 
 `Jülich Supercomputing Centre (JSC) <http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html>`_ new methods and models within FINE.
@@ -99,6 +124,3 @@ the EDOM Team at FAU `(PD Bismark Singh) <https://www.math.fau.de/wirtschaftsmat
     :target: http://www.metis-platform.net
     :alt: METIS Team
     :align: center
-
-Dr. Martin Robinius is teaching a `course <https://www.campus-elgouna.tu-berlin.de/energy/v_menu/msc_business_engineering_energy/modules_and_curricula/project_market_coupling/>`_
-at TU Berlin in which he is introducing FINE to students.
