@@ -25,7 +25,7 @@ def perform_string_based_grouping(regions, separator=None, position=None):
         The character or string in the region IDs that defines where the ID should be split
         Ex.: '_' would split the above IDs at _ and take the last part ('es', 'de') as the group ID
 
-    separator : int/tuple
+    position : int/tuple
         Used to define the position(s) of the region IDs where the split should happen.
         An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean
         the part i to j is taken at the group ID.
@@ -137,11 +137,14 @@ def perform_parameter_based_grouping(
         The clustering method that should be used to group the regions.
         Options:
             - 'kmedoids_contiguity': kmedoids clustering with added contiguity constraint
-                Refer to tsam docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+                Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
             - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity
                 Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
     weights : Dict
-        Through the `weights` dictionary, one can assign weights to variable-component pairs.
+        Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating 
+        distance corresonding to each variable-component pair, these specified weights are
+        considered, otherwise taken as 1.
+        
         It must be in one of the formats:
         - If you want to specify weights for particular variables and particular corresponding components:
             { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
@@ -152,10 +155,7 @@ def perform_parameter_based_grouping(
 
         <weight> can be of type int/float
 
-        When calculating distance corresonding to each variable-component pair, these specified weights are
-        considered, otherwise taken as 1.
-
-    solver : str, optional (default="gurobi")
+    solver : {"gurobi", "glpk"}, optional 
         The optimization solver to be chosen.
         Relevant only if `aggregation_method` is 'kmedoids_contiguity'
 

@@ -290,12 +290,13 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
         Dictionary new regions' ids and their corresponding group of regions
         Ex. {'01_reg_02_reg': ['01_reg','02_reg'],
              '03_reg_04_reg': ['03_reg','04_reg']}
-    aggregation_function_dict : Dict[str, Tuple(str, None/xr.DataArray)]
-        - Contains information regarding the mode (sum, mean, bool, etc.) of aggregation for each individual variable.
+    aggregation_function_dict : Dict[str, Tuple(str, None/str)]
+        - Contains information regarding the mode of aggregation for each individual variable. 
+        - Possibilities: mean, weighted mean, sum, bool(boolean OR).
         - Format of the dictionary - {<variable_name>: (<mode_of_aggregation>, <weights>),
                                       <variable_name>: (<mode_of_aggregation>, None)}
-          <weights>, which is a xr.DataArray, is required only if <mode_of_aggregation> is
-          'weighted mean'. Can be None otherwise.
+          <weights> is required only if <mode_of_aggregation> is
+          'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise. 
 
     Returns
     -------
@@ -326,15 +327,6 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
             aggregation_mode = aggregation_function_dict[varname][0]
             aggregation_weight = aggregation_function_dict[varname][1]
 
-            ## If variable is related to locationalEligibility, the mode must be "bool"
-            if varname in ["1d_locationalEligibility", "2d_locationalEligibility"]:
-                if aggregation_mode != "bool":
-                    warnings.warn(
-                        f"Aggregation mode for {comp} component's {varname} set to bool as only binary values are acceptable for this variable"
-                    )
-                    aggregation_mode = "bool"
-                    aggregation_weight = None
-
             ## If the mode is "weighted mean"...
             if aggregation_mode == "weighted mean":
                 ## raise error if weight is not specified
@@ -343,8 +335,6 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                         "Weights must be passed in order to perform weighted mean"
                     )
                 ## get corresponding weight data if another variable is supposed to be the weight
-                ##INFO: User would only give the name of this weight variable. It should be
-                #  matched based on the current variable's dimension
                 elif isinstance(aggregation_weight, str):
                     if varname[:3] == "2d_":
                         try:
@@ -367,23 +357,15 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                             )
 
                             aggregation_mode = "mean"
+                
+                else:
+                    raise TypeError("Aggregation mode for {comp} component's {varname[3:]} is weighted mean, but the \
+                        corresponding weight provided is not valid.")
 
-        # If aggregation_function_dict is not passed OR the current variable is not in it
+        # If aggregation_function_dict is not passed OR the current variable is not in it, set default
         else:
-            ## If variable is related to locationalEligibility, set the mode to "bool"
-            if varname in ["1d_locationalEligibility", "2d_locationalEligibility"]:
-                aggregation_mode = "bool"
-                aggregation_weight = None
-
-                warnings.warn(
-                    f"Aggregation mode for {varname} set to bool as only binary \
-                    values are acceptable for this variable"
-                )
-
-            ## For all other variables set default
-            else:
-                aggregation_mode = "sum"
-                aggregation_weight = None
+            aggregation_mode = "mean"
+            aggregation_weight = None
 
         return aggregation_mode, aggregation_weight
 
