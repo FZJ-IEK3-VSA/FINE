@@ -36,28 +36,31 @@ A development platform which can be used to work with/on the code and which come
 Other development platforms are PyCharm or Visua Studio Code.
 
 **FINE installation within an environment (recommended)**
+
 Due to the dependencies, it´s recommended to use a virtual environment for the installation of FINE. 
 For example, Anaconda provides the option, to create and extend environments easily. 
 The instructions for installing FINE within a virtual environment set up with Anaconda is described in the following steps: 
+
 #. Install git from https://git-scm.com/downloads
 #. Clone the repository of FINE 
     $ git clone https://github.com/FZJ-IEK3-VSA/FINE.git
 #. Navigate to the directory of the cloned repository, e.g. by calling
     $ cd FINE
 #. Create a virtual environment based on the provided yml-file
-    $ conda env create -f requirements.yml
-    You can activate the environment by calling 
-    $ activate FINE
+    |$ conda env create -f requirements.yml
+    |You can activate the environment by calling 
+    |$ activate FINE
 #. If you would like to contribute to the development of FINE, install packages for testing and formatting the code by calling
-    $ conda env update --file requirements_dev.yml
+    $ conda env update -f requirements_dev.yml
 #. Activate your repository and install FINE (if your in the FINE-directory)
-    $ conda activate FINE
-    $ pip install . 
-    If you would like to install an editable version of FINE, use 
-    $ pip install -e .
-    In that case, you can also add changes to the code. 
+    | $ conda activate FINE
+    | $ pip install . 
+    | If you would like to install an editable version of FINE, use 
+    | $ pip install -e .
+    | In that case, you can also add changes to the code. 
 
 **FINE installation without environment**
+
 You can easily install FINE via pip by typing
 
     $ pip install FINE
@@ -74,7 +77,6 @@ or install directly via python as
 
     $ python setup.py install
 
-***Installation of additional packages***
 There could be errors occuring due to missing dependencies. The core functions of FINE should work. 
 If you´re interested in using plotting functions for visualization of your models and/or the spatial aggregation tool,
 it´s recommended to use the installation via an virtual environment. 
