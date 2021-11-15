@@ -1,6 +1,6 @@
 name: FINE
 dependencies:
-- python=3.6
+- python
 - conda-forge::libiconv
 - conda-forge::gdal=2.4.1
 - conda-forge::geopandas
