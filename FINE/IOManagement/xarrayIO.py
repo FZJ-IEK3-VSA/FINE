@@ -12,7 +12,7 @@ from FINE.IOManagement.utilsIO import processXarrayAttributes
 
 
 def convertOptimizationInputToDatasets(esM):
-    """Takes esM instance input and converts it into an xarray dataset.
+    """Takes esM instance input and converts it into xarray datasets.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
@@ -277,8 +277,8 @@ def writeDatasetsToNetCDF(
     """Saves dictionary of xarray datasets (with esM instance data) to a netCDF
     file.
 
-    :param datasets: Dictionary of xarray datasets which holds the esM instance
-    data :type datasets: dict
+    :param datasets: The xarray datasets holding all data required to set up an esM instance.
+    data :type datasets: Dict[xr.Dataset]
 
     :param outputFilePath: output file name of the netCDF file (can include full
         path) |br| * the default value is "my_esm.nc" :type file_path: string
@@ -404,8 +404,8 @@ def convertDatasetsToEnergySystemModel(datasets):
     """Takes dictionary of xarray datasets (with esM instance data) and converts
     it to an esM instance.
 
-    :param datasets: Dictonary of xarray datasets (with esM instance data) :type
-    datasets: dict
+    :param datasets: The xarray datasets holding all data required to set up an esM instance. 
+    :type datasets: Dict[xr.Dataset]
 
     :return: esM - EnergySystemModel instance
     """
@@ -767,7 +767,7 @@ def writeEnergySystemModelToNetCDF(
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
         |br| * the default value is None :type group_prefix: string
 
-    :return: Nested dictionary containing an xr.Dataset with all result values
+    :return: Nested dictionary containing xr.Dataset with all result values
     for each component. :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
 
