@@ -2,6 +2,7 @@
 """
 import os
 import logging
+import warnings
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping as spg
 import FINE.spagat.representation as spr
@@ -10,8 +11,8 @@ import FINE.IOManagement.xarrayIO as xrIO
 try:
     import geopandas as gpd
 except ImportError:
-    raise (
-        "The package geopandas is not installed. Please install it before continuing"
+    warnings.warn(
+        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
     )
 
 logger_spagat = logging.getLogger("spatial_aggregation")
@@ -33,22 +34,123 @@ def perform_spatial_aggregation(
     Parameters
     ----------
     xr_dataset : str/Dict[str, xr.Dataset]
-        Either the path to .netCDF file or the read-in dictionary of xarray datasets
-        - Dimensions in this data - 'time', 'space', 'space_2'
+        Either the path to .netCDF file or the read-in xarray datasets
+        - Dimensions in the datasets - 'time', 'space', 'space_2'
+
     shapefile : str/GeoDataFrame
         Either the path to the shapefile or the read-in shapefile
+
     grouping_mode : {'parameter_based', 'string_based', 'distance_based'}, optional
         Defines how to spatially group the regions. Refer to grouping.py for more
         information.
+
     n_groups : strictly positive int, optional (default=3)
         The number of region groups to be formed from the original region set.
         This parameter is irrelevant if `grouping_mode` is 'string_based'.
+
     aggregatedResultsPath : str, optional (default=None)
         Indicates path to which the aggregated results should be saved.
         If None, results are not saved.
 
-    Additional keyword arguments can be added passed via kwargs.
+    Additional keyword arguments that can be passed via kwargs:
 
+    geom_col_name : str, optional (default="geometry")
+        The geomtry column name in `shapefile`
+
+    geom_id_col_name : str, optional (default="index")
+        The colum in `shapefile` consisting geom IDs
+
+    separator : str, optional (default=None) 
+        * Relevant only if `grouping_mode` is 'string_based'.
+
+        The character or string in the region IDs that defines where the ID should be split. 
+        E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _ 
+        and the last part ('es') is taken as the group ID
+
+    position : int/tuple, optional (default=None)  
+        * Relevant only if `grouping_mode` is 'string_based'. 
+
+        Used to define the position(s) of the region IDs where the split should happen.
+        An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean
+        the part i to j is taken at the group ID.
+
+        NOTE: either `separator` or `position` must be passed in order to perform string_based_grouping 
+
+    weights : Dict
+        * Relevant only if `grouping_mode` is 'parameter_based'.
+
+        Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating 
+        distance corresonding to each variable-component pair, these specified weights are
+        considered, otherwise taken as 1.
+
+        It must be in one of the formats:
+        - If you want to specify weights for particular variables and particular corresponding components:
+            { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
+        - If you want to specify weights for particular variables, but all corresponding components:
+            { 'components' : {'all' : <weight>}, 'variables' : List[<variable_name>] }
+        - If you want to specify weights for all variables, but particular corresponding components:
+            { 'components' : Dict[<component_name>, <weight>}], 'variables' : 'all' }
+
+        <weight> can be of type int/float
+
+    aggregation_method : {'kmedoids_contiguity', 'hierarchical'}, optional
+        * Relevant only if `grouping_mode` is 'parameter_based'.
+
+        The clustering method that should be used to group the regions.
+        Options:
+            - 'kmedoids_contiguity': kmedoids clustering with added contiguity constraint
+                Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+            - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity
+                Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
+
+    solver : {"gurobi", "glpk"}, optional 
+        * Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
+
+        The optimization solver to be chosen.
+        
+    aggregation_function_dict : Dict[str, Tuple(str, None/str)]
+        - Contains information regarding the mode of aggregation for each individual variable. 
+        - Possibilities: mean, weighted mean, sum, bool(boolean OR).
+        - Format of the dictionary - {<variable_name>: (<mode_of_aggregation>, <weights>),
+                                      <variable_name>: (<mode_of_aggregation>, None)}
+          <weights> is required only if <mode_of_aggregation> is
+          'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise. 
+
+        - NOTE: A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is 
+        passed, this default dictionary is updated. 
+
+        {
+        "operationRateMax": ("weighted mean", "capacityMax"),
+        "operationRateFix": ("sum", None),
+        "locationalEligibility": ("bool", None),
+        "capacityMax": ("sum", None),
+        "investPerCapacity": ("mean", None),
+        "investIfBuilt": ("bool", None),
+        "opexPerOperation": ("mean", None),
+        "opexPerCapacity": ("mean", None),
+        "opexIfBuilt": ("bool", None),
+        "interestRate": ("mean", None),
+        "economicLifetime": ("mean", None),
+        "capacityFix": ("sum", None),
+        "losses": ("mean", None),
+        "distances": ("mean", None),
+        "commodityCost": ("mean", None),
+        "commodityRevenue": ("mean", None),
+        "opexPerChargeOperation": ("mean", None),
+        "opexPerDischargeOperation": ("mean", None),
+        "QPcostScale": ("sum", None),
+        "technicalLifetime": ("mean", None)
+    }
+    aggregated_shp_name : str, optional (default='aggregated_regions')
+        Name to be given to the saved shapefiles after aggregation 
+
+    crs : int, optional (default=3035)
+        Coordinate reference system (crs) in which to save the shapefiles
+
+    aggregated_xr_filename : str, optional (default='aggregated_xr_dataset.nc')
+        Name to be given to the saved netCDF file containing aggregated esM data
+
+    
     Returns
     -------
     aggregated_xr_dataset : The xarray dataset holding aggregated data
@@ -157,8 +259,7 @@ def perform_spatial_aggregation(
         "opexPerChargeOperation": ("mean", None),
         "opexPerDischargeOperation": ("mean", None),
         "QPcostScale": ("sum", None),
-        "technicalLifetime": ("sum", None),
-        "reactances": ("sum", None),
+        "technicalLifetime": ("mean", None)
     }
 
     aggregation_function_dict = kwargs.get("aggregation_function_dict", None)
@@ -173,7 +274,7 @@ def perform_spatial_aggregation(
     # STEP 6. Save shapefiles and aggregated xarray dataset if user chooses
     if aggregatedResultsPath is not None:
         # get file names
-        shp_name = kwargs.get("shp_name", "aggregated_regions")
+        aggregated_shp_name = kwargs.get("aggregated_shp_name", "aggregated_regions")
         aggregated_xr_filename = kwargs.get(
             "aggregated_xr_filename", "aggregated_xr_dataset.nc"
         )
@@ -182,7 +283,7 @@ def perform_spatial_aggregation(
 
         # save shapefiles
         spu.save_shapefile_from_xarray(
-            aggregated_xr_dataset["Geometry"], aggregatedResultsPath, shp_name, crs=crs
+            aggregated_xr_dataset["Geometry"], aggregatedResultsPath, aggregated_shp_name, crs=crs
         )
 
         # remove geometry related data vars from aggregated xarray dataset as these cannot be saved

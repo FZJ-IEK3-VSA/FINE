@@ -1,5 +1,6 @@
 """Functions to assist RE representation algorithm.
 """
+import warnings
 import os
 import numpy as np
 from affine import Affine
@@ -13,13 +14,13 @@ from matplotlib.cbook import violin_stats
 try:
     from rasterio import features
 except ImportError:
-    raise ("The package rasterio is not installed. Please install it before continuing")
+    warnings.warn("The package rasterio is not installed. Spatial aggregation cannot be used without it.")
 
 try:
     import geopandas as gpd
 except ImportError:
-    raise (
-        "The package geopandas is not installed. Please install it before continuing"
+    warnings.warn(
+        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
     )
 
 

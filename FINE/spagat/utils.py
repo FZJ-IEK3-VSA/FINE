@@ -1,5 +1,6 @@
 """Functions to assist spatial aggregation 
 """
+import warnings
 import os
 import time
 import numpy as np
@@ -10,8 +11,8 @@ import matplotlib.pyplot as plt
 try:
     import geopandas as gpd
 except ImportError:
-    raise (
-        "The package geopandas is not installed. Please install it before continuing"
+    warnings.warn(
+        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
     )
 
 
@@ -106,9 +107,9 @@ def create_geom_xarray(shapefile, geom_col_name="geometry", geom_id_col_name="in
     ----------
     shapefile : GeoDataFrame
         The shapefile to be converted
-    geom_col_name : str
+    geom_col_name : str, optional (default="geometry")
         The geomtry column name in `shapefile`
-    geom_id_col_name : str
+    geom_id_col_name : str, optional (default="index")
         The colum in `shapefile` consisting geom ids
 
     Returns
@@ -173,7 +174,7 @@ def save_shapefile_from_xarray(
         path to folder in which to save the shapefile
     shp_name : str, optional (default='aggregated_regions')
         name to be given to the saved files
-    crs
+    crs : int, optional (default=3035)
         coordinate reference system (crs) in which to save the shapefiles
     """
 

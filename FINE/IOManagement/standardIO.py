@@ -6,11 +6,12 @@ import inspect
 import time
 import warnings
 
-
 try:
     import geopandas as gpd
 except ImportError:
-    warnings.warn("The GeoPandas python package could not be imported.")
+    warnings.warn(
+        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
+    )
 
 try:
     import matplotlib.pyplot as plt
