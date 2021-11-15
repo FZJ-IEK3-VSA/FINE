@@ -1,10 +1,16 @@
+"""Functions to assist spatial grouping algorithms. 
+"""
 import warnings
-
 import numpy as np
-import geopandas as gpd
 from scipy.cluster import hierarchy
-
 from FINE.IOManagement.utilsIO import PowerDict
+
+try:
+    import geopandas as gpd
+except ImportError:
+    raise (
+        "The package geopandas is not installed. Please install it before continuing"
+    )
 
 
 def get_normalized_array(array):

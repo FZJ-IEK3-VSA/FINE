@@ -1,17 +1,14 @@
-"""Representation algorithms to represent region data for a reduced set 
+"""Functions to represent region data for a reduced set 
 of regions obtained as a result of spatial grouping of regions. 
 """
 
 import logging
 import warnings
 from copy import deepcopy
-
 import numpy as np
 import shapely
 import xarray as xr
 from shapely.ops import cascaded_union
-
-import FINE.spagat.utils as spu
 
 logger_representation = logging.getLogger("spatial_representation")
 

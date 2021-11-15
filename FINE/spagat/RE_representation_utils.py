@@ -1,15 +1,26 @@
+"""Functions to assist RE representation algorithm.
+"""
 import os
 import numpy as np
-import geopandas as gpd
-from rasterio import features
 from affine import Affine
 import xarray as xr
-
 import weighted
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.cbook import violin_stats
+
+try:
+    from rasterio import features
+except ImportError:
+    raise ("The package rasterio is not installed. Please install it before continuing")
+
+try:
+    import geopandas as gpd
+except ImportError:
+    raise (
+        "The package geopandas is not installed. Please install it before continuing"
+    )
 
 
 def rasterize_geometry(geometry, coords, latitude="y", longitude="x"):

@@ -1,11 +1,18 @@
+"""Functions to assist spatial aggregation 
+"""
 import os
 import time
-
 import numpy as np
 import pandas as pd
-import geopandas as gpd
 import xarray as xr
 import matplotlib.pyplot as plt
+
+try:
+    import geopandas as gpd
+except ImportError:
+    raise (
+        "The package geopandas is not installed. Please install it before continuing"
+    )
 
 
 def plt_savefig(fig=None, save_name="test", path=None):

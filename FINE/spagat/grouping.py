@@ -1,13 +1,11 @@
 """Grouping algorithms determine how to reduce the number of input regions to 
 fewer regions while minimizing information loss.
 """
+
 import logging
-
 import numpy as np
-
 import sklearn.cluster as skc
 from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
-
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping_utils as gu
 

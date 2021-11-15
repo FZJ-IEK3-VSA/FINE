@@ -1,16 +1,23 @@
+"""Manager function that calls spatial grouping algorithm. 
+"""
 import os
 import logging
-
-import geopandas as gpd
-
 import FINE.spagat.utils as spu
 import FINE.spagat.grouping as spg
 import FINE.spagat.representation as spr
 import FINE.IOManagement.xarrayIO as xrIO
 
+try:
+    import geopandas as gpd
+except ImportError:
+    raise (
+        "The package geopandas is not installed. Please install it before continuing"
+    )
+
 logger_spagat = logging.getLogger("spatial_aggregation")
 
 
+@spu.timer
 def perform_spatial_aggregation(
     xr_datasets,
     shapefile,
@@ -186,5 +193,9 @@ def perform_spatial_aggregation(
             aggregatedResultsPath, aggregated_xr_filename
         )
         xrIO.writeDatasetsToNetCDF(aggregated_xr_dataset, file_name_with_path)
+
+    logger_spagat.info(
+        f"Spatial aggregation completed, resulting in {n_groups} regions"
+    )
 
     return aggregated_xr_dataset
