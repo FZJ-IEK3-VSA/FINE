@@ -43,13 +43,10 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
 
         shape_list.append(shape_union)
 
-    data = None
     if len(shape_list) == 1:
-        data = np.array([shapely.geometry.asMultiPolygon(x) for x in shape_list])
-    else:
-        data = np.array(shape_list)
+        shape_list = np.array([shapely.geometry.asMultiPolygon(x) for x in shape_list])
 
-    xr_data_array_out = xr.DataArray(data, coords=[space], dims=["space"])
+    xr_data_array_out = xr.DataArray(shape_list, coords=[space], dims=["space"])
 
     return xr_data_array_out
 

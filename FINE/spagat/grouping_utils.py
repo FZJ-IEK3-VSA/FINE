@@ -30,9 +30,6 @@ def get_normalized_array(array):
     norm_min, norm_max = 0, 1
 
     if np.max(array) == np.min(array):
-        warnings.warn(
-            "The minimum and maximum values are the same in the array to be normalized. Setting all values to 1"
-        )
         return np.ones(array.shape)
 
     return ((array - np.min(array)) / (np.max(array) - np.min(array))) * (
