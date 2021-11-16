@@ -3,29 +3,10 @@ import shutil
 
 import pandas as pd
 import numpy as np
-import xarray as xr
 import geopandas as gpd
-from shapely.geometry import Point, Polygon
-import matplotlib.pyplot as plt
+from shapely.geometry import Point
 
 import FINE.spagat.utils as spu
-
-
-def test_plt_savefig():
-    path_to_test_dir = os.path.join(os.path.dirname(__file__), "data/output/")
-    # TEST PLOT
-    x = [1, 2, 3, 4]
-    plt.plot(x, x)
-
-    # FUNCTION CALL
-    spu.plt_savefig(path=path_to_test_dir)
-
-    # ASSERTION
-    expected_file = os.path.join(path_to_test_dir, "test.png")
-    assert os.path.isfile(expected_file)
-
-    # Delete test plot
-    os.remove(expected_file)
 
 
 def test_create_gdf():
