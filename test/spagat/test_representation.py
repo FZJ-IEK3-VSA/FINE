@@ -173,9 +173,7 @@ test_data = [
     (None, 3, 5, 15, 5, np.array([[0, 5], [5, 0]]), np.array([[0, 1], [0, 0]])),
     (
         {
-            "operationRateMax": (
-                "weighted mean", "capacityMax" 
-            ),
+            "operationRateMax": ("weighted mean", "capacityMax"),
             "operationRateFix": ("mean", None),
             "capacityMax": ("sum", None),
             "capacityFix": ("sum", None),
@@ -187,7 +185,7 @@ test_data = [
         10,
         np.array([[0, 20], [20, 0]]),
         np.array([[0, 1], [0, 0]]),
-    )
+    ),
 ]
 
 
