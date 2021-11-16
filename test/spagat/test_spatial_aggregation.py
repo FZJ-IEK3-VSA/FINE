@@ -33,7 +33,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
         n_groups=8,
         aggregatedResultsPath=PATH_TO_SAVE,
         aggregated_xr_filename=netcdf_file_name,
-        shp_name=shp_file_name,
+        aggregated_shp_name=shp_file_name,
         solver="glpk",
     )
 

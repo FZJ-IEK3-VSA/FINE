@@ -170,22 +170,16 @@ def test_aggregate_connections(xr_and_dict_for_basic_representation, mode, expec
 
 
 test_data = [
-    # no aggregation_function_dict provided
-    (None, 6, 10, 30, 10, np.array([[0, 20], [20, 0]]), np.array([[0, 1], [0, 0]])),
+    (None, 3, 5, 15, 5, np.array([[0, 5], [5, 0]]), np.array([[0, 1], [0, 0]])),
     (
         {
             "operationRateMax": (
-                "weighted mean",
-                xr.DataArray(
-                    np.array([15, 15, 15, 15]),
-                    coords=[["01_reg", "02_reg", "03_reg", "04_reg"]],
-                    dims=["space"],
-                ),
+                "weighted mean", "capacityMax" 
             ),
             "operationRateFix": ("mean", None),
             "capacityMax": ("sum", None),
             "capacityFix": ("sum", None),
-            "locationalEligibility": ("sum", None),
+            "locationalEligibility": ("bool", None),
         },
         3,
         5,
@@ -193,37 +187,7 @@ test_data = [
         10,
         np.array([[0, 20], [20, 0]]),
         np.array([[0, 1], [0, 0]]),
-    ),
-    (
-        {
-            "operationRateMax": ("weighted mean", "capacityMax"),
-            "operationRateFix": ("sum", None),
-            "capacityMax": ("sum", None),
-            "capacityFix": ("sum", None),
-            "locationalEligibility": ("bool", None),
-        },
-        3,
-        10,
-        30,
-        10,
-        np.array([[0, 20], [20, 0]]),
-        np.array([[0, 1], [0, 0]]),
-    ),
-    (
-        {
-            "operationRateMax": ("weighted mean", "capacityFix"),
-            "operationRateFix": ("sum", None),
-            "capacityMax": ("sum", None),
-            "capacityFix": ("sum", None),
-            "locationalEligibility": ("bool", None),
-        },
-        3,
-        10,
-        30,
-        10,
-        np.array([[0, 20], [20, 0]]),
-        np.array([[0, 1], [0, 0]]),
-    ),
+    )
 ]
 
 
