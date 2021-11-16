@@ -1,12 +1,10 @@
 """Functions to assist spatial aggregation 
 """
 import warnings
-import os
 import time
 import numpy as np
 import pandas as pd
 import xarray as xr
-import matplotlib.pyplot as plt
 
 try:
     import geopandas as gpd
@@ -14,28 +12,6 @@ except ImportError:
     warnings.warn(
         "The package geopandas is not installed. Spatial aggregation cannot be used without it."
     )
-
-
-def plt_savefig(fig=None, save_name="test", path=None):
-    """Save a figure in .png format.
-
-    Parameters
-    ----------
-    fig : Figure, optional (default=None)
-        If None, it get the current figure and saves it
-    save_name : str, optional (default="test")
-        Name of the figure
-    path : str, optional (default=None)
-        The path to which to save the figure.
-        If default None, it is saved in the current working directory.
-    """
-    if fig is None:
-        fig = plt.gcf()
-
-    if path is not None:
-        save_name = os.path.join(path, save_name)
-
-    plt.savefig(f"{save_name}.png", format="png", bbox_inches="tight", dpi=200)
 
 
 def timer(func):
@@ -94,7 +70,7 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
     if file_path is not None:
         gdf.reset_index(
             drop=True, inplace=True
-        )  # NOTE: pandas different versions behave differently here!
+        ) 
         gdf.to_file(file_path, layer=f"{files_name}")
 
     return gdf
