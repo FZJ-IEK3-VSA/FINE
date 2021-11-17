@@ -207,7 +207,14 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
 
             for comp in df_variable.index.get_level_values(0).unique():
                 this_class = comp.split(", ")[0]
-                this_comp = comp.split(", ")[1]
+                # Get the name of the component. 
+                # If ", " in component name, component name must be put back together again.
+                for n in range(len(comp.split(", "))):
+                    if n==1:
+                        this_comp = comp.split(", ")[1]
+                    elif n>1:
+                        this_comp += ", "
+                        this_comp += comp.split(", ")[n]
 
                 this_ds_component = (
                     ds_component.sel(component=comp)
@@ -317,7 +324,14 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
                 for comp in df_variable.index.get_level_values(0).unique():
                     this_class = comp.split(", ")[0]
-                    this_comp = comp.split(", ")[1]
+                    # Get the name of the component. 
+                    # If ", " in component name, component name must be put back together again.
+                    for n in range(len(comp.split(", "))):
+                        if n==1:
+                            this_comp = comp.split(", ")[1]
+                        elif n>1:
+                            this_comp += ", "
+                            this_comp += comp.split(", ")[n]
                     this_ds_component = (
                         ds_component.sel(component=comp)
                         .squeeze()
@@ -351,7 +365,14 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
                 for comp in df_variable.index.get_level_values(0).unique():
                     this_class = comp.split(", ")[0]
-                    this_comp = comp.split(", ")[1]
+                    # Get the name of the component. 
+                    # If ", " in component name, component name must be put back together again.
+                    for n in range(len(comp.split(", "))):
+                        if n==1:
+                            this_comp = comp.split(", ")[1]
+                        elif n>1:
+                            this_comp += ", "
+                            this_comp += comp.split(", ")[n]
                     this_ds_component = (
                         ds_component.sel(component=comp)
                         .squeeze()
@@ -385,7 +406,15 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
                 for comp in df_variable.index.get_level_values(0).unique():
                     this_class = comp.split(", ")[0]
-                    this_comp = comp.split(", ")[1]
+                    # Get the name of the component. 
+                    # If ", " in component name, component name must be put back together again.
+                    for n in range(len(comp.split(", "))):
+                        if n==1:
+                            this_comp = comp.split(", ")[1]
+                        elif n>1:
+                            this_comp += ", "
+                            this_comp += comp.split(", ")[n]
+
                     this_ds_component = (
                         ds_component.sel(component=comp)
                         .squeeze()
@@ -457,7 +486,14 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
 
             for comp in df_variable.index.get_level_values(0).unique():
                 this_class = comp.split(", ")[0]
-                this_comp = comp.split(", ")[1]
+                # Get the name of the component. 
+                # If ", " in component name, component name must be put back together again.
+                for n in range(len(comp.split(", "))):
+                    if n==1:
+                        this_comp = comp.split(", ")[1]
+                    elif n>1:
+                        this_comp += ", "
+                        this_comp += comp.split(", ")[n]
                 this_ds_component = (
                     ds_component.sel(component=comp)
                     .squeeze()
@@ -601,7 +637,12 @@ def addTimeSeriesVariableToDict(
         if len(df.columns) > 1:
             df.columns = df.columns.droplevel(0)
 
-    [class_name, comp_name] = component.split(", ")
+    class_name = component.split(", ")[0]
+    for n in range(len(component.split(", "))):
+        if n==1: 
+            comp_name = component.split(", ")[n]
+        elif n>1: 
+            comp_name = comp_name + ', ' + component.split(", ")[n]
 
     if "." in variable:
         [var_name, nested_var_name] = variable.split(".")
@@ -649,7 +690,12 @@ def add2dVariableToDict(
 
     if not len(series.index) == 0:
 
-        [class_name, comp_name] = component.split(", ")
+        class_name = component.split(", ")[0]
+        for n in range(len(component.split(", "))):
+            if n==1: 
+                comp_name = component.split(", ")[n]
+            elif n>1: 
+                comp_name = comp_name + ', ' + component.split(", ")[n]
 
         if "." in variable:
             [var_name, nested_var_name] = variable.split(".")
@@ -693,7 +739,12 @@ def add1dVariableToDict(
         series = comp_var_xr.to_dataframe().unstack(level=0)
         series.index = series.index.droplevel(level=0)
 
-    [class_name, comp_name] = component.split(", ")
+    class_name = component.split(", ")[0]
+    for n in range(len(component.split(", "))):
+        if n==1: 
+            comp_name = component.split(", ")[n]
+        elif n>1: 
+            comp_name = comp_name + ', ' + component.split(", ")[n]
 
     if "." in variable:
         [var_name, nested_var_name] = variable.split(".")
@@ -736,7 +787,12 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
     ):  # NOTE: when saving to netcdf, the nans in string arrays are converted
         # to empty string (''). These need to be skipped.
 
-        [class_name, comp_name] = component.split(", ")
+        class_name = component.split(", ")[0]
+        for n in range(len(component.split(", "))):
+            if n==1: 
+                comp_name = component.split(", ")[n]
+            elif n>1: 
+                comp_name = comp_name + ', ' + component.split(", ")[n]
 
         if "." in variable:
             [var_name, nested_var_name] = variable.split(".")
