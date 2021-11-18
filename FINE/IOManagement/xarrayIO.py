@@ -779,7 +779,6 @@ def writeEnergySystemModelToNetCDF(
     _t = time.time()
 
     xr_dss_input = convertOptimizationInputToDatasets(esM)
-    return xr_dss_input
     
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
 

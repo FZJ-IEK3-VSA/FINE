@@ -176,7 +176,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
 
-            df_description = f"{classname}, {component}"
+            df_description = f"{classname}; {component}"
 
             # If a . is present in variable name, then the data would be
             # another level further in the component_dict
@@ -206,15 +206,15 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
         elif isinstance(xr_ds, dict):
 
             for comp in df_variable.index.get_level_values(0).unique():
-                this_class = comp.split(", ")[0]
-                # Get the name of the component. 
-                # If ", " in component name, component name must be put back together again.
-                for n in range(len(comp.split(", "))):
-                    if n==1:
-                        this_comp = comp.split(", ")[1]
-                    elif n>1:
-                        this_comp += ", "
-                        this_comp += comp.split(", ")[n]
+                this_class = comp.split("; ")[0]
+                this_comp = comp.split("; ")[1]
+
+                # for n in range(len(comp.split(", "))):
+                #     if n==1:
+                #         this_comp = comp.split(", ")[1]
+                #     elif n>1:
+                #         this_comp += ", "
+                #         this_comp += comp.split(", ")[n]
 
                 this_ds_component = (
                     ds_component.sel(component=comp)
@@ -271,7 +271,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
 
-            df_description = f"{classname}, {component}"
+            df_description = f"{classname}; {component}"
 
             # If a . is present in variable name, then the data would be
             # another level further in the component_dict
@@ -323,15 +323,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             elif isinstance(xr_ds, dict):
 
                 for comp in df_variable.index.get_level_values(0).unique():
-                    this_class = comp.split(", ")[0]
-                    # Get the name of the component. 
-                    # If ", " in component name, component name must be put back together again.
-                    for n in range(len(comp.split(", "))):
-                        if n==1:
-                            this_comp = comp.split(", ")[1]
-                        elif n>1:
-                            this_comp += ", "
-                            this_comp += comp.split(", ")[n]
+                    this_class = comp.split("; ")[0]
+                    this_comp = comp.split("; ")[1]
+
                     this_ds_component = (
                         ds_component.sel(component=comp)
                         .squeeze()
@@ -364,15 +358,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             elif isinstance(xr_ds, dict):
 
                 for comp in df_variable.index.get_level_values(0).unique():
-                    this_class = comp.split(", ")[0]
-                    # Get the name of the component. 
-                    # If ", " in component name, component name must be put back together again.
-                    for n in range(len(comp.split(", "))):
-                        if n==1:
-                            this_comp = comp.split(", ")[1]
-                        elif n>1:
-                            this_comp += ", "
-                            this_comp += comp.split(", ")[n]
+                    this_class = comp.split("; ")[0]
+                    this_comp = comp.split("; ")[1]
+
                     this_ds_component = (
                         ds_component.sel(component=comp)
                         .squeeze()
@@ -405,15 +393,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             elif isinstance(xr_ds, dict):
 
                 for comp in df_variable.index.get_level_values(0).unique():
-                    this_class = comp.split(", ")[0]
-                    # Get the name of the component. 
-                    # If ", " in component name, component name must be put back together again.
-                    for n in range(len(comp.split(", "))):
-                        if n==1:
-                            this_comp = comp.split(", ")[1]
-                        elif n>1:
-                            this_comp += ", "
-                            this_comp += comp.split(", ")[n]
+                    this_class = comp.split("; ")[0]
+                    this_comp = comp.split("; ")[1]
 
                     this_ds_component = (
                         ds_component.sel(component=comp)
@@ -461,7 +442,7 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
         df_dict = {}
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
-            df_description = f"{classname}, {component}"
+            df_description = f"{classname}; {component}"
 
             if "." in variable_description:
                 [var_name, subvar_name] = variable_description.split(".")
@@ -485,15 +466,9 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
         elif isinstance(xr_ds, dict):
 
             for comp in df_variable.index.get_level_values(0).unique():
-                this_class = comp.split(", ")[0]
-                # Get the name of the component. 
-                # If ", " in component name, component name must be put back together again.
-                for n in range(len(comp.split(", "))):
-                    if n==1:
-                        this_comp = comp.split(", ")[1]
-                    elif n>1:
-                        this_comp += ", "
-                        this_comp += comp.split(", ")[n]
+                this_class = comp.split("; ")[0]
+                this_comp = comp.split("; ")[1]
+                
                 this_ds_component = (
                     ds_component.sel(component=comp)
                     .squeeze()
