@@ -567,7 +567,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         # Test that capacityMin and capacityMax has the same index for comparing.
         # If capacityMin is missing for some locations, it´s set to 0.
         if set(capacityMin.index).issubset(capacityMax.index):
-            capacityMin = capacityMin.reindex(locationalEligibility.index).fillna(0)
+            capacityMin = capacityMin.reindex(capacityMax.index).fillna(0)
         if (capacityMin > capacityMax).any():
             raise ValueError("capacityMin values > capacityMax values detected.")
 
