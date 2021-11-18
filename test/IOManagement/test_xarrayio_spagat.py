@@ -75,7 +75,7 @@ def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
         "Wind (offshore)", "operationRateMax"
     ).values
     output_ts = (
-        output_xarray["ts_operationRateMax"].loc["Source, Wind (offshore)", :, :].values
+        output_xarray["ts_operationRateMax"].loc["Source; Wind (offshore)", :, :].values
     )
 
     assert np.array_equal(output_ts, expected_ts)
@@ -86,7 +86,7 @@ def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
     )
     output_2d = (
         output_xarray["2d_capacityFix"]
-        .loc["LinearOptimalPowerFlow, AC cables", :, :]
+        .loc["LinearOptimalPowerFlow; AC cables", :, :]
         .values
     )
 
@@ -100,7 +100,7 @@ def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
     ).values
     output_1d = (
         output_xarray["1d_investPerCapacity"]
-        .loc["Conversion, CCGT plants (methane)", :]
+        .loc["Conversion; CCGT plants (methane)", :]
         .values
     )
 
