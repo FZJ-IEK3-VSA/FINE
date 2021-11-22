@@ -14,8 +14,8 @@ def test_esm_input_to_dataset_and_back(minimal_test_esM):
             "IndustryLocation"
         ]
     ) == list(
-        esm_datasets["Input"]["Sink"]["Industry site"]["ts_operationRateFix"].loc[
-            :, "IndustryLocation"
+        esm_from_datasets.getComponentAttribute("Industry site", "operationRateFix")[
+            "IndustryLocation"
         ]
     )
     assert list(
@@ -27,6 +27,11 @@ def test_esm_input_to_dataset_and_back(minimal_test_esM):
             "IndustryLocation"
         ]
     )
+
+    assert esM.getComponentAttribute("Pipelines", "investPerCapacity")[
+            "ElectrolyzerLocation_IndustryLocation"] == esm_from_datasets.getComponentAttribute("Pipelines", "investPerCapacity")[
+            "ElectrolyzerLocation_IndustryLocation"]
+
 
 
 def test_esm_output_to_dataset_and_back(minimal_test_esM):
