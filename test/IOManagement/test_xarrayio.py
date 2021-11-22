@@ -28,10 +28,14 @@ def test_esm_input_to_dataset_and_back(minimal_test_esM):
         ]
     )
 
-    assert esM.getComponentAttribute("Pipelines", "investPerCapacity")[
-            "ElectrolyzerLocation_IndustryLocation"] == esm_from_datasets.getComponentAttribute("Pipelines", "investPerCapacity")[
-            "ElectrolyzerLocation_IndustryLocation"]
-
+    assert (
+        esM.getComponentAttribute("Pipelines", "investPerCapacity")[
+            "ElectrolyzerLocation_IndustryLocation"
+        ]
+        == esm_from_datasets.getComponentAttribute("Pipelines", "investPerCapacity")[
+            "ElectrolyzerLocation_IndustryLocation"
+        ]
+    )
 
 
 def test_esm_output_to_dataset_and_back(minimal_test_esM):
