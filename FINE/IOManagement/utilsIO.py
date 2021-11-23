@@ -45,11 +45,11 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
             loc = ""
             for n in range(len(row[0])):
                 loc += row[0][n]
-                if (loc in locations) & (row[0][n+1]=="_"):
-                    id_1, id_2 = row[0][:n+1], row[0][n+2:]
+                if (loc in locations) & (row[0][n + 1] == "_"):
+                    id_1, id_2 = row[0][: n + 1], row[0][n + 2 :]
                     break
-            #row_center_id = math.ceil(len(row[0]) / 2)
-            #id_1, id_2 = row[0][: row_center_id - 1], row[0][row_center_id:]
+            # row_center_id = math.ceil(len(row[0]) / 2)
+            # id_1, id_2 = row[0][: row_center_id - 1], row[0][row_center_id:]
         df.loc[id_1, id_2] = row[1]
 
     return df
@@ -668,7 +668,7 @@ def add2dVariableToDict(
             ] = series.sort_index()
         else:
             component_dict[class_name][comp_name][variable[3:]] = series.sort_index()
-            
+
     return component_dict
 
 

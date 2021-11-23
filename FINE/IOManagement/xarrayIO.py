@@ -779,7 +779,7 @@ def writeEnergySystemModelToNetCDF(
     _t = time.time()
 
     xr_dss_input = convertOptimizationInputToDatasets(esM)
-    
+
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
 
     if esM.objectiveValue != None:  # model was optimized
