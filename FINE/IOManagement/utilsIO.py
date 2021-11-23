@@ -22,7 +22,7 @@ def transform1dSeriesto2dDataFrame(series, locations):
 
     for row in series.iteritems():
 
-        #n_seperators = row[0].count("_")
+        # n_seperators = row[0].count("_")
 
         # if (n_seperators % 2) == 0:
         #     raise ValueError(
