@@ -45,6 +45,14 @@ conda env create -f requirements.yml
 activate FINE
 ```
 
+In the next step, install FINE by executing
+
+```
+pip install -e .
+```
+
+In that case, you install an editable (-e) version of FINE.
+
 If you would like to contribute, update your environment with the requirements-dev.cml. 
 It add some packages for testing and formatting the code.
 
