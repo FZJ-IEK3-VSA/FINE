@@ -428,7 +428,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                             comp_var_xr.values
                         ).all():  # Skip if all are NAs
 
-                            component = f"{model}, {component_name}"
+                            component = f"{model}; {component_name}"
 
                             # STEP 4 (i). Set regional time series (region, time)
                             if variable[:3] == "ts_":
@@ -779,6 +779,7 @@ def writeEnergySystemModelToNetCDF(
     _t = time.time()
 
     xr_dss_input = convertOptimizationInputToDatasets(esM)
+
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
 
     if esM.objectiveValue != None:  # model was optimized

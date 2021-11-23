@@ -42,9 +42,14 @@ def transform1dSeriesto2dDataFrame(series, locations, separator="_"):
         try:
             id_1, id_2 = row[0].split(separator)
         except:
-            row_center_id = math.ceil(len(row[0]) / 2)
-            id_1, id_2 = row[0][: row_center_id - 1], row[0][row_center_id:]
-
+            loc = ""
+            for n in range(len(row[0])):
+                loc += row[0][n]
+                if (loc in locations) & (row[0][n + 1] == "_"):
+                    id_1, id_2 = row[0][: n + 1], row[0][n + 2 :]
+                    break
+            # row_center_id = math.ceil(len(row[0]) / 2)
+            # id_1, id_2 = row[0][: row_center_id - 1], row[0][row_center_id:]
         df.loc[id_1, id_2] = row[1]
 
     return df
@@ -176,7 +181,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
 
-            df_description = f"{classname}, {component}"
+            df_description = f"{classname}; {component}"
 
             # If a . is present in variable name, then the data would be
             # another level further in the component_dict
@@ -206,8 +211,8 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
         elif isinstance(xr_ds, dict):
 
             for comp in df_variable.index.get_level_values(0).unique():
-                this_class = comp.split(", ")[0]
-                this_comp = comp.split(", ")[1]
+                this_class = comp.split("; ")[0]
+                this_comp = comp.split("; ")[1]
 
                 this_ds_component = (
                     ds_component.sel(component=comp)
@@ -264,7 +269,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
 
-            df_description = f"{classname}, {component}"
+            df_description = f"{classname}; {component}"
 
             # If a . is present in variable name, then the data would be
             # another level further in the component_dict
@@ -277,7 +282,6 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             # Only ['Transmission', 'LinearOptimalPowerFlow'] are 2d classes.
             # So, if classname is one of these, append the data to space_space_dict
             if classname in ["Transmission", "LinearOptimalPowerFlow"]:
-
                 df = transform1dSeriesto2dDataFrame(data, locations)
                 multi_index_dataframe = df.stack()
                 multi_index_dataframe.index.set_names(
@@ -316,8 +320,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             elif isinstance(xr_ds, dict):
 
                 for comp in df_variable.index.get_level_values(0).unique():
-                    this_class = comp.split(", ")[0]
-                    this_comp = comp.split(", ")[1]
+                    this_class = comp.split("; ")[0]
+                    this_comp = comp.split("; ")[1]
+
                     this_ds_component = (
                         ds_component.sel(component=comp)
                         .squeeze()
@@ -350,8 +355,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             elif isinstance(xr_ds, dict):
 
                 for comp in df_variable.index.get_level_values(0).unique():
-                    this_class = comp.split(", ")[0]
-                    this_comp = comp.split(", ")[1]
+                    this_class = comp.split("; ")[0]
+                    this_comp = comp.split("; ")[1]
+
                     this_ds_component = (
                         ds_component.sel(component=comp)
                         .squeeze()
@@ -384,8 +390,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             elif isinstance(xr_ds, dict):
 
                 for comp in df_variable.index.get_level_values(0).unique():
-                    this_class = comp.split(", ")[0]
-                    this_comp = comp.split(", ")[1]
+                    this_class = comp.split("; ")[0]
+                    this_comp = comp.split("; ")[1]
+
                     this_ds_component = (
                         ds_component.sel(component=comp)
                         .squeeze()
@@ -432,7 +439,7 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
         df_dict = {}
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
-            df_description = f"{classname}, {component}"
+            df_description = f"{classname}; {component}"
 
             if "." in variable_description:
                 [var_name, subvar_name] = variable_description.split(".")
@@ -456,8 +463,9 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
         elif isinstance(xr_ds, dict):
 
             for comp in df_variable.index.get_level_values(0).unique():
-                this_class = comp.split(", ")[0]
-                this_comp = comp.split(", ")[1]
+                this_class = comp.split("; ")[0]
+                this_comp = comp.split("; ")[1]
+
                 this_ds_component = (
                     ds_component.sel(component=comp)
                     .squeeze()
@@ -601,7 +609,8 @@ def addTimeSeriesVariableToDict(
         if len(df.columns) > 1:
             df.columns = df.columns.droplevel(0)
 
-    [class_name, comp_name] = component.split(", ")
+    class_name = component.split("; ")[0]
+    comp_name = component.split("; ")[1]
 
     if "." in variable:
         [var_name, nested_var_name] = variable.split(".")
@@ -649,7 +658,8 @@ def add2dVariableToDict(
 
     if not len(series.index) == 0:
 
-        [class_name, comp_name] = component.split(", ")
+        class_name = component.split("; ")[0]
+        comp_name = component.split("; ")[1]
 
         if "." in variable:
             [var_name, nested_var_name] = variable.split(".")
@@ -693,7 +703,8 @@ def add1dVariableToDict(
         series = comp_var_xr.to_dataframe().unstack(level=0)
         series.index = series.index.droplevel(level=0)
 
-    [class_name, comp_name] = component.split(", ")
+    class_name = component.split("; ")[0]
+    comp_name = component.split("; ")[1]
 
     if "." in variable:
         [var_name, nested_var_name] = variable.split(".")
@@ -736,7 +747,8 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
     ):  # NOTE: when saving to netcdf, the nans in string arrays are converted
         # to empty string (''). These need to be skipped.
 
-        [class_name, comp_name] = component.split(", ")
+        class_name = component.split("; ")[0]
+        comp_name = component.split("; ")[1]
 
         if "." in variable:
             [var_name, nested_var_name] = variable.split(".")

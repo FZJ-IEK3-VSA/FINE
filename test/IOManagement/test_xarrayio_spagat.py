@@ -75,7 +75,7 @@ def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
         "Wind (offshore)", "operationRateMax"
     ).values
     output_ts = (
-        output_xarray["ts_operationRateMax"].loc["Source, Wind (offshore)", :, :].values
+        output_xarray["ts_operationRateMax"].loc["Source; Wind (offshore)", :, :].values
     )
 
     assert np.array_equal(output_ts, expected_ts)
@@ -86,7 +86,7 @@ def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
     )
     output_2d = (
         output_xarray["2d_capacityFix"]
-        .loc["LinearOptimalPowerFlow, AC cables", :, :]
+        .loc["LinearOptimalPowerFlow; AC cables", :, :]
         .values
     )
 
@@ -100,7 +100,7 @@ def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
     ).values
     output_1d = (
         output_xarray["1d_investPerCapacity"]
-        .loc["Conversion, CCGT plants (methane)", :]
+        .loc["Conversion; CCGT plants (methane)", :]
         .values
     )
 
@@ -112,7 +112,7 @@ def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
     ).get("electricity")
     output_0d = (
         output_xarray["0d_commodityConversionFactors.electricity"]
-        .loc["Conversion, Electroylzers"]
+        .loc["Conversion; Electroylzers"]
         .values
     )
 
@@ -123,7 +123,7 @@ def test_convertEsmInstanceToXarrayDataset(multi_node_test_esM_init):
         "Li-ion batteries", "hasCapacityVariable"
     )
     output_0d_bool = (
-        output_xarray["0d_hasCapacityVariable"].loc["Storage, Li-ion batteries"].values
+        output_xarray["0d_hasCapacityVariable"].loc["Storage; Li-ion batteries"].values
     )
 
     assert output_0d_bool == expected_0d_bool
@@ -157,7 +157,7 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
         "Hydrogen demand", "operationRateFix"
     ).values
     test_xarray_ts = (
-        test_xarray["ts_operationRateFix"].loc["Sink, Hydrogen demand", :, :].values
+        test_xarray["ts_operationRateFix"].loc["Sink; Hydrogen demand", :, :].values
     )
     output_esm_ts = output_esM.getComponentAttribute(
         "Hydrogen demand", "operationRateFix"
@@ -173,7 +173,7 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
 
     test_xarray_2d = (
         test_xarray["2d_locationalEligibility"]
-        .loc["Transmission, Pipelines (biogas)", :]
+        .loc["Transmission; Pipelines (biogas)", :]
         .values
     )
     test_xarray_2d = test_xarray_2d[1][5]
@@ -190,7 +190,7 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
         "Salt caverns (hydrogen)", "capacityMax"
     ).values
     test_xarray_1d = (
-        test_xarray["1d_capacityMax"].loc["Storage, Salt caverns (hydrogen)", :].values
+        test_xarray["1d_capacityMax"].loc["Storage; Salt caverns (hydrogen)", :].values
     )
     output_esm_1d = output_esM.getComponentAttribute(
         "Salt caverns (hydrogen)", "capacityMax"
@@ -203,7 +203,7 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
         "Pumped hydro storage", "selfDischarge"
     )
     test_xarray_0d = (
-        test_xarray["0d_selfDischarge"].loc["Storage, Pumped hydro storage"].values
+        test_xarray["0d_selfDischarge"].loc["Storage; Pumped hydro storage"].values
     )
     output_esm_0d = output_esM.getComponentAttribute(
         "Pumped hydro storage", "selfDischarge"
@@ -217,7 +217,7 @@ def test_convertXarrayDatasetToEsmInstance(multi_node_test_esM_init):
     )
     test_xarray_0d_bool = (
         test_xarray["0d_hasCapacityVariable"]
-        .loc["Conversion, New CCGT plants (hydrogen)"]
+        .loc["Conversion; New CCGT plants (hydrogen)"]
         .values
     )
     output_esm_0d_bool = output_esM.getComponentAttribute(
@@ -260,7 +260,7 @@ def test_convertEsmInstanceToXarrayDataset_singlenode(single_node_test_esM):
     ).values
     output_ts = (
         output_xarray["ts_operationRateMax"]
-        .loc["Source, Electricity market", :, "Location"]
+        .loc["Source; Electricity market", :, "Location"]
         .values
     )
 
@@ -272,7 +272,7 @@ def test_convertEsmInstanceToXarrayDataset_singlenode(single_node_test_esM):
     ).get("electricity")
     output_0d = (
         output_xarray["0d_commodityConversionFactors.electricity"]
-        .loc["Conversion, Electrolyzers"]
+        .loc["Conversion; Electrolyzers"]
         .values
     )
 
@@ -283,7 +283,7 @@ def test_convertEsmInstanceToXarrayDataset_singlenode(single_node_test_esM):
         "Pressure tank", "hasCapacityVariable"
     )
     output_0d_bool = (
-        output_xarray["0d_hasCapacityVariable"].loc["Storage, Pressure tank"].values
+        output_xarray["0d_hasCapacityVariable"].loc["Storage; Pressure tank"].values
     )
 
     assert output_0d_bool == expected_0d_bool
@@ -318,7 +318,7 @@ def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
         "Industry site", "operationRateFix"
     ).values
     test_xarray_ts = (
-        test_xarray["ts_operationRateFix"].loc["Sink, Industry site", :, :].values
+        test_xarray["ts_operationRateFix"].loc["Sink; Industry site", :, :].values
     )
     output_esm_ts = output_esM.getComponentAttribute(
         "Industry site", "operationRateFix"
@@ -331,7 +331,7 @@ def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
         "Electrolyzers", "investPerCapacity"
     ).values
     test_xarray_1d = (
-        test_xarray["1d_investPerCapacity"].loc["Conversion, Electrolyzers", :].values
+        test_xarray["1d_investPerCapacity"].loc["Conversion; Electrolyzers", :].values
     )
     output_esm_1d = output_esM.getComponentAttribute(
         "Electrolyzers", "investPerCapacity"
@@ -344,7 +344,7 @@ def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
         "Electricity market", "commodity"
     )
     test_xarray_0d = (
-        test_xarray["0d_commodity"].loc["Source, Electricity market"].values
+        test_xarray["0d_commodity"].loc["Source; Electricity market"].values
     )
     output_esm_0d = output_esM.getComponentAttribute("Electricity market", "commodity")
 
@@ -355,7 +355,7 @@ def test_convertXarrayDatasetToEsmInstance_singlenode(single_node_test_esM):
         "Pressure tank", "hasCapacityVariable"
     )
     test_xarray_0d_bool = (
-        test_xarray["0d_hasCapacityVariable"].loc["Storage, Pressure tank"].values
+        test_xarray["0d_hasCapacityVariable"].loc["Storage; Pressure tank"].values
     )
     output_esm_0d_bool = output_esM.getComponentAttribute(
         "Pressure tank", "hasCapacityVariable"
