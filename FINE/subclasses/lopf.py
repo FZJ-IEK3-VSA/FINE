@@ -10,37 +10,40 @@ class LinearOptimalPowerFlow(Transmission):
     linearized power flow (i.e. for AC lines). The LinearOptimalPowerFlow class inherits from the Transmission
     class.
     """
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
-                 reactances, 
-                 losses=0, 
-                 distances=None,
-                 hasCapacityVariable=True, 
-                 capacityVariableDomain='continuous', 
-                 capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False, 
-                 bigM=None,
-                 operationRateMax=None, 
-                 operationRateFix=None, 
-                 tsaWeight=1,
-                 locationalEligibility=None, 
-                 capacityMin=None, 
-                 capacityMax=None, 
-                 partLoadMin=None, 
-                 sharedPotentialID=None,
-                 capacityFix=None, 
-                 isBuiltFix=None,
-                 investPerCapacity=0, 
-                 investIfBuilt=0, 
-                 opexPerOperation=0, 
-                 opexPerCapacity=0,
-                 opexIfBuilt=0, 
-                 QPcostScale=0, 
-                 interestRate=0.08, 
-                 economicLifetime=10, 
-                 technicalLifetime=None):
+
+    def __init__(
+        self,
+        esM,
+        name,
+        commodity,
+        reactances,
+        losses=0,
+        distances=None,
+        hasCapacityVariable=True,
+        capacityVariableDomain="continuous",
+        capacityPerPlantUnit=1,
+        hasIsBuiltBinaryVariable=False,
+        bigM=None,
+        operationRateMax=None,
+        operationRateFix=None,
+        tsaWeight=1,
+        locationalEligibility=None,
+        capacityMin=None,
+        capacityMax=None,
+        partLoadMin=None,
+        sharedPotentialID=None,
+        capacityFix=None,
+        isBuiltFix=None,
+        investPerCapacity=0,
+        investIfBuilt=0,
+        opexPerOperation=0,
+        opexPerCapacity=0,
+        opexIfBuilt=0,
+        QPcostScale=0,
+        interestRate=0.08,
+        economicLifetime=10,
+        technicalLifetime=None,
+    ):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.
         The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
@@ -53,42 +56,47 @@ class LinearOptimalPowerFlow(Transmission):
         :type reactances: Pandas DataFrame. The row and column indices of the DataFrame have to equal
             the in the energy system model specified locations.
         """
-        Transmission.__init__(self, 
-                              esM, 
-                              name, 
-                              commodity, 
-                              losses=losses, 
-                              distances=distances, 
-                              hasCapacityVariable=hasCapacityVariable,
-                              capacityVariableDomain=capacityVariableDomain, 
-                              capacityPerPlantUnit=capacityPerPlantUnit, 
-                              hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable, 
-                              bigM=bigM,
-                              operationRateMax=operationRateMax, 
-                              operationRateFix=operationRateFix, 
-                              tsaWeight=tsaWeight, 
-                              locationalEligibility=locationalEligibility, 
-                              capacityMin=capacityMin,
-                              capacityMax=capacityMax, 
-                              partLoadMin=partLoadMin, 
-                              sharedPotentialID=sharedPotentialID, 
-                              capacityFix=capacityFix, 
-                              isBuiltFix=isBuiltFix, 
-                              investPerCapacity=investPerCapacity,
-                              investIfBuilt=investIfBuilt, 
-                              opexPerOperation=opexPerOperation, 
-                              opexPerCapacity=opexPerCapacity, 
-                              opexIfBuilt=opexIfBuilt, 
-                              QPcostScale=QPcostScale, 
-                              interestRate=interestRate,
-                              economicLifetime=economicLifetime, 
-                              technicalLifetime=technicalLifetime)
+        Transmission.__init__(
+            self,
+            esM,
+            name,
+            commodity,
+            losses=losses,
+            distances=distances,
+            hasCapacityVariable=hasCapacityVariable,
+            capacityVariableDomain=capacityVariableDomain,
+            capacityPerPlantUnit=capacityPerPlantUnit,
+            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
+            bigM=bigM,
+            operationRateMax=operationRateMax,
+            operationRateFix=operationRateFix,
+            tsaWeight=tsaWeight,
+            locationalEligibility=locationalEligibility,
+            capacityMin=capacityMin,
+            capacityMax=capacityMax,
+            partLoadMin=partLoadMin,
+            sharedPotentialID=sharedPotentialID,
+            capacityFix=capacityFix,
+            isBuiltFix=isBuiltFix,
+            investPerCapacity=investPerCapacity,
+            investIfBuilt=investIfBuilt,
+            opexPerOperation=opexPerOperation,
+            opexPerCapacity=opexPerCapacity,
+            opexIfBuilt=opexIfBuilt,
+            QPcostScale=QPcostScale,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+            technicalLifetime=technicalLifetime,
+        )
 
         self.modelingClass = LOPFModel
 
         self.reactances2dim = reactances
+
         try:
-            self.reactances = pd.Series(self._mapC).apply(lambda loc: self.reactances2dim[loc[0]][loc[1]])
+            self.reactances = pd.Series(self._mapC).apply(
+                lambda loc: self.reactances2dim[loc[0]][loc[1]]
+            )
         except:
             self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
@@ -108,11 +116,11 @@ class LOPFModel(TransmissionModel):
     A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the LinearOptimalPowerFlow
     class instance. These declarations are necessary for the modeling and optimization of the energy system model.
-    The LOPFModel class inherits from the TransmissionModel class. """
+    The LOPFModel class inherits from the TransmissionModel class."""
 
     def __init__(self):
-        self.abbrvName = 'lopf'
-        self.dimension = '2dim'
+        self.abbrvName = "lopf"
+        self.dimension = "2dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
         self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
@@ -133,8 +141,17 @@ class LOPFModel(TransmissionModel):
 
         # Set for operation variables
         def initPhaseAngleVarSet(pyM):
-            return ((loc, compName) for compName, comp in compDict.items() for loc in compDict[compName]._mapL.keys())
-        setattr(pyM, 'phaseAngleVarSet_' + abbrvName, pyomo.Set(dimen=2, initialize=initPhaseAngleVarSet))
+            return (
+                (loc, compName)
+                for compName, comp in compDict.items()
+                for loc in compDict[compName]._mapL.keys()
+            )
+
+        setattr(
+            pyM,
+            "phaseAngleVarSet_" + abbrvName,
+            pyomo.Set(dimen=2, initialize=initPhaseAngleVarSet),
+        )
 
     def declareSets(self, esM, pyM):
         """
@@ -160,7 +177,9 @@ class LOPFModel(TransmissionModel):
         self.declareOperationBinarySet(pyM)
 
         # Declare operation variable set
-        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
+        self.declareOperationModeSets(
+            pyM, "opConstrSet", "operationRateMax", "operationRateFix"
+        )
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -173,8 +192,15 @@ class LOPFModel(TransmissionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-        setattr(pyM, 'phaseAngle_' + self.abbrvName,
-                pyomo.Var(getattr(pyM, 'phaseAngleVarSet_' + self.abbrvName), pyM.timeSet, domain=pyomo.Reals))
+        setattr(
+            pyM,
+            "phaseAngle_" + self.abbrvName,
+            pyomo.Var(
+                getattr(pyM, "phaseAngleVarSet_" + self.abbrvName),
+                pyM.timeSet,
+                domain=pyomo.Reals,
+            ),
+        )
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
@@ -196,9 +222,9 @@ class LOPFModel(TransmissionModel):
         # Binary variables [-] indicating if a component is considered at a location or not [-]
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Flow over the edges of the components [commodityUnit]
-        self.declareOperationVars(pyM, 'op')
+        self.declareOperationVars(pyM, "op")
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, 'op_bin')
+        self.declareOperationBinaryVars(pyM, "op_bin")
         # Operation of component [commodityUnit]
         self.declarePhaseAngleVariables(pyM)
 
@@ -215,15 +241,28 @@ class LOPFModel(TransmissionModel):
         :type pyM: pyomo Concrete Model
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        phaseAngleVar = getattr(pyM, 'phaseAngle_' + self.abbrvName)
-        opVar, opVarSet = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarSet_' + abbrvName)
+        phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
+        opVar, opVarSet = getattr(pyM, "op_" + abbrvName), getattr(
+            pyM, "operationVarSet_" + abbrvName
+        )
 
         def powerFlowDC(pyM, loc, compName, p, t):
             node1, node2 = compDict[compName]._mapC[loc]
-            return (opVar[loc, compName, p, t] - opVar[compDict[compName]._mapI[loc], compName, p, t] ==
-                    (phaseAngleVar[node1, compName, p, t]-phaseAngleVar[node2, compName, p, t])/
-                    compDict[compName].reactances[loc])
-        setattr(pyM, 'ConstrpowerFlowDC_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=powerFlowDC))
+            return (
+                opVar[loc, compName, p, t]
+                - opVar[compDict[compName]._mapI[loc], compName, p, t]
+                == (
+                    phaseAngleVar[node1, compName, p, t]
+                    - phaseAngleVar[node2, compName, p, t]
+                )
+                / compDict[compName].reactances[loc]
+            )
+
+        setattr(
+            pyM,
+            "ConstrpowerFlowDC_" + abbrvName,
+            pyomo.Constraint(opVarSet, pyM.timeSet, rule=powerFlowDC),
+        )
 
     def basePhaseAngle(self, pyM):
         """
@@ -233,13 +272,17 @@ class LOPFModel(TransmissionModel):
         :type pyM: pyomo Concrete Model
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        phaseAngleVar = getattr(pyM, 'phaseAngle_' + self.abbrvName)
+        phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
 
         def basePhaseAngle(pyM, compName, p, t):
             node0 = sorted(compDict[compName]._mapL)[0]
             return phaseAngleVar[node0, compName, p, t] == 0
-        setattr(pyM, 'ConstrBasePhaseAngle_' + abbrvName,
-                pyomo.Constraint(compDict.keys(), pyM.timeSet, rule=basePhaseAngle))
+
+        setattr(
+            pyM,
+            "ConstrBasePhaseAngle_" + abbrvName,
+            pyomo.Constraint(compDict.keys(), pyM.timeSet, rule=basePhaseAngle),
+        )
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -278,13 +321,18 @@ class LOPFModel(TransmissionModel):
         super().setOptimalValues(esM, pyM)
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        phaseAngleVar = getattr(pyM, 'phaseAngle_' + abbrvName)
+        phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
 
-        optVal_ = utils.formatOptimizationOutput(phaseAngleVar.get_values(), 'operationVariables', '1dim',
-                                                 esM.periodsOrder, esM=esM)
+        optVal_ = utils.formatOptimizationOutput(
+            phaseAngleVar.get_values(),
+            "operationVariables",
+            "1dim",
+            esM.periodsOrder,
+            esM=esM,
+        )
         self.phaseAngleVariablesOptimum = optVal_
 
-    def getOptimalValues(self, name='all'):
+    def getOptimalValues(self, name="all"):
         """
         Return optimal values of the components.
 
@@ -296,20 +344,50 @@ class LOPFModel(TransmissionModel):
         * 'all' or another input: all variables are returned.\n
         :type name: string
         """
-        if name == 'capacityVariablesOptimum':
-            return {'values': self.capacityVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
-        elif name == 'isBuiltVariablesOptimum':
-            return {'values': self.isBuiltVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
-        elif name == 'operationVariablesOptimum':
-            return {'values': self.operationVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
-        elif name == 'phaseAngleVariablesOptimum':
-            return {'values': self.phaseAngleVariablesOptimum, 'timeDependent': True, 'dimension': '1dim'}
+        if name == "capacityVariablesOptimum":
+            return {
+                "values": self.capacityVariablesOptimum,
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        elif name == "isBuiltVariablesOptimum":
+            return {
+                "values": self.isBuiltVariablesOptimum,
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        elif name == "operationVariablesOptimum":
+            return {
+                "values": self.operationVariablesOptimum,
+                "timeDependent": True,
+                "dimension": self.dimension,
+            }
+        elif name == "phaseAngleVariablesOptimum":
+            return {
+                "values": self.phaseAngleVariablesOptimum,
+                "timeDependent": True,
+                "dimension": "1dim",
+            }
         else:
-            return {'capacityVariablesOptimum': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
-                                                 'dimension': self.dimension},
-                    'isBuiltVariablesOptimum': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
-                                                'dimension': self.dimension},
-                    'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
-                                                  'dimension': self.dimension},
-                    'phaseAngleVariablesOptimum': {'values': self.phaseAngleVariablesOptimum, 'timeDependent': True,
-                                                   'dimension': '1dim'}}
+            return {
+                "capacityVariablesOptimum": {
+                    "values": self.capacityVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                },
+                "isBuiltVariablesOptimum": {
+                    "values": self.isBuiltVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                },
+                "operationVariablesOptimum": {
+                    "values": self.operationVariablesOptimum,
+                    "timeDependent": True,
+                    "dimension": self.dimension,
+                },
+                "phaseAngleVariablesOptimum": {
+                    "values": self.phaseAngleVariablesOptimum,
+                    "timeDependent": True,
+                    "dimension": "1dim",
+                },
+            }
