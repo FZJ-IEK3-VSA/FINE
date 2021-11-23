@@ -189,7 +189,7 @@ def checkConnectionIndex(data, locationalEligibility):
     Necessary for transmission components:
     Check if the indices of the connection data match the eligible connections.
     """
-    if not set(data.index) == set(locationalEligibility.index):
+    if not set(data.index).issubset(locationalEligibility.index):
         raise ValueError(
             "Indices do not match the eligible connections of the component.\n"
             + "Data indices: "
@@ -198,10 +198,9 @@ def checkConnectionIndex(data, locationalEligibility):
             + "Eligible connections: "
             + str(set(locationalEligibility.index))
         )
-
     # Sort data according to _locationsOrdered, if not already sorted
     elif not np.array_equal(data.index, locationalEligibility.index):
-        data = data.reindex(locationalEligibility.index)
+        data = data.reindex(locationalEligibility.index).fillna(0)
 
     return data
 
@@ -565,6 +564,10 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         )
 
     if capacityMin is not None and capacityMax is not None:
+        # Test that capacityMin and capacityMax has the same index for comparing.
+        # If capacityMin is missing for some locations, it´s set to 0.
+        if set(capacityMin.index).issubset(capacityMax.index):
+            capacityMin = capacityMin.reindex(capacityMax.index).fillna(0)
         if (capacityMin > capacityMax).any():
             raise ValueError("capacityMin values > capacityMax values detected.")
 

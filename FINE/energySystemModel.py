@@ -13,7 +13,7 @@ import pyomo.opt as opt
 from FINE import utils
 from FINE.component import Component, ComponentModel
 
-from FINE.IOManagement import xarrayIO_spagat as xrIO
+import FINE.IOManagement.xarrayIO as xrIO
 import FINE.spagat.spatial_aggregation as spa
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
@@ -472,28 +472,145 @@ class EnergySystemModel:
 
         **Default arguments:**
 
-        :param grouping_mode: Defines how to spatially group the regions.
+        :param grouping_mode : Defines how to spatially group the regions.
         Refer to grouping.py for more information.
             |br| * the default value is 'parameter_based'
         :type grouping_mode: string, Options - 'string_based', 'distance_based', 'parameter_based'
 
-        :param n_groups: The number of region groups to be formed from the original region set.
+        :param n_groups : The number of region groups to be formed from the original region set.
         This parameter is irrelevant if `grouping_mode` is 'string_based'.
             |br| * the default value is 3
         :type n_groups: strictly positive integer, None
 
-        :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved.
+        :param aggregatedResultsPath : Indicates path to which the aggregated results should be saved.
         If None, results are not saved.
             |br| * the default value is None
-        :type shapefileFolder: string, None
+        :type shapefileFolder : string, None
 
-        Additional keyword arguments can be added passed via kwargs.
+        **Additional keyword arguments that can be passed via kwargs:**
+
+        :param geom_col_name : The geomtry column name in `shapefile`
+            |br| * the default value is 'geometry'
+        :type geom_col_name : string
+
+        :param geom_id_col_name : The colum in `shapefile` consisting geom IDs
+            |br| * the default value is 'index'
+        :type geom_id_col_name : string
+
+        :param separator : * Relevant only if `grouping_mode` is 'string_based'.
+
+            The character or string in the region IDs that defines where the ID should be split.
+            E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _
+            and the last part ('es') is taken as the group ID
+
+            |br| * the default value is None
+        :type separator : string
+
+        :param position : * Relevant only if `grouping_mode` is 'string_based'.
+
+            Used to define the position(s) of the region IDs where the split should happen.
+            An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean
+            the part i to j is taken at the group ID.
+
+            NOTE: either `separator` or `position` must be passed in order to perform string_based_grouping
+
+            |br| * the default value is None
+        :type position : integer/tuple
+
+        :param weights : * Relevant only if `grouping_mode` is 'parameter_based'.
+
+            Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating
+            distance corresonding to each variable-component pair, these specified weights are
+            considered, otherwise taken as 1.
+
+            It must be in one of the formats:
+            - If you want to specify weights for particular variables and particular corresponding components:
+                { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
+            - If you want to specify weights for particular variables, but all corresponding components:
+                { 'components' : {'all' : <weight>}, 'variables' : List[<variable_name>] }
+            - If you want to specify weights for all variables, but particular corresponding components:
+                { 'components' : Dict[<component_name>, <weight>}], 'variables' : 'all' }
+
+            <weight> can be of type integer/float
+
+            |br| * the default value is None
+        :type weights : dictionary
+
+        :param aggregation_method : * Relevant only if `grouping_mode` is 'parameter_based'.
+
+            The clustering method that should be used to group the regions.
+
+            Options:
+                - 'kmedoids_contiguity': kmedoids clustering with added contiguity constraint.
+                    Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+                - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
+                    Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
+
+            |br| * the default value is 'kmedoids_contiguity'
+        :type aggregation_method : string, Options - 'kmedoids_contiguity', 'hierarchical'
+
+        :param solver : * Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
+
+            The optimization solver to be chosen.
+
+            |br| * the default value is 'gurobi'
+        :type solver : string, Options - 'gurobi', 'glpk'
+
+        :param aggregation_function_dict : Contains information regarding the mode of aggregation for each individual variable.
+
+            - Possibilities: mean, weighted mean, sum, bool (boolean OR).
+
+            - Format of the dictionary - {<variable_name>: (<mode_of_aggregation>, <weights>),
+                                        <variable_name>: (<mode_of_aggregation>, None)}.
+            <weights> is required only if <mode_of_aggregation> is
+            'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
+
+            |br| * A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is
+                passed, this default dictionary is updated.
+
+                {"operationRateMax": ("weighted mean", "capacityMax"),
+                "operationRateFix": ("sum", None),
+                "locationalEligibility": ("bool", None),
+                "capacityMax": ("sum", None),
+                "investPerCapacity": ("mean", None),
+                "investIfBuilt": ("bool", None),
+                "opexPerOperation": ("mean", None),
+                "opexPerCapacity": ("mean", None),
+                "opexIfBuilt": ("bool", None),
+                "interestRate": ("mean", None),
+                "economicLifetime": ("mean", None),
+                "capacityFix": ("sum", None),
+                "losses": ("mean", None),
+                "distances": ("mean", None),
+                "commodityCost": ("mean", None),
+                "commodityRevenue": ("mean", None),
+                "opexPerChargeOperation": ("mean", None),
+                "opexPerDischargeOperation": ("mean", None),
+                "QPcostScale": ("sum", None),
+                "technicalLifetime": ("mean", None)}
+        :type aggregation_function_dict : dictionary
+
+        :param aggregated_shp_name : Name to be given to the saved shapefiles after aggregation
+            |br| * the default value is 'aggregated_regions'
+        :type aggregated_shp_name : string
+
+        :param crs : Coordinate reference system (crs) in which to save the shapefiles
+            |br| * the default value is 3035
+        :type crs : integer
+
+        :param crs : Coordinate reference system (crs) in which to save the shapefiles
+            |br| * the default value is 3035
+        :type crs : integer
+
+        :param aggregated_xr_filename : Name to be given to the saved netCDF file containing aggregated esM data
+            |br| * the default value is 'aggregated_xr_dataset.nc'
+        :type aggregated_xr_filename : string
 
         :returns: Aggregated esM instance
         """
 
         # STEP 1. Obtain xr dataset from esM
-        xr_dataset = xrIO.convertEsmInstanceToXarrayDataset(self)
+        xr_dataset = xrIO.convertOptimizationInputToDatasets(self)
 
         # STEP 2. Perform spatial aggregation
         aggregated_xr_dataset = spa.perform_spatial_aggregation(
@@ -506,7 +623,7 @@ class EnergySystemModel:
         )
 
         # STEP 3. Obtain aggregated esM
-        aggregated_esM = xrIO.convertXarrayDatasetToEsmInstance(aggregated_xr_dataset)
+        aggregated_esM = xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
         return aggregated_esM
 

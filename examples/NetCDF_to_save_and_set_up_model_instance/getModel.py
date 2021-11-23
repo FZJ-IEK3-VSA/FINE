@@ -7,7 +7,7 @@ def getModel():
     hoursPerTimeStep = 2190
 
     # Create an energy system model instance 
-    esM = fn.EnergySystemModel(locations={'Electrolyzer_Location', 'IndustryLocation'}, 
+    esM = fn.EnergySystemModel(locations={'ElectrolyzerLocation', 'IndustryLocation'}, 
                                 commodities={'electricity', 'hydrogen'}, 
                                 numberOfTimeSteps=numberOfTimeSteps,
                                 commodityUnitsDict={'electricity': r'kW$_{el}$', 'hydrogen': r'kW$_{H_{2},LHV}$'},
@@ -23,11 +23,11 @@ def getModel():
 
     ### Buy electricity at the electricity market
     costs = pd.DataFrame([np.array([ 0.05, 0., 0.1, 0.051,]),np.array([0., 0., 0., 0.,])],
-                            index = ['Electrolyzer_Location', 'IndustryLocation']).T
+                            index = ['ElectrolyzerLocation', 'IndustryLocation']).T
     revenues = pd.DataFrame([np.array([ 0., 0.01, 0., 0.,]),np.array([0., 0., 0., 0.,])],
-                            index = ['Electrolyzer_Location', 'IndustryLocation']).T
+                            index = ['ElectrolyzerLocation', 'IndustryLocation']).T
     maxpurchase = pd.DataFrame([np.array([1e6, 1e6, 1e6, 1e6,]),np.array([0., 0., 0., 0.,])],
-                            index = ['Electrolyzer_Location', 'IndustryLocation']).T * hoursPerTimeStep
+                            index = ['ElectrolyzerLocation', 'IndustryLocation']).T * hoursPerTimeStep
     esM.add(fn.Source(esM=esM, name='Electricity market', commodity='electricity', 
                         hasCapacityVariable=False, operationRateMax = maxpurchase,
                         commodityCostTimeSeries = costs,  
@@ -60,7 +60,7 @@ def getModel():
 
     ### Industry site
     demand = pd.DataFrame([np.array([0., 0., 0., 0.,]), np.array([6e3, 6e3, 6e3, 6e3,]),],
-                    index = ['Electrolyzer_Location', 'IndustryLocation']).T * hoursPerTimeStep
+                    index = ['ElectrolyzerLocation', 'IndustryLocation']).T * hoursPerTimeStep
     esM.add(fn.Sink(esM=esM, name='Industry site', commodity='hydrogen', hasCapacityVariable=False,
                     operationRateFix = demand
                     ))

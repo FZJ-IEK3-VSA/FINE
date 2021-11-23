@@ -6,11 +6,12 @@ import inspect
 import time
 import warnings
 
-
 try:
     import geopandas as gpd
 except ImportError:
-    warnings.warn("The GeoPandas python package could not be imported.")
+    warnings.warn(
+        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
+    )
 
 try:
     import matplotlib.pyplot as plt
@@ -823,7 +824,7 @@ def plotLocations(
         for ix, row in gdf.iterrows():
             locName = ix if indexColumn == "" else row[indexColumn]
             ax.annotate(
-                s=locName,
+                text=locName,
                 xy=(row.geometry.centroid.x, row.geometry.centroid.y),
                 horizontalalignment="center",
                 fontsize=fontsize,
