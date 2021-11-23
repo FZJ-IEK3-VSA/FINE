@@ -15,7 +15,6 @@ import FINE.spagat.utils as spu
 @pytest.fixture()
 def xr_for_connectivity():
 
-    component_list = ["source_comp", "sink_comp", "transmission_comp"]
     space_list = [
         "01_reg",
         "02_reg",
@@ -29,82 +28,78 @@ def xr_for_connectivity():
     time_list = ["T0", "T1"]
 
     ## ts variable data
-    operationRateMax = np.array(
-        [
-            [[1] * 8 for i in range(2)],
-            [[np.nan] * 8 for i in range(2)],
-            [[np.nan] * 8 for i in range(2)],
-        ]
-    )
+    operationRateMax = np.array([[1] * 8 for i in range(2)])
 
     operationRateMax_da = xr.DataArray(
         operationRateMax,
-        coords=[component_list, time_list, space_list],
-        dims=["component", "time", "space"],
+        coords=[time_list, space_list],
+        dims=["time", "space"],
     )
 
     ## 1d variable data
-    capacityMax_1d = np.array([[14] * 8, [np.nan] * 8, [np.nan] * 8])
+    capacityMax_1d = np.array([14] * 8)
 
     capacityMax_1d_da = xr.DataArray(
-        capacityMax_1d, coords=[component_list, space_list], dims=["component", "space"]
+        capacityMax_1d, coords=[space_list], dims=["space"]
+    )
+
+    source_comp_ds = xr.Dataset(
+        {
+            "ts_operationRateMax": operationRateMax_da,
+            "1d_capacityMax": capacityMax_1d_da,
+        }
     )
 
     ## 2d variable data
     capacityMax_2d = np.array(
         [
-            [[np.nan] * 8 for i in range(8)],
-            [[np.nan] * 8 for i in range(8)],
-            [
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 3],
-                [0, 0, 0, 0, 0, 0, 0, 5],
-                [0, 0, 0, 0, 0, 3, 5, 0],
-            ],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 3],
+            [0, 0, 0, 0, 0, 0, 0, 5],
+            [0, 0, 0, 0, 0, 3, 5, 0],
         ]
     )
 
     capacityMax_2d_da = xr.DataArray(
         capacityMax_2d,
-        coords=[component_list, space_list, space_list],
-        dims=["component", "space", "space_2"],
+        coords=[space_list, space_list],
+        dims=["space", "space_2"],
     )
 
     locationalEligibility_2d = np.array(
         [
-            [[np.nan] * 8 for i in range(8)],
-            [[np.nan] * 8 for i in range(8)],
-            [
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0.2, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0.2, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-            ],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0.2, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0.2, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
         ]
     )
 
     locationalEligibility_2d_da = xr.DataArray(
         locationalEligibility_2d,
-        coords=[component_list, space_list, space_list],
-        dims=["component", "space", "space_2"],
+        coords=[space_list, space_list],
+        dims=["space", "space_2"],
     )
 
-    test_ds = xr.Dataset(
+    trans_comp_ds = xr.Dataset(
         {
-            "ts_operationRateMax": operationRateMax_da,
-            "1d_capacityMax": capacityMax_1d_da,
             "2d_capacityMax": capacityMax_2d_da,
             "2d_locationalEligibility": locationalEligibility_2d_da,
         }
     )
+
+    input_xr_dict = {
+        "Source": {"source_comp": source_comp_ds},
+        "Transmission": {"trans_comp": trans_comp_ds},
+    }
 
     # Geometries
     test_geometries = [
@@ -118,32 +113,28 @@ def xr_for_connectivity():
         Polygon([(2.5, 0), (3.5, 0), (3.5, 1), (2.5, 1)]),
     ]
 
-    test_ds = spu.add_objects_to_xarray(
-        test_ds,
-        description="gpd_geometries",
-        dimension_list=["space"],
-        object_list=test_geometries,
-    )
+    gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
 
-    test_ds = spu.add_region_centroids_to_xarray(test_ds)
-    test_ds = spu.add_centroid_distances_to_xarray(test_ds)
+    geom_xr = spu.create_geom_xarray(gdf)
 
-    return test_ds
+    test_ds_dict = {"Input": input_xr_dict, "Geometry": geom_xr}
+
+    return test_ds_dict
 
 
 @pytest.fixture()
 def data_for_distance_measure():
     ## ts dict
-    matrix_ts = np.array([[1, 1], [2, 2], [3, 3]])
+    matrix_ts = np.array([[1, 2, 3], [1, 2, 3]])
 
     test_ts_dict = {}
     test_ts_dict["ts_operationRateMax"] = {
-        "Source, wind turbine": matrix_ts,
-        "Source, PV": matrix_ts,
+        "wind turbine": matrix_ts,
+        "PV": matrix_ts,
     }
     test_ts_dict["ts_operationRateFix"] = {
-        "Sink, electricity demand": matrix_ts,
-        "Sink, hydrogen demand": matrix_ts,
+        "electricity demand": matrix_ts,
+        "hydrogen demand": matrix_ts,
     }
 
     array_1d_2d = np.array([1, 2, 3])
@@ -151,23 +142,23 @@ def data_for_distance_measure():
     ## 1d dict
     test_1d_dict = {}
     test_1d_dict["1d_capacityMax"] = {
-        "Source, wind turbine": array_1d_2d,
-        "Source, PV": array_1d_2d,
+        "wind turbine": array_1d_2d,
+        "PV": array_1d_2d,
     }
     test_1d_dict["1d_capacityFix"] = {
-        "Sink, electricity demand": array_1d_2d,
-        "Sink, hydrogen demand": array_1d_2d,
+        "electricity demand": array_1d_2d,
+        "hydrogen demand": array_1d_2d,
     }
 
     ## 2d dict
     test_2d_dict = {}
     test_2d_dict["2d_distance"] = {
-        "Transmission, AC cables": array_1d_2d,
-        "Transmission, DC cables": array_1d_2d,
+        "AC cables": array_1d_2d,
+        "DC cables": array_1d_2d,
     }
     test_2d_dict["2d_losses"] = {
-        "Transmission, AC cables": array_1d_2d,
-        "Transmission, DC cables": array_1d_2d,
+        "AC cables": array_1d_2d,
+        "DC cables": array_1d_2d,
     }
 
     return namedtuple("test_ts_1d_2s_dicts", "test_ts_dict test_1d_dict test_2d_dict")(
@@ -177,55 +168,44 @@ def data_for_distance_measure():
 
 @pytest.fixture()
 def xr_for_parameter_based_grouping():
-
-    component_list = ["Source, wind turbine", "Transmission, AC cables", "Source, PV"]
-    space_list = ["01_reg", "02_reg", "03_reg"]
     time_list = ["T0", "T1"]
+    space_list = ["01_reg", "02_reg", "03_reg"]
 
-    ## time series variables data
-    operationRateMax = np.array(
-        [
-            [[0.2, 0.1, 0.1] for i in range(2)],
-            [[np.nan] * 3 for i in range(2)],
-            [[0.2, 0.1, 0.1] for i in range(2)],
-        ]
-    )
-
+    ## Source: wind turbine
+    operationRateMax = np.array([[0.2, 0.1, 0.1] for i in range(2)])
     operationRateMax = xr.DataArray(
         operationRateMax,
-        coords=[component_list, time_list, space_list],
-        dims=["component", "time", "space"],
+        coords=[time_list, space_list],
+        dims=["time", "space"],
     )
 
-    ## 1d variable data
-    capacityMax = np.array([[1, 1, 0.2], [1, 1, 0.2], [1, 1, 0.2]])
+    capacityMax = np.array([1, 1, 0.2])
+    capacityMax = xr.DataArray(capacityMax, coords=[space_list], dims=["space"])
 
-    capacityMax = xr.DataArray(
-        capacityMax, coords=[component_list, space_list], dims=["component", "space"]
+    wind_offshore_ds = xr.Dataset(
+        {"ts_operationRateMax": operationRateMax, "1d_capacityMax": capacityMax}
     )
 
-    ## 2d variable data
-    transmissionDistance = np.array(
-        [
-            [[np.nan] * 3 for i in range(3)],
-            [[0, 0.2, 0.7], [0.2, 0, 0.2], [0.7, 0.2, 0]],
-            [[np.nan] * 3 for i in range(3)],
-        ]
+    ## Source, PV
+    pv_ds = xr.Dataset(
+        {"ts_operationRateMax": operationRateMax, "1d_capacityMax": capacityMax}
     )
+
+    ## Transmission: AC cables
+    transmissionDistance = np.array([[0, 0.2, 0.7], [0.2, 0, 0.2], [0.7, 0.2, 0]])
 
     transmissionDistance = xr.DataArray(
         transmissionDistance,
-        coords=[component_list, space_list, space_list],
-        dims=["component", "space", "space_2"],
+        coords=[space_list, space_list],
+        dims=["space", "space_2"],
     )
 
-    xr_ds = xr.Dataset(
-        {
-            "ts_operationRateMax": operationRateMax,
-            "1d_capacityMax": capacityMax,
-            "2d_transmissionDistance": transmissionDistance,
-        }
-    )
+    trans_ds = xr.Dataset({"2d_transmissionDistance": transmissionDistance})
+
+    input_xr_dict = {
+        "Source": {"Wind offshore": wind_offshore_ds, "PV": pv_ds},
+        "Transmission": {"AC cables": trans_ds},
+    }
 
     # Geometries
     test_geometries = [
@@ -234,17 +214,13 @@ def xr_for_parameter_based_grouping():
         Polygon([(0, 2), (1, 2), (1, 3), (0, 3)]),
     ]
 
-    xr_ds = spu.add_objects_to_xarray(
-        xr_ds,
-        description="gpd_geometries",
-        dimension_list=["space"],
-        object_list=test_geometries,
-    )
+    gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
 
-    xr_ds = spu.add_region_centroids_to_xarray(xr_ds)
-    xr_ds = spu.add_centroid_distances_to_xarray(xr_ds)
+    geom_xr = spu.create_geom_xarray(gdf)
 
-    return xr_ds
+    test_ds_dict = {"Input": input_xr_dict, "Geometry": geom_xr}
+
+    return test_ds_dict
 
 
 # ============================================Fixtures for Basic Representation==================================================#
@@ -267,105 +243,87 @@ def xr_and_dict_for_basic_representation():
         "03_reg_04_reg": ["03_reg", "04_reg"],
     }
 
-    # xr
-    component_list = ["source_comp", "sink_comp", "transmission_comp"]
-    space_list = ["01_reg", "02_reg", "03_reg", "04_reg"]
+    # input data
     time_list = ["T0", "T1"]
+    space_list = ["01_reg", "02_reg", "03_reg", "04_reg"]
 
-    ## ts variable data
-    operationRateMax = np.array(
-        [
-            [[3, 3, 3, 3] for i in range(2)],
-            [[np.nan, np.nan, np.nan, np.nan] for i in range(2)],
-            [[np.nan, np.nan, np.nan, np.nan] for i in range(2)],
-        ]
-    )
+    ## Source comp
+    operationRateMax = np.array([[3, 3, 3, 3] for i in range(2)])
 
     operationRateMax_da = xr.DataArray(
         operationRateMax,
-        coords=[component_list, time_list, space_list],
-        dims=["component", "time", "space"],
+        coords=[time_list, space_list],
+        dims=["time", "space"],
     )
 
-    operationRateFix = np.array(
-        [
-            [[np.nan, np.nan, np.nan, np.nan] for i in range(2)],
-            [[5, 5, 5, 5] for i in range(2)],
-            [[np.nan, np.nan, np.nan, np.nan] for i in range(2)],
-        ]
+    capacityMax_1d = np.array([15, 15, 0, 0])
+
+    capacityMax_1d_da = xr.DataArray(
+        capacityMax_1d, coords=[space_list], dims=["space"]
     )
+
+    source_comp = xr.Dataset(
+        {
+            "ts_operationRateMax": operationRateMax_da,
+            "1d_capacityMax": capacityMax_1d_da,
+        }
+    )
+
+    ## Sink comp
+    operationRateFix = np.array([[5, 5, 5, 5] for i in range(2)])
 
     operationRateFix_da = xr.DataArray(
         operationRateFix,
-        coords=[component_list, time_list, space_list],
-        dims=["component", "time", "space"],
+        coords=[time_list, space_list],
+        dims=["time", "space"],
     )
 
-    ## 1d variable data
-    capacityMax_1d = np.array(
-        [
-            [15, 15, 0, 0],
-            [np.nan] * 4,
-            [np.nan] * 4,
-        ]
-    )
-
-    capacityMax_1d_da = xr.DataArray(
-        capacityMax_1d, coords=[component_list, space_list], dims=["component", "space"]
-    )
-
-    capacityFix_1d = np.array(
-        [
-            [np.nan] * 4,
-            [5, 5, 5, 5],
-            [np.nan] * 4,
-        ]
-    )
+    capacityFix_1d = np.array([5, 5, 5, 5])
 
     capacityFix_1d_da = xr.DataArray(
-        capacityFix_1d, coords=[component_list, space_list], dims=["component", "space"]
+        capacityFix_1d, coords=[space_list], dims=["space"]
     )
 
-    ## 2d variable data
-    capacityMax_2d = np.array(
-        [
-            [[np.nan] * 4 for i in range(4)],
-            [[np.nan] * 4 for i in range(4)],
-            [[0, 5, 5, 5], [5, 0, 5, 5], [5, 5, 0, 5], [5, 5, 5, 0]],
-        ]
+    sink_comp = xr.Dataset(
+        {
+            "ts_operationRateFix": operationRateFix_da,
+            "1d_capacityFix": capacityFix_1d_da,
+        }
     )
+
+    ## transmission comp
+    capacityMax_2d = np.array([[0, 5, 5, 5], [5, 0, 5, 5], [5, 5, 0, 5], [5, 5, 5, 0]])
 
     capacityMax_2d_da = xr.DataArray(
         capacityMax_2d,
-        coords=[component_list, space_list, space_list],
-        dims=["component", "space", "space_2"],
+        coords=[space_list, space_list],
+        dims=["space", "space_2"],
     )
 
     locationalEligibility_2d = np.array(
-        [
-            [[np.nan] * 4 for i in range(4)],
-            [[np.nan] * 4 for i in range(4)],
-            [[0, 1, 1, 1], [0, 0, 1, 1], [0, 0, 0, 1], [0, 0, 0, 0]],
-        ]
+        [[0, 1, 1, 1], [0, 0, 1, 1], [0, 0, 0, 1], [0, 0, 0, 0]]
     )
 
     locationalEligibility_2d_da = xr.DataArray(
         locationalEligibility_2d,
-        coords=[component_list, space_list, space_list],
-        dims=["component", "space", "space_2"],
+        coords=[space_list, space_list],
+        dims=["space", "space_2"],
     )
 
-    test_xr = xr.Dataset(
+    trans_comp = xr.Dataset(
         {
-            "ts_operationRateMax": operationRateMax_da,
-            "ts_operationRateFix": operationRateFix_da,
-            "1d_capacityMax": capacityMax_1d_da,
-            "1d_capacityFix": capacityFix_1d_da,
             "2d_capacityMax": capacityMax_2d_da,
             "2d_locationalEligibility": locationalEligibility_2d_da,
         }
     )
 
+    input_xr_dict = {
+        "Source": {"source_comp": source_comp},
+        "Sink": {"sink_comp": sink_comp},
+        "Transmission": {"trans_comp": trans_comp},
+    }
+
+    # geometry data
     test_geometries = [
         Polygon([(0, 0), (2, 0), (2, 2), (0, 2)]),
         Polygon([(2, 0), (4, 0), (4, 2), (2, 2)]),
@@ -373,15 +331,21 @@ def xr_and_dict_for_basic_representation():
         Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]),
     ]
 
-    test_xr = spu.add_objects_to_xarray(
-        test_xr,
-        description="gpd_geometries",
-        dimension_list=["space"],
-        object_list=test_geometries,
-    )
+    gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
+    geom_xr = spu.create_geom_xarray(gdf)
+
+    # parameter data
+    parameters_ds = xr.Dataset()
+    parameters_ds.attrs = {"locations": space_list}
+
+    test_ds_dict = {
+        "Input": input_xr_dict,
+        "Geometry": geom_xr,
+        "Parameters": parameters_ds,
+    }
 
     return namedtuple("dict_and_xr", "sub_to_sup_region_id_dict test_xr")(
-        sub_to_sup_region_id_dict, test_xr
+        sub_to_sup_region_id_dict, test_ds_dict
     )
 
 

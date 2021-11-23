@@ -24,11 +24,9 @@ dependencies:
 - sphinx_rtd_theme
 - scikit-learn
 - xarray
-- statsmodels
 - seaborn
 - conda-forge::rasterio
 - conda-forge::netcdf4
 
 - pip:
     - tsam
-    - wquantiles

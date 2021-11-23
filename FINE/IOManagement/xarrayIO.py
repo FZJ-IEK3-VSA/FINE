@@ -12,7 +12,7 @@ from FINE.IOManagement.utilsIO import processXarrayAttributes
 
 
 def convertOptimizationInputToDatasets(esM):
-    """Takes esM instance input and converts it into an xarray dataset.
+    """Takes esM instance input and converts it into xarray datasets.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
@@ -277,8 +277,8 @@ def writeDatasetsToNetCDF(
     """Saves dictionary of xarray datasets (with esM instance data) to a netCDF
     file.
 
-    :param datasets: Dictionary of xarray datasets which holds the esM instance
-    data :type datasets: dict
+    :param datasets: The xarray datasets holding all data required to set up an esM instance.
+    data :type datasets: Dict[xr.Dataset]
 
     :param outputFilePath: output file name of the netCDF file (can include full
         path) |br| * the default value is "my_esm.nc" :type file_path: string
@@ -404,11 +404,19 @@ def convertDatasetsToEnergySystemModel(datasets):
     """Takes dictionary of xarray datasets (with esM instance data) and converts
     it to an esM instance.
 
-    :param datasets: Dictonary of xarray datasets (with esM instance data) :type
-    datasets: dict
+    :param datasets: The xarray datasets holding all data required to set up an esM instance.
+    :type datasets: Dict[xr.Dataset]
 
     :return: esM - EnergySystemModel instance
     """
+
+    # economic variables
+    eco_var_list = [
+        "investPerCapacity",
+        "investIfBuilt",
+        "opexPerCapacity",
+        "opexIfBuilt",
+    ]
 
     # Read parameters
     xarray_dataset = utilsIO.processXarrayAttributes(datasets["Parameters"])
@@ -419,52 +427,56 @@ def convertDatasetsToEnergySystemModel(datasets):
     # prefix restructure the data and add it to component_dict
     component_dict = utilsIO.PowerDict()
 
-    for group in datasets.keys():
-        if (group != "Parameters") and (group == "Input"):
-            for model, comps in datasets[group].items():
-                for component_name, comp_xr in datasets[group][model].items():
-                    for variable, comp_var_xr in comp_xr.data_vars.items():
-                        if not pd.isnull(
-                            comp_var_xr.values
-                        ).all():  # Skip if all are NAs
+    for model, comps in datasets["Input"].items():
+        for component_name, comp_xr in comps.items():
+            for variable, comp_var_xr in comp_xr.data_vars.items():
+                if not pd.isnull(comp_var_xr.values).all():  # Skip if all are NAs
 
-                            component = f"{model}; {component_name}"
+                    component = f"{model}; {component_name}"
 
-                            # STEP 4 (i). Set regional time series (region, time)
-                            if variable[:3] == "ts_":
-                                component_dict = utilsIO.addTimeSeriesVariableToDict(
-                                    component_dict,
-                                    comp_var_xr,
-                                    component,
-                                    variable,
-                                    drop_component=False,
-                                )
+                    # STEP 4 (i). Set regional time series (region, time)
+                    if variable[:3] == "ts_":
+                        component_dict = utilsIO.addTimeSeriesVariableToDict(
+                            component_dict,
+                            comp_var_xr,
+                            component,
+                            variable,
+                            drop_component=False,
+                        )
 
-                            # STEP 4 (ii). Set 2d data (region, region)
-                            elif variable[:3] == "2d_":
-                                component_dict = utilsIO.add2dVariableToDict(
-                                    component_dict,
-                                    comp_var_xr,
-                                    component,
-                                    variable,
-                                    drop_component=False,
-                                )
+                    # STEP 4 (ii). Set 2d data (region, region)
+                    elif variable[:3] == "2d_":
+                        # INFO: economic variables are multiplied by distances and 0.5 during esM setup, need to reverse this
+                        if variable[3:] in eco_var_list:
+                            dist_xr = comp_xr["2d_distances"]
+                            comp_var_xr.values = comp_var_xr.values / (
+                                dist_xr.values * 0.5
+                            )
+                            comp_var_xr = comp_var_xr.fillna(0)
 
-                            # STEP 4 (iii). Set 1d data (region)
-                            elif variable[:3] == "1d_":
-                                component_dict = utilsIO.add1dVariableToDict(
-                                    component_dict,
-                                    comp_var_xr,
-                                    component,
-                                    variable,
-                                    drop_component=False,
-                                )
+                        component_dict = utilsIO.add2dVariableToDict(
+                            component_dict,
+                            comp_var_xr,
+                            component,
+                            variable,
+                            drop_component=False,
+                        )
 
-                            # STEP 4 (iv). Set 0d data
-                            elif variable[:3] == "0d_":
-                                component_dict = utilsIO.add0dVariableToDict(
-                                    component_dict, comp_var_xr, component, variable
-                                )
+                    # STEP 4 (iii). Set 1d data (region)
+                    elif variable[:3] == "1d_":
+                        component_dict = utilsIO.add1dVariableToDict(
+                            component_dict,
+                            comp_var_xr,
+                            component,
+                            variable,
+                            drop_component=False,
+                        )
+
+                    # STEP 4 (iv). Set 0d data
+                    elif variable[:3] == "0d_":
+                        component_dict = utilsIO.add0dVariableToDict(
+                            component_dict, comp_var_xr, component, variable
+                        )
 
     # Create esm from esm_dict and component_dict
     esM = dictIO.importFromDict(esm_dict, component_dict)
@@ -767,7 +779,7 @@ def writeEnergySystemModelToNetCDF(
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
         |br| * the default value is None :type group_prefix: string
 
-    :return: Nested dictionary containing an xr.Dataset with all result values
+    :return: Nested dictionary containing xr.Dataset with all result values
     for each component. :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
 

@@ -1,9 +1,9 @@
+"""Representation of RE technologies in every region.
+"""
 import logging
-
 import numpy as np
 import xarray as xr
 from sklearn.cluster import AgglomerativeClustering
-
 import FINE.spagat.utils as spu
 import FINE.spagat.RE_representation_utils as RE_rep_utils
 
