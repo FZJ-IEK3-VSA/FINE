@@ -18,12 +18,12 @@ install:
   - mamba env update -n fine --file=requirements.yml
   - mamba env update -n fine --file=requirements_dev.yml
   - mamba info --envs
-  - source activate FINE
+  - source activate fine
   - pip install codecov
   - pip install --no-cache-dir -e .
 
 script:
-  - source activate FINE
+  - source activate fine
   - pytest --cov=./FINE
 
 after_success:
