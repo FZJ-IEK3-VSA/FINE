@@ -75,7 +75,9 @@ A number of [**examples**](examples/) shows the capabilities of FINE.
 
 MIT License
 
-Copyright (C) 2016-2021 Theresa Groß, Leander Kotzur, Noah Pflugrath, Robin Beer, Henrik Büsing, Dilara Caglayan, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Timo Kannengießer, Kevin Knosala, Felix Kullmann, Stefan Kraus, Jochen Linßen, Peter Markewitz, Lars Nolting, Shruthi Patil, Jan Priesmann, Martin Robinius, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder, Michael Zier, Detlef Stolten
+Copyright (C) 2016-2021 IEK-3, Forschungszentrum Jülich
+
+Contributors: Theresa Groß, Leander Kotzur, Noah Pflugradt, Robin Beer, Henrik Büsing, Dilara Caglayan, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Timo Kannengießer, Kevin Knosala, Felix Kullmann, Stefan Kraus, Jochen Linßen, Peter Markewitz, Lars Nolting, Shruthi Patil, Jan Priesmann, Stanley Risch, Martin Robinius, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder, Michael Zier, Detlef Stolten
 
 You should have received a copy of the MIT License along with this program.
 If not, see https://opensource.org/licenses/MIT
