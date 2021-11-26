@@ -1126,7 +1126,7 @@ def plotLocationalColorMap(
     if len(excluded_regions) > 0:
         print(
             f"Missing regions: {compName} - {variableName} \n",
-            f"The following regions are not ploted as they are not contained in the provided shapefile: \n",
+            f"The following regions are not plotted as they are not contained in the provided shapefile: \n",
             f"{excluded_regions} \n",
         )
 
