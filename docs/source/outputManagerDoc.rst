@@ -2,20 +2,15 @@
 Input Output Management
 ***********************
 
+FINE provides additional functionalities for input/output management. These include, e.g., plotting functions, 
+saving results in excel files, storing input and output data in netCDF files, and the exploitation of the optimized energy system.
 
-Standard inputs and outputs
-###########################
+**Input Output Management**
 
-
-.. |br| raw:: html
-
-   <br />
-
-Descriptions of the basic functions are given below.
+.. toctree::
+   :maxdepth: 1
 
 
-**Function descriptions:**
-
-.. automodule:: standardIO
-   :members:
-   :member-order: bysource
+   standardIODoc
+   exploitOutputDoc
+   xarrayIODoc
