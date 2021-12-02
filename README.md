@@ -66,6 +66,16 @@ Run the test suite with:
 pytest --cov=FINE test/
 ```
 
+**Installation of an optimization solver**
+
+In theory many solvers can be used (e.g. `GUROBI <http://www.gurobi.com/>`_  or
+`GLPK <https://sourceforge.net/projects/winglpk/files/latest/download>`_). For the installation of GUROBI, follow
+the instructions on the solver's website. GUROBI has, if applicable, an academic license option. For installation
+of GLPK, move the downloaded folder to a desired location. Then, manually append the Environment Variable *Path*
+with the absolute path leading to the folder in which the glpsol.exe is located (c.f. w32/w64 folder, depending on
+operating system type).
+
+
 ## Examples
 
 A number of [**examples**](examples/) shows the capabilities of FINE.
