@@ -19,11 +19,11 @@ import pandas as pd
 # ### Water demand
 # The demand for clean water occurs in spring between 5 am and 11 pm, in summer between 4 am and 12 pm, in autumn between 5 am and 11 pm and in winter between 6 am and 11 pm. The demand for one house assumes random values between 0 to 1 Uh (Unit*hour) during the demand hours. These values are uniformly distributed and are 0 outside the demand hours.
 #
-# ### Water supply 
+# ### Water supply
 # The water supply comes from a small tributary of a glacier river, which provides more water in summer and less in winter: the profile is given for each hour of the year as
 #
-# f(t) = 8 \* sin(π*t/8760) + g(t)    
-#     
+# f(t) = 8 \* sin(π*t/8760) + g(t)
+#
 # where g(t) is a uniformly distributed random value between 0 and 4.
 #
 # ### Water storage

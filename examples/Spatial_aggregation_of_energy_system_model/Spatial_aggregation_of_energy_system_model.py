@@ -32,17 +32,17 @@ cwd = os.getcwd()
 # %% [markdown]
 # # Workflow for spatial aggregation of an energy system model
 #
-# This example notebook shows how model regions can be merged to obtain fewer regions and also how the number of VRES technologies within each region can be reduced to fewer technology types. 
+# This example notebook shows how model regions can be merged to obtain fewer regions and also how the number of VRES technologies within each region can be reduced to fewer technology types.
 #
 # <img src="spagat_basic_depiction.png" style="width: 1000px;"/>
 #
-# The figure above dipicts the basic idea behind spatial aggregation. The term spatial grouping refers to grouping (and subsequently merging) of regions that are similar in some sense (NOTE: Please look into the documentation for different methods to group regions). 
+# The figure above dipicts the basic idea behind spatial aggregation. The term spatial grouping refers to grouping (and subsequently merging) of regions that are similar in some sense (NOTE: Please look into the documentation for different methods to group regions).
 #
-# Additionally, it is also possible to reduced VRES technologies within each region to a desired number. This process is called spatial representation of VRES technologies. To give you an example, if the results of your PV simulation are spatially detailed or spatially highly resolved, then you could reduce these to a few types within each region. The time series profiles are matched during grouping of these technologies. 
+# Additionally, it is also possible to reduced VRES technologies within each region to a desired number. This process is called spatial representation of VRES technologies. To give you an example, if the results of your PV simulation are spatially detailed or spatially highly resolved, then you could reduce these to a few types within each region. The time series profiles are matched during grouping of these technologies.
 #
 
 # %% [markdown]
-# ## STEP 1. Set up your ESM instance 
+# ## STEP 1. Set up your ESM instance
 
 # %%
 sys.path.append(os.path.join(cwd, "..", "Multi-regional_Energy_System_Workflow"))
@@ -404,7 +404,7 @@ represented_wind_ds
 represented_pv_ds
 
 # %% [markdown]
-# ### STEP 3a. Adding the results to esM instance 
+# ### STEP 3a. Adding the results to esM instance
 
 # %%
 # Now we need to delete 'Wind (onshore)' and 'PV' compoents from aggregated_esM
@@ -531,13 +531,13 @@ aggregated_esM.componentModelingDict["SourceSinkModel"].componentsDict
 # %% [markdown]
 # # Step 4. Temporal Aggregation
 #
-# Although spatial aggregation aids in reducing the computational complexity of optimization, temporal aggregation is still necessary. 
+# Although spatial aggregation aids in reducing the computational complexity of optimization, temporal aggregation is still necessary.
 #
-# Spatial aggregation is not here is replace temporal aggregation. They both go hand-in-hand. 
+# Spatial aggregation is not here is replace temporal aggregation. They both go hand-in-hand.
 #
-# Imagine performing temporal aggregation on a model with too many regions and too many VRES technologies per region. You have to reduce the temporal resolution to a large extent. Or you can take too few regions and 1 time series per VRES technology, per region and reduce the temporal resolution to a smaller extent. 
+# Imagine performing temporal aggregation on a model with too many regions and too many VRES technologies per region. You have to reduce the temporal resolution to a large extent. Or you can take too few regions and 1 time series per VRES technology, per region and reduce the temporal resolution to a smaller extent.
 #
-# With spatial and temporal aggregation, you need not compromise on either the temporal or spatial resolution of your model. 
+# With spatial and temporal aggregation, you need not compromise on either the temporal or spatial resolution of your model.
 
 # %%
 aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=7)
