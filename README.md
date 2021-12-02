@@ -75,7 +75,6 @@ of GLPK, move the downloaded folder to a desired location. Then, manually append
 with the absolute path leading to the folder in which the glpsol.exe is located (c.f. w32/w64 folder, depending on
 operating system type).
 
-
 ## Examples
 
 A number of [**examples**](examples/) shows the capabilities of FINE.
@@ -84,7 +83,11 @@ A number of [**examples**](examples/) shows the capabilities of FINE.
 
 MIT License
 
-Copyright (C) 2016-2021 Theresa Groß, Leander Kotzur, Noah Pflugrath, Robin Beer, Henrik Büsing, Dilara Caglayan, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Timo Kannengießer, Kevin Knosala, Felix Kullmann, Stefan Kraus, Jochen Linßen, Peter Markewitz, Lars Nolting, Shruthi Patil, Jan Priesmann, Martin Robinius, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder, Michael Zier, Detlef Stolten
+Copyright (C) 2016-2021 FZJ-IEK-3
+
+Active Developers: Theresa Groß, Leander Kotzur, Noah Pflugradt, Julian Belina, Toni Busch, Philipp Dunkel, Patrick Freitag, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Kevin Knosala, Felix Kullmann, Stefan Kraus, Jochen Linßen, Rachel Maier, Peter Markewitz, Lars Nolting, Shruthi Patil, Jan Priesmann, Stanley Risch, Julian Schönau, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Christoph Winkler, Michael Zier, Detlef Stolten
+
+Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Timo Kannengießer, Martin Robinius, Johannes Thürauf, Lara Welder
 
 You should have received a copy of the MIT License along with this program.
 If not, see https://opensource.org/licenses/MIT
