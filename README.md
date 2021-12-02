@@ -1,4 +1,4 @@
-﻿[![Build Status](https://travis-ci.com/FZJ-IEK3-VSA/FINE.svg?branch=master)](https://travis-ci.com/FZJ-IEK3-VSA/FINE) [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE) [![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/) [![PyPI - License](https://img.shields.io/pypi/l/FINE)]((https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)) [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
+[![Build Status](https://travis-ci.com/FZJ-IEK3-VSA/FINE.svg?branch=master)](https://travis-ci.com/FZJ-IEK3-VSA/FINE) [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE) [![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/) [![PyPI - License](https://img.shields.io/pypi/l/FINE)]((https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)) [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
 
 
 <a href="https://www.fz-juelich.de/iek/iek-3/DE/Home/home_node.html"><img src="http://www.fz-juelich.de/SharedDocs/Bilder/IBG/IBG-3/DE/Plant-soil-atmosphere%20exchange%20processes/INPLAMINT%20(BONARES)/Bild3.jpg?__blob=poster" alt="Forschungszentrum Juelich Logo" width="230px"></a> 
@@ -18,7 +18,7 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 
 A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
 
-## Requirements
+## Installation
 ### Prepare and install required software
 1.  Install anaconda [by choosing your operating system here](https://docs.anaconda.com/anaconda/install/). If you are a Windows 10 user, remember to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
 2. Install git from https://git-scm.com/downloads
@@ -26,32 +26,27 @@ A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine
 1. Open a prompt e.g. "anaconda prompt" or "cmd" from the windows start menu
 2. Make a folder where you want to work, for example C:\Users\<your username>\work with "mkdir C:\Users\<your username>\work"
 3. Go to that directory with "cd C:\Users\<your username>\work" at the command line
-## Install Fine 
+
+
 ### Get source code via GIT
 
-Clone it first
+Clone public repository or repository of your choice first
 ```
-git clone https://jugit.fz-juelich.de/iek-3/shared-code/fine.git -b develop
+git clone https://github.com/FZJ-IEK3-VSA/FINE.git 
 ```
 Move into the FINE folder with
 ```
 cd fine
 ```
-and double check if you are on the right branch with
-```
-git branch
-```
-It should be the develop branch.
 
-### Setup a clean environment
-It is recommended to create a clean environment to use FINE because it requires many dependencies. 
+### Installation for users
+It is recommended to create a clean environment with conda to use FINE because it requires many dependencies. 
 
-Create a user environment if you dont want to modify FINE.
 ```
 conda env create -f requirements.yml
 activate FINE
 ```
-
+### Installation for developers
 Create a development environment if you want to modify it.
 Install the requirements in a clean conda environment:
 ```
