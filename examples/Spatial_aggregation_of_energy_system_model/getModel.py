@@ -12,8 +12,9 @@ from getData import getData
 
 data = getData()
 
+
 def getModel():
-    
+
     # 1. Create an energy system model instance
     locations = {
         "cluster_0",
@@ -81,7 +82,6 @@ def getModel():
         )
     )
 
-
     # 3. Add conversion components to the energy system model
 
     ### New combined cycly gas turbines for hydrogen
@@ -113,7 +113,6 @@ def getModel():
             economicLifetime=10,
         )
     )
-
 
     # 4. Add commodity storages to the energy system model
 
@@ -160,7 +159,6 @@ def getModel():
         )
     )
 
-
     # 5. Add commodity transmission components to the energy system model
 
     ### AC cables
@@ -187,7 +185,6 @@ def getModel():
             capacityFix=data["DC cables, capacityFix"],
         )
     )
-
 
     ### Hydrogen pipelines
     esM.add(
@@ -230,7 +227,8 @@ def getModel():
             name="Hydrogen demand",
             commodity="hydrogen",
             hasCapacityVariable=False,
-            operationRateFix=data["Hydrogen demand, operationRateFix"] * FCEV_penetration,
+            operationRateFix=data["Hydrogen demand, operationRateFix"]
+            * FCEV_penetration,
         )
     )
 
