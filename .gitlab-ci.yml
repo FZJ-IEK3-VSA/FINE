@@ -13,11 +13,9 @@ variables:
   stage: test
   before_script:
     - conda install mamba -c conda-forge
-    - mamba env update -n fine --file=requirements.yml
     - mamba env update -n fine --file=requirements_dev.yml
     - mamba info --envs
     - source activate fine
-    - python -m pip install -e .
 
 .build_template:
   stage: build

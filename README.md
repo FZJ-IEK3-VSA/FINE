@@ -1,4 +1,4 @@
-﻿[![Build Status](https://travis-ci.com/FZJ-IEK3-VSA/FINE.svg?branch=master)](https://travis-ci.com/FZJ-IEK3-VSA/FINE) [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE) [![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/) [![PyPI - License](https://img.shields.io/pypi/l/FINE)]((https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)) [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
+[![Build Status](https://travis-ci.com/FZJ-IEK3-VSA/FINE.svg?branch=master)](https://travis-ci.com/FZJ-IEK3-VSA/FINE) [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE) [![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/) [![PyPI - License](https://img.shields.io/pypi/l/FINE)]((https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)) [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
 
 
 <a href="https://www.fz-juelich.de/iek/iek-3/DE/Home/home_node.html"><img src="http://www.fz-juelich.de/SharedDocs/Bilder/IBG/IBG-3/DE/Plant-soil-atmosphere%20exchange%20processes/INPLAMINT%20(BONARES)/Bild3.jpg?__blob=poster" alt="Forschungszentrum Juelich Logo" width="230px"></a> 
@@ -18,46 +18,39 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
 
 ## Installation
-You can directly install FINE via pip as follows
+### Prepare and install required software
+1.  Install anaconda [by choosing your operating system here](https://docs.anaconda.com/anaconda/install/). If you are a Windows 10 user, remember to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
+2. Install git from https://git-scm.com/downloads
+### Prepare folder
+1. Open a prompt e.g. "anaconda prompt" or "cmd" from the windows start menu
+2. Make a folder where you want to work, for example C:\Users\<your username>\work with "mkdir C:\Users\<your username>\work"
+3. Go to that directory with "cd C:\Users\<your username>\work" at the command line
 
-	pip install FINE
 
-However, in this case, the connection to this GitHub repository is not preserved. If you want to preserve it,
-you can clone a local copy of the repository to your computer
+### Get source code via GIT
 
-	git clone https://github.com/FZJ-IEK3-VSA/FINE.git
+Clone public repository or repository of your choice first
+```
+git clone https://github.com/FZJ-IEK3-VSA/FINE.git 
+```
+Move into the FINE folder with
+```
+cd fine
+```
 
-Then install FINE via pip as follow
-	
-	cd FINE
-	pip install . 
-	
-Or install directly via python as 
-
-	python setup.py install
-
-### Setup a clean environment
-Due to the required dependencies, it is recommended to create a clean environment to use FINE.
-Therefore, you can find a yml-file (called requirements.yml) for easy environment creation with Anaconda. 
+### Installation for users
+It is recommended to create a clean environment with conda to use FINE because it requires many dependencies. 
 
 ```
 conda env create -f requirements.yml
 activate FINE
 ```
-
-In the next step, install FINE by executing
-
+### Installation for developers
+Create a development environment if you want to modify it.
+Install the requirements in a clean conda environment:
 ```
-pip install -e .
-```
-
-In that case, you install an editable (-e) version of FINE.
-
-If you would like to contribute, update your environment with the requirements-dev.cml. 
-It add some packages for testing and formatting the code.
-
-```
-conda env update --file requirements_dev.yml
+conda env create -f requirements_dev.yml
+activate FINE_dev
 ```
 
 The development environent includes all packages to check if FINE is working.
@@ -65,8 +58,6 @@ The development environent includes all packages to check if FINE is working.
 pytest --cov=FINE test/
 ```
 If all tests run through, you have successfully installed FINE. 
-		
-	
 ## Examples
 
 A number of [**examples**](examples/) shows the capabilities of FINE.
