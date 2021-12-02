@@ -101,9 +101,6 @@ A complete installation instruction for Windows can be found [here](http://wingl
 ### CBC
 Installation proceedure can be found [here](https://projects.coin-or.org/Cbc).
 
-###  Change the solver used by FINE
-Gurboi is defined as standard solver for FINE. If you want to use
-
 ## Examples
 
 A number of [**examples**](examples/) shows the capabilities of FINE.
