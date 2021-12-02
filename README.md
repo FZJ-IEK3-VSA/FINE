@@ -77,7 +77,7 @@ pytest --cov=FINE test/
 
 ## Installation of an optimization solver
 
-FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). Ther are three standard solvers defined:
+FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). There are three standard solvers defined:
 - [GUROBI](http://www.gurobi.com/)
    - Recommended due to better performance but requires license (free academic version available)
    - Set as standard solver
@@ -89,7 +89,7 @@ FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.r
 ### Gurobi installation
 The installation requires the following three components:
 - Gurobi Optimizer
-    - In order to [download](https://www.gurobi.com/downloads/gurobi-optimizer-eula/) the software you need to create an Account and obtain a license.
+    - In order to [download](https://www.gurobi.com/downloads/gurobi-optimizer-eula/) the software you need to create an account and obtain a license.
 - Gurobi license
     - The license needs to be installed according to the instructions in the registration process.
 - Gurobi python api
@@ -99,7 +99,7 @@ The installation requires the following three components:
 A complete installation instruction for Windows can be found [here](http://winglpk.sourceforge.net/).
 
 ### CBC
-Installation proceedure can be found [here](https://projects.coin-or.org/Cbc).
+Installation procedure can be found [here](https://projects.coin-or.org/Cbc).
 
 ## Examples
 
