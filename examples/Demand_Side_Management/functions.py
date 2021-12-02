@@ -128,7 +128,7 @@ def run_esM_without_DSM():
     esM_without.add(fn.Sink(esM=esM_without, name='load', commodity='electricity',
                             hasCapacityVariable=False, operationRateFix=load_without_dsm))
 
-    esM_without.optimize(timeSeriesAggregation=False, solver='gurobi')  # without dsm
+    esM_without.optimize(timeSeriesAggregation=False)  # without dsm
 
     fig, ax = fn.plotOperation(esM_without,'cheap','location', figsize=(4,2), fontsize=10)
     ax.set_title('Cheap generator')
@@ -156,7 +156,7 @@ def run_esM_with_DSM(timeSeriesAggregation, tBwd, tFwd, numberOfTypicalPeriods =
     if timeSeriesAggregation:
         esM_with.cluster(numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
                          numberOfTypicalPeriods=numberOfTypicalPeriods)
-        esM_with.optimize(timeSeriesAggregation=True, solver='gurobi', optimizationSpecs='LogToConsole=0')
+        esM_with.optimize(timeSeriesAggregation=True)
         if esM_with.solverSpecs['status'] != 'ok':
             print(esM_with.solverSpecs['status'], esM_with.solverSpecs['terminationCondition'])
             print('\n\nOptimization failed. Try againg with relaxed state of charge formulation (socOffsetDown=socOffsetDown=200)\n\n')
@@ -165,9 +165,9 @@ def run_esM_with_DSM(timeSeriesAggregation, tBwd, tFwd, numberOfTypicalPeriods =
                                         operationRateFix=load_without_dsm, opexShift=1,
                                         shiftDownMax=shiftMax, shiftUpMax=shiftMax,
                                         socOffsetDown=200, socOffsetUp=200))
-            esM_with.optimize(timeSeriesAggregation=True, solver='gurobi', optimizationSpecs='LogToConsole=0')
+            esM_with.optimize(timeSeriesAggregation=True)
     else:
-        esM_with.optimize(timeSeriesAggregation=False, solver='gurobi', optimizationSpecs= 'LogToConsole=0')
+        esM_with.optimize(timeSeriesAggregation=False,)
         if esM_with.solverSpecs['status'] != 'ok':
             print(esM_with.solverSpecs['status'], esM_with.solverSpecs['terminationCondition'])
             print('\n\nOptimization failed. Try againg with relaxed state of charge formulation (socOffsetDown=socOffsetDown=200)\n\n')
@@ -176,7 +176,7 @@ def run_esM_with_DSM(timeSeriesAggregation, tBwd, tFwd, numberOfTypicalPeriods =
                                         operationRateFix=load_without_dsm, opexShift=1,
                                         shiftDownMax=shiftMax, shiftUpMax=shiftMax,
                                         socOffsetDown=200, socOffsetUp=200))
-            esM_with.optimize(timeSeriesAggregation=False, solver='gurobi', optimizationSpecs= 'LogToConsole=0')
+            esM_with.optimize(timeSeriesAggregation=False,)
 
     generator_outputs = esM_with.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
     esM_load_with_DSM = esM_with.componentModelingDict['DSMModel'].operationVariablesOptimum

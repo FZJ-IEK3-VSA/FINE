@@ -3,8 +3,7 @@ import pandas as pd
 
 
 def test_linkedQuantityID(minimal_test_esM):
-    """
-    """
+    """ """
     esM = minimal_test_esM
 
     # get components
@@ -43,4 +42,3 @@ def test_linkedQuantityID(minimal_test_esM):
         .loc["opexCap"]["ElectrolyzerLocation"]
         .values.astype(int)[0]
     )
-

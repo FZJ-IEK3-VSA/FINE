@@ -16,3 +16,5 @@ Find examples for the application of FINE in the following published articles:
 * Kannengießer et al. (2020): `Reducing Computational Load for Mixed Integer Linear Programming: An Example for a District and an Island Energy System <https://www.mdpi.com/1996-1073/12/14/2825>`_ .
 
 
+* Knosala et al. (2021): `Hybrid Hydrogen Home Storage for Decentralized Energy Autonomy <https://www.sciencedirect.com/science/article/pii/S0360319921013409>`_ .
+

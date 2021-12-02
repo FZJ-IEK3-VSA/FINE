@@ -15,25 +15,29 @@ import pyomo.environ as pyomo
 import pandas as pd
 import warnings
 
+
 class DemandSideManagementBETA(Sink):
     """
     A DemandSideManagement component. Allows to shift demands (of Sink components) forwards and backwards in time.
     Initializes a Sink component and multiple Storage components which are aggregated after optimization.
     """
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 commodity, 
-                 hasCapacityVariable, 
-                 tFwd, 
-                 tBwd, 
-                 operationRateFix, 
-                 opexShift=1e-6, 
-                 shiftUpMax=None, 
-                 shiftDownMax=None, 
-                 socOffsetDown=-1, 
-                 socOffsetUp=-1, 
-                 **kwargs):
+
+    def __init__(
+        self,
+        esM,
+        name,
+        commodity,
+        hasCapacityVariable,
+        tFwd,
+        tBwd,
+        operationRateFix,
+        opexShift=1e-6,
+        shiftUpMax=None,
+        shiftDownMax=None,
+        socOffsetDown=-1,
+        socOffsetUp=-1,
+        **kwargs
+    ):
         """
         Constructor for creating an DemandSideManagement class instance.
         Note: the DemandSideManagement class inherits from the Sink class; kwargs provide input arguments
@@ -98,7 +102,7 @@ class DemandSideManagementBETA(Sink):
 
         :param socOffsetDown: determines whether the state of charge at the end of a period p has
             to be equal to the one at the beginning of a period p+1 (socOffsetDown=-1) or if
-            it can be smaller at the beginning of p+1 (socOffsetDown>=0). In the latter case, 
+            it can be smaller at the beginning of p+1 (socOffsetDown>=0). In the latter case,
             the product of the parameter socOffsetDown and the actual soc offset is used as a penalty
             factor in the objective function. (usefull when infeasibilities are encountered when using
             DemandSideManagement and time series aggregation)
@@ -107,7 +111,7 @@ class DemandSideManagementBETA(Sink):
 
         :param socOffsetUp: determines whether the state of charge at the end of a period p has
             to be equal to the one at the beginning of a period p+1 (socOffsetUp=-1) or if
-            it can be larger at the beginning of p+1 (socOffsetUp>=0). In the latter case, 
+            it can be larger at the beginning of p+1 (socOffsetUp>=0). In the latter case,
             the product of the parameter socOffsetUp and the actual soc offset is used as a penalty
             factor in the objective function. (usefull when infeasibilities are encountered when using
             DemandSideManagement and time series aggregation)
@@ -115,14 +119,16 @@ class DemandSideManagementBETA(Sink):
         :type socOffsetUp: float
         """
         if esM.verbose < 2:
-            warnings.warn('The DemandSideManagement component is currently in its BETA testing phase. ' +
-                'Infeasiblities can occur (in this case consider using socOffsetUp/ socOffsetDown). ' +
-                'Best results can be obtained when tFwd+tBwd+1 is a divisor of either the total number ' +
-                'of timesteps or the number of time steps per period. Use with care...')
+            warnings.warn(
+                "The DemandSideManagement component is currently in its BETA testing phase. "
+                + "Infeasiblities can occur (in this case consider using socOffsetUp/ socOffsetDown). "
+                + "Best results can be obtained when tFwd+tBwd+1 is a divisor of either the total number "
+                + "of timesteps or the number of time steps per period. Use with care..."
+            )
 
         self.tBwd = tBwd
         self.tFwd = tFwd
-        self.tDelta = tFwd+tBwd+1
+        self.tDelta = tFwd + tBwd + 1
 
         #############
         _operationRateFix = {}
@@ -210,10 +216,32 @@ class DemandSideManagementBETA(Sink):
                                 columns=self.locationalEligibility.index)
                 opexPerChargeOpTimeSeries[ip][(opexPerChargeOpTimeSeries[ip].index - i ) % self.tDelta == tBwd + 1] = 0
 
-            esM.add(fn.StorageExtBETA(esM, name + '_' + str(i), commodity, stateOfChargeOpRateMax=SOCmax,
-                dischargeOpRateFix=dischargeFix, hasCapacityVariable=False, chargeOpRateMax=chargeOpRateMax, 
-                opexPerChargeOpTimeSeries=opexPerChargeOpTimeSeries, doPreciseTsaModeling=True,
-                socOffsetDown=socOffsetDown, socOffsetUp=socOffsetUp))
+            opexPerChargeOpTimeSeries = pd.DataFrame(
+                [
+                    [opexShift for loc in self.locationalEligibility]
+                    for t in esM.totalTimeSteps
+                ],
+                columns=self.locationalEligibility.index,
+            )
+            opexPerChargeOpTimeSeries[
+                (opexPerChargeOpTimeSeries.index - i) % self.tDelta == tBwd + 1
+            ] = 0
+
+            esM.add(
+                fn.StorageExtBETA(
+                    esM,
+                    name + "_" + str(i),
+                    commodity,
+                    stateOfChargeOpRateMax=SOCmax,
+                    dischargeOpRateFix=dischargeFix,
+                    hasCapacityVariable=False,
+                    chargeOpRateMax=chargeOpRateMax,
+                    opexPerChargeOpTimeSeries=opexPerChargeOpTimeSeries,
+                    doPreciseTsaModeling=True,
+                    socOffsetDown=socOffsetDown,
+                    socOffsetUp=socOffsetUp,
+                )
+            )
 
 
         # operationRateFix = pd.concat([operationRateFix.iloc[-tBwd:], operationRateFix.iloc[:-tBwd]]).reset_index(drop=True)
@@ -290,14 +318,13 @@ class DSMModel(SourceSinkModel):
     """
 
     def __init__(self):
-        """ Constructor for creating a DSMModel class instance """
-        self.abbrvName = 'dsm'
-        self.dimension = '1dim'
+        """Constructor for creating a DSMModel class instance"""
+        self.abbrvName = "dsm"
+        self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
         self.operationVariablesOptimum = None
         self.optSummary = None
-
 
     def limitUpDownShifts(self, pyM, esM):
         """
@@ -311,8 +338,8 @@ class DSMModel(SourceSinkModel):
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        chargeOp = getattr(pyM, 'chargeOp_storExt')
-        constrSet = getattr(pyM, 'operationVarSet_' + self.abbrvName)
+        chargeOp = getattr(pyM, "chargeOp_storExt")
+        constrSet = getattr(pyM, "operationVarSet_" + self.abbrvName)
 
         def limitUpDownShifts(pyM, loc, compName, ip, p, t):
 
@@ -345,8 +372,8 @@ class DSMModel(SourceSinkModel):
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        chargeOp = getattr(pyM, 'chargeOp_storExt')
-        constrSet = getattr(pyM, 'operationVarSet_' + self.abbrvName)
+        chargeOp = getattr(pyM, "chargeOp_storExt")
+        constrSet = getattr(pyM, "operationVarSet_" + self.abbrvName)
 
         def shiftUpMax(pyM, loc, compName, ip, p, t):
             
@@ -376,12 +403,12 @@ class DSMModel(SourceSinkModel):
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        chargeOp = getattr(pyM, 'chargeOp_storExt')
-        constrSet = getattr(pyM, 'operationVarSet_' + self.abbrvName)
+        chargeOp = getattr(pyM, "chargeOp_storExt")
+        constrSet = getattr(pyM, "operationVarSet_" + self.abbrvName)
 
         def shiftDownMax(pyM, loc, compName, ip, p, t):
 
-            #ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
+            # ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
                 if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
                     ixDown = str(i)
@@ -393,6 +420,11 @@ class DSMModel(SourceSinkModel):
         setattr(pyM, 'shiftDownMax_' + abbrvName,
                 pyomo.Constraint(constrSet, pyM.timeSet, rule=shiftDownMax))
 
+        setattr(
+            pyM,
+            "shiftDownMax_" + abbrvName,
+            pyomo.Constraint(constrSet, pyM.timeSet, rule=shiftDownMax),
+        )
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -404,13 +436,12 @@ class DSMModel(SourceSinkModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        
+
         super().declareComponentConstraints(esM, pyM)
 
         self.limitUpDownShifts(pyM, esM)
         self.shiftUpMax(pyM, esM)
         self.shiftDownMax(pyM, esM)
-
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #
@@ -430,10 +461,12 @@ class DSMModel(SourceSinkModel):
         :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, 'op_' + abbrvName)
+        opVar = getattr(pyM, "op_" + abbrvName)
 
         # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super(SourceSinkModel, self).setOptimalValues(esM, pyM, esM.locations, 'commodityUnit')
+        optSummaryBasic = super(SourceSinkModel, self).setOptimalValues(
+            esM, pyM, esM.locations, "commodityUnit"
+        )
 
         # Set optimal operation variables and append optimization summary
         chargeOp = getattr(pyM, 'chargeOp_storExt')
@@ -443,7 +476,9 @@ class DSMModel(SourceSinkModel):
         def groupStor(x):
             ix = optVal.loc[x].name
             for compName, comp in self.componentsDict.items():
-                if ix[0] in [compName + '_' + str(i) for i in range(comp.tBwd+comp.tFwd+1)]:
+                if ix[0] in [
+                    compName + "_" + str(i) for i in range(comp.tBwd + comp.tFwd + 1)
+                ]:
                     return (compName, ix[1])
 
         optVal = optVal.groupby(lambda x: groupStor(x)).sum()
@@ -451,13 +486,32 @@ class DSMModel(SourceSinkModel):
 
         self.operationVariablesOptimum = optVal
 
-        props = ['operation', 'opexOp', 'commodCosts', 'commodRevenues']
-        units = ['[-]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]', '[' + esM.costUnit + '/a]']
-        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop, unit in zip(props, units)]
-        tuples = list(map(lambda x: (x[0], x[1], '[' + compDict[x[0]].commodityUnit + '*h/a]')
-                          if x[1] == 'operation' else x, tuples))
-        mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
-        optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
+        props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
+        units = [
+            "[-]",
+            "[" + esM.costUnit + "/a]",
+            "[" + esM.costUnit + "/a]",
+            "[" + esM.costUnit + "/a]",
+        ]
+        tuples = [
+            (compName, prop, unit)
+            for compName in compDict.keys()
+            for prop, unit in zip(props, units)
+        ]
+        tuples = list(
+            map(
+                lambda x: (x[0], x[1], "[" + compDict[x[0]].commodityUnit + "*h/a]")
+                if x[1] == "operation"
+                else x,
+                tuples,
+            )
+        )
+        mIndex = pd.MultiIndex.from_tuples(
+            tuples, names=["Component", "Property", "Unit"]
+        )
+        optSummary = pd.DataFrame(
+            index=mIndex, columns=sorted(esM.locations)
+        ).sort_index()
 
         if optVal is not None:
             idx = pd.IndexSlice
@@ -475,8 +529,12 @@ class DSMModel(SourceSinkModel):
                 ox.values/esM.numberOfYears
             
             # get empty datframe for resulting time dependent (TD) cost sum
-            cRevenueTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
-            cCostTD = pd.DataFrame(0., index = list(compDict.keys()), columns = opSum.columns)
+            cRevenueTD = pd.DataFrame(
+                0.0, index=list(compDict.keys()), columns=opSum.columns
+            )
+            cCostTD = pd.DataFrame(
+                0.0, index=list(compDict.keys()), columns=opSum.columns
+            )
 
             #for compName in compDict.keys():
             for compName in opSum.index:
@@ -486,30 +544,47 @@ class DSMModel(SourceSinkModel):
                         compDict[compName].commodityCostTimeSeries[ip].unstack(level=1).stack(level=0),
                         esM.periodsOrder[ip], ip, esM=esM, divide=False)
                     # multiply with operation values to get the total cost
-                    cCostTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
+                    cCostTD.loc[compName, :] = (
+                        optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
+                    )
 
-                if not compDict[compName].commodityRevenueTimeSeries is None:
+                if not compDict[compName].processedCommodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
                     calcRevenueTD = utils.buildFullTimeSeries(
                         compDict[compName].commodityRevenueTimeSeries[ip].unstack(level=1).stack(level=0),
                         esM.periodsOrder[ip], ip, esM=esM, divide=False)
                     # multiply with operation values to get the total revenue
-                    cRevenueTD.loc[compName,:] = optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
-                        
-            optSummary.loc[[(ix, 'commodCosts', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                (cCostTD.values + cCost.values)/esM.numberOfYears
+                    cRevenueTD.loc[compName, :] = (
+                        optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
+                    )
 
-            optSummary.loc[[(ix, 'commodRevenues', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                (cRevenueTD.values + cRevenue.values)/esM.numberOfYears
-        
+            optSummary.loc[
+                [(ix, "commodCosts", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                ox.columns,
+            ] = (cCostTD.values + cCost.values) / esM.numberOfYears
+
+            optSummary.loc[
+                [(ix, "commodRevenues", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                ox.columns,
+            ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
+
         # get discounted investment cost as total annual cost (TAC)
         optSummary = optSummary.append(optSummaryBasic).sort_index()
 
         # add operation specific contributions to the total annual cost (TAC) and substract revenues
-        optSummary.loc[optSummary.index.get_level_values(1) == 'TAC'] = \
-            optSummary.loc[(optSummary.index.get_level_values(1) == 'TAC') |
-                           (optSummary.index.get_level_values(1) == 'opexOp') |
-                           (optSummary.index.get_level_values(1) == 'commodCosts')].groupby(level=0).sum().values \
-            - optSummary.loc[(optSummary.index.get_level_values(1) == 'commodRevenues')].groupby(level=0).sum().values
+        optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
+            optSummary.loc[
+                (optSummary.index.get_level_values(1) == "TAC")
+                | (optSummary.index.get_level_values(1) == "opexOp")
+                | (optSummary.index.get_level_values(1) == "commodCosts")
+            ]
+            .groupby(level=0)
+            .sum()
+            .values
+            - optSummary.loc[(optSummary.index.get_level_values(1) == "commodRevenues")]
+            .groupby(level=0)
+            .sum()
+            .values
+        )
 
         self.optSummary = optSummary

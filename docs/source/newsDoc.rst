@@ -3,6 +3,47 @@ FINE's News Feed
 ################
 
 *********************
+Release version 2.2.2
+*********************
+
+FINE release (2.2.2) provides new functionalities: 
+
+* Add netCDF compatibility for import and export of EnergySystemModel instances to store input and output data. 
+* Add generic spatial aggregation for models with high spatial resolution. 
+
+*********************
+Release version 2.2.1
+*********************
+FINE release (2.2.1) provides some changes in code including 
+
+* compatibility to newer versions of pandas (bugs due to reading .xlsx files are fixed)
+* correct zlabel description for plotLocationalColorMap in standardIO.py
+* add some more documentation to functions
+
+FINE release (2.2.1) fixes a bug in storage.py
+
+* constraints for chargeOperationMax, chargeOperationFix, disChargeOperationMax and dischargeOperationFix should be set up without an error message. 
+
+*********************
+Release version 2.2.0
+*********************
+FINE release (2.2.0) provides some changes in code including bug fixes for 
+
+* plotOperationColorMap (issubclass error should not occur anymore)
+* default solver (default solver is changed to None; it is searched for an available solver if no solver is specified)
+* transmission components: capacityMin and opexPerOperation can be given as a pandas DataFrame
+* postprocessing: no ValueError occur if components are not chosen in the optimized solution
+* postprocessing: optimizationSummary is ordered correctly s.t. properties are assigned to the corresponding component.
+
+New features were included: 
+
+* New keyword argument linkedQuantityID: The number of different components can be forced to be the same. 
+* Enable time-dependent conversion factors (e.g. for modeling heat pumps)
+* Add warning for simultaneous charge and discharge of storage components; users can check if and when simultaneous charge and discharge of storage components occur
+* Add operation value for considered time horizon in the optimizationSummary 
+* Add new attribute objectiveValue to EnergySystemModel class
+
+*********************
 Release version 2.1.1
 *********************
 

@@ -8,76 +8,83 @@ from FINE import utils
 import pyomo.environ as pyomo
 import pandas as pd
 
+
 class ConversionPartLoad(Conversion):
     """
     A ConversionPartLoad component maps the (nonlinear) part-load behavior of a Conversion component.
-    It uses the open source module PWLF to generate piecewise linear functions upon a continuous function or 
+    It uses the open source module PWLF to generate piecewise linear functions upon a continuous function or
     discrete data points.
     The formulation of the optimization is done by using special ordered sets (SOS) constraints.
     When using ConversionPartLoad it is recommended to check the piecewise linearization
     visually to verify that the accuracy meets the desired requirements.
     The ConversionPartLoad class inherits from the Conversion class.
     """
-    def __init__(self, 
-                 esM, 
-                 name, 
-                 physicalUnit, 
-                 commodityConversionFactors, 
-                 commodityConversionFactorsPartLoad, 
-                 nSegments=None, 
-                 **kwargs):
+
+    def __init__(
+        self,
+        esM,
+        name,
+        physicalUnit,
+        commodityConversionFactors,
+        commodityConversionFactorsPartLoad,
+        nSegments=None,
+        **kwargs
+    ):
 
         """
         Constructor for creating an ConversionPartLoad class instance. Capacities are given in the physical unit
         of the plants.
         The ConversionPartLoad component specific input arguments are described below.
-        Other specific input arguments are described in the Conversion class 
+        Other specific input arguments are described in the Conversion class
         and the general component input arguments are described in the Component class.
 
         **Required arguments:**
-        
+
         :param commodityConversionFactorsPartLoad: Function or data set describing (nonlinear) part load behavior.
-        :type commodityConversionFactorsPartLoad: Lambda function or Pandas DataFrame with two columns for the x-axis 
+        :type commodityConversionFactorsPartLoad: Lambda function or Pandas DataFrame with two columns for the x-axis
             and the y-axis.
 
         **Default arguments:**
-        
-        :param nSegments: Number of line segments used for piecewise linearization and generation of point variable (nSegment+1) and 
+
+        :param nSegments: Number of line segments used for piecewise linearization and generation of point variable (nSegment+1) and
             segment (nSegment) variable sets.
             By default, the nSegments is None. For this case, the number of line segments is set to 5.
             The user can set nSegments by choosing an integer (>=0). It is recommended to choose values between 3 and 7 since
             the computational cost rises dramatically with increasing nSegments.
-            When specifying nSegements='optimizeSegmentNumbers', an optimal number of line segments is automatically chosen by a 
+            When specifying nSegements='optimizeSegmentNumbers', an optimal number of line segments is automatically chosen by a
             bayesian optimization algorithm.
             |br| * the default value is None
-        :type nSegments: None or integer or string 
-        
+        :type nSegments: None or integer or string
+
         :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
         :type **kwargs:
             * Check Conversion Class documentation.
         """
-        Conversion.__init__(self, 
-                            esM, 
-                            name, 
-                            physicalUnit, 
-                            commodityConversionFactors, 
-                            **kwargs)
+        Conversion.__init__(
+            self, esM, name, physicalUnit, commodityConversionFactors, **kwargs
+        )
 
         self.modelingClass = ConversionPartLoadModel
 
         # TODO: Make compatible with conversion
         utils.checkNumberOfConversionFactors(commodityConversionFactors)
-                                       
+
         if type(commodityConversionFactorsPartLoad) == dict:
-            #TODO: Multiple conversionPartLoads
+            # TODO: Multiple conversionPartLoads
             utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad)
             utils.checkCommodities(esM, set(commodityConversionFactorsPartLoad.keys()))
-            utils.checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad.values())
+            utils.checkCommodityConversionFactorsPartLoad(
+                commodityConversionFactorsPartLoad.values()
+            )
             self.commodityConversionFactorsPartLoad = commodityConversionFactorsPartLoad
-            self.discretizedPartLoad, self.nSegments = utils.getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments)
+            self.discretizedPartLoad, self.nSegments = utils.getDiscretizedPartLoad(
+                commodityConversionFactorsPartLoad, nSegments
+            )
 
         elif type(commodityConversionFactorsPartLoad) == tuple:
-            utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad[0].keys()) 
+            utils.checkNumberOfConversionFactors(
+                commodityConversionFactorsPartLoad[0].keys()
+            )
             self.discretizedPartLoad = commodityConversionFactorsPartLoad[0]
             self.nSegments = commodityConversionFactorsPartLoad[1]
 
@@ -101,8 +108,8 @@ class ConversionPartLoadModel(ConversionModel):
     """
 
     def __init__(self):
-        self.abbrvName = 'partLoad'
-        self.dimension = '1dim'
+        self.abbrvName = "partLoad"
+        self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
         self.operationVariablesOptimum = None
@@ -124,10 +131,19 @@ class ConversionPartLoadModel(ConversionModel):
 
         # Set for operation variables
         def initDiscretizationPointVarSet(pyM):
-            return ((loc, compName, discreteStep) for compName, comp in compDict.items() \
-                    for loc in compDict[compName].locationalEligibility.index if compDict[compName].locationalEligibility[loc] == 1 \
-                    for discreteStep in range(compDict[compName].nSegments+1))
-        setattr(pyM, 'discretizationPointVarSet_' + abbrvName, pyomo.Set(dimen=3, initialize=initDiscretizationPointVarSet))
+            return (
+                (loc, compName, discreteStep)
+                for compName, comp in compDict.items()
+                for loc in compDict[compName].locationalEligibility.index
+                if compDict[compName].locationalEligibility[loc] == 1
+                for discreteStep in range(compDict[compName].nSegments + 1)
+            )
+
+        setattr(
+            pyM,
+            "discretizationPointVarSet_" + abbrvName,
+            pyomo.Set(dimen=3, initialize=initDiscretizationPointVarSet),
+        )
 
     def initDiscretizationSegmentVarSet(self, pyM):
         """
@@ -141,10 +157,19 @@ class ConversionPartLoadModel(ConversionModel):
 
         # Set for operation variables
         def initDiscretizationSegmentVarSet(pyM):
-            return ((loc, compName, discreteStep) for compName, comp in compDict.items() \
-                    for loc in compDict[compName].locationalEligibility.index if compDict[compName].locationalEligibility[loc] == 1 \
-                    for discreteStep in range(compDict[compName].nSegments))
-        setattr(pyM, 'discretizationSegmentVarSet_' + abbrvName, pyomo.Set(dimen=3, initialize=initDiscretizationSegmentVarSet))
+            return (
+                (loc, compName, discreteStep)
+                for compName, comp in compDict.items()
+                for loc in compDict[compName].locationalEligibility.index
+                if compDict[compName].locationalEligibility[loc] == 1
+                for discreteStep in range(compDict[compName].nSegments)
+            )
+
+        setattr(
+            pyM,
+            "discretizationSegmentVarSet_" + abbrvName,
+            pyomo.Set(dimen=3, initialize=initDiscretizationSegmentVarSet),
+        )
 
     def declareSets(self, esM, pyM):
         """
@@ -175,9 +200,15 @@ class ConversionPartLoadModel(ConversionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-        setattr(pyM, 'discretizationPoint_' + self.abbrvName,
-                pyomo.Var(getattr(pyM, 'discretizationPointVarSet_' + self.abbrvName), pyM.timeSet, domain=pyomo.NonNegativeReals))
-
+        setattr(
+            pyM,
+            "discretizationPoint_" + self.abbrvName,
+            pyomo.Var(
+                getattr(pyM, "discretizationPointVarSet_" + self.abbrvName),
+                pyM.timeSet,
+                domain=pyomo.NonNegativeReals,
+            ),
+        )
 
     def declareDiscretizationSegmentBinVariables(self, pyM):
         """
@@ -186,9 +217,15 @@ class ConversionPartLoadModel(ConversionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-        setattr(pyM, 'discretizationSegmentBin_' + self.abbrvName,
-                pyomo.Var(getattr(pyM, 'discretizationSegmentVarSet_' + self.abbrvName), pyM.timeSet, domain=pyomo.Binary))
-
+        setattr(
+            pyM,
+            "discretizationSegmentBin_" + self.abbrvName,
+            pyomo.Var(
+                getattr(pyM, "discretizationSegmentVarSet_" + self.abbrvName),
+                pyM.timeSet,
+                domain=pyomo.Binary,
+            ),
+        )
 
     def declareDiscretizationSegmentConVariables(self, pyM):
         """
@@ -197,9 +234,15 @@ class ConversionPartLoadModel(ConversionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-        setattr(pyM, 'discretizationSegmentCon_' + self.abbrvName,
-                pyomo.Var(getattr(pyM, 'discretizationSegmentVarSet_' + self.abbrvName), pyM.timeSet, domain=pyomo.NonNegativeReals))
-
+        setattr(
+            pyM,
+            "discretizationSegmentCon_" + self.abbrvName,
+            pyomo.Var(
+                getattr(pyM, "discretizationSegmentVarSet_" + self.abbrvName),
+                pyM.timeSet,
+                domain=pyomo.NonNegativeReals,
+            ),
+        )
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
         """
@@ -233,8 +276,10 @@ class ConversionPartLoadModel(ConversionModel):
         :type pyM: pyomo Concrete Model
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        discretizationSegmentBinVar = getattr(pyM, 'discretizationSegmentBin_' + self.abbrvName)
-        opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+        discretizationSegmentBinVar = getattr(
+            pyM, "discretizationSegmentBin_" + self.abbrvName
+        )
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         def segmentSOS1(pyM, loc, compName, ip, p, t):
             return sum(discretizationSegmentBinVar[loc, compName, discretStep, ip, p, t] for discretStep in range(compDict[compName].nSegments)) == 1
@@ -250,9 +295,15 @@ class ConversionPartLoadModel(ConversionModel):
         """
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        discretizationSegmentConVar = getattr(pyM, 'discretizationSegmentCon_' + self.abbrvName)
-        discretizationSegmentBinVar = getattr(pyM, 'discretizationSegmentBin_' + self.abbrvName)
-        discretizationSegmentVarSet = getattr(pyM, 'discretizationSegmentVarSet_' + self.abbrvName)
+        discretizationSegmentConVar = getattr(
+            pyM, "discretizationSegmentCon_" + self.abbrvName
+        )
+        discretizationSegmentBinVar = getattr(
+            pyM, "discretizationSegmentBin_" + self.abbrvName
+        )
+        discretizationSegmentVarSet = getattr(
+            pyM, "discretizationSegmentVarSet_" + self.abbrvName
+        )
 
         def segmentBigM(pyM, loc, compName, discretStep, ip, p, t):
             return discretizationSegmentConVar[loc, compName, discretStep, ip, p, t] <= discretizationSegmentBinVar[loc, compName, discretStep, ip, p, t] * compDict[compName].bigM
@@ -268,9 +319,11 @@ class ConversionPartLoadModel(ConversionModel):
         """
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        discretizationSegmentConVar = getattr(pyM, 'discretizationSegmentCon_' + self.abbrvName)
-        capVar = getattr(pyM, 'cap_' + abbrvName)
-        opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+        discretizationSegmentConVar = getattr(
+            pyM, "discretizationSegmentCon_" + self.abbrvName
+        )
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         if not pyM.hasSegmentation:
             def segmentCapacityConstraint(pyM, loc, compName, ip, p, t):
@@ -281,6 +334,20 @@ class ConversionPartLoadModel(ConversionModel):
                 return sum(discretizationSegmentConVar[loc, compName, discretStep, ip, p, t] for discretStep in range(compDict[compName].nSegments)) == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
             setattr(pyM, 'ConstrSegmentCapacity_' + abbrvName,  pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint))
 
+            def segmentCapacityConstraint(pyM, loc, compName, p, t):
+                return (
+                    sum(
+                        discretizationSegmentConVar[loc, compName, discretStep, p, t]
+                        for discretStep in range(compDict[compName].nSegments)
+                    )
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                )
+
+            setattr(
+                pyM,
+                "ConstrSegmentCapacity_" + abbrvName,
+                pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint),
+            )
 
     def pointCapacityConstraint(self, pyM, esM):
         """
@@ -291,9 +358,11 @@ class ConversionPartLoadModel(ConversionModel):
         """
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        discretizationPointConVar = getattr(pyM, 'discretizationPoint_' + self.abbrvName)
-        capVar = getattr(pyM, 'cap_' + abbrvName)
-        opVarSet = getattr(pyM, 'operationVarSet_' + abbrvName)
+        discretizationPointConVar = getattr(
+            pyM, "discretizationPoint_" + self.abbrvName
+        )
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         if not pyM.hasSegmentation:
             def pointCapacityConstraint(pyM, loc, compName, ip, p, t):
@@ -311,12 +380,20 @@ class ConversionPartLoadModel(ConversionModel):
         Declare set of locations and components for which partLoadMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, 'operationVarSetBin_' + abbrvName)
+        varSet = getattr(pyM, "operationVarSetBin_" + abbrvName)
 
         def declareOpConstrSetMinPartLoad(pyM):
-            return ((loc, compName) for loc, compName in varSet if getattr(compDict[compName], 'partLoadMin') is not None)
+            return (
+                (loc, compName)
+                for loc, compName in varSet
+                if getattr(compDict[compName], "partLoadMin") is not None
+            )
 
-        setattr(pyM, constrSetName + 'partLoadMin_' + abbrvName, pyomo.Set(dimen=2, initialize=declareOpConstrSetMinPartLoad))
+        setattr(
+            pyM,
+            constrSetName + "partLoadMin_" + abbrvName,
+            pyomo.Set(dimen=2, initialize=declareOpConstrSetMinPartLoad),
+        )
 
     def pointSOS2(self, pyM):
         """
@@ -327,9 +404,15 @@ class ConversionPartLoadModel(ConversionModel):
         """
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        discretizationPointConVar = getattr(pyM, 'discretizationPoint_' + self.abbrvName)
-        discretizationSegmentConVar = getattr(pyM, 'discretizationSegmentCon_' + self.abbrvName)
-        discretizationPointVarSet = getattr(pyM, 'discretizationPointVarSet_' + self.abbrvName)
+        discretizationPointConVar = getattr(
+            pyM, "discretizationPoint_" + self.abbrvName
+        )
+        discretizationSegmentConVar = getattr(
+            pyM, "discretizationSegmentCon_" + self.abbrvName
+        )
+        discretizationPointVarSet = getattr(
+            pyM, "discretizationPointVarSet_" + self.abbrvName
+        )
 
         def pointSOS2(pyM, loc, compName, discretStep, ip, p, t):
             points = list(range(compDict[compName].nSegments+1))
@@ -394,7 +477,7 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Get contributions to shared location potential. """
+        """Get contributions to shared location potential."""
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -465,10 +548,14 @@ class ConversionPartLoadModel(ConversionModel):
                                                  ip, esM.periodsOrder[ip], esM=esM)
 
         self.discretizationPointVariablesOptimun = discretizationPointVariablesOptVal_
-        self.discretizationSegmentConVariablesOptimun = discretizationSegmentConVariablesOptVal_
-        self.discretizationSegmentBinVariablesOptimun = discretizationSegmentBinVariablesOptVal_
+        self.discretizationSegmentConVariablesOptimun = (
+            discretizationSegmentConVariablesOptVal_
+        )
+        self.discretizationSegmentBinVariablesOptimun = (
+            discretizationSegmentBinVariablesOptVal_
+        )
 
-    def getOptimalValues(self, name='all'):
+    def getOptimalValues(self, name="all"):
         """
         Return optimal values of the components.
 
@@ -484,28 +571,72 @@ class ConversionPartLoadModel(ConversionModel):
         :rtype: dict
         """
         # return super().getOptimalValues(name)
-        if name == 'capacityVariablesOptimum':
-            return {'values': self.capacityVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
-        elif name == 'isBuiltVariablesOptimum':
-            return {'values': self.isBuiltVariablesOptimum, 'timeDependent': False, 'dimension': self.dimension}
-        elif name == 'operationVariablesOptimum':
-            return {'values': self.operationVariablesOptimum, 'timeDependent': True, 'dimension': self.dimension}
-        elif name == 'discretizationPointVariablesOptimun':
-            return {'values': self.discretizationPointVariablesOptimun, 'timeDependent': True, 'dimension': self.dimension}
-        elif name == 'discretizationSegmentConVariablesOptimun':
-            return {'values': self.discretizationSegmentConVariablesOptimun, 'timeDependent': True, 'dimension': self.dimension}
-        elif name == 'discretizationSegmentBinVariablesOptimun':
-            return {'values': self.discretizationSegmentBinVariablesOptimun, 'timeDependent': True, 'dimension': self.dimension}
+        if name == "capacityVariablesOptimum":
+            return {
+                "values": self.capacityVariablesOptimum,
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        elif name == "isBuiltVariablesOptimum":
+            return {
+                "values": self.isBuiltVariablesOptimum,
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        elif name == "operationVariablesOptimum":
+            return {
+                "values": self.operationVariablesOptimum,
+                "timeDependent": True,
+                "dimension": self.dimension,
+            }
+        elif name == "discretizationPointVariablesOptimun":
+            return {
+                "values": self.discretizationPointVariablesOptimun,
+                "timeDependent": True,
+                "dimension": self.dimension,
+            }
+        elif name == "discretizationSegmentConVariablesOptimun":
+            return {
+                "values": self.discretizationSegmentConVariablesOptimun,
+                "timeDependent": True,
+                "dimension": self.dimension,
+            }
+        elif name == "discretizationSegmentBinVariablesOptimun":
+            return {
+                "values": self.discretizationSegmentBinVariablesOptimun,
+                "timeDependent": True,
+                "dimension": self.dimension,
+            }
         else:
-            return {'capacityVariablesOptimum': {'values': self.capacityVariablesOptimum, 'timeDependent': False,
-                                                 'dimension': self.dimension},
-                    'isBuiltVariablesOptimum': {'values': self.isBuiltVariablesOptimum, 'timeDependent': False,
-                                                'dimension': self.dimension},
-                    'operationVariablesOptimum': {'values': self.operationVariablesOptimum, 'timeDependent': True,
-                                                  'dimension': self.dimension},
-                    'discretizationPointVariablesOptimun': {'values': self.discretizationPointVariablesOptimun, 'timeDependent': True,
-                                                  'dimension': self.dimension},
-                    'discretizationSegmentConVariablesOptimun': {'values': self.discretizationSegmentConVariablesOptimun, 'timeDependent': True,
-                                                  'dimension': self.dimension},
-                    'discretizationSegmentBinVariablesOptimun': {'values': self.discretizationSegmentBinVariablesOptimun, 'timeDependent': True,
-                                                  'dimension': self.dimension}}
+            return {
+                "capacityVariablesOptimum": {
+                    "values": self.capacityVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                },
+                "isBuiltVariablesOptimum": {
+                    "values": self.isBuiltVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                },
+                "operationVariablesOptimum": {
+                    "values": self.operationVariablesOptimum,
+                    "timeDependent": True,
+                    "dimension": self.dimension,
+                },
+                "discretizationPointVariablesOptimun": {
+                    "values": self.discretizationPointVariablesOptimun,
+                    "timeDependent": True,
+                    "dimension": self.dimension,
+                },
+                "discretizationSegmentConVariablesOptimun": {
+                    "values": self.discretizationSegmentConVariablesOptimun,
+                    "timeDependent": True,
+                    "dimension": self.dimension,
+                },
+                "discretizationSegmentBinVariablesOptimun": {
+                    "values": self.discretizationSegmentBinVariablesOptimun,
+                    "timeDependent": True,
+                    "dimension": self.dimension,
+                },
+            }

@@ -10,43 +10,47 @@ class Source(Component):
     A Source component can transfer a commodity over the energy system boundary into the system.
     """
 
-    def __init__(self,
-                 esM,
-                 name,
-                 commodity,
-                 hasCapacityVariable,
-                 capacityVariableDomain='continuous',
-                 capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False,
-                 bigM=None,
-                 operationRateMax=None,
-                 operationRateFix=None,
-                 tsaWeight=1,
-                 commodityLimitID=None,
-                 yearlyLimit=None,
-                 locationalEligibility=None,
-                 capacityMin=None,
-                 capacityMax=None,
-                 partLoadMin=None,
-                 sharedPotentialID=None,
-                 linkedQuantityID=None,
-                 capacityFix=None,
-                 isBuiltFix=None,
-                 investPerCapacity=0,
-                 investIfBuilt=0,
-                 opexPerOperation=0,
-                 commodityCost=0,
-                 commodityRevenue=0,
-                 commodityCostTimeSeries=None,
-                 commodityRevenueTimeSeries=None,
-                 opexPerCapacity=0,
-                 opexIfBuilt=0,
-                 QPcostScale=0,
-                 interestRate=0.08,
-                 economicLifetime=10,
-                 technicalLifetime=None,
-                 yearlyFullLoadHoursMin=None,
-                 yearlyFullLoadHoursMax=None):
+    def __init__(
+        self,
+        esM,
+        name,
+        commodity,
+        hasCapacityVariable,
+        capacityVariableDomain="continuous",
+        capacityPerPlantUnit=1,
+        hasIsBuiltBinaryVariable=False,
+        bigM=None,
+        operationRateMax=None,
+        operationRateFix=None,
+        tsaWeight=1,
+        commodityLimitID=None,
+        yearlyLimit=None,
+        locationalEligibility=None,
+        capacityMin=None,
+        capacityMax=None,
+        partLoadMin=None,
+        sharedPotentialID=None,
+        linkedQuantityID=None,
+        capacityFix=None,
+        isBuiltFix=None,
+        investPerCapacity=0,
+        investIfBuilt=0,
+        opexPerOperation=0,
+        commodityCost=0,
+        commodityRevenue=0,
+        commodityCostTimeSeries=None,
+        commodityRevenueTimeSeries=None,
+        opexPerCapacity=0,
+        opexIfBuilt=0,
+        QPcostScale=0,
+        interestRate=0.08,
+        economicLifetime=10,
+        technicalLifetime=None,
+        yearlyFullLoadHoursMin=None,
+        yearlyFullLoadHoursMax=None,
+        balanceLimitID=None,
+    ):
+
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -88,7 +92,7 @@ class Source(Component):
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
         :param commodityCostTimeSeries: if specified, indicates commodity cost rates for each location and each
-            time step by a positive float. The values are given as specific values relative to the commodityUnit 
+            time step by a positive float. The values are given as specific values relative to the commodityUnit
             for each time step.
             |br| * the default value is None
         :type commodityCostTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
@@ -168,41 +172,54 @@ class Source(Component):
             |br| * the default value is 0
         :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
+
+        :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
+            Should be specified if the respective component of the SourceSinkModel is supposed to be included in
+            the balance analysis. If the commodity is transported out of the region, it is counted as a negative, if
+            it is imported into the region it is considered positive.
+            |br| * the default value is None
+        :type balanceLimitID: string
         """
 
-        Component. __init__(self,
-                            esM,
-                            name,
-                            dimension='1dim',
-                            hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain,
-                            capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
-                            bigM=bigM,
-                            locationalEligibility=locationalEligibility,
-                            capacityMin=capacityMin,
-                            capacityMax=capacityMax,
-                            partLoadMin=partLoadMin,
-                            sharedPotentialID=sharedPotentialID,
-                            linkedQuantityID=linkedQuantityID,
-                            capacityFix=capacityFix,
-                            isBuiltFix=isBuiltFix,
-                            investPerCapacity=investPerCapacity,
-                            investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity,
-                            opexIfBuilt=opexIfBuilt,
-                            QPcostScale=QPcostScale,
-                            interestRate=interestRate,
-                            economicLifetime=economicLifetime,
-                            technicalLifetime=None,
-                            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
-                            yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
+        Component.__init__(
+            self,
+            esM,
+            name,
+            dimension="1dim",
+            hasCapacityVariable=hasCapacityVariable,
+            capacityVariableDomain=capacityVariableDomain,
+            capacityPerPlantUnit=capacityPerPlantUnit,
+            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
+            bigM=bigM,
+            locationalEligibility=locationalEligibility,
+            capacityMin=capacityMin,
+            capacityMax=capacityMax,
+            partLoadMin=partLoadMin,
+            sharedPotentialID=sharedPotentialID,
+            linkedQuantityID=linkedQuantityID,
+            capacityFix=capacityFix,
+            isBuiltFix=isBuiltFix,
+            investPerCapacity=investPerCapacity,
+            investIfBuilt=investIfBuilt,
+            opexPerCapacity=opexPerCapacity,
+            opexIfBuilt=opexIfBuilt,
+            QPcostScale=QPcostScale,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+            technicalLifetime=None,
+            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
+            yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
+        )
 
         # Set general source/sink data: ID and yearly limit
         utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
-        self.commodity, self.commodityUnit = commodity, esM.commodityUnitsDict[commodity]
+        self.commodity, self.commodityUnit = (
+            commodity,
+            esM.commodityUnitsDict[commodity],
+        )
         # TODO check value and type correctness
         self.commodityLimitID, self.yearlyLimit = commodityLimitID, yearlyLimit
+        self.balanceLimitID = balanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
         # Addition for perfect foresight
@@ -314,8 +331,11 @@ class Source(Component):
 
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
-        if operationRateMax is not None and operationRateFix is not None:
-            operationRateMax = None
+        if (
+            self.fullOperationRateMax is not None
+            and self.fullOperationRateFix is not None
+        ):
+            self.fullOperationRateMax = None
             if esM.verbose < 2:
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
@@ -533,41 +553,44 @@ class Sink(Source):
     A Sink component can transfer a commodity over the energy system boundary out of the system.
     """
 
-    def __init__(self,
-                 esM,
-                 name,
-                 commodity,
-                 hasCapacityVariable,
-                 capacityVariableDomain='continuous',
-                 capacityPerPlantUnit=1,
-                 hasIsBuiltBinaryVariable=False,
-                 bigM=None,
-                 operationRateMax=None,
-                 operationRateFix=None,
-                 tsaWeight=1,
-                 commodityLimitID=None,
-                 yearlyLimit=None,
-                 locationalEligibility=None,
-                 capacityMin=None,
-                 capacityMax=None,
-                 partLoadMin=None,
-                 sharedPotentialID=None,
-                 linkedQuantityID=None,
-                 capacityFix=None,
-                 isBuiltFix=None,
-                 investPerCapacity=0,
-                 investIfBuilt=0,
-                 opexPerOperation=0,
-                 commodityCost=0,
-                 commodityRevenue=0,
-                 commodityCostTimeSeries=None,
-                 commodityRevenueTimeSeries=None,
-                 opexPerCapacity=0,
-                 opexIfBuilt=0,
-                 QPcostScale=0,
-                 interestRate=0.08,
-                 economicLifetime=10,
-                 technicalLifetime=None):
+    def __init__(
+        self,
+        esM,
+        name,
+        commodity,
+        hasCapacityVariable,
+        capacityVariableDomain="continuous",
+        capacityPerPlantUnit=1,
+        hasIsBuiltBinaryVariable=False,
+        bigM=None,
+        operationRateMax=None,
+        operationRateFix=None,
+        tsaWeight=1,
+        commodityLimitID=None,
+        yearlyLimit=None,
+        locationalEligibility=None,
+        capacityMin=None,
+        capacityMax=None,
+        partLoadMin=None,
+        sharedPotentialID=None,
+        linkedQuantityID=None,
+        capacityFix=None,
+        isBuiltFix=None,
+        investPerCapacity=0,
+        investIfBuilt=0,
+        opexPerOperation=0,
+        commodityCost=0,
+        commodityRevenue=0,
+        commodityCostTimeSeries=None,
+        commodityRevenueTimeSeries=None,
+        opexPerCapacity=0,
+        opexIfBuilt=0,
+        QPcostScale=0,
+        interestRate=0.08,
+        economicLifetime=10,
+        technicalLifetime=None,
+        balanceLimitID=None,
+    ):
         """
         Constructor for creating an Sink class instance.
 
@@ -575,41 +598,44 @@ class Sink(Source):
         (see Source class for the parameter description) and differ in the sign
         parameter, which is equal to -1 for Sink objects and +1 for Source objects.
         """
-        Source.__init__(self,
-                        esM,
-                        name,
-                        commodity=commodity,
-                        hasCapacityVariable=hasCapacityVariable,
-                        capacityVariableDomain=capacityVariableDomain,
-                        capacityPerPlantUnit=capacityPerPlantUnit,
-                        hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
-                        bigM=bigM,
-                        operationRateMax=operationRateMax,
-                        operationRateFix=operationRateFix,
-                        tsaWeight=tsaWeight,
-                        commodityLimitID=commodityLimitID,
-                        yearlyLimit=yearlyLimit,
-                        locationalEligibility=locationalEligibility,
-                        capacityMin=capacityMin,
-                        capacityMax=capacityMax,
-                        partLoadMin=partLoadMin,
-                        sharedPotentialID=sharedPotentialID,
-                        linkedQuantityID=linkedQuantityID,
-                        capacityFix=capacityFix,
-                        isBuiltFix=isBuiltFix,
-                        investPerCapacity=investPerCapacity,
-                        investIfBuilt=investIfBuilt,
-                        opexPerOperation=opexPerOperation,
-                        commodityCost=commodityCost,
-                        commodityRevenue=commodityRevenue,
-                        commodityCostTimeSeries=commodityCostTimeSeries,
-                        commodityRevenueTimeSeries=commodityRevenueTimeSeries,
-                        opexPerCapacity=opexPerCapacity,
-                        opexIfBuilt=opexIfBuilt,
-                        QPcostScale=QPcostScale,
-                        interestRate=interestRate,
-                        economicLifetime=economicLifetime,
-                        technicalLifetime=technicalLifetime)
+        Source.__init__(
+            self,
+            esM,
+            name,
+            commodity=commodity,
+            hasCapacityVariable=hasCapacityVariable,
+            capacityVariableDomain=capacityVariableDomain,
+            capacityPerPlantUnit=capacityPerPlantUnit,
+            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
+            bigM=bigM,
+            operationRateMax=operationRateMax,
+            operationRateFix=operationRateFix,
+            tsaWeight=tsaWeight,
+            commodityLimitID=commodityLimitID,
+            yearlyLimit=yearlyLimit,
+            locationalEligibility=locationalEligibility,
+            capacityMin=capacityMin,
+            capacityMax=capacityMax,
+            partLoadMin=partLoadMin,
+            sharedPotentialID=sharedPotentialID,
+            linkedQuantityID=linkedQuantityID,
+            capacityFix=capacityFix,
+            isBuiltFix=isBuiltFix,
+            investPerCapacity=investPerCapacity,
+            investIfBuilt=investIfBuilt,
+            opexPerOperation=opexPerOperation,
+            commodityCost=commodityCost,
+            commodityRevenue=commodityRevenue,
+            commodityCostTimeSeries=commodityCostTimeSeries,
+            commodityRevenueTimeSeries=commodityRevenueTimeSeries,
+            opexPerCapacity=opexPerCapacity,
+            opexIfBuilt=opexIfBuilt,
+            QPcostScale=QPcostScale,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+            technicalLifetime=technicalLifetime,
+            balanceLimitID=balanceLimitID,
+        )
 
         self.sign = -1
 
@@ -623,9 +649,9 @@ class SourceSinkModel(ComponentModel):
     """
 
     def __init__(self):
-        """ Constructor for creating a SourceSinkModel class instance. """
-        self.abbrvName = 'srcSnk'
-        self.dimension = '1dim'
+        """Constructor for creating a SourceSinkModel class instance."""
+        self.abbrvName = "srcSnk"
+        self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
         self.operationVariablesOptimum = None
@@ -648,10 +674,21 @@ class SourceSinkModel(ComponentModel):
         for compName, comp in self.componentsDict.items():
             if comp.commodityLimitID is not None:
                 ID, limit = comp.commodityLimitID, comp.yearlyLimit
-                if ID in yearlyCommodityLimitationDict and limit != yearlyCommodityLimitationDict[ID][0]:
-                    raise ValueError('yearlyLimitationIDs with different upper limits detected.')
-                yearlyCommodityLimitationDict.setdefault(ID, (limit, []))[1].append(compName)
-        setattr(pyM, 'yearlyCommodityLimitationDict_' + self.abbrvName, yearlyCommodityLimitationDict)
+                if (
+                    ID in yearlyCommodityLimitationDict
+                    and limit != yearlyCommodityLimitationDict[ID][0]
+                ):
+                    raise ValueError(
+                        "yearlyLimitationIDs with different upper limits detected."
+                    )
+                yearlyCommodityLimitationDict.setdefault(ID, (limit, []))[1].append(
+                    compName
+                )
+        setattr(
+            pyM,
+            "yearlyCommodityLimitationDict_" + self.abbrvName,
+            yearlyCommodityLimitationDict,
+        )
 
     def declareSets(self, esM, pyM):
         """
@@ -676,7 +713,9 @@ class SourceSinkModel(ComponentModel):
         self.declareOperationBinarySet(pyM)
 
         # Declare sets for case differentiation of operating modes
-        self.declareOperationModeSets(pyM, 'opConstrSet', 'operationRateMax', 'operationRateFix')
+        self.declareOperationModeSets(
+            pyM, "opConstrSet", "processedOperationRateMax", "processedOperationRateFix"
+        )
 
         # Declare commodity limitation dictionary
         self.declareYearlyCommodityLimitationDict(pyM)
@@ -711,9 +750,9 @@ class SourceSinkModel(ComponentModel):
         # Binary variables [-] indicating if a component is considered at a location or not
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [commodityUnit*hour]
-        self.declareOperationVars(pyM, 'op')
+        self.declareOperationVars(pyM, "op")
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, 'op_bin')
+        self.declareOperationBinaryVars(pyM, "op_bin")
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -730,9 +769,13 @@ class SourceSinkModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
+        warnings.warn(
+            "The yearly limit is depreceated and moved to the balanceLimit",
+            DeprecationWarning,
+        )
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, 'op_' + abbrvName)
-        limitDict = getattr(pyM, 'yearlyCommodityLimitationDict_' + abbrvName)
+        opVar = getattr(pyM, "op_" + abbrvName)
+        limitDict = getattr(pyM, "yearlyCommodityLimitationDict_" + abbrvName)
 
         def yearlyLimitationConstraint(pyM, key):
             sumEx = -sum(opVar[loc, compName, ip, p, t] * compDict[compName].sign *
@@ -740,8 +783,12 @@ class SourceSinkModel(ComponentModel):
                          for loc, compName, ip, p, t in opVar if compName in limitDict[key][1])
             sign = limitDict[key][0]/abs(limitDict[key][0]) if limitDict[key][0] != 0 else 1
             return sign * sumEx <= sign * limitDict[key][0]
-        setattr(pyM, 'ConstrYearlyLimitation_' + abbrvName,
-                pyomo.Constraint(limitDict.keys(), rule=yearlyLimitationConstraint))
+
+        setattr(
+            pyM,
+            "ConstrYearlyLimitation_" + abbrvName,
+            pyomo.Constraint(limitDict.keys(), rule=yearlyLimitationConstraint),
+        )
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -781,19 +828,21 @@ class SourceSinkModel(ComponentModel):
 
         # Operation [commodityUnit*h] limited by the installed capacity [commodityUnit] multiplied by the hours per
         # time step [h]
-        self.operationMode1(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode1(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [commodityUnit*h] equal to the installed capacity [commodityUnit] multiplied by operation time
         # series [-] and the hours per time step [h])
-        self.operationMode2(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode2(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [commodityUnit*h] limited by the installed capacity [commodityUnit] multiplied by operation time
         # series [-] and the hours per time step [h])
-        self.operationMode3(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [commodityUnit*h] equal to the operation time series [commodityUnit*h]
-        self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [commodityUnit*h] limited by the operation time series [commodityUnit*h]
-        self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode5(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is limited by minimum part Load
-        self.additionalMinPartLoad(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op', 'op_bin', 'cap')
+        self.additionalMinPartLoad(
+            pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
+        )
 
         self.yearlyLimitationConstraint(pyM, esM)
 
@@ -802,7 +851,7 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Get contributions to shared location potential. """
+        """Get contributions to shared location potential."""
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -818,11 +867,85 @@ class SourceSinkModel(ComponentModel):
         :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
         :param commod: string
         """
-        return any([comp.commodity == commod and comp.locationalEligibility[loc] == 1
-                    for comp in self.componentsDict.values()])
+        return any(
+            [
+                comp.commodity == commod and comp.locationalEligibility[loc] == 1
+                for comp in self.componentsDict.values()
+            ]
+        )
+
+    def getBalanceLimitContribution(
+        self, esM, pyM, ID, timeSeriesAggregation, loc=None
+    ):
+        """
+        Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+        Sum of the operation time series of a SourceSink component is used as the balanceLimit contribution:
+        - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
+        - A Sink contributes with a negative sign. Example: Sale of electricity
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param ID: ID of the regarded balanceLimitConstraint
+        :param ID: string
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+        :type timeSeriesAggregation: boolean
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar, opVarDict = getattr(pyM, "op_" + abbrvName), getattr(
+            pyM, "operationVarDict_" + abbrvName
+        )
+        limitDict = getattr(pyM, "balanceLimitDict")
+
+        if timeSeriesAggregation:
+            periods = esM.typicalPeriods
+            timeSteps = esM.timeStepsPerPeriod
+        else:
+            periods = esM.periods
+            timeSteps = esM.totalTimeSteps
+        # Check if locational input is not set in esM, if so additionally loop over all locations
+        if loc is None:
+            balance = sum(
+                opVar[loc, compName, p, t]
+                * compDict[compName].sign
+                * esM.periodOccurrences[p]
+                for compName in compDict.keys()
+                if compName in limitDict[ID]
+                for p in periods
+                for t in timeSteps
+                for loc in esM.locations
+            )
+        # Otherwise get the contribution for specific region
+        else:
+            balance = sum(
+                opVar[loc, compName, p, t]
+                * compDict[compName].sign
+                * esM.periodOccurrences[p]
+                for compName in compDict.keys()
+                if compName in limitDict[(ID, loc)]
+                for p in periods
+                for t in timeSteps
+            )
+        return balance
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance. """
+        """ Get contribution to a commodity balance.
+                .. math::
+
+            \\text{C}^{comp,comm}_{loc,p,t} = - op_{loc,p,t}^{comp,op}  \\text{Sink}
+
+        .. math::
+            \\text{C}^{comp,comm}_{loc,p,t} = op_{loc,p,t}^{comp,op} \\text{Source}
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
         return sum(opVar[loc, compName, ip, p, t] * compDict[compName].sign
@@ -838,16 +961,29 @@ class SourceSinkModel(ComponentModel):
             :type pym: pyomo ConcreteModel
         """
 
-        opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
-        commodCost = self.getEconomicsTD(pyM, esM, ['commodityCost'], 'op', 'operationVarDict')
-        commodRevenue = self.getEconomicsTD(pyM, esM, ['commodityRevenue'], 'op', 'operationVarDict')
-        commodCostTimeSeries = \
-            self.getEconomicsTimeSeries(pyM, esM, 'commodityCostTimeSeries', 'op', 'operationVarDict')
-        commodRevenueTimeSeries = \
-            self.getEconomicsTimeSeries(pyM, esM, 'commodityRevenueTimeSeries', 'op', 'operationVarDict')
+        opexOp = self.getEconomicsTD(
+            pyM, esM, ["opexPerOperation"], "op", "operationVarDict"
+        )
+        commodCost = self.getEconomicsTD(
+            pyM, esM, ["commodityCost"], "op", "operationVarDict"
+        )
+        commodRevenue = self.getEconomicsTD(
+            pyM, esM, ["commodityRevenue"], "op", "operationVarDict"
+        )
+        commodCostTimeSeries = self.getEconomicsTimeSeries(
+            pyM, esM, "processedCommodityCostTimeSeries", "op", "operationVarDict"
+        )
+        commodRevenueTimeSeries = self.getEconomicsTimeSeries(
+            pyM, esM, "processedCommodityRevenueTimeSeries", "op", "operationVarDict"
+        )
 
-        return super().getObjectiveFunctionContribution(esM, pyM) + opexOp + commodCost + commodCostTimeSeries - \
-            (commodRevenue + commodRevenueTimeSeries)
+        return (
+            super().getObjectiveFunctionContribution(esM, pyM)
+            + opexOp
+            + commodCost
+            + commodCostTimeSeries
+            - (commodRevenue + commodRevenueTimeSeries)
+        )
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #
@@ -867,23 +1003,33 @@ class SourceSinkModel(ComponentModel):
         :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, 'op_' + abbrvName)
+        opVar = getattr(pyM, "op_" + abbrvName)
+
         # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'commodityUnit')
+        optSummaryBasic = super().setOptimalValues(
+            esM, pyM, esM.locations, "commodityUnit"
+        )
 
         # Set optimal operation variables and append optimization summary
         optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
                                                 esM=esM)
         self.operationVariablesOptimum = optVal
 
-        props = ['operation', 'opexOp', 'commodCosts', 'commodRevenues']
+        props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
         # Unit dict: Specify units for props
-        units = {props[0]: ['[-*h]', '[-*h/a]'],
-                 props[1]: ['[' + esM.costUnit + '/a]'],
-                 props[2]: ['[' + esM.costUnit + '/a]'],
-                 props[3]: ['[' + esM.costUnit + '/a]']}
+        units = {
+            props[0]: ["[-*h]", "[-*h/a]"],
+            props[1]: ["[" + esM.costUnit + "/a]"],
+            props[2]: ["[" + esM.costUnit + "/a]"],
+            props[3]: ["[" + esM.costUnit + "/a]"],
+        }
         # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
-        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop in props for unit in units[prop]]
+        tuples = [
+            (compName, prop, unit)
+            for compName in compDict.keys()
+            for prop in props
+            for unit in units[prop]
+        ]
         # Replace placeholder with correct unit of component
         tuples = list(map(lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
             if x[1] == 'operation' else x, tuples))
@@ -965,7 +1111,7 @@ class SourceSinkModel(ComponentModel):
 
         self.optSummary = optSummary
 
-    def getOptimalValues(self, name='all'):
+    def getOptimalValues(self, name="all"):
         """
         Return optimal values of the components.
 
