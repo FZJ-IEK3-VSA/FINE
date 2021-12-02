@@ -16,9 +16,18 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 ## Documentation
 
 A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
-
-## Installation
-### Prepare and install required software
+## Requirements
+### Framework
+The FINE Framework itself requires the following components:
+- FINE sourcecode
+- Python dependencies
+- A Mixed Integer Linear Programming (MILP) solver like Gurobi or GLPK
+### Installation 
+The installation proceedure requires:
+- Git
+- Anaconda
+## Installation of framework and dependencies
+### Installation requirements
 1.  Install anaconda [by choosing your operating system here](https://docs.anaconda.com/anaconda/install/). If you are a Windows 10 user, remember to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
 2. Install git from https://git-scm.com/downloads
 ### Prepare folder
@@ -66,14 +75,34 @@ Run the test suite with:
 pytest --cov=FINE test/
 ```
 
-**Installation of an optimization solver**
+## Installation of an optimization solver
 
-In theory many solvers can be used (e.g. `GUROBI <http://www.gurobi.com/>`_  or
-`GLPK <https://sourceforge.net/projects/winglpk/files/latest/download>`_). For the installation of GUROBI, follow
-the instructions on the solver's website. GUROBI has, if applicable, an academic license option. For installation
-of GLPK, move the downloaded folder to a desired location. Then, manually append the Environment Variable *Path*
-with the absolute path leading to the folder in which the glpsol.exe is located (c.f. w32/w64 folder, depending on
-operating system type).
+FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). Ther are three standard solvers defined:
+- [GUROBI](http://www.gurobi.com/)
+   - Recommended due to better performance but requires license (free academic version available)
+   - Set as standard solver
+- [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download)
+  - Free version available 
+- [CBC](https://projects.coin-or.org/Cbc)
+  - Free version available
+
+### Gurobi installation
+The installation requires the following three components:
+- Gurobi Optimizer
+    - In order to [download](https://www.gurobi.com/downloads/gurobi-optimizer-eula/) the software you need to create an Account and obtain a license.
+- Gurobi license
+    - The license needs to be installed according to the instructions in the registration process.
+- Gurobi python api
+    - The python api can be installed according to [this instruction](https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python-).
+
+### GLPK installation
+A complete installation instruction for Windows can be found [here](http://winglpk.sourceforge.net/).
+
+### CBC
+Installation proceedure can be found [here](https://projects.coin-or.org/Cbc).
+
+###  Change the solver used by FINE
+Gurboi is defined as standard solver for FINE. If you want to use
 
 
 ## Examples
