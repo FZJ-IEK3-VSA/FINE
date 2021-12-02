@@ -305,14 +305,14 @@ class Storage(Component):
 
         # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
         # and time series aggregation weighting factor
-        if (
-            self.fullChargeOpRateMax is not None
-            and self.fullChargeOpRateFix is not None
-        ):
-            self.fullChargeOpRateMax = None
-            if esM.verbose < 2:
-                warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
-                              'The chargeOpRateMax time series was set to None.')
+        # if (
+        #     self.fullChargeOpRateMax is not None
+        #     and self.fullChargeOpRateFix is not None
+        # ):
+        #     self.fullChargeOpRateMax = None
+        #     if esM.verbose < 2:
+        #         warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
+        #                       'The chargeOpRateMax time series was set to None.')
 
         # self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
         # self.aggregatedChargeOpRateMax, self.chargeOpRateMax = None, None
@@ -322,13 +322,15 @@ class Storage(Component):
 
         ## New code for perfect foresight!
         # create emtpy dicts
+        self.chargeOpRateMax = chargeOpRateMax
         self.fullChargeOpRateMax = {}
         self.aggregatedChargeOpRateMax = {}
-        self.chargeOpRateMax = {}
+        self.processedChargeOpRateMax = {}
 
+        self.chargeOpRateFix = chargeOpRateFix
         self.fullChargeOpRateFix = {}
         self.aggregatedChargeOpRateFix = {}
-        self.chargeOpRateFix = {}
+        self.processedChargeOpRateFix = {}
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -343,7 +345,7 @@ class Storage(Component):
             else:
                 raise TypeError('chargeOpRateMax should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedChargeOpRateMax[ip], self.chargeOpRateMax[ip] = None, None
+            self.aggregatedChargeOpRateMax[ip], self.processedChargeOpRateMax[ip] = None, None
             
             # chargeOpRateFix
             if isinstance(chargeOpRateFix, pd.DataFrame) or isinstance(chargeOpRateFix, pd.Series) or chargeOpRateFix is None: #chargeOpRateFix is dataframe or series
@@ -355,7 +357,7 @@ class Storage(Component):
             else:
                 raise TypeError('chargeOpRateFix should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedChargeOpRateFix[ip], self.chargeOpRateFix[ip] = None, None
+            self.aggregatedChargeOpRateFix[ip], self.processedChargeOpRateFix[ip] = None, None
         
         # new code for perfect foresight
         self.partLoadMin = {}
@@ -404,11 +406,11 @@ class Storage(Component):
         # create emtpy dicts
         self.fullDischargeOpRateMax = {}
         self.aggregatedDischargeOpRateMax = {}
-        self.dischargeOpRateMax = {}
+        self.processedDischargeOpRateMax = {}
 
         self.fullDischargeOpRateFix = {}
         self.aggregatedDischargeOpRateFix = {}
-        self.dischargeOpRateFix = {}
+        self.processedDischargeOpRateFix = {}
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -423,7 +425,7 @@ class Storage(Component):
             else:
                 raise TypeError('dischargeOpRateMax should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedDischargeOpRateMax[ip], self.dischargeOpRateMax[ip] = None, None
+            self.aggregatedDischargeOpRateMax[ip], self.processedDischargeOpRateMax[ip] = None, None
             
             # dischargeOpRateFix
             if isinstance(dischargeOpRateFix, pd.DataFrame) or isinstance(dischargeOpRateFix, pd.Series) or dischargeOpRateFix is None: #dischargeOpRateFix is dataframe or series
@@ -435,7 +437,7 @@ class Storage(Component):
             else:
                 raise TypeError('dischargeOpRateFix should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedDischargeOpRateFix[ip], self.dischargeOpRateFix[ip] = None, None
+            self.aggregatedDischargeOpRateFix[ip], self.processedDischargeOpRateFix[ip] = None, None
 
 
         utils.isPositiveNumber(dischargeTsaWeight)

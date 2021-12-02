@@ -201,6 +201,9 @@ class Conversion(Component):
         #                                                         locationalEligibility)
 
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
+        self.operationRateMax = operationRateMax
+        self.operationRateFix = operationRateFix
+
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
             if esM.verbose < 2:
@@ -217,11 +220,11 @@ class Conversion(Component):
         # create emtpy dicts
         self.fullOperationRateMax = {}
         self.aggregatedOperationRateMax = {}
-        self.operationRateMax = {}
+        self.processedOperationRateMax = {}
 
         self.fullOperationRateFix = {}
         self.aggregatedOperationRateFix = {}
-        self.operationRateFix = {}
+        self.processedOperationRateFix = {}
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -236,7 +239,7 @@ class Conversion(Component):
             else:
                 raise TypeError('OperationRateMax should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedOperationRateMax[ip], self.operationRateMax[ip] = None, None
+            self.aggregatedOperationRateMax[ip], self.processedOperationRateMax[ip] = None, None
             
             # Operation Rate Fix
             if isinstance(operationRateFix, pd.DataFrame) or isinstance(operationRateFix, pd.Series)  or operationRateFix is None: #operationRate is dataframe or series
@@ -248,7 +251,7 @@ class Conversion(Component):
             else:
                 raise TypeError('OperationRateFix should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedOperationRateFix[ip], self.operationRateFix[ip] = None, None
+            self.aggregatedOperationRateFix[ip], self.processedOperationRateFix[ip] = None, None
         
         # new code for perfect foresight
         self.partLoadMin = {}

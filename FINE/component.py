@@ -1549,12 +1549,6 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(pyM, constrName + 'partLoadMin_2_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2))
         
 
-        setattr(
-            pyM,
-            constrName + "partLoadMin_2_" + abbrvName,
-            pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2),
-        )
-
     def yearlyFullLoadHoursMin(self, pyM, esM):
         # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
         """

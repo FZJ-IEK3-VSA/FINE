@@ -265,15 +265,12 @@ class Transmission(Component):
                 raise TypeError('opexPerOperation should be a pandas series or a dictionary.')
 
         # self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',
-        #                                                        self.locationalEligibility)
+        #                                                        self.locationalEligibility)     
 
-        self.operationRateMax = operationRateMax
-        self.operationRateFix = operationRateFix
-
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(
-            esM, name, operationRateMax, self.locationalEligibility, self.dimension
-        )
-        self.aggregatedOperationRateMax, self.processedOperationRateMax = None, None
+        # self.fullOperationRateMax = utils.checkAndSetTimeSeries(
+        #     esM, name, operationRateMax, self.locationalEligibility, self.dimension
+        # )
+        # self.aggregatedOperationRateMax, self.processedOperationRateMax = None, None
 
         # self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, self.locationalEligibility, self.dimension)
         # self.aggregatedOperationRateMax, self.operationRateMax = None, None
@@ -283,13 +280,15 @@ class Transmission(Component):
 
         ## New code for perfect foresight!
         # create emtpy dicts
+        self.operationRateMax = operationRateMax
         self.fullOperationRateMax = {}
         self.aggregatedOperationRateMax = {}
-        self.operationRateMax = {}
+        self.processedOperationRateMax = {}
 
+        self.operationRateFix = operationRateFix
         self.fullOperationRateFix = {}
         self.aggregatedOperationRateFix = {}
-        self.operationRateFix = {}
+        self.processedOperationRateFix = {}
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -304,7 +303,7 @@ class Transmission(Component):
             else:
                 raise TypeError('OperationRateMax should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedOperationRateMax[ip], self.operationRateMax[ip] = None, None
+            self.aggregatedOperationRateMax[ip], self.processedOperationRateMax[ip] = None, None
             
             # Operation Rate Fix
             if isinstance(operationRateFix, pd.DataFrame) or isinstance(operationRateFix, pd.Series) or operationRateFix is None: #operationRate is dataframe or series
@@ -316,7 +315,7 @@ class Transmission(Component):
             else:
                 raise TypeError('OperationRateFix should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedOperationRateFix[ip], self.operationRateFix[ip] = None, None
+            self.aggregatedOperationRateFix[ip], self.processedOperationRateFix[ip] = None, None
 
         # new code for perfect foresight
         self.partLoadMin = {}
@@ -706,29 +705,33 @@ class TransmissionModel(ComponentModel):
         opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
         limitDict = getattr(pyM, "balanceLimitDict")
         if timeSeriesAggregation:
+            investmentPeriods = esM.investmentPeriods
             periods = esM.typicalPeriods
             timeSteps = esM.timeStepsPerPeriod
         else:
+            investmentPeriods = esM.investmentPeriods
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
         aut = sum(
-            opVar[loc_ + "_" + loc, compName, p, t]
+            opVar[loc_ + "_" + loc, compName, ip, p, t]
             * (
                 1
                 - compDict[compName].losses[loc_ + "_" + loc]
                 * compDict[compName].distances[loc_ + "_" + loc]
             )
-            * esM.periodOccurrences[p]
+            * esM.periodOccurrences[ip][p]
             for loc_ in opVarDictIn[loc].keys()
             for compName in opVarDictIn[loc][loc_]
             if compName in limitDict[(ID, loc)]
+            for ip in investmentPeriods
             for p in periods
             for t in timeSteps
         ) - sum(
-            opVar[loc + "_" + loc_, compName, p, t] * esM.periodOccurrences[p]
+            opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
             for loc_ in opVarDictOut[loc].keys()
             for compName in opVarDictOut[loc][loc_]
             if compName in limitDict[(ID, loc)]
+            for ip in investmentPeriods
             for p in periods
             for t in timeSteps
         )
