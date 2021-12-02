@@ -44,8 +44,14 @@ It is recommended to create a clean environment with conda to use FINE because i
 
 ```
 conda env create -f requirements.yml
+```
+
+This directly installs FINE and its dependencies in the `FINE` conda environment. Activate the created environment with:
+
+```
 activate FINE
 ```
+
 ### Installation for developers
 Create a development environment if you want to modify it.
 Install the requirements in a clean conda environment:
@@ -54,11 +60,13 @@ conda env create -f requirements_dev.yml
 activate FINE_dev
 ```
 
-The development environent includes all packages to check if FINE is working.
+This installs FINE and its requirements for development (testing, formatting). Further changes in the current folder are reflected in package installation through the installation with `pip -e`.
+
+Run the test suite with:
 ```
 pytest --cov=FINE test/
 ```
-If all tests run through, you have successfully installed FINE. 
+
 ## Examples
 
 A number of [**examples**](examples/) shows the capabilities of FINE.
