@@ -27,8 +27,8 @@ def represent_RE_technology(
 ):
     """
     Reduces the number of a particular RE technology (e.g. onshore wind turbine)
-    to a desired number, within each region. 
-    
+    to a desired number, within each region.
+
     .. note::
         The explanation below uses wind
         turbines as an example. It could, in reality, be any variable RE technology like
@@ -122,7 +122,7 @@ def represent_RE_technology(
         - The dimension 'region_ids' has its coordinates corresponding to `index_col`
 
         If `n_timeSeries_perRegion` is greater than 1, additional dimension - 'TS_ids' is present
-        
+
         -  Within each region, different time seires are indicated by this 'TS_ids'
     :rtype: xr.Dataset
     """

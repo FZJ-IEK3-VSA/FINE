@@ -83,7 +83,7 @@ def perform_spatial_aggregation(
         the part i to j is taken at the group ID.
 
         .. note:: either `separator` or `position` must be passed in order to perform string_based_grouping
-            
+
         |br| * the default value is None
     :type position: int/tuple
 
@@ -133,7 +133,7 @@ def perform_spatial_aggregation(
           <weights> is required only if <mode_of_aggregation> is
           'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
 
-        .. note:: 
+        .. note::
             A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is
             passed, this default dictionary is updated.
 

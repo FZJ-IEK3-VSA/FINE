@@ -142,7 +142,7 @@ class EnergySystemModel:
             - 1: warnings are displayed.
             - 2: no general model logging or warnings are displayed, the optimization solver logging is set to a
               minimum.\n
-            .. note:: 
+            .. note::
                 if required, the optimization solver logging can be separately enabled in the optimizationSpecs
                 of the optimize function.
 
@@ -159,7 +159,7 @@ class EnergySystemModel:
             (pd.Series) or regions (pd.Dataframe). Values are always given in the unit of the esM commodities unit.\n
             Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
 
-            .. note:: 
+            .. note::
                 If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
                 defined as negative.
 
@@ -553,7 +553,7 @@ class EnergySystemModel:
             Options:\n
                 - 'kmedoids_contiguity': kmedoids clustering with added contiguity constraint.\n
                     Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py \n
-                - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.\n 
+                - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.\n
                     Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html \n
             |br| * the default value is 'kmedoids_contiguity'
         :type aggregation_method: string, Options: 'kmedoids_contiguity', 'hierarchical'
@@ -671,7 +671,7 @@ class EnergySystemModel:
             should be clustered. The number of time steps per period must be an integer multiple of the total
             number of considered time steps in the energy system.
 
-            .. note:: 
+            .. note::
                 Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
                 information.
 
@@ -693,9 +693,9 @@ class EnergySystemModel:
         :param clusterMethod: states the method which is used in the tsam package for clustering the time series
             data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
 
-            .. note:: 
+            .. note::
                 Please refer to the tsam package documentation of the parameter clusterMethod for more information.
-            
+
             |br| * the default value is 'hierarchical'
         :type clusterMethod: string
 
@@ -704,9 +704,9 @@ class EnergySystemModel:
             (b) the original profiles (-> False)\n
             of the time series data within a period for clustering.
 
-            .. note:: 
+            .. note::
                 Please refer to the tsam package documentation of the parameter sortValues for more information.
-            
+
             |br| * the default value is True
         :type sortValues: boolean
 
