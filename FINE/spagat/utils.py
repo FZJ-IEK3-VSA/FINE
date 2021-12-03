@@ -5,6 +5,7 @@ import time
 import numpy as np
 import pandas as pd
 import xarray as xr
+from functools import wraps
 
 try:
     import geopandas as gpd
@@ -24,7 +25,7 @@ def timer(func):
     .. note::
     Usage : as a decorator before a function -> @spu.timer
     """
-
+    @wraps(func)
     def f(*args, **kwargs):
         before = time.perf_counter()
         rv = func(*args, **kwargs)

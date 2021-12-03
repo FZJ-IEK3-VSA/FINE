@@ -13,3 +13,4 @@ Contents:
    componentsDoc
    expansionModulesDoc
    outputManagerDoc
+   spagatDoc

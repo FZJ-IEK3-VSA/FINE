@@ -82,7 +82,8 @@ def perform_spatial_aggregation(
         An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean
         the part i to j is taken at the group ID.
 
-        NOTE: either `separator` or `position` must be passed in order to perform string_based_grouping
+        .. note:: either `separator` or `position` must be passed in order to perform string_based_grouping
+            
         |br| * the default value is None
     :type position: int/tuple
 
@@ -132,31 +133,33 @@ def perform_spatial_aggregation(
           <weights> is required only if <mode_of_aggregation> is
           'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
 
-        - NOTE: A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is
-        passed, this default dictionary is updated.
+        .. note:: 
+            A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is
+            passed, this default dictionary is updated.
 
-        {
-        "operationRateMax": ("weighted mean", "capacityMax"),
-        "operationRateFix": ("sum", None),
-        "locationalEligibility": ("bool", None),
-        "capacityMax": ("sum", None),
-        "investPerCapacity": ("mean", None),
-        "investIfBuilt": ("bool", None),
-        "opexPerOperation": ("mean", None),
-        "opexPerCapacity": ("mean", None),
-        "opexIfBuilt": ("bool", None),
-        "interestRate": ("mean", None),
-        "economicLifetime": ("mean", None),
-        "capacityFix": ("sum", None),
-        "losses": ("mean", None),
-        "distances": ("mean", None),
-        "commodityCost": ("mean", None),
-        "commodityRevenue": ("mean", None),
-        "opexPerChargeOperation": ("mean", None),
-        "opexPerDischargeOperation": ("mean", None),
-        "QPcostScale": ("sum", None),
-        "technicalLifetime": ("mean", None)
-    }
+            {
+            "operationRateMax": ("weighted mean", "capacityMax"),
+            "operationRateFix": ("sum", None),
+            "locationalEligibility": ("bool", None),
+            "capacityMax": ("sum", None),
+            "investPerCapacity": ("mean", None),
+            "investIfBuilt": ("bool", None),
+            "opexPerOperation": ("mean", None),
+            "opexPerCapacity": ("mean", None),
+            "opexIfBuilt": ("bool", None),
+            "interestRate": ("mean", None),
+            "economicLifetime": ("mean", None),
+            "capacityFix": ("sum", None),
+            "losses": ("mean", None),
+            "distances": ("mean", None),
+            "commodityCost": ("mean", None),
+            "commodityRevenue": ("mean", None),
+            "opexPerChargeOperation": ("mean", None),
+            "opexPerDischargeOperation": ("mean", None),
+            "QPcostScale": ("sum", None),
+            "technicalLifetime": ("mean", None)
+            }
+
         |br| * the default value is None
     :type aggregation_function_dict: Dict[str, Tuple(str, None/str)]
 
