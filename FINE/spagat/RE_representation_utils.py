@@ -22,26 +22,31 @@ except ImportError:
 
 
 def rasterize_geometry(geometry, coords, latitude="y", longitude="x"):
-    """Given a geometry and geolocations, it masks the geolocations
+    """
+    Given a geometry and geolocations, it masks the geolocations
     such that all the geolocations within the geometry are indicated
     by a 1 and rest are NAs.
 
-    Parameters
-    ----------
-    geometry : a polygon or a multiploygon
-    coords : Dict-like
-        Holds latitudes and longitudes
-    latitude : str, optional (default='y')
-        The description of latitude in `coords`
-    longitude : str, optional (default='x')
-        The description of longitude in `coords`
+    :param geometry: The geometry to be used
+    :type geometry: polygon/multiploygon
 
-    Returns
-    -------
-    raster : np.ndarray
-        A 2d matrix of size latitudes * longitudes
+    :param coords: Holds latitudes and longitudes
+    :type coords: Dict-like
+
+    **Default arguments:**
+
+    :param latitude: The description of latitude in `coords`
+        |br| * the default value is 'y'
+    :type latitude: str
+
+    :param longitude: The description of longitude in `coords`
+        |br| * the default value is 'x'
+    :type longitude: str
+
+    :returns: raster - A 2d matrix of size latitudes * longitudes
         If a latitude-longitude pair falls within the `geometry` then
         the value at this point in the matrix is 1, otherwise NA
+    :rtype: np.ndarray
     """
 
     # STEP 1. Get the affine transformation
@@ -71,36 +76,46 @@ def rasterize_xr_ds(
     longitude="x",
     latitude="y",
 ):
-    """For each geometry in the specified `shp_file`, a binary mask
+    """
+    For each geometry in the specified `shp_file`, a binary mask
     is added to the `gridded_RE_ds`, so that subsetting the data
     for each region is possible.
 
-    Parameters
-    ----------
-    gridded_RE_ds : str/xr.Dataset
-        Either the path to the dataset or the read-in xr.Dataset
+    :param gridded_RE_ds: Either the path to the dataset or the read-in xr.Dataset
         2 mandatory dimensions in this data - `latitude` and `longitude`
-    CRS_attr : str
-        The attribute in `gridded_RE_ds` that holds its
-        Coordinate Reference System (CRS) information
-    shp_file : str/GeoDataFrame
-        Either the path to the shapefile or the read-in shapefile
-        that should be added to `gridded_RE_ds`
-    index_col : str, optional (default='region_ids')
-        The column in `shp_file` that needs to be taken as location-index in `gridded_RE_ds`
-    geometry_col : str, optional (default='geometry')
-        The column in `shp_file` that holds geometries
-    longitude : str, optional (default='x')
-        The dimension name in `gridded_RE_ds` that corresponds to longitude
-    latitude : str, optional (default='y')
-        The dimension name in `gridded_RE_ds` that corresponds to latitude
+    :type gridded_RE_ds: str/xr.Dataset
 
-    Returns
-    -------
-    rasterized_RE_ds : xr.Dataset
+    :param CRS_attr: The attribute in `gridded_RE_ds` that holds its
+        Coordinate Reference System (CRS) information
+    :type CRS_attr: str
+
+    :param shp_file: Either the path to the shapefile or the read-in shapefile
+        that should be added to `gridded_RE_ds`
+    :type shp_file: str/GeoDataFrame
+
+    **Default arguments:**
+
+    :param index_col: The column in `shp_file` that needs to be taken as location-index in `gridded_RE_ds`
+        |br| * the default value is 'region_ids'
+    :type index_col: str
+
+    :param geometry_col: The column in `shp_file` that holds geometries
+        |br| * the default value is 'geometry'
+    :type geometry_col: str
+
+    :param longitude: The dimension name in `gridded_RE_ds` that corresponds to longitude
+        |br| * the default value is 'x'
+    :type longitude: str
+
+    :param latitude: The dimension name in `gridded_RE_ds` that corresponds to latitude
+        |br| * the default value is 'y'
+    :type latitude: str
+
+    :returns: rasterized_RE_ds - dataset with
         - Additional dimension with name `index_col`
         - Additional variable with name 'rasters' and values as rasters
           corresponding to each geometry in `shp_file`
+    :rtype: xr.Dataset
     """
 
     # STEP 1. Read in the files

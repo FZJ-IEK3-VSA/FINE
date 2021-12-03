@@ -25,8 +25,8 @@ def represent_RE_technology(
     geometry_col="geometry",
     linkage="average",
 ):
-
-    """Reduces the number of a particular RE technology (e.g. onshore wind turbine)
+    """
+    Reduces the number of a particular RE technology (e.g. onshore wind turbine)
     to a desired number, within each region. NOTE: The explanation below uses wind
     turbines as an example. It could, in reality, be any variable RE technology like
     PV, offshore wind turbine, etc.
@@ -42,22 +42,23 @@ def represent_RE_technology(
 
     Please go through the parameters list below for more information.
 
-
-    Parameters
-    ----------
-    gridded_RE_ds : str/xr.Dataset
-        Either the path to the dataset or the read-in xr.Dataset
+    :param gridded_RE_ds: Either the path to the dataset or the read-in xr.Dataset
         - Dimensions in this data - `latitude`, `longitude`, and `time`
         - Variables - `capacity_var_name` and `capfac_var_name`
-    CRS_attr : str
-        The attribute in `gridded_RE_ds` that holds its
+    :type gridded_RE_ds: str/xr.Dataset
+
+    :param CRS_attr: The attribute in `gridded_RE_ds` that holds its
         Coordinate Reference System (CRS) information
-    shp_file : str/GeoDataFrame
-        Either the path to the shapefile or the read-in shapefile
+    :type CRS_attr: str
+
+    :param shp_file: Either the path to the shapefile or the read-in shapefile
         that should be overlapped with `gridded_RE_ds`, in order to
         obtain regions' information
-    n_timeSeries_perRegion : strictly positive int, optional (default=1)
-        The number of time series to which the original set should be aggregated,
+    :type shp_file: str/GeoDataFrame
+
+    **Default arguments:**
+
+    :param n_timeSeries_perRegion: The number of time series to which the original set should be aggregated,
         within each region.
         - If set to 1, performs simple aggregation
             - Within every region, calculates the weighted mean of RE
@@ -67,34 +68,52 @@ def represent_RE_technology(
             - Distance measure: Euclidean distance
             - Aggregation within each resulting cluster is the same as simple
               aggregation
-    capacity_var_name : str, optional (default='capacity')
-        The name of the data variable in `gridded_RE_ds` that corresponds
+        |br| * the default value is 1
+    :type n_timeSeries_perRegion: strictly positive int
+
+    :param capacity_var_name: The name of the data variable in `gridded_RE_ds` that corresponds
         to capacity
-    capfac_var_name : str, optional (default='capacity factor')
-        The name of the data variable in `gridded_RE_ds` that corresponds
+        |br| * the default value is 'capacity'
+    :type capacity_var_name: str
+
+    :param capfac_var_name: The name of the data variable in `gridded_RE_ds` that corresponds
         to capacity factor time series
-    longitude : str, optional (default='x')
-        The dimension name in `gridded_RE_ds` that corresponds to longitude
-    latitude : str, optional (default='y')
-        The dimension name in `gridded_RE_ds` that corresponds to latitude
-    time : str, optional (default='time')
-        The dimension name in `gridded_RE_ds` that corresponds to time
-    index_col : str, optional (default='region_ids')
-        The column in `shp_file` that needs to be taken as location-index in `gridded_RE_ds`
-    geometry_col : str, optional (default='geometry')
-        The column in `shp_file` that holds geometries
-    linkage : str, optional (default='average')
+        |br| * the default value is 'capacity factor'
+    :type capfac_var_name: str
+
+    :param longitude: The dimension name in `gridded_RE_ds` that corresponds to longitude
+        |br| * the default value is 'x'
+    :type longitude: str
+
+    :param latitude: The dimension name in `gridded_RE_ds` that corresponds to latitude
+        |br| * the default value is 'y'
+    :type latitude: str
+
+    :param time: The dimension name in `gridded_RE_ds` that corresponds to time
+        |br| * the default value is 'time'
+    :type time: str
+
+    :param index_col: The column in `shp_file` that needs to be taken as location-index in `gridded_RE_ds`
+        |br| * the default value is 'region_ids'
+    :type index_col: str
+
+    :param geometry_col: The column in `shp_file` that holds geometries
+        |br| * the default value is 'geometry'
+    :type geometry_col: str
+
+    :param linkage:
         - Relevant only if `n_timeSeries_perRegion` is greater than 1.
         - The linkage criterion to be used with agglomerative hierarchical clustering.
           Can be 'complete', 'single', etc. Refer to Sklearn's documentation for more info.
+        |br| * the default value is 'average'
+    :type linkage: str
 
-    Returns
-    -------
-    represented_RE_ds : xr.Dataset
-    - Dimensions in this data - `time`, 'region_ids'
+    :returns: represented_RE_ds
+        - Dimensions in this data - `time`, 'region_ids'
         - The dimension 'region_ids' has its coordinates corresponding to `index_col`
     If `n_timeSeries_perRegion` is greater than 1, additional dimension - 'TS_ids' is present
         -  Within each region, different time seires are indicated by this 'TS_ids'
+    :rtype: xr.Dataset
     """
 
     def _preprocess_regional_xr_ds(region):

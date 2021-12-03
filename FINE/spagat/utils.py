@@ -15,15 +15,13 @@ except ImportError:
 
 
 def timer(func):
-    """Wrapper around a function to track the time taken by
+    """
+    Wrapper around a function to track the time taken by
     the function.
 
-    Parameters
-    ----------
-    func : Function
+    :param func: Function
 
-    Notes
-    -----
+    .. note::
     Usage : as a decorator before a function -> @spu.timer
     """
 
@@ -42,27 +40,33 @@ def timer(func):
 
 
 def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"):
-    """Creates a geodataframe.
+    """
+    Creates a geodataframe.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The dataframe which would, among other things, have the region ids/names
-    geometries : List[Geometries]
-        List of geometries/shapes
-    crs : int, optional (default=3035)
-        The coordinate reference system in which to create the geodataframe
-    file_path : str, optional (default=None)
-        If default None, files (called shapefiles) are not saved
-    files_name : str, optional (default='xr_regions')
-        The name of the saved files
+    :param df: The dataframe which would, among other things, have the region ids/names
+    :type df: pd.DataFrame
+
+    :param geometries: List of geometries/shapes
+    :type geometries: List[Geometries]
+
+    **Default arguments:**
+
+    :param crs: The coordinate reference system in which to create the geodataframe
+        |br| * the default value is 3035
+    :type crs: int
+
+    :param file_path: If default None, files (called shapefiles) are not saved
+        |br| * the default value is None
+    :type file_path: str
+
+    :param files_name: The name of the saved files
         yes it is plural! -> many files with same name but
         different extensions '.cpg', '.dbf', '.prj', '.shp', '.shx'
+        |br| * the default value is 'xr_regions'
+    :type files_name: str
 
-    Returns
-    -------
-    gdf : gpd.GeoDataFrame
-        A geodataframe that is created
+    :returns: gdf - A geodataframe that is created
+    :rtype: gpd.GeoDataFrame
     """
 
     gdf = gpd.GeoDataFrame(df, geometry=geometries, crs=f"epsg:{crs}")
@@ -75,20 +79,24 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
 
 
 def create_geom_xarray(shapefile, geom_col_name="geometry", geom_id_col_name="index"):
-    """Creates an xr.Dataset with geometry info from the `shapefile`.
+    """
+    Creates an xr.Dataset with geometry info from the `shapefile`.
 
-    Parameters
-    ----------
-    shapefile : GeoDataFrame
-        The shapefile to be converted
-    geom_col_name : str, optional (default="geometry")
-        The geomtry column name in `shapefile`
-    geom_id_col_name : str, optional (default="index")
-        The colum in `shapefile` consisting geom ids
+    :param shapefile: The shapefile to be converted
+    :type shapefile: gpd.GeoDataFrame
 
-    Returns
-    -------
-    xr_ds : The xarray dataset holding "geometries", "centroids", "centroid_distances"
+    **Default arguments:**
+
+    :param geom_col_name: The geomtry column name in `shapefile`
+        |br| * the default value is 'geometry'
+    :type geom_col_name: str
+
+    :param geom_id_col_name: The colum in `shapefile` consisting geom ids
+        |br| * the default value is 'index'
+    :type geom_id_col_name: str
+
+    :returns: xr_ds - The xarray dataset holding 'geometries', 'centroids', 'centroid_distances'
+    :rtype: xr.Dataset
     """
 
     # geometries and their IDs
@@ -137,19 +145,25 @@ def create_geom_xarray(shapefile, geom_col_name="geometry", geom_id_col_name="in
 def save_shapefile_from_xarray(
     geom_xr, save_path, shp_name="aggregated_regions", crs: int = 3035
 ):
-    """Extracts regions and their geometries from `xarray_dataset`
+    """
+    Extracts regions and their geometries from `xarray_dataset`
     and saves to a shapefile.
 
-    Parameters
-    ----------
-    geom_xr : xr.Dataset
-        The xarray dataset holding the geom info
-    save_path : str
-        path to folder in which to save the shapefile
-    shp_name : str, optional (default='aggregated_regions')
-        name to be given to the saved files
-    crs : int, optional (default=3035)
-        coordinate reference system (crs) in which to save the shapefiles
+    :param geom_xr: The xarray dataset holding the geom info
+    :type geom_xr: xr.Dataset
+
+    :param save_path: path to folder in which to save the shapefile
+    :type save_path: str
+
+    **Default arguments:**
+
+    :param shp_name: name to be given to the saved files
+        |br| * the default value is 'aggregated_regions'
+    :type shp_name: str
+
+    :param crs: coordinate reference system (crs) in which to save the shapefiles
+        |br| * the default value is 3035
+    :type crs: int
     """
 
     df = geom_xr.space.to_dataframe()
