@@ -17,10 +17,8 @@ def perform_string_based_grouping(regions, separator=None, position=None):
     """
     Groups regions based on their names/ids.
 
-    :param regions: List or array of region names.
-
-                    * Ex.: ['01_es', '02_es', '01_de', '02_de', '03_de']
-
+    :param regions: List or array of region names.\n
+        Ex.: ['01_es', '02_es', '01_de', '02_de', '03_de']
     :type regions: List[str]/np.array(str)
 
     **Default arguments:**
@@ -91,9 +89,9 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
 
     :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
         
-        * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},
-                2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
-                1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
+        * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},\n
+            2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},\n
+            1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
     
     :rtype: Dict[int, Dict[str, List[str]]]
     """
@@ -183,9 +181,9 @@ def perform_parameter_based_grouping(
 
     :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
         
-        * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},
-                2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
-                1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
+        * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},\n
+            2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},\n
+            1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
 
     :rtype: Dict[int, Dict[str, List[str]]]
     """

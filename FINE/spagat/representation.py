@@ -23,7 +23,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
 
     :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
 
-        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
+        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],\n
             '03_reg_04_reg': ['03_reg','04_reg']}
 
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
@@ -67,7 +67,8 @@ def aggregate_time_series_spatially(
     :type xr_data_array_in: xr.DataArray
 
     :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
-        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
+
+        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],\n
             '03_reg_04_reg': ['03_reg','04_reg']}
 
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
@@ -155,8 +156,8 @@ def aggregate_values_spatially(
 
     :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
 
-        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
-                '03_reg_04_reg': ['03_reg','04_reg']}
+        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],\n
+            '03_reg_04_reg': ['03_reg','04_reg']}
 
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
 
@@ -225,8 +226,8 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
 
     :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
 
-        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
-                '03_reg_04_reg': ['03_reg','04_reg']}
+        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],\n
+            '03_reg_04_reg': ['03_reg','04_reg']}
 
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
 
@@ -317,8 +318,8 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
 
     :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
 
-        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
-                '03_reg_04_reg': ['03_reg','04_reg']}
+        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],\n
+            '03_reg_04_reg': ['03_reg','04_reg']}
 
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
 
@@ -327,7 +328,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable.\n
         * Possibilities: mean, weighted mean, sum, bool(boolean OR).
         * Format of the dictionary:\n
-             {<variable_name>: (<mode_of_aggregation>, <weights>),
+             {<variable_name>: (<mode_of_aggregation>, <weights>),\n
               <variable_name>: (<mode_of_aggregation>, None)}\n
           <weights> is required only if <mode_of_aggregation> is
           'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.

@@ -71,10 +71,9 @@ def perform_spatial_aggregation(
     :type geom_id_col_name: str
 
     :param separator: Relevant only if `grouping_mode` is 'string_based'.
-        The character or string in the region IDs that defines where the ID should be split.
-        
-        * E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _
-            and the last part ('es') is taken as the group ID
+        The character or string in the region IDs that defines where the ID should be split.\n
+        E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _ and the 
+        last part ('es') is taken as the group ID
 
         |br| * the default value is None
     :type separator: str
@@ -122,12 +121,12 @@ def perform_spatial_aggregation(
         |br| * the default value is 'kmedoids_contiguity'
     :type aggregation_method: str, one of {'kmedoids_contiguity', 'hierarchical'}
 
-    :param solver: * Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'.
+    :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'.
         The optimization solver to be chosen.
         |br| * the default value is 'gurobi'
     :type solver: str
 
-    :param solver: * Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'.
+    :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'.
         The optimization solver to be chosen.
         |br| * the default value is 'gurobi'
     :type solver: str
