@@ -1,9 +1,3 @@
-"""
-Last edited: February 20, 2020
-
-|br| @author: FINE Developer Team (FZJ IEK-3)
-"""
-
 from FINE import utils
 import FINE as fn
 import numpy as np
@@ -110,9 +104,6 @@ def optimizeTSAmultiStage(
         (not always supported by the solvers).
         |br| * the default value is False
     :type warmstart: boolean
-
-    Last edited: February 20, 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     lowerBound = None
 
@@ -183,14 +174,11 @@ def optimizeTSAmultiStage(
 
 
 def fixBinaryVariables(esM):
-    """ "
+    """
     Search for the optimized binary variables and set them as fixed.
 
     :param esM: energy system model to which the component should be added. Used for unit checks.
     :type esM: EnergySystemModel instance from the FINE package
-
-    Last edited: February 20, 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     for mdl in esM.componentModelingDict.keys():
         compValues = esM.componentModelingDict[mdl].getOptimalValues(

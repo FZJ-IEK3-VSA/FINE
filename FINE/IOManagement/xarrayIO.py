@@ -80,8 +80,11 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
     :param optValOutputLevel: Output level of the optimal values. Either an
         integer (0,1) which holds for all model classes or a dictionary with
         model class names as keys and an integer (0,1) for each key (e.g.
-        {'StorageModel':1,'SourceSinkModel':1,...} - 0: all values are kept. -
-        1: Lines containing only zeroes are dropped. 
+        {'StorageModel':1,'SourceSinkModel':1,...} 
+        
+        - 0: all values are kept. 
+        - 1: Lines containing only zeroes are dropped. 
+
         |br| * the default value is 1 
     :type optValOutputLevel: int (0,1) or dict
 
@@ -297,9 +300,11 @@ def writeDatasetsToNetCDF(
         |br| * the default value is False 
     :type removeExisting: boolean
 
-    :param mode: Write (‘w’) or append (‘a’) mode. If mode=’w’, any existing
-        file at this location will be overwritten. If mode=’a’, existing
-        variables will be overwritten. 
+    :param mode: Write (‘w’) or append (‘a’) mode. 
+    
+        * If mode=’w’, any existing file at this location will be overwritten. 
+        * If mode=’a’, existing variables will be overwritten. 
+
         |br| * the default value is 'a' 
     :type mode: string
 
@@ -788,9 +793,11 @@ def writeEnergySystemModelToNetCDF(
     :param optValOutputLevel: Output level of the optimal values. Either an
         integer (0,1) which holds for all model classes or a dictionary with
         model class names as keys and an integer (0,1) for each key (e.g.
-        {'StorageModel':1,'SourceSinkModel':1,...} \n
+        {'StorageModel':1,'SourceSinkModel':1,...} 
+
         * 0: all values are kept.
         * 1: Lines containing only zeroes are dropped. 
+        
         |br| * the default value is 1 
     :type optValOutputLevel: int (0,1) or dict
 

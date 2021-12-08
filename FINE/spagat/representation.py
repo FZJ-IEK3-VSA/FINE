@@ -1,4 +1,5 @@
-"""Functions to represent region data for a reduced set 
+"""
+Functions to represent region data for a reduced set 
 of regions obtained as a result of spatial grouping of regions. 
 """
 
@@ -20,14 +21,18 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     :param xr_data_array_in: subset of the xarray dataset data that corresponds to geometry variable
     :type xr_data_array_in: xr.DataArray
 
-    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions\n
+    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
+
         * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
-              '03_reg_04_reg': ['03_reg','04_reg']}
+            '03_reg_04_reg': ['03_reg','04_reg']}
+
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
 
-    :returns: xr_data_array_out\n
+    :returns: xr_data_array_out
+
         * Contains new geometries as values
         * Coordinates correspond to new regions
+
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
@@ -61,9 +66,10 @@ def aggregate_time_series_spatially(
     :param xr_data_array_in: subset of the xarray dataset data that corresponds to a time series variable
     :type xr_data_array_in: xr.DataArray
 
-    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions\n
+    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
         * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
-                '03_reg_04_reg': ['03_reg','04_reg']}
+            '03_reg_04_reg': ['03_reg','04_reg']}
+
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
 
     **Default arguments:**
@@ -77,9 +83,11 @@ def aggregate_time_series_spatially(
         |br| * the default value is None
     :type xr_weight_array: xr.DataArray
 
-    :returns: xr_data_array_out\n
+    :returns: xr_data_array_out
+
         * Contains aggregated time series as values
         * Coordinates correspond to new regions
+
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
@@ -145,9 +153,11 @@ def aggregate_values_spatially(
     :param xr_data_array_in: subset of the xarray dataset data that corresponds to a 1d variable
     :type xr_data_array_in: xr.DataArray
 
-    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions\n
+    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
+
         * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
                 '03_reg_04_reg': ['03_reg','04_reg']}
+
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
 
     **Default arguments:**
@@ -156,9 +166,11 @@ def aggregate_values_spatially(
         |br| * the default value is 'mean'
     :type mode: str, one of {"mean", "sum", "bool"}
 
-    :returns: xr_data_array_out\n
+    :returns: xr_data_array_out
+
         * Contains aggregated 1d variable as values
         * Coordinates correspond to new regions
+
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
@@ -211,9 +223,11 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
     :param xr_data_array_in: subset of the xarray dataset that corresponds to a 2d variable
     :type xr_data_array_in: xr.DataArray
 
-    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions\n
+    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
+
         * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
                 '03_reg_04_reg': ['03_reg','04_reg']}
+
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
 
     **Default arguments:**
@@ -222,9 +236,11 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
         |br| * the default value is 'bool'
     :type mode: str, one of {"bool", "mean", "sum"}
 
-    :returns: xr_data_array_out \n
+    :returns: xr_data_array_out 
+
         * Contains aggregated 2d variable as values
         * Coordinates correspond to new regions
+
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
@@ -299,9 +315,11 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     :param xarray_datasets: The dictionary of xarray datasets holding esM's info
     :type xarray_datasets: Dict[str, xr.Dataset]
 
-    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions\n
+    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
+
         * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],
                 '03_reg_04_reg': ['03_reg','04_reg']}
+
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
 
     **Default arguments:**
@@ -313,12 +331,15 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
               <variable_name>: (<mode_of_aggregation>, None)}\n
           <weights> is required only if <mode_of_aggregation> is
           'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
+        
         |br| * the default value is 'bool'
     :type aggregation_function_dict: Dict[str, Tuple(str, None/str)]
 
-    :returns: aggregated_xr_dataset\n
+    :returns: aggregated_xr_dataset
+
         * New xarray dataset with aggregated information
         * Coordinates correspond to new regions
+        
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.Dataset
     """

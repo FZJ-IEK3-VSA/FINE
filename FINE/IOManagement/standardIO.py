@@ -40,9 +40,11 @@ def writeOptimizationOutputToExcel(
 
     :param optValOutputLevel: output level of the optimal values. Either an integer (0,1) which holds for all
         model classes or a dictionary with model class names as keys and an integer (0,1) for each key
-        (e.g. {'StorageModel':1,'SourceSinkModel':1,...}\n
+        (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
+
         * 0: all values are kept.
         * 1: Lines containing only zeroes are dropped.
+
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
     """
@@ -140,10 +142,12 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
 
     :param engine: Used engine for reading the excel file. Please consider that the corresponding
         python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
-        For further information see the documentation of pandas.read_excel().\n
+        For further information see the documentation of pandas.read_excel().
+
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
+
         |br| * the default value is 'openpyxl'.
     :type engine: string
 
@@ -225,10 +229,12 @@ def energySystemModelRunFromExcel(fileName="scenarioInput.xlsx", engine="openpyx
 
     :param engine: Used engine for reading the excel file. Please consider that the corresponding
         python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
-        For further information see the documentation of pandas.read_excel().\n
+        For further information see the documentation of pandas.read_excel().
+
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
+
         |br| * the default value is 'openpyxl'.
     :type engine: string
 
@@ -262,10 +268,12 @@ def readOptimizationOutputFromExcel(
 
     :param engine: Used engine for reading the excel file. Please consider that the corresponding
         python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
-        For further information see the documentation of pandas.read_excel().\n
+        For further information see the documentation of pandas.read_excel().
+
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
+        
         |br| * the default value is 'openpyxl'.
     :type engine: string
 

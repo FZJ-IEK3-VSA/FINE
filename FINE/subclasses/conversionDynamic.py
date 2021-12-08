@@ -5,12 +5,10 @@ import pandas as pd
 
 import warnings
 
-
 class ConversionDynamic(Conversion):
     """
     Extension of the conversion class with more specific ramping behavior
     """
-
     def __init__(
         self,
         esM,
@@ -30,33 +28,25 @@ class ConversionDynamic(Conversion):
         input arguments are described in the Component class.
 
         **Default arguments:**
+
         :param downTimeMin: if specified, indicates minimal down time of the component [number of time steps].
             |br| * the default value is None
-        :type downTimeMin:
-            * None or
-            * Integer value in range ]0,numberOfTimeSteps]
+        :type downTimeMin: None or integer value in range ]0,numberOfTimeSteps]
 
         :param upTimeMin: if specified, indicates minimal up time of the component [number of time steps].
             |br| * the default value is None
-        :type upTimeMin:
-            * None or
-            * Integer value in range ]0,numberOfTimeSteps]
+        :type upTimeMin:None or integer value in range ]0,numberOfTimeSteps]
 
         :param rampUpMax: A maximum ramping rate to limit the increase in the operation of the component as share of the installed capacity.
             |br| * the default value is None
-        :type rampUpMax:
-            * None or
-            * Float value in range ]0.0,1.0]
+        :type rampUpMax: None or float value in range ]0.0,1.0]
 
         :param rampDownMax: A maximum ramping rate to limit the decrease in the operation of the component as share of the installed capacity.
             |br| * the default value is None
-        :type rampDownMax:
-            * None or
-            * Float value in range ]0.0,1.0]
+        :type rampDownMax: None or float value in range ]0.0,1.0]
 
         :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
-        :type kwargs:
-            * Check Conversion Class documentation.
+        :type **kwargs: Check Conversion Class documentation.
         """
         Conversion.__init__(
             self, esM, name, physicalUnit, commodityConversionFactors, **kwargs
@@ -95,7 +85,8 @@ class ConversionDynamicModel(ConversionModel):
     A ConversionDynamicModel class instance will be instantly created if a ConversionDynamic class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the ConversionDynamic
     class instance. These declarations are necessary for the modeling and optimization of the energy system model.
-    The ConversionDynamicModel class inherits from the ConversionModel class."""
+    The ConversionDynamicModel class inherits from the ConversionModel class.
+    """
 
     def __init__(self):
         self.abbrvName = "conv_dyn"
@@ -287,7 +278,6 @@ class ConversionDynamicModel(ConversionModel):
     def minimumDownTime(self, pyM, esM):
         """
         Ensure that conversion unit is not ramping up and down too often by implementing a minimum down time after ramping down.
-
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model

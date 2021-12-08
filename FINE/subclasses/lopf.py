@@ -116,7 +116,8 @@ class LOPFModel(TransmissionModel):
     A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the LinearOptimalPowerFlow
     class instance. These declarations are necessary for the modeling and optimization of the energy system model.
-    The LOPFModel class inherits from the TransmissionModel class."""
+    The LOPFModel class inherits from the TransmissionModel class.
+    """
 
     def __init__(self):
         self.abbrvName = "lopf"
@@ -336,12 +337,14 @@ class LOPFModel(TransmissionModel):
         """
         Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'operationVariablesOptimum',
-        * 'phaseAngleVariablesOptimum',
-        * 'all' or another input: all variables are returned.\n
+        :param name: name of the variables of which the optimal values should be returned:
+
+            * 'capacityVariables',
+            * 'isBuiltVariables',
+            * 'operationVariablesOptimum',
+            * 'phaseAngleVariablesOptimum',
+            * 'all' or another input: all variables are returned.
+
         :type name: string
         """
         if name == "capacityVariablesOptimum":

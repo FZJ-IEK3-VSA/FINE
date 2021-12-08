@@ -1,9 +1,3 @@
-"""
-Last edited: February 11, 2020
-
-|br| @author: FINE Developer Team (FZJ IEK-3)
-"""
-
 from FINE import utils
 from FINE.IOManagement import standardIO
 import pandas as pd
@@ -98,9 +92,6 @@ def optimizeSimpleMyopic(
     :returns: myopicResults: Store all optimization outputs in a dictionary for further analyses. If trackESMs is set to false,
         nothing is returned.
     :rtype: dict of all optimized instances of the EnergySystemModel class or None.
-
-    Last edited: February 14, 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
     nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(
@@ -170,9 +161,6 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
 
     :return: EnergySystemModel instance including the installed capacities of the previous optimization runs.
     :rtype: EnergySystemModel instance
-
-    Last edited: February 11, 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     for mdl in esM.componentModelingDict.keys():
         compValues = esM.componentModelingDict[mdl].getOptimalValues(

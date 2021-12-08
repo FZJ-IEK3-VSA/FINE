@@ -10,9 +10,7 @@ class Component(metaclass=ABCMeta):
     The Component class includes the general methods and arguments for the components which are add-able to
     the energy system model (e.g. storage component, source component, transmission component). Every of these
     components inherits from the Component class.
-
     """
-
     def __init__(
         self,
         esM,
@@ -2506,10 +2504,10 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param name: name of the variables of which the optimal values should be returned:
 
-        * 'capacityVariablesOptimum',
-        * 'isBuiltVariablesOptimum',
-        * 'operationVariablesOptimum',
-        * 'all' or another input: all variables are returned.
+            * 'capacityVariablesOptimum',
+            * 'isBuiltVariablesOptimum',
+            * 'operationVariablesOptimum',
+            * 'all' or another input: all variables are returned.
         
         :type name: string
         """

@@ -1,4 +1,5 @@
-"""Functions to assist RE representation algorithm.
+"""
+Functions to assist RE representation algorithm.
 """
 import warnings
 import os
@@ -112,9 +113,11 @@ def rasterize_xr_ds(
     :type latitude: str
 
     :returns: rasterized_RE_ds - dataset with
+
         - Additional dimension with name `index_col`
         - Additional variable with name 'rasters' and values as rasters
           corresponding to each geometry in `shp_file`
+          
     :rtype: xr.Dataset
     """
 

@@ -1,8 +1,3 @@
-"""
-Last edited: February 20, 2020
-|br| @author: FINE Developer Team (FZJ IEK-3)
-"""
-
 from FINE.conversion import Conversion, ConversionModel
 from FINE import utils
 import pyomo.environ as pyomo
@@ -665,11 +660,13 @@ class ConversionPartLoadModel(ConversionModel):
         """
         Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'operationVariablesOptimum',
-        * 'all' or another input: all variables are returned.\n
+        :param name: name of the variables of which the optimal values should be returned:
+
+            * 'capacityVariables',
+            * 'isBuiltVariables',
+            * 'operationVariablesOptimum',
+            * 'all' or another input: all variables are returned.
+
         |br| * the default value is 'all'
         :type name: string
 

@@ -1,4 +1,5 @@
-"""Representation of RE technologies in every region.
+"""
+Representation of RE technologies in every region.
 """
 import logging
 import numpy as np
@@ -45,9 +46,11 @@ def represent_RE_technology(
 
     Please go through the parameters list below for more information.
 
-    :param gridded_RE_ds: Either the path to the dataset or the read-in xr.Dataset\n
+    :param gridded_RE_ds: Either the path to the dataset or the read-in xr.Dataset
+
         * Dimensions in this data: `latitude`, `longitude`, and `time`
         * Variables: `capacity_var_name` and `capfac_var_name`
+
     :type gridded_RE_ds: str/xr.Dataset
 
     :param CRS_attr: The attribute in `gridded_RE_ds` that holds its
@@ -62,15 +65,20 @@ def represent_RE_technology(
     **Default arguments:**
 
     :param n_timeSeries_perRegion: The number of time series to which the original set should be aggregated,
-        within each region.\n
-        * If set to 1, performs simple aggregation\n
+        within each region.
+
+        * If set to 1, performs simple aggregation
+
             - Within every region, calculates the weighted mean of RE
               time series (capacities being weights), and sums the capacities.
-        * If set to a value greater than 1, time series clustering is employed\n
+
+        * If set to a value greater than 1, time series clustering is employed
+
             - Clustering method: Sklearn's agglomerative hierarchical clustering
             - Distance measure: Euclidean distance
             - Aggregation within each resulting cluster is the same as simple
               aggregation
+
         |br| * the default value is 1
     :type n_timeSeries_perRegion: strictly positive int
 
@@ -104,16 +112,20 @@ def represent_RE_technology(
         |br| * the default value is 'geometry'
     :type geometry_col: str
 
-    :param linkage:\n
+    :param linkage:
+
         * Relevant only if `n_timeSeries_perRegion` is greater than 1.
         * The linkage criterion to be used with agglomerative hierarchical clustering.
           Can be 'complete', 'single', etc. Refer to Sklearn's documentation for more info.
+
         |br| * the default value is 'average'
     :type linkage: str
 
-    :returns: represented_RE_ds\n
+    :returns: represented_RE_ds
+
         * Dimensions in this data: `time`, 'region_ids'
-        * The dimension 'region_ids' has its coordinates corresponding to `index_col`\n
+        * The dimension 'region_ids' has its coordinates corresponding to `index_col`
+        
         If `n_timeSeries_perRegion` is greater than 1, additional dimension 'TS_ids' is present.
         Within each region, different time series are indicated by this 'TS_ids'
     :rtype: xr.Dataset

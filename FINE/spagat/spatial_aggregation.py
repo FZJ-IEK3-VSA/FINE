@@ -71,9 +71,11 @@ def perform_spatial_aggregation(
     :type geom_id_col_name: str
 
     :param separator: Relevant only if `grouping_mode` is 'string_based'.
-        The character or string in the region IDs that defines where the ID should be split.\n
+        The character or string in the region IDs that defines where the ID should be split.
+        
         * E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _
             and the last part ('es') is taken as the group ID
+
         |br| * the default value is None
     :type separator: str
 
@@ -92,11 +94,14 @@ def perform_spatial_aggregation(
         distance corresonding to each variable-component pair, these specified weights are
         considered, otherwise taken as 1.
 
-        It must be in one of the formats:\n
+        It must be in one of the formats:
+    
         * If you want to specify weights for particular variables and particular corresponding components:\n
             { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
+
         * If you want to specify weights for particular variables, but all corresponding components:\n
             { 'components' : {'all' : <weight>}, 'variables' : List[<variable_name>] }
+
         * If you want to specify weights for all variables, but particular corresponding components:\n
             { 'components' : Dict[<component_name>, <weight>}], 'variables' : 'all' }
 
@@ -105,13 +110,15 @@ def perform_spatial_aggregation(
     :type weights: Dict
 
     :param aggregation_method: Relevant only if `grouping_mode` is 'parameter_based'.
-        The clustering method that should be used to group the regions. Options:\n
-            * 'kmedoids_contiguity':\n
+        The clustering method that should be used to group the regions. Options:
+
+            * 'kmedoids_contiguity':
                 kmedoids clustering with added contiguity constraint.
                 Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
-            * 'hierarchical':\n
+            * 'hierarchical':
                 sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
                 Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
+        
         |br| * the default value is 'kmedoids_contiguity'
     :type aggregation_method: str, one of {'kmedoids_contiguity', 'hierarchical'}
 
@@ -125,11 +132,14 @@ def perform_spatial_aggregation(
         |br| * the default value is 'gurobi'
     :type solver: str
 
-    :param aggregation_function_dict: - Contains information regarding the mode of aggregation for each individual variable.\n
+    :param aggregation_function_dict: - Contains information regarding the mode of aggregation for each individual variable.
+        
         * Possibilities: mean, weighted mean, sum, bool (boolean OR).
-        * Format of the dictionary: \n
+        * Format of the dictionary: 
+
             {<variable_name>: (<mode_of_aggregation>, <weights>),
-             <variable_name>: (<mode_of_aggregation>, None)}\n
+            <variable_name>: (<mode_of_aggregation>, None)}
+
           <weights> is required only if <mode_of_aggregation> is
           'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
 

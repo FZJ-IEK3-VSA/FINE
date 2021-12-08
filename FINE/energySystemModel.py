@@ -61,9 +61,6 @@ class EnergySystemModel:
       The pyomo instance is then optimized by a specified solver. The optimization results are processed once
       available.
     * getting components and their attributes (**getComponent, getCompAttr, getOptimizationSummary**)
-
-    Last edited: November 12 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
     def __init__(
@@ -734,9 +731,6 @@ class EnergySystemModel:
             stored in the EnergySystemModel instance.
             |br| * the default value is False
         :type storeTSAinstance: boolean
-
-        Last edited: November 12 2020
-        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
 
         # Check input arguments which have to fit the temporal representation of the energy system
@@ -1015,6 +1009,7 @@ class EnergySystemModel:
         Balance limit constraint can limit the exchange of commodities within the model or over the model region
         boundaries. See the documentation of the parameters for further explanation. In general the following equation
         applies:
+        
             E_source - E_sink + E_exchange,in - E_exchange,out <= E_lim (self.LowerBound=False)
             E_source - E_sink + E_exchange,in - E_exchange,out >= E_lim (self.LowerBound=True)
 
@@ -1367,9 +1362,6 @@ class EnergySystemModel:
             bound of the problem.
             |br| * the default value is False
         :type declaresOptimizationProblem: boolean
-
-        Last edited: March 26, 2020
-        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -1536,9 +1528,6 @@ class EnergySystemModel:
             (not always supported by the solvers).
             |br| * the default value is False
         :type warmstart: boolean
-
-        Last edited: March 26, 2020
-        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
 
         if not timeSeriesAggregation:
