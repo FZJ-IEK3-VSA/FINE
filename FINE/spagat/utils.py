@@ -27,7 +27,7 @@ def timer(func):
     Usage : as a decorator before a function -> @spu.timer
     """
 
-    @wraps(func) # Required to get documentation for functions using this decorator
+    @wraps(func)  # Required to get documentation for functions using this decorator
     def f(*args, **kwargs):
         before = time.perf_counter()
         rv = func(*args, **kwargs)

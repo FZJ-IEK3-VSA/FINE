@@ -51,12 +51,12 @@ class EnergySystemModel:
     * clustering the time series data of all added components using the time series aggregation package tsam, cf.
       https://github.com/FZJ-IEK3-VSA/tsam (**cluster**)
     * optimizing the specified energy system (**optimize**), for which a pyomo concrete model instance is built
-      and filled with 
+      and filled with
 
-        (0) basic time sets, 
-        (1) sets, variables and constraints contributed by the component modeling classes, 
-        (2) basic, component overreaching constraints, and 
-        (3) an objective function. 
+        (0) basic time sets,
+        (1) sets, variables and constraints contributed by the component modeling classes,
+        (2) basic, component overreaching constraints, and
+        (3) an objective function.
 
       The pyomo instance is then optimized by a specified solver. The optimization results are processed once
       available.
@@ -445,11 +445,11 @@ class EnergySystemModel:
         :param modelingClass: name of the modeling class from which the optimization summary should be obtained
         :type modelingClass: string
 
-        :param outputLevel: states the level of detail of the output summary: 
+        :param outputLevel: states the level of detail of the output summary:
 
-            - 0: full optimization summary is returned 
+            - 0: full optimization summary is returned
             - 1: full optimization summary is returned but rows in which all values are NaN (not a number) are dropped
-            - 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped 
+            - 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped
 
             |br| * the default value is 0
         :type outputLevel: integer (0, 1 or 2)
@@ -540,7 +540,7 @@ class EnergySystemModel:
             - If you want to specify weights for particular variables and particular corresponding components:
 
                 { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
-                
+
             - If you want to specify weights for particular variables, but all corresponding components:
 
                 { 'components' : {'all' : <weight>}, 'variables' : List[<variable_name>] }
@@ -557,13 +557,13 @@ class EnergySystemModel:
         :param aggregation_method: Relevant only if `grouping_mode` is 'parameter_based'.
             The clustering method that should be used to group the regions. Options:
 
-                - 'kmedoids_contiguity': 
-                    kmedoids clustering with added contiguity constraint. 
-                    Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py 
-                - 'hierarchical': 
-                    sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity. 
+                - 'kmedoids_contiguity':
+                    kmedoids clustering with added contiguity constraint.
+                    Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+                - 'hierarchical':
+                    sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
                     Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
-            
+
             |br| * the default value is 'kmedoids_contiguity'
         :type aggregation_method: string, Options: 'kmedoids_contiguity', 'hierarchical'
 
@@ -575,15 +575,15 @@ class EnergySystemModel:
         :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable.
 
             - Possibilities: mean, weighted mean, sum, bool (boolean OR).
-            - Format of the dictionary 
+            - Format of the dictionary
 
                 - {<variable_name>: (<mode_of_aggregation>, <weights>),
                   <variable_name>: (<mode_of_aggregation>, None)}.
 
                 <weights> is required only if <mode_of_aggregation> is
                 'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
-            
-            A default dictionary is considered with the following corresponding modes. 
+
+            A default dictionary is considered with the following corresponding modes.
             If `aggregation_function_dict` is passed, this default dictionary is updated.
 
             | {"operationRateMax": ("weighted mean", "capacityMax"),
@@ -886,7 +886,7 @@ class EnergySystemModel:
         :type pyM: pyomo ConcreteModel
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-            
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
 
@@ -1009,7 +1009,7 @@ class EnergySystemModel:
         Balance limit constraint can limit the exchange of commodities within the model or over the model region
         boundaries. See the documentation of the parameters for further explanation. In general the following equation
         applies:
-        
+
             E_source - E_sink + E_exchange,in - E_exchange,out <= E_lim (self.LowerBound=False)
             E_source - E_sink + E_exchange,in - E_exchange,out >= E_lim (self.LowerBound=True)
 
@@ -1342,7 +1342,7 @@ class EnergySystemModel:
         **Default arguments:**
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-            
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
 
@@ -1475,7 +1475,7 @@ class EnergySystemModel:
         :type declaresOptimizationProblem: boolean
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-            
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
 

@@ -55,8 +55,8 @@ class Source(Component):
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
         input arguments are described in the Component class.
-        
-        .. note:: 
+
+        .. note::
             The Sink class inherits from the Source class and is initialized with the same parameter set.
 
         **Required arguments:**
@@ -778,7 +778,7 @@ class SourceSinkModel(ComponentModel):
         :param ID: string
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-            
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
 
@@ -1049,7 +1049,7 @@ class SourceSinkModel(ComponentModel):
             * 'isBuiltVariables',
             * 'operationVariablesOptimum',
             * 'all' or another input: all variables are returned.
-        
+
         |br| * the default value is 'all'
         :type name: string
 

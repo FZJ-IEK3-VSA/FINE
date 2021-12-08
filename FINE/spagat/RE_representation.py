@@ -125,7 +125,7 @@ def represent_RE_technology(
 
         * Dimensions in this data: `time`, 'region_ids'
         * The dimension 'region_ids' has its coordinates corresponding to `index_col`
-        
+
         If `n_timeSeries_perRegion` is greater than 1, additional dimension 'TS_ids' is present.
         Within each region, different time series are indicated by this 'TS_ids'
     :rtype: xr.Dataset

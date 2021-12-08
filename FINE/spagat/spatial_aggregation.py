@@ -72,7 +72,7 @@ def perform_spatial_aggregation(
 
     :param separator: Relevant only if `grouping_mode` is 'string_based'.
         The character or string in the region IDs that defines where the ID should be split.\n
-        E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _ and the 
+        E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _ and the
         last part ('es') is taken as the group ID
 
         |br| * the default value is None
@@ -94,7 +94,7 @@ def perform_spatial_aggregation(
         considered, otherwise taken as 1.
 
         It must be in one of the formats:
-    
+
         * If you want to specify weights for particular variables and particular corresponding components:\n
             { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
 
@@ -117,7 +117,7 @@ def perform_spatial_aggregation(
             * 'hierarchical':
                 sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
                 Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
-        
+
         |br| * the default value is 'kmedoids_contiguity'
     :type aggregation_method: str, one of {'kmedoids_contiguity', 'hierarchical'}
 
@@ -132,9 +132,9 @@ def perform_spatial_aggregation(
     :type solver: str
 
     :param aggregation_function_dict: - Contains information regarding the mode of aggregation for each individual variable.
-        
+
         * Possibilities: mean, weighted mean, sum, bool (boolean OR).
-        * Format of the dictionary: 
+        * Format of the dictionary:
 
             {<variable_name>: (<mode_of_aggregation>, <weights>),
             <variable_name>: (<mode_of_aggregation>, None)}

@@ -54,7 +54,7 @@ class LinearOptimalPowerFlow(Transmission):
 
         :param reactances: reactances for DC power flow modeling (of AC lines) given as a Pandas DataFrame. The row and column indices of the DataFrame have to equal
             the in the energy system model specified locations.
-        :type reactances: Pandas DataFrame. 
+        :type reactances: Pandas DataFrame.
         """
         Transmission.__init__(
             self,

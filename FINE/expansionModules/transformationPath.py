@@ -40,7 +40,7 @@ def optimizeSimpleMyopic(
     :param endYear: year of the last optimization
     :type endYear: int
 
-    :param nbOfSteps: number of optimization runs excluding the start year (minimum number 
+    :param nbOfSteps: number of optimization runs excluding the start year (minimum number
         of optimization runs is 2: one optimization for the start year and one for the end year).
         |br| * the default value is None
     :type nbOfSteps: int or None
@@ -50,7 +50,7 @@ def optimizeSimpleMyopic(
     :type nbOfRepresentedYears: int or None
 
     :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-    
+
         (a) the full time series (False) or
         (b) clustered time series data (True).
 

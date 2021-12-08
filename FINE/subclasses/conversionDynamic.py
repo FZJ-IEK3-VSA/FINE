@@ -5,10 +5,12 @@ import pandas as pd
 
 import warnings
 
+
 class ConversionDynamic(Conversion):
     """
     Extension of the conversion class with more specific ramping behavior
     """
+
     def __init__(
         self,
         esM,

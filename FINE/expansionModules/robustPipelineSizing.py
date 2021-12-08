@@ -80,6 +80,7 @@ def checkLowerUpperBoundsOfDicts(lowerDict, upperDict):
                     "The lower bound has to be the smaller than the upper bound"
                 )
 
+
 def isListOfStrings(strings):
     # check if strings is list of strings
     if not isinstance(strings, list):
@@ -88,11 +89,15 @@ def isListOfStrings(strings):
         for string in strings:
             utils.isString(string)
 
+
 def isBool(boolean):
     # check if boolean is a bool
     if not isinstance(boolean, bool):
         raise TypeError("The input argument has to be a bool")
+
+
 # End utils checks
+
 
 def getInjectionWithdrawalRates(
     componentName="", esM=None, operationVariablesOptimumData=None
@@ -2992,7 +2997,7 @@ def plotOptimizedNetwork(
 
         - fig: matplotlib figure
         - ax: matplotlib axis
-        
+
     """
 
     fig, ax = plt.subplots(figsize=figsize)

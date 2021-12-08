@@ -64,7 +64,7 @@ class DemandSideManagementBETA(Sink):
             * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
             * Emitting CO2 into the environment is not per se limited by a capacity ->
               hasCapacityVariable is False.
-              
+
         :type hasCapacityVariable: boolean
 
         :param tFwd: the number of timesteps for backwards demand shifting.

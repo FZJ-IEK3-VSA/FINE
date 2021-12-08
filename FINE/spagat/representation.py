@@ -237,7 +237,7 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
         |br| * the default value is 'bool'
     :type mode: str, one of {"bool", "mean", "sum"}
 
-    :returns: xr_data_array_out 
+    :returns: xr_data_array_out
 
         * Contains aggregated 2d variable as values
         * Coordinates correspond to new regions
@@ -332,7 +332,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
               <variable_name>: (<mode_of_aggregation>, None)}\n
           <weights> is required only if <mode_of_aggregation> is
           'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
-        
+
         |br| * the default value is 'bool'
     :type aggregation_function_dict: Dict[str, Tuple(str, None/str)]
 
@@ -340,7 +340,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
 
         * New xarray dataset with aggregated information
         * Coordinates correspond to new regions
-        
+
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.Dataset
     """

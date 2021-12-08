@@ -640,10 +640,10 @@ class TransmissionModel(ComponentModel):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
         Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
-        
+
         - If commodity is transferred out of region a negative sign is used.
         - If commodity is transferred into region a positive sign is used and losses are considered.
-        
+
         Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -656,7 +656,7 @@ class TransmissionModel(ComponentModel):
         :param ID: string
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-            
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
 

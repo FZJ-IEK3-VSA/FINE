@@ -24,7 +24,7 @@ def perform_string_based_grouping(regions, separator=None, position=None):
     **Default arguments:**
 
     :param separator: The character or string in the region IDs that defines where the ID should be split
-        
+
         * Ex.: '_' would split the above IDs at _ and take the last part ('es', 'de') as the group ID
 
         |br| * the default value is None
@@ -37,9 +37,9 @@ def perform_string_based_grouping(regions, separator=None, position=None):
     :type position: int/tuple
 
     :returns: sub_to_sup_region_id_dict - Dictionary new regions' ids and their corresponding group of regions
-        
+
         * Ex.: {'es' : ['01_es', '02_es'] , 'de' : ['01_de', '02_de', '03_de']}
-        
+
     :rtype: Dict[str, List[str]]
     """
 
@@ -88,11 +88,11 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
     :type n_groups: strictly positive int
 
     :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
-        
+
         * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},\n
             2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},\n
             1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
-    
+
     :rtype: Dict[int, Dict[str, List[str]]]
     """
 
@@ -128,7 +128,7 @@ def perform_parameter_based_grouping(
     """
     Groups regions based on the Energy System Model instance's data.
     This data may consist of
-    
+
         a. regional time series variables such as operationRateMax of PVs
         b. regional values such as capacityMax of PVs
         c. connection values such as distances of DC Cables
@@ -150,12 +150,12 @@ def perform_parameter_based_grouping(
         Options:
 
             * 'kmedoids_contiguity':\n
-                kmedoids clustering with added contiguity constraint\n 
+                kmedoids clustering with added contiguity constraint\n
                 Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
             * 'hierarchical': \n
                 sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity\n
                 Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
-        
+
         |br| * the default value is 'kmedoids_contiguity'
     :type aggregation_method: str
 
@@ -180,7 +180,7 @@ def perform_parameter_based_grouping(
     :type solver: str
 
     :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
-        
+
         * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},\n
             2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},\n
             1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}

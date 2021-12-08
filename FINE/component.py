@@ -11,6 +11,7 @@ class Component(metaclass=ABCMeta):
     the energy system model (e.g. storage component, source component, transmission component). Every of these
     components inherits from the Component class.
     """
+
     def __init__(
         self,
         esM,
@@ -108,7 +109,7 @@ class Component(metaclass=ABCMeta):
         :type bigM: None or strictly positive float
 
         :param locationalEligibility:
-        
+
             * Pandas Series that indicates if a component can be built at a location (=1) or not (=0)
               (dimension=1dim) or
             * Pandas Series or DataFrame that indicates if a component can be built between two
@@ -220,7 +221,7 @@ class Component(metaclass=ABCMeta):
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
               the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). The value has to match the unit
-              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km)) 
+              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km))
 
             |br| * the default value is 0
         :type investPerCapacity:
@@ -2508,7 +2509,7 @@ class ComponentModel(metaclass=ABCMeta):
             * 'isBuiltVariablesOptimum',
             * 'operationVariablesOptimum',
             * 'all' or another input: all variables are returned.
-        
+
         :type name: string
         """
         if name == "capacityVariablesOptimum":

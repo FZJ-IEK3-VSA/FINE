@@ -117,7 +117,7 @@ def rasterize_xr_ds(
         - Additional dimension with name `index_col`
         - Additional variable with name 'rasters' and values as rasters
           corresponding to each geometry in `shp_file`
-          
+
     :rtype: xr.Dataset
     """
 

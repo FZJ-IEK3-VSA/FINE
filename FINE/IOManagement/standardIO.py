@@ -273,7 +273,7 @@ def readOptimizationOutputFromExcel(
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
-        
+
         |br| * the default value is 'openpyxl'.
     :type engine: string
 

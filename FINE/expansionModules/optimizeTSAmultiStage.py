@@ -31,7 +31,7 @@ def optimizeTSAmultiStage(
     **Default arguments:**
 
     :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
-        
+
         (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
         (b) If false a previously declared pyomo ConcreteModel instance is used.
 
@@ -61,9 +61,9 @@ def optimizeTSAmultiStage(
     :param clusterMethod: states the method which is used in the tsam package for clustering the time series
         data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
 
-        .. note:: 
+        .. note::
             Please refer to the tsam package documentation of the parameter clusterMethod for more information.
-        
+
         |br| * the default value is 'hierarchical'
     :type clusterMethod: string
 

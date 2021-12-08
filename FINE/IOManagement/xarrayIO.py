@@ -74,18 +74,18 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
         EnergySystemModel). Either an integer (0,1,2) which holds for all model
         classes or a dictionary with model class names as keys and an integer
         (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        |br| * the default value is 2 
+        |br| * the default value is 2
     :type optSumOutputLevel: int (0,1,2) or dict
 
     :param optValOutputLevel: Output level of the optimal values. Either an
         integer (0,1) which holds for all model classes or a dictionary with
         model class names as keys and an integer (0,1) for each key (e.g.
-        {'StorageModel':1,'SourceSinkModel':1,...} 
-        
-        - 0: all values are kept. 
-        - 1: Lines containing only zeroes are dropped. 
+        {'StorageModel':1,'SourceSinkModel':1,...}
 
-        |br| * the default value is 1 
+        - 0: all values are kept.
+        - 1: Lines containing only zeroes are dropped.
+
+        |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
 
     :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
@@ -292,26 +292,26 @@ def writeDatasetsToNetCDF(
 
     **Default arguments:**
 
-    :param outputFilePath: output file name of the netCDF file (can include full path) 
-        |br| * the default value is "my_esm.nc" 
+    :param outputFilePath: output file name of the netCDF file (can include full path)
+        |br| * the default value is "my_esm.nc"
     :type outputFilePath: string
 
-    :param removeExisting: indicates if an existing netCDF file should be removed 
-        |br| * the default value is False 
+    :param removeExisting: indicates if an existing netCDF file should be removed
+        |br| * the default value is False
     :type removeExisting: boolean
 
-    :param mode: Write (‘w’) or append (‘a’) mode. 
-    
-        * If mode=’w’, any existing file at this location will be overwritten. 
-        * If mode=’a’, existing variables will be overwritten. 
+    :param mode: Write (‘w’) or append (‘a’) mode.
 
-        |br| * the default value is 'a' 
+        * If mode=’w’, any existing file at this location will be overwritten.
+        * If mode=’a’, existing variables will be overwritten.
+
+        |br| * the default value is 'a'
     :type mode: string
 
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None 
+        |br| * the default value is None
     :type groupPrefix: string
 
     """
@@ -772,43 +772,43 @@ def writeEnergySystemModelToNetCDF(
     """
     Write energySystemModel (input and if exists, output) to netCDF file.
 
-    :param esM: EnergySystemModel instance in which the model is held 
+    :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
 
-    :param outputFilePath: output file name (can include full path) 
-        |br| * the default value is "my_esm.nc" 
+    :param outputFilePath: output file name (can include full path)
+        |br| * the default value is "my_esm.nc"
     :type file_path: string
 
-    :param overwriteExisting: Overwrite existing netCDF file 
-        |br| * the default value is False 
+    :param overwriteExisting: Overwrite existing netCDF file
+        |br| * the default value is False
     :type outputFileName: boolean
 
     :param optSumOutputLevel: Output level of the optimization summary (see
         EnergySystemModel). Either an integer (0,1,2) which holds for all model
         classes or a dictionary with model class names as keys and an integer
         (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        |br| * the default value is 2 
+        |br| * the default value is 2
     :type optSumOutputLevel: int (0,1,2) or dict
 
     :param optValOutputLevel: Output level of the optimal values. Either an
         integer (0,1) which holds for all model classes or a dictionary with
         model class names as keys and an integer (0,1) for each key (e.g.
-        {'StorageModel':1,'SourceSinkModel':1,...} 
+        {'StorageModel':1,'SourceSinkModel':1,...}
 
         * 0: all values are kept.
-        * 1: Lines containing only zeroes are dropped. 
-        
-        |br| * the default value is 1 
+        * 1: Lines containing only zeroes are dropped.
+
+        |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
 
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None 
+        |br| * the default value is None
     :type group_prefix: string
 
     :return: Nested dictionary containing xr.Dataset with all result values
-        for each component. 
+        for each component.
     :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
 
@@ -866,13 +866,13 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
     xr.Datasets.
 
     :param filePath: output file name of netCDF file (can include full path)
-        |br| * the default value is "my_esm.nc" 
+        |br| * the default value is "my_esm.nc"
     :type filePath: string
 
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None 
+        |br| * the default value is None
     :type groupPrefix: string
 
     :return: Nested dictionary containing an xr.Dataset with all result values
@@ -928,8 +928,8 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     Converts netCDF file into an EnergySystemModel instance.
 
     :param filePath: file name of netCDF file (can include full path) in which
-        the esM data is stored 
-        |br| * the default value is "my_esm.nc" 
+        the esM data is stored
+        |br| * the default value is "my_esm.nc"
     :type filePath: string
 
     :return: EnergySystemModel instance

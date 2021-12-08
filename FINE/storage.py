@@ -1904,14 +1904,14 @@ class StorageModel(ComponentModel):
         Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
-        
+
             * 'capacityVariables',
             * 'isBuiltVariables',
             * 'chargeOperationVariablesOptimum',
             * 'dischargeOperationVariablesOptimum',
             * 'stateOfChargeOperationVariablesOptimum',
             * 'all' or another input: all variables are returned.
-        
+
         |br| * the default value is 'all'
         :type name: string
 
