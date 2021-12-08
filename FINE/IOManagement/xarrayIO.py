@@ -12,12 +12,14 @@ from FINE.IOManagement.utilsIO import processXarrayAttributes
 
 
 def convertOptimizationInputToDatasets(esM):
-    """Takes esM instance input and converts it into xarray datasets.
+    """
+    Takes esM instance input and converts it into xarray datasets.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
 
     :return: xr_ds - esM instance data in xarray dataset format
+    :rtype: xarray.dataset
     """
 
     # STEP 1. Get the esm and component dicts
@@ -62,7 +64,8 @@ def convertOptimizationInputToDatasets(esM):
 
 
 def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
-    """Takes esM instance output and converts it into an xarray dataset.
+    """
+    Takes esM instance output and converts it into an xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
@@ -71,18 +74,19 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
         EnergySystemModel). Either an integer (0,1,2) which holds for all model
         classes or a dictionary with model class names as keys and an integer
         (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        |br| * the default value is 2 :type optSumOutputLevel: int (0,1,2) or
-        dict
+        |br| * the default value is 2 
+    :type optSumOutputLevel: int (0,1,2) or dict
 
     :param optValOutputLevel: Output level of the optimal values. Either an
         integer (0,1) which holds for all model classes or a dictionary with
         model class names as keys and an integer (0,1) for each key (e.g.
         {'StorageModel':1,'SourceSinkModel':1,...} - 0: all values are kept. -
-        1: Lines containing only zeroes are dropped. |br| * the default value is
-        1 :type optValOutputLevel: int (0,1) or dict
+        1: Lines containing only zeroes are dropped. 
+        |br| * the default value is 1 
+    :type optValOutputLevel: int (0,1) or dict
 
-    :return: xr_ds - EnergySystemModel instance output data in xarray dataset
-    format
+    :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
+    :rtype: xarray.dataset
     """
 
     # Create the netCDF file and the xr.Dataset dict for all components
@@ -274,27 +278,37 @@ def writeDatasetsToNetCDF(
     mode="a",
     groupPrefix=None,
 ):
-    """Saves dictionary of xarray datasets (with esM instance data) to a netCDF
+    """
+    Saves dictionary of xarray datasets (with esM instance data) to a netCDF
     file.
 
+    **Required arguments:**
+
     :param datasets: The xarray datasets holding all data required to set up an esM instance.
-    data :type datasets: Dict[xr.Dataset]
+    :type datasets: Dict[xr.Dataset]
 
-    :param outputFilePath: output file name of the netCDF file (can include full
-        path) |br| * the default value is "my_esm.nc" :type file_path: string
+    **Default arguments:**
 
-    :param removeExisting: indicates if an existing netCDF file should be
-        removed |br| * the default value is False :type removeExisting: boolean
+    :param outputFilePath: output file name of the netCDF file (can include full path) 
+        |br| * the default value is "my_esm.nc" 
+    :type outputFilePath: string
+
+    :param removeExisting: indicates if an existing netCDF file should be removed 
+        |br| * the default value is False 
+    :type removeExisting: boolean
 
     :param mode: Write (‘w’) or append (‘a’) mode. If mode=’w’, any existing
         file at this location will be overwritten. If mode=’a’, existing
-        variables will be overwritten. |br| * the default value is 'a' :type
-        mode: string
+        variables will be overwritten. 
+        |br| * the default value is 'a' 
+    :type mode: string
 
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None :type groupPrefix: string
+        |br| * the default value is None 
+    :type groupPrefix: string
+
     """
 
     # Create netCDF file, remove existant
@@ -401,13 +415,15 @@ def writeDatasetsToNetCDF(
 
 
 def convertDatasetsToEnergySystemModel(datasets):
-    """Takes dictionary of xarray datasets (with esM instance data) and converts
+    """
+    Takes dictionary of xarray datasets (with esM instance data) and converts
     it to an esM instance.
 
     :param datasets: The xarray datasets holding all data required to set up an esM instance.
     :type datasets: Dict[xr.Dataset]
 
     :return: esM - EnergySystemModel instance
+    :rtype: EnergySystemModel instance
     """
 
     # economic variables
@@ -751,36 +767,42 @@ def writeEnergySystemModelToNetCDF(
     """
     Write energySystemModel (input and if exists, output) to netCDF file.
 
-    :param esM: EnergySystemModel instance in which the model is held :type esM:
-    EnergySystemModel instance
+    :param esM: EnergySystemModel instance in which the model is held 
+    :type esM: EnergySystemModel instance
 
-    :param outputFilePath: output file name (can include full path) |br| * the
-        default value is "my_esm.nc" :type file_path: string
+    :param outputFilePath: output file name (can include full path) 
+        |br| * the default value is "my_esm.nc" 
+    :type file_path: string
 
-    :param overwriteExisting: Overwrite existing netCDF file |br| * the default
-        value is False :type outputFileName: boolean
+    :param overwriteExisting: Overwrite existing netCDF file 
+        |br| * the default value is False 
+    :type outputFileName: boolean
 
     :param optSumOutputLevel: Output level of the optimization summary (see
         EnergySystemModel). Either an integer (0,1,2) which holds for all model
         classes or a dictionary with model class names as keys and an integer
         (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        |br| * the default value is 2 :type optSumOutputLevel: int (0,1,2) or
-        dict
+        |br| * the default value is 2 
+    :type optSumOutputLevel: int (0,1,2) or dict
 
     :param optValOutputLevel: Output level of the optimal values. Either an
         integer (0,1) which holds for all model classes or a dictionary with
         model class names as keys and an integer (0,1) for each key (e.g.
-        {'StorageModel':1,'SourceSinkModel':1,...} - 0: all values are kept. -
-        1: Lines containing only zeroes are dropped. |br| * the default value is
-        1 :type optValOutputLevel: int (0,1) or dict
+        {'StorageModel':1,'SourceSinkModel':1,...} \n
+        * 0: all values are kept.
+        * 1: Lines containing only zeroes are dropped. 
+        |br| * the default value is 1 
+    :type optValOutputLevel: int (0,1) or dict
 
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None :type group_prefix: string
+        |br| * the default value is None 
+    :type group_prefix: string
 
     :return: Nested dictionary containing xr.Dataset with all result values
-    for each component. :rtype: Dict[str, Dict[str, xr.Dataset]]
+        for each component. 
+    :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
 
     if overwriteExisting:
@@ -810,7 +832,8 @@ def writeEnergySystemModelToDatasets(esM):
     :type esM: EnergySystemModel instance
 
     :return: xr_dss_results - esM instance (input and output) data in xarray
-    dataset format
+        dataset format
+    :rtype: xr.DataSet
     """
     if esM.objectiveValue != None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
@@ -831,19 +854,23 @@ def writeEnergySystemModelToDatasets(esM):
 
 
 def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
-    """Read optimization results from grouped netCDF file to dictionary of
+    """
+    Read optimization results from grouped netCDF file to dictionary of
     xr.Datasets.
 
     :param filePath: output file name of netCDF file (can include full path)
-        |br| * the default value is "my_esm.nc" :type filePath: string
+        |br| * the default value is "my_esm.nc" 
+    :type filePath: string
 
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None :type groupPrefix: string
+        |br| * the default value is None 
+    :type groupPrefix: string
 
     :return: Nested dictionary containing an xr.Dataset with all result values
-    for each component.
+        for each component.
+    :rtype: Nested dict
     """
 
     with Dataset(filePath, "r", format="NETCDF4") as rootgrp:
@@ -890,13 +917,16 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
 
 
 def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
-    """Converts netCDF file into an EnergySystemModel instance.
+    """
+    Converts netCDF file into an EnergySystemModel instance.
 
     :param filePath: file name of netCDF file (can include full path) in which
-        the esM data is stored |br| * the default value is "my_esm.nc" :type
-        filePath: string
+        the esM data is stored 
+        |br| * the default value is "my_esm.nc" 
+    :type filePath: string
 
-    :return: esM - EnergySystemModel instance
+    :return: EnergySystemModel instance
+    :rtype: EnergySystemModel instance
     """
 
     # netcdf to xarray dataset

@@ -46,8 +46,8 @@ def optimizeSimpleMyopic(
     :param endYear: year of the last optimization
     :type endYear: int
 
-    :param nbOfSteps: number of optimization runs excluding the start year
-            (minimum number of optimization runs is 2: one optimization for the start year and one for the end year).
+    :param nbOfSteps: number of optimization runs excluding the start year (minimum number 
+        of optimization runs is 2: one optimization for the start year and one for the end year).
         |br| * the default value is None
     :type nbOfSteps: int or None
 
@@ -56,8 +56,10 @@ def optimizeSimpleMyopic(
     :type nbOfRepresentedYears: int or None
 
     :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+    
         (a) the full time series (False) or
         (b) clustered time series data (True).
+
         |br| * the default value is False
     :type timeSeriesAggregation: boolean
 
@@ -93,11 +95,9 @@ def optimizeSimpleMyopic(
         |br| * the default value is True
     :type trackESMs: boolean
 
-    **Returns:**
-
-    :returns myopicResults: Store all optimization outputs in a dictionary for further analyses. If trackESMs is set to false,
+    :returns: myopicResults: Store all optimization outputs in a dictionary for further analyses. If trackESMs is set to false,
         nothing is returned.
-    :rtype myopicResults: dict of all optimized instances of the EnergySystemModel class or None.
+    :rtype: dict of all optimized instances of the EnergySystemModel class or None.
 
     Last edited: February 14, 2020
     |br| @author: FINE Developer Team (FZJ IEK-3)
@@ -168,7 +168,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
     :param nbOfRepresentativeYears: Number of years within one optimization period.
     :type nbOfRepresentativeYears: int
 
-    :return esM: EnergySystemModel instance including the installed capacities of the previous optimization runs.
+    :return: EnergySystemModel instance including the installed capacities of the previous optimization runs.
     :rtype: EnergySystemModel instance
 
     Last edited: February 11, 2020

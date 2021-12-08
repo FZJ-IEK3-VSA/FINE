@@ -40,9 +40,9 @@ def writeOptimizationOutputToExcel(
 
     :param optValOutputLevel: output level of the optimal values. Either an integer (0,1) which holds for all
         model classes or a dictionary with model class names as keys and an integer (0,1) for each key
-        (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        - 0: all values are kept.
-        - 1: Lines containing only zeroes are dropped.
+        (e.g. {'StorageModel':1,'SourceSinkModel':1,...}\n
+        * 0: all values are kept.
+        * 1: Lines containing only zeroes are dropped.
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
     """
@@ -132,7 +132,7 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
     """
     Read energy system model from excel file.
 
-    ** Default arguments **
+    **Default arguments:**
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
@@ -140,7 +140,7 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
 
     :param engine: Used engine for reading the excel file. Please consider that the corresponding
         python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
-        For further information see the documentation of pandas.read_excel().
+        For further information see the documentation of pandas.read_excel().\n
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
@@ -217,7 +217,7 @@ def energySystemModelRunFromExcel(fileName="scenarioInput.xlsx", engine="openpyx
     """
     Run an energy system model from excel file.
 
-    **Default arguments**
+    **Default arguments:**
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
@@ -225,7 +225,7 @@ def energySystemModelRunFromExcel(fileName="scenarioInput.xlsx", engine="openpyx
 
     :param engine: Used engine for reading the excel file. Please consider that the corresponding
         python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
-        For further information see the documentation of pandas.read_excel().
+        For further information see the documentation of pandas.read_excel().\n
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
@@ -253,7 +253,7 @@ def readOptimizationOutputFromExcel(
     :param esM: EnergySystemModel instance which includes the setting of the optimized model
     :type esM: EnergySystemModel instance
 
-    **Default arguments**
+    **Default arguments:**
 
     :param fileName: excel file name oder path (including .xlsx ending) to an execl file written by
         writeOptimizationOutputToExcel()
@@ -262,7 +262,7 @@ def readOptimizationOutputFromExcel(
 
     :param engine: Used engine for reading the excel file. Please consider that the corresponding
         python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
-        For further information see the documentation of pandas.read_excel().
+        For further information see the documentation of pandas.read_excel().\n
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
@@ -421,6 +421,7 @@ def plotOperation(
     **Default arguments:**
 
     :param locTrans: second location, required when Transmission components are plotted
+        |br| * the default value is None
     :type locTrans: string
 
     :param tMin: first time step to be plotted (starting from 0)
@@ -542,6 +543,7 @@ def plotOperationColorMap(
     **Default arguments:**
 
     :param locTrans: second location, required when Transmission components are plotted
+        |br| * the default value is None
     :type locTrans: string
 
     :param nbPeriods: number of periods to be plotted

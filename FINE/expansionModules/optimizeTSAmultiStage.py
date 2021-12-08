@@ -37,8 +37,10 @@ def optimizeTSAmultiStage(
     **Default arguments:**
 
     :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
+        
         (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
         (b) If false a previously declared pyomo ConcreteModel instance is used.
+
         |br| * the default value is True
     :type declaresOptimizationProblem: boolean
 
@@ -50,8 +52,11 @@ def optimizeTSAmultiStage(
     :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
         should be clustered. The number of time steps per period must be an integer multiple of the total
         number of considered time steps in the energy system.
-        Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
-        information.
+
+        .. note::
+            Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
+            information.
+
         |br| * the default value is 30
     :type numberOfTypicalPeriods: strictly positive integer
 
@@ -61,7 +66,10 @@ def optimizeTSAmultiStage(
 
     :param clusterMethod: states the method which is used in the tsam package for clustering the time series
         data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
-        Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+
+        .. note:: 
+            Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+        
         |br| * the default value is 'hierarchical'
     :type clusterMethod: string
 
