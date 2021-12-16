@@ -1333,6 +1333,7 @@ def buildFullTimeSeries(df, periodsOrder, ip, axis=1, esM=None, divide=True):
     data = []
     for p in periodsOrder:
         data.append(df.loc[p])
+    
     return pd.concat(data, axis=axis, ignore_index=True)
 
 
@@ -1427,6 +1428,8 @@ def formatOptimizationOutput(
         df.columns = df.columns.droplevel()
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
+        # drop ip from index
+        df.reset_index(level=2,drop=True, inplace=True)
         return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
     elif varType == 'operationVariables' and dimension == '2dim':
         # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the

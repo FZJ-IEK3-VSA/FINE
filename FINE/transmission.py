@@ -827,8 +827,8 @@ class TransmissionModel(ComponentModel):
         if optVal is not None:
             # new code
             idx = pd.IndexSlice
-            optVal = optVal.loc[idx[:,ip,:],:] # perfect foresight: added ip
-            optVal = optVal.droplevel([1])
+            optVal = optVal.loc[idx[:,:],:] # perfect foresight: added ip and deleted again
+            #optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
             
             # New index for opex is required as indexing with list with missing labels is deprecated

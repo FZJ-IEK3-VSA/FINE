@@ -895,3 +895,7 @@ def test_CO2Limit():
     ## Compare modeled co2 emissions to limit set in constraint.
     assert co2_to_environment * (1 - tolerance) < -1 * CO2_limit.loc["CO2 limit"]
     assert co2_to_environment * (1 + tolerance) > -1 * CO2_limit.loc["CO2 limit"]
+
+
+if __name__=="__main__":
+    test_electricitySourceDriver()
