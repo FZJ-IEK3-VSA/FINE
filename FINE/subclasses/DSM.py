@@ -1,7 +1,4 @@
 """
-Last edited: January 21 2020
-
-|br| @author: FINE Developer Team (FZJ IEK-3)
 Basic idea inspired by:
 Zerrahn, Alexander, and Wolf-Peter Schill. "On the representation of demand-side management in
 power system models." Energy 84 (2015): 840-845.
@@ -54,7 +51,8 @@ class DemandSideManagementBETA(Sink):
         :type name: string
 
         :param hasCapacityVariable: specifies if the underlying Sink component should be modeled with a
-            capacity or not. Examples:\n
+            capacity or not. Examples:
+
             * An electrolyzer has a capacity given in GW_electric -> hasCapacityVariable is True.
             * In the energy system, biogas can, from a model perspective, be converted into methane (and then
               used in conventional power plants which emit CO2) by getting CO2 from the environment. Thus,
@@ -65,7 +63,8 @@ class DemandSideManagementBETA(Sink):
             * If the transmission capacity of a component is unlimited -> hasCapacityVariable is False.
             * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
             * Emitting CO2 into the environment is not per se limited by a capacity ->
-              hasCapacityVariable is False.\n
+              hasCapacityVariable is False.
+
         :type hasCapacityVariable: boolean
 
         :param tFwd: the number of timesteps for backwards demand shifting.

@@ -8,9 +8,6 @@ import pyomo.environ as pyomo
 class Conversion(Component):
     """
     A Conversion component converts commodities into each other.
-
-    Last edited: November 12 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
     def __init__(
@@ -68,15 +65,17 @@ class Conversion(Component):
             given as a float (constant), pandas.Series or pandas.DataFrame (time-variable). A negative value
             indicates that the commodity is consumed. A positive value indicates that the commodity is produced.
             Check unit consistency when specifying this parameter!
-            Examples:\n
+            Examples:
+
             * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
-              of 70%. The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is
-              given in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
-              -> the commodityConversionFactors are defined as {'electricity':-1,'hydrogen':0.7}.
-            * A fuel cell converts, simply put, hydrogen into electricity with an efficiency of 60%.\n
-            The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is given in
-            GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
-            -> the commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.\n
+                of 70%. The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is
+                given in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
+                -> the commodityConversionFactors are defined as {'electricity':-1,'hydrogen':0.7}.
+            * A fuel cell converts, simply put, hydrogen into electricity with an efficiency of 60%.
+                The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is given in
+                GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
+                -> the commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.
+
         :type commodityConversionFactors: dictionary, assigns commodities (string) to a conversion factors
             (float, pandas.Series or pandas.DataFrame)
 
@@ -610,6 +609,7 @@ class ConversionModel(ComponentModel):
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
         Get contribution to the objective function.
+
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
@@ -724,11 +724,13 @@ class ConversionModel(ComponentModel):
         """
         Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'operationVariablesOptimum',
-        * 'all' or another input: all variables are returned.\n
+        :param name: name of the variables of which the optimal values should be returned:
+
+            * 'capacityVariables',
+            * 'isBuiltVariables',
+            * 'operationVariablesOptimum',
+            * 'all' or another input: all variables are returned.
+
         |br| * the default value is 'all'
         :type name: string
 

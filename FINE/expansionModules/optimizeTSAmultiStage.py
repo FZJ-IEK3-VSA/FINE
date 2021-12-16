@@ -1,9 +1,3 @@
-"""
-Last edited: February 20, 2020
-
-|br| @author: FINE Developer Team (FZJ IEK-3)
-"""
-
 from FINE import utils
 import FINE as fn
 import numpy as np
@@ -37,8 +31,10 @@ def optimizeTSAmultiStage(
     **Default arguments:**
 
     :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
+
         (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
         (b) If false a previously declared pyomo ConcreteModel instance is used.
+
         |br| * the default value is True
     :type declaresOptimizationProblem: boolean
 
@@ -50,8 +46,11 @@ def optimizeTSAmultiStage(
     :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
         should be clustered. The number of time steps per period must be an integer multiple of the total
         number of considered time steps in the energy system.
-        Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
-        information.
+
+        .. note::
+            Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
+            information.
+
         |br| * the default value is 30
     :type numberOfTypicalPeriods: strictly positive integer
 
@@ -61,7 +60,10 @@ def optimizeTSAmultiStage(
 
     :param clusterMethod: states the method which is used in the tsam package for clustering the time series
         data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
-        Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+
+        .. note::
+            Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+
         |br| * the default value is 'hierarchical'
     :type clusterMethod: string
 
@@ -102,9 +104,6 @@ def optimizeTSAmultiStage(
         (not always supported by the solvers).
         |br| * the default value is False
     :type warmstart: boolean
-
-    Last edited: February 20, 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     lowerBound = None
 
@@ -175,14 +174,11 @@ def optimizeTSAmultiStage(
 
 
 def fixBinaryVariables(esM):
-    """ "
+    """
     Search for the optimized binary variables and set them as fixed.
 
     :param esM: energy system model to which the component should be added. Used for unit checks.
     :type esM: EnergySystemModel instance from the FINE package
-
-    Last edited: February 20, 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
     for mdl in esM.componentModelingDict.keys():
         compValues = esM.componentModelingDict[mdl].getOptimalValues(

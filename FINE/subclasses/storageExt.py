@@ -876,7 +876,9 @@ class StorageExtModel(StorageModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """Get contributions to shared location potential."""
+        """
+        Get contributions to shared location potential.
+        """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -940,13 +942,15 @@ class StorageExtModel(StorageModel):
         """
         Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'chargeOperationVariablesOptimum',
-        * 'dischargeOperationVariablesOptimum',
-        * 'stateOfChargeOperationVariablesOptimum',
-        * 'all' or another input: all variables are returned.\n
+        :param name: name of the variables of which the optimal values should be returned:
+
+            * 'capacityVariables',
+            * 'isBuiltVariables',
+            * 'chargeOperationVariablesOptimum',
+            * 'dischargeOperationVariablesOptimum',
+            * 'stateOfChargeOperationVariablesOptimum',
+            * 'all' or another input: all variables are returned.
+
         |br| * the default value is 'all'
         :type name: string
 

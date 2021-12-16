@@ -1,7 +1,4 @@
 """
-Last edited: January 20 2020
-
-|br| @author: FINE Developer Team (FZJ IEK-3) \n\n
 The approaches used are described in
 Robinius et. al. (2019) "Robust Optimal Discrete Arc Sizing for Tree-Shaped Potential Networks"
 and they are further developed with the help of
@@ -624,14 +621,14 @@ def generateRobustScenarios(
     :param verbose: if > 0, parallelization progress is displayed
     :type verbose: int
 
-    :return dictionary that contains for every node pair a dictionary containing all arc flows of the corresponding
+    :return: dictionary that contains for every node pair a dictionary containing all arc flows of the corresponding
     special scenario
     :rtype: dictionary key: (node1,node2), value: dictionary: key: arc, value: arc flow in [kg/s]
 
-    :return list of entry node
+    :return: list of entry node
     :rtype: list of strings
 
-    :return list of exit node
+    :return: list of exit node
     :rtype: list of strings
     """
     # Type and value checks
@@ -772,7 +769,7 @@ def computeSingleSpecialScenario(
     :param solver: name of the optimization solver to use
     :type solver: string, default 'glpk'
 
-    :return dictionary that contains for every arc the corresponding arc flows of the (special) scenario
+    :return: dictionary that contains for every arc the corresponding arc flows of the (special) scenario
     :rtype: dictionary key: arc, value: arc flow
     """
     # Type and value check
@@ -1052,7 +1049,7 @@ def determinePressureDropCoef(
         |br| * the default value is 6
     :type nDigits: positive int; optional
 
-    :return dictionary that contains for every scenario and diameter the corresponding pressure drops
+    :return: dictionary that contains for every scenario and diameter the corresponding pressure drops
     :rtype: dictionary key: (diameter, scenario Name), value: dic: key: arc, value: pressure drop
     """
     # check type and value
@@ -1211,8 +1208,8 @@ def determineOptimalDiscretePipelineSelection(
     :param verbose: if > 0, parallelization progress is displayed
     :type verbose: int
 
-    :return dictionary that contains for every scenario the corresponding pressure levels
-    :rtype dictionary: key: scenarioName, value: dict: key: node, value: pressure level of node
+    :return: dictionary that contains for every scenario the corresponding pressure levels
+    :rtype: dictionary: key: scenarioName, value: dict: key: node, value: pressure level of node
     """
     # type and value checks
     isNetworkxGraph(graph)
@@ -1454,7 +1451,7 @@ def postprocessing(
     """ "
     Compute "more" accurate pressure levels for the considered scenarios in the network with optimal diameters
     Apply postprocessing of Master's thesis with adaption that we possibly consider every node for fixing its
-    pressure level to the upper pressure bound.
+    pressure level to the upper pressure bound. It holds dic_node_minPress[index] <= dic_node_maxPress[index]
 
     :param graph: an undirected networkx graph: Its edges have the attribute length which is the pipeline length in [m]
     :type graph: networkx graph object
@@ -1466,7 +1463,7 @@ def postprocessing(
     :type: dictionary: key: arc, value: optimal diameter
 
     :param dic_scenario_flows: dictionary that contains for every node pair a dictionary containing all
-    arc flows in [kg/s] of the corresponding (special) scenario
+        arc flows in [kg/s] of the corresponding (special) scenario
     :type dic_scenario_flows: dictionary key: scenarioName (node1,node2), value: dictionary: key: arc, value: arc flow
 
     :param dic_node_minPress: dictionary that contains for every node of the network its lower pressure bound in [bar]
@@ -1480,8 +1477,6 @@ def postprocessing(
 
     :param verbose: if > 0, parallelization progress is displayed
     :type verbose: int
-
-    It holds dic_node_minPress[index] <= dic_node_maxPress[index]
 
     :return: dictionary that contains for every scenario the corresponding pressure levels in [bar]
     :rtype: dictionary key: scenarioName, value: dic: key: arc, value pressure level
@@ -1562,7 +1557,8 @@ def computePressureAtNode(
     nDigits=6,
 ):
     """ "
-    Compute pressure levels recursive for given scenario and node that is fixed to its upper pressure level
+    Compute pressure levels recursive for given scenario and node that is fixed to its upper pressure level.
+    It holds dic_node_minPress[index] <= dic_node_maxPress[index].
 
     :param validation: boolean that is False, if the computed pressure levels are infeasible
     :rtype validation: bool
@@ -1591,14 +1587,11 @@ def computePressureAtNode(
     :param dic_node_maxPress: dictionary that contains for every node of the network its upper pressure bound in [bar]
     :type dic_node_maxPress: dictionary key: node of the network, value: non-negative float
 
-    It holds dic_node_minPress[index] <= dic_node_maxPress[index]
-
     :param tmp_violation: violation of the current pressure bounds in [bar]
     :type tmp_violation: float
 
     :param dic_node_pressure: dictionary that contains node pressure levels in [bar]
     :type dic_node_pressure: dictionary key: node of the network, value: non-negative float
-
 
     :param ir: integral roughness of pipe in [mm]
         |br| * the default value is 0.2 (hydrogen, this value can also be used for methane)
@@ -1629,10 +1622,10 @@ def computePressureAtNode(
         |br| * the default value is 6
     :type nDigits: positive int
 
-    :return validation: boolean that is true, if the computed pressure levels are feasible
+    :return: validation: boolean that is true, if the computed pressure levels are feasible
     :rtype: bool
 
-    :return maximal violation of the pressure bounds w.r.t. the computed pressure levels in [bar]
+    :return: maximal violation of the pressure bounds w.r.t. the computed pressure levels in [bar]
     :rtype: float
     """
     # Type and value check
@@ -1825,7 +1818,7 @@ def computePressureStartnodeArc(
     :type pressureEndNode: non-negative float
 
     :param dic_scenario_flows: dictionary scenario and corresponding flows in [kg/s]; note arc flow of arc has to be
-    positive
+        positive
     :type: dictionary: key: arc, value: arc flow
 
     :param dic_arc_diam: dictionary containing for each arc the optimal diameter in [m]
@@ -2182,10 +2175,10 @@ def computeTimeStepFlows(
 
 
 def networkRefinement(distances, maxPipeLength, dic_node_minPress, dic_node_maxPress):
+    # TODO this function is only used for testing
     """
     If a pipe is longer than maxPipeLength than it will be split into several pipes with equidistant length,
     i.e., replace arc (u,v) by (u,v_1), (v_1,v_2),..., (v_n,v) with n = ceil(lengthOfPipe/maxPipeLength) -1
-    # TODO this function is only used for testing
 
     :param distances: pipeline distances in the length unit specified in the esM object
     :type distances: pandas series
@@ -2199,8 +2192,6 @@ def networkRefinement(distances, maxPipeLength, dic_node_minPress, dic_node_maxP
     :param dic_node_maxPress: dictionary that contains for every node of the network its upper pressure bound in [bar]
     :type dic_node_maxPress: dictionary key: node of the network, value: non-negative float
 
-    It holds dic_node_minPress[index] <= dic_node_maxPress[index]
-
     :return: graph of the network corresponding to the distances
     :rtype: graph object of networkx
 
@@ -2210,7 +2201,7 @@ def networkRefinement(distances, maxPipeLength, dic_node_minPress, dic_node_maxP
     :return: dic_node_minPress dictionary that contains for every node of the network its lower pressure  bound in [bar]
     :rtype: dictionary key: node of the network, value: non-negative float
 
-    :return dic_node_maxPress dictionary that contains for every node of the network its upper pressure bound in [bar]
+    :return: dic_node_maxPress dictionary that contains for every node of the network its upper pressure bound in [bar]
     :rtype: dictionary key: node of the network, value: non-negative float
     """
     # type and value check
@@ -2336,21 +2327,22 @@ def determineDiscretePipelineDesign(
     threads=1,
 ):
     """
-    We compute a robust (depending on parameter robust) optimal pipeline design,
-    i.e. for a given network, we compute a minimal spanning tree w.r.t. its total length.
-    Afterward, we compute our robust (special) scenarios, see Robinius et. al..
-    Also we compute for every timeStep of injectionWithdrawalRates the corresponding flows.
-    We compute merged diameters according to list candidatesMergedDiameter, i.e. we compute a equivalent single diameter
-    for two parallel pipes with the same diameter
-    If robust is True, then we compute the corresponding pressure drops for every diameter and robust scenario.
-    If robust is False, then we compute for every timeStep the corresponding pressure drops for every diameter and
-    timeStep.
-    If robust is True, then we compute optimal diameters by a MIP for the robust scenarios.
-    If robust is False, then we compute optimal diameters by a MIP for the timeStep scenarios. Not Robust Version!
-    In a postprocessing step, we compute "precise" pressure levels for the robust scenarios and the timeStep scenarios.
+    | We compute a robust (depending on parameter robust) optimal pipeline design,
+    | i.e. for a given network, we compute a minimal spanning tree w.r.t. its total length.
+    | Afterward, we compute our robust (special) scenarios, see Robinius et. al..
+    | Also we compute for every timeStep of injectionWithdrawalRates the corresponding flows.
+    | We compute merged diameters according to list candidatesMergedDiameter, i.e. we compute a equivalent single diameter
+    | for two parallel pipes with the same diameter
+    | If robust is True, then we compute the corresponding pressure drops for every diameter and robust scenario.
+    | If robust is False, then we compute for every timeStep the corresponding pressure drops for every diameter and
+    | timeStep.
+    | If robust is True, then we compute optimal diameters by a MIP for the robust scenarios.
+    | If robust is False, then we compute optimal diameters by a MIP for the timeStep scenarios. Not Robust Version!
+    | In a postprocessing step, we compute "precise" pressure levels for the robust scenarios and the timeStep scenarios.
 
-    Note that if robust is False, then the network may be infeasible for robust scenarios
-    which can occur in the network!
+    .. note::
+        if robust is False, then the network may be infeasible for robust scenarios
+        which can occur in the network!
 
     :param robust: Bool that is true, we build a robust pipeline network, otherwise not
     :type robust: bool
@@ -2387,18 +2379,18 @@ def determineDiscretePipelineDesign(
     It holds dic_node_minPress[index] <= dic_node_maxPress[index]
 
     :param dic_diameter_costs: dictionary that contains all diameters in [m] as keys and the values are the
-    corresponding costs in [Euro/m]. Default Value is a preselection of diameters and its costs.
-    if None, then we chose the following preselection of diameters and costs
-    dic_diameter_costs = {0.1063: 37.51, 0.1307: 38.45, 0.1593: 39.64, 0.2065: 42.12, 0.2588: 45.26, 0.3063: 48.69,
-    0.3356: 51.07, 0.3844: 55.24, 0.432: 59.86, 0.4796: 64.98, 0.527: 70.56, 0.578: 76.61,
-    0.625: 82.99, 0.671: 89.95, 0.722: 97.38, 0.7686: 105.28, 0.814: 113.63, 0.864: 122.28,
-    0.915: 131.56, 0.96: 141.3, 1.011: 151.5, 1.058: 162.17, 1.104: 173.08, 1.155: 184.67,
-    1.249: 209.24, 1.342: 235.4, 1.444: 263.66, 1.536: 293.78}
+        corresponding costs in [Euro/m]. Default Value is a preselection of diameters and its costs.
+        if None, then we chose the following preselection of diameters and costs
+        dic_diameter_costs = {0.1063: 37.51, 0.1307: 38.45, 0.1593: 39.64, 0.2065: 42.12, 0.2588: 45.26, 0.3063: 48.69,
+        0.3356: 51.07, 0.3844: 55.24, 0.432: 59.86, 0.4796: 64.98, 0.527: 70.56, 0.578: 76.61,
+        0.625: 82.99, 0.671: 89.95, 0.722: 97.38, 0.7686: 105.28, 0.814: 113.63, 0.864: 122.28,
+        0.915: 131.56, 0.96: 141.3, 1.011: 151.5, 1.058: 162.17, 1.104: 173.08, 1.155: 184.67,
+        1.249: 209.24, 1.342: 235.4, 1.444: 263.66, 1.536: 293.78}
     :type dic_diameter_costs: dict with keys: diameters, values: cost for pipeline; optional
 
     :param dic_candidateMergedDiam_costs: dictionary that contains a set of diameters in [m] as keys and
-     the values are the corresponding costs in [Euro/m]. This diameters are then used to compute a single equivalent
-     diameter for two looped (parallel) pipes with the considered diameter.
+        the values are the corresponding costs in [Euro/m]. This diameters are then used to compute a single equivalent
+        diameter for two looped (parallel) pipes with the considered diameter.
         |br| * the default value is empty dictionary {}
     :type dic_candidateMergedDiam_costs: dict with keys: diameters, values: cost for pipeline; optional
 
@@ -2442,7 +2434,6 @@ def determineDiscretePipelineDesign(
         |br| * the default value is 1.00062387922965 (hydrogen, you can use 0.997612687740414 for methane)
     :type Z_n: non-negative float
 
-    # TODO @Juelich where to use
     param originalFluidFlows: string that specifies the considered fluid
         |br| * the default value is None
     :type originalFluidFlows: str; optional
@@ -2451,19 +2442,24 @@ def determineDiscretePipelineDesign(
         |br| * the default value is 6
     :type nDigits: positive int
 
-    :param verbose: defines how verbose the console logging is:\n
+    :param verbose: defines how verbose the console logging is:
+
         - 0: general model logging, warnings and optimization solver logging are displayed.
         - 1: warnings are displayed.
         - 2: no general model logging or warnings are displayed, the optimization solver logging is set to a
-            minimum.\n
-        Note: if required, the optimization solver logging can be separately enabled in the optimizationSpecs
-        of the optimize function.
+            minimum.
+
+        .. note::
+            if required, the optimization solver logging can be separately enabled in the optimizationSpecs
+            of the optimize function.
+
         |br| * the default value is 0
     :type verbose: integer (0, 1 or 2)
 
 
     :return: tuple (dic_arc_optimalDiameters, dic_scen_PressLevels, dic_scen_MaxViolPress, dic_timeStep_PressLevels,
            dic_timeStep_MaxViolPress, gdfEdges), with:
+
            - dic_arc_optimalDiameters dictionary
            - pressure levels of postprocessing of robust scenarios dic_scen_PressLevels
            - violation of pressure bounds of robust scenarios in optimized network determined by postprocessing
@@ -2473,7 +2469,9 @@ def determineDiscretePipelineDesign(
            - dic_timeStep_MaxViolPress: maximum pressure violation in timestep scenarios
            - geopandas GeoDataFrame (information about diameters in 'diam' column and number of pipelines in
              'nbPipes'); None if kwarg gdfEdges was specified as being Node
+
     :rtype: return types:
+
         - dic_arc_optimalDiameters: dictionary, key: arcs, values: (numberOfPipes, diameter) note usually numberOfPipes
           is 1, but if we have chosen a merged diameter, then we have two parallel pipes with the same diameter,
           i.e. numberOfPipes is 2.
@@ -2484,6 +2482,7 @@ def determineDiscretePipelineDesign(
         - dic_timeStep_MaxViolPress: dictionary, key: nodePair, value: dict: key: arc, value: non-negative number
           (zero means no pressure violation)
         - gdfEdges: geopandas geodataframe; None if kwarg gdfEdges was specified as being Node
+
     """
     # Do type and value check of input data:
     isBool(robust)
@@ -2936,7 +2935,8 @@ def plotOptimizedNetwork(
     fontsize=10,
     cbTitle="Pressure [bar]",
 ):
-    """Plot optimized network, visualizing chosen pipe diameters and, if selected, pressure levels of
+    """
+    Plot optimized network, visualizing chosen pipe diameters and, if selected, pressure levels of
     a scenario.
 
     :param gdf_pipes: GeoDataFrame, containing information about the diameters, number of pipes and
@@ -2994,8 +2994,10 @@ def plotOptimizedNetwork(
 
     :return: tuple (fig, ax)
     :rtype:
+
         - fig: matplotlib figure
         - ax: matplotlib axis
+
     """
 
     fig, ax = plt.subplots(figsize=figsize)

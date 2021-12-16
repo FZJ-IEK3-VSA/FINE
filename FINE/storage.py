@@ -71,17 +71,21 @@ class Storage(Component):
 
         :param chargeRate: ratio of the maximum storage inflow (in commodityUnit/hour) to the
             storage capacity (in commodityUnit).
-            Example:\n
+            Example:
+
             * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be charged 0.45 GWh_H2_LHV during
-              one hour. The chargeRate thus equals 0.45/133 1/h.\n
+              one hour. The chargeRate thus equals 0.45/133 1/h.
+
             |br| * the default value is 1
         :type chargeRate: 0 <= float <=1
 
         :param dischargeRate: ratio of the maximum storage outflow (in commodityUnit/hour) to
             the storage capacity (in commodityUnit).
-            Example:\n
+            Example:
+
             * A hydrogen salt cavern which can store 133 GWh_H2_LHV can be discharged 0.45 GWh_H2_LHV during
-              one hour. The dischargeRate thus equals 0.45/133.\n
+              one hour. The dischargeRate thus equals 0.45/133.
+
             |br| * the default value is 1
         :type dischargeRate: 0 <= float <=1
 
@@ -429,7 +433,9 @@ class Storage(Component):
         )
 
     def getDataForTimeSeriesAggregation(self):
-        """Function for getting the required data if a time series aggregation is requested."""
+        """
+        Function for getting the required data if a time series aggregation is requested.
+        """
         weightDict, data = {}, []
         I = [
             (
@@ -1543,7 +1549,9 @@ class StorageModel(ComponentModel):
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """Get contributions to shared location potential."""
+        """
+        Get contributions to shared location potential.
+        """
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -1895,13 +1903,15 @@ class StorageModel(ComponentModel):
         """
         Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'chargeOperationVariablesOptimum',
-        * 'dischargeOperationVariablesOptimum',
-        * 'stateOfChargeOperationVariablesOptimum',
-        * 'all' or another input: all variables are returned.\n
+        :param name: name of the variables of which the optimal values should be returned:
+
+            * 'capacityVariables',
+            * 'isBuiltVariables',
+            * 'chargeOperationVariablesOptimum',
+            * 'dischargeOperationVariablesOptimum',
+            * 'stateOfChargeOperationVariablesOptimum',
+            * 'all' or another input: all variables are returned.
+
         |br| * the default value is 'all'
         :type name: string
 

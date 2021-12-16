@@ -55,7 +55,9 @@ class Source(Component):
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component
         input arguments are described in the Component class.
-        Note: the Sink class inherits from the Source class and is initialized with the same parameter set.
+
+        .. note::
+            The Sink class inherits from the Source class and is initialized with the same parameter set.
 
         **Required arguments:**
 
@@ -63,10 +65,12 @@ class Source(Component):
         :type commodity: string
 
         :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not.
-            Examples:\n
+            Examples:
+
             * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
             * Emitting CO2 into the environment is not per se limited by a capacity ->
-              hasCapaityVariable is False.\n
+              hasCapaityVariable is False.
+
         :type hasCapacityVariable: boolean
 
         **Default arguments:**
@@ -123,7 +127,8 @@ class Source(Component):
             the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is
             limited. If negative, the commodity flow entering the energySystemModel is limited. If a
             yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well.
-            Examples:\n
+            Examples:
+
             * CO2 can be emitted in power plants by burning natural gas or coal. The CO2 which goes into
               the atmosphere over the energy system's boundaries is modelled as a Sink. CO2 can also be a
               Source taken directly from the atmosphere (over the energy system's boundaries) for a
@@ -132,7 +137,8 @@ class Source(Component):
               energy system's boundaries have the same commodityLimitID and the same yearlyLimit of +XY.
             * The maximum annual import of a certain chemical (commodityUnit tonnes_chem) is limited to
               XY tonnes_chem. The Source component modeling this import has a commodityLimitID
-              "chemicalComponentLimitID" and a yearlyLimit of -XY.\n
+              "chemicalComponentLimitID" and a yearlyLimit of -XY.
+
             |br| * the default value is None
         :type yearlyLimit: float
 
@@ -153,9 +159,11 @@ class Source(Component):
             float or a Pandas Series with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
-            Example:\n
+            Example:
+
             * In a national energy system, natural gas could be purchased from another country with a
-              certain cost.\n
+              certain cost.
+
             |br| * the default value is 0
         :type commodityCost: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
@@ -167,8 +175,10 @@ class Source(Component):
             float or a Pandas Series with location specific values.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
-            Example:\n
-            * Modeling a PV electricity feed-in tariff for a household\n
+            Example:
+
+            * Modeling a PV electricity feed-in tariff for a household
+
             |br| * the default value is 0
         :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
@@ -360,7 +370,9 @@ class Source(Component):
         )
 
     def getDataForTimeSeriesAggregation(self):
-        """Function for getting the required data if a time series aggregation is requested."""
+        """
+        Function for getting the required data if a time series aggregation is requested.
+        """
         weightDict, data = {}, []
         weightDict, data = self.prepareTSAInput(
             self.fullOperationRateFix,
@@ -510,7 +522,9 @@ class SourceSinkModel(ComponentModel):
     """
 
     def __init__(self):
-        """Constructor for creating a SourceSinkModel class instance."""
+        """
+        Constructor for creating a SourceSinkModel class instance.
+        """
         self.abbrvName = "srcSnk"
         self.dimension = "1dim"
         self.componentsDict = {}
@@ -750,6 +764,7 @@ class SourceSinkModel(ComponentModel):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
         Sum of the operation time series of a SourceSink component is used as the balanceLimit contribution:
+
         - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
         - A Sink contributes with a negative sign. Example: Sale of electricity
 
@@ -763,8 +778,10 @@ class SourceSinkModel(ComponentModel):
         :param ID: string
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
+
         :type timeSeriesAggregation: boolean
 
         :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
@@ -1026,11 +1043,13 @@ class SourceSinkModel(ComponentModel):
         """
         Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'operationVariablesOptimum',
-        * 'all' or another input: all variables are returned.\n
+        :param name: name of the variables of which the optimal values should be returned:
+
+            * 'capacityVariables',
+            * 'isBuiltVariables',
+            * 'operationVariablesOptimum',
+            * 'all' or another input: all variables are returned.
+
         |br| * the default value is 'all'
         :type name: string
 

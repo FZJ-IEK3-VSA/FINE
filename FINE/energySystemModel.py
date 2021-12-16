@@ -1,8 +1,3 @@
-"""
-Last edited: November 12 2020
-|br| @author: FINE Developer Team (FZJ IEK-3)
-"""
-
 import time
 import warnings
 
@@ -27,7 +22,8 @@ class EnergySystemModel:
     """
     EnergySystemModel class
 
-    The functionality provided by the EnergySystemModel class is fourfold:\n
+    The functionality provided by the EnergySystemModel class is fourfold:
+
     * With it, the **basic structure** (spatial and temporal resolution, considered commodities) of
       the investigated energy system is defined.
     * It serves as a **container for all components** investigated in the energy system model. These components,
@@ -37,14 +33,16 @@ class EnergySystemModel:
       structure and components on the one hand and of specified simulation parameters on the other hand.
     * It **stores optimization results** which can then be post-processed with other modules.
 
-    The parameters which are stored in an instance of the class refer to:\n
+    The parameters which are stored in an instance of the class refer to:
+
     * the modeled spatial representation of the energy system (**locations, lengthUnit**)
     * the modeled temporal representation of the energy system (**totalTimeSteps, hoursPerTimeStep,
       years, periods, periodsOrder, periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps,
       isTimeSeriesDataClustered, typicalPeriods, tsaInstance, timeUnit**)
     * the considered commodities in the energy system (**commodities, commodityUnitsDict**)
     * the considered components in the energy system (**componentNames, componentModelingDict, costUnit**)
-    * optimization related parameters (**pyM, solverSpecs**)\n
+    * optimization related parameters (**pyM, solverSpecs**)
+
     The parameters are first set when a class instance is initiated. The parameters which are related to the
     components (e.g. componentNames) are complemented by adding the components to the class instance.
 
@@ -53,17 +51,16 @@ class EnergySystemModel:
     * clustering the time series data of all added components using the time series aggregation package tsam, cf.
       https://github.com/FZJ-IEK3-VSA/tsam (**cluster**)
     * optimizing the specified energy system (**optimize**), for which a pyomo concrete model instance is built
-      and filled with \n
-      (0) basic time sets, \n
-      (1) sets, variables and constraints contributed by the component modeling classes, \n
-      (2) basic, component overreaching constraints, and \n
-      (3) an objective function. \n
+      and filled with
+
+        (0) basic time sets,
+        (1) sets, variables and constraints contributed by the component modeling classes,
+        (2) basic, component overreaching constraints, and
+        (3) an objective function.
+
       The pyomo instance is then optimized by a specified solver. The optimization results are processed once
       available.
     * getting components and their attributes (**getComponent, getCompAttr, getOptimizationSummary**)
-
-    Last edited: November 12 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
     def __init__(
@@ -92,9 +89,12 @@ class EnergySystemModel:
 
         :param commodityUnitsDict: dictionary which assigns each commodity a quantitative unit per time
             (e.g. GW_el, GW_H2, Mio.t_CO2/h). The dictionary is used for results output.
-            Note for advanced users: the scale of these units can influence the numerical stability of the
-            optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
-            coefficients is suggested.
+
+            .. note::
+                Note for advanced users: the scale of these units can influence the numerical stability of the
+                optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
+                coefficients is suggested.
+
         :type commodityUnitsDict: dictionary of strings
 
         **Default arguments:**
@@ -114,27 +114,37 @@ class EnergySystemModel:
         :param costUnit: cost unit of all cost related values in the energy system. This argument sets the unit of
             all cost parameters which are given as an input to the EnergySystemModel instance (e.g. for the
             invest per capacity or the cost per operation).
-            Note for advanced users: the scale of this unit can influence the numerical stability of the
-            optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
-            coefficients is suggested.
+
+            .. note::
+                Note for advanced users: the scale of this unit can influence the numerical stability of the
+                optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
+                coefficients is suggested.
+
             |br| * the default value is '10^9 Euro' (billion euros), which can be a suitable scale for national
             energy systems.
         :type costUnit: string
 
         :param lengthUnit: length unit for all length-related values in the energy system.
-            Note for advanced users: the scale of this unit can influence the numerical stability of the
-            optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
-            coefficients is suggested.
+
+            .. note::
+                Note for advanced users: the scale of this unit can influence the numerical stability of the
+                optimization solver, cf. http://files.gurobi.com/Numerics.pdf where a reasonable range of model
+                coefficients is suggested.
+
             |br| * the default value is 'km' (kilometers).
         :type lengthUnit: string
 
-        :param verboseLogLevel: defines how verbose the console logging is:\n
+        :param verboseLogLevel: defines how verbose the console logging is:
+
             - 0: general model logging, warnings and optimization solver logging are displayed.
             - 1: warnings are displayed.
             - 2: no general model logging or warnings are displayed, the optimization solver logging is set to a
-              minimum.\n
-            Note: if required, the optimization solver logging can be separately enabled in the optimizationSpecs
-            of the optimize function.
+              minimum.
+
+            .. note::
+                if required, the optimization solver logging can be separately enabled in the optimizationSpecs
+                of the optimize function.
+
             |br| * the default value is 0
         :type verboseLogLevel: integer (0, 1 or 2)
 
@@ -145,27 +155,30 @@ class EnergySystemModel:
             as pd.Dataframe each column will apply to one region of the multi-node model. In the latter case,
             the number and names of the columns should match the regions/region names in the model.
             Each row contains an individual balanceLimitID as index and the corresponding values for the model
-            (pd.Series) or regions (pd.Dataframe). Values are always given in the unit of the esM commodities unit.
-            Note: If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
-            defined as negative.
+            (pd.Series) or regions (pd.Dataframe). Values are always given in the unit of the esM commodities unit.\n
             Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
+
+            .. note::
+                If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
+                defined as negative.
+
             |br| * the default value is None
         :type balanceLimit: pd.DataFrame or pd.Series
 
         :param lowerBound: defines whether a lowerBound or an upperBound is considered in the balanceLimitConstraint.
-            By default an upperBound is considered. However, multiple cases can be considered:
-            1) Sources:
+            By default an upperBound is considered. However, multiple cases can be considered:\n
+            1) Sources:\n
                 a) LowerBound=False: UpperBound for commodity from SourceComponent (Define positive value in
-                balanceLimit). Example: Limit CO2-Emission
+                balanceLimit). Example: Limit CO2-Emission\n
                 b) LowerBound=True: LowerBound for commodity from SourceComponent (Define positive value in
-                balanceLimit). Example: Require minimum production from renewables.
-            2) Sinks:
+                balanceLimit). Example: Require minimum production from renewables.\n
+            2) Sinks:\n
                 a) LowerBound=False: UpperBound in a mathematical sense for commodity from SinkComponent
                 (Logically minimum limit for negative values, define negative value in balanceLimit).
-                Example: Minimum export/consumption of hydrogen.
+                Example: Minimum export/consumption of hydrogen.\n
                 b) LowerBound=True: LowerBound in a mathematical sense for commodity from SourceComponent
                 (Logically maximum limit for negative values, define negative value in balanceLimit).
-                Example: Define upper limit for Carbon Capture & Storage.
+                Example: Define upper limit for Carbon Capture & Storage.\n
             |br| * the default value is False
         :type lowerBound: bool
         """
@@ -432,10 +445,12 @@ class EnergySystemModel:
         :param modelingClass: name of the modeling class from which the optimization summary should be obtained
         :type modelingClass: string
 
-        :param outputLevel: states the level of detail of the output summary: \n
-            - 0: full optimization summary is returned \n
-            - 1: full optimization summary is returned but rows in which all values are NaN (not a number) are dropped\n
-            - 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped \n
+        :param outputLevel: states the level of detail of the output summary:
+
+            - 0: full optimization summary is returned
+            - 1: full optimization summary is returned but rows in which all values are NaN (not a number) are dropped
+            - 2: full optimization summary is returned but rows in which all values are NaN or 0 are dropped
+
             |br| * the default value is 0
         :type outputLevel: integer (0, 1 or 2)
 
@@ -464,7 +479,8 @@ class EnergySystemModel:
         aggregatedResultsPath=None,
         **kwargs
     ):
-        """Spatially clusters the data of all components considered in the Energy System Model (esM) instance
+        """
+        Spatially clusters the data of all components considered in the Energy System Model (esM) instance
         and returns a new esM instance with the aggregated data.
 
         :param shapefile: Either the path to the shapefile or the read-in shapefile
@@ -472,139 +488,142 @@ class EnergySystemModel:
 
         **Default arguments:**
 
-        :param grouping_mode : Defines how to spatially group the regions.
-        Refer to grouping.py for more information.
+        :param grouping_mode: Defines how to spatially group the regions.
+            Refer to grouping.py for more information.
             |br| * the default value is 'parameter_based'
-        :type grouping_mode: string, Options - 'string_based', 'distance_based', 'parameter_based'
+        :type grouping_mode: string, Options: 'string_based', 'distance_based', 'parameter_based'
 
-        :param n_groups : The number of region groups to be formed from the original region set.
-        This parameter is irrelevant if `grouping_mode` is 'string_based'.
+        :param n_groups: The number of region groups to be formed from the original region set.
+            This parameter is irrelevant if `grouping_mode` is 'string_based'.
             |br| * the default value is 3
         :type n_groups: strictly positive integer, None
 
-        :param aggregatedResultsPath : Indicates path to which the aggregated results should be saved.
-        If None, results are not saved.
+        :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved.
+            If None, results are not saved.
             |br| * the default value is None
-        :type shapefileFolder : string, None
+        :type aggregatedResultsPath: string, None
 
         **Additional keyword arguments that can be passed via kwargs:**
 
-        :param geom_col_name : The geomtry column name in `shapefile`
+        :param geom_col_name: The geomtry column name in `shapefile`
             |br| * the default value is 'geometry'
-        :type geom_col_name : string
+        :type geom_col_name: string
 
-        :param geom_id_col_name : The colum in `shapefile` consisting geom IDs
+        :param geom_id_col_name: The colum in `shapefile` consisting geom IDs
             |br| * the default value is 'index'
-        :type geom_id_col_name : string
+        :type geom_id_col_name: string
 
-        :param separator : * Relevant only if `grouping_mode` is 'string_based'.
-
+        :param separator: Relevant only if `grouping_mode` is 'string_based'.
             The character or string in the region IDs that defines where the ID should be split.
             E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _
             and the last part ('es') is taken as the group ID
-
             |br| * the default value is None
-        :type separator : string
+        :type separator: string
 
-        :param position : * Relevant only if `grouping_mode` is 'string_based'.
-
+        :param position: Relevant only if `grouping_mode` is 'string_based'.
             Used to define the position(s) of the region IDs where the split should happen.
             An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean
             the part i to j is taken at the group ID.
 
-            NOTE: either `separator` or `position` must be passed in order to perform string_based_grouping
+            .. note:: either `separator` or `position` must be passed in order to perform string_based_grouping
 
             |br| * the default value is None
-        :type position : integer/tuple
+        :type position: integer/tuple
 
-        :param weights : * Relevant only if `grouping_mode` is 'parameter_based'.
-
+        :param weights: Relevant only if `grouping_mode` is 'parameter_based'.
             Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating
             distance corresonding to each variable-component pair, these specified weights are
             considered, otherwise taken as 1.
 
             It must be in one of the formats:
+
             - If you want to specify weights for particular variables and particular corresponding components:
+
                 { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
+
             - If you want to specify weights for particular variables, but all corresponding components:
+
                 { 'components' : {'all' : <weight>}, 'variables' : List[<variable_name>] }
+
             - If you want to specify weights for all variables, but particular corresponding components:
+
                 { 'components' : Dict[<component_name>, <weight>}], 'variables' : 'all' }
 
             <weight> can be of type integer/float
 
             |br| * the default value is None
-        :type weights : dictionary
+        :type weights: dictionary
 
-        :param aggregation_method : * Relevant only if `grouping_mode` is 'parameter_based'.
+        :param aggregation_method: Relevant only if `grouping_mode` is 'parameter_based'.
+            The clustering method that should be used to group the regions. Options:
 
-            The clustering method that should be used to group the regions.
-
-            Options:
-                - 'kmedoids_contiguity': kmedoids clustering with added contiguity constraint.
+                - 'kmedoids_contiguity':
+                    kmedoids clustering with added contiguity constraint.
                     Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
-                - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
-                    Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
+                - 'hierarchical':
+                    sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
+                    Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
 
             |br| * the default value is 'kmedoids_contiguity'
-        :type aggregation_method : string, Options - 'kmedoids_contiguity', 'hierarchical'
+        :type aggregation_method: string, Options: 'kmedoids_contiguity', 'hierarchical'
 
-        :param solver : * Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
-
+        :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
             The optimization solver to be chosen.
-
             |br| * the default value is 'gurobi'
-        :type solver : string, Options - 'gurobi', 'glpk'
+        :type solver: string, Options: 'gurobi', 'glpk'
 
-        :param aggregation_function_dict : Contains information regarding the mode of aggregation for each individual variable.
+        :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable.
 
             - Possibilities: mean, weighted mean, sum, bool (boolean OR).
+            - Format of the dictionary
 
-            - Format of the dictionary - {<variable_name>: (<mode_of_aggregation>, <weights>),
-                                        <variable_name>: (<mode_of_aggregation>, None)}.
-            <weights> is required only if <mode_of_aggregation> is
-            'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
+                - {<variable_name>: (<mode_of_aggregation>, <weights>),
+                  <variable_name>: (<mode_of_aggregation>, None)}.
 
-            |br| * A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is
-                passed, this default dictionary is updated.
+                <weights> is required only if <mode_of_aggregation> is
+                'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
 
-                {"operationRateMax": ("weighted mean", "capacityMax"),
-                "operationRateFix": ("sum", None),
-                "locationalEligibility": ("bool", None),
-                "capacityMax": ("sum", None),
-                "investPerCapacity": ("mean", None),
-                "investIfBuilt": ("bool", None),
-                "opexPerOperation": ("mean", None),
-                "opexPerCapacity": ("mean", None),
-                "opexIfBuilt": ("bool", None),
-                "interestRate": ("mean", None),
-                "economicLifetime": ("mean", None),
-                "capacityFix": ("sum", None),
-                "losses": ("mean", None),
-                "distances": ("mean", None),
-                "commodityCost": ("mean", None),
-                "commodityRevenue": ("mean", None),
-                "opexPerChargeOperation": ("mean", None),
-                "opexPerDischargeOperation": ("mean", None),
-                "QPcostScale": ("sum", None),
-                "technicalLifetime": ("mean", None)}
-        :type aggregation_function_dict : dictionary
+            A default dictionary is considered with the following corresponding modes.
+            If `aggregation_function_dict` is passed, this default dictionary is updated.
 
-        :param aggregated_shp_name : Name to be given to the saved shapefiles after aggregation
+            | {"operationRateMax": ("weighted mean", "capacityMax"),
+            | "operationRateFix": ("sum", None),
+            | "locationalEligibility": ("bool", None),
+            | "capacityMax": ("sum", None),
+            | "investPerCapacity": ("mean", None),
+            | "investIfBuilt": ("bool", None),
+            | "opexPerOperation": ("mean", None),
+            | "opexPerCapacity": ("mean", None),
+            | "opexIfBuilt": ("bool", None),
+            | "interestRate": ("mean", None),
+            | "economicLifetime": ("mean", None),
+            | "capacityFix": ("sum", None),
+            | "losses": ("mean", None),
+            | "distances": ("mean", None),
+            | "commodityCost": ("mean", None),
+            | "commodityRevenue": ("mean", None),
+            | "opexPerChargeOperation": ("mean", None),
+            | "opexPerDischargeOperation": ("mean", None),
+            | "QPcostScale": ("sum", None),
+            | "technicalLifetime": ("mean", None)}
+
+        :type aggregation_function_dict: dictionary
+
+        :param aggregated_shp_name: Name to be given to the saved shapefiles after aggregation
             |br| * the default value is 'aggregated_regions'
-        :type aggregated_shp_name : string
+        :type aggregated_shp_name: string
 
-        :param crs : Coordinate reference system (crs) in which to save the shapefiles
+        :param crs: Coordinate reference system (crs) in which to save the shapefiles
             |br| * the default value is 3035
-        :type crs : integer
+        :type crs: integer
 
-        :param crs : Coordinate reference system (crs) in which to save the shapefiles
+        :param crs: Coordinate reference system (crs) in which to save the shapefiles
             |br| * the default value is 3035
-        :type crs : integer
+        :type crs: integer
 
-        :param aggregated_xr_filename : Name to be given to the saved netCDF file containing aggregated esM data
+        :param aggregated_xr_filename: Name to be given to the saved netCDF file containing aggregated esM data
             |br| * the default value is 'aggregated_xr_dataset.nc'
-        :type aggregated_xr_filename : string
+        :type aggregated_xr_filename: string
 
         :returns: Aggregated esM instance
         """
@@ -655,17 +674,22 @@ class EnergySystemModel:
         For the clustering itself, the tsam package is used (cf. https://github.com/FZJ-IEK3-VSA/tsam). Additional
         keyword arguments for the TimeSeriesAggregation instance can be added (facilitated by kwargs). As an example: it
         might be useful to add extreme periods to the clustered typical periods.
-        Note: The segmentation option can be freely combined with all subclasses. However, an irregular time step length
-        is not meaningful for the minimumDownTime and minimumUpTime in the conversionDynamic module, because the time
-        would be different for each segment. The same holds true for the DSM module.
+
+        .. note::
+            The segmentation option can be freely combined with all subclasses. However, an irregular time step length
+            is not meaningful for the minimumDownTime and minimumUpTime in the conversionDynamic module, because the time
+            would be different for each segment. The same holds true for the DSM module.
 
         **Default arguments:**
 
         :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
             should be clustered. The number of time steps per period must be an integer multiple of the total
             number of considered time steps in the energy system.
-            Note: Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
-            information.
+
+            .. note::
+                Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
+                information.
+
             |br| * the default value is 7
         :type numberOfTypicalPeriods: strictly positive integer
 
@@ -682,16 +706,24 @@ class EnergySystemModel:
         :type numberOfSegmentsPerPeriod:  strictly positive integer
 
         :param clusterMethod: states the method which is used in the tsam package for clustering the time series
-            data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
-            Note: Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+            data. Options are for example 'averaging', 'k_means', 'exact k_medoid' or 'hierarchical'.
+
+            .. note::
+                Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+
             |br| * the default value is 'hierarchical'
         :type clusterMethod: string
 
         :param sortValues: states if the algorithm in the tsam package should use
+
             (a) the sorted duration curves (-> True) or
             (b) the original profiles (-> False)
+
             of the time series data within a period for clustering.
-            Note: Please refer to the tsam package documentation of the parameter sortValues for more information.
+
+            .. note::
+                Please refer to the tsam package documentation of the parameter sortValues for more information.
+
             |br| * the default value is True
         :type sortValues: boolean
 
@@ -699,9 +731,6 @@ class EnergySystemModel:
             stored in the EnergySystemModel instance.
             |br| * the default value is False
         :type storeTSAinstance: boolean
-
-        Last edited: November 12 2020
-        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
 
         # Check input arguments which have to fit the temporal representation of the energy system
@@ -857,15 +886,19 @@ class EnergySystemModel:
         :type pyM: pyomo ConcreteModel
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
+
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
         :param segmentation: states if the optimization of the energy system model based on clustered time series data
             should be done with
+
             (a) aggregated typical periods with the original time step length (False) or
             (b) aggregated typical periods with further segmented time steps (True).
+
             |br| * the default value is False
         :type segmentation: boolean
         """
@@ -976,6 +1009,7 @@ class EnergySystemModel:
         Balance limit constraint can limit the exchange of commodities within the model or over the model region
         boundaries. See the documentation of the parameters for further explanation. In general the following equation
         applies:
+
             E_source - E_sink + E_exchange,in - E_exchange,out <= E_lim (self.LowerBound=False)
             E_source - E_sink + E_exchange,in - E_exchange,out >= E_lim (self.LowerBound=True)
 
@@ -984,8 +1018,10 @@ class EnergySystemModel:
         :type pyM: pyomo ConcreteModel
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
+
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
         """
@@ -1297,6 +1333,7 @@ class EnergySystemModel:
         """
         Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
         instance is built and filled with
+
         * basic time sets,
         * sets, variables and constraints contributed by the component modeling classes,
         * basic, component overreaching constraints, and
@@ -1305,15 +1342,19 @@ class EnergySystemModel:
         **Default arguments:**
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
+
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
         :param segmentation: states if the optimization of the energy system model based on clustered time series data
             should be done with
+
             (a) aggregated typical periods with the original time step length (False) or
             (b) aggregated typical periods with further segmented time steps (True).
+
             |br| * the default value is False
         :type segmentation: boolean
 
@@ -1321,9 +1362,6 @@ class EnergySystemModel:
             bound of the problem.
             |br| * the default value is False
         :type declaresOptimizationProblem: boolean
-
-        Last edited: March 26, 2020
-        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -1424,8 +1462,10 @@ class EnergySystemModel:
         **Default arguments:**
 
         :param declaresOptimizationProblem: states if the optimization problem should be declared (True) or not (False).
+
             (a) If true, the declareOptimizationProblem function is called and a pyomo ConcreteModel instance is built.
             (b) If false a previously declared pyomo ConcreteModel instance is used.
+
             |br| * the default value is True
         :type declaresOptimizationProblem: boolean
 
@@ -1435,15 +1475,19 @@ class EnergySystemModel:
         :type declaresOptimizationProblem: boolean
 
         :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
             (a) the full time series (False) or
             (b) clustered time series data (True).
+
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
         :param segmentation: states if the optimization of the energy system model based on clustered time series data
             should be done with
+
             (a) aggregated typical periods with the original time step length (False) or
             (b) aggregated typical periods with further segmented time steps (True).
+
             |br| * the default value is False
         :type segmentation: boolean
 
@@ -1478,15 +1522,12 @@ class EnergySystemModel:
         :param optimizationSpecs: specifies parameters for the optimization solver (see the respective solver
             documentation for more information). Example: 'LogToConsole=1 OptimalityTol=1e-6'
             |br| * the default value is an empty string ('')
-        :type timeLimit: string
+        :type optimizationSpecs: string
 
         :param warmstart: specifies if a warm start of the optimization should be considered
             (not always supported by the solvers).
             |br| * the default value is False
         :type warmstart: boolean
-
-        Last edited: March 26, 2020
-        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
 
         if not timeSeriesAggregation:

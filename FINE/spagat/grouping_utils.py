@@ -14,17 +14,14 @@ except ImportError:
 
 
 def get_normalized_array(array):
-    """Normalize the given matrix to [0,1].
+    """
+    Normalizes the given matrix to [0,1].
 
-    Parameters
-    ----------
-    matrix : np.ndarray
-        Matrix to be normalized
+    :param matrix: Matrix to be normalized
+    :type matrix: np.ndarray
 
-    Returns
-    -------
-    np.ndarray
-        Normalized matrix
+    :returns: Normalized matrix
+    :rtype: np.ndarray
     """
 
     norm_min, norm_max = 0, 1
@@ -38,21 +35,18 @@ def get_normalized_array(array):
 
 
 def preprocess_time_series(vars_dict):
-    """Preprocess time series variables.
+    """
+    Preprocesses time series variables.
 
-    Parameters
-    ----------
-    vars_dict : Dict[str, Dict[str, xr.DataArray]]
-        For each key (variable name), the corresponding value is a dictionary. This dictionary
-        consists of each component name and the corresponding xr.DataArray.
-        - Dimensions of xr.DataArray - 'time', 'space'
+    :param vars_dict: For each key (variable name), the corresponding value is a dictionary. This dictionary
+                    consists of each component name and the corresponding xr.DataArray.
+                    - Dimensions of xr.DataArray - 'time', 'space'
+    :type vars_dict: Dict[str, Dict[str, xr.DataArray]]
 
-    Returns
-    -------
-    processed_ts_dict : Dict[str, Dict[str, np.ndarray]]
-        For each key (variable name), the corresponding value is a dictionary. This dictionary
-        consists of each component name and the corresponding nomalized data matrix
-        - Size of each matrix: n_timesteps * n_regions
+    :returns: processed_ts_dict - For each key (variable name), the corresponding value is a dictionary. This dictionary
+            consists of each component name and the corresponding nomalized data matrix
+            - Size of each matrix: n_timesteps * n_regions
+    :rtype: Dict[str, Dict[str, np.ndarray]]
     """
 
     processed_ts_dict = {}
@@ -70,22 +64,20 @@ def preprocess_time_series(vars_dict):
 
 
 def preprocess_1d_variables(vars_dict):
-    """Preprocess 1-dimensional variables.
+    """
+    Preprocesses 1-dimensional variables.
 
-    Parameters
-    ----------
-    vars_dict : Dict[str, Dict[str, xr.DataArray]]
-        For each key (variable name), the corresponding value is a dictionary. This dictionary
+    :param vars_dict: For each key (variable name), the corresponding value is a dictionary. This dictionary
         consists of each component name and the corresponding xr.DataArray.
         - Dimensions of xr.DataArray - 'space'
+    :type vars_dict: Dict[str, Dict[str, xr.DataArray]]
 
-    Returns
-    -------
-    processed_1d_dict : Dict[str, Dict[str, np.ndarray]]
-        For each key (variable name), the corresponding value is a dictionary. This dictionary
+    :returns: processed_1d_dict - For each key (variable name), the corresponding value is a dictionary. This dictionary
         consists of each component name and the corresponding normalized data array
         - Size of each array: n_regions
+    :rtype: Dict[str, Dict[str, np.ndarray]]
     """
+
     processed_1d_dict = {}
 
     for var_name, var_dict in vars_dict.items():
@@ -101,33 +93,30 @@ def preprocess_1d_variables(vars_dict):
 
 
 def preprocess_2d_variables(vars_dict):
-    """Preprocess 2-dimensional variables.
+    """
+    Preprocesses 2-dimensional variables.
 
-    Parameters
-    ----------
-    vars_dict : Dict[str, Dict[str, np.ndarray]]
-        For each key (variable name), the corresponding value is a dictionary. This dictionary consists of
+    :param vars_dict: For each key (variable name), the corresponding value is a dictionary. This dictionary consists of
         each component name and the corresponding xr.DataArray.
         - Dimensions of xr.DataArray - 'space','space_2'
+    :type vars_dict: Dict[str, Dict[str, np.ndarray]]
 
-    Returns
-    -------
-    processed_2d_dict : Dict[str, Dict[str, np.ndarray]]
-        For each key (variable name), the corresponding value is a dictionary. This dictionary consists of
+    :returns: processed_2d_dict - For each key (variable name), the corresponding value is a dictionary. This dictionary consists of
         each component name and the corresponding data normalized (between [0, 1]),
         converted to vector form, and translated to distance meaning.
         - Size of each data array: n_regions
+    :rtype: Dict[str, Dict[str, np.ndarray]]
 
-    Notes
-    -----
-    For each variable-component pair:
-    - a normalised matrix of n_regions * n_regions is obtained
-    - The matrix is flattened to obtain it's vector form:
-                    [[0.  0.1 0.2]
-                    [0.1 0.  1. ]       -->  [0.1 0.2 1. ]   (only the elements from upper or lower triangle
-                    [0.2 1.  0. ]]                            as the other is always redundant in a dist matrix )
-    - Translate the matrix from connectivity (similarity) to distance (dissimilarity) : (1- connectivity vector)
+    .. note::
+        For each variable-component pair:
+        - a normalised matrix of n_regions * n_regions is obtained
+        - The matrix is flattened to obtain it's vector form:
+                        [[0.  0.1 0.2]
+                        [0.1 0.  1. ]       -->  [0.1 0.2 1. ]   (only the elements from upper or lower triangle
+                        [0.2 1.  0. ]]                            as the other is always redundant in a dist matrix )
+        - Translate the matrix from connectivity (similarity) to distance (dissimilarity) : (1- connectivity vector)
     """
+
     processed_2d_dict = {}
 
     for var_name, var_dict in vars_dict.items():
@@ -154,19 +143,17 @@ def preprocess_2d_variables(vars_dict):
 
 
 def preprocess_dataset(xarray_dataset):
-    """Preprocess xarray dataset.
+    """
+    Preprocesses xarray dataset.
 
-    Parameters
-    ----------
-    xarray_dataset : xr.Dataset
-        the xarray dataset that needs to be preprocessed
+    :param xarray_dataset: the xarray dataset that needs to be preprocessed
+    :type xarray_dataset: xr.Dataset
 
-    Returns
-        dict_ts, dict_1d, dict_2d : Dict
-            Dictionaries obtained from
+    :returns: dict_ts, dict_1d, dict_2d - Dictionaries obtained from
                 preprocess_time_series(),
                 preprocess_1d_variables(),
             and preprocess_2d_variables(), respectively
+    :rtype: Dict
     """
 
     # STEP 0. Traverse all variables in the dataset, and put them in separate categories
@@ -212,7 +199,8 @@ def get_custom_distance(
     region_index_y,
     weights=None,
 ):
-    """Calculates and returns a customized distance between two regions.
+    """
+    Calculates and returns a customized distance between two regions.
     This distance is based on residual sum of squares, and is defined for
     two regions 'm' and 'n' as:
         D(m, n) = D_ts(m, n) + D_1d(m, n) + D_2d(m, n)
@@ -235,23 +223,24 @@ def get_custom_distance(
                 two regions. They are converted to distance meaning by
                 subtracting in from 1).
 
+    :param processed_ts_dict, processed_1d_dict, processed_2d_dict: Dictionaries obtained as a result of preprocess_dataset()
+    :type processed_ts_dict, processed_1d_dict, processed_2d_dict: Dict
 
-    Parameters
-    ----------
-    processed_ts_dict, processed_1d_dict, processed_2d_dict : Dict
-        Dictionaries obtained as a result of preprocess_dataset()
-    n_regions : int
-        Total number of regions in the given data
-    region_index_x, region_index_y : int
-        Indicate the two regions between which the custom distance is to be calculated
+    :param n_regions: Total number of regions in the given data
+    :type n_regions: int
+
+    :param region_index_x, region_index_y: Indicate the two regions between which the custom distance is to be calculated
         range of these indices - [0, n_regions)
-    weights : Dict
-        weights for each variable-component pair
+    :type region_index_x, region_index_y: int
 
-    Returns
-    -------
-    float
-        Custom distance value
+    **Default arguments:**
+
+    :param weights: weights for each variable-component pair
+        |br| * the default value is None.
+    :type weights: Dict
+
+    :returns: Custom distance value
+    :rtype: float
     """
 
     # STEP 1. Check if weights are specified correctly
@@ -368,24 +357,25 @@ def get_custom_distance(
 def get_custom_distance_matrix(
     processed_ts_dict, processed_1d_dict, processed_2d_dict, n_regions, weights=None
 ):
-
-    """For every region combination, calculates the custom distance by calling get_custom_distance().
-
-    Parameters
-    ----------
-    processed_ts_dict, processed_1d_dict, processed_2d_dict : Dict
-        Dictionaries obtained as a result of preprocess_dataset()
-    n_regions : int
-        Total number of regions in the given data
-        range of these indices - [0, n_regions)
-    weights : Dict
-        weights for each variable-component pair
-
-    Returns
-    -------
-    distMatrix : np.ndarray
-        A n_regions by n_regions hollow, symmetric distance matrix
     """
+    For every region combination, calculates the custom distance by calling get_custom_distance().
+
+    :param processed_ts_dict, processed_1d_dict, processed_2d_dict: Dictionaries obtained as a result of preprocess_dataset()
+    :type processed_ts_dict, processed_1d_dict, processed_2d_dict: Dict
+
+    :param n_regions: Total number of regions in the given data
+    :type n_regions: int
+
+    **Default arguments:**
+
+    :param weights: weights for each variable-component pair
+        |br| * the default value is None.
+    :type weights: Dict
+
+    :returns: distMatrix - A n_regions by n_regions hollow, symmetric distance matrix
+    :rtype: np.ndarray
+    """
+
     distMatrix = np.zeros((n_regions, n_regions))
 
     # STEP 1. For every region pair, calculate the distance
@@ -408,27 +398,23 @@ def get_custom_distance_matrix(
 
 
 def get_connectivity_matrix(xarray_datasets):
-    """Generates connectiviy matrix for the given `xarray_datasets`.
+    """
+    Generates connectiviy matrix for the given `xarray_datasets`.
 
-    Parameters
-    ----------
-    xarray_datasets : Dict[str, xr.Dataset]
-        The dictionary of xarray datasets for which connectiviy matrix needs
+    :param xarray_datasets: The dictionary of xarray datasets for which connectiviy matrix needs
         to be generated
+    :type xarray_datasets: Dict[str, xr.Dataset]
 
-    Returns
-    -------
-    connectivity_matrix : np.ndarray
-        A n_regions by n_regions symmetric matrix
+    :returns: connectivity_matrix - A n_regions by n_regions symmetric matrix
+    :rtype: np.ndarray
 
-    Notes
-    -----
-    The `connectivity_matrix` indicates if two regions are connected or not.
-    - In this matrix, if two regions are connected, it is indicated as 1 and 0 otherwise.
-    - A given region pair if connected if:
-        - Their borders touch at least at one point
-        - In case of islands, its nearest mainland region, or
-        - If the regions are connected via a transmission line or pipeline
+    .. note::
+        The `connectivity_matrix` indicates if two regions are connected or not.
+        - In this matrix, if two regions are connected, it is indicated as 1 and 0 otherwise.
+        - A given region pair if connected if:
+            - Their borders touch at least at one point
+            - In case of islands, its nearest mainland region, or
+            - If the regions are connected via a transmission line or pipeline
     """
 
     geom_xr = xarray_datasets.get("Geometry")

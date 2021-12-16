@@ -1,4 +1,5 @@
-"""Grouping algorithms determine how to reduce the number of input regions to 
+"""
+Grouping algorithms determine how to reduce the number of input regions to 
 fewer regions while minimizing information loss.
 """
 
@@ -13,29 +14,33 @@ logger_grouping = logging.getLogger("spatial_grouping")
 
 
 def perform_string_based_grouping(regions, separator=None, position=None):
-    """Groups regions based on their names/ids.
+    """
+    Groups regions based on their names/ids.
 
-    Parameters
-    ----------
-    regions : List[str] or np.array(str)
-        List or array of region names
+    :param regions: List or array of region names.\n
         Ex.: ['01_es', '02_es', '01_de', '02_de', '03_de']
+    :type regions: List[str]/np.array(str)
 
-    separator : str
-        The character or string in the region IDs that defines where the ID should be split
-        Ex.: '_' would split the above IDs at _ and take the last part ('es', 'de') as the group ID
+    **Default arguments:**
 
-    position : int/tuple
-        Used to define the position(s) of the region IDs where the split should happen.
+    :param separator: The character or string in the region IDs that defines where the ID should be split
+
+        * Ex.: '_' would split the above IDs at _ and take the last part ('es', 'de') as the group ID
+
+        |br| * the default value is None
+    :type separator: str
+
+    :param position: Used to define the position(s) of the region IDs where the split should happen.
         An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean
         the part i to j is taken at the group ID.
+        |br| * the default value is None
+    :type position: int/tuple
 
-    Returns
-    -------
-    sub_to_sup_region_id_dict : Dict[str, List[str]]
-        Dictionary new regions' ids and their corresponding group of regions
-        Ex. {'es' : ['01_es', '02_es'] ,
-             'de' : ['01_de', '02_de', '03_de']}
+    :returns: sub_to_sup_region_id_dict - Dictionary new regions' ids and their corresponding group of regions
+
+        * Ex.: {'es' : ['01_es', '02_es'] , 'de' : ['01_de', '02_de', '03_de']}
+
+    :rtype: Dict[str, List[str]]
     """
 
     sub_to_sup_region_id_dict = {}
@@ -69,23 +74,26 @@ def perform_string_based_grouping(regions, separator=None, position=None):
 
 @spu.timer
 def perform_distance_based_grouping(geom_xr, n_groups=3):
-    """Groups regions based on the regions' centroid distances,
+    """
+    Groups regions based on the regions' centroid distances,
     using sklearn's hierarchical clustering.
 
-    Parameters
-    ----------
-    geom_xr : xr.Dataset
-        The xarray dataset holding the geom info
-    n_groups : strictly positive int, optional (default=3)
-        The number of region groups to be formed from the original region set
+    :param geom_xr: The xarray dataset holding the geom info
+    :type geom_xr: xr.Dataset
 
-    Returns
-    -------
-    aggregation_dict : Dict[int, Dict[str, List[str]]]
-        A nested dictionary containing results of spatial grouping at various levels/number of groups
-        - Ex. {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},
-               2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
-               1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
+    **Default arguments:**
+
+    :param n_groups: The number of region groups to be formed from the original region set
+        |br| * the default value is 3
+    :type n_groups: strictly positive int
+
+    :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
+
+        * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},\n
+            2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},\n
+            1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
+
+    :rtype: Dict[int, Dict[str, List[str]]]
     """
 
     centroids = geom_xr["centroids"].values
@@ -117,8 +125,10 @@ def perform_parameter_based_grouping(
     weights=None,
     solver="gurobi",
 ):
-    """Groups regions based on the Energy System Model instance's data.
-    This data may consist of -
+    """
+    Groups regions based on the Energy System Model instance's data.
+    This data may consist of
+
         a. regional time series variables such as operationRateMax of PVs
         b. regional values such as capacityMax of PVs
         c. connection values such as distances of DC Cables
@@ -127,47 +137,55 @@ def perform_parameter_based_grouping(
     All variables that vary across regions (a,b, and c) belonging to different
     ESM components are considered while determining similarity between regions.
 
-    Parameters
-    ----------
-    xarray_datasets : Dict[str, xr.Dataset]
-        The dictionary of xarray datasets holding esM's info
-    n_groups : strictly positive int, optional (default=3)
-        The number of region groups to be formed from the original region set
-    aggregation_method : {'kmedoids_contiguity', 'hierarchical'}, optional
-        The clustering method that should be used to group the regions.
-        Options:
-            - 'kmedoids_contiguity': kmedoids clustering with added contiguity constraint
-                Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
-            - 'hierarchical': sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity
-                Refer to Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
-    weights : Dict
-        Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating
-        distance corresonding to each variable-component pair, these specified weights are
-        considered, otherwise taken as 1.
+    :param xarray_datasets: The dictionary of xarray datasets holding esM's info
+    :type xarray_datasets: Dict[str, xr.Dataset]
 
-        It must be in one of the formats:
-        - If you want to specify weights for particular variables and particular corresponding components:
-            { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
-        - If you want to specify weights for particular variables, but all corresponding components:
-            { 'components' : {'all' : <weight>}, 'variables' : List[<variable_name>] }
-        - If you want to specify weights for all variables, but particular corresponding components:
+    **Default arguments:**
+
+    :param n_groups: The number of region groups to be formed from the original region set
+        |br| * the default value is 3
+    :type n_groups: strictly positive int
+
+    :param aggregation_method: The clustering method that should be used to group the regions.
+        Options:
+
+            * 'kmedoids_contiguity':\n
+                kmedoids clustering with added contiguity constraint\n
+                Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+            * 'hierarchical': \n
+                sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity\n
+                Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
+
+        |br| * the default value is 'kmedoids_contiguity'
+    :type aggregation_method: str
+
+    :param weights: Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating
+        distance corresonding to each variable-component pair, these specified weights are
+        considered, otherwise taken as 1. It must be in one of the formats:
+
+        * If you want to specify weights for particular variables and particular corresponding components:\n
+            { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }\n
+        * If you want to specify weights for particular variables, but all corresponding components:\n
+            { 'components' : {'all' : <weight>}, 'variables' : List[<variable_name>] }\n
+        * If you want to specify weights for all variables, but particular corresponding components:\n
             { 'components' : Dict[<component_name>, <weight>}], 'variables' : 'all' }
 
         <weight> can be of type int/float
+        |br| * the default value is None
+    :type weights: Dict
 
-    solver : {"gurobi", "glpk"}, optional
-        The optimization solver to be chosen.
+    :param solver: The optimization solver to be chosen.
         Relevant only if `aggregation_method` is 'kmedoids_contiguity'
+        |br| * the default value is 'gurobi'
+    :type solver: str
 
+    :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
 
-    Returns
-    -------
-    aggregation_dict : Dict[int, Dict[str, List[str]]]
-        A nested dictionary containing results of spatial grouping at various levels/number of groups
-        - Ex. {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},
-               2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},
-               1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
+        * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},\n
+            2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},\n
+            1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
 
+    :rtype: Dict[int, Dict[str, List[str]]]
     """
 
     # Original region list

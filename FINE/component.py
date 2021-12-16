@@ -10,7 +10,6 @@ class Component(metaclass=ABCMeta):
     The Component class includes the general methods and arguments for the components which are add-able to
     the energy system model (e.g. storage component, source component, transmission component). Every of these
     components inherits from the Component class.
-
     """
 
     def __init__(
@@ -54,7 +53,8 @@ class Component(metaclass=ABCMeta):
             already exist in the EnergySystemModel instance to which the component is added).
         :type name: string
 
-        :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not. Examples:\n
+        :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not. Examples:
+
             * An electrolyzer has a capacity given in GW_electric -> hasCapacityVariable is True.
             * In the energy system, biogas can, from a model perspective, be converted into methane (and then
               used in conventional power plants which emit CO2) by getting CO2 from the environment. Thus,
@@ -65,7 +65,8 @@ class Component(metaclass=ABCMeta):
             * If the transmission capacity of a component is unlimited -> hasCapacityVariable is False.
             * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
             * Emitting CO2 into the environment is not per se limited by a capacity ->
-              hasCapacityVariable is False.\n
+              hasCapacityVariable is False.
+
         :type hasCapacityVariable: boolean
 
         **Default arguments:**
@@ -84,11 +85,13 @@ class Component(metaclass=ABCMeta):
             |br| * the default value is 1
         :type capacityPerPlantUnit: strictly positive float
 
-        :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for\n
+        :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for
+
             * each eligible location of the component, which indicates if the component is built at that location or
               not (dimension=1dim).
             * each eligible connection of the transmission component, which indicates if the component is built
-              between two locations or not (dimension=2dim).\n
+              between two locations or not (dimension=2dim).
+
             The binary variables can be used to enforce one-time investment cost or capacity-independent
             annual operation cost. If a minimum capacity is specified and this parameter is set to True,
             the minimum capacities are only considered if a component is built (i.e. if a component is built
@@ -105,11 +108,13 @@ class Component(metaclass=ABCMeta):
             |br| * the default value is None
         :type bigM: None or strictly positive float
 
-        :param locationalEligibility:\n
+        :param locationalEligibility:
+
             * Pandas Series that indicates if a component can be built at a location (=1) or not (=0)
               (dimension=1dim) or
             * Pandas Series or DataFrame that indicates if a component can be built between two
-              locations (=1) or not (=0) (dimension=2dim).\n
+              locations (=1) or not (=0) (dimension=2dim).
+
             If not specified and a maximum or fixed capacity or time series is given, the parameter will be
             set based on these inputs. If the parameter is specified, a consistency check is done to ensure
             that the parameters indicate the same locational eligibility. If the parameter is not specified,
@@ -118,7 +123,8 @@ class Component(metaclass=ABCMeta):
             This parameter is the key part for ensuring small built times of the optimization problem by avoiding the
             declaration of unnecessary variables and constraints.
             |br| * the default value is None
-        :type locationalEligibility:\n
+        :type locationalEligibility:
+
             * None or
             * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -132,6 +138,7 @@ class Component(metaclass=ABCMeta):
             if the component is built.
             |br| * the default value is None
         :type capacityMin:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -144,6 +151,7 @@ class Component(metaclass=ABCMeta):
             to be a Pandas Series or DataFrame.
             |br| * the default value is None
         :type capacityMax:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -168,10 +176,14 @@ class Component(metaclass=ABCMeta):
         :type linkedQuantityID: string
 
         :param capacityFix: if specified, indicates the fixed capacities. The type of this parameter
-            depends on the dimension of the component: If dimension=1dim, it has to be a Pandas Series.
-            If dimension=2dim, it has to be a Pandas Series or DataFrame.
+            depends on the dimension of the component:
+
+            * If dimension=1dim, it has to be a Pandas Series.
+            * If dimension=2dim, it has to be a Pandas Series or DataFrame.
+
             |br| * the default value is None
         :type capacityFix:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -181,10 +193,14 @@ class Component(metaclass=ABCMeta):
 
         :param isBuiltFix: if specified, indicates fixed decisions in which or between which locations the component is
             built (i.e. sets the isBuilt binary variables). The type of this parameter
-            depends on the dimension of the component: If dimension=1dim, it has to be a Pandas Series.
-            If dimension=2dim, it has to be a Pandas Series or DataFrame.
+            depends on the dimension of the component:
+
+            * If dimension=1dim, it has to be a Pandas Series.
+            * If dimension=2dim, it has to be a Pandas Series or DataFrame.
+
             |br| * the default value is None
         :type isBuiltFix:
+
             * None or
             * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -196,7 +212,8 @@ class Component(metaclass=ABCMeta):
             invest of a component is obtained by multiplying the built capacities
             of the component (in the physicalUnit of the component) with the investPerCapacity factor.
             The value has to match the unit costUnit/physicalUnit (e.g. Euro/kW).
-            The investPerCapacity can either be given as\n
+            The investPerCapacity can either be given as
+
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
               parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
               1e6 Euro). The value has to match the unit
@@ -204,9 +221,11 @@ class Component(metaclass=ABCMeta):
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
               the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). The value has to match the unit
-              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km)) \n
+              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km))
+
             |br| * the default value is 0
         :type investPerCapacity:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -215,15 +234,18 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations.
 
         :param investIfBuilt: a capacity-independent invest which only arises in a location if a component
-            is built at that location. The investIfBuilt can either be given as\n
+            is built at that location. The investIfBuilt can either be given as
+
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which
               the parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
               1e6 Euro) or
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
-              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)\n
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km)
+
             |br| * the default value is 0
         :type investIfBuilt:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -234,7 +256,8 @@ class Component(metaclass=ABCMeta):
         :param opexPerCapacity: describes the operational cost for one unit of capacity. The annual operational cost,
             which are only a function of the capacity of the component (in the physicalUnit of the component) and not
             of the specific operation itself, are obtained by multiplying the capacity of the component at a location
-            with the opexPerCapacity factor. The opexPerCapacity factor can either be given as\n
+            with the opexPerCapacity factor. The opexPerCapacity factor can either be given as
+
             * a float or a Pandas Series with location specific values (dimension=1dim). The cost unit in which the
               parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
               1e6 Euro). The value has to match the unit
@@ -242,9 +265,11 @@ class Component(metaclass=ABCMeta):
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
               the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). The value has to match the unit
-              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km))\n
+              costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km))
+
             |br| * the default value is 0
         :type opexPerCapacity:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -253,15 +278,18 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations.
 
         :param opexIfBuilt: a capacity-independent annual operational cost which only arises in a location
-            if a component is built at that location. The opexIfBuilt can either be given as\n
+            if a component is built at that location. The opexIfBuilt can either be given as
+
             * a float or a Pandas Series with location specific values (dimension=1dim) . The cost unit in which
               the parameter is given has to match the one specified in the energy system model (e.g. Euro, Dollar,
               1e6 Euro) or
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
-              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). \n
+              the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km).
+
             |br| * the default value is 0
         :type opexIfBuilt:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -275,6 +303,7 @@ class Component(metaclass=ABCMeta):
             A Quadratic Programming Approach for Avoiding Penny Switching Effects".
             |br| * the default value is 0, i.e. the problem is not quadratic.
         :type QPcostScale:
+
             * float between 0 and 1
             * Pandas Series with positive (0 <= QPcostScale <= 1) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -287,6 +316,7 @@ class Component(metaclass=ABCMeta):
             A value of 0.08 corresponds to an interest rate of 8%.
             |br| * the default value is 0.08
         :type interestRate:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -298,6 +328,7 @@ class Component(metaclass=ABCMeta):
             annuities of the invest of the component (aka depreciation time).
             |br| * the default value is 10
         :type economicLifetime:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -309,6 +340,7 @@ class Component(metaclass=ABCMeta):
             stocks.
             |br| * the default value is None
         :type technicalLifetime:
+
             * None or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -319,6 +351,7 @@ class Component(metaclass=ABCMeta):
         :param yearlyFullLoadHoursMin: if specified, indicates the maximum yearly full load hours.
             |br| * the default value is None
         :type yearlyFullLoadHoursMin:
+
             * None or
             * Float with positive (>=0) value or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
@@ -328,6 +361,7 @@ class Component(metaclass=ABCMeta):
         :param yearlyFullLoadHoursMax: if specified, indicates the maximum yearly full load hours.
             |br| * the default value is None
         :type yearlyFullLoadHoursMax:
+
             * None or
             * Float with positive (>=0) value or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
@@ -1845,8 +1879,10 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments:**
 
         :param getOptValue: Boolean that defines the output of the function:
+
             - True: Return the optimal value.
             - False: Return the equation.
+
             |br| * the default value is False.
         :type getoptValue: boolean
         """
@@ -1925,8 +1961,10 @@ class ComponentModel(metaclass=ABCMeta):
         :type QPdivisorNames: list of strings
 
         :param getOptValue: Boolean that defines the output of the function:
+
             - True: Return the optimal value.
             - False: Return the equation.
+
             |br| * the default value is False.
         :type getoptValue: boolean
         """
@@ -2013,8 +2051,10 @@ class ComponentModel(metaclass=ABCMeta):
         :type QPdivisorNames: list of strings
 
         :param getOptValue: Boolean that defines the output of the function:
+
             - True: Return the optimal value.
             - False: Return the equation.
+
             |br| * the default value is False.
         :type getoptValue: boolean
         """
@@ -2064,8 +2104,10 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments:**
 
         :param getOptValue: Boolean that defines the output of the function:
+
             - True: Return the optimal value.
             - False: Return the equation.
+
             |br| * the default value is False.
         :type getoptValue: boolean
         """
@@ -2128,8 +2170,10 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments:**
 
         :param getOptValue: Boolean that defines the output of the function:
+
             - True: Return the optimal value.
             - False: Return the equation.
+
             |br| * the default value is False.
         :type getoptValue: boolean
         """
@@ -2187,8 +2231,10 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments:**
 
         :param getOptValue: Boolean that defines the output of the function:
+
             - True: Return the optimal value.
             - False: Return the equation.
+
             |br| * the default value is False.
         :type getoptValue: boolean
         """
@@ -2457,11 +2503,13 @@ class ComponentModel(metaclass=ABCMeta):
         """
         Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariablesOptimum',
-        * 'isBuiltVariablesOptimum',
-        * 'operationVariablesOptimum',
-        * 'all' or another input: all variables are returned.\n
+        :param name: name of the variables of which the optimal values should be returned:
+
+            * 'capacityVariablesOptimum',
+            * 'isBuiltVariablesOptimum',
+            * 'operationVariablesOptimum',
+            * 'all' or another input: all variables are returned.
+
         :type name: string
         """
         if name == "capacityVariablesOptimum":

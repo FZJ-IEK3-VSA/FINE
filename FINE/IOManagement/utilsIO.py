@@ -5,7 +5,8 @@ import xarray as xr
 
 
 def transform1dSeriesto2dDataFrame(series, locations):
-    """Expands pandas Series into a pandas DataFrame.
+    """
+    Expands pandas Series into a pandas DataFrame.
 
     :param series: the series that need to be converted
     :type series: pd.Series
