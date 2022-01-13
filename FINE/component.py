@@ -478,17 +478,26 @@ class Component(metaclass=ABCMeta):
         :return: data
         :rtype: Pandas DataFrame
         """
-
         # rateFix/rateMax are either dictionaries for perfect foresight or None
         if rateFix is None:
             pass
         else:
-            rateFix = rateFix[ip]
+            # TODO REFACTOR
+            print("\n\n RateFix und ip")
+            print(rateFix)
+            print(ip)
+            if isinstance(rateFix,dict):
+                rateFix = rateFix[ip]
+            elif isinstance(rateFix,pd.DataFrame):
+                rateFix=rateFix
         
         if rateMax is None:
             pass
         else:
-            rateMax = rateMax[ip]
+            if isinstance(rateMax,dict):
+                rateMax = rateMax[ip]
+            elif isinstance(rateMax,pd.DataFrame):
+                rateMax=rateMax
 
         data_ = rateFix if rateFix is not None else rateMax
         if data_ is not None:
@@ -1543,9 +1552,9 @@ class ComponentModel(metaclass=ABCMeta):
         def opMinPartLoad2(pyM, loc, compName, ip, p, t):
             #old code:
             #opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
-            partLoadMin = getattr(compDict[compName], 'partLoadMin')[ip]
+            processedPartLoadMin = getattr(compDict[compName], 'partLoadMin')[ip]
             bigM = getattr(compDict[compName], 'bigM')
-            return opVar[loc, compName, ip, p, t] >= partLoadMin*capVar[loc, compName]-(1-opVarBin[loc, compName, ip, p, t])*bigM
+            return opVar[loc, compName, ip, p, t] >= processedPartLoadMin*capVar[loc, compName]-(1-opVarBin[loc, compName, ip, p, t])*bigM
         setattr(pyM, constrName + 'partLoadMin_2_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2))
         
 

@@ -232,36 +232,38 @@ class Source(Component):
         #                                                       locationalEligibility)
         ## New code for perfect foresight!
         # create emtpy dicts
-        self.opexPerOperation = {}
-        self.commodityCost= {}
-        self.commodityRevenue = {}
-        
+        self.opexPerOperation = opexPerOperation
+        self.commodityCost = commodityCost
+        self.commodityRevenue = commodityRevenue
+        self.processedOpexPerOperation = {}
+        self.processedCommodityCost= {}
+        self.processedCommodityRevenue = {}
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
             
             # opexPerOperation 
             if (isinstance(opexPerOperation, int) or isinstance(opexPerOperation, float) or isinstance(opexPerOperation, pd.Series)): #opexPerOperation is series/float/int
-                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',locationalEligibility)
+                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',locationalEligibility)
             elif isinstance(opexPerOperation, dict): # opexPerOperations is dict
-                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'1dim', locationalEligibility)
+                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'1dim', locationalEligibility)
             else:
                 raise TypeError('opexPerOperation should be a pandas series or a dictionary.')
 
             # Commodity Cost 
             if (isinstance(commodityCost, int) or isinstance(commodityCost, float) or isinstance(commodityCost, pd.Series)): #commodityCost is series/float/int
-                self.commodityCost[ip] = utils.checkAndSetCostParameter(esM, name, commodityCost, '1dim',locationalEligibility)
+                self.processedCommodityCost[ip] = utils.checkAndSetCostParameter(esM, name, commodityCost, '1dim',locationalEligibility)
             elif isinstance(commodityCost, dict): # commodityCost is dict
-                self.commodityCost[ip] = utils.checkAndSetCostParameter(esM, name, commodityCost[ip],'1dim', locationalEligibility)
+                self.processedCommodityCost[ip] = utils.checkAndSetCostParameter(esM, name, commodityCost[ip],'1dim', locationalEligibility)
             else:
                 raise TypeError('commodityCost should be a pandas series or a dictionary.')
 
         
             # Commodity Revenue
             if (isinstance(commodityRevenue, int) or isinstance(commodityRevenue, float) or isinstance(commodityRevenue, pd.Series)): #commodityRevenue is series/float/int
-                self.commodityRevenue[ip] = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',locationalEligibility)
+                self.processedCommodityRevenue[ip] = utils.checkAndSetCostParameter(esM, name, commodityRevenue, '1dim',locationalEligibility)
             elif isinstance(commodityRevenue, dict): # commodityRevenue is dict
-                self.commodityRevenue[ip] = utils.checkAndSetCostParameter(esM, name, commodityRevenue[ip],'1dim', locationalEligibility)
+                self.processedCommodityRevenue[ip] = utils.checkAndSetCostParameter(esM, name, commodityRevenue[ip],'1dim', locationalEligibility)
             else:
                 raise TypeError('commodityRevenue should be a pandas series or a dictionary.')   
 
@@ -292,6 +294,7 @@ class Source(Component):
         self.aggregatedCommodityCostTimeSeries = {}
         self.processedCommodityCostTimeSeries = {}
 
+        self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
         self.fullCommodityRevenueTimeSeries = {}
         self.aggregatedCommodityRevenueTimeSeries = {}
         self.processedCommodityRevenueTimeSeries = {}
@@ -384,26 +387,27 @@ class Source(Component):
             self.aggregatedOperationRateFix[ip], self.processedOperationRateFix[ip] = None, None
 
         # new code for perfect foresight
-        self.partLoadMin = {}
+        self.partLoadMin = partLoadMin
+        self.processedPartLoadMin = {}
 
         # iterate over all ips
         for ip in esM.investmentPeriods:
             if isinstance(partLoadMin, float) or partLoadMin is None:
-                self.partLoadMin[ip] = partLoadMin
+                self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
-                self.partLoadMin[ip] = partLoadMin[ip]
+                self.processedPartLoadMin[ip] = partLoadMin[ip]
 
-        if not any(value for value in self.partLoadMin.values()):
-            self.partLoadMin = None
+        if not any(value for value in self.processedPartLoadMin.values()):
+            self.processedPartLoadMin = None
         
-        if self.partLoadMin is not None:
+        if self.processedPartLoadMin is not None:
             for ip in esM.investmentPeriods:
-                if self.partLoadMin[ip] is not None:
+                if self.processedPartLoadMin[ip] is not None:
                     if self.fullOperationRateMax[ip] is not None:
-                        if ((self.fullOperationRateMax[ip] > 0) & (self.fullOperationRateMax[ip] < self.partLoadMin[ip])).any().any():
+                        if ((self.fullOperationRateMax[ip] > 0) & (self.fullOperationRateMax[ip] < self.processedPartLoadMin[ip])).any().any():
                             raise ValueError('"operationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
                     if self.fullOperationRateFix[ip] is not None:
-                        if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.partLoadMin[ip])).any().any():
+                        if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.processedPartLoadMin[ip])).any().any():
                             raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name ) 
 
        # if self.partLoadMin is not None:
@@ -969,13 +973,13 @@ class SourceSinkModel(ComponentModel):
         """
 
         opexOp = self.getEconomicsTD(
-            pyM, esM, ["opexPerOperation"], "op", "operationVarDict"
+            pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDict"
         )
         commodCost = self.getEconomicsTD(
-            pyM, esM, ["commodityCost"], "op", "operationVarDict"
+            pyM, esM, ["processedCommodityCost"], "op", "operationVarDict"
         )
         commodRevenue = self.getEconomicsTD(
-            pyM, esM, ["commodityRevenue"], "op", "operationVarDict"
+            pyM, esM, ["processedCommodityRevenue"], "op", "operationVarDict"
         )
         commodCostTimeSeries = self.getEconomicsTimeSeries(
             pyM, esM, "processedCommodityCostTimeSeries", "op", "operationVarDict"
@@ -1051,9 +1055,9 @@ class SourceSinkModel(ComponentModel):
             #print("opSum")
             #print(opSum)
 
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[ip][op.index], axis=1)           
-            cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[ip][op.index], axis=1)
-            cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[ip][op.index], axis=1)
+            ox = opSum.apply(lambda op: op * compDict[op.name].processedOpexPerOperation[ip][op.index], axis=1)           
+            cCost = opSum.apply(lambda op: op * compDict[op.name].processedCommodityCost[ip][op.index], axis=1)
+            cRevenue = opSum.apply(lambda op: op * compDict[op.name].processedCommodityRevenue[ip][op.index], axis=1)
             # tests
             #print('ox')
             #print(ox)

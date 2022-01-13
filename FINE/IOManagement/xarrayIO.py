@@ -24,11 +24,12 @@ def convertOptimizationInputToDatasets(esM):
     esm_dict, component_dict = dictIO.exportToDict(esM)
 
     # STEP 2. Get the iteration dicts
+    ip=esM.investmentPeriods
     (
         df_iteration_dict,
         series_iteration_dict,
         constants_iteration_dict,
-    ) = utilsIO.generateIterationDicts(component_dict)
+    ) = utilsIO.generateIterationDicts(component_dict,ip)
 
     # STEP 3. Initiate xarray dataset
     xr_dss = dict.fromkeys(component_dict.keys())

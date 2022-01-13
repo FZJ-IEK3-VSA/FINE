@@ -246,14 +246,14 @@ class LOPFModel(TransmissionModel):
             pyM, "operationVarSet_" + abbrvName
         )
 
-        def powerFlowDC(pyM, loc, compName, p, t):
+        def powerFlowDC(pyM, loc, compName, ip, p, t):
             node1, node2 = compDict[compName]._mapC[loc]
             return (
-                opVar[loc, compName, p, t]
-                - opVar[compDict[compName]._mapI[loc], compName, p, t]
+                opVar[loc, compName, ip, p, t]
+                - opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
                 == (
-                    phaseAngleVar[node1, compName, p, t]
-                    - phaseAngleVar[node2, compName, p, t]
+                    phaseAngleVar[node1, compName, ip, p, t]
+                    - phaseAngleVar[node2, compName, ip, p, t]
                 )
                 / compDict[compName].reactances[loc]
             )
@@ -274,9 +274,9 @@ class LOPFModel(TransmissionModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
 
-        def basePhaseAngle(pyM, compName, p, t):
+        def basePhaseAngle(pyM, compName, ip, p, t):
             node0 = sorted(compDict[compName]._mapL)[0]
-            return phaseAngleVar[node0, compName, p, t] == 0
+            return phaseAngleVar[node0, compName, ip, p, t] == 0
 
         setattr(
             pyM,

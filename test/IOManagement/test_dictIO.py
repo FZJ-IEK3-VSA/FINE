@@ -291,3 +291,7 @@ def test_import_from_dict(test_esM_fixture, request):
 
     assert output_df.equals(expected_df)
     assert output_series.equals(expected_series)
+
+
+if __name__ == "__main__":
+    test_export_to_dict_minimal()

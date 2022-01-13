@@ -183,16 +183,17 @@ class Conversion(Component):
 
         ## New code for perfect foresight!
         # create emtpy dicts
-        self.opexPerOperation = {}      
+        self.opexPerOperation = opexPerOperation
+        self.processedOpexPerOperation = {} 
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
             
             # opexPerOperation 
             if (isinstance(opexPerOperation, int) or isinstance(opexPerOperation, float) or isinstance(opexPerOperation, pd.Series)): #opexPerOperation is series/float/int
-                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',locationalEligibility)
+                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',locationalEligibility)
             elif isinstance(opexPerOperation, dict): # opexPerOperations is dict
-                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'1dim', locationalEligibility)
+                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'1dim', locationalEligibility)
             else:
                 raise TypeError('opexPerOperation should be a pandas series or a dictionary.')
 
@@ -254,26 +255,27 @@ class Conversion(Component):
             self.aggregatedOperationRateFix[ip], self.processedOperationRateFix[ip] = None, None
         
         # new code for perfect foresight
-        self.partLoadMin = {}
+        self.partLoadMin = partLoadMin
+        self.processedPartLoadMin = {}
 
         # iterate over all ips
         for ip in esM.investmentPeriods:
             if isinstance(partLoadMin, float) or partLoadMin is None:
-                self.partLoadMin[ip] = partLoadMin
+                self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
-                self.partLoadMin[ip] = partLoadMin[ip]
+                self.processedPartLoadMin[ip] = partLoadMin[ip]
 
-        if not any(value for value in self.partLoadMin.values()):
-            self.partLoadMin = None
+        if not any(value for value in self.processedPartLoadMin.values()):
+            self.processedPartLoadMin = None
         
-        if self.partLoadMin is not None:
+        if self.processedPartLoadMin is not None:
             for ip in esM.investmentPeriods:
-                if self.partLoadMin[ip] is not None:
+                if self.processedPartLoadMin[ip] is not None:
                     if self.fullOperationRateMax[ip] is not None:
-                        if ((self.fullOperationRateMax[ip] > 0) & (self.fullOperationRateMax[ip] < self.partLoadMin[ip])).any().any():
+                        if ((self.fullOperationRateMax[ip] > 0) & (self.fullOperationRateMax[ip] < self.processedPartLoadMin[ip])).any().any():
                             raise ValueError('"operationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
                     if self.fullOperationRateFix[ip] is not None:
-                        if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.partLoadMin[ip])).any().any():
+                        if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.processedPartLoadMin[ip])).any().any():
                             raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
 
         utils.isPositiveNumber(tsaWeight)
@@ -343,6 +345,7 @@ class Conversion(Component):
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
         """
+
         weightDict, data = {}, []
         weightDict, data = self.prepareTSAInput(
             self.fullOperationRateFix,
@@ -354,6 +357,8 @@ class Conversion(Component):
             ip
         )
         for commod in self.fullCommodityConversionFactors:
+            print("\n\n self.fullCommodityConversionFactors[commod]")
+            print(self.fullCommodityConversionFactors[commod])
             weightDict, data = self.prepareTSAInput(
                 self.fullCommodityConversionFactors[commod],
                 None,
@@ -361,6 +366,7 @@ class Conversion(Component):
                 self.tsaWeight,
                 weightDict,
                 data,
+                ip
             )
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
@@ -684,7 +690,7 @@ class ConversionModel(ComponentModel):
         """
 
         opexOp = self.getEconomicsTD(
-            pyM, esM, ["opexPerOperation"], "op", "operationVarDict"
+            pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDict"
         )
 
         return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
@@ -750,7 +756,7 @@ class ConversionModel(ComponentModel):
             optVal = optVal.loc[idx[:,:],:] # perfect foresight: added ip and deleted again
             #optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[ip][op.index], axis=1)
+            ox = opSum.apply(lambda op: op * compDict[op.name].processedOpexPerOperation[ip][op.index], axis=1)
             #ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h/a]') for ix in opSum.index],
                            opSum.columns] = opSum.values/esM.numberOfYears

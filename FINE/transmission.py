@@ -249,7 +249,8 @@ class Transmission(Component):
 
         ## New code for perfect foresight!
         # create emtpy dicts
-        self.opexPerOperation = {}       
+        self.opexPerOperation=opexPerOperation
+        self.processedOpexPerOperation = {}       
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -258,9 +259,9 @@ class Transmission(Component):
             
             # opexPerOperation 
             if (isinstance(opexPerOperation, int) or isinstance(opexPerOperation, float) or isinstance(opexPerOperation, pd.Series)): #opexPerOperation is series/float/int
-                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',self.locationalEligibility)
+                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',self.locationalEligibility)
             elif isinstance(opexPerOperation, dict): # opexPerOperations is dict
-                self.opexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'2dim', self.locationalEligibility)
+                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'2dim', self.locationalEligibility)
             else:
                 raise TypeError('opexPerOperation should be a pandas series or a dictionary.')
 
@@ -318,26 +319,27 @@ class Transmission(Component):
             self.aggregatedOperationRateFix[ip], self.processedOperationRateFix[ip] = None, None
 
         # new code for perfect foresight
-        self.partLoadMin = {}
+        self.partLoadMin=partLoadMin
+        self.processedPartLoadMin = {}
 
         # iterate over all ips
         for ip in esM.investmentPeriods:
             if isinstance(partLoadMin, float) or partLoadMin is None:
-                self.partLoadMin[ip] = partLoadMin
+                self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
-                self.partLoadMin[ip] = partLoadMin[ip]
+                self.processedPartLoadMin[ip] = partLoadMin[ip]
 
-        if not any(value for value in self.partLoadMin.values()):
-            self.partLoadMin = None
+        if not any(value for value in self.processedPartLoadMin.values()):
+            self.processedPartLoadMin = None
         
-        if self.partLoadMin is not None:
+        if self.processedPartLoadMin is not None:
             for ip in esM.investmentPeriods:
-                if self.partLoadMin[ip] is not None:
+                if self.processedPartLoadMin[ip] is not None:
                     if self.fullOperationRateMax[ip] is not None:
-                        if ((self.fullOperationRateMax[ip] > 0) & (self.fullOperationRateMax[ip] < self.partLoadMin[ip])).any().any():
+                        if ((self.fullOperationRateMax[ip] > 0) & (self.fullOperationRateMax[ip] < self.processedPartLoadMin[ip])).any().any():
                             raise ValueError('"operationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
                     if self.fullOperationRateFix[ip] is not None:
-                        if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.partLoadMin[ip])).any().any():
+                        if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.processedPartLoadMin[ip])).any().any():
                             raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name ) 
 
         # if self.partLoadMin is not None:
@@ -749,7 +751,7 @@ class TransmissionModel(ComponentModel):
         """
 
         opexOp = self.getEconomicsTD(
-            pyM, esM, ["opexPerOperation"], "op", "operationVarDictOut"
+            pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDictOut"
         )
 
         return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
@@ -835,9 +837,9 @@ class TransmissionModel(ComponentModel):
             # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-with-list-with-missing-labels-is-deprecated
             newIndex = opSum.columns.tolist()
             for name in compDict.keys():
-                compDict[name].opexPerOperation[ip] = compDict[name].opexPerOperation[ip].reindex(newIndex, fill_value=0.0)
+                compDict[name].processedOpexPerOperation[ip] = compDict[name].processedOpexPerOperation[ip].reindex(newIndex, fill_value=0.0)
             
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[ip][op.index], axis=1)
+            ox = opSum.apply(lambda op: op * compDict[op.name].processedOpexPerOperation[ip][op.index], axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],
