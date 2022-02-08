@@ -32,12 +32,10 @@ test-code:
     - python -m pytest --cov=FINE test/
 
 test-formatting:
-  stage: test
+  extends: .test_template
   script:
     # Dry-run black auto-formatter. If the code needs reformatting this test
     # will fail.   
-    - conda env create -n fine --file=requirements_dev.yml
-    - source activate fine
     - black --version
     - black --check FINE
     - black --check test
