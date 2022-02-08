@@ -12,6 +12,7 @@ FINE release (2.2.2) provides new major functionalities:
 * Add generic spatial aggregation for models with high spatial resolution: **SPAGAT**
 
 Black autoformatting was applied to make the source code easier to read and to simplify contributions. 
+Additionally, the installation guide was revised to make the installation easier to handle.
 
 *********************
 Release version 2.2.1
