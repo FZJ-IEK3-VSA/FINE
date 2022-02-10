@@ -2,11 +2,9 @@
 Functions to assist spatial aggregation 
 """
 import warnings
-import time
 import numpy as np
 import pandas as pd
 import xarray as xr
-from functools import wraps
 
 try:
     import geopandas as gpd
@@ -14,32 +12,6 @@ except ImportError:
     warnings.warn(
         "The package geopandas is not installed. Spatial aggregation cannot be used without it."
     )
-
-
-def timer(func):
-    """
-    Wrapper around a function to track the time taken by
-    the function.
-
-    :param func: Function
-
-    .. note::
-    Usage : as a decorator before a function -> @spu.timer
-    """
-
-    @wraps(func)  # Required to get documentation for functions using this decorator
-    def f(*args, **kwargs):
-        before = time.perf_counter()
-        rv = func(*args, **kwargs)
-        after = time.perf_counter()
-        print(
-            "elapsed time for {.__name__}: {:.2f} minutes".format(
-                func, (after - before) / 60
-            )
-        )
-        return rv
-
-    return f
 
 
 def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"):

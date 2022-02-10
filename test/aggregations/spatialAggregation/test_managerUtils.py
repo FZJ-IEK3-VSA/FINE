@@ -6,7 +6,7 @@ import numpy as np
 import geopandas as gpd
 from shapely.geometry import Point
 
-import FINE.spagat.utils as spu
+import FINE.aggregations.spatialAggregation.managerUtils as manUtils
 
 
 def test_create_gdf():
@@ -15,11 +15,13 @@ def test_create_gdf():
     df = pd.DataFrame({"space": ["reg_01", "reg_02"]})
 
     crs = 3035
-    path_to_test_dir = os.path.join(os.path.dirname(__file__), "data/output/test_dir")
+    path_to_test_dir = os.path.join(
+        os.path.dirname(__file__), "../data/output/test_dir"
+    )
     file_name = "test_file"
 
     # FUNCTION CALL
-    spu.create_gdf(
+    manUtils.create_gdf(
         df, geometries, crs, file_path=path_to_test_dir, files_name=file_name
     )
 
@@ -39,7 +41,9 @@ def test_create_geom_xarray(sample_shapefile):
     )  # Distances in km
 
     # FUNCTION CALL
-    output_xr = spu.create_geom_xarray(sample_shapefile, geom_id_col_name="region_ids")
+    output_xr = manUtils.create_geom_xarray(
+        sample_shapefile, geom_id_col_name="region_ids"
+    )
 
     # ASSERTION
     output_centroids = output_xr["centroids"].values

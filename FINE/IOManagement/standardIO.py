@@ -5,6 +5,7 @@ import ast
 import inspect
 import time
 import warnings
+from functools import wraps
 
 try:
     import geopandas as gpd
@@ -17,6 +18,32 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     warnings.warn("Matplotlib.pyplot could not be imported.")
+
+
+def timer(func):
+    """
+    Wrapper around a function to track the time taken by
+    the function.
+
+    :param func: Function
+
+    .. note:: Usage as a decorator before a function -> @timer
+
+    """
+
+    @wraps(func)  # Required to get documentation for functions using this decorator
+    def f(*args, **kwargs):
+        before = time.perf_counter()
+        rv = func(*args, **kwargs)
+        after = time.perf_counter()
+        print(
+            "elapsed time for {.__name__}: {:.2f} minutes".format(
+                func, (after - before) / 60
+            )
+        )
+        return rv
+
+    return f
 
 
 def writeOptimizationOutputToExcel(

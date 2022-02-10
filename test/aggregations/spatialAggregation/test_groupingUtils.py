@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import xarray as xr
 
-import FINE.spagat.grouping_utils as gu
+import FINE.aggregations.spatialAggregation.groupingUtils as gprUtils
 
 
 @pytest.mark.parametrize(
@@ -13,7 +13,7 @@ def test_get_normalized_array(test_array):
 
     expected_array = 0.1 * test_array
 
-    output_array = gu.get_normalized_array(test_array)
+    output_array = gprUtils.get_normalized_array(test_array)
 
     assert np.isclose(output_array, expected_array).all()
 
@@ -23,7 +23,7 @@ def test_get_normalized_array_flat():
     test_array = np.array([5, 5, 5])
     expected_array = np.array([1, 1, 1])
 
-    output_array = gu.get_normalized_array(test_array)
+    output_array = gprUtils.get_normalized_array(test_array)
 
     assert np.isclose(output_array, expected_array).all()
 
@@ -100,7 +100,9 @@ def test_preprocess_dataset():
     expected_1d_dict["1d_var"] = {"CompA": expected_1d_data_norm}
 
     # FUNCTION CALL
-    output_ts_dict, output_1d_dict, output_2d_dict = gu.preprocess_dataset(test_xr_dict)
+    output_ts_dict, output_1d_dict, output_2d_dict = gprUtils.preprocess_dataset(
+        test_xr_dict
+    )
 
     # ASSERTION
     ## ts
@@ -178,7 +180,7 @@ def test_get_custom_distance_matrix(
 
     # FUNCTION CALL
     n_regions = 3
-    output_dist_matrix = gu.get_custom_distance_matrix(
+    output_dist_matrix = gprUtils.get_custom_distance_matrix(
         test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
     )
 
@@ -204,7 +206,7 @@ def test_get_custom_distance_matrix_with_unusual_weights(
     # FUNCTION CALL
     n_regions = 3
     with pytest.raises(ValueError):
-        output_dist_matrix = gu.get_custom_distance_matrix(
+        output_dist_matrix = gprUtils.get_custom_distance_matrix(
             test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
         )
 
@@ -225,7 +227,7 @@ def test_get_connectivity_matrix(xr_for_connectivity):
     )
 
     # FUNCTION CALL
-    output_matrix = gu.get_connectivity_matrix(xr_for_connectivity)
+    output_matrix = gprUtils.get_connectivity_matrix(xr_for_connectivity)
 
     # ASSERTION
     assert np.array_equal(output_matrix, expected_matrix)

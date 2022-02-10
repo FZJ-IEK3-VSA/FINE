@@ -1,5 +1,5 @@
 """
-Functions to represent region data for a reduced set 
+Functions to aggregate region data for a reduced set 
 of regions obtained as a result of spatial grouping of regions. 
 """
 

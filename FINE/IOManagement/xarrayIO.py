@@ -467,14 +467,6 @@ def convertDatasetsToEnergySystemModel(datasets):
 
                     # STEP 4 (ii). Set 2d data (region, region)
                     elif variable[:3] == "2d_":
-                        # INFO: economic variables are multiplied by distances and 0.5 during esM setup, need to reverse this
-                        if variable[3:] in eco_var_list:
-                            dist_xr = comp_xr["2d_distances"]
-                            comp_var_xr.values = comp_var_xr.values / (
-                                dist_xr.values * 0.5
-                            )
-                            comp_var_xr = comp_var_xr.fillna(0)
-
                         component_dict = utilsIO.add2dVariableToDict(
                             component_dict,
                             comp_var_xr,

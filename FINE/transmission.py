@@ -236,10 +236,10 @@ class Transmission(Component):
         self.modelingClass = TransmissionModel
 
         # Set distance related costs data
-        self.investPerCapacity *= self.distances * 0.5
-        self.investIfBuilt *= self.distances * 0.5
-        self.opexPerCapacity *= self.distances * 0.5
-        self.opexIfBuilt *= self.distances * 0.5
+        self.processedInvestPerCapacity = self.investPerCapacity * self.distances * 0.5
+        self.processedInvestIfBuilt = self.investIfBuilt * self.distances * 0.5
+        self.processedOpexPerCapacity = self.opexPerCapacity * self.distances * 0.5
+        self.processedOpexIfBuilt = self.opexIfBuilt * self.distances * 0.5
 
         # Set additional economic data
         self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC)
@@ -715,7 +715,27 @@ class TransmissionModel(ComponentModel):
             pyM, esM, ["opexPerOperation"], "op", "operationVarDictOut"
         )
 
-        return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
+        capexCap = self.getEconomicsTI(
+            pyM,
+            factorNames=["processedInvestPerCapacity", "QPcostDev"],
+            QPfactorNames=["QPcostScale", "processedInvestPerCapacity"],
+            varName="cap",
+            divisorName="CCF",
+            QPdivisorNames=["QPbound", "CCF"],
+        )
+        capexDec = self.getEconomicsTI(
+            pyM, ["processedInvestIfBuilt"], "designBin", "CCF"
+        )
+        opexCap = self.getEconomicsTI(
+            pyM,
+            factorNames=["processedOpexPerCapacity", "QPcostDev"],
+            QPfactorNames=["QPcostScale", "processedOpexPerCapacity"],
+            varName="cap",
+            QPdivisorNames=["QPbound"],
+        )
+        opexDec = self.getEconomicsTI(pyM, ["processedOpexIfBuilt"], "designBin")
+
+        return opexOp + capexCap + capexDec + opexCap + opexDec
 
     def setOptimalValues(self, esM, pyM):
         """
@@ -735,10 +755,224 @@ class TransmissionModel(ComponentModel):
             for loc2 in esM.locations
         }
 
+        def _setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
+
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            capVar = getattr(esM.pyM, "cap_" + abbrvName)
+            binVar = getattr(esM.pyM, "designBin_" + abbrvName)
+
+            props = [
+                "capacity",
+                "isBuilt",
+                "capexCap",
+                "capexIfBuilt",
+                "opexCap",
+                "opexIfBuilt",
+                "TAC",
+                "invest",
+            ]
+            units = [
+                "[-]",
+                "[-]",
+                "[" + esM.costUnit + "/a]",
+                "[" + esM.costUnit + "/a]",
+                "[" + esM.costUnit + "/a]",
+                "[" + esM.costUnit + "/a]",
+                "[" + esM.costUnit + "/a]",
+                "[" + esM.costUnit + "]",
+            ]
+            tuples = [
+                (compName, prop, unit)
+                for compName in compDict.keys()
+                for prop, unit in zip(props, units)
+            ]
+            tuples = list(
+                map(
+                    lambda x: (
+                        x[0],
+                        x[1],
+                        "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
+                    )
+                    if x[1] == "capacity"
+                    else x,
+                    tuples,
+                )
+            )
+            mIndex = pd.MultiIndex.from_tuples(
+                tuples, names=["Component", "Property", "Unit"]
+            )
+            optSummary = pd.DataFrame(
+                index=mIndex, columns=sorted(indexColumns)
+            ).sort_index()
+
+            # Get and set optimal variable values for expanded capacities
+            values = capVar.get_values()
+            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
+            optVal_ = utils.formatOptimizationOutput(
+                values, "designVariables", self.dimension, compDict=compDict
+            )
+            self.capacityVariablesOptimum = optVal_
+
+            if optVal is not None:
+                # Check if the installed capacities are close to a bigM value for components with design decision variables but
+                # ignores cases where bigM was substituted by capacityMax parameter (see bigM constraint)
+                for compName, comp in compDict.items():
+                    if (
+                        comp.hasIsBuiltBinaryVariable
+                        and (comp.capacityMax is None)
+                        and optVal.loc[compName].max() >= comp.bigM * 0.9
+                        and esM.verbose < 2
+                    ):  # and comp.capacityMax is None
+                        warnings.warn(
+                            "the capacity of component "
+                            + compName
+                            + " is in one or more locations close "
+                            + "or equal to the chosen Big M. Consider rerunning the simulation with a higher"
+                            + " Big M."
+                        )
+
+                # Calculate the investment costs i (proportional to capacity expansion)
+                i = optVal.apply(
+                    lambda cap: cap
+                    * compDict[cap.name].processedInvestPerCapacity
+                    * compDict[cap.name].QPcostDev
+                    + (
+                        compDict[cap.name].processedInvestPerCapacity
+                        * compDict[cap.name].QPcostScale
+                        / (compDict[cap.name].QPbound)
+                        * cap
+                        * cap
+                    ),
+                    axis=1,
+                )
+                # Calculate the annualized investment costs cx (CAPEX)
+                cx = optVal.apply(
+                    lambda cap: (
+                        cap
+                        * compDict[cap.name].processedInvestPerCapacity
+                        * compDict[cap.name].QPcostDev
+                        / compDict[cap.name].CCF
+                    )
+                    + (
+                        compDict[cap.name].processedInvestPerCapacity
+                        / compDict[cap.name].CCF
+                        * compDict[cap.name].QPcostScale
+                        / (compDict[cap.name].QPbound)
+                        * cap
+                        * cap
+                    ),
+                    axis=1,
+                )
+                # Calculate the annualized operational costs ox (OPEX)
+                ox = optVal.apply(
+                    lambda cap: cap
+                    * compDict[cap.name].processedOpexPerCapacity
+                    * compDict[cap.name].QPcostDev
+                    + (
+                        compDict[cap.name].processedOpexPerCapacity
+                        * compDict[cap.name].QPcostScale
+                        / (compDict[cap.name].QPbound)
+                        * cap
+                        * cap
+                    ),
+                    axis=1,
+                )
+
+                # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
+                # (due to capacity expansion).
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "capacity",
+                            "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
+                        )
+                        for ix in optVal.index
+                    ],
+                    optVal.columns,
+                ] = optVal.values
+                optSummary.loc[
+                    [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index],
+                    i.columns,
+                ] = i.values
+                optSummary.loc[
+                    [(ix, "capexCap", "[" + esM.costUnit + "/a]") for ix in cx.index],
+                    cx.columns,
+                ] = cx.values
+                optSummary.loc[
+                    [(ix, "opexCap", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                    ox.columns,
+                ] = ox.values
+
+            # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
+            values = binVar.get_values()
+            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
+            optVal_ = utils.formatOptimizationOutput(
+                values, "designVariables", self.dimension, compDict=compDict
+            )
+            self.isBuiltVariablesOptimum = optVal_
+
+            if optVal is not None:
+                # Calculate the investment costs i (fix value if component is built)
+                i = optVal.apply(
+                    lambda dec: dec * compDict[dec.name].processedInvestIfBuilt, axis=1
+                )
+                # Calculate the annualized investment costs cx (fix value if component is built)
+                cx = optVal.apply(
+                    lambda dec: dec
+                    * compDict[dec.name].processedInvestIfBuilt
+                    / compDict[dec.name].CCF,
+                    axis=1,
+                )
+                # Calculate the annualized operational costs ox (fix value if component is built)
+                ox = optVal.apply(
+                    lambda dec: dec * compDict[dec.name].processedOpexIfBuilt, axis=1
+                )
+
+                # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
+                # (due to isBuilt decisions).
+                optSummary.loc[
+                    [(ix, "isBuilt", "[-]") for ix in optVal.index], optVal.columns
+                ] = optVal.values
+                optSummary.loc[
+                    [(ix, "invest", "[" + esM.costUnit + "]") for ix in cx.index],
+                    cx.columns,
+                ] += i.values
+                optSummary.loc[
+                    [
+                        (ix, "capexIfBuilt", "[" + esM.costUnit + "/a]")
+                        for ix in cx.index
+                    ],
+                    cx.columns,
+                ] = cx.values
+                optSummary.loc[
+                    [
+                        (ix, "opexIfBuilt", "[" + esM.costUnit + "/a]")
+                        for ix in ox.index
+                    ],
+                    ox.columns,
+                ] = ox.values
+
+            # Summarize all annualized contributions to the total annual cost
+            optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "capexCap")
+                    | (optSummary.index.get_level_values(1) == "opexCap")
+                    | (optSummary.index.get_level_values(1) == "capexIfBuilt")
+                    | (optSummary.index.get_level_values(1) == "opexIfBuilt")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+            )
+
+            return optSummary
+
         # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(
-            esM, pyM, mapC.keys(), "commodityUnit"
+        optSummaryBasic = _setOptimalValues(
+            self, esM, pyM, mapC.keys(), "commodityUnit"
         )
+
         for compName, comp in compDict.items():
             for cost in [
                 "invest",

@@ -8,8 +8,7 @@ import pandas as pd
 from sklearn.datasets import make_blobs
 from shapely.geometry import Point
 
-import FINE.spagat.grouping as spg
-import FINE.spagat.utils as spu
+from FINE.aggregations.spatialAggregation import grouping
 
 
 @pytest.mark.parametrize(
@@ -41,7 +40,7 @@ import FINE.spagat.utils as spu
 def test_perform_string_based_grouping(
     string_list, expected_keys, expected_value, separator, position
 ):
-    clustered_regions_dict = spg.perform_string_based_grouping(
+    clustered_regions_dict = grouping.perform_string_based_grouping(
         string_list, separator=separator, position=position
     )
 
@@ -68,7 +67,7 @@ def test_perform_distance_based_grouping():
     test_geom_xr = xr.Dataset({"centroids": centroid_da})
 
     # FUNCTION CALL
-    output_dict = spg.perform_distance_based_grouping(test_geom_xr)
+    output_dict = grouping.perform_distance_based_grouping(test_geom_xr)
 
     # ASSERTION
     assert output_dict == {
@@ -103,7 +102,7 @@ def test_perform_parameter_based_grouping(
     regions_list = xr_for_parameter_based_grouping.get("Geometry")["space"].values
 
     # FUNCTION CALL
-    output_dict = spg.perform_parameter_based_grouping(
+    output_dict = grouping.perform_parameter_based_grouping(
         xr_for_parameter_based_grouping,
         n_groups=2,
         aggregation_method=aggregation_method,

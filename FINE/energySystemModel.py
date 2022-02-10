@@ -8,8 +8,8 @@ import pyomo.opt as opt
 from FINE import utils
 from FINE.component import Component, ComponentModel
 
-import FINE.IOManagement.xarrayIO as xrIO
-import FINE.spagat.spatial_aggregation as spa
+from FINE.IOManagement import xarrayIO as xrIO
+from FINE.aggregations.spatialAggregation import manager as spagat
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 
@@ -632,7 +632,7 @@ class EnergySystemModel:
         xr_dataset = xrIO.convertOptimizationInputToDatasets(self)
 
         # STEP 2. Perform spatial aggregation
-        aggregated_xr_dataset = spa.perform_spatial_aggregation(
+        aggregated_xr_dataset = spagat.perform_spatial_aggregation(
             xr_dataset,
             shapefile,
             grouping_mode,

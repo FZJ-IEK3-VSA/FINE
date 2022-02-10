@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import xarray as xr
 
-import FINE.spagat.representation as spr
+from FINE.aggregations.spatialAggregation import aggregation
 
 
 def test_aggregate_geometries(xr_and_dict_for_basic_representation):
@@ -15,7 +15,9 @@ def test_aggregate_geometries(xr_and_dict_for_basic_representation):
     test_xarray = xr_for_basic_representation.get("Geometry")["geometries"]
 
     # FUNCTION CALL
-    output_xarray = spr.aggregate_geometries(test_xarray, sub_to_sup_region_id_dict)
+    output_xarray = aggregation.aggregate_geometries(
+        test_xarray, sub_to_sup_region_id_dict
+    )
 
     # ASSERTION
     assert list(output_xarray.space.values) == list(sub_to_sup_region_id_dict.keys())
@@ -47,7 +49,7 @@ def test_aggregate_time_series_mean_and_sum(
     test_xarray = test_ds["ts_operationRateMax"]
 
     # FUNCTION CALL
-    time_series_aggregated = spr.aggregate_time_series_spatially(
+    time_series_aggregated = aggregation.aggregate_time_series_spatially(
         test_xarray, sub_to_sup_region_id_dict, mode=mode
     )
 
@@ -102,7 +104,7 @@ def test_aggregate_time_series_weighted_mean(
     }
 
     # FUNCTION CALL
-    time_series_aggregated = spr.aggregate_time_series_spatially(
+    time_series_aggregated = aggregation.aggregate_time_series_spatially(
         data_xr,
         sub_to_sup_region_id_dict,
         mode="weighted mean",
@@ -131,7 +133,7 @@ def test_aggregate_values_spatially(
     test_xarray = test_ds["1d_capacityMax"]
 
     # FUNCTION CALL
-    values_aggregated = spr.aggregate_values_spatially(
+    values_aggregated = aggregation.aggregate_values_spatially(
         test_xarray, sub_to_sup_region_id_dict, mode=mode
     )
 
@@ -161,7 +163,7 @@ def test_aggregate_connections(xr_and_dict_for_basic_representation, mode, expec
     test_xarray = test_ds["2d_capacityMax"]
 
     # FUNCTION CALL
-    connections_aggregated = spr.aggregate_connections(
+    connections_aggregated = aggregation.aggregate_connections(
         test_xarray, sub_to_sup_region_id_dict, mode=mode
     )
 
@@ -209,7 +211,7 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict(
 
     sub_to_sup_region_id_dict, test_xr = xr_and_dict_for_basic_representation
 
-    output_ds_dict = spr.aggregate_based_on_sub_to_sup_region_id_dict(
+    output_ds_dict = aggregation.aggregate_based_on_sub_to_sup_region_id_dict(
         test_xr,
         sub_to_sup_region_id_dict,
         aggregation_function_dict=aggregation_function_dict,
