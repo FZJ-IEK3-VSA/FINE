@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-import FINE.spagat.RE_representation_utils as RE_rep_utils
+from FINE.aggregations.technologyAggregation import techAggregationUtils
 
 
 def test_rasterize_xr_ds(gridded_RE_data, sample_shapefile):
@@ -10,7 +10,7 @@ def test_rasterize_xr_ds(gridded_RE_data, sample_shapefile):
     expected_raster_reg02 = np.array([[np.nan, np.nan, np.nan, 1, 1] for i in range(3)])
 
     # Function call
-    rasterized_RE_ds = RE_rep_utils.rasterize_xr_ds(
+    rasterized_RE_ds = techAggregationUtils.rasterize_xr_ds(
         gridded_RE_data,
         "SRS",
         sample_shapefile,

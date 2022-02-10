@@ -7,7 +7,7 @@ import xarray as xr
 from shapely.geometry import Polygon, MultiPolygon
 from collections import namedtuple
 
-import FINE.spagat.utils as spu
+import FINE.aggregations.spatialAggregation.managerUtils as manUtils
 
 # ============================================Fixtures for Grouping==================================================#
 
@@ -115,7 +115,7 @@ def xr_for_connectivity():
 
     gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
 
-    geom_xr = spu.create_geom_xarray(gdf)
+    geom_xr = manUtils.create_geom_xarray(gdf)
 
     test_ds_dict = {"Input": input_xr_dict, "Geometry": geom_xr}
 
@@ -216,7 +216,7 @@ def xr_for_parameter_based_grouping():
 
     gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
 
-    geom_xr = spu.create_geom_xarray(gdf)
+    geom_xr = manUtils.create_geom_xarray(gdf)
 
     test_ds_dict = {"Input": input_xr_dict, "Geometry": geom_xr}
 
@@ -332,7 +332,7 @@ def xr_and_dict_for_basic_representation():
     ]
 
     gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
-    geom_xr = spu.create_geom_xarray(gdf)
+    geom_xr = manUtils.create_geom_xarray(gdf)
 
     # parameter data
     parameters_ds = xr.Dataset()
@@ -379,6 +379,44 @@ def gridded_RE_data(scope="session"):
     test_xr_ds = xr.Dataset({"capacity": capacity_xr_da, "capfac": capfac_xr_da})
 
     test_xr_ds.attrs["SRS"] = "epsg:3035"
+
+    return test_xr_ds
+
+
+@pytest.fixture
+def non_gridded_RE_data(scope="session"):
+    time_steps = 10
+    n_locations = 8
+
+    time = np.arange(time_steps)
+    locations = [1, 2, 3, 4, 5, 6, 7, 8]
+
+    # capacity factor time series
+    capfac_xr_da = xr.DataArray(coords=[locations, time], dims=["locations", "time"])
+
+    capfac_xr_da.loc[[1, 2, 5, 6], :] = np.full((4, 10), 1)
+    capfac_xr_da.loc[[3, 4, 7, 8], :] = np.full((4, 10), 2)
+
+    # capacities
+    test_data = np.ones(n_locations)
+    capacity_xr_da = xr.DataArray(test_data, coords=[locations], dims=["locations"])
+
+    # regions
+    test_data = [
+        "region1",
+        "region1",
+        "region1",
+        "region1",
+        "region2",
+        "region2",
+        "region2",
+        "region2",
+    ]
+    regions_xr_da = xr.DataArray(test_data, coords=[locations], dims=["locations"])
+
+    test_xr_ds = xr.Dataset(
+        {"capacity": capacity_xr_da, "capfac": capfac_xr_da, "region": regions_xr_da}
+    )
 
     return test_xr_ds
 

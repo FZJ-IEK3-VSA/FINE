@@ -1,5 +1,5 @@
 """
-Functions to assist RE representation algorithm.
+Functions to assist technology aggregation algorithm.
 """
 import warnings
 import os

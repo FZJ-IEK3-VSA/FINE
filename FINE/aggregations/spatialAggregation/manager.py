@@ -1,12 +1,13 @@
-"""Manager function that calls spatial grouping algorithm. 
+"""Manager function that calls spatial grouping and aggregation algorithm. 
 """
 import os
 import logging
 import warnings
-import FINE.spagat.utils as spu
-import FINE.spagat.grouping as spg
-import FINE.spagat.representation as spr
-import FINE.IOManagement.xarrayIO as xrIO
+from FINE.aggregations.spatialAggregation import grouping
+from FINE.aggregations.spatialAggregation import aggregation
+from FINE.aggregations.spatialAggregation import managerUtils as manUtils
+from FINE.IOManagement.standardIO import timer
+from FINE.IOManagement import xarrayIO as xrIO
 
 try:
     import geopandas as gpd
@@ -18,7 +19,7 @@ except ImportError:
 logger_spagat = logging.getLogger("spatial_aggregation")
 
 
-@spu.timer
+@timer
 def perform_spatial_aggregation(
     xr_datasets,
     shapefile,
@@ -224,7 +225,7 @@ def perform_spatial_aggregation(
     geom_col_name = kwargs.get("geom_col_name", "geometry")
     geom_id_col_name = kwargs.get("geom_id_col_name", "index")
 
-    geom_xr = spu.create_geom_xarray(shapefile, geom_col_name, geom_id_col_name)
+    geom_xr = manUtils.create_geom_xarray(shapefile, geom_col_name, geom_id_col_name)
 
     xr_datasets["Geometry"] = geom_xr
 
@@ -238,7 +239,7 @@ def perform_spatial_aggregation(
 
         logger_spagat.info("Performing string-based grouping on the regions")
 
-        aggregation_dict = spg.perform_string_based_grouping(
+        aggregation_dict = grouping.perform_string_based_grouping(
             locations, separator, position
         )
 
@@ -246,7 +247,7 @@ def perform_spatial_aggregation(
 
         logger_spagat.info(f"Performing distance-based grouping on the regions")
 
-        aggregation_dict = spg.perform_distance_based_grouping(geom_xr, n_groups)
+        aggregation_dict = grouping.perform_distance_based_grouping(geom_xr, n_groups)
 
     elif grouping_mode == "parameter_based":
 
@@ -256,7 +257,7 @@ def perform_spatial_aggregation(
 
         logger_spagat.info(f"Performing parameter-based grouping on the regions.")
 
-        aggregation_dict = spg.perform_parameter_based_grouping(
+        aggregation_dict = grouping.perform_parameter_based_grouping(
             xr_datasets,
             n_groups=n_groups,
             aggregation_method=aggregation_method,
@@ -299,7 +300,7 @@ def perform_spatial_aggregation(
     if aggregation_function_dict != None:
         aggregation_function_dict_default.update(aggregation_function_dict)
 
-    aggregated_xr_dataset = spr.aggregate_based_on_sub_to_sup_region_id_dict(
+    aggregated_xr_dataset = aggregation.aggregate_based_on_sub_to_sup_region_id_dict(
         xr_datasets, aggregation_dict, aggregation_function_dict_default
     )
 
@@ -314,7 +315,7 @@ def perform_spatial_aggregation(
         crs = kwargs.get("crs", 3035)
 
         # save shapefiles
-        spu.save_shapefile_from_xarray(
+        manUtils.save_shapefile_from_xarray(
             aggregated_xr_dataset["Geometry"],
             aggregatedResultsPath,
             aggregated_shp_name,
@@ -328,7 +329,9 @@ def perform_spatial_aggregation(
         file_name_with_path = os.path.join(
             aggregatedResultsPath, aggregated_xr_filename
         )
-        xrIO.writeDatasetsToNetCDF(aggregated_xr_dataset, file_name_with_path)
+        xrIO.writeDatasetsToNetCDF(
+            aggregated_xr_dataset, file_name_with_path, removeExisting=True
+        )
 
     logger_spagat.info(
         f"Spatial aggregation completed, resulting in {n_groups} regions"

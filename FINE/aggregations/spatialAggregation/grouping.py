@@ -7,8 +7,8 @@ import logging
 import numpy as np
 import sklearn.cluster as skc
 from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
-import FINE.spagat.utils as spu
-import FINE.spagat.grouping_utils as gu
+from FINE.aggregations.spatialAggregation import groupingUtils as gprUtils
+from FINE.IOManagement.standardIO import timer
 
 logger_grouping = logging.getLogger("spatial_grouping")
 
@@ -72,7 +72,7 @@ def perform_string_based_grouping(regions, separator=None, position=None):
     return sub_to_sup_region_id_dict
 
 
-@spu.timer
+@timer
 def perform_distance_based_grouping(geom_xr, n_groups=3):
     """
     Groups regions based on the regions' centroid distances,
@@ -117,7 +117,7 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
     return aggregation_dict
 
 
-@spu.timer
+@timer
 def perform_parameter_based_grouping(
     xarray_datasets,
     n_groups=3,
@@ -196,17 +196,19 @@ def perform_parameter_based_grouping(
     aggregation_dict[n_regions] = {region_id: [region_id] for region_id in regions_list}
 
     # STEP 1. Preprocess the whole dataset
-    processed_ts_dict, processed_1d_dict, processed_2d_dict = gu.preprocess_dataset(
-        xarray_datasets.get("Input")
-    )
+    (
+        processed_ts_dict,
+        processed_1d_dict,
+        processed_2d_dict,
+    ) = gprUtils.preprocess_dataset(xarray_datasets.get("Input"))
 
     # STEP 2. Calculate the overall distance between each region pair (uses custom distance)
-    precomputed_dist_matrix = gu.get_custom_distance_matrix(
+    precomputed_dist_matrix = gprUtils.get_custom_distance_matrix(
         processed_ts_dict, processed_1d_dict, processed_2d_dict, n_regions, weights
     )
 
     # STEP 3.  Obtain and check the connectivity matrix - indicates if a region pair is contiguous or not.
-    connectivity_matrix = gu.get_connectivity_matrix(xarray_datasets)
+    connectivity_matrix = gprUtils.get_connectivity_matrix(xarray_datasets)
 
     # STEP 4. Cluster the regions
     if aggregation_method == "hierarchical":
