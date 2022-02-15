@@ -1,6 +1,6 @@
-##############
-Representation
-##############
+###############
+techAggregation
+###############
 
 .. |br| raw:: html
 
@@ -11,6 +11,6 @@ Descriptions of the basic functions are given below.
 
 **Function descriptions:**
 
-.. automodule:: representation
+.. automodule:: techAggregation
    :members:
    :member-order: bysource

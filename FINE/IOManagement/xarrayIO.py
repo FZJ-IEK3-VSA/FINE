@@ -8,7 +8,6 @@ from netCDF4 import Dataset
 
 import FINE.utils as utils
 from FINE.IOManagement import dictIO, utilsIO
-from FINE.IOManagement.utilsIO import processXarrayAttributes
 
 
 def convertOptimizationInputToDatasets(esM):

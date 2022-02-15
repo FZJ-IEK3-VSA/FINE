@@ -1,6 +1,6 @@
-###################
-Spatial Aggregation
-###################
+#######
+Manager
+#######
 
 .. |br| raw:: html
 
@@ -11,6 +11,6 @@ Descriptions of the basic functions are given below.
 
 **Function descriptions:**
 
-.. automodule:: spatial_aggregation
+.. automodule:: manager
    :members:
    :member-order: bysource
