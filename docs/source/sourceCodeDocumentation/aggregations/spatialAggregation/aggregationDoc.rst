@@ -1,6 +1,6 @@
-#################
-RE_Representation
-#################
+###########
+Aggregation
+###########
 
 .. |br| raw:: html
 
@@ -11,6 +11,6 @@ Descriptions of the basic functions are given below.
 
 **Function descriptions:**
 
-.. automodule:: RE_representation
+.. automodule:: aggregation
    :members:
    :member-order: bysource

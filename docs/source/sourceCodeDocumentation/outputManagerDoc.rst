@@ -11,6 +11,6 @@ saving results in excel files, storing input and output data in netCDF files, an
    :maxdepth: 1
 
 
-   standardIODoc
-   exploitOutputDoc
-   xarrayIODoc
+   IOManagement/standardIODoc
+   IOManagement/exploitOutputDoc
+   IOManagement/xarrayIODoc

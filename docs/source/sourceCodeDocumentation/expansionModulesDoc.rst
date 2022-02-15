@@ -11,6 +11,6 @@ or can be applied in the pre- and postprocessing of an energy system model run.
    :maxdepth: 1
 
    
-   optimizeTSAmultiStageDoc
-   robustPipelineSizingDoc
-   transformationPathDoc
+   expansionModules/optimizeTSAmultiStageDoc
+   expansionModules/robustPipelineSizingDoc
+   expansionModules/transformationPathDoc
