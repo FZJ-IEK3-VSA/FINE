@@ -13,15 +13,16 @@ before_install:
   - conda info -a
 
 install:
-  - conda create -q -n FINE python=3.6
-  - conda env update -q -n FINE --file=requirements.yml
-  - conda env update -q -n FINE --file=requirements_dev.yml
-  - source activate FINE
+
+  - conda install mamba -c conda-forge
+  - mamba env update -n fine --file=requirements_dev.yml
+  - mamba info --envs
+  - source activate fine
   - pip install codecov
   - pip install --no-cache-dir -e .
 
 script:
-  - source activate FINE
+  - source activate fine
   - pytest --cov=./FINE
 
 after_success:

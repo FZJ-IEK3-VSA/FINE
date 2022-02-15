@@ -8,44 +8,43 @@ import pyomo.environ as pyomo
 class Conversion(Component):
     """
     A Conversion component converts commodities into each other.
-
-    Last edited: November 12 2020
-    |br| @author: FINE Developer Team (FZJ IEK-3)
     """
 
-    def __init__(self,
-                 esM,
-                 name,
-                 physicalUnit,
-                 commodityConversionFactors,
-                 hasCapacityVariable=True,
-                 capacityVariableDomain='continuous',
-                 capacityPerPlantUnit=1,
-                 linkedConversionCapacityID=None,
-                 hasIsBuiltBinaryVariable=False,
-                 bigM=None,
-                 operationRateMax=None,
-                 operationRateFix=None,
-                 tsaWeight=1,
-                 locationalEligibility=None,
-                 capacityMin=None,
-                 capacityMax=None,
-                 partLoadMin=None,
-                 sharedPotentialID=None,
-                 linkedQuantityID=None,
-                 capacityFix=None,
-                 isBuiltFix=None,
-                 investPerCapacity=0,
-                 investIfBuilt=0,
-                 opexPerOperation=0,
-                 opexPerCapacity=0,
-                 opexIfBuilt=0,
-                 QPcostScale=0,
-                 interestRate=0.08,
-                 economicLifetime=10,
-                 technicalLifetime=None,
-                 yearlyFullLoadHoursMin=None,
-                 yearlyFullLoadHoursMax=None):
+    def __init__(
+        self,
+        esM,
+        name,
+        physicalUnit,
+        commodityConversionFactors,
+        hasCapacityVariable=True,
+        capacityVariableDomain="continuous",
+        capacityPerPlantUnit=1,
+        linkedConversionCapacityID=None,
+        hasIsBuiltBinaryVariable=False,
+        bigM=None,
+        operationRateMax=None,
+        operationRateFix=None,
+        tsaWeight=1,
+        locationalEligibility=None,
+        capacityMin=None,
+        capacityMax=None,
+        partLoadMin=None,
+        sharedPotentialID=None,
+        linkedQuantityID=None,
+        capacityFix=None,
+        isBuiltFix=None,
+        investPerCapacity=0,
+        investIfBuilt=0,
+        opexPerOperation=0,
+        opexPerCapacity=0,
+        opexIfBuilt=0,
+        QPcostScale=0,
+        interestRate=0.08,
+        economicLifetime=10,
+        technicalLifetime=None,
+        yearlyFullLoadHoursMin=None,
+        yearlyFullLoadHoursMax=None,
+    ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
         """
@@ -63,18 +62,20 @@ class Conversion(Component):
         :param commodityConversionFactors: conversion factors with which commodities are converted into each
             other with one unit of operation (dictionary). Each commodity which is converted in this component
             is indicated by a string in this dictionary. The conversion factor related to this commodity is
-            given as a float (constant), pandas.Series or pandas.DataFrame (time-variable). A negative value 
+            given as a float (constant), pandas.Series or pandas.DataFrame (time-variable). A negative value
             indicates that the commodity is consumed. A positive value indicates that the commodity is produced.
             Check unit consistency when specifying this parameter!
-            Examples:\n
+            Examples:
+
             * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
-              of 70%. The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is
-              given in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
-              -> the commodityConversionFactors are defined as {'electricity':-1,'hydrogen':0.7}.
-            * A fuel cell converts, simply put, hydrogen into electricity with an efficiency of 60%.\n
-            The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is given in
-            GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
-            -> the commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.\n
+                of 70%. The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is
+                given in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
+                -> the commodityConversionFactors are defined as {'electricity':-1,'hydrogen':0.7}.
+            * A fuel cell converts, simply put, hydrogen into electricity with an efficiency of 60%.
+                The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is given in
+                GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
+                -> the commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.
+
         :type commodityConversionFactors: dictionary, assigns commodities (string) to a conversion factors
             (float, pandas.Series or pandas.DataFrame)
 
@@ -120,33 +121,35 @@ class Conversion(Component):
         :type opexPerOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
         """
-        Component. __init__(self,
-                            esM,
-                            name,
-                            dimension='1dim',
-                            hasCapacityVariable=hasCapacityVariable,
-                            capacityVariableDomain=capacityVariableDomain,
-                            capacityPerPlantUnit=capacityPerPlantUnit,
-                            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
-                            bigM=bigM,
-                            locationalEligibility=locationalEligibility,
-                            capacityMin=capacityMin,
-                            capacityMax=capacityMax,
-                            partLoadMin=partLoadMin,
-                            sharedPotentialID=sharedPotentialID,
-                            linkedQuantityID=linkedQuantityID,
-                            capacityFix=capacityFix,
-                            isBuiltFix=isBuiltFix,
-                            investPerCapacity=investPerCapacity,
-                            investIfBuilt=investIfBuilt,
-                            opexPerCapacity=opexPerCapacity,
-                            opexIfBuilt=opexIfBuilt,
-                            QPcostScale=QPcostScale,
-                            interestRate=interestRate,
-                            economicLifetime=economicLifetime,
-                            technicalLifetime=technicalLifetime,
-                            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
-                            yearlyFullLoadHoursMax=yearlyFullLoadHoursMax)
+        Component.__init__(
+            self,
+            esM,
+            name,
+            dimension="1dim",
+            hasCapacityVariable=hasCapacityVariable,
+            capacityVariableDomain=capacityVariableDomain,
+            capacityPerPlantUnit=capacityPerPlantUnit,
+            hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
+            bigM=bigM,
+            locationalEligibility=locationalEligibility,
+            capacityMin=capacityMin,
+            capacityMax=capacityMax,
+            partLoadMin=partLoadMin,
+            sharedPotentialID=sharedPotentialID,
+            linkedQuantityID=linkedQuantityID,
+            capacityFix=capacityFix,
+            isBuiltFix=isBuiltFix,
+            investPerCapacity=investPerCapacity,
+            investIfBuilt=investIfBuilt,
+            opexPerCapacity=opexPerCapacity,
+            opexIfBuilt=opexIfBuilt,
+            QPcostScale=QPcostScale,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+            technicalLifetime=technicalLifetime,
+            yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
+            yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
+        )
 
         # Set general conversion data: commodityConversionFactors, physicalUnit, linkedConversionCapacityID
         utils.checkCommodities(esM, set(commodityConversionFactors.keys()))
@@ -160,55 +163,99 @@ class Conversion(Component):
         self.processedCommodityConversionFactors = {}
         for commod in self.commodityConversionFactors.keys():
             if not isinstance(self.commodityConversionFactors[commod], (int, float)):
-                self.fullCommodityConversionFactors[commod] = utils.checkAndSetTimeSeriesConversionFactors(esM, commodityConversionFactors[commod], self.locationalEligibility)
+                self.fullCommodityConversionFactors[
+                    commod
+                ] = utils.checkAndSetTimeSeriesConversionFactors(
+                    esM, commodityConversionFactors[commod], self.locationalEligibility
+                )
                 self.aggregatedCommodityConversionFactors[commod] = None
             elif isinstance(self.commodityConversionFactors[commod], (int, float)):
                 # self.fullCommodityConversionFactors[commod] = None
                 # self.aggregatedCommodityConversionFactors[commod] = None
-                self.processedCommodityConversionFactors[commod] = self.commodityConversionFactors[commod]
-            
+                self.processedCommodityConversionFactors[
+                    commod
+                ] = self.commodityConversionFactors[commod]
 
         self.physicalUnit = physicalUnit
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
 
         # Set additional economic data: opexPerOperation
-        self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
-                                                                locationalEligibility)
+        self.opexPerOperation = utils.checkAndSetCostParameter(
+            esM, name, opexPerOperation, "1dim", locationalEligibility
+        )
 
         self.operationRateMax = operationRateMax
         self.operationRateFix = operationRateFix
 
-        # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
-        if operationRateMax is not None and operationRateFix is not None:
-            operationRateMax = None
-            if esM.verbose < 2:
-                warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
-                              'The operationRateMax time series was set to None.')
-
-        self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
+        self.fullOperationRateMax = utils.checkAndSetTimeSeries(
+            esM, name, operationRateMax, locationalEligibility
+        )
         self.aggregatedOperationRateMax, self.processedOperationRateMax = None, None
-        
-        self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
+
+        self.fullOperationRateFix = utils.checkAndSetTimeSeries(
+            esM, name, operationRateFix, locationalEligibility
+        )
         self.aggregatedOperationRateFix, self.processedOperationRateFix = None, None
-       
+
+        # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
+        if (
+            self.fullOperationRateMax is not None
+            and self.fullOperationRateFix is not None
+        ):
+            self.fullOperationRateMax = None
+            if esM.verbose < 2:
+                warnings.warn(
+                    "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
+                    + "The operationRateMax time series was set to None."
+                )
+
         if self.partLoadMin is not None:
             if self.fullOperationRateMax is not None:
-                if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
-                    raise ValueError('"operationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+                if (
+                    (
+                        (self.fullOperationRateMax > 0)
+                        & (self.fullOperationRateMax < self.partLoadMin)
+                    )
+                    .any()
+                    .any()
+                ):
+                    raise ValueError(
+                        '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
+                        + name
+                    )
             if self.fullOperationRateFix is not None:
-                if ((self.fullOperationRateFix > 0) & (self.fullOperationRateFix < self.partLoadMin)).any().any():
-                    raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name )
+                if (
+                    (
+                        (self.fullOperationRateFix > 0)
+                        & (self.fullOperationRateFix < self.partLoadMin)
+                    )
+                    .any()
+                    .any()
+                ):
+                    raise ValueError(
+                        '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
+                        + name
+                    )
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
         # Set locational eligibility
-        operationTimeSeries = self.fullOperationRateFix if self.fullOperationRateFix is not None \
+        operationTimeSeries = (
+            self.fullOperationRateFix
+            if self.fullOperationRateFix is not None
             else self.fullOperationRateMax
-        self.locationalEligibility = \
-            utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
-                                           self.isBuiltFix, self.hasCapacityVariable, operationTimeSeries)
+        )
+        self.locationalEligibility = utils.setLocationalEligibility(
+            esM,
+            self.locationalEligibility,
+            self.capacityMax,
+            self.capacityFix,
+            self.isBuiltFix,
+            self.hasCapacityVariable,
+            operationTimeSeries,
+        )
 
     def addToEnergySystemModel(self, esM):
         """
@@ -227,21 +274,40 @@ class Conversion(Component):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
-        self.processedOperationRateMax = self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
-        self.processedOperationRateFix = self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
+        self.processedOperationRateMax = (
+            self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
+        )
+        self.processedOperationRateFix = (
+            self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
+        )
         if self.fullCommodityConversionFactors != {}:
             for commod in self.fullCommodityConversionFactors:
-                self.processedCommodityConversionFactors[commod] = self.aggregatedCommodityConversionFactors[commod] if hasTSA else self.fullCommodityConversionFactors[commod]
+                self.processedCommodityConversionFactors[commod] = (
+                    self.aggregatedCommodityConversionFactors[commod]
+                    if hasTSA
+                    else self.fullCommodityConversionFactors[commod]
+                )
 
     def getDataForTimeSeriesAggregation(self):
-        """ Function for getting the required data if a time series aggregation is requested. """
+        """Function for getting the required data if a time series aggregation is requested."""
         weightDict, data = {}, []
-        weightDict, data = self.prepareTSAInput(self.fullOperationRateFix, self.fullOperationRateMax,
-                                                '_operationRate_', self.tsaWeight, weightDict, data)
+        weightDict, data = self.prepareTSAInput(
+            self.fullOperationRateFix,
+            self.fullOperationRateMax,
+            "_operationRate_",
+            self.tsaWeight,
+            weightDict,
+            data,
+        )
         for commod in self.fullCommodityConversionFactors:
-            weightDict, data = self.prepareTSAInput(self.fullCommodityConversionFactors[commod], None,
-                                                    '_commodityConversionFactorTimeSeries' + str(commod) + '_',
-                                                    self.tsaWeight, weightDict, data)
+            weightDict, data = self.prepareTSAInput(
+                self.fullCommodityConversionFactors[commod],
+                None,
+                "_commodityConversionFactorTimeSeries" + str(commod) + "_",
+                self.tsaWeight,
+                weightDict,
+                data,
+            )
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data):
@@ -251,11 +317,19 @@ class Conversion(Component):
         :param data: Pandas DataFrame with the clustered time series data of the conversion component
         :type data: Pandas DataFrame
         """
-        self.aggregatedOperationRateFix = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data)
-        self.aggregatedOperationRateMax = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data)
+        self.aggregatedOperationRateFix = self.getTSAOutput(
+            self.fullOperationRateFix, "_operationRate_", data
+        )
+        self.aggregatedOperationRateMax = self.getTSAOutput(
+            self.fullOperationRateMax, "_operationRate_", data
+        )
         if self.fullCommodityConversionFactors != {}:
             for commod in self.fullCommodityConversionFactors:
-                self.aggregatedCommodityConversionFactors[commod] = self.getTSAOutput(self.fullCommodityConversionFactors[commod], '_commodityConversionFactorTimeSeries'+ str(commod) + '_', data)
+                self.aggregatedCommodityConversionFactors[commod] = self.getTSAOutput(
+                    self.fullCommodityConversionFactors[commod],
+                    "_commodityConversionFactorTimeSeries" + str(commod) + "_",
+                    data,
+                )
 
 
 class ConversionModel(ComponentModel):
@@ -267,9 +341,9 @@ class ConversionModel(ComponentModel):
     """
 
     def __init__(self):
-        """" Constructor for creating a ConversionModel class instance """
-        self.abbrvName = 'conv'
-        self.dimension = '1dim'
+        """ " Constructor for creating a ConversionModel class instance"""
+        self.abbrvName = "conv"
+        self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
         self.operationVariablesOptimum = None
@@ -287,24 +361,41 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        linkedComponentsDict, linkedComponentsList, compDict = {}, [], self.componentsDict
+        linkedComponentsDict, linkedComponentsList, compDict = (
+            {},
+            [],
+            self.componentsDict,
+        )
         # Collect all conversion components with the same linkedConversionComponentID
         for comp in compDict.values():
             if comp.linkedConversionCapacityID is not None:
-                linkedComponentsDict.setdefault(comp.linkedConversionCapacityID, []).append(comp)
+                linkedComponentsDict.setdefault(
+                    comp.linkedConversionCapacityID, []
+                ).append(comp)
         # Pair the components with the same linkedConversionComponentID with each other and check that
         # they have the same locational eligibility
         for key, values in linkedComponentsDict.items():
             if len(values) > 1:
-                linkedComponentsList.extend([(loc, values[i].name, values[i+1].name) for i in range(len(values)-1)
-                                             for loc, v in values[i].locationalEligibility.items() if v == 1])
+                linkedComponentsList.extend(
+                    [
+                        (loc, values[i].name, values[i + 1].name)
+                        for i in range(len(values) - 1)
+                        for loc, v in values[i].locationalEligibility.items()
+                        if v == 1
+                    ]
+                )
         for comps in linkedComponentsList:
             index1 = compDict[comps[1]].locationalEligibility.index
             index2 = compDict[comps[2]].locationalEligibility.index
             if not index1.equals(index2):
-                raise ValueError('Conversion components ', comps[1], 'and', comps[2],
-                                 'are linked but do not have the same locationalEligibility.')
-        setattr(pyM, 'linkedComponentsList_' + self.abbrvName, linkedComponentsList)
+                raise ValueError(
+                    "Conversion components ",
+                    comps[1],
+                    "and",
+                    comps[2],
+                    "are linked but do not have the same locationalEligibility.",
+                )
+        setattr(pyM, "linkedComponentsList_" + self.abbrvName, linkedComponentsList)
 
     def declareSets(self, esM, pyM):
         """
@@ -329,7 +420,9 @@ class ConversionModel(ComponentModel):
         self.declareOperationBinarySet(pyM)
 
         # Declare operation mode sets
-        self.declareOperationModeSets(pyM, 'opConstrSet', 'processedOperationRateMax', 'processedOperationRateFix')
+        self.declareOperationModeSets(
+            pyM, "opConstrSet", "processedOperationRateMax", "processedOperationRateFix"
+        )
 
         # Declare linked components dictionary
         self.declareLinkedCapacityDict(pyM)
@@ -364,9 +457,9 @@ class ConversionModel(ComponentModel):
         # Binary variables [-] indicating if a component is considered at a location or not
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [physicalUnit*hour]
-        self.declareOperationVars(pyM, 'op')
+        self.declareOperationVars(pyM, "op")
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, 'op_bin')
+        self.declareOperationBinaryVars(pyM, "op_bin")
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -380,11 +473,18 @@ class ConversionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        capVar, linkedList = getattr(pyM, 'cap_' + abbrvName), getattr(pyM, 'linkedComponentsList_' + self.abbrvName)
+        capVar, linkedList = getattr(pyM, "cap_" + abbrvName), getattr(
+            pyM, "linkedComponentsList_" + self.abbrvName
+        )
 
         def linkedCapacity(pyM, loc, compName1, compName2):
             return capVar[loc, compName1] == capVar[loc, compName2]
-        setattr(pyM, 'ConstrLinkedCapacity_' + abbrvName,  pyomo.Constraint(linkedList, rule=linkedCapacity))
+
+        setattr(
+            pyM,
+            "ConstrLinkedCapacity_" + abbrvName,
+            pyomo.Constraint(linkedList, rule=linkedCapacity),
+        )
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -426,26 +526,28 @@ class ConversionModel(ComponentModel):
 
         # Operation [physicalUnit*h] is limited by the installed capacity [physicalUnit] multiplied by the hours per
         # time step [h]
-        self.operationMode1(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode1(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is equal to the installed capacity [physicalUnit] multiplied by operation time
         # series [-] and the hours per time step [h]
-        self.operationMode2(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode2(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is limited by the installed capacity [physicalUnit] multiplied by operation time
         # series [-] and the hours per time step [h]
-        self.operationMode3(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is equal to the operation time series [physicalUnit*h]
-        self.operationMode4(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is limited by the operation time series [physicalUnit*h]
-        self.operationMode5(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op')
+        self.operationMode5(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is limited by minimum part Load
-        self.additionalMinPartLoad(pyM, esM, 'ConstrOperation', 'opConstrSet', 'op', 'op_bin', 'cap')
+        self.additionalMinPartLoad(
+            pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
+        )
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
     def getSharedPotentialContribution(self, pyM, key, loc):
-        """ Get contributions to shared location potential. """
+        """Get contributions to shared location potential."""
         return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -461,35 +563,53 @@ class ConversionModel(ComponentModel):
         :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
         :param commod: string
         """
-        return any([(commod in comp.processedCommodityConversionFactors and (comp.processedCommodityConversionFactors[commod] is not
-                                                                    None))
-                    and comp.locationalEligibility[loc] == 1 for comp in self.componentsDict.values()])
+        return any(
+            [
+                (
+                    commod in comp.processedCommodityConversionFactors
+                    and (comp.processedCommodityConversionFactors[commod] is not None)
+                )
+                and comp.locationalEligibility[loc] == 1
+                for comp in self.componentsDict.values()
+            ]
+        )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
-        """ 
-        Get contribution to a commodity balance. 
-        
+        """
+        Get contribution to a commodity balance.
+
         .. math::
-            
-            \\text{C}^{comp,comm}_{loc,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,p,t}^{comp,op} 
-        
+
+            \\text{C}^{comp,comm}_{loc,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,p,t}^{comp,op}
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
+        opVar, opVarDict = getattr(pyM, "op_" + abbrvName), getattr(
+            pyM, "operationVarDict_" + abbrvName
+        )
 
         def getFactor(commodCommodityConversionFactors, loc, p, t):
             if isinstance(commodCommodityConversionFactors, (int, float)):
                 return commodCommodityConversionFactors
             else:
-                return commodCommodityConversionFactors[loc][p,t]
+                return commodCommodityConversionFactors[loc][p, t]
 
-        return sum(opVar[loc, compName, p, t] * getFactor(compDict[compName].processedCommodityConversionFactors[commod], loc,
-                                                          p, t)
-                   for compName in opVarDict[loc] if commod in compDict[compName].processedCommodityConversionFactors)
+        return sum(
+            opVar[loc, compName, p, t]
+            * getFactor(
+                compDict[compName].processedCommodityConversionFactors[commod],
+                loc,
+                p,
+                t,
+            )
+            for compName in opVarDict[loc]
+            if commod in compDict[compName].processedCommodityConversionFactors
+        )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
         Get contribution to the objective function.
+
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
@@ -497,7 +617,9 @@ class ConversionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
 
-        opexOp = self.getEconomicsTD(pyM, esM, ['opexPerOperation'], 'op', 'operationVarDict')
+        opexOp = self.getEconomicsTD(
+            pyM, esM, ["opexPerOperation"], "op", "operationVarDict"
+        )
 
         return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
 
@@ -516,56 +638,99 @@ class ConversionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, 'op_' + abbrvName)
+        opVar = getattr(pyM, "op_" + abbrvName)
 
         # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(esM, pyM, esM.locations, 'physicalUnit')
+        optSummaryBasic = super().setOptimalValues(
+            esM, pyM, esM.locations, "physicalUnit"
+        )
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', esM.periodsOrder,
-                                                esM=esM)
+        optVal = utils.formatOptimizationOutput(
+            opVar.get_values(), "operationVariables", "1dim", esM.periodsOrder, esM=esM
+        )
         self.operationVariablesOptimum = optVal
 
-        props = ['operation', 'opexOp']
+        props = ["operation", "opexOp"]
         # Unit dict: Specify units for props
-        units = {props[0]: ['[-*h]', '[-*h/a]'],
-                 props[1]: ['[' + esM.costUnit + '/a]']}
+        units = {props[0]: ["[-*h]", "[-*h/a]"], props[1]: ["[" + esM.costUnit + "/a]"]}
         # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
-        tuples = [(compName, prop, unit) for compName in compDict.keys() for prop in props for unit in units[prop]]
+        tuples = [
+            (compName, prop, unit)
+            for compName in compDict.keys()
+            for prop in props
+            for unit in units[prop]
+        ]
         # Replace placeholder with correct unit of component
-        tuples = list(map(lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].physicalUnit))
-            if x[1] == 'operation' else x, tuples))
-        mIndex = pd.MultiIndex.from_tuples(tuples, names=['Component', 'Property', 'Unit'])
-        optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
+        tuples = list(
+            map(
+                lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].physicalUnit))
+                if x[1] == "operation"
+                else x,
+                tuples,
+            )
+        )
+        mIndex = pd.MultiIndex.from_tuples(
+            tuples, names=["Component", "Property", "Unit"]
+        )
+        optSummary = pd.DataFrame(
+            index=mIndex, columns=sorted(esM.locations)
+        ).sort_index()
 
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
-            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h/a]') for ix in opSum.index],
-                           opSum.columns] = opSum.values/esM.numberOfYears
-            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h]') for ix in opSum.index],
-                           opSum.columns] = opSum.values
-            optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                ox.values/esM.numberOfYears
+            ox = opSum.apply(
+                lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1
+            )
+            optSummary.loc[
+                [
+                    (ix, "operation", "[" + compDict[ix].physicalUnit + "*h/a]")
+                    for ix in opSum.index
+                ],
+                opSum.columns,
+            ] = (
+                opSum.values / esM.numberOfYears
+            )
+            optSummary.loc[
+                [
+                    (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")
+                    for ix in opSum.index
+                ],
+                opSum.columns,
+            ] = opSum.values
+            optSummary.loc[
+                [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                ox.columns,
+            ] = (
+                ox.values / esM.numberOfYears
+            )
 
         optSummary = optSummary.append(optSummaryBasic).sort_index()
 
         # Summarize all contributions to the total annual cost
-        optSummary.loc[optSummary.index.get_level_values(1) == 'TAC'] = \
-            optSummary.loc[(optSummary.index.get_level_values(1) == 'TAC') |
-                           (optSummary.index.get_level_values(1) == 'opexOp')].groupby(level=0).sum().values
+        optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
+            optSummary.loc[
+                (optSummary.index.get_level_values(1) == "TAC")
+                | (optSummary.index.get_level_values(1) == "opexOp")
+            ]
+            .groupby(level=0)
+            .sum()
+            .values
+        )
 
         self.optSummary = optSummary
 
-    def getOptimalValues(self, name='all'):
+    def getOptimalValues(self, name="all"):
         """
         Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:\n
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'operationVariablesOptimum',
-        * 'all' or another input: all variables are returned.\n
+        :param name: name of the variables of which the optimal values should be returned:
+
+            * 'capacityVariables',
+            * 'isBuiltVariables',
+            * 'operationVariablesOptimum',
+            * 'all' or another input: all variables are returned.
+
         |br| * the default value is 'all'
         :type name: string
 

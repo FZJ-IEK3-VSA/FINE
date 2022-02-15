@@ -5,22 +5,50 @@ import ast
 import inspect
 import time
 import warnings
+from functools import wraps
 
 try:
     import geopandas as gpd
 except ImportError:
-    warnings.warn('The GeoPandas python package could not be imported.')
+    warnings.warn(
+        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
+    )
 
 try:
     import matplotlib.pyplot as plt
 except ImportError:
-    warnings.warn('Matplotlib.pyplot could not be imported.')
+    warnings.warn("Matplotlib.pyplot could not be imported.")
 
 
-def writeOptimizationOutputToExcel(esM, 
-                                   outputFileName='scenarioOutput', 
-                                   optSumOutputLevel=2, 
-                                   optValOutputLevel=1):
+def timer(func):
+    """
+    Wrapper around a function to track the time taken by
+    the function.
+
+    :param func: Function
+
+    .. note:: Usage as a decorator before a function -> @timer
+
+    """
+
+    @wraps(func)  # Required to get documentation for functions using this decorator
+    def f(*args, **kwargs):
+        before = time.perf_counter()
+        rv = func(*args, **kwargs)
+        after = time.perf_counter()
+        print(
+            "elapsed time for {.__name__}: {:.2f} minutes".format(
+                func, (after - before) / 60
+            )
+        )
+        return rv
+
+    return f
+
+
+def writeOptimizationOutputToExcel(
+    esM, outputFileName="scenarioOutput", optSumOutputLevel=2, optValOutputLevel=1
+):
     """
     Write optimization output to an Excel file.
 
@@ -40,22 +68,27 @@ def writeOptimizationOutputToExcel(esM,
     :param optValOutputLevel: output level of the optimal values. Either an integer (0,1) which holds for all
         model classes or a dictionary with model class names as keys and an integer (0,1) for each key
         (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        - 0: all values are kept.
-        - 1: Lines containing only zeroes are dropped.
+
+        * 0: all values are kept.
+        * 1: Lines containing only zeroes are dropped.
+
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
     """
-    utils.output('\nWriting output to Excel... ', esM.verbose, 0)
+    utils.output("\nWriting output to Excel... ", esM.verbose, 0)
     _t = time.time()
-    writer = pd.ExcelWriter(outputFileName + '.xlsx')
+    writer = pd.ExcelWriter(outputFileName + ".xlsx")
 
     for name in esM.componentModelingDict.keys():
-        utils.output('\tProcessing ' + name + ' ...', esM.verbose, 0)
+        utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
         oL = optSumOutputLevel
         oL_ = oL[name] if type(oL) == dict else oL
         optSum = esM.getOptimizationSummary(name, outputLevel=oL_)
         if not optSum.empty:
-            optSum.to_excel(writer, name[:-5] + 'OptSummary_' + esM.componentModelingDict[name].dimension)
+            optSum.to_excel(
+                writer,
+                name[:-5] + "OptSummary_" + esM.componentModelingDict[name].dimension,
+            )
 
         data = esM.componentModelingDict[name].getOptimalValues()
         oL = optValOutputLevel
@@ -63,114 +96,147 @@ def writeOptimizationOutputToExcel(esM,
         dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
         dataTI, indexTI = [], []
         for key, d in data.items():
-            if d['values'] is None:
+            if d["values"] is None:
                 continue
-            if d['timeDependent']:
-                if d['dimension'] == '1dim':
-                    dataTD1dim.append(d['values']), indexTD1dim.append(key)
-                elif d['dimension'] == '2dim':
-                    dataTD2dim.append(d['values']), indexTD2dim.append(key)
+            if d["timeDependent"]:
+                if d["dimension"] == "1dim":
+                    dataTD1dim.append(d["values"]), indexTD1dim.append(key)
+                elif d["dimension"] == "2dim":
+                    dataTD2dim.append(d["values"]), indexTD2dim.append(key)
             else:
-                dataTI.append(d['values']), indexTI.append(key)
+                dataTI.append(d["values"]), indexTI.append(key)
         if dataTD1dim:
-            names = ['Variable', 'Component', 'Location']
+            names = ["Variable", "Component", "Location"]
             dfTD1dim = pd.concat(dataTD1dim, keys=indexTD1dim, names=names)
             if oL_ == 1:
-                dfTD1dim = dfTD1dim.loc[((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)]
+                dfTD1dim = dfTD1dim.loc[
+                    ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
+                ]
             if not dfTD1dim.empty:
-                dfTD1dim.to_excel(writer, name[:-5] + '_TDoptVar_1dim')
+                dfTD1dim.to_excel(writer, name[:-5] + "_TDoptVar_1dim")
         if dataTD2dim:
-            names = ['Variable', 'Component', 'LocationIn', 'LocationOut']
+            names = ["Variable", "Component", "LocationIn", "LocationOut"]
             dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
             if oL_ == 1:
-                dfTD2dim = dfTD2dim.loc[((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)]
+                dfTD2dim = dfTD2dim.loc[
+                    ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
+                ]
             if not dfTD2dim.empty:
-                dfTD2dim.to_excel(writer, name[:-5] + '_TDoptVar_2dim')
+                dfTD2dim.to_excel(writer, name[:-5] + "_TDoptVar_2dim")
         if dataTI:
-            if esM.componentModelingDict[name].dimension == '1dim':
-                names = ['Variable type', 'Component']
-            elif esM.componentModelingDict[name].dimension == '2dim':
-                names = ['Variable type', 'Component', 'Location']
+            if esM.componentModelingDict[name].dimension == "1dim":
+                names = ["Variable type", "Component"]
+            elif esM.componentModelingDict[name].dimension == "2dim":
+                names = ["Variable type", "Component", "Location"]
             dfTI = pd.concat(dataTI, keys=indexTI, names=names)
             if oL_ == 1:
                 dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
             if not dfTI.empty:
-                dfTI.to_excel(writer, name[:-5] + '_TIoptVar_' + esM.componentModelingDict[name].dimension)
+                dfTI.to_excel(
+                    writer,
+                    name[:-5]
+                    + "_TIoptVar_"
+                    + esM.componentModelingDict[name].dimension,
+                )
 
-    periodsOrder = pd.DataFrame([esM.periodsOrder], index=['periodsOrder'], columns=esM.periods)
-    periodsOrder.to_excel(writer, 'Misc')
+    periodsOrder = pd.DataFrame(
+        [esM.periodsOrder], index=["periodsOrder"], columns=esM.periods
+    )
+    periodsOrder.to_excel(writer, "Misc")
     if esM.segmentation:
         ls = []
         for i in esM.periodsOrder.tolist():
             ls.append(esM.timeStepsPerSegment[i])
-        segmentDuration = pd.concat(ls, axis=1).rename(columns={"Segment Duration": "timeStepsPerSegment"})
-        segmentDuration.index.name = 'segmentNumber'
-        segmentDuration.to_excel(writer, 'Misc', startrow=3)
-    utils.output('\tSaving file...', esM.verbose, 0)
+        segmentDuration = pd.concat(ls, axis=1).rename(
+            columns={"Segment Duration": "timeStepsPerSegment"}
+        )
+        segmentDuration.index.name = "segmentNumber"
+        segmentDuration.to_excel(writer, "Misc", startrow=3)
+    utils.output("\tSaving file...", esM.verbose, 0)
     writer.save()
-    utils.output('Done. (%.4f' % (time.time() - _t) + ' sec)', esM.verbose, 0)
+    utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
 
-def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx', engine='openpyxl'):
+def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpyxl"):
     """
     Read energy system model from excel file.
 
-    ** Default arguments ** 
+    **Default arguments:**
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
     :type fileName: string
 
-    :param engine: Used engine for reading the excel file. Please consider that the corresponding 
-        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE. 
+    :param engine: Used engine for reading the excel file. Please consider that the corresponding
+        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
         For further information see the documentation of pandas.read_excel().
+
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
-        |br| * the default value is 'openpyxl'. 
+
+        |br| * the default value is 'openpyxl'.
     :type engine: string
 
     :return: esM, esMData - an EnergySystemModel class instance and general esMData as a Series
     """
     file = pd.ExcelFile(fileName, engine=engine)
-    esMData = pd.read_excel(file, sheet_name ='EnergySystemModel', index_col=0, squeeze=True).dropna(axis='index', how='all')
-    esMData = esMData.apply(lambda v: ast.literal_eval(v) if type(v) == str and v[0] == '{' else v)
+    esMData = pd.read_excel(
+        file, sheet_name="EnergySystemModel", index_col=0, squeeze=True
+    ).dropna(axis="index", how="all")
+    esMData = esMData.apply(
+        lambda v: ast.literal_eval(v) if type(v) == str and v[0] == "{" else v
+    )
 
     kw = inspect.getargspec(fn.EnergySystemModel.__init__).args
     esM = fn.EnergySystemModel(**esMData[esMData.index.isin(kw)])
 
-    for comp in esMData['componentClasses']:
-        data = pd.read_excel(file, sheet_name =comp).dropna(axis='index', how='all')
-        dataKeys = set(data['name'].values)
-        if comp + 'LocSpecs' in file.sheet_names:
-            dataLoc = pd.read_excel(file, sheet_name =comp + 'LocSpecs', index_col=[0, 1, 2]).dropna(axis='columns', how='all').sort_index()
+    for comp in esMData["componentClasses"]:
+        data = pd.read_excel(file, sheet_name=comp).dropna(axis="index", how="all")
+        dataKeys = set(data["name"].values)
+        if comp + "LocSpecs" in file.sheet_names:
+            dataLoc = (
+                pd.read_excel(file, sheet_name=comp + "LocSpecs", index_col=[0, 1, 2])
+                .dropna(axis="columns", how="all")
+                .sort_index()
+            )
             dataLocKeys = set(dataLoc.index.get_level_values(0).unique())
             if not dataLocKeys <= dataKeys:
-                raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataLocKeys - dataKeys)
+                raise ValueError(
+                    "Invalid key(s) detected in " + comp + "\n", dataLocKeys - dataKeys
+                )
             if dataLoc.isnull().any().any():
-                raise ValueError('NaN values in ' + comp + 'LocSpecs data detected.')
-        if comp + 'TimeSeries' in file.sheet_names:
-            dataTS = pd.read_excel(file, sheet_name =comp + 'TimeSeries', index_col=[0, 1, 2]).dropna(axis='columns', how='all').sort_index()
+                raise ValueError("NaN values in " + comp + "LocSpecs data detected.")
+        if comp + "TimeSeries" in file.sheet_names:
+            dataTS = (
+                pd.read_excel(file, sheet_name=comp + "TimeSeries", index_col=[0, 1, 2])
+                .dropna(axis="columns", how="all")
+                .sort_index()
+            )
             dataTSKeys = set(dataTS.index.get_level_values(0).unique())
             if not dataTSKeys <= dataKeys:
-                raise ValueError('Invalid key(s) detected in ' + comp + '\n', dataTSKeys - dataKeys)
+                raise ValueError(
+                    "Invalid key(s) detected in " + comp + "\n", dataTSKeys - dataKeys
+                )
             if dataTS.isnull().any().any():
-                raise ValueError('NaN values in ' + comp + 'TimeSeries data detected.')
+                raise ValueError("NaN values in " + comp + "TimeSeries data detected.")
 
         for key, row in data.iterrows():
             temp = row.dropna()
-            temp = temp.drop(temp[temp == 'None'].index)
-            temp = temp.apply(lambda v: ast.literal_eval(v) if type(v) == str and v[0] == '{' else v)
+            temp = temp.drop(temp[temp == "None"].index)
+            temp = temp.apply(
+                lambda v: ast.literal_eval(v) if type(v) == str and v[0] == "{" else v
+            )
 
-            if comp + 'LocSpecs' in file.sheet_names:
-                dataLoc_ = dataLoc[dataLoc.index.get_level_values(0) == temp['name']]
+            if comp + "LocSpecs" in file.sheet_names:
+                dataLoc_ = dataLoc[dataLoc.index.get_level_values(0) == temp["name"]]
                 for ix in dataLoc_.index.get_level_values(1).unique():
-                    temp[ix] = dataLoc.loc[(temp['name'], ix)].squeeze()
+                    temp[ix] = dataLoc.loc[(temp["name"], ix)].squeeze()
 
-            if comp + 'TimeSeries' in file.sheet_names:
-                dataTS_ = dataTS[dataTS.index.get_level_values(0) == temp['name']]
+            if comp + "TimeSeries" in file.sheet_names:
+                dataTS_ = dataTS[dataTS.index.get_level_values(0) == temp["name"]]
                 for ix in dataTS_.index.get_level_values(1).unique():
-                    temp[ix] = dataTS_.loc[(temp['name'], ix)].T
+                    temp[ix] = dataTS_.loc[(temp["name"], ix)].T
 
             kwargs = temp
             esM.add(getattr(fn, comp)(esM, **kwargs))
@@ -178,58 +244,64 @@ def readEnergySystemModelFromExcel(fileName='scenarioInput.xlsx', engine='openpy
     return esM, esMData
 
 
-def energySystemModelRunFromExcel(fileName='scenarioInput.xlsx', engine='openpyxl'):
+def energySystemModelRunFromExcel(fileName="scenarioInput.xlsx", engine="openpyxl"):
     """
     Run an energy system model from excel file.
 
-    **Default arguments**
+    **Default arguments:**
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
     :type fileName: string
 
-    :param engine: Used engine for reading the excel file. Please consider that the corresponding 
-        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE. 
+    :param engine: Used engine for reading the excel file. Please consider that the corresponding
+        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
         For further information see the documentation of pandas.read_excel().
+
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
-        |br| * the default value is 'openpyxl'. 
+
+        |br| * the default value is 'openpyxl'.
     :type engine: string
 
     :return: esM - an EnergySystemModel class instance and general esMData as a Series
     """
     esM, esMData = readEnergySystemModelFromExcel(fileName, engine=engine)
 
-    if esMData['cluster'] != {}:
-        esM.cluster(**esMData['cluster'])
-    esM.optimize(**esMData['optimize'])
+    if esMData["cluster"] != {}:
+        esM.aggregateTemporally(**esMData["cluster"])
+    esM.optimize(**esMData["optimize"])
 
-    writeOptimizationOutputToExcel(esM, **esMData['output'])
+    writeOptimizationOutputToExcel(esM, **esMData["output"])
     return esM
 
 
-def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx', engine='openpyxl'):
+def readOptimizationOutputFromExcel(
+    esM, fileName="scenarioOutput.xlsx", engine="openpyxl"
+):
     """
     Read optimization output from an excel file.
 
     :param esM: EnergySystemModel instance which includes the setting of the optimized model
     :type esM: EnergySystemModel instance
 
-    **Default arguments**
+    **Default arguments:**
 
     :param fileName: excel file name oder path (including .xlsx ending) to an execl file written by
         writeOptimizationOutputToExcel()
         |br| * the default value is 'scenarioOutput.xlsx'
     :type fileName: string
 
-    :param engine: Used engine for reading the excel file. Please consider that the corresponding 
-        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE. 
+    :param engine: Used engine for reading the excel file. Please consider that the corresponding
+        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
         For further information see the documentation of pandas.read_excel().
+
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
-        |br| * the default value is 'openpyxl'. 
+
+        |br| * the default value is 'openpyxl'.
     :type engine: string
 
     :return: esM - an EnergySystemModel class instance
@@ -245,25 +317,40 @@ def readOptimizationOutputFromExcel(esM, fileName='scenarioOutput.xlsx', engine=
         dim = esM.componentModelingDict[mdl].dimension
         idColumns1dim = [0, 1, 2]
         idColumns2dim = [0, 1, 2, 3]
-        idColumns = idColumns1dim if '1' in dim else idColumns2dim
-        setattr(esM.componentModelingDict[mdl], 'optSummary',
-                pd.read_excel(fileName, sheet_name =mdl[0:-5] + 'OptSummary_' + dim, index_col=idColumns, engine=engine))
+        idColumns = idColumns1dim if "1" in dim else idColumns2dim
+        setattr(
+            esM.componentModelingDict[mdl],
+            "optSummary",
+            pd.read_excel(
+                fileName,
+                sheet_name=mdl[0:-5] + "OptSummary_" + dim,
+                index_col=idColumns,
+                engine=engine,
+            ),
+        )
         sheets = []
-        sheets += (sheet for sheet in file.sheet_names if mdl[0:-5] in sheet and 'optVar' in sheet)
+        sheets += (
+            sheet
+            for sheet in file.sheet_names
+            if mdl[0:-5] in sheet and "optVar" in sheet
+        )
         if len(sheets) > 0:
             for sheet in sheets:
-                if 'TDoptVar_1dim' in sheet:
+                if "TDoptVar_1dim" in sheet:
                     index_col = idColumns1dim
-                elif 'TIoptVar_1dim' in sheet:
+                elif "TIoptVar_1dim" in sheet:
                     index_col = idColumns1dim[:-1]
-                elif 'TDoptVar_2dim' in sheet:
+                elif "TDoptVar_2dim" in sheet:
                     index_col = idColumns2dim
-                elif 'TIoptVar_2dim' in sheet:
+                elif "TIoptVar_2dim" in sheet:
                     index_col = idColumns2dim[:-1]
                 else:
                     continue
-                optVal = pd.read_excel(fileName, sheet_name =sheet, index_col=index_col, engine=engine)
-                for var in optVal.index.levels[0]: setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
+                optVal = pd.read_excel(
+                    fileName, sheet_name=sheet, index_col=index_col, engine=engine
+                )
+                for var in optVal.index.levels[0]:
+                    setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
     return esM
 
 
@@ -279,8 +366,14 @@ def getDualValues(pyM):
     return pd.Series(list(pyM.dual.values()), index=pd.Index(list(pyM.dual.keys())))
 
 
-def getShadowPrices(esM, constraint, dualValues=None, hasTimeSeries=False, periodOccurrences=None,
-    periodsOrder=None):
+def getShadowPrices(
+    esM,
+    constraint,
+    dualValues=None,
+    hasTimeSeries=False,
+    periodOccurrences=None,
+    periodsOrder=None,
+):
     """
     Get dual values of constraint ("shadow prices").
 
@@ -313,25 +406,42 @@ def getShadowPrices(esM, constraint, dualValues=None, hasTimeSeries=False, perio
     if dualValues is None:
         dualValues = getDualValues(esM.pyM)
 
-    SP = pd.Series(list(constraint.values()), index=pd.Index(list(constraint.keys()))).map(dualValues)
+    SP = pd.Series(
+        list(constraint.values()), index=pd.Index(list(constraint.keys()))
+    ).map(dualValues)
 
     if hasTimeSeries:
         SP = pd.DataFrame(SP).swaplevel(i=0, j=-2).sort_index()
         SP = SP.unstack(level=-1)
         SP.columns = SP.columns.droplevel()
-        SP = SP.apply(lambda x: x/(periodOccurrences[x.name[0]]), axis=1)
+        SP = SP.apply(lambda x: x / (periodOccurrences[x.name[0]]), axis=1)
         SP = fn.utils.buildFullTimeSeries(SP, periodsOrder, esM=esM, divide=False)
         SP = SP.stack()
 
     return SP
 
 
-def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableName='operationVariablesOptimum',
-                  xlabel='time step', ylabel='operation time series', figsize=(12, 4),
-                  color="k", fontsize=12, save=False, fileName='operation.png', dpi=200, **kwargs):
+def plotOperation(
+    esM,
+    compName,
+    loc,
+    locTrans=None,
+    tMin=0,
+    tMax=-1,
+    variableName="operationVariablesOptimum",
+    xlabel="time step",
+    ylabel="operation time series",
+    figsize=(12, 4),
+    color="k",
+    fontsize=12,
+    save=False,
+    fileName="operation.png",
+    dpi=200,
+    **kwargs,
+):
     """
     Plot operation time series of a component at a location.
-    
+
     **Required arguments:**
 
     :param esM: considered energy system model
@@ -346,6 +456,7 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
     **Default arguments:**
 
     :param locTrans: second location, required when Transmission components are plotted
+        |br| * the default value is None
     :type locTrans: string
 
     :param tMin: first time step to be plotted (starting from 0)
@@ -393,13 +504,15 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
         |br| * the default value is 200
     :type dpi: scalar > 0
     """
-    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(variableName)
+    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
+        variableName
+    )
     if data is None:
         return
     if locTrans is None:
-        timeSeries = data['values'].loc[(compName, loc)].values
+        timeSeries = data["values"].loc[(compName, loc)].values
     else:
-        timeSeries = data['values'].loc[(compName, loc, locTrans)].values
+        timeSeries = data["values"].loc[(compName, loc, locTrans)].values
 
     fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
 
@@ -413,17 +526,41 @@ def plotOperation(esM, compName, loc, locTrans=None, tMin=0, tMax=-1, variableNa
     fig.tight_layout()
 
     if save:
-        plt.savefig(fileName, dpi=dpi, bbox_inches='tight')
+        plt.savefig(fileName, dpi=dpi, bbox_inches="tight")
 
     return fig, ax
 
 
-def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTimeStepsPerPeriod=24,
-                          variableName='operationVariablesOptimum', cmap='viridis', vmin=0, vmax=-1,
-                          xlabel='period', ylabel='timestep per period', zlabel='', figsize=(12, 4),
-                          fontsize=12, save=False, fileName='', xticks=None, yticks=None,
-                          xticklabels=None, yticklabels=None, monthlabels=False, dpi=200, pad=0.12,
-                          aspect=15, fraction=0.2, orientation='horizontal', **kwargs):
+def plotOperationColorMap(
+    esM,
+    compName,
+    loc,
+    locTrans=None,
+    nbPeriods=365,
+    nbTimeStepsPerPeriod=24,
+    variableName="operationVariablesOptimum",
+    cmap="viridis",
+    vmin=0,
+    vmax=-1,
+    xlabel="period",
+    ylabel="timestep per period",
+    zlabel="",
+    figsize=(12, 4),
+    fontsize=12,
+    save=False,
+    fileName="",
+    xticks=None,
+    yticks=None,
+    xticklabels=None,
+    yticklabels=None,
+    monthlabels=False,
+    dpi=200,
+    pad=0.12,
+    aspect=15,
+    fraction=0.2,
+    orientation="horizontal",
+    **kwargs,
+):
     """
     Plot operation time series of a component at a location.
 
@@ -441,6 +578,7 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
     **Default arguments:**
 
     :param locTrans: second location, required when Transmission components are plotted
+        |br| * the default value is None
     :type locTrans: string
 
     :param nbPeriods: number of periods to be plotted
@@ -539,7 +677,7 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
     :type orientation: float
 
     """
-    isStorage=False
+    isStorage = False
 
     if isinstance(esM.getComponent(compName), fn.Conversion):
         unit = esM.getComponent(compName).physicalUnit
@@ -547,45 +685,62 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
         unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
 
     if isinstance(esM.getComponent(compName), fn.Storage):
-        isStorage=True
-        unit = unit + '*h'
+        isStorage = True
+        unit = unit + "*h"
 
-    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(variableName)
+    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
+        variableName
+    )
 
     if locTrans is None:
-        timeSeries = data['values'].loc[(compName, loc)].values
+        timeSeries = data["values"].loc[(compName, loc)].values
     else:
-        timeSeries = data['values'].loc[(compName, loc, locTrans)].values
-    timeSeries = timeSeries/esM.hoursPerTimeStep if not isStorage else timeSeries
+        timeSeries = data["values"].loc[(compName, loc, locTrans)].values
+    timeSeries = timeSeries / esM.hoursPerTimeStep if not isStorage else timeSeries
 
     try:
         timeSeries = timeSeries.reshape(nbPeriods, nbTimeStepsPerPeriod).T
     except ValueError as e:
-        raise ValueError("Could not reshape array. Your timeSeries has {} values and it is therefore not possible".format(len(timeSeries)) +
-              " to reshape it to ({}, {}). Please correctly specify nbPeriods".format(nbPeriods, nbTimeStepsPerPeriod) +
-              " and nbTimeStepsPerPeriod The error was: {}.".format(e))
+        raise ValueError(
+            "Could not reshape array. Your timeSeries has {} values and it is therefore not possible".format(
+                len(timeSeries)
+            )
+            + " to reshape it to ({}, {}). Please correctly specify nbPeriods".format(
+                nbPeriods, nbTimeStepsPerPeriod
+            )
+            + " and nbTimeStepsPerPeriod The error was: {}.".format(e)
+        )
     vmax = timeSeries.max() if vmax == -1 else vmax
 
     fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
 
-    ax.pcolormesh(range(nbPeriods+1), range(nbTimeStepsPerPeriod+1), timeSeries, cmap=cmap, vmin=vmin,
-                  vmax=vmax, **kwargs)
+    ax.pcolormesh(
+        range(nbPeriods + 1),
+        range(nbTimeStepsPerPeriod + 1),
+        timeSeries,
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        **kwargs,
+    )
     ax.axis([0, nbPeriods, 0, nbTimeStepsPerPeriod])
     ax.set_xlabel(xlabel, fontsize=fontsize)
     ax.set_ylabel(ylabel, fontsize=fontsize)
-    ax.xaxis.set_label_position('top'), ax.xaxis.set_ticks_position('top')
+    ax.xaxis.set_label_position("top"), ax.xaxis.set_ticks_position("top")
 
     sm1 = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
     sm1._A = []
-    cb1 = fig.colorbar(sm1, ax=ax, pad=pad, aspect=aspect, fraction=fraction, orientation=orientation) 
+    cb1 = fig.colorbar(
+        sm1, ax=ax, pad=pad, aspect=aspect, fraction=fraction, orientation=orientation
+    )
     cb1.ax.tick_params(labelsize=fontsize)
-    if zlabel != '':
+    if zlabel != "":
         cb1.ax.set_xlabel(zlabel, size=fontsize)
     elif isStorage:
-        cb1.ax.set_xlabel('Storage inventory' + ' [' + unit + ']', size=fontsize)
+        cb1.ax.set_xlabel("Storage inventory" + " [" + unit + "]", size=fontsize)
     else:
-        cb1.ax.set_xlabel('Operation' + ' [' + unit + ']', size=fontsize)
-    cb1.ax.xaxis.set_label_position('top')
+        cb1.ax.set_xlabel("Operation" + " [" + unit + "]", size=fontsize)
+    cb1.ax.xaxis.set_label_position("top")
 
     if xticks:
         ax.set_xticks(xticks)
@@ -598,23 +753,38 @@ def plotOperationColorMap(esM, compName, loc, locTrans=None, nbPeriods=365, nbTi
 
     if monthlabels:
         import datetime
+
         xticks, xlabels = [], []
         for i in range(1, 13, 2):
-            xlabels.append(datetime.date(2050, i+1, 1).strftime("%b"))
-            xticks.append(datetime.datetime(2050, i+1, 1).timetuple().tm_yday)
+            xlabels.append(datetime.date(2050, i + 1, 1).strftime("%b"))
+            xticks.append(datetime.datetime(2050, i + 1, 1).timetuple().tm_yday)
             ax.set_xticks(xticks), ax.set_xticklabels(xlabels, fontsize=fontsize)
 
     fig.tight_layout()
 
     if save:
-        plt.savefig(fileName, dpi=dpi, bbox_inches='tight')
+        plt.savefig(fileName, dpi=dpi, bbox_inches="tight")
 
     return fig, ax
 
 
-def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='epsg:3035', faceColor="none",
-                  edgeColor="black", fig=None, ax=None, linewidth=0.5, figsize=(6, 6), fontsize=12,
-                  save=False, fileName='', dpi=200, **kwargs):
+def plotLocations(
+    locationsShapeFileName,
+    indexColumn,
+    plotLocNames=False,
+    crs="epsg:3035",
+    faceColor="none",
+    edgeColor="black",
+    fig=None,
+    ax=None,
+    linewidth=0.5,
+    figsize=(6, 6),
+    fontsize=12,
+    save=False,
+    fileName="",
+    dpi=200,
+    **kwargs,
+):
 
     """
     Plot locations from a shape file.
@@ -677,7 +847,8 @@ def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='
         |br| * the default value is 200
     :type dpi: scalar > 0
     """
-    gdf = gpd.read_file(locationsShapeFileName).to_crs({'init': crs})
+
+    gdf = gpd.read_file(locationsShapeFileName).to_crs({"init": crs})
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
@@ -688,21 +859,44 @@ def plotLocations(locationsShapeFileName, indexColumn, plotLocNames=False, crs='
     if plotLocNames:
         bbox_props = dict(boxstyle="round,pad=0.3", fc="w", ec="0.5", alpha=0.9)
         for ix, row in gdf.iterrows():
-            locName = ix if indexColumn == '' else row[indexColumn]
-            ax.annotate(s=locName, xy=(row.geometry.centroid.x, row.geometry.centroid.y), horizontalalignment='center',
-                        fontsize=fontsize, bbox=bbox_props)
+            locName = ix if indexColumn == "" else row[indexColumn]
+            ax.annotate(
+                text=locName,
+                xy=(row.geometry.centroid.x, row.geometry.centroid.y),
+                horizontalalignment="center",
+                fontsize=fontsize,
+                bbox=bbox_props,
+            )
 
     fig.tight_layout()
 
     if save:
-        plt.savefig(fileName, dpi=dpi, bbox_inches='tight')
+        plt.savefig(fileName, dpi=dpi, bbox_inches="tight")
 
     return fig, ax
 
 
-def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='epsg:3035',
-                     variableName='capacityVariablesOptimum', color='k', loc=7, alpha=0.5, ax=None, fig=None, linewidth=10,
-                     figsize=(6, 6), fontsize=12, save=False, fileName='', dpi=200, **kwargs):
+def plotTransmission(
+    esM,
+    compName,
+    transmissionShapeFileName,
+    loc0,
+    loc1,
+    crs="epsg:3035",
+    variableName="capacityVariablesOptimum",
+    color="k",
+    loc=7,
+    alpha=0.5,
+    ax=None,
+    fig=None,
+    linewidth=10,
+    figsize=(6, 6),
+    fontsize=12,
+    save=False,
+    fileName="",
+    dpi=200,
+    **kwargs,
+):
     """
     Plot build transmission lines from a shape file.
 
@@ -729,8 +923,8 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
         |br| * the default value is 'epsg:3035'
     :type crs: string
 
-    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation 
-        ('operationVariablesOptimum'). 
+    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation
+        ('operationVariablesOptimum').
         |br| * the default value is 'capacityVariablesOptimum'
     :type variableName: string
 
@@ -778,16 +972,18 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
         |br| * the default value is 200
     :type dpi: scalar > 0
     """
-    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(variableName)
-    unit = esM.getComponentAttribute(compName, 'commodityUnit')
+    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
+        variableName
+    )
+    unit = esM.getComponentAttribute(compName, "commodityUnit")
     if data is None:
         return fig, ax
-    cap = data['values'].loc[compName].copy()
+    cap = data["values"].loc[compName].copy()
     capMax = cap.max().max()
     if capMax == 0:
         return fig, ax
-    cap = cap/capMax
-    gdf = gpd.read_file(transmissionShapeFileName).to_crs({'init': crs})
+    cap = cap / capMax
+    gdf = gpd.read_file(transmissionShapeFileName).to_crs({"init": crs})
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
@@ -796,31 +992,68 @@ def plotTransmission(esM, compName, transmissionShapeFileName, loc0, loc1, crs='
     ax.axis("off")
     for key, row in gdf.iterrows():
         capacity = cap.loc[row[loc0], row[loc1]]
-        gdf[gdf.index == key].plot(ax=ax, color=color, linewidth=linewidth*capacity)
+        gdf[gdf.index == key].plot(ax=ax, color=color, linewidth=linewidth * capacity)
 
-    lineMax = plt.Line2D(range(1), range(1), linewidth=linewidth, color=color, marker='_',
-                         label="{:>4.4}".format(str(capMax), unit) + ' ' + unit)
-    lineMax23 = plt.Line2D(range(1), range(1), linewidth=linewidth*2/3, color=color, marker='_',
-                             label="{:>4.4}".format(str(capMax*2/3)) + ' ' + unit)
-    lineMax13 = plt.Line2D(range(1), range(1), linewidth=linewidth*1/3, color=color, marker='_',
-                             label="{:>4.4}".format(str(capMax*1/3)) + ' ' + unit)
+    lineMax = plt.Line2D(
+        range(1),
+        range(1),
+        linewidth=linewidth,
+        color=color,
+        marker="_",
+        label="{:>4.4}".format(str(capMax), unit) + " " + unit,
+    )
+    lineMax23 = plt.Line2D(
+        range(1),
+        range(1),
+        linewidth=linewidth * 2 / 3,
+        color=color,
+        marker="_",
+        label="{:>4.4}".format(str(capMax * 2 / 3)) + " " + unit,
+    )
+    lineMax13 = plt.Line2D(
+        range(1),
+        range(1),
+        linewidth=linewidth * 1 / 3,
+        color=color,
+        marker="_",
+        label="{:>4.4}".format(str(capMax * 1 / 3)) + " " + unit,
+    )
 
-    leg = ax.legend(handles=[lineMax, lineMax23, lineMax13], prop={'size': fontsize}, loc=loc)
-    leg.get_frame().set_edgecolor('white')
+    leg = ax.legend(
+        handles=[lineMax, lineMax23, lineMax13], prop={"size": fontsize}, loc=loc
+    )
+    leg.get_frame().set_edgecolor("white")
     leg.get_frame().set_alpha(alpha)
 
     fig.tight_layout()
 
     if save:
-        plt.savefig(fileName, dpi=dpi, bbox_inches='tight')
+        plt.savefig(fileName, dpi=dpi, bbox_inches="tight")
 
     return fig, ax
 
 
-def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, perArea=True, areaFactor=1e3,
-                           crs='epsg:3035', variableName='capacityVariablesOptimum', doSum=False, cmap='viridis', vmin=0,
-                           vmax=-1, zlabel=None, figsize=(6, 6), fontsize=12, save=False,
-                           fileName='capacity.png', dpi=200, **kwargs):
+def plotLocationalColorMap(
+    esM,
+    compName,
+    locationsShapeFileName,
+    indexColumn,
+    perArea=True,
+    areaFactor=1e3,
+    crs="epsg:3035",
+    variableName="capacityVariablesOptimum",
+    doSum=False,
+    cmap="viridis",
+    vmin=0,
+    vmax=-1,
+    zlabel=None,
+    figsize=(6, 6),
+    fontsize=12,
+    save=False,
+    fileName="capacity.png",
+    dpi=200,
+    **kwargs,
+):
     """
     Plot the data of a component for each location.
 
@@ -852,7 +1085,7 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
         |br| * the default value is 'epsg:3035'
     :type crs: string
 
-    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation 
+    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation
         ('operationVariablesOptimum'). In case of plotting the operation, set the parameter doSum to True.
         |br| * the default value is 'capacityVariablesOptimum'
     :type variableName: string
@@ -898,42 +1131,56 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
         |br| * the default value is 200
     :type dpi: scalar > 0
     """
-    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(variableName)
-    data = data['values'].loc[(compName)]
+    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
+        variableName
+    )
+    data = data["values"].loc[(compName)]
+
     if doSum:
         data = data.sum(axis=1)
-    gdf = gpd.read_file(locationsShapeFileName).to_crs({'init': crs})
+    gdf = gpd.read_file(locationsShapeFileName).to_crs({"init": crs})
 
-    # Make sure the data and gdf indices match 
-    ## 1. Sort the indices to obtain same order 
+    # Make sure the data and gdf indices match
+    ## 1. Sort the indices to obtain same order
     data.sort_index(inplace=True)
     gdf.sort_values(indexColumn, inplace=True)
 
     ## 2. Take first 20 characters of the string for matching. (In gdfs usually long strings are cut in the end)
-    gdf[indexColumn] = gdf[indexColumn].apply(lambda x: x[:20]) 
+    gdf[indexColumn] = gdf[indexColumn].apply(lambda x: x[:20])
     data.index = data.index.str[:20]
 
     if perArea:
-        gdf.loc[gdf[indexColumn] == data.index, "data"] = \
-            data.fillna(0).values/(gdf.loc[gdf[indexColumn] == data.index].geometry.area/areaFactor**2)
+        gdf.loc[gdf[indexColumn] == data.index, "data"] = data.fillna(0).values / (
+            gdf.loc[gdf[indexColumn] == data.index].geometry.area / areaFactor ** 2
+        )
         if zlabel is None:
-            unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
-            if areaFactor == 1e3:
-                area_unit = 'km$^2$'
-            elif areaFactor == 1:
-                area_unit = 'm$^2$'
+            if isinstance(esM.getComponent(compName), fn.Conversion):
+                unit = esM.getComponent(compName).physicalUnit
             else:
-                raise NotImplementedError('Area Factor not supported. Supported Area Factors {0},{1}'.format(1,1e3))
+                unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
 
-            unit = ' [' + unit + '/' + area_unit + ']'
-            zlabel = 'Installed capacity \n' + unit + '\n'
+            if areaFactor == 1e3:
+                area_unit = "km$^2$"
+            elif areaFactor == 1:
+                area_unit = "m$^2$"
+            else:
+                raise NotImplementedError(
+                    "Area Factor not supported. Supported Area Factors {0},{1}".format(
+                        1, 1e3
+                    )
+                )
+
+            unit = " [" + unit + "/" + area_unit + "]"
+            zlabel = "Installed capacity \n" + unit + "\n"
 
     else:
         gdf.loc[gdf[indexColumn] == data.index, "data"] = data.fillna(0).values
         if zlabel is None:
-            unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
-            unit = ' [' + unit + ']'
-            zlabel = 'Installed capacity \n' + unit + '\n'
+            if isinstance(esM.getComponent(compName), fn.Conversion):
+                unit = esM.getComponent(compName).physicalUnit
+            else:
+                unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+            zlabel = f"Installed capacity \n [ {unit} ] \n"
 
     vmax = gdf["data"].max() if vmax == -1 else vmax
 
@@ -941,18 +1188,27 @@ def plotLocationalColorMap(esM, compName, locationsShapeFileName, indexColumn, p
     ax.set_aspect("equal")
     ax.axis("off")
 
-    gdf.plot(column="data", ax=ax, cmap=cmap, edgecolor='black', alpha=1, linewidth=0.2, vmin=vmin, vmax=vmax)
+    gdf.plot(
+        column="data",
+        ax=ax,
+        cmap=cmap,
+        edgecolor="black",
+        alpha=1,
+        linewidth=0.2,
+        vmin=vmin,
+        vmax=vmax,
+    )
 
     sm1 = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
     sm1._A = []
     cb1 = fig.colorbar(sm1, ax=ax, pad=0.05, aspect=7, fraction=0.07)
     cb1.ax.tick_params(labelsize=fontsize)
     cb1.ax.set_xlabel(zlabel, size=fontsize)
-    cb1.ax.xaxis.set_label_position('top')
+    cb1.ax.xaxis.set_label_position("top")
 
     fig.tight_layout()
 
     if save:
-        plt.savefig(fileName, dpi=dpi, bbox_inches='tight')
+        plt.savefig(fileName, dpi=dpi, bbox_inches="tight")
 
     return fig, ax
