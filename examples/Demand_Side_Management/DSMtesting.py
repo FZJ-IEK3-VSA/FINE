@@ -1,10 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:percent
-#     notebook_metadata_filter: -kernelspec,-jupytext.text_representation
-# ---
-
 # %% [markdown]
 # # DSM (BETA Phase!)
 

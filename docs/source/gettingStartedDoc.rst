@@ -22,52 +22,115 @@ In the following, instructions for installing and using the FINE framework on Wi
 instructions for installing and using FINE on Linux/macOS systems are however quite similar and can be, hopefully
 easily, derived from the instructions below.
 
-**Python installation**
+Prepare and install required software
+=====================================
 
-FINE runs on Python 3 platforms (i.e. Anaconda). Currently, it is advised not to use a Python version exceeding
-Python 3.6. Note: When installing the Python platform Anaconda the options
+1. Install anaconda [by choosing your operating system here] (https://docs.anaconda.com/anaconda/install/). If you are a Windows 10 user, remember to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
+2. Install git from https://git-scm.com/downloads
 
-    $ Add Anaconda to the system PATH environment variable
+Prepare folder
+==============
 
-is available in the advanced installation option. When selecting this options, the environment variables for Python,
-pip, jupyter etc. are remotely set and do not have to be manually set.
+1. Open a prompt e.g. "anaconda prompt" or "cmd" from the windows start menu
+2. Make a folder where you want to work, for example C:\Users\<your username>\work with "mkdir C:\Users\<your username>\work"
+3. Go to that directory with "cd C:\Users\<your username>\work" at the command line
+
+Get source code via GIT
+=========================
+
+Clone public repository or repository of your choice first
+
+.. code-block:: console
+
+    git clone https://github.com/FZJ-IEK3-VSA/FINE.git 
+
+Move into the FINE folder with
+
+.. code-block:: console
+
+    cd fine
+
+Installation for users
+======================
+
+It is recommended to create a clean environment with conda to use FINE because it requires many dependencies. 
+
+.. code-block:: console
+
+    conda env create -f requirements.yml
+
+This directly installs FINE and its dependencies in the `FINE` conda environment. Activate the created environment with:
+
+.. code-block:: console
+
+    activate FINE
+
+Installation for developers
+===========================
+
+Create a development environment if you want to modify it.
+Install the requirements in a clean conda environment:
+
+.. code-block:: console
+
+     conda env create -f requirements_dev.yml
+     activate FINE_dev
+
+This installs FINE and its requirements for development (testing, formatting). Further changes in the current folder are reflected in package installation through the installation with `pip -e`.
+
+Run the test suite with:
+
+.. code-block:: console 
+
+    pytest --cov=FINE test/
 
 A development platform which can be used to work with/on the code and which comes with Anaconda is Spyder.
 Other development platforms are PyCharm or Visua Studio Code.
 
-**FINE installation**
-
-Install via pip by typing
-
-    $ pip install FINE
-
-into the command prompt. Alternatively, download or clone a local copy of the repository to your computer
-
-    $ git clone https://github.com/FZJ-IEK3-VSA/FINE.git
-
-and install FINE in the folder where the setup.py is located with
-
-    $ pip install -e .
-
-or install directly via python as
-
-    $ python setup.py install
-
-**Installation of additional packages**
-
-The Python packages `tsam <https://github.com/FZJ-IEK3-VSA/tsam>`_ and `PYOMO <http://www.pyomo.org/>`_ should be
+The Python packages `tsam <https://github.com/FZJ-IEK3-VSA/tsam>`_ and `PYOMO <http://www.pyomo.org/>`_ are
 installed by pip alongside FINE. Some plots in FINE require the GeoPandas package to be installed (nice-to-have).
 Installation instructions are given `here <http://geopandas.org/install.html>`_. In some cases, the dependencies of
 the GeoPandas package have to be installed manually before the package itself can be installed.
 
-**Installation of an optimization solver**
+Installation of an optimization solver
+======================================
 
-In theory many solvers can be used (e.g. `GUROBI <http://www.gurobi.com/>`_  or
-`GLPK <https://sourceforge.net/projects/winglpk/files/latest/download>`_). For the installation of GUROBI, follow
-the instructions on the solver's website. GUROBI has, if applicable, an academic license option. For installation
-of GLPK, move the downloaded folder to a desired location. Then, manually append the Environment Variable *Path*
-with the absolute path leading to the folder in which the glpsol.exe is located (c.f. w32/w64 folder, depending on
-operating system type).
+FINE requires an MILP solver which can be accessed using `PYOMO <https://pyomo.readthedocs.io/en/stable/index.html>`_. There are three standard solvers defined:
+
+* `GUROBI <http://www.gurobi.com/>`_
+
+   * Recommended due to better performance but requires license (free academic version available)
+   * Set as standard solver
+
+* `GLPK <https://sourceforge.net/projects/winglpk/files/latest/download>`_
+
+  * Free version available 
+
+* `CBC <https://projects.coin-or.org/Cbc>`_
+
+  * Free version available
+
+Gurobi installation
+-------------------
+
+The installation requires the following three components:
+
+* Gurobi Optimizer
+    * In order to `download <https://www.gurobi.com/downloads/gurobi-optimizer-eula/>`_ the software you need to create an Account and obtain a license.
+* Gurobi license
+    * The license needs to be installed according to the instructions in the registration process.
+* Gurobi python api
+    * The python api can be installed according to `this instruction <https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python->`_.
+
+GLPK installation
+-----------------
+
+A complete installation instruction for Windows can be found `here <http://winglpk.sourceforge.net/>`_.
+
+CBC
+---
+
+Installation procedure can be found `here <https://projects.coin-or.org/Cbc>`_.
 
 ********
 About Us
@@ -90,7 +153,7 @@ studies for integrating new technologies into future energy market frameworks.
 
 **Contributions and Users**
 
-Within the BMWi funded project `METIS <http://www.metis-platform.net/>` we develop together with the RWTH-Aachen 
+Within the BMWi funded project `METIS <http://www.metis-platform.net/>`_ we develop together with the RWTH-Aachen 
 `(Prof. Aaron Praktiknjo) <http://www.wiwi.rwth-aachen.de/cms/Wirtschaftswissenschaften/Die-Fakultaet/Institute-und-Lehrstuehle/Professoren/~jgfr/Praktiknjo-Aaron/?allou=1&lidx=1>`_,
 the EDOM Team at FAU `(PD Bismark Singh) <https://www.math.fau.de/wirtschaftsmathematik/team/bismark-singh/>`_ and the 
 `Jülich Supercomputing Centre (JSC) <http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html>`_ new methods and models within FINE.
@@ -99,6 +162,3 @@ the EDOM Team at FAU `(PD Bismark Singh) <https://www.math.fau.de/wirtschaftsmat
     :target: http://www.metis-platform.net
     :alt: METIS Team
     :align: center
-
-Dr. Martin Robinius is teaching a `course <https://www.campus-elgouna.tu-berlin.de/energy/v_menu/msc_business_engineering_energy/modules_and_curricula/project_market_coupling/>`_
-at TU Berlin in which he is introducing FINE to students.

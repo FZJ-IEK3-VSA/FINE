@@ -1,18 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:percent
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.6.0
-#   kernelspec:
-#     display_name: Python [conda env:fine-dev-py36]
-#     language: python
-#     name: conda-env-fine-dev-py36-py
-# ---
-
 # %% [markdown]
 # # Workflow for a 1node energy system
 #
@@ -51,7 +36,7 @@ data = getData()
 # %autoreload 2
 
 # %% [markdown]
-# # 2. Create an energy system model instance 
+# # 2. Create an energy system model instance
 #
 # The structure of the energy system model is given by the considered locations, commodities, the number of time steps as well as the hours per time step.
 #
@@ -252,7 +237,7 @@ esM.add(
 # All components are now added to the model and the model can be optimized. If the computational complexity of the optimization should be reduced, the time series data of the specified components can be clustered before the optimization and the parameter timeSeriesAggregation is set to True in the optimize call.
 
 # %%
-esM.cluster(numberOfTypicalPeriods=30)
+esM.aggregateTemporally(numberOfTypicalPeriods=30)
 
 # %%
 esM.optimize(timeSeriesAggregation=True, solver="glpk")
@@ -311,5 +296,3 @@ fig, ax = fn.plotOperationColorMap(
     "GermanyRegion",
     variableName="stateOfChargeOperationVariablesOptimum",
 )
-
-# %%

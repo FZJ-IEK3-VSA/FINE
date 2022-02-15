@@ -1,10 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:percent
-#     notebook_metadata_filter: -kernelspec,-jupytext.text_representation
-# ---
-
 # %% [markdown]
 # # Using Excel for parameter input and model runs
 #
@@ -23,7 +16,8 @@
 #
 
 # %%
-import FINE as fn 
+import FINE as fn
+
 # %load_ext autoreload
 # %autoreload 2
 

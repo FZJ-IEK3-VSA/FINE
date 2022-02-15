@@ -3,6 +3,18 @@ FINE's News Feed
 ################
 
 *********************
+Release version 2.2.2
+*********************
+
+FINE release (2.2.2) provides new major functionalities: 
+
+* Add netCDF compatibility for import and export of EnergySystemModel instances to store input and output data. 
+* Add generic spatial aggregation and technology aggregation functions for complexity reduction of models with high spatial resolution
+
+Black autoformatting was applied to make the source code easier to read and to simplify contributions. 
+Additionally, the installation guide was revised to make the installation easier to handle.
+
+*********************
 Release version 2.2.1
 *********************
 FINE release (2.2.1) provides some changes in code including 
