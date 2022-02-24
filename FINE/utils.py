@@ -862,6 +862,8 @@ def checkAndSetTimeSeries(
         checkTimeSeriesIndex(esM, operationTimeSeries)
 
         if dimension == "1dim":
+            operationTimeSeries = addEmptyRegions(operationTimeSeries, locationalEligibility)
+            
             checkRegionalColumnTitles(esM, operationTimeSeries)
 
             if locationalEligibility is not None:
@@ -1815,3 +1817,46 @@ def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
             "yearlyLimit",
             CO2Reference * (1 - CO2ReductionTargets[step] / 100),
         )
+
+# Only for operation rate
+def addEmptyRegions(data, esM, locationalEligibility): #sel, transmissionComp, locations_list):
+    """
+    Set attributes to zeros if data for a region is missing. 
+    """
+    if locationalEligibility is None:
+        return data
+    else:
+
+        esM_list = esM.locations
+        eligible_locations = locationalEligibility[locationalEligibility==1]
+        data_locations = data.index
+        missing_locations = [loc for loc in eligible_locations if loc not in data_locations]
+
+
+        #if transmissionComp == False:
+        if type(data) == pd.Series:
+            # check if region is missing
+            if len(data) != len(esM_list):
+                for loc in missing_locations:
+                    if loc not in data.index:
+                        if loc in eligible_locations:
+                            # Rise error
+                            pass
+                        else:
+                            # Fill data
+                            tst = pd.Series([0], index=[loc])
+                            data = pd.concat([data, tst], axis=0)
+        
+        elif type(data) == pd.DataFrame:
+            # check if region is missing
+            if len(data.columns) != len(esM_list):
+                for loc in missing_locations:
+                    if loc not in data.columns:
+                        if loc in eligible_locations:
+                            # Rise error
+                            pass
+                        else:
+                            # Fill data
+                            if loc not in data.columns:
+                                data[loc] = 0
+    return data
