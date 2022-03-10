@@ -1,8 +1,20 @@
+"""
+    Aim: To check if passing "lean data" is possible i.e., pass spatially resolved data only for 
+    eligible locations 
+    Tests:
+        #For each component class: 
+            Give data only for subset of locations. FINE should then look for locationalEligibility. 
+                # If it is None, raises error saying that locationalEligibility is mandatory, in this case
+                # If it is provided, simply fills data at missing locations with 0. 
+                    A check is later made against locationalEligibility. 
+"""
+
 import sys
 import os
+import pytest
 import pandas as pd
 
-from attr import dataclass 
+from attr import dataclass
 
 import FINE as fn
 
@@ -17,83 +29,58 @@ sys.path.append(
 from getData import getData
 
 
-def addEmptyRegions(sel, transmissionComp, locations_list):
-    """
-    Set attributes to zeros if data for a region is missing. 
-    """
-    if transmissionComp == False:
-        if type(sel) == pd.Series:
-            if len(sel) != len(locations_list):
-                for x in locations_list:
-                    if x not in sel.index:
-                        tst = pd.Series([0], index=[x])
-                        sel = pd.concat([sel, tst], axis=0)
-        elif type(sel) == pd.DataFrame:
-            if len(sel.columns) != len(locations_list):
-                for x in locations_list:
-                    if x not in sel.columns:
-                        sel[x] = 0
-    return sel
-
-def test_leanModel():
-    # delete the capacity and operation rate max (time series) for one region (cluster_0)
+def test_leanModel_without_locationalEligibility(esM_init):
     data = getData()
 
-    # set up the energy system model instance
-    locations = {
-        "cluster_0",
-        "cluster_1",
-        "cluster_2",
-        "cluster_3",
-        "cluster_4",
-        "cluster_5",
-        "cluster_6",
-        "cluster_7",
-    }
+    esM = esM_init
+    # Wind (onshore)
+    # Delete operationRateMax and capacityMax data corresponding to cluster_0
+    data["Wind (onshore), operationRateMax"].drop("cluster_0", axis=1, inplace=True)
+    data["Wind (onshore), capacityMax"].drop("cluster_0", inplace=True)
 
-    # # Delete cluster_0 in Wind (onshore)
-    data["Wind (onshore), operationRateMax"].drop('cluster_0', axis=1, inplace=True)
-    data["Wind (onshore), capacityMax"].drop('cluster_0', inplace=True)
-
-    data["Wind (onshore), operationRateMax"]= addEmptyRegions(data["Wind (onshore), operationRateMax"], False ,locations)
-    data["Wind (onshore), capacityMax"]= addEmptyRegions(data["Wind (onshore), capacityMax"], False ,locations)
-
-
-    # Delete cluster_0 in Pumped hydro storage
-    data["Pumped hydro storage, capacityFix"].drop('cluster_0', inplace=True)
-    data["Pumped hydro storage, capacityFix"]= addEmptyRegions(data["Pumped hydro storage, capacityFix"], False ,locations)
-    
-    # # Delete cluster_0 in Hydrogen demand
-    data["Hydrogen demand, operationRateFix"].drop('cluster_0', axis=1, inplace=True)
-    data["Hydrogen demand, operationRateFix"]= addEmptyRegions(data["Hydrogen demand, operationRateFix"], False ,locations)
-    
-    # # Delete cluster_0 in DC cables
-    print(data["DC cables, losses"])
-    # # data["DC cables, losses"].drop('cluster_0', inplace=True)
-    # # losses=data["DC cables, losses"],
-    # # distances=data["DC cables, distances"],
-    # # capacityFix=data["DC cables, capacityFix"],
+    with pytest.raises(ValueError) as e_info:
+        esM.add(
+            fn.Source(
+                esM=esM,
+                name="Wind (onshore)",
+                commodity="electricity",
+                hasCapacityVariable=True,
+                operationRateMax=data["Wind (onshore), operationRateMax"],
+                capacityMax=data["Wind (onshore), capacityMax"],
+                investPerCapacity=1.1,
+                opexPerCapacity=1.1 * 0.02,
+                interestRate=0.08,
+                economicLifetime=20,
+            )
+        )
 
 
-    commodityUnitDict = {
-        "electricity": r"GW$_{el}$",
-        "CO2": r"Mio. t$_{CO_2}$/h",
-        "hydrogen": r"GW$_{H_{2},LHV}$",
-    }
-    commodities = {"electricity", "hydrogen", "CO2"}
+def test_leanModel_with_locationalEligibility(esM_init):
+    data = getData()
 
-    esM = fn.EnergySystemModel(
-        locations=locations,
-        commodities=commodities,
-        numberOfTimeSteps=8760,
-        commodityUnitsDict=commodityUnitDict,
-        hoursPerTimeStep=1,
-        costUnit="1e9 Euro",
-        lengthUnit="km",
-        verboseLogLevel=0,
+    esM = esM_init
+
+    locationalEligibility = pd.Series(
+        {
+            "cluster_0": 1,
+            "cluster_1": 1,
+            "cluster_2": 1,
+            "cluster_3": 1,
+            "cluster_4": 1,
+            "cluster_5": 1,
+            "cluster_6": 1,
+            "cluster_7": 1,
+        }
     )
 
-    # onshore wind
+    # 1. Wind (onshore)
+    # Delete operationRateMax and capacityMax data corresponding to cluster_0
+    data["Wind (onshore), operationRateMax"].drop("cluster_0", axis=1, inplace=True)
+    data["Wind (onshore), capacityMax"].drop("cluster_0", inplace=True)
+
+    _locationalEligibility = locationalEligibility.copy()
+    _locationalEligibility.update({"cluster_0": 0})
+
     esM.add(
         fn.Source(
             esM=esM,
@@ -106,23 +93,11 @@ def test_leanModel():
             opexPerCapacity=1.1 * 0.02,
             interestRate=0.08,
             economicLifetime=20,
+            locationalEligibility=_locationalEligibility,
         )
     )
 
-    # CO2 from environment
-    CO2_reductionTarget = 1
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="CO2 from enviroment",
-            commodity="CO2",
-            hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
-        )
-    )
-
-    # Electrolyzers
+    # 2. Electrolyzers
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -137,7 +112,13 @@ def test_leanModel():
         )
     )
 
-    # Pumped hydro storage
+    # 3. Pumped hydro storage
+    # Delete capacityFix data corresponding to cluster_7
+    data["Pumped hydro storage, capacityFix"].drop("cluster_7", inplace=True)
+
+    _locationalEligibility = locationalEligibility.copy()
+    _locationalEligibility.update({"cluster_7": 0})
+
     esM.add(
         fn.Storage(
             esM=esM,
@@ -152,23 +133,40 @@ def test_leanModel():
             capacityFix=data["Pumped hydro storage, capacityFix"],
             investPerCapacity=0,
             opexPerCapacity=0.000153,
+            locationalEligibility=_locationalEligibility,
         )
     )
 
-    # DC cables
+    # 4. DC cables
+    # NOTE: looks like for transmission components, this is already handled
+    ## pass pd.Series instead of pd.DataFrame to test if it works fine
+    losses = {}
+
+    for loc in esM.locations:
+        _dict = data["DC cables, losses"][loc].to_dict()
+        losses.update({f"{loc}_{k}": v for (k, v) in _dict.items()})
+
+    losses = pd.Series(losses)
+
     esM.add(
         fn.Transmission(
             esM=esM,
             name="DC cables",
             commodity="electricity",
-            losses=data["DC cables, losses"],
+            losses=losses,
             distances=data["DC cables, distances"],
             hasCapacityVariable=True,
             capacityFix=data["DC cables, capacityFix"],
         )
     )
 
-    # Hydrogen sinks
+    # 5. Hydrogen sinks
+    # Delete operationRateFix data corresponding to cluster_3
+    data["Hydrogen demand, operationRateFix"].drop("cluster_3", axis=1, inplace=True)
+
+    _locationalEligibility = locationalEligibility.copy()
+    _locationalEligibility.update({"cluster_3": 0})
+
     FCEV_penetration = 0.5
     esM.add(
         fn.Sink(
@@ -178,12 +176,10 @@ def test_leanModel():
             hasCapacityVariable=False,
             operationRateFix=data["Hydrogen demand, operationRateFix"]
             * FCEV_penetration,
+            locationalEligibility=_locationalEligibility,
         )
     )
 
     esM.cluster(numberOfTypicalPeriods=3)
 
-    esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
-
-
-
+    esM.optimize(timeSeriesAggregation=True, solver="glpk")

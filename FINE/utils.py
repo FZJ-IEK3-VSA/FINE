@@ -132,7 +132,7 @@ def checkTimeSeriesIndex(esM, data):
         )
 
 
-def checkRegionalColumnTitles(esM, data):
+def checkRegionalColumnTitles(esM, data, locationalEligibility):
     """
     Necessary if the data columns represent the location-dependent data:
     Check if the columns indices match the location indices of the energy system model.
@@ -144,36 +144,55 @@ def checkRegionalColumnTitles(esM, data):
         data.columns = data.columns.droplevel()
 
     if set(data.columns) != esM.locations:
-        raise ValueError(
-            "Location indices do not match the one of the specified energy system model.\n"
-            + "Data columns: "
-            + str(set(data.columns))
-            + "\n"
-            + "Energy system model regions: "
-            + str(esM.locations)
-        )
+        # if the data locations do not match the esm locations:
+        # force user to pass locationalEligibility if it is None.
+        # if locationalEligibility is already passed, simply add 0s to data in missing locations
+        # in a later stage this data is crosschecked with locationalEligibility to see if they match
+        if locationalEligibility is None:
+            raise ValueError(
+                "Location indices do not match the one of the specified energy system model.\n"
+                + "Data columns: "
+                + str(set(data.columns))
+                + "\n"
+                + "Energy system model regions: "
+                + str(esM.locations)
+                + "If this was intentional, please provide locationalEligibility to cross-check."
+            )
+        else:
+            data = addEmptyRegions(esM, data)
+
     # Sort data according to _locationsOrdered, if not already sorted
-    elif not np.array_equal(data.columns, esM._locationsOrdered):
+    if not np.array_equal(data.columns, esM._locationsOrdered):
         data.sort_index(inplace=True, axis=1)
+
     return data
 
 
-def checkRegionalIndex(esM, data):
+def checkRegionalIndex(esM, data, locationalEligibility):
     """
     Necessary if the data rows represent the location-dependent data:
     Check if the row-indices match the location indices of the energy system model.
     """
     if set(data.index) != esM.locations:
-        raise ValueError(
-            "Location indices do not match the one of the specified energy system model.\n"
-            + "Data indices: "
-            + str(set(data.index))
-            + "\n"
-            + "Energy system model regions: "
-            + str(esM.locations)
-        )
+        # if the data locations do not match the esm locations:
+        # force user to pass locationalEligibility if it is None.
+        # if locationalEligibility is already passed, simply add 0s to data in missing locations
+        # in a later stage this data is crosschecked with locationalEligibility to see if they match
+        if locationalEligibility is None:
+            raise ValueError(
+                "Location indices do not match the one of the specified energy system model.\n"
+                + "Data indices: "
+                + str(set(data.index))
+                + "\n"
+                + "Energy system model regions: "
+                + str(esM.locations)
+                + "If this was intentional, please provide locationalEligibility to cross-check."
+            )
+        else:
+            data = addEmptyRegions(esM, data)
+
     # Sort data according to _locationsOrdered, if not already sorted
-    elif not np.array_equal(data.index, esM._locationsOrdered):
+    if not np.array_equal(data.index, esM._locationsOrdered):
         data.sort_index(inplace=True)
 
     return data
@@ -194,7 +213,7 @@ def checkConnectionIndex(data, locationalEligibility):
             + str(set(locationalEligibility.index))
         )
     # Sort data according to _locationsOrdered, if not already sorted
-    elif not np.array_equal(data.index, locationalEligibility.index):
+    if not np.array_equal(data.index, locationalEligibility.index):
         data = data.reindex(locationalEligibility.index).fillna(0)
 
     return data
@@ -482,6 +501,7 @@ def getQPcostDev(QPcostScale):
 
 
 def checkLocationSpecficDesignInputParams(comp, esM):
+
     if len(esM.locations) == 1:
         comp.capacityMin = castToSeries(comp.capacityMin, esM)
         comp.capacityFix = castToSeries(comp.capacityFix, esM)
@@ -490,44 +510,53 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
         comp.QPcostScale = castToSeries(comp.QPcostScale, esM)
 
-    capacityMin, capacityFix, capacityMax, QPcostScale = (
-        comp.capacityMin,
-        comp.capacityFix,
-        comp.capacityMax,
-        comp.QPcostScale,
-    )
-    locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
-    hasCapacityVariable, hasIsBuiltBinaryVariable = (
-        comp.hasCapacityVariable,
-        comp.hasIsBuiltBinaryVariable,
-    )
+    for var_name, var_data in comp.__dict__.items():
+        if (
+            var_name
+            in [
+                "locationalEligibility",
+                "capacityMin",
+                "capacityFix",
+                "capacityMax",
+                "QPcostScale",
+                "isBuiltFix",
+            ]
+            and var_data is not None
+        ):
+
+            if comp.dimension == "1dim":
+                if not isinstance(var_data, pd.Series):
+                    raise TypeError("Input data has to be a pandas Series")
+                comp.__dict__[var_name] = checkRegionalIndex(
+                    esM, var_data, comp.locationalEligibility
+                )
+            elif comp.dimension == "2dim":
+                if not isinstance(var_data, pd.Series):
+                    raise TypeError("Input data has to be a pandas DataFrame")
+                comp.__dict__[var_name] = checkConnectionIndex(
+                    var_data, comp.locationalEligibility
+                )
+            else:
+                raise ValueError(
+                    "The dimension parameter has to be either '1dim' or '2dim' "
+                )
+
+    capacityMin = comp.capacityMin
+    capacityFix = comp.capacityFix
+    capacityMax = comp.capacityMax
+    QPcostScale = comp.QPcostScale
+
+    locationalEligibility = comp.locationalEligibility
+    isBuiltFix = comp.isBuiltFix
+
+    hasCapacityVariable = comp.hasCapacityVariable
+    hasIsBuiltBinaryVariable = comp.hasIsBuiltBinaryVariable
+
     sharedPotentialID = comp.sharedPotentialID
     partLoadMin = comp.partLoadMin
     name = comp.name
     bigM = comp.bigM
     hasCapacityVariable = comp.hasCapacityVariable
-
-    for data in [
-        capacityMin,
-        capacityFix,
-        capacityMax,
-        QPcostScale,
-        locationalEligibility,
-        isBuiltFix,
-    ]:
-        if data is not None:
-            if comp.dimension == "1dim":
-                if not isinstance(data, pd.Series):
-                    raise TypeError("Input data has to be a pandas Series")
-                data = checkRegionalIndex(esM, data)
-            elif comp.dimension == "2dim":
-                if not isinstance(data, pd.Series):
-                    raise TypeError("Input data has to be a pandas DataFrame")
-                data = checkConnectionIndex(data, comp.locationalEligibility)
-            else:
-                raise ValueError(
-                    "The dimension parameter has to be either '1dim' or '2dim' "
-                )
 
     if capacityMin is not None and (capacityMin < 0).any():
         raise ValueError("capacityMin values smaller than 0 were detected.")
@@ -862,9 +891,10 @@ def checkAndSetTimeSeries(
         checkTimeSeriesIndex(esM, operationTimeSeries)
 
         if dimension == "1dim":
-            operationTimeSeries = addEmptyRegions(operationTimeSeries, locationalEligibility)
-            
-            checkRegionalColumnTitles(esM, operationTimeSeries)
+
+            operationTimeSeries = checkRegionalColumnTitles(
+                esM, operationTimeSeries, locationalEligibility
+            )
 
             if locationalEligibility is not None:
                 # Check if given capacities indicate the same eligibility
@@ -1093,7 +1123,9 @@ def checkAndSetTimeSeriesConversionFactors(
 
         checkTimeSeriesIndex(esM, fullCommodityConversionFactorsTimeSeries)
 
-        checkRegionalColumnTitles(esM, fullCommodityConversionFactorsTimeSeries)
+        checkRegionalColumnTitles(
+            esM, fullCommodityConversionFactorsTimeSeries, locationalEligibility
+        )
 
         if (
             locationalEligibility is not None
@@ -1474,7 +1506,7 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
         data_.sort_index(inplace=True)
         return data_
     elif isinstance(data, pd.Series):
-        data_ = data.sort_index()
+        data_ = data[data > 0].sort_index()
         return data_
     else:
         return data
@@ -1818,45 +1850,24 @@ def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
             CO2Reference * (1 - CO2ReductionTargets[step] / 100),
         )
 
-# Only for operation rate
-def addEmptyRegions(data, esM, locationalEligibility): #sel, transmissionComp, locations_list):
+
+def addEmptyRegions(esM, data):
     """
-    Set attributes to zeros if data for a region is missing. 
+    If data for a region is missing, fill with 0s.
     """
-    if locationalEligibility is None:
-        return data
-    else:
 
-        esM_list = esM.locations
-        eligible_locations = locationalEligibility[locationalEligibility==1]
-        data_locations = data.index
-        missing_locations = [loc for loc in eligible_locations if loc not in data_locations]
+    esM_locations = esM.locations
+    data_locations = data.index
+    missing_locations = [loc for loc in esM_locations if loc not in data_locations]
 
+    if type(data) == pd.Series:
+        for loc in missing_locations:
+            tst = pd.Series([0], index=[loc])
+            data = pd.concat([data, tst], axis=0)
 
-        #if transmissionComp == False:
-        if type(data) == pd.Series:
-            # check if region is missing
-            if len(data) != len(esM_list):
-                for loc in missing_locations:
-                    if loc not in data.index:
-                        if loc in eligible_locations:
-                            # Rise error
-                            pass
-                        else:
-                            # Fill data
-                            tst = pd.Series([0], index=[loc])
-                            data = pd.concat([data, tst], axis=0)
-        
-        elif type(data) == pd.DataFrame:
-            # check if region is missing
-            if len(data.columns) != len(esM_list):
-                for loc in missing_locations:
-                    if loc not in data.columns:
-                        if loc in eligible_locations:
-                            # Rise error
-                            pass
-                        else:
-                            # Fill data
-                            if loc not in data.columns:
-                                data[loc] = 0
+    elif type(data) == pd.DataFrame:
+        for loc in missing_locations:
+            if loc not in data.columns:
+                data[loc] = 0
+
     return data
