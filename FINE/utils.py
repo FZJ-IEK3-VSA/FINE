@@ -1059,7 +1059,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             return pd.Series(
                 [float(data) for loc in esM.locations], index=esM.locations
             )
-        data = checkRegionalIndex(esM, data)
+        data = checkRegionalIndex(esM, data, locationalEligibility)
     else:
         if isinstance(data, int) or isinstance(data, float):
             if data < 0:
@@ -1202,7 +1202,7 @@ def checkAndSetFullLoadHoursParameter(
                 return pd.Series(
                     [float(data) for loc in esM.locations], index=esM.locations
                 )
-            data = checkRegionalIndex(esM, data)
+            data = checkRegionalIndex(esM, data, locationalEligibility)
         else:
             if isinstance(data, int) or isinstance(data, float):
                 if data < 0:
