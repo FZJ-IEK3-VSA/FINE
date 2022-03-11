@@ -1506,7 +1506,7 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
         data_.sort_index(inplace=True)
         return data_
     elif isinstance(data, pd.Series):
-        data_ = data[data > 0].sort_index()
+        data_ = data.sort_index()
         return data_
     else:
         return data

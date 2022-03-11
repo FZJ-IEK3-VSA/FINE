@@ -29,7 +29,30 @@ sys.path.append(
 from getData import getData
 
 
-def test_leanModel_without_locationalEligibility(esM_init):
+@pytest.mark.parametrize(
+    "locationalEligibility",
+    [
+        None,
+        pd.Series(
+            {
+                "cluster_0": 1,
+                "cluster_1": 1,
+                "cluster_2": 1,
+                "cluster_3": 1,
+                "cluster_4": 1,
+                "cluster_5": 1,
+                "cluster_6": 1,
+                "cluster_7": 1,
+            }
+        ),
+    ],
+)
+def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibility):
+    """
+    Case 1: subset of locations provided but no locationalEligibility
+    Case 2: subset of locations provided with locationalEligibility,
+            but they don't match
+    """
     data = getData()
 
     esM = esM_init
@@ -51,11 +74,15 @@ def test_leanModel_without_locationalEligibility(esM_init):
                 opexPerCapacity=1.1 * 0.02,
                 interestRate=0.08,
                 economicLifetime=20,
+                locationalEligibility=locationalEligibility,
             )
         )
 
 
-def test_leanModel_with_locationalEligibility(esM_init):
+def test_leanModel_with_matching_locationalEligibility(esM_init):
+    """
+    Case: subset of locations provided with matching locationalEligibility
+    """
     data = getData()
 
     esM = esM_init
@@ -147,6 +174,7 @@ def test_leanModel_with_locationalEligibility(esM_init):
         losses.update({f"{loc}_{k}": v for (k, v) in _dict.items()})
 
     losses = pd.Series(losses)
+    losses = losses[losses > 0]
 
     esM.add(
         fn.Transmission(
