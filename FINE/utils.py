@@ -1428,6 +1428,8 @@ def formatOptimizationOutput(
         df.columns = df.columns.droplevel()
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
+        # filter results for ip
+        df=df[df.index.get_level_values(2)==ip]
         # drop ip from index
         df.reset_index(level=2,drop=True, inplace=True)
         return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)

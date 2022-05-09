@@ -434,9 +434,9 @@ class TransmissionModel(ComponentModel):
         self.abbrvName = "trans"
         self.dimension = "2dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum = None
-        self.optSummary = None
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
+        self.operationVariablesOptimum = {}
+        self.optSummary = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -798,7 +798,10 @@ class TransmissionModel(ComponentModel):
                                                 esM=esM)
         optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', ip, esM.periodsOrder[ip],
                                                  compDict=compDict, esM=esM)
-        self.operationVariablesOptimum = optVal_
+        # Quick fix if several runs with one investment period
+        if type(self.operationVariablesOptimum) is not dict:
+            self.operationVariablesOptimum={}
+        self.operationVariablesOptimum[ip] = optVal_
 
         props = ["operation", "opexOp"]
         # Unit dict: Specify units for props
@@ -871,8 +874,10 @@ class TransmissionModel(ComponentModel):
         names = list(optSummaryBasic.index.names)
         names.append("LocationIn")
         optSummary.index.set_names(names, inplace=True)
-
-        self.optSummary = optSummary
+        # Quick fix if several runs with one investment period
+        if type(self.optSummary) is not dict:
+            self.optSummary={}
+        self.optSummary[ip] = optSummary
 
     def getOptimalValues(self, name="all"):
         """

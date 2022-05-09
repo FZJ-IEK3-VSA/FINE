@@ -601,9 +601,9 @@ class StorageModel(ComponentModel):
         (
             self.chargeOperationVariablesOptimum,
             self.dischargeOperationVariablesOptimum,
-        ) = (None, None)
-        self.stateOfChargeOperationVariablesOptimum = None
-        self.optSummary = None
+        ) = ({}, {})
+        self.stateOfChargeOperationVariablesOptimum = {}
+        self.optSummary = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -1626,10 +1626,14 @@ class StorageModel(ComponentModel):
             index=mIndex, columns=sorted(esM.locations)
         ).sort_index()
 
+        # Quick fix if several runs with one investment period
+        if type(self.chargeOperationVariablesOptimum) is not dict:
+            self.chargeOperationVariablesOptimum={}
+        
         # * charge variables and contributions
         optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
                                                 esM=esM)
-        self.chargeOperationVariablesOptimum = optVal
+        self.chargeOperationVariablesOptimum[ip] = optVal
 
         if optVal is not None:
             idx = pd.IndexSlice
@@ -1645,15 +1649,19 @@ class StorageModel(ComponentModel):
             optSummary.loc[[(ix, 'opexCharge', '[' + esM.costUnit + '/a]') for ix in ox.index],
                             ox.columns] = ox.values/esM.numberOfYears
 
+        # Quick fix if several runs with one investment period
+        if type(self.dischargeOperationVariablesOptimum) is not dict:
+            self.dischargeOperationVariablesOptimum={}
+
         # * discharge variables and contributions
         optVal = utils.formatOptimizationOutput(dischargeOp.get_values(), 'operationVariables', '1dim', ip,
                                                 esM.periodsOrder[ip], esM=esM)
-        self.dischargeOperationVariablesOptimum = optVal
+        self.dischargeOperationVariablesOptimum[ip] = optVal
         # Check if there are time steps, at which a storage component is both charging and discharging
         for compName in opSum.index:
             simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
-                tsCharge=self.chargeOperationVariablesOptimum.loc[compName],
-                tsDischarge=self.dischargeOperationVariablesOptimum.loc[compName],
+                tsCharge=self.chargeOperationVariablesOptimum[ip].loc[compName],
+                tsDischarge=self.dischargeOperationVariablesOptimum[ip].loc[compName],
             )
             if simultaneousChargeDischarge:
                 if esM.verbose < 2:
@@ -1679,6 +1687,10 @@ class StorageModel(ComponentModel):
             optSummary.loc[[(ix, 'opexDischarge', '[' + esM.costUnit + '/a]') for ix in ox.index],
                             ox.columns] = ox.values/esM.numberOfYears
 
+        # Quick fix if several runs with one investment period
+        if type(self.stateOfChargeOperationVariablesOptimum) is not dict:
+            self.stateOfChargeOperationVariablesOptimum={}
+        
         # * set state of charge variables
         if not pyM.hasTSA:
             optVal = utils.formatOptimizationOutput(SOC.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
@@ -1686,7 +1698,7 @@ class StorageModel(ComponentModel):
             # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
             # other)
             optVal = optVal.loc[:, : len(optVal.columns) - 2]
-            self.stateOfChargeOperationVariablesOptimum = optVal
+            self.stateOfChargeOperationVariablesOptimum[ip] = optVal
             utils.setOptimalComponentVariables(
                 optVal, "_stateOfChargeVariablesOptimum", compDict
             )
@@ -1736,7 +1748,7 @@ class StorageModel(ComponentModel):
                 optVal = pd.concat(data, axis=1, ignore_index=True)
             else:
                 optVal = None
-            self.stateOfChargeOperationVariablesOptimum = optVal
+            self.stateOfChargeOperationVariablesOptimum[ip] = optVal
             utils.setOptimalComponentVariables(
                 optVal, "_stateOfChargeVariablesOptimum", compDict
             )
@@ -1756,7 +1768,10 @@ class StorageModel(ComponentModel):
             .values
         )
 
-        self.optSummary = optSummary
+        # Quick fix if several runs with one investment period
+        if type(self.optSummary) is not dict:
+            self.optSummary={}
+        self.optSummary[ip] = optSummary
 
     def getOptimalValues(self, name="all"):
         """

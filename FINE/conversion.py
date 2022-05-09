@@ -419,7 +419,8 @@ class ConversionModel(ComponentModel):
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
         self.operationVariablesOptimum = None
-        self.optSummary = None
+        self.optSummary = {}
+        self.operationVariablesOptimum={}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -723,7 +724,10 @@ class ConversionModel(ComponentModel):
         # Set optimal operation variables and append optimization summary
         optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
                                                 esM=esM)
-        self.operationVariablesOptimum = optVal
+        # Quick fix if several runs with one investment period
+        if type(self.operationVariablesOptimum) is not dict:
+            self.operationVariablesOptimum={}
+        self.operationVariablesOptimum[ip] = optVal
 
         props = ["operation", "opexOp"]
         # Unit dict: Specify units for props
@@ -777,8 +781,10 @@ class ConversionModel(ComponentModel):
             .sum()
             .values
         )
-
-        self.optSummary = optSummary
+        # Quick fix if several runs with one investment period
+        if type(self.optSummary) is not dict:
+            self.optSummary={}
+        self.optSummary[ip] = optSummary
 
     def getOptimalValues(self, name="all"):
         """

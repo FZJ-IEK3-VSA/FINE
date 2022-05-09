@@ -1683,14 +1683,28 @@ class EnergySystemModel:
             w = str(len(max(self.componentModelingDict.keys()))+6)
             # ToDo: 
             # For Schleife über investmentperiods --> output für einzelne invperiods
-            for ip in self.investmentPeriods:
-                for key, mdl in self.componentModelingDict.items():
+            for key, mdl in self.componentModelingDict.items():
+                for ip in self.investmentPeriods:
                     __t = time.time()
                     # test for DSM 
                     #print(mdl)
                     mdl.setOptimalValues(self, self.pyM, ip)
                     outputString = ('for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
                     utils.output(outputString, self.verbose, 0)
+                
+                # if only one ip 
+                if self.numberOfInvestmentPeriods==1:
+                    mdl.optSummary=mdl.optSummary[0]
+                    if key is "StorageModel":
+                        mdl.stateOfChargeOperationVariablesOptimum=mdl.stateOfChargeOperationVariablesOptimum[0]
+                        
+                        mdl.chargeOperationVariablesOptimum=mdl.chargeOperationVariablesOptimum[0]
+                        
+                        mdl.dischargeOperationVariablesOptimum=mdl.dischargeOperationVariablesOptimum[0]
+                    else:
+                        mdl.operationVariablesOptimum=mdl.operationVariablesOptimum[0]
+
+            
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 
