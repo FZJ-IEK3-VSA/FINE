@@ -418,7 +418,6 @@ class ConversionModel(ComponentModel):
         self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum = None
         self.optSummary = {}
         self.operationVariablesOptimum={}
 

@@ -1543,8 +1543,6 @@ class ComponentModel(metaclass=ABCMeta):
             # To-DO: look into the usage of opVarBin in the testcases
             # old code:
             #opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
-            #print("opVarBin")
-            #print(opVarBin)
             bigM = getattr(compDict[compName], 'bigM')
             return opVar[loc, compName, ip, p, t] <= opVarBin[loc, compName, ip, p, t]*bigM
         setattr(pyM, constrName + 'partLoadMin_1_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad1))
@@ -1552,7 +1550,7 @@ class ComponentModel(metaclass=ABCMeta):
         def opMinPartLoad2(pyM, loc, compName, ip, p, t):
             #old code:
             #opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
-            processedPartLoadMin = getattr(compDict[compName], 'partLoadMin')[ip]
+            processedPartLoadMin = getattr(compDict[compName], 'processedPartLoadMin')[ip]
             bigM = getattr(compDict[compName], 'bigM')
             return opVar[loc, compName, ip, p, t] >= processedPartLoadMin*capVar[loc, compName]-(1-opVarBin[loc, compName, ip, p, t])*bigM
         setattr(pyM, constrName + 'partLoadMin_2_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2))
