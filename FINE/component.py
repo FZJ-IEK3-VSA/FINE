@@ -1682,7 +1682,7 @@ class ComponentModel(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
+    def hasOpVariablesForLocationCommodity(self, esM, ip, loc, commod):
         """
         Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 

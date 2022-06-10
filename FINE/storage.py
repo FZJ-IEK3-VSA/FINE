@@ -1479,7 +1479,7 @@ class StorageModel(ComponentModel):
         """Get contributions to shared location potential."""
         return super().getSharedPotentialContribution(pyM, key, loc)
 
-    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
+    def hasOpVariablesForLocationCommodity(self, esM, ip, loc, commod):
         """
         Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 

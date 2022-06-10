@@ -151,31 +151,72 @@ class Conversion(Component):
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
         )
-
-        # Set general conversion data: commodityConversionFactors, physicalUnit, linkedConversionCapacityID
-        utils.checkCommodities(esM, set(commodityConversionFactors.keys()))
-        utils.checkCommodityUnits(esM, physicalUnit)
-        if linkedConversionCapacityID is not None:
-            utils.isString(linkedConversionCapacityID)
+        
+        # new code for commodity conversions
 
         self.commodityConversionFactors = commodityConversionFactors
         self.fullCommodityConversionFactors = {}
         self.aggregatedCommodityConversionFactors = {}
         self.processedCommodityConversionFactors = {}
-        for commod in self.commodityConversionFactors.keys():
-            if not isinstance(self.commodityConversionFactors[commod], (int, float)):
-                self.fullCommodityConversionFactors[
-                    commod
-                ] = utils.checkAndSetTimeSeriesConversionFactors(
-                    esM, commodityConversionFactors[commod], self.locationalEligibility
-                )
-                self.aggregatedCommodityConversionFactors[commod] = None
-            elif isinstance(self.commodityConversionFactors[commod], (int, float)):
-                # self.fullCommodityConversionFactors[commod] = None
-                # self.aggregatedCommodityConversionFactors[commod] = None
-                self.processedCommodityConversionFactors[
-                    commod
-                ] = self.commodityConversionFactors[commod]
+        
+                    
+        for ip in esM.investmentPeriods:
+            # 1. dict aus Jahren -> verschiedene commoditiyconversion für jahr
+            if list(commodityConversionFactors.keys())[0] in esM.investmentPeriods:
+                _commodityConversionFactors=commodityConversionFactors[ip]
+            else:
+                _commodityConversionFactors=commodityConversionFactors
+            
+            utils.checkCommodities(esM, set(_commodityConversionFactors.keys()))
+            utils.checkCommodityUnits(esM, physicalUnit)
+            if linkedConversionCapacityID is not None:
+                utils.isString(linkedConversionCapacityID)
+            self.fullCommodityConversionFactors[ip] = {}
+            self.aggregatedCommodityConversionFactors[ip] = {}
+            self.processedCommodityConversionFactors[ip] = {}
+            
+            for commod in _commodityConversionFactors.keys():
+
+                if not isinstance(_commodityConversionFactors[commod], (int, float)):
+                    self.fullCommodityConversionFactors[ip][
+                        commod
+                    ] = utils.checkAndSetTimeSeriesConversionFactors(
+                        esM, _commodityConversionFactors[commod], self.locationalEligibility
+                    )
+                    self.aggregatedCommodityConversionFactors[ip][commod] = None
+                elif isinstance(self.commodityConversionFactors[commod], (int, float)):
+                    # self.fullCommodityConversionFactors[commod] = None
+                    # self.aggregatedCommodityConversionFactors[commod] = None
+                    self.processedCommodityConversionFactors[ip][
+                        commod
+                    ] = _commodityConversionFactors[commod]
+
+                       
+        # old###################################
+        # Set general conversion data: commodityConversionFactors, physicalUnit, linkedConversionCapacityID
+        # utils.checkCommodities(esM, set(commodityConversionFactors.keys()))
+        # utils.checkCommodityUnits(esM, physicalUnit)
+        # if linkedConversionCapacityID is not None:
+        #     utils.isString(linkedConversionCapacityID)
+
+        # self.commodityConversionFactors = commodityConversionFactors
+        # self.fullCommodityConversionFactors = {}
+        # self.aggregatedCommodityConversionFactors = {}
+        # self.processedCommodityConversionFactors = {}
+        # for commod in self.commodityConversionFactors.keys():
+        #     if not isinstance(self.commodityConversionFactors[commod], (int, float)):
+        #         self.fullCommodityConversionFactors[
+        #             commod
+        #         ] = utils.checkAndSetTimeSeriesConversionFactors(
+        #             esM, commodityConversionFactors[commod], self.locationalEligibility
+        #         )
+        #         self.aggregatedCommodityConversionFactors[commod] = None
+        #     elif isinstance(self.commodityConversionFactors[commod], (int, float)):
+        #         # self.fullCommodityConversionFactors[commod] = None
+        #         # self.aggregatedCommodityConversionFactors[commod] = None
+        #         self.processedCommodityConversionFactors[
+        #             commod
+        #         ] = self.commodityConversionFactors[commod]
 
         self.physicalUnit = physicalUnit
         self.modelingClass = ConversionModel
@@ -332,13 +373,14 @@ class Conversion(Component):
         self.processedOperationRateFix = (
             self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
         )
-        if self.fullCommodityConversionFactors != {}:
-            for commod in self.fullCommodityConversionFactors:
-                self.processedCommodityConversionFactors[commod] = (
-                    self.aggregatedCommodityConversionFactors[commod]
-                    if hasTSA
-                    else self.fullCommodityConversionFactors[commod]
-                )
+        for ip in self.fullCommodityConversionFactors.keys():
+            if self.fullCommodityConversionFactors[ip] != {}:
+                for commod in self.fullCommodityConversionFactors[ip]:
+                    self.processedCommodityConversionFactors[ip][commod] = (
+                        self.aggregatedCommodityConversionFactors[ip][commod]
+                        if hasTSA
+                        else self.fullCommodityConversionFactors[ip][commod]
+                    )
 
     def getDataForTimeSeriesAggregation(self, ip):
         """Function for getting the required data if a time series aggregation is requested.
@@ -384,10 +426,10 @@ class Conversion(Component):
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data, ip)
         self.aggregatedOperationRateMax[ip] = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data, ip)
 
-        if self.fullCommodityConversionFactors != {}:
-            for commod in self.fullCommodityConversionFactors:
-                self.aggregatedCommodityConversionFactors[commod] = self.getTSAOutput(
-                    self.fullCommodityConversionFactors[commod],
+        if self.fullCommodityConversionFactors[ip] != {}:
+            for commod in self.fullCommodityConversionFactors[ip]:
+                self.aggregatedCommodityConversionFactors[ip][commod] = self.getTSAOutput(
+                    self.fullCommodityConversionFactors[ip][commod],
                     "_commodityConversionFactorTimeSeries" + str(commod) + "_",
                     data,
                     ip
@@ -622,7 +664,7 @@ class ConversionModel(ComponentModel):
         """Get contributions to shared location potential."""
         return super().getSharedPotentialContribution(pyM, key, loc)
 
-    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
+    def hasOpVariablesForLocationCommodity(self, esM, ip, loc, commod):
         """
         Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 
@@ -638,8 +680,8 @@ class ConversionModel(ComponentModel):
         return any(
             [
                 (
-                    commod in comp.processedCommodityConversionFactors
-                    and (comp.processedCommodityConversionFactors[commod] is not None)
+                    commod in comp.processedCommodityConversionFactors[ip]
+                    and (comp.processedCommodityConversionFactors[ip][commod] is not None)
                 )
                 and comp.locationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
@@ -658,10 +700,10 @@ class ConversionModel(ComponentModel):
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
 
         def getFactor(commodCommodityConversionFactors, loc, ip, p, t):
-            if isinstance(commodCommodityConversionFactors, (int, float)):
-                return commodCommodityConversionFactors
+            if isinstance(commodCommodityConversionFactors[ip], (int, float)):
+                return commodCommodityConversionFactors[ip]
             else:
-                return commodCommodityConversionFactors[loc][ip, p, t] # ToDo: Now ip dependent
+                return commodCommodityConversionFactors[ip][loc][p, t] # ToDo: Now ip dependent
 
         # return sum(opVar[loc, compName, ip, p, t] * compDict[compName].commodityConversionFactors[commod]
         #            for compName in opVarDict[loc] if commod in compDict[compName].commodityConversionFactors)
@@ -669,14 +711,14 @@ class ConversionModel(ComponentModel):
         return sum(
             opVar[loc, compName, ip, p, t]
             * getFactor(
-                compDict[compName].processedCommodityConversionFactors[commod],
+                compDict[compName].processedCommodityConversionFactors[ip][commod],
                 loc,
                 ip,
                 p,
                 t,
             )
             for compName in opVarDict[loc]
-            if commod in compDict[compName].processedCommodityConversionFactors
+            if commod in compDict[compName].processedCommodityConversionFactors[ip]
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):

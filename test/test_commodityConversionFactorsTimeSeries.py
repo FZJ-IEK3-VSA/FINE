@@ -306,5 +306,9 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
             op_test_const[t], assertion_values_const[t], decimal=1
         )
         np.testing.assert_almost_equal(
-            op_test_var[t], assertion_values_var[t], decimal=1
+            op_test_var[t], assertion_values_var6[t], decimal=1
         )
+
+
+if __name__=="__main__":
+    test_variable_conversion_simple_no_tsa()
