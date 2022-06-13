@@ -398,11 +398,11 @@ class Conversion(Component):
             data,
             ip
         )
-        for commod in self.fullCommodityConversionFactors:
+        for commod in self.fullCommodityConversionFactors[ip]:
             print("\n\n self.fullCommodityConversionFactors[commod]")
-            print(self.fullCommodityConversionFactors[commod])
+            print(self.fullCommodityConversionFactors[ip][commod])
             weightDict, data = self.prepareTSAInput(
-                self.fullCommodityConversionFactors[commod],
+                self.fullCommodityConversionFactors[ip][commod],
                 None,
                 "_commodityConversionFactorTimeSeries" + str(commod) + "_",
                 self.tsaWeight,
@@ -664,7 +664,7 @@ class ConversionModel(ComponentModel):
         """Get contributions to shared location potential."""
         return super().getSharedPotentialContribution(pyM, key, loc)
 
-    def hasOpVariablesForLocationCommodity(self, esM, ip, loc, commod):
+    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
         Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 
@@ -685,6 +685,7 @@ class ConversionModel(ComponentModel):
                 )
                 and comp.locationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
+                for ip in esM.investmentPeriods
             ]
         )
 
@@ -699,11 +700,11 @@ class ConversionModel(ComponentModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDict_' + abbrvName)
 
-        def getFactor(commodCommodityConversionFactors, loc, ip, p, t):
-            if isinstance(commodCommodityConversionFactors[ip], (int, float)):
-                return commodCommodityConversionFactors[ip]
+        def getFactor(commodCommodityConversionFactors, loc, p, t):
+            if isinstance(commodCommodityConversionFactors, (int, float)):
+                return commodCommodityConversionFactors
             else:
-                return commodCommodityConversionFactors[ip][loc][p, t] # ToDo: Now ip dependent
+                return commodCommodityConversionFactors[loc][p, t] # ToDo: Now ip dependent
 
         # return sum(opVar[loc, compName, ip, p, t] * compDict[compName].commodityConversionFactors[commod]
         #            for compName in opVarDict[loc] if commod in compDict[compName].commodityConversionFactors)
@@ -713,7 +714,6 @@ class ConversionModel(ComponentModel):
             * getFactor(
                 compDict[compName].processedCommodityConversionFactors[ip][commod],
                 loc,
-                ip,
                 p,
                 t,
             )

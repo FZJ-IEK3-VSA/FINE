@@ -533,9 +533,18 @@ class Component(metaclass=ABCMeta):
         :rtype: Pandas DataFrame
         """
         if rate is not None:
-            uniqueIdentifiers = [self.name + rateName + loc for loc in rate[ip].columns]
-            data_ = data[uniqueIdentifiers].copy()
-            data_.rename(columns={self.name + rateName + loc: loc for loc in rate[ip].columns}, inplace=True)
+
+            if isinstance(rate, dict):
+                uniqueIdentifiers = [self.name + rateName + loc for loc in rate[ip].columns]
+                data_ = data[uniqueIdentifiers].copy()
+                data_.rename(columns={self.name + rateName + loc: loc for loc in rate[ip].columns}, inplace=True)
+            elif isinstance(rate, pd.DataFrame):
+                uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
+                data_ = data[uniqueIdentifiers].copy()
+                data_.rename(columns={self.name + rateName + loc: loc for loc in rate.columns}, inplace=True)
+            else:
+                raise ValueError
+            #TODO fill Error
             return data_
         else:
             return None
@@ -1682,7 +1691,7 @@ class ComponentModel(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def hasOpVariablesForLocationCommodity(self, esM, ip, loc, commod):
+    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
         Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 

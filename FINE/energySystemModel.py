@@ -1245,28 +1245,27 @@ class EnergySystemModel:
         # are non-trivial (i.e. not 0 == 0; trivial constraints raise errors in pyomo).
         def initLocationCommoditySet(pyM):
             return (
-                (ip, loc, commod)
-                for ip in self.investmentPeriods
+                (loc, commod)
                 for loc in self.locations
                 for commod in self.commodities
                 if any(
                     [
 
-                        mdl.hasOpVariablesForLocationCommodity(self, ip, loc,  commod)
+                        mdl.hasOpVariablesForLocationCommodity(self, loc,  commod)
                         for mdl in self.componentModelingDict.values()
                     ]
                 )
             )
 
         pyM.locationCommoditySet = pyomo.Set(
-            dimen=3, initialize=initLocationCommoditySet
+            dimen=2, initialize=initLocationCommoditySet
         )
 
         # Declare and initialize commodity balance constraints by checking for each location and commodity in the
         # locationCommoditySet and for each period and time step within the period if the commodity source and sink
         # terms add up to zero. For this, get the contribution to commodity balance from each modeling class.
         # To-Do: Perfect Foresight Explanation
-        def commodityBalanceConstraint(pyM, loc, commod, p, t):
+        def commodityBalanceConstraint(pyM, loc, commod, ip, p, t):
             return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, ip, p, t)
                        for ip in self.investmentPeriods for mdl in self.componentModelingDict.values()) == 0
         pyM.commodityBalanceConstraint = pyomo.Constraint(pyM.locationCommoditySet, pyM.timeSet, 

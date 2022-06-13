@@ -592,7 +592,7 @@ class TransmissionModel(ComponentModel):
         """Get contributions to shared location potential."""
         return super().getSharedPotentialContribution(pyM, key, loc)
 
-    def hasOpVariablesForLocationCommodity(self, esM, ip, loc, commod):
+    def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
         Check if the commodity´s transfer between a given location and the other locations of the energy system model
         is eligible.
