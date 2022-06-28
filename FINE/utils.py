@@ -791,6 +791,7 @@ def setLocationalEligibility(
         return locationalEligibility
     else:
         # If the location eligibility is None set it based on other information available
+        # 'if not hasCapacityVariable and all(not isinstance(value,type(None)) for value in operationTimeSeries.values()):'
         if not hasCapacityVariable and operationTimeSeries is not None:
             if dimension == '1dim':
                 data = 0
@@ -810,9 +811,6 @@ def setLocationalEligibility(
                 for ip in esM.investmentPeriods:
                     data += operationTimeSeries[ip].copy().sum()
 
-                #data = operationTimeSeries.copy().sum()
-                #data[data > 0] = 1
-                #return data
                 data.loc[:] = 1
                 locationalEligibility = data
                 print(locationalEligibility)

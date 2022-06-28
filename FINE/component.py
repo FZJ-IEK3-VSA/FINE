@@ -533,7 +533,9 @@ class Component(metaclass=ABCMeta):
         :rtype: Pandas DataFrame
         """
         if rate is not None:
-
+            # if rate[ip] is None:
+            #     return None
+            # elif isinstance(rate, dict):
             if isinstance(rate, dict):
                 uniqueIdentifiers = [self.name + rateName + loc for loc in rate[ip].columns]
                 data_ = data[uniqueIdentifiers].copy()

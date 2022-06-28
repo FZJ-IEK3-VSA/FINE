@@ -305,23 +305,6 @@ class Storage(Component):
         # self.opexPerDischargeOperation = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation, '1dim',
         #                                                                 locationalEligibility)
 
-        # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
-        # and time series aggregation weighting factor
-        # if (
-        #     self.fullChargeOpRateMax is not None
-        #     and self.fullChargeOpRateFix is not None
-        # ):
-        #     self.fullChargeOpRateMax = None
-        #     if esM.verbose < 2:
-        #         warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
-        #                       'The chargeOpRateMax time series was set to None.')
-
-        # self.fullChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
-        # self.aggregatedChargeOpRateMax, self.chargeOpRateMax = None, None
-
-        # self.fullChargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix, locationalEligibility)
-        # self.aggregatedChargeOpRateFix, self.chargeOpRateFix = None, None
-
         ## New code for perfect foresight!
         # create emtpy dicts
         self.chargeOpRateMax = chargeOpRateMax
@@ -334,28 +317,47 @@ class Storage(Component):
         self.aggregatedChargeOpRateFix = {}
         self.processedChargeOpRateFix = {}
         
+
+
+
+        
         # iterate over all ips
         for ip in esM.investmentPeriods:
 
+            #  ugly test to check that for every ip there is either 
+            # chargeOpRateMax or chargeOpRateFix
+            # TODO improve
+            _chargeOpRateMax=chargeOpRateMax[ip] if isinstance(chargeOpRateMax,dict) else chargeOpRateMax
+            _chargeOpRateFix=chargeOpRateFix[ip] if isinstance(chargeOpRateFix,dict) else chargeOpRateFix
+            
+            if (
+                _chargeOpRateMax is not None
+                and _chargeOpRateFix is not None
+            ):
+                if isinstance(chargeOpRateMax,dict):
+                    chargeOpRateMax[ip] = None  
+                else: 
+                    chargeOpRateMax = None  
+                if esM.verbose < 2:
+                    warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
+                                  'The chargeOpRateMax time series was set to None.')
+
+           
             # chargeOpRateMax
-            if isinstance(chargeOpRateMax, pd.DataFrame) or isinstance(chargeOpRateMax, pd.Series) or chargeOpRateMax is None: #chargeOpRateMax is dataframe or series
+            if isinstance(chargeOpRateMax, pd.DataFrame) or isinstance(chargeOpRateMax, pd.Series) or chargeOpRateMax is None: 
                 self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
-            elif isinstance(chargeOpRateMax, dict): # chargeOpRateMax is dict
+            elif isinstance(chargeOpRateMax, dict): 
                 self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax[ip], locationalEligibility)
-            # elif chargeOpRateMax is None:
-            #     pass
             else:
                 raise TypeError('chargeOpRateMax should be a pandas dataframe or a dictionary.')
             
             self.aggregatedChargeOpRateMax[ip], self.processedChargeOpRateMax[ip] = None, None
             
             # chargeOpRateFix
-            if isinstance(chargeOpRateFix, pd.DataFrame) or isinstance(chargeOpRateFix, pd.Series) or chargeOpRateFix is None: #chargeOpRateFix is dataframe or series
+            if isinstance(chargeOpRateFix, pd.DataFrame) or isinstance(chargeOpRateFix, pd.Series) or chargeOpRateFix is None: 
                 self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix, locationalEligibility)
-            elif isinstance(chargeOpRateFix, dict): #chargeOpRateFix is dict
+            elif isinstance(chargeOpRateFix, dict): 
                 self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix[ip], locationalEligibility)
-            # elif chargeOpRateFix is None:
-            #     pass
             else:
                 raise TypeError('chargeOpRateFix should be a pandas dataframe or a dictionary.')
             
@@ -371,10 +373,12 @@ class Storage(Component):
                 self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
                 self.processedPartLoadMin[ip] = partLoadMin[ip]
-
+            else:
+                raise TypeError('partLoadMin should be a float, dict or None.')
+        
+        # TODO delete? set variable per ip!
         if not any(value for value in self.processedPartLoadMin.values()):
             self.processedPartLoadMin = None
-        
         if self.processedPartLoadMin is not None:
             for ip in esM.investmentPeriods:
                 if self.processedPartLoadMin[ip] is not None:
@@ -419,24 +423,20 @@ class Storage(Component):
         for ip in esM.investmentPeriods:
 
             # dischargeOpRateMax
-            if isinstance(dischargeOpRateMax, pd.DataFrame) or isinstance(dischargeOpRateMax, pd.Series) or dischargeOpRateMax is None: #dischargeOpRateMax is dataframe or series
+            if isinstance(dischargeOpRateMax, pd.DataFrame) or isinstance(dischargeOpRateMax, pd.Series) or dischargeOpRateMax is None: 
                 self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax, locationalEligibility)
-            elif isinstance(dischargeOpRateMax, dict): # dischargeOpRateMax is dict
+            elif isinstance(dischargeOpRateMax, dict): 
                 self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax[ip], locationalEligibility)
-            # elif dischargeOpRateMax is None:
-            #     pass
             else:
                 raise TypeError('dischargeOpRateMax should be a pandas dataframe or a dictionary.')
             
             self.aggregatedDischargeOpRateMax[ip], self.processedDischargeOpRateMax[ip] = None, None
             
             # dischargeOpRateFix
-            if isinstance(dischargeOpRateFix, pd.DataFrame) or isinstance(dischargeOpRateFix, pd.Series) or dischargeOpRateFix is None: #dischargeOpRateFix is dataframe or series
+            if isinstance(dischargeOpRateFix, pd.DataFrame) or isinstance(dischargeOpRateFix, pd.Series) or dischargeOpRateFix is None: 
                 self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix, locationalEligibility)
-            elif isinstance(dischargeOpRateFix, dict): #dischargeOpRateFix is dict
+            elif isinstance(dischargeOpRateFix, dict): 
                 self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix[ip], locationalEligibility)
-            # elif dischargeOpRateFix is None:
-            #     pass
             else:
                 raise TypeError('dischargeOpRateFix should be a pandas dataframe or a dictionary.')
             
@@ -807,7 +807,7 @@ class StorageModel(ComponentModel):
                 "stateOfChargeInterPeriods_" + self.abbrvName,
                 pyomo.Var(
                     getattr(pyM, "operationVarSet_" + self.abbrvName),
-                    esM.interPeriodTimeSteps,
+                    pyM.investPeriodInterPeriodSet,
                     domain=pyomo.NonNegativeReals,
                 ),
             )
@@ -903,7 +903,7 @@ class StorageModel(ComponentModel):
         offsetDown = getattr(pyM, "stateOfChargeOffsetDown_" + abbrvName)
 
         if not pyM.hasTSA:
-            def cyclicState(pyM, loc, compName, ip):
+            def cyclicState(pyM, loc, compName, ip,p):
                 offsetUp_ = offsetUp[loc, compName, 0] if (loc, compName, 0) in offsetUp else 0
                 offsetDown_ = offsetDown[loc, compName, 0] if (loc, compName, 0) in offsetDown else 0
                 return SOC[loc, compName, ip, 0, 0] == \
@@ -911,9 +911,7 @@ class StorageModel(ComponentModel):
         else:
             SOCInter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
             # tests for testing the storage class with ip and TSAM
-            #print('SOCInter')
-            #print(SOCInter)
-            def cyclicState(pyM, loc, compName, ip):
+            def cyclicState(pyM, loc, compName, ip,p):
                 # Question to Max: Is this correct?
                 #tLast = esM.interPeriodTimeSteps[-1]
                 tLast = esM.numberOfInterPeriodTimeSteps
@@ -921,7 +919,7 @@ class StorageModel(ComponentModel):
                 offsetDown_ = offsetDown[loc, compName, tLast] if (loc, compName, tLast) in offsetDown else 0
                 return SOCInter[loc, compName, ip, 0] == \
                     SOCInter[loc, compName, ip, tLast] + (offsetUp_ - offsetDown_)
-        setattr(pyM, 'ConstrCyclicState_' + abbrvName, pyomo.Constraint(opVarSet, pyM.investSet, rule=cyclicState))
+        setattr(pyM, 'ConstrCyclicState_' + abbrvName, pyomo.Constraint(opVarSet, pyM.investPeriodInterPeriodSet, rule=cyclicState))
 
     def cyclicLifetime(self, pyM, esM):
         """

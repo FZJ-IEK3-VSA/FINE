@@ -361,21 +361,36 @@ class Source(Component):
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
+            #  ugly test to check that for every ip there is either 
+            # operationRateMax or operationRateFix
+            # TODO improve
+            _operationRateMax=operationRateMax[ip] if isinstance(operationRateMax,dict) else operationRateMax
+            _operationRateFix=operationRateFix[ip] if isinstance(operationRateFix,dict) else operationRateFix
+            
+            if (
+                _operationRateMax is not None
+                and _operationRateFix is not None
+            ):
+                if isinstance(operationRateMax,dict):
+                    operationRateMax[ip] = None  
+                else: 
+                    operationRateMax = None  
+                if esM.verbose < 2:
+                    warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
+                                  'The operationRateMax time series was set to None.')
 
             # Operation Rate Max
-            if isinstance(operationRateMax, pd.DataFrame) or operationRateMax is None or isinstance(operationRateMax, pd.Series): #operationRate is dataframe
+            if isinstance(operationRateMax, pd.DataFrame) or operationRateMax is None or isinstance(operationRateMax, pd.Series): 
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
             elif isinstance(operationRateMax, dict): # operationRate is dict
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax[ip], locationalEligibility)
-            # elif operationRateMax is None:
-            #     pass
             else:
                 raise TypeError('OperationRateMax should be a pandas dataframe or a dictionary.')
             
             self.aggregatedOperationRateMax[ip], self.processedOperationRateMax[ip] = None, None
             
             # Operation Rate Fix
-            if isinstance(operationRateFix, pd.DataFrame) or operationRateFix is None or isinstance(operationRateFix, pd.Series): #operationRate is dataframe
+            if isinstance(operationRateFix, pd.DataFrame) or operationRateFix is None or isinstance(operationRateFix, pd.Series): 
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
             elif isinstance(operationRateFix, dict): #operationRate is dict
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix[ip], locationalEligibility)
@@ -410,7 +425,7 @@ class Source(Component):
                         if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.processedPartLoadMin[ip])).any().any():
                             raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name ) 
 
-       # if self.partLoadMin is not None:
+        # if self.partLoadMin is not None:
         #    if self.fullOperationRateMax is not None:
         #        if ((self.fullOperationRateMax > 0) & (self.fullOperationRateMax < self.partLoadMin)).any().any():
         #            raise ValueError('"fullOperationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
@@ -429,7 +444,7 @@ class Source(Component):
         #     utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
         #                                    self.isBuiltFix, self.hasCapacityVariable, operationTimeSeries)
 
-        # Set locational eligibility
+        # Set locational eligibility (new for PF)
         # new code for perfect foresight
         # self.locationalEligibility = {}
         # catch None values
@@ -437,20 +452,23 @@ class Source(Component):
         #     self.fullOperationRateMax = None
         # if not self.fullOperationRateFix:
         #     self.fullOperationRateFix = None 
-        # tests
-        #print('fullOperationRateFix')
-        #print(self.fullOperationRateFix)
-        #print('fullOperationRateMax')
-        #print(self.fullOperationRateMax)
 
+
+        # TODO OLD, TO DELETE, WRONG (?)
         if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateFix.values()):
             self.fullOperationRateFix=None
-        
         if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateMax.values()):
             self.fullOperationRateMax=None
 
         
         operationTimeSeries = {}
+        # for ip in esM.investmentPeriods:
+        #     if self.fullOperationRateFix[ip] is not None:
+        #         operationTimeSeries[ip] = self.fullOperationRateFix[ip]
+        #     elif self.fullOperationRateMax[ip] is not None:
+        #         operationTimeSeries[ip] = self.fullOperationRateMax[ip]
+        #     else:
+        #         operationTimeSeries[ip] = None
         #for ip in esM.investmentPeriods:
         if self.fullOperationRateFix is not None:
             for ip in esM.investmentPeriods:
@@ -462,15 +480,14 @@ class Source(Component):
         else:
             operationTimeSeries = None
         
-        # tests
-        # print('operationTimeSeries')
-        # print(operationTimeSeries)
-
-        #if all(type(value)!=pd.core.frame.DataFrame for value in operationTimeSeries.values()):
-        #    operationTimeSeries=None
-        
-        #print('operationTimeSeries_after')
-        #print(operationTimeSeries)
+        # check for now, that all years either have # TODO reimplement!
+        # a) all with operationratefix or max
+        # b) all with none
+        # _len_keys=len(operationTimeSeries.keys())
+        # _len_timeseries=len([print(x) for x in operationTimeSeries.values() if not isinstance(x,type(None))])
+        # _len_none=len([print(x) for x in operationTimeSeries.values() if isinstance(x,type(None))])
+        # if _len_keys!=_len_timeseries and _len_keys !=_len_none:
+        #     raise NotImplementedError("For now, all ip-years must have either a) operationRateMax or operationRateFix or b) all years have to habe neither of them. Otherwise it needs code adaptions n setLocationEligibility.")
 
         self.locationalEligibility = \
             utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
