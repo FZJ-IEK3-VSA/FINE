@@ -7,9 +7,11 @@ import logging
 import warnings
 from copy import deepcopy
 import numpy as np
+import pytest
 import shapely
 import xarray as xr
 from shapely.ops import cascaded_union
+import pandas as pd
 
 logger_representation = logging.getLogger("spatial_representation")
 
@@ -307,6 +309,47 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
     return xr_data_array_out
 
 
+def aggregate_esm_parameters_spatially(
+    param_df_in, sub_to_sup_region_id_dict, mode="mean"
+):
+    """
+    For each region group, aggregates the given esm init parameter data.
+
+    :param param_df_in: the dataframe with parameter data
+    :type param_df_in: pd.DataFrame
+
+    :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
+
+        * Ex.: {'01_reg_02_reg': ['01_reg','02_reg'],\n
+            '03_reg_04_reg': ['03_reg','04_reg']}
+
+    :type sub_to_sup_region_id_dict: Dict[str, List[str]]
+
+    **Default arguments:**
+
+    :param mode: Specifies how the data should be aggregated
+        |br| * the default value is 'mean'
+    :type mode: str, one of {"mean", "sum"}
+
+    :returns: param_df_out
+        * Contains aggregated data
+    :rtype: pd.DataFrame
+    """
+
+    new_col_names = list(sub_to_sup_region_id_dict.keys())
+
+    param_df_out = pd.DataFrame(data=0, index=param_df_in.index, columns=new_col_names)
+
+    for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
+        if mode == "mean":
+            param_df_out[sup_region_id] = param_df_in[sub_region_id_list].mean(axis=1)
+
+        if mode == "sum":
+            param_df_out[sup_region_id] = param_df_in[sub_region_id_list].sum(axis=1)
+
+    return param_df_out
+
+
 def aggregate_based_on_sub_to_sup_region_id_dict(
     xarray_datasets, sub_to_sup_region_id_dict, aggregation_function_dict=None
 ):
@@ -356,7 +399,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
         }
 
     # private function to get aggregation mode for a particular variable name
-    def _get_aggregation_mode(varname, comp, comp_ds):
+    def _get_aggregation_mode(varname, comp=None, comp_ds=None):
         # If aggregation_function_dict is passed AND the current variable is in it...
         if (aggregation_function_dict is not None) and (
             varname in aggregation_function_dict.keys()
@@ -413,10 +456,24 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     # Make a copy of xarray_dataset
     aggregated_xr_dataset = deepcopy(xarray_datasets)
 
-    # update locations in 'Parameters'
-    aggregated_xr_dataset.get("Parameters").attrs["locations"] = set(
-        sub_to_sup_region_id_dict.keys()
-    )
+    # update esM Parameters
+    parameters_dict = aggregated_xr_dataset.get("Parameters").attrs
+
+    for varname, vardata in parameters_dict.items():
+
+        if varname == "locations":
+            parameters_dict[varname] = set(sub_to_sup_region_id_dict.keys())
+
+        elif isinstance(vardata, pd.DataFrame):
+            old_locations = xarray_datasets.get("Parameters").attrs["locations"]
+            if set(vardata.columns) == old_locations:
+                aggregation_mode, aggregation_weight = _get_aggregation_mode(varname)
+
+                aggregated_vardata = aggregate_esm_parameters_spatially(
+                    vardata, sub_to_sup_region_id_dict, mode=aggregation_mode
+                )
+
+                parameters_dict[varname] = aggregated_vardata
 
     # Aggregate geometries
     aggregated_xr_dataset["Geometry"] = aggregate_geometries(
