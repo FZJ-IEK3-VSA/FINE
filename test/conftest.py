@@ -2422,6 +2422,7 @@ def dsm_test_esM(scope="session"):
 
     return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
 
+
 @pytest.fixture
 def balanceLimitConstraint_test_esM():
     # 0) Preprocess energy system model
