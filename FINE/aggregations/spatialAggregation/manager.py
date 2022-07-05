@@ -167,7 +167,8 @@ def perform_spatial_aggregation(
             "opexPerChargeOperation": ("mean", None),\n
             "opexPerDischargeOperation": ("mean", None),\n
             "QPcostScale": ("sum", None),\n
-            "technicalLifetime": ("mean", None)\n
+            "technicalLifetime": ("mean", None),\n
+            "balanceLimit": ("sum", None)\n
             }
 
         |br| * the default value is None
@@ -293,6 +294,7 @@ def perform_spatial_aggregation(
         "opexPerDischargeOperation": ("mean", None),
         "QPcostScale": ("sum", None),
         "technicalLifetime": ("mean", None),
+        "balanceLimit": ("sum", None),
     }
 
     aggregation_function_dict = kwargs.get("aggregation_function_dict", None)
