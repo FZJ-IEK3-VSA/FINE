@@ -16,7 +16,7 @@ import numpy as np
 
 
 def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
-    
+
     esM, losses, distances, balanceLimit = balanceLimitConstraint_test_esM
 
     # 1) Optimize model
