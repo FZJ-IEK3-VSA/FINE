@@ -2421,3 +2421,268 @@ def dsm_test_esM(scope="session"):
     )
 
     return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
+
+@pytest.fixture
+def balanceLimitConstraint_test_esM():
+    # 0) Preprocess energy system model
+    locations = {"Region1", "Region2"}
+    commodityUnitDict = {"electricity": r"MW$_{el}$", "heat": r"MW$_{th}$"}
+    commodities = {"electricity", "heat"}
+    ndays = 30
+    nhours = 24 * ndays
+
+    # Electricity Demand
+    dailyProfileSimple = [
+        0.6,
+        0.6,
+        0.6,
+        0.6,
+        0.6,
+        0.7,
+        0.9,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0.9,
+        0.8,
+    ]
+    demand = pd.DataFrame(
+        [
+            [(u + 0.1 * np.random.rand()) * 40, (u + 0.1 * np.random.rand()) * 60]
+            for day in range(ndays)
+            for u in dailyProfileSimple
+        ],
+        index=range(nhours),
+        columns=["Region1", "Region2"],
+    ).round(2)
+    heat_demand = pd.DataFrame(
+        [
+            [(u + 0.1 * np.random.rand()) * 10, (u + 0.1 * np.random.rand()) * 20]
+            for day in range(ndays)
+            for u in dailyProfileSimple
+        ],
+        index=range(nhours),
+        columns=["Region1", "Region2"],
+    ).round(2)
+    # 1) Define balanceLimit constraint in relation to demand in regions
+    balanceLimit = pd.DataFrame(columns=["Region1", "Region2"], index=["el", "heat"])
+    perNetAutarky = 0.75
+    perNetAutarky_h = 1
+    balanceLimit.loc["el"] = (1 - perNetAutarky) * demand.sum()
+    balanceLimit.loc["heat"] = (1 - perNetAutarky_h) * heat_demand.sum()
+
+    # 2) Initialize esM with two regions
+    esM = fn.EnergySystemModel(
+        locations=locations,
+        commodities=commodities,
+        numberOfTimeSteps=nhours,
+        commodityUnitsDict=commodityUnitDict,
+        hoursPerTimeStep=1,
+        costUnit="1e6 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        balanceLimit=balanceLimit,
+    )
+
+    # 3) Components are added: 'Electricity demand', 'Heat demand', 'Electricity purchase', 'Heat purchase',
+    # 'Heat pump', 'Wind turbines', 'PV', 'Batteries', 'AC cables', 'Heat pipes'
+
+    # Define Electricity demand and added to Energysystem
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Electricity demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+    # Define Heat demand and added to Energysystem
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Heat demand",
+            commodity="heat",
+            hasCapacityVariable=False,
+            operationRateFix=heat_demand,
+        )
+    )
+
+    # Define Cheap purchase 'Electricity purchase' and 'Heat purchase', which incentives to purchase,
+    # but is limited because of balanceLimit
+    # added to Energysystem
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Electricity purchase",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            commodityCost=0.001,
+            balanceLimitID="el",
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Heat purchase",
+            commodity="heat",
+            hasCapacityVariable=False,
+            commodityCost=0.001,
+            balanceLimitID="heat",
+        )
+    )
+    # Define heatpump and added to Energysystem
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="heatpump",
+            physicalUnit=r"MW$_{el}$",
+            commodityConversionFactors={
+                "electricity": -1,
+                "heat": 2.5,
+            },
+            hasCapacityVariable=True,
+            capacityMax=1e6,
+            investPerCapacity=0.95,
+            opexPerCapacity=0.95 * 0.01,
+            interestRate=0.08,
+            economicLifetime=33,
+        )
+    )
+    # Define Wind turbines and added to Energysystem
+    operationRateMax = pd.DataFrame(
+        [[np.random.beta(a=2, b=7.5), np.random.beta(a=2, b=9)] for t in range(nhours)],
+        index=range(nhours),
+        columns=["Region1", "Region2"],
+    ).round(6)
+    capacityMax = pd.Series([400, 200], index=["Region1", "Region2"])
+    investPerCapacity, opexPerCapacity = 1200, 1200 * 0.02
+    interestRate, economicLifetime = 0.08, 20
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Wind turbines",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=operationRateMax,
+            capacityMax=capacityMax,
+            investPerCapacity=investPerCapacity,
+            opexPerCapacity=opexPerCapacity,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+        )
+    )
+
+    # Define PV and added to Energysystem
+    operationRateMax = pd.DataFrame(
+        [[u, u] for day in range(ndays) for u in dailyProfileSimple],
+        index=range(nhours),
+        columns=["Region1", "Region2"],
+    )
+    capacityMax = pd.Series([100, 100], index=["Region1", "Region2"])
+    investPerCapacity, opexPerCapacity = 800, 800 * 0.02
+    interestRate, economicLifetime = 0.08, 25
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=operationRateMax,
+            capacityMax=capacityMax,
+            investPerCapacity=investPerCapacity,
+            opexPerCapacity=opexPerCapacity,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+        )
+    )
+
+    # Define Batteries and added to Energysystem
+    chargeEfficiency, dischargeEfficiency, selfDischarge = (
+        0.95,
+        0.95,
+        1 - (1 - 0.03) ** (1 / (30 * 24)),
+    )
+    chargeRate, dischargeRate = 1, 1
+    investPerCapacity, opexPerCapacity = 150, 150 * 0.01
+    interestRate, economicLifetime, cyclicLifetime = 0.08, 22, 10000
+
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Batteries",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            chargeEfficiency=chargeEfficiency,
+            cyclicLifetime=cyclicLifetime,
+            dischargeEfficiency=dischargeEfficiency,
+            selfDischarge=selfDischarge,
+            chargeRate=chargeRate,
+            dischargeRate=dischargeRate,
+            investPerCapacity=investPerCapacity,
+            opexPerCapacity=opexPerCapacity,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+        )
+    )
+
+    # Transmission Components
+    # Define AC Cables and added to Energysystem
+    capacityFix = pd.DataFrame(
+        [[0, 30], [30, 0]], columns=["Region1", "Region2"], index=["Region1", "Region2"]
+    )
+    distances = pd.DataFrame(
+        [[0, 400], [400, 0]],
+        columns=["Region1", "Region2"],
+        index=["Region1", "Region2"],
+    )
+    losses = 0.0001
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="AC cables",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            capacityFix=capacityFix,
+            distances=distances,
+            losses=losses,
+            balanceLimitID="el",
+        )
+    )
+
+    # Define Heat pipes and added to Energysystem
+    capacityFix = pd.DataFrame(
+        [[0, 30], [30, 0]], columns=["Region1", "Region2"], index=["Region1", "Region2"]
+    )
+    distances = pd.DataFrame(
+        [[0, 400], [400, 0]],
+        columns=["Region1", "Region2"],
+        index=["Region1", "Region2"],
+    )
+    losses = 0.0001
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="Heat pipes",
+            commodity="heat",
+            hasCapacityVariable=True,
+            capacityFix=capacityFix,
+            distances=distances,
+            losses=losses,
+            balanceLimitID="heat",
+        )
+    )
+
+    return esM, losses, distances, balanceLimit
