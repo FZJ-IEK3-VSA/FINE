@@ -152,8 +152,12 @@ class Conversion(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
         )
         
+        
+        # check if parameter has None values, if it is a dict
+        for param in [operationRateMax,operationRateFix,partLoadMin]:
+            utils.checkParamInput(param)    
+            
         # new code for commodity conversions
-
         self.commodityConversionFactors = commodityConversionFactors
         self.fullCommodityConversionFactors = {}
         self.aggregatedCommodityConversionFactors = {}

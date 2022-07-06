@@ -791,7 +791,7 @@ def setLocationalEligibility(
         return locationalEligibility
     else:
         # If the location eligibility is None set it based on other information available
-        # 'if not hasCapacityVariable and all(not isinstance(value,type(None)) for value in operationTimeSeries.values()):'
+        # if not hasCapacityVariable and all(not isinstance(value,type(None)) for value in operationTimeSeries.values()):
         if not hasCapacityVariable and operationTimeSeries is not None:
             if dimension == '1dim':
                 data = 0
@@ -1853,3 +1853,10 @@ def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
             "yearlyLimit",
             CO2Reference * (1 - CO2ReductionTargets[step] / 100),
         )
+
+def checkParamInput(param):
+    if isinstance(param,dict):
+        for key, value in param.items():
+            if value is None:
+                raise ValueError(
+                f"Currently a dict containing None values cannot be passed for '{param}'")  

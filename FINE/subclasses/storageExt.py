@@ -1,3 +1,4 @@
+from pickle import NONE
 from FINE.component import Component, ComponentModel
 from FINE.storage import Storage, StorageModel
 from FINE import utils
@@ -165,12 +166,36 @@ class StorageExtBETA(Storage):
         # Set locational eligibility
         timeSeriesData = {}
         for ip in esM.investmentPeriods:
-            tsNb = sum([0 if data is None else 1 for data in [self.chargeOpRateMax[ip], self.chargeOpRateFix[ip], self.dischargeOpRateMax[ip],
-                        self.dischargeOpRateFix[ip], self.stateOfChargeOpRateMax[ip], self.stateOfChargeOpRateFix[ip]]])
-            if tsNb > 0:
-                timeSeriesData[ip] = sum([data for data in [self.chargeOpRateMax[ip], self.chargeOpRateFix[ip], self.dischargeOpRateMax[ip],
-                                    self.dischargeOpRateFix[ip], self.stateOfChargeOpRateMax[ip], self.stateOfChargeOpRateFix[ip]]
-                                    if data is not None])
+            tsNb=0
+            for data in [self.chargeOpRateMax, self.chargeOpRateFix, self.dischargeOpRateMax,
+                        self.dischargeOpRateFix, self.stateOfChargeOpRateMax, self.stateOfChargeOpRateFix]:
+                if data is None:
+                    tsNb+=0
+                elif isinstance(data,dict): # and all None!
+                    tsNb+=0
+                else:
+                    tsNb+=1
+            
+            if tsNb >0:
+                _sum=0
+                for data in [self.chargeOpRateMax, self.chargeOpRateFix, self.dischargeOpRateMax,
+                        self.dischargeOpRateFix, self.stateOfChargeOpRateMax, self.stateOfChargeOpRateFix]:
+                    if data is None:
+                        tsNb+=0
+                    elif isinstance(data,dict): # and all None!
+                        tsNb+=_sum[ip]
+                    else:
+                        tsNb+=_sum                
+                timeSeriesData[ip] = _sum
+            
+            
+        # for ip in esM.investmentPeriods:    
+        #     tsNb = sum([0 if data is None elif 0 if isinstance(data,dict) and NOT ALL NONE  else 1 for data in [self.chargeOpRateMax[ip], self.chargeOpRateFix[ip], self.dischargeOpRateMax[ip],
+        #                 self.dischargeOpRateFix[ip], self.stateOfChargeOpRateMax[ip], self.stateOfChargeOpRateFix[ip]]])
+        #     if tsNb > 0:
+        #         timeSeriesData[ip] = sum([data for data in [self.chargeOpRateMax[ip], self.chargeOpRateFix[ip], self.dischargeOpRateMax[ip],
+        #                             self.dischargeOpRateFix[ip], self.stateOfChargeOpRateMax[ip], self.stateOfChargeOpRateFix[ip]]
+        #                             if data is not None])
 
         # timeSeriesData = None
         # tsNb = sum([0 if data is None else 1 for data in [self.chargeOpRateMax, self.chargeOpRateFix, self.dischargeOpRateMax,
@@ -227,7 +252,7 @@ class StorageExtBETA(Storage):
             if hasTSA
             else self.fullStateOfChargeOpRateMax
         )
-        self.processedDtateOfChargeOpRateFix = (
+        self.processedStateOfChargeOpRateFix = (
             self.aggregatedStateOfChargeOpRateFix
             if hasTSA
             else self.fullStateOfChargeOpRateFix

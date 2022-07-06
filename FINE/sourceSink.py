@@ -222,6 +222,11 @@ class Source(Component):
         self.balanceLimitID = balanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
+        
+        # check if parameter has None values, if it is a dict
+        for param in [operationRateMax,operationRateFix,partLoadMin,commodityCostTimeSeries,commodityRevenueTimeSeries]:
+            utils.checkParamInput(param)     
+        
         # Addition for perfect foresight
         # Set additional economic data: opexPerOperation, commodityCost, commodityRevenue
         # self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
@@ -238,6 +243,16 @@ class Source(Component):
         self.processedOpexPerOperation = {}
         self.processedCommodityCost= {}
         self.processedCommodityRevenue = {}
+
+        self.commodityCostTimeSeries = commodityCostTimeSeries
+        self.fullCommodityCostTimeSeries = {}
+        self.aggregatedCommodityCostTimeSeries = {}
+        self.processedCommodityCostTimeSeries = {}
+
+        self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
+        self.fullCommodityRevenueTimeSeries = {}
+        self.aggregatedCommodityRevenueTimeSeries = {}
+        self.processedCommodityRevenueTimeSeries = {}
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -289,15 +304,11 @@ class Source(Component):
 
         ## New code for perfect foresight!
         # create emtpy dicts
-        self.commodityCostTimeSeries = commodityCostTimeSeries
-        self.fullCommodityCostTimeSeries = {}
-        self.aggregatedCommodityCostTimeSeries = {}
-        self.processedCommodityCostTimeSeries = {}
 
-        self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
-        self.fullCommodityRevenueTimeSeries = {}
-        self.aggregatedCommodityRevenueTimeSeries = {}
-        self.processedCommodityRevenueTimeSeries = {}
+        
+        
+
+
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -327,11 +338,7 @@ class Source(Component):
             self.aggregatedCommodityRevenueTimeSeries[ip], self.processedCommodityRevenueTimeSeries[ip] = None, None
 
 
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullCommodityCostTimeSeries.values()):
-            self.fullCommodityCostTimeSeries=None
-        
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullCommodityRevenueTimeSeries.values()):
-            self.fullCommodityRevenueTimeSeries=None
+
 
 
         # # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
@@ -454,27 +461,24 @@ class Source(Component):
         #     self.fullOperationRateFix = None 
 
 
-        # TODO OLD, TO DELETE, WRONG (?)
+
         if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateFix.values()):
             self.fullOperationRateFix=None
         if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateMax.values()):
             self.fullOperationRateMax=None
+        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullCommodityCostTimeSeries.values()):
+            self.fullCommodityCostTimeSeries=None
+        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullCommodityRevenueTimeSeries.values()):
+            self.fullCommodityRevenueTimeSeries=None
 
         
         operationTimeSeries = {}
-        # for ip in esM.investmentPeriods:
-        #     if self.fullOperationRateFix[ip] is not None:
-        #         operationTimeSeries[ip] = self.fullOperationRateFix[ip]
-        #     elif self.fullOperationRateMax[ip] is not None:
-        #         operationTimeSeries[ip] = self.fullOperationRateMax[ip]
-        #     else:
-        #         operationTimeSeries[ip] = None
+
         #for ip in esM.investmentPeriods:
         if self.fullOperationRateFix is not None:
             for ip in esM.investmentPeriods:
                 operationTimeSeries[ip] = self.fullOperationRateFix[ip]
         elif self.fullOperationRateMax is not None:
-        #else:
             for ip in esM.investmentPeriods:
                 operationTimeSeries[ip] = self.fullOperationRateMax[ip]
         else:

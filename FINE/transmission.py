@@ -262,7 +262,11 @@ class Transmission(Component):
         self.processedOperationRateFix = {}
         self.partLoadMin=partLoadMin
         self.processedPartLoadMin = {}     
-                   
+
+        for param in [operationRateMax ,operationRateFix, partLoadMin]:
+            utils.checkParamInput(param)
+
+
         # iterate over all ips
         for ip in esM.investmentPeriods:
             self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC) # ToDo: New in develop branch. Check the functionality
@@ -316,8 +320,7 @@ class Transmission(Component):
                         if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.processedPartLoadMin[ip])).any().any():
                             raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name ) 
 
-        if not any(value for value in self.processedPartLoadMin.values()):
-            self.processedPartLoadMin = None
+
         
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
@@ -325,10 +328,10 @@ class Transmission(Component):
         # New code for perfect foresight
         if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateFix.values()):
             self.fullOperationRateFix=None
-        
         if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateMax.values()):
             self.fullOperationRateMax=None
-
+        if not any(value for value in self.processedPartLoadMin.values()):
+            self.processedPartLoadMin = None
 
     def addToEnergySystemModel(self, esM):
         """

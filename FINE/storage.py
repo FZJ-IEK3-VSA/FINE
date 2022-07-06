@@ -30,7 +30,7 @@ class Storage(Component):
         hasIsBuiltBinaryVariable=False,
         bigM=None,
         doPreciseTsaModeling=False,
-        chargeOpRateMax=None,
+        chargeOpRateMax=None,   
         chargeOpRateFix=None,
         chargeTsaWeight=1,
         dischargeOpRateMax=None,
@@ -270,14 +270,25 @@ class Storage(Component):
         self.socOffsetDown = socOffsetDown
         self.modelingClass = StorageModel
 
-
+        for param in [chargeOpRateMax, chargeOpRateFix, partLoadMin]:
+            utils.checkParamInput(param)
+            
         ## New code for perfect foresight!
         # create emtpy dicts
         self.opexPerChargeOperation = opexPerChargeOperation
         self.opexPerDischargeOperation = opexPerDischargeOperation
         self.processedOpexPerChargeOperation = {}
         self.processedOpexPerDischargeOperation = {}
-        
+
+        self.chargeOpRateMax = chargeOpRateMax
+        self.fullChargeOpRateMax = {}
+        self.aggregatedChargeOpRateMax = {}
+        self.processedChargeOpRateMax = {}
+
+        self.chargeOpRateFix = chargeOpRateFix
+        self.fullChargeOpRateFix = {}
+        self.aggregatedChargeOpRateFix = {}
+        self.processedChargeOpRateFix = {}
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -305,24 +316,8 @@ class Storage(Component):
         # self.opexPerDischargeOperation = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation, '1dim',
         #                                                                 locationalEligibility)
 
-        ## New code for perfect foresight!
-        # create emtpy dicts
-        self.chargeOpRateMax = chargeOpRateMax
-        self.fullChargeOpRateMax = {}
-        self.aggregatedChargeOpRateMax = {}
-        self.processedChargeOpRateMax = {}
-
-        self.chargeOpRateFix = chargeOpRateFix
-        self.fullChargeOpRateFix = {}
-        self.aggregatedChargeOpRateFix = {}
-        self.processedChargeOpRateFix = {}
         
 
-
-
-        
-        # iterate over all ips
-        for ip in esM.investmentPeriods:
 
             #  ugly test to check that for every ip there is either 
             # chargeOpRateMax or chargeOpRateFix
