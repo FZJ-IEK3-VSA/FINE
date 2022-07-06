@@ -118,15 +118,18 @@ def aggregate_time_series_spatially(
         if mode == "weighted mean":
             weighted_xr_data_array_in = xr_data_array_in * xr_weight_array
 
-            xr_data_array_out.loc[
-                dict(space=sup_region_id)
-            ] = weighted_xr_data_array_in.sel(space=sub_region_id_list).sum(
-                dim="space", skipna=False
-            ) / xr_weight_array.sel(
-                space=sub_region_id_list
-            ).sum(
-                dim="space", skipna=False
-            )
+            if xr_weight_array.sel(space=sub_region_id_list).sum(dim="space", skipna=False) == 0:
+                xr_data_array_out.loc[dict(space=sup_region_id)] = 0
+            else:
+                xr_data_array_out.loc[
+                    dict(space=sup_region_id)
+                ] = weighted_xr_data_array_in.sel(space=sub_region_id_list).sum(
+                    dim="space", skipna=False
+                ) / xr_weight_array.sel(
+                    space=sub_region_id_list
+                ).sum(
+                    dim="space", skipna=False
+                )
 
         if mode == "sum":
             xr_data_array_out.loc[dict(space=sup_region_id)] = (
