@@ -1301,7 +1301,8 @@ class EnergySystemModel:
         # To-Do: Perfect Foresight Explanation
         def commodityBalanceConstraint(pyM, loc, commod, ip, p, t):
             return sum(mdl.getCommodityBalanceContribution(pyM, commod, loc, ip, p, t)
-                       for ip in self.investmentPeriods for mdl in self.componentModelingDict.values()) == 0
+                       # for ip in self.investmentPeriods
+                       for mdl in self.componentModelingDict.values()) == 0
         pyM.commodityBalanceConstraint = pyomo.Constraint(pyM.locationCommoditySet, pyM.timeSet,
                                                           rule=commodityBalanceConstraint)
 
