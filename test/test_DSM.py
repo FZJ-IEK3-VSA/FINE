@@ -36,15 +36,15 @@ def test_DSM(dsm_test_esM):
 
     # benchmark generation without dsm
     cheap_without_dsm = load_without_dsm.clip(0, cheap_capacity).copy()
-    cheap_without_dsm.name = ('cheap', 0, 'location')
+    cheap_without_dsm.name = ('cheap', 'location')
     expensive_without_dsm = load_without_dsm - cheap_without_dsm
-    expensive_without_dsm.name = ('expensive', 0, 'location')
+    expensive_without_dsm.name = ('expensive', 'location')
 
     # test without dsm
     print('generator_outputs')
     print(generator_outputs)
-    pd.testing.assert_series_equal(generator_outputs.loc[('cheap', 0, 'location')], cheap_without_dsm)
-    pd.testing.assert_series_equal(generator_outputs.loc[('expensive', 0, 'location')], expensive_without_dsm)
+    pd.testing.assert_series_equal(generator_outputs.loc[('cheap', 'location')], cheap_without_dsm)
+    pd.testing.assert_series_equal(generator_outputs.loc[('expensive', 'location')], expensive_without_dsm)
 
     # add DSM
     tFwd = 3
@@ -166,3 +166,76 @@ def test_DSM(dsm_test_esM):
     pd.testing.assert_series_equal(generator_outputs.loc[('cheap',0 , 'location')], cheap_with_dsm)
     pd.testing.assert_series_equal(generator_outputs.loc[('expensive',0 , 'location')], expensive_with_dsm)
     pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand',0 , 'location')], load_with_dsm)
+
+
+
+def dsm_test_esM(scope="session"):
+    """
+    Generate a simple energy system model with one node, two fixed generators and one load time series
+    for testing demand side management functionality.
+    """
+    # load without dsm
+    now = pd.Timestamp.now().round("h")
+    number_of_time_steps = 28
+    # t_index = pd.date_range(now, now + pd.DateOffset(hours=number_of_timeSteps - 1), freq='h')
+    t_index = range(number_of_time_steps)
+    load_without_dsm = pd.Series([80.0] * number_of_time_steps, index=t_index)
+
+    timestep_up = 10
+    timestep_down = 20
+    load_without_dsm[timestep_up:timestep_down] += 40.0
+
+    time_shift = 3
+    cheap_capacity = 100.0
+    expensive_capacity = 20.0
+
+    # set up energy model
+    esM = fn.EnergySystemModel(
+        locations={"location"},
+        commodities={"electricity"},
+        numberOfTimeSteps=number_of_time_steps,
+        commodityUnitsDict={"electricity": r"MW$_{el}$"},
+        hoursPerTimeStep=1,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="cheap",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateMax=pd.Series(cheap_capacity, index=t_index),
+            opexPerOperation=25,
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="expensive",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateMax=pd.Series(expensive_capacity, index=t_index),
+            opexPerOperation=50,
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="back-up",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateMax=pd.Series(1000, index=t_index),
+            opexPerOperation=1000,
+        )
+    )
+
+    return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
+
+
+
+
+if __name__ == "__main__":
+    _test=dsm_test_esM()
+    test_DSM(_test)
