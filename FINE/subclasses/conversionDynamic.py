@@ -346,37 +346,46 @@ class ConversionDynamicModel(ConversionModel):
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
 
-        def minimumUpTime1(pyM, loc, compName, p, t):
-            downTimeMin = getattr(compDict[compName], "downTimeMin")
-            if t >= 1 and downTimeMin == None:  # avoid to set constraints twice
+        # def minimumUpTime1(pyM, loc, compName, p, t):
+        #     downTimeMin = getattr(compDict[compName], "downTimeMin")
+        #     if t >= 1 and downTimeMin == None:  # avoid to set constraints twice
+        #         return (
+        #             opVarBin[loc, compName, p, t]
+        #             - opVarBin[loc, compName, p, t - 1]
+        #             - opVarStartBin[loc, compName, p, t]
+        #             + opVarStopBin[loc, compName, p, t]
+        #             == 0
+        #         )
+        #     else:
+        #         numberOfTimeSteps = len(esM.segmentsPerPeriod)
+    
+        def minimumUpTime1(pyM, loc, compName, ip, p, t):
+            downTimeMin = getattr(compDict[compName], 'downTimeMin')
+            if (t>=1 and downTimeMin==None): # avoid to set constraints twice
                 return (
-                    opVarBin[loc, compName, p, t]
-                    - opVarBin[loc, compName, p, t - 1]
-                    - opVarStartBin[loc, compName, p, t]
-                    + opVarStopBin[loc, compName, p, t]
-                    == 0
-                )
+                    opVarBin[loc, compName, ip, p, t]
+                    -opVarBin[loc, compName, ip, p, t-1]
+                    -opVarStartBin[loc, compName, ip, p, t]
+                    +opVarStopBin[loc, compName, ip, p, t] 
+                    == 0)
             else:
-                numberOfTimeSteps = len(esM.segmentsPerPeriod)
-    
-            def minimumUpTime1(pyM, loc, compName, ip, p, t):
-                downTimeMin = getattr(compDict[compName], 'downTimeMin')
-                if (t>=1 and downTimeMin==None): # avoid to set constraints twice
-                    return (opVarBin[loc, compName, ip, p, t]-opVarBin[loc, compName, ip, p, t-1]-opVarStartBin[loc, compName, ip, p, t]+opVarStopBin[loc, compName, ip, p, t] == 0)
-                else:
-                    return (opVarBin[loc, compName, ip, p, t]-opVarBin[loc, compName, ip, p, numberOfTimeSteps-1]-opVarStartBin[loc, compName, ip, p, t] \
-                        + opVarStopBin[loc, compName, ip, p, t] == 0)
-            setattr(pyM, 'ConstrMinUpTime1_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime1))
-              
-            def minimumUpTime2(pyM, loc, compName, ip, p, t):
-                upTimeMin = getattr(compDict[compName], 'upTimeMin')
-                if t >= upTimeMin:
-                    return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(t-upTimeMin+1, t))
-                else:
-                    return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(0, t)) \
-                        + pyomo.quicksum(opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(numberOfTimeSteps-(upTimeMin-t), numberOfTimeSteps))
-    
-            setattr(pyM, 'ConstrMinUpTime2_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime2))    
+                return (
+                    opVarBin[loc, compName, ip, p, t]
+                    -opVarBin[loc, compName, ip, p, numberOfTimeSteps-1]
+                    -opVarStartBin[loc, compName, ip, p, t] \
+                    + opVarStopBin[loc, compName, ip, p, t] 
+                    == 0)
+        setattr(pyM, 'ConstrMinUpTime1_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime1))
+            
+        def minimumUpTime2(pyM, loc, compName, ip, p, t):
+            upTimeMin = getattr(compDict[compName], 'upTimeMin')
+            if t >= upTimeMin:
+                return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(t-upTimeMin+1, t))
+            else:
+                return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(0, t)) \
+                    + pyomo.quicksum(opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(numberOfTimeSteps-(upTimeMin-t), numberOfTimeSteps))
+
+        setattr(pyM, 'ConstrMinUpTime2_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime2))    
     
     
     def rampUpMax(self, pyM, esM):
