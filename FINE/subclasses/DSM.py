@@ -345,14 +345,14 @@ class DSMModel(SourceSinkModel):
 
             # ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
-                if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
+                if esM.getComponent(compName + '_' + str(i)).processedOpexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
                     ixDown = str(i)
                     break
 
             ixUp = [str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown]
 
             return (sum(chargeOp[loc, compName + '_' + compName_i, ip, p, t] for compName_i in ixUp) +
-                    (esM.getComponent(compName + '_' + ixDown).chargeOpRateMax[ip].loc[(p, t), loc] -
+                    (esM.getComponent(compName + '_' + ixDown).processedChargeOpRateMax[ip].loc[(p, t), loc] -
                      chargeOp[loc, compName + '_' + ixDown, ip, p, t]) <=
                     max(compDict[compName].shiftUpMax[ip], compDict[compName].shiftDownMax[ip]))
 
@@ -379,7 +379,7 @@ class DSMModel(SourceSinkModel):
             
             # ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
-                if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
+                if esM.getComponent(compName + '_' + str(i)).processedOpexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
                     ixDown = str(i)
                     break
             ixUp = [str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown]
@@ -410,15 +410,12 @@ class DSMModel(SourceSinkModel):
 
             # ixDown = str((compDict[compName].tBwd + t) % compDict[compName].tDelta)
             for i in range(compDict[compName].tDelta):
-                if esM.getComponent(compName + '_' + str(i)).opexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
+                if esM.getComponent(compName + '_' + str(i)).processedOpexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
                     ixDown = str(i)
                     break
 
-            return (esM.getComponent(compName + '_' + ixDown).chargeOpRateMax[ip].loc[(p, t), loc] - 
+            return (esM.getComponent(compName + '_' + ixDown).processedChargeOpRateMax[ip].loc[(p, t), loc] - 
                     chargeOp[loc, compName + '_' + ixDown, ip, p, t] <= compDict[compName].shiftDownMax[ip])
-
-        setattr(pyM, 'shiftDownMax_' + abbrvName,
-                pyomo.Constraint(constrSet, pyM.timeSet, rule=shiftDownMax))
 
         setattr(
             pyM,
@@ -514,8 +511,8 @@ class DSMModel(SourceSinkModel):
         ).sort_index()
 
         if optVal is not None:
-            idx = pd.IndexSlice
-            optVal = optVal.loc[idx[:,ip,:],:] # perfect foresight: added ip
+            # idx = pd.IndexSlice
+            # optVal = optVal.loc[idx[:,:],:] # perfect foresight: added ip
             optVal = optVal.droplevel([1])
 
             opSum = optVal.sum(axis=1).unstack(-1)

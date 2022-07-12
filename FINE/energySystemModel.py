@@ -1740,7 +1740,7 @@ class EnergySystemModel:
                 # if only one ip
                 if self.numberOfInvestmentPeriods == 1:
                     mdl.optSummary = mdl.optSummary[0]
-                    if key is "StorageModel":
+                    if key is "StorageModel" or key is "StorageExtModel":
                         mdl.stateOfChargeOperationVariablesOptimum = mdl.stateOfChargeOperationVariablesOptimum[
                             0]
 
@@ -1751,6 +1751,9 @@ class EnergySystemModel:
                             0]
                     else:
                         mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
+                # TODO fill ValueError
+                else:
+                    raise ValueError()
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()

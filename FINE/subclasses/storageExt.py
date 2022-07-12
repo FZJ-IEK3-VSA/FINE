@@ -381,8 +381,8 @@ class StorageExtModel(StorageModel):
         self.declareOperationModeSets(
             pyM,
             "stateOfChargeOpConstrSet",
-            "stateOfChargeOpRateMax",
-            "stateOfChargeOpRateFix",
+            "processedStateOfChargeOpRateMax",
+            "processedStateOfChargeOpRateFix",
         )
 
     ####################################################################################################################
