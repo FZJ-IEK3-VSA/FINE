@@ -565,16 +565,21 @@ class Source(Component):
         Check aggregated time series data after applying time series aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
-
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateFix.values()):
             self.aggregatedOperationRateFix=None
-
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateMax.values()):
             self.aggregatedOperationRateMax=None
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedCommodityCostTimeSeries.values()):
             self.aggregatedCommodityCostTimeSeries=None
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedCommodityRevenueTimeSeries.values()):
             self.aggregatedCommodityRevenueTimeSeries=None
+
+    def initializeProcessedDataSets(self,investmentperiods):# new function for time series aggregation with perfect foresight
+        self.aggregatedOperationRateFix=dict.fromkeys(investmentperiods)
+        self.aggregatedOperationRateMax=dict.fromkeys(investmentperiods)
+        self.aggregatedCommodityCostTimeSeries=dict.fromkeys(investmentperiods)
+        self.aggregatedCommodityRevenueTimeSeries=dict.fromkeys(investmentperiods)
+        
 
 class Sink(Source):
     """
@@ -1073,9 +1078,6 @@ class SourceSinkModel(ComponentModel):
         optSummary = pd.DataFrame(index=mIndex, columns=sorted(esM.locations)).sort_index()
 # print commands just for testing purposes
         if optVal is not None:
-            idx = pd.IndexSlice
-            optVal = optVal.loc[idx[:,:],:] # perfect foresight: added ip and deleted again
-            # optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
             #print("opSum")
             #print(opSum)

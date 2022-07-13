@@ -822,6 +822,7 @@ class EnergySystemModel:
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as time step number per typical period.
                 data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+                
             # Store the respective clustered time series data in the associated components
             # To-Do: Continue here
             for mdlName, mdl in self.componentModelingDict.items():  # for-loop for ip
@@ -919,6 +920,7 @@ class EnergySystemModel:
         pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
             for comp in mdl.componentsDict.values():
+                comp.initializeProcessedDataSets(self.investmentPeriods)
                 comp.setTimeSeriesData(pyM.hasTSA)
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two

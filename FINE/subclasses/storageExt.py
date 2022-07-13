@@ -340,6 +340,15 @@ class StorageExtBETA(Storage):
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOpexPerChargeOpTimeSeries.values()):
             self.aggregatedOpexPerChargeOpTimeSeries=None
 
+    def initializeProcessedDataSets(self, investmentperiods):
+        self.processedChargeOpRateMax = dict.fromkeys(investmentperiods)
+        self.processedChargeOpRateFix = dict.fromkeys(investmentperiods)
+        self.processedDischargeOpRateMax = dict.fromkeys(investmentperiods)
+        self.processedDischargeOpRateFix = dict.fromkeys(investmentperiods)
+        self.processedStateOfChargeOpRateMax = dict.fromkeys(investmentperiods)
+        self.processedStateOfChargeOpRateFix = dict.fromkeys(investmentperiods)
+        self.processedOpexPerChargeOpTimeSeries = dict.fromkeys(investmentperiods)
+        
 class StorageExtModel(StorageModel):
     """
     A StorageExtModel class instance will be instantly created if a StorageExt class instance is initialized.
@@ -643,35 +652,35 @@ class StorageExtModel(StorageModel):
         SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
         constrSet5 = getattr(pyM, "stateOfChargeOpConstrSet5_" + abbrvName)
 
-        def SOCMaxPrecise5(pyM, loc, compName, pInter, t):
+        def SOCMaxPrecise5(pyM, loc, compName, ip, pInter, t):
             if compDict[compName].doPreciseTsaModeling:
                 if not pyM.hasSegmentation:
                     return (
-                        SOCinter[loc, compName, pInter]
+                        SOCinter[loc, compName, ip, pInter]
                         * (
                             (1 - compDict[compName].selfDischarge)
                             ** (t * esM.hoursPerTimeStep)
                         )
-                        + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= compDict[compName].processedStateOfChargeOpRateMax[loc][
-                            esM.periodsOrder[pInter], t
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        <= compDict[compName].processedStateOfChargeOpRateMax[ip][loc][
+                            esM.periodsOrder[ip][pInter], t
                         ]
                     )
                 else:
                     return (
-                        SOCinter[loc, compName, pInter]
+                        SOCinter[loc, compName, ip, pInter]
                         * (
                             (1 - compDict[compName].selfDischarge)
                             ** (
-                                esM.segmentStartTime.to_dict()[
-                                    esM.periodsOrder[pInter], t
+                                esM.segmentStartTime[ip].to_dict()[
+                                    esM.periodsOrder[ip][pInter], t
                                 ]
                                 * esM.hoursPerTimeStep
                             )
                         )
-                        + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= compDict[compName].processedStateOfChargeOpRateMax[loc][
-                            esM.periodsOrder[pInter], t
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        <= compDict[compName].processedStateOfChargeOpRateMax[ip][loc][
+                            esM.periodsOrder[ip][pInter], t
                         ]
                     )
             else:
@@ -681,7 +690,7 @@ class StorageExtModel(StorageModel):
             pyM,
             "ConstrSOCMaxPrecise5_" + abbrvName,
             pyomo.Constraint(
-                constrSet5, esM.periods, esM.timeStepsPerPeriod, rule=SOCMaxPrecise5
+                constrSet5, esM.investmentPeriods, esM.periods, esM.timeStepsPerPeriod, rule=SOCMaxPrecise5
             ),
         )
 

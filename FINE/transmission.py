@@ -391,7 +391,10 @@ class Transmission(Component):
             self.aggregatedOperationRateFix=None
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateMax.values()):
             self.aggregatedOperationRateMax=None
-
+    
+    def initializeProcessedDataSets(self, investmentperiods):
+        self.processedOperationRateMax =dict.fromkeys(investmentperiods)
+        self.processedOperationRateFix =dict.fromkeys(investmentperiods)
 
 class TransmissionModel(ComponentModel):
     """

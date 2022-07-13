@@ -578,7 +578,13 @@ class Storage(Component):
             self.aggregatedDischargeOpRateFix=None
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedDischargeOpRateMax.values()):
             self.aggregatedDischargeOpRateMax=None
-
+            
+    def initializeProcessedDataSets(self, investmentperiods):
+        self.processedChargeOpRateMax =dict.fromkeys(investmentperiods)
+        self.processedChargeOpRateFix =dict.fromkeys(investmentperiods)
+        self.processedDischargeOpRateMax =dict.fromkeys(investmentperiods)
+        self.processedDischargeOpRateFix =dict.fromkeys(investmentperiods)
+        
 class StorageModel(ComponentModel):
     """
     A StorageModel class instance will be instantly created if a Storage class instance is initialized.

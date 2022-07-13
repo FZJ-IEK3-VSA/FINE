@@ -449,6 +449,19 @@ class Conversion(Component):
         if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateMax.values()):
             self.aggregatedOperationRateMax=None
 
+    def initializeProcessedDataSets(self, investmentperiods):
+        self.processedOperationRateMax =dict.fromkeys(investmentperiods)
+        self.processedOperationRateFix =dict.fromkeys(investmentperiods)
+        self.processedCommodityConversionFactors=dict.fromkeys(investmentperiods)
+        # WIRD ES PRO IP UND COMMOD GEBRAUCHT?
+        # for ip in self.fullCommodityConversionFactors.keys():
+        #     if self.fullCommodityConversionFactors[ip] != {}:
+        #         for commod in self.fullCommodityConversionFactors[ip]:
+        #             self.processedCommodityConversionFactors[ip][commod] = (
+        #                 self.aggregatedCommodityConversionFactors[ip][commod]
+        #                 if hasTSA
+        #                 else self.fullCommodityConversionFactors[ip][commod]
+        #             )
 
 class ConversionModel(ComponentModel):
     """

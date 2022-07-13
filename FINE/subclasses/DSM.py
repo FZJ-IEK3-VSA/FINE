@@ -323,8 +323,9 @@ class DSMModel(SourceSinkModel):
         self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum = None
-        self.optSummary = None
+        # self.operationVariablesOptimum = None
+        self.optSummary = {}
+        self.operationVariablesOptimum={}
 
     def limitUpDownShifts(self, pyM, esM):
         """
@@ -481,7 +482,9 @@ class DSMModel(SourceSinkModel):
         optVal = optVal.groupby(lambda x: groupStor(x)).sum()
         optVal.index = pd.MultiIndex.from_tuples(optVal.index)
 
-        self.operationVariablesOptimum = optVal
+        if type(self.operationVariablesOptimum) is not dict:
+            self.operationVariablesOptimum={}
+        self.operationVariablesOptimum[ip] = optVal
 
         props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
         units = [
@@ -511,14 +514,11 @@ class DSMModel(SourceSinkModel):
         ).sort_index()
 
         if optVal is not None:
-            # idx = pd.IndexSlice
-            # optVal = optVal.loc[idx[:,:],:] # perfect foresight: added ip
-            optVal = optVal.droplevel([1])
 
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[ip][op.index], axis=1)
-            cCost = opSum.apply(lambda op: op * compDict[op.name].commodityCost[ip][op.index], axis=1)
-            cRevenue = opSum.apply(lambda op: op * compDict[op.name].commodityRevenue[ip][op.index], axis=1)
+            ox = opSum.apply(lambda op: op * compDict[op.name].processedOpexPerOperation[ip][op.index], axis=1)
+            cCost = opSum.apply(lambda op: op * compDict[op.name].processedCommodityCost[ip][op.index], axis=1)
+            cRevenue = opSum.apply(lambda op: op * compDict[op.name].processedCommodityRevenue[ip][op.index], axis=1)
             
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
                             opSum.columns] = opSum.values/esM.numberOfYears
@@ -584,4 +584,7 @@ class DSMModel(SourceSinkModel):
             .values
         )
 
-        self.optSummary = optSummary
+        # Quick fix if several runs with one investment period
+        if type(self.optSummary) is not dict:
+            self.optSummary={}
+        self.optSummary[ip] = optSummary
