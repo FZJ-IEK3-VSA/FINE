@@ -560,25 +560,26 @@ class Source(Component):
             self.getTSAOutput(self.fullCommodityRevenueTimeSeries, '_commodityRevenueTimeSeries_', data, ip)
 
 
-    def checkAggregatedTimeSeriesData(self): # new function for time series aggregation with perfect foresight
+    def checkProcessedDataSets(self): # new function for time series aggregation with perfect foresight
         """
-        Check aggregated time series data after applying time series aggregation. If all entries of dictionary are None
+        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateFix.values()):
-            self.aggregatedOperationRateFix=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateMax.values()):
-            self.aggregatedOperationRateMax=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedCommodityCostTimeSeries.values()):
-            self.aggregatedCommodityCostTimeSeries=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedCommodityRevenueTimeSeries.values()):
-            self.aggregatedCommodityRevenueTimeSeries=None
+        for parameter in ["processedOperationRateFix","processedOperationRateMax","processedCommodityCostTimeSeries","processedCommodityRevenueTimeSeries"]:
+            if getattr(self,parameter) is not None: 
+                if all(type(value)!=pd.core.frame.DataFrame for value in getattr(self,parameter).values()):
+                    setattr(self, parameter, None)
 
-    def initializeProcessedDataSets(self,investmentperiods):# new function for time series aggregation with perfect foresight
-        self.aggregatedOperationRateFix=dict.fromkeys(investmentperiods)
-        self.aggregatedOperationRateMax=dict.fromkeys(investmentperiods)
-        self.aggregatedCommodityCostTimeSeries=dict.fromkeys(investmentperiods)
-        self.aggregatedCommodityRevenueTimeSeries=dict.fromkeys(investmentperiods)
+
+    def initializeProcessedDataSets(self,investmentperiods):
+        """
+        Initialize dicts (keys are investment periods, values are None)
+        for processed data sets.
+        """
+        self.processedOperationRateFix=dict.fromkeys(investmentperiods)
+        self.processedOperationRateMax=dict.fromkeys(investmentperiods)
+        self.processedCommodityCostTimeSeries=dict.fromkeys(investmentperiods)
+        self.processedCommodityRevenueTimeSeries=dict.fromkeys(investmentperiods)
         
 
 class Sink(Source):

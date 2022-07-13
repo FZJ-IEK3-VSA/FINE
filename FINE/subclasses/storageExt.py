@@ -319,28 +319,23 @@ class StorageExtBETA(Storage):
 
         self.aggregatedOpexPerChargeOpTimeSeries[ip] = self.getTSAOutput(self.fullOpexPerChargeOpTimeSeries, '_opexPerChargeOp_', data, ip)
 
-    def checkAggregatedTimeSeriesData(self):
+    def checkProcessedDataSets(self):
         """
-        Check aggregated time series data after applying time series aggregation. If all entries of dictionary are None
+        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
 
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedChargeOpRateFix.values()):
-            self.aggregatedChargeOpRateFix=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedChargeOpRateMax.values()):
-            self.aggregatedChargeOpRateMax=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedDischargeOpRateFix.values()):
-            self.aggregatedDischargeOpRateFix=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedDischargeOpRateMax.values()):
-            self.aggregatedDischargeOpRateMax=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedStateOfChargeOpRateFix.values()):
-            self.aggregatedStateOfChargeOpRateFix=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedStateOfChargeOpRateMax.values()):
-            self.aggregatedStateOfChargeOpRateMax=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOpexPerChargeOpTimeSeries.values()):
-            self.aggregatedOpexPerChargeOpTimeSeries=None
+        for parameter in ["processedChargeOpRateFix","processedChargeOpRateMax","processedDischargeOpRateFix","processedDischargeOpRateMax","processedStateOfChargeOpRateFix","processedStateOfChargeOpRateMax","processedOpexPerChargeOpTimeSeries"]:
+            if getattr(self,parameter) is not None: 
+                if all(type(value)!=pd.core.frame.DataFrame for value in getattr(self,parameter).values()):
+                    setattr(self, parameter, None)
+
 
     def initializeProcessedDataSets(self, investmentperiods):
+        """
+        Initialize dicts (keys are investment periods, values are None)
+        for processed data sets.
+        """
         self.processedChargeOpRateMax = dict.fromkeys(investmentperiods)
         self.processedChargeOpRateFix = dict.fromkeys(investmentperiods)
         self.processedDischargeOpRateMax = dict.fromkeys(investmentperiods)

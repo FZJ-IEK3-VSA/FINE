@@ -588,9 +588,9 @@ class Component(metaclass=ABCMeta):
         """
         raise NotImplementedError
     
-    # new method for TimeSeriesAggregation with perfect foresight
+    
     @abstractmethod
-    def checkAggregatedTimeSeriesData(self):
+    def checkProcessedDataSets(self):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Check
         aggregated time series data after applying time series aggregation. If all entries of dictionary are None

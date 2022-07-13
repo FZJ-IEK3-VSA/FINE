@@ -882,9 +882,9 @@ class EnergySystemModel:
 
         ################################################################################################################
 
-        for mdlName, mdl in self.componentModelingDict.items():  # for-loop for ip
-            for compName, comp in mdl.componentsDict.items():
-                comp.checkAggregatedTimeSeriesData()
+        # for mdlName, mdl in self.componentModelingDict.items():  # for-loop for ip
+        #     for compName, comp in mdl.componentsDict.items():
+        #         comp.checkAggregatedTimeSeriesData()
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
@@ -922,6 +922,7 @@ class EnergySystemModel:
             for comp in mdl.componentsDict.values():
                 comp.initializeProcessedDataSets(self.investmentPeriods)
                 comp.setTimeSeriesData(pyM.hasTSA)
+                comp.checkProcessedDataSets()
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
         # entries, the first one indicates an index of a period and the second one indicates a time step inside that
@@ -1727,8 +1728,8 @@ class EnergySystemModel:
                          self.verbose, 0)
             # Declare component specific sets, variables and constraints
             w = str(len(max(self.componentModelingDict.keys()))+6)
-            # ToDo:
-            # For Schleife über investmentperiods --> output für einzelne invperiods
+
+            # iterate over investment periods, to get yearly results
             for key, mdl in self.componentModelingDict.items():
                 for ip in self.investmentPeriods:
                     __t = time.time()
@@ -1739,7 +1740,8 @@ class EnergySystemModel:
                         'for {:' + w + '}').format(key + ' ...') + "(%.4f" % (time.time() - __t) + "sec)"
                     utils.output(outputString, self.verbose, 0)
 
-                # if only one ip
+                # for single year optimization, prepare results data in "old" 
+                # format just for one year
                 if self.numberOfInvestmentPeriods == 1:
                     mdl.optSummary = mdl.optSummary[0]
                     if key is "StorageModel" or key is "StorageExtModel":
@@ -1753,10 +1755,7 @@ class EnergySystemModel:
                             0]
                     else:
                         mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
-                # TODO fill ValueError
-                else:
-                    raise ValueError()
-
+                        
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 

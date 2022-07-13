@@ -283,12 +283,11 @@ class Storage(Component):
         self.chargeOpRateMax = chargeOpRateMax
         self.fullChargeOpRateMax = {}
         self.aggregatedChargeOpRateMax = {}
-        self.processedChargeOpRateMax = {}
 
         self.chargeOpRateFix = chargeOpRateFix
         self.fullChargeOpRateFix = {}
         self.aggregatedChargeOpRateFix = {}
-        self.processedChargeOpRateFix = {}
+
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -346,7 +345,7 @@ class Storage(Component):
             else:
                 raise TypeError('chargeOpRateMax should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedChargeOpRateMax[ip], self.processedChargeOpRateMax[ip] = None, None
+            self.aggregatedChargeOpRateMax[ip] = None
             
             # chargeOpRateFix
             if isinstance(chargeOpRateFix, pd.DataFrame) or isinstance(chargeOpRateFix, pd.Series) or chargeOpRateFix is None: 
@@ -356,7 +355,7 @@ class Storage(Component):
             else:
                 raise TypeError('chargeOpRateFix should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedChargeOpRateFix[ip], self.processedChargeOpRateFix[ip] = None, None
+            self.aggregatedChargeOpRateFix[ip] = None
         
         # new code for perfect foresight
         self.partLoadMin = partLoadMin
@@ -408,11 +407,9 @@ class Storage(Component):
         # create emtpy dicts
         self.fullDischargeOpRateMax = {}
         self.aggregatedDischargeOpRateMax = {}
-        self.processedDischargeOpRateMax = {}
 
         self.fullDischargeOpRateFix = {}
         self.aggregatedDischargeOpRateFix = {}
-        self.processedDischargeOpRateFix = {}
         
         # iterate over all ips
         for ip in esM.investmentPeriods:
@@ -425,7 +422,7 @@ class Storage(Component):
             else:
                 raise TypeError('dischargeOpRateMax should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedDischargeOpRateMax[ip], self.processedDischargeOpRateMax[ip] = None, None
+            self.aggregatedDischargeOpRateMax[ip] = None
             
             # dischargeOpRateFix
             if isinstance(dischargeOpRateFix, pd.DataFrame) or isinstance(dischargeOpRateFix, pd.Series) or dischargeOpRateFix is None: 
@@ -435,7 +432,7 @@ class Storage(Component):
             else:
                 raise TypeError('dischargeOpRateFix should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedDischargeOpRateFix[ip], self.processedDischargeOpRateFix[ip] = None, None
+            self.aggregatedDischargeOpRateFix[ip] = None
 
 
         utils.isPositiveNumber(dischargeTsaWeight)
@@ -564,22 +561,22 @@ class Storage(Component):
         self.aggregatedDischargeOpRateFix[ip] = self.getTSAOutput(self.fullDischargeOpRateFix, 'dischargeRate_', data, ip)
         self.aggregatedDischargeOpRateMax[ip] = self.getTSAOutput(self.fullDischargeOpRateMax, 'dischargeRate_', data, ip)
 
-    def checkAggregatedTimeSeriesData(self):
+    def checkProcessedDataSets(self):
         """
-        Check aggregated time series data after applying time series aggregation. If all entries of dictionary are None
+        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
+        for parameter in ["processedChargeOpRateFix","processedChargeOpRateMax","processedDischargeOpRateFix","processedDischargeOpRateMax"]:
+            if getattr(self,parameter) is not None: 
+                if all(type(value)!=pd.core.frame.DataFrame for value in getattr(self,parameter).values()):
+                    setattr(self, parameter, None)
 
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedChargeOpRateFix.values()):
-            self.aggregatedChargeOpRateFix=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedChargeOpRateMax.values()):
-            self.aggregatedChargeOpRateMax=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedDischargeOpRateFix.values()):
-            self.aggregatedDischargeOpRateFix=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedDischargeOpRateMax.values()):
-            self.aggregatedDischargeOpRateMax=None
             
     def initializeProcessedDataSets(self, investmentperiods):
+        """
+        Initialize dicts (keys are investment periods, values are None)
+        for processed data sets.
+        """
         self.processedChargeOpRateMax =dict.fromkeys(investmentperiods)
         self.processedChargeOpRateFix =dict.fromkeys(investmentperiods)
         self.processedDischargeOpRateMax =dict.fromkeys(investmentperiods)

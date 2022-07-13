@@ -293,7 +293,7 @@ class Transmission(Component):
             else:
                 raise TypeError('OperationRateMax should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedOperationRateMax[ip], self.processedOperationRateMax[ip] = None, None
+            self.aggregatedOperationRateMax[ip]= None
             
             # Operation Rate Fix
             if isinstance(operationRateFix, pd.DataFrame) or isinstance(operationRateFix, pd.Series) or operationRateFix is None:
@@ -303,7 +303,7 @@ class Transmission(Component):
             else:
                 raise TypeError('OperationRateFix should be a pandas dataframe or a dictionary.')
             
-            self.aggregatedOperationRateFix[ip], self.processedOperationRateFix[ip] = None, None
+            self.aggregatedOperationRateFix[ip] = None
 
             # part load
             if isinstance(partLoadMin, float) or partLoadMin is None:
@@ -381,20 +381,23 @@ class Transmission(Component):
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data, ip)
         self.aggregatedOperationRateMax[ip] = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data, ip)
 
-    def checkAggregatedTimeSeriesData(self):
+    def checkProcessedDataSets(self):
         """
-        Check aggregated time series data after applying time series aggregation. If all entries of dictionary are None
+        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
-
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateFix.values()):
-            self.aggregatedOperationRateFix=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateMax.values()):
-            self.aggregatedOperationRateMax=None
+        for parameter in ["processedOperationRateFix","processedOperationRateMax"]:
+            if getattr(self,parameter) is not None: 
+                if all(type(value)!=pd.core.frame.DataFrame for value in getattr(self,parameter).values()):
+                    setattr(self, parameter, None)
     
     def initializeProcessedDataSets(self, investmentperiods):
-        self.processedOperationRateMax =dict.fromkeys(investmentperiods)
-        self.processedOperationRateFix =dict.fromkeys(investmentperiods)
+        """
+        Initialize dicts (keys are investment periods, values are None)
+        for processed data sets.
+        """
+        self.processedOperationRateMax = dict.fromkeys(investmentperiods)
+        self.processedOperationRateFix = dict.fromkeys(investmentperiods)
 
 class TransmissionModel(ComponentModel):
     """

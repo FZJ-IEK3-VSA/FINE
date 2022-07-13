@@ -326,11 +326,6 @@ class Conversion(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # Set locational eligibility
-        # operationTimeSeries = self.fullOperationRateFix if self.fullOperationRateFix is not None \
-        #     else self.fullOperationRateMax
-        
-        # New code for perfect foresight
         if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateFix.values()):
             self.fullOperationRateFix=None
         
@@ -339,12 +334,10 @@ class Conversion(Component):
 
         
         operationTimeSeries = {}
-        #for ip in esM.investmentPeriods:
         if self.fullOperationRateFix is not None:
             for ip in esM.investmentPeriods:
                 operationTimeSeries[ip] = self.fullOperationRateFix[ip]
         elif self.fullOperationRateMax is not None:
-        #else:
             for ip in esM.investmentPeriods:
                 operationTimeSeries[ip] = self.fullOperationRateMax[ip]
         else:
@@ -439,29 +432,25 @@ class Conversion(Component):
                     ip
                 )
 
-    def checkAggregatedTimeSeriesData(self):
+    def checkProcessedDataSets(self):
         """
-        Check aggregated time series data after applying time series aggregation. If all entries of dictionary are None
+        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateFix.values()):
-            self.aggregatedOperationRateFix=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.aggregatedOperationRateMax.values()):
-            self.aggregatedOperationRateMax=None
+        for parameter in ["processedOperationRateFix","processedOperationRateMax"]:
+            if getattr(self,parameter) is not None: 
+                if all(type(value)!=pd.core.frame.DataFrame for value in getattr(self,parameter).values()):
+                    setattr(self, parameter, None)
 
     def initializeProcessedDataSets(self, investmentperiods):
+        """
+        Initialize dicts (keys are investment periods, values are None)
+        for processed data sets.
+        """
         self.processedOperationRateMax =dict.fromkeys(investmentperiods)
         self.processedOperationRateFix =dict.fromkeys(investmentperiods)
-        self.processedCommodityConversionFactors=dict.fromkeys(investmentperiods)
-        # WIRD ES PRO IP UND COMMOD GEBRAUCHT?
-        # for ip in self.fullCommodityConversionFactors.keys():
-        #     if self.fullCommodityConversionFactors[ip] != {}:
-        #         for commod in self.fullCommodityConversionFactors[ip]:
-        #             self.processedCommodityConversionFactors[ip][commod] = (
-        #                 self.aggregatedCommodityConversionFactors[ip][commod]
-        #                 if hasTSA
-        #                 else self.fullCommodityConversionFactors[ip][commod]
-        #             )
+        #self.processedCommodityConversionFactors=dict.fromkeys(investmentperiods)
+        # TODO müsste eigentlich auch neu initialisiert wereden, WIRD ES PRO IP UND COMMOD GEBRAUCHT?
 
 class ConversionModel(ComponentModel):
     """
