@@ -475,7 +475,8 @@ class Conversion(Component):
 
     def checkProcessedDataSets(self):
         """
-        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
+        Check processed time series data after applying time series 
+        aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
         for parameter in ["processedOperationRateFix", "processedOperationRateMax"]:
@@ -493,7 +494,8 @@ class Conversion(Component):
         """
         self.processedOperationRateMax = dict.fromkeys(investmentperiods)
         self.processedOperationRateFix = dict.fromkeys(investmentperiods)
-        # TODO müsste eigentlich auch neu initialisiert wereden, WIRD ES PRO IP UND COMMOD GEBRAUCHT?
+        # TODO müsste eigentlich auch neu initialisiert wereden, 
+        # WIRD ES PRO IP UND COMMOD GEBRAUCHT?
 
 
 class ConversionModel(ComponentModel):

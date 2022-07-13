@@ -619,7 +619,7 @@ class Component(metaclass=ABCMeta):
 
         :param data: time series data
         :type data: Pandas DataFrame
-        
+
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
         """

@@ -27,7 +27,8 @@ def transform1dSeriesto2dDataFrame(series, locations):
 
         # if (n_seperators % 2) == 0:
         #     raise ValueError(
-        #         "Please rename your locations to contain same number of _s in each location name"
+        #         "Please rename your locations to contain same number "+
+        # "of _s in each location name"
         #     )
 
         # else:
@@ -88,7 +89,7 @@ def generateIterationDicts(component_dict, ip):
 
     :param component_dict: dictionary containing information about the esM instance's components
     :type component_dict: dict
-    
+
     :param ip: investment periods
     :type ip: list
 

@@ -488,7 +488,8 @@ class Source(Component):
                             .any()
                         ):
                             raise ValueError(
-                                '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
+                                '"fullOperationRateFix" needs to be higher'
+                                + ' than "partLoadMin" or 0 for component '
                                 + name
                             )
 
@@ -572,8 +573,8 @@ class Source(Component):
         )
 
     def getDataForTimeSeriesAggregation(self, ip):
-        """ Function for getting the required data if a time series aggregation is requested.
-        
+        """Function for getting the required data if a time series aggregation is requested.
+
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
         """
@@ -1075,7 +1076,7 @@ class SourceSinkModel(ComponentModel):
         return balance
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance.
+        """Get contribution to a commodity balance.
                 .. math::
 
             \\text{C}^{comp,comm}_{loc,p,t} = - op_{loc,p,t}^{comp,op}  \\text{Sink}
@@ -1220,7 +1221,9 @@ class SourceSinkModel(ComponentModel):
                     for ix in opSum.index
                 ],
                 opSum.columns,
-            ] = (opSum.values / esM.numberOfYears)
+            ] = (
+                opSum.values / esM.numberOfYears
+            )
             optSummary.loc[
                 [
                     (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
@@ -1231,7 +1234,9 @@ class SourceSinkModel(ComponentModel):
             optSummary.loc[
                 [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                 ox.columns,
-            ] = (ox.values / esM.numberOfYears)
+            ] = (
+                ox.values / esM.numberOfYears
+            )
 
             # get empty datframe for resulting time dependent (TD) cost sum
             # bugfix for wrong allocation of costs in optSummary

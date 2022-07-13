@@ -1836,17 +1836,17 @@ class EnergySystemModel:
                 if self.numberOfInvestmentPeriods == 1:
                     mdl.optSummary = mdl.optSummary[0]
                     if key is "StorageModel" or key is "StorageExtModel":
-                        mdl.stateOfChargeOperationVariablesOptimum = mdl.stateOfChargeOperationVariablesOptimum[
-                            0
-                        ]
+                        mdl.stateOfChargeOperationVariablesOptimum = (
+                            mdl.stateOfChargeOperationVariablesOptimum[0]
+                        )
 
-                        mdl.chargeOperationVariablesOptimum = mdl.chargeOperationVariablesOptimum[
-                            0
-                        ]
+                        mdl.chargeOperationVariablesOptimum = (
+                            mdl.chargeOperationVariablesOptimum[0]
+                        )
 
-                        mdl.dischargeOperationVariablesOptimum = mdl.dischargeOperationVariablesOptimum[
-                            0
-                        ]
+                        mdl.dischargeOperationVariablesOptimum = (
+                            mdl.dischargeOperationVariablesOptimum[0]
+                        )
                     else:
                         mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
 

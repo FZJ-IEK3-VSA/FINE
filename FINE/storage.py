@@ -1806,7 +1806,7 @@ class StorageModel(ComponentModel):
         :param commod: string
         """
         return any(
-            [
+            [ 
                 comp.commodity == commod and comp.locationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
             ]

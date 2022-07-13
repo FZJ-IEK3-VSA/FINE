@@ -594,7 +594,7 @@ class ConversionPartLoadModel(ConversionModel):
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance. """
+        """Get contribution to a commodity balance."""
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
         discretizationPointConVar = getattr(

@@ -304,7 +304,7 @@ class StorageExtBETA(Storage):
         )
 
     def getDataForTimeSeriesAggregation(self, ip):
-        """ Function for getting the required data if a time series aggregation is requested. """
+        """Function for getting the required data if a time series aggregation is requested."""
         weightDict, data = {}, []
         I = [
             (
@@ -1025,7 +1025,7 @@ class StorageExtModel(StorageModel):
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance. """
+        """Get contribution to a commodity balance."""
         return super().getCommodityBalanceContribution(pyM, commod, loc, ip, p, t)
 
     def getObjectiveFunctionContribution(self, esM, pyM):

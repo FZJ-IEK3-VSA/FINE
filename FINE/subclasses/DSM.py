@@ -558,11 +558,15 @@ class DSMModel(SourceSinkModel):
                     for ix in opSum.index
                 ],
                 opSum.columns,
-            ] = (opSum.values / esM.numberOfYears)
+            ] = (
+                opSum.values / esM.numberOfYears
+            )
             optSummary.loc[
                 [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                 ox.columns,
-            ] = (ox.values / esM.numberOfYears)
+            ] = (
+                ox.values / esM.numberOfYears
+            )
 
             # get empty datframe for resulting time dependent (TD) cost sum
             cRevenueTD = pd.DataFrame(
