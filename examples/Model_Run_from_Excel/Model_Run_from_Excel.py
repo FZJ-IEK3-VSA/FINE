@@ -16,7 +16,8 @@
 #
 
 # %%
-import FINE as fn 
+import FINE as fn
+
 # %load_ext autoreload
 # %autoreload 2
 

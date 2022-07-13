@@ -35,7 +35,7 @@ data = getData()
 # %matplotlib inline
 
 # %% [markdown]
-# # 2. Create an energy system model instance 
+# # 2. Create an energy system model instance
 #
 # The structure of the energy system model is given by the considered locations, commodities, the number of time steps as well as the hours per time step.
 #
@@ -143,7 +143,7 @@ esM.add(
 # # 5. Add commodity storages to the energy system model
 
 # %% [markdown]
-# ### Thermal Storage 
+# ### Thermal Storage
 
 # %%
 esM.add(

@@ -9,7 +9,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   energySystemModelDoc
-   componentsDoc
-   expansionModulesDoc
-   outputManagerDoc
+   sourceCodeDocumentation/energySystemModelDoc
+   sourceCodeDocumentation/componentsDoc
+   sourceCodeDocumentation/expansionModulesDoc
+   sourceCodeDocumentation/outputManagerDoc
+   sourceCodeDocumentation/aggregationsDoc

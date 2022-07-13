@@ -10,34 +10,34 @@ import FINE.IOManagement.xarrayIO as xrIO
 # # %autoreload 2
 
 # %% [markdown]
-# # How to save an energy system model instance and set it back up? 
+# # How to save an energy system model instance and set it back up?
 #
-# **Xarray and NetCDF files to the rescue!** The data contained within an Energy System Model (ESM) instance and the optimization results is vast and complex. Saving it directly is not possible. It can, however, be saved as a NetCDF file which supports complex data structures. 
+# **Xarray and NetCDF files to the rescue!** The data contained within an Energy System Model (ESM) instance and the optimization results is vast and complex. Saving it directly is not possible. It can, however, be saved as a NetCDF file which supports complex data structures.
 #
-# #### What exactly is NetCDF? 
-# NetCDF (Network Common Data Format) is a set of software libraries and machine-independent data formats that support the creation, access, and sharing of array-oriented scientific data. It is also a community standard for sharing scientific data. 
+# #### What exactly is NetCDF?
+# NetCDF (Network Common Data Format) is a set of software libraries and machine-independent data formats that support the creation, access, and sharing of array-oriented scientific data. It is also a community standard for sharing scientific data.
 #
 # #### Python modules that support working with NetCDF files:
 # 1. netcdf4-python: Official Python interface to netCDF files
 # 2. PyNIO: To access different file formats such as netCDF, HDF, and GRIB
 # 3. xarray: Based on NumPy and pandas
 #
-# Note: xarray module is used here. 
+# Note: xarray module is used here.
 #
-# For our use case, the following functionalities are provided: 
-# * Conversion of ESM instance to xarray dataset. Additionally, possible to save this dataset as NetCDF file in a desired folder, with a desired file name. 
+# For our use case, the following functionalities are provided:
+# * Conversion of ESM instance to xarray dataset. Additionally, possible to save this dataset as NetCDF file in a desired folder, with a desired file name.
 # * Conversion of xarray dataset/saved NetCDF file back to ESM instance.
 #
-# #### High-level structure of the data: 
+# #### High-level structure of the data:
 #
 # <img src="overall_structure.png" style="width: 1000px;"/>
 #
 #
-# #### Structure of xarray dataset - For a non-transmission component: 
+# #### Structure of xarray dataset - For a non-transmission component:
 #
 # <img src="non_transmission.png" style="width: 1000px;"/>
 #
-# #### Structure of xarray dataset - For a transmission component: 
+# #### Structure of xarray dataset - For a transmission component:
 #
 # <img src="transmission.png" style="width: 1000px;"/>
 #
@@ -46,7 +46,7 @@ import FINE.IOManagement.xarrayIO as xrIO
 # ## Conversion of ESM instance to xarray dataset and saving it as a NetCDF file
 
 # %% [markdown]
-# #### STEP 1. Set up your  ESM instance 
+# #### STEP 1. Set up your  ESM instance
 
 # %%
 from getModel import getModel
@@ -77,7 +77,9 @@ esm_datasets["Parameters"]
 # Or save it directly to NetCDF with `esm_to_netcdf`:
 
 # %%
-_ = xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath="my_esm.nc", overwriteExisting=True)
+_ = xrIO.writeEnergySystemModelToNetCDF(
+    esM, outputFilePath="my_esm.nc", overwriteExisting=True
+)
 
 # %% [markdown]
 # #### STEP 3. Load esM from NetCDF file or xarray datasets

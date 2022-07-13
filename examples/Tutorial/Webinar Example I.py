@@ -45,7 +45,7 @@ import geopandas as gpd  # Used to display geo-referenced plots
 # # Model an energy system
 
 # %% [markdown]
-# ## Create an energy system model instance 
+# ## Create an energy system model instance
 #
 # The structure of the energy supply system model is given by the considered locations, commodities, the number of time steps as well as the hours per time step.
 #
@@ -457,7 +457,7 @@ fig, ax = fn.plotLocations("regions.shp", indexColumn="regionName", plotLocNames
 # %% [markdown]
 # ## Display optimization summaries
 #
-# For each modeling class, an optimization summary can be stored and displayed. 
+# For each modeling class, an optimization summary can be stored and displayed.
 
 # %%
 srcSnkSummary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=1)

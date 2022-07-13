@@ -5,6 +5,7 @@ import ast
 import inspect
 import time
 import warnings
+from functools import wraps
 
 try:
     import geopandas as gpd
@@ -17,6 +18,32 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     warnings.warn("Matplotlib.pyplot could not be imported.")
+
+
+def timer(func):
+    """
+    Wrapper around a function to track the time taken by
+    the function.
+
+    :param func: Function
+
+    .. note:: Usage as a decorator before a function -> @timer
+
+    """
+
+    @wraps(func)  # Required to get documentation for functions using this decorator
+    def f(*args, **kwargs):
+        before = time.perf_counter()
+        rv = func(*args, **kwargs)
+        after = time.perf_counter()
+        print(
+            "elapsed time for {.__name__}: {:.2f} minutes".format(
+                func, (after - before) / 60
+            )
+        )
+        return rv
+
+    return f
 
 
 def writeOptimizationOutputToExcel(
@@ -41,8 +68,10 @@ def writeOptimizationOutputToExcel(
     :param optValOutputLevel: output level of the optimal values. Either an integer (0,1) which holds for all
         model classes or a dictionary with model class names as keys and an integer (0,1) for each key
         (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        - 0: all values are kept.
-        - 1: Lines containing only zeroes are dropped.
+
+        * 0: all values are kept.
+        * 1: Lines containing only zeroes are dropped.
+
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
     """
@@ -132,7 +161,7 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
     """
     Read energy system model from excel file.
 
-    ** Default arguments **
+    **Default arguments:**
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
@@ -141,9 +170,11 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
     :param engine: Used engine for reading the excel file. Please consider that the corresponding
         python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
         For further information see the documentation of pandas.read_excel().
+
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
+
         |br| * the default value is 'openpyxl'.
     :type engine: string
 
@@ -217,7 +248,7 @@ def energySystemModelRunFromExcel(fileName="scenarioInput.xlsx", engine="openpyx
     """
     Run an energy system model from excel file.
 
-    **Default arguments**
+    **Default arguments:**
 
     :param fileName: excel file name or path (including .xlsx ending)
         |br| * the default value is 'scenarioInput.xlsx'
@@ -226,9 +257,11 @@ def energySystemModelRunFromExcel(fileName="scenarioInput.xlsx", engine="openpyx
     :param engine: Used engine for reading the excel file. Please consider that the corresponding
         python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
         For further information see the documentation of pandas.read_excel().
+
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
+
         |br| * the default value is 'openpyxl'.
     :type engine: string
 
@@ -253,7 +286,7 @@ def readOptimizationOutputFromExcel(
     :param esM: EnergySystemModel instance which includes the setting of the optimized model
     :type esM: EnergySystemModel instance
 
-    **Default arguments**
+    **Default arguments:**
 
     :param fileName: excel file name oder path (including .xlsx ending) to an execl file written by
         writeOptimizationOutputToExcel()
@@ -263,9 +296,11 @@ def readOptimizationOutputFromExcel(
     :param engine: Used engine for reading the excel file. Please consider that the corresponding
         python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
         For further information see the documentation of pandas.read_excel().
+
         * 'openpyxl' supports newer Excel file formats
         * 'xlrd' supports old-style Excel files (.xls)
         * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
+
         |br| * the default value is 'openpyxl'.
     :type engine: string
 
@@ -420,6 +455,7 @@ def plotOperation(
     **Default arguments:**
 
     :param locTrans: second location, required when Transmission components are plotted
+        |br| * the default value is None
     :type locTrans: string
 
     :param tMin: first time step to be plotted (starting from 0)
@@ -545,6 +581,7 @@ def plotOperationColorMap(
     :type ip: int
 
     :param locTrans: second location, required when Transmission components are plotted
+        |br| * the default value is None
     :type locTrans: string
 
     :param nbPeriods: number of periods to be plotted

@@ -8,9 +8,11 @@ License
 
 `MIT License <https://opensource.org/licenses/MIT>`_
 
-Copyright (C) 2016-2020 Lara Welder, Theresa Groß, Leander Kotzur, Robin Beer, Henrik Büsing, Dilara Caglayan, Heidi Heinrichs,
-Maximilian Hoffmann, Timo Kannengießer, Kevin Knosala, Felix Kullmann, Stefan Kraus, Jochen Linßen, Lars Nolting, Jan Priesmann,
-Bismark Singh, Andreas Smolenko, Chloi Syranidou, Johannes Thürauf, Michael Zier, Martin Robinius, Detlef Stolten
+Copyright (C) 2016-2022 FZJ-IEK-3
+
+Active Developers: Theresa Groß, Leander Kotzur, Noah Pflugradt, Julian Belina, Toni Busch, Philipp Dunkel, Patrick Freitag, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Kevin Knosala, Felix Kullmann, Stefan Kraus, Jochen Linßen, Rachel Maier, Peter Markewitz, Lars Nolting, Shruthi Patil, Jan Priesmann, Stanley Risch, Julian Schönau, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Christoph Winkler, Michael Zier, Detlef Stolten
+
+Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Timo Kannengießer, Martin Robinius, Johannes Thürauf, Lara Welder
 
 ***************
 Acknowledgement

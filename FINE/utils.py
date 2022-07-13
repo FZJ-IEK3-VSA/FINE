@@ -1,8 +1,3 @@
-"""
-Last edited: March 02, 2021
-
-|br| @author: FINE Developer Team (FZJ IEK-3)
-"""
 import warnings
 
 import pandas as pd

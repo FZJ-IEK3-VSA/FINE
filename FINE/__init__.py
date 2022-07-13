@@ -12,3 +12,4 @@ from .component import Component, ComponentModel
 from .subclasses import *
 from .IOManagement import *
 from .expansionModules import *
+from .aggregations import *
