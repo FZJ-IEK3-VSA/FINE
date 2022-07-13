@@ -115,11 +115,7 @@ def test_perfectForesight():
                     index = ['PerfectLand']).T # first investmentperiod
     demand[1] = pd.DataFrame([np.array([2e3, 1e3, 1e3, 1e3,])],
                     index = ['PerfectLand']).T # second investmentperiod
-   # print(demand)
 
-    # just a test:
-    # yearlyDemand = pd.DataFrame([np.array([5e3, 10e3])],
-    #                 index = ['PerfectLand']).T
     
     esM.add(fn.Sink(esM=esM, name='EDemand', commodity='electricity', hasCapacityVariable=False,
                     operationRateFix = demand,
@@ -127,21 +123,16 @@ def test_perfectForesight():
                     ))
 
     # Optimize energy system model    
-    
-    #esM.cluster(numberOfTypicalPeriods=4, numberOfTimeStepsPerPeriod=1)
     esM.optimize(timeSeriesAggregation=False, solver = 'glpk')
     print('Objective value:')
-    print(esM.pyM.Obj()) ### Thomas and Stefan:  8045 // Our test: year 0: 7545.000000000011  year 1: 7090.000000000011
-    # TODO check ObjVal
-    assert esM.pyM.Obj() == 8045   ### Thomas and Stefan: 8045
+    print(esM.pyM.Obj()) 
+    np.testing.assert_almost_equal(esM.pyM.Obj(), 7135) # capacity costs only taken for one year
     print('Electricity Market:')
-    assert list(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum[0].xs('Electricity market').values[0]) ==[500,0,0,0] ### Thomas and Stefan: [500,0,0,0]
+    assert list(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum[0].xs('Electricity market').values[0]) ==[500,0,0,0]  
 
     assert list(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum[1].xs('Electricity market').values[0]) == [500,0,0,0]
-    #print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('Electricity market')) ### [500,0,0,0] correct values
 
     print('Photovoltaic:')
-    # print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('PV')) ### [1500,1000,1000,1000] ### Thomas and Stefan: [1500,1000,1000,1000] correct values
     assert list(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum[0].xs('PV').values[0]) == [1500,1000,1000,1000]
     assert list(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum[1].xs('PV').values[0]) == [1500,1000,1000,1000]
 
