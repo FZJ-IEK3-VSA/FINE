@@ -603,8 +603,8 @@ class Storage(Component):
         )
 
     def getDataForTimeSeriesAggregation(self, ip):
-        """ Function for getting the required data if a time series aggregation is requested.
-                
+        """Function for getting the required data if a time series aggregation is requested.
+
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
 
@@ -1806,19 +1806,19 @@ class StorageModel(ComponentModel):
         :param commod: string
         """
         return any(
-            [ 
+            [
                 comp.commodity == commod and comp.locationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
             ]
         )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance.
-        
+        """Get contribution to a commodity balance.
+
         .. math::
 
             \\text{C}^{comp,comm}_{loc,p,t} = op^{comp,discharge}_{loc,p,t} - op^{comp,charge}_{loc,p,t}
-        
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         chargeOp, dischargeOp = (
@@ -1898,7 +1898,7 @@ class StorageModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param ip: investment period
         :type ip: int
         """
@@ -1988,7 +1988,9 @@ class StorageModel(ComponentModel):
                     for ix in opSum.index
                 ],
                 opSum.columns,
-            ] = (opSum.values / esM.numberOfYears)
+            ] = (
+                opSum.values / esM.numberOfYears
+            )
             optSummary.loc[
                 [
                     (ix, "operationCharge", "[" + compDict[ix].commodityUnit + "*h]")
@@ -1999,7 +2001,9 @@ class StorageModel(ComponentModel):
             optSummary.loc[
                 [(ix, "opexCharge", "[" + esM.costUnit + "/a]") for ix in ox.index],
                 ox.columns,
-            ] = (ox.values / esM.numberOfYears)
+            ] = (
+                ox.values / esM.numberOfYears
+            )
 
         # Quick fix if several runs with one investment period
         if type(self.dischargeOperationVariablesOptimum) is not dict:
@@ -2048,7 +2052,9 @@ class StorageModel(ComponentModel):
                     for ix in opSum.index
                 ],
                 opSum.columns,
-            ] = (opSum.values / esM.numberOfYears)
+            ] = (
+                opSum.values / esM.numberOfYears
+            )
             optSummary.loc[
                 [
                     (ix, "operationDischarge", "[" + compDict[ix].commodityUnit + "*h]")
@@ -2059,7 +2065,9 @@ class StorageModel(ComponentModel):
             optSummary.loc[
                 [(ix, "opexDischarge", "[" + esM.costUnit + "/a]") for ix in ox.index],
                 ox.columns,
-            ] = (ox.values / esM.numberOfYears)
+            ] = (
+                ox.values / esM.numberOfYears
+            )
 
         # Quick fix if several runs with one investment period
         if type(self.stateOfChargeOperationVariablesOptimum) is not dict:

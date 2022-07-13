@@ -475,7 +475,7 @@ class Conversion(Component):
 
     def checkProcessedDataSets(self):
         """
-        Check processed time series data after applying time series 
+        Check processed time series data after applying time series
         aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
@@ -494,7 +494,7 @@ class Conversion(Component):
         """
         self.processedOperationRateMax = dict.fromkeys(investmentperiods)
         self.processedOperationRateFix = dict.fromkeys(investmentperiods)
-        # TODO müsste eigentlich auch neu initialisiert wereden, 
+        # TODO müsste eigentlich auch neu initialisiert wereden,
         # WIRD ES PRO IP UND COMMOD GEBRAUCHT?
 
 
@@ -745,12 +745,12 @@ class ConversionModel(ComponentModel):
         )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance. 
-        
+        """Get contribution to a commodity balance.
+
         .. math::
 
             \\text{C}^{comp,comm}_{loc,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,p,t}^{comp,op}
-        
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = (
@@ -877,7 +877,9 @@ class ConversionModel(ComponentModel):
                     for ix in opSum.index
                 ],
                 opSum.columns,
-            ] = (opSum.values / esM.numberOfYears)
+            ] = (
+                opSum.values / esM.numberOfYears
+            )
             optSummary.loc[
                 [
                     (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")
@@ -888,7 +890,9 @@ class ConversionModel(ComponentModel):
             optSummary.loc[
                 [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                 ox.columns,
-            ] = (ox.values / esM.numberOfYears)
+            ] = (
+                ox.values / esM.numberOfYears
+            )
 
         optSummary = optSummary.append(optSummaryBasic).sort_index()
 
