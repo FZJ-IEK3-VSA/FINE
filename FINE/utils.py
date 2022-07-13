@@ -90,7 +90,9 @@ def checkEnergySystemModelInput(
     isStrictlyPositiveInt(numberOfTimeSteps), isStrictlyPositiveNumber(hoursPerTimeStep)
 
     # The investmentPerdios and yearsPerInvestmentPeriod have to be strictly positive integers
-    isStrictlyPositiveInt(numberOfInvestmentPeriods), isStrictlyPositiveNumber(yearsPerInvestmentPeriod)
+    isStrictlyPositiveInt(numberOfInvestmentPeriods), isStrictlyPositiveNumber(
+        yearsPerInvestmentPeriod
+    )
 
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
@@ -788,18 +790,18 @@ def setLocationalEligibility(
         # If the location eligibility is None set it based on other information available
         # if not hasCapacityVariable and all(not isinstance(value,type(None)) for value in operationTimeSeries.values()):
         if not hasCapacityVariable and operationTimeSeries is not None:
-            if dimension == '1dim':
+            if dimension == "1dim":
                 data = 0
                 # sum values over ips
                 for ip in esM.investmentPeriods:
                     # tests for checking the operationtimeseries
-                    #print('operationTimeSeries1')
-                    #print(operationTimeSeries)
+                    # print('operationTimeSeries1')
+                    # print(operationTimeSeries)
                     data += operationTimeSeries[ip].copy().sum()
                 data[data > 0] = 1
                 return data
             # Problems here ? Adapt this?
-            elif dimension == '2dim':
+            elif dimension == "2dim":
                 # New for perfect foresight
                 data = 0
                 # sum values over ips
@@ -1302,7 +1304,9 @@ def buildFullTimeSeries(df, periodsOrder, ip, axis=1, esM=None, divide=True):
         for p in esM.typicalPeriods:
             # Repeat each segment in each period as often as time steps are represented by the corresponding
             # segment
-            repList = esM.timeStepsPerSegment[ip].loc[p, :].tolist() # timeStepsPerSegment now ip-dependent
+            repList = (
+                esM.timeStepsPerSegment[ip].loc[p, :].tolist()
+            )  # timeStepsPerSegment now ip-dependent
             # if divide is set to True, the values are divided when being unravelled, e.g. in order to fit provided
             # energy per segment provided energy per time step
             if divide:
@@ -1326,7 +1330,7 @@ def buildFullTimeSeries(df, periodsOrder, ip, axis=1, esM=None, divide=True):
     data = []
     for p in periodsOrder:
         data.append(df.loc[p])
-    
+
     return pd.concat(data, axis=axis, ignore_index=True)
 
 
@@ -1412,9 +1416,11 @@ def formatOptimizationOutput(
         return df
     elif varType == "operationVariables" and dimension == "1dim":
         # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
-        
+
         # Results in a one dimensional DataFrame
-        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-2).sort_index() #swap location with periods --> periods is first column
+        df = (
+            pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-2).sort_index()
+        )  # swap location with periods --> periods is first column
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level
@@ -1422,11 +1428,11 @@ def formatOptimizationOutput(
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
         # filter results for ip
-        df=df[df.index.get_level_values(2)==ip]
+        df = df[df.index.get_level_values(2) == ip]
         # drop ip from index
-        df.reset_index(level=2,drop=True, inplace=True)
+        df.reset_index(level=2, drop=True, inplace=True)
         return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
-    elif varType == 'operationVariables' and dimension == '2dim':
+    elif varType == "operationVariables" and dimension == "2dim":
         # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
         # regions and sort the index
         # Results in a one dimensional DataFrame
@@ -1443,7 +1449,12 @@ def formatOptimizationOutput(
         # Delete ip from multiindex
         df = df.droplevel(3, axis=0)
 
-        df = df.swaplevel(i=1, j=2, axis=0).swaplevel(i=0, j=3, axis=0).swaplevel(i=2, j=3, axis=0).sort_index()
+        df = (
+            df.swaplevel(i=1, j=2, axis=0)
+            .swaplevel(i=0, j=3, axis=0)
+            .swaplevel(i=2, j=3, axis=0)
+            .sort_index()
+        )
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
 
@@ -1849,9 +1860,11 @@ def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
             CO2Reference * (1 - CO2ReductionTargets[step] / 100),
         )
 
+
 def checkParamInput(param):
-    if isinstance(param,dict):
+    if isinstance(param, dict):
         for key, value in param.items():
             if value is None:
                 raise ValueError(
-                f"Currently a dict containing None values cannot be passed for '{param}'")  
+                    f"Currently a dict containing None values cannot be passed for '{param}'"
+                )

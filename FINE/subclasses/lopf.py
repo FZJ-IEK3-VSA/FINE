@@ -243,8 +243,9 @@ class LOPFModel(TransmissionModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
-        opVar, opVarSet = getattr(pyM, "op_" + abbrvName), getattr(
-            pyM, "operationVarSet_" + abbrvName
+        opVar, opVarSet = (
+            getattr(pyM, "op_" + abbrvName),
+            getattr(pyM, "operationVarSet_" + abbrvName),
         )
 
         def powerFlowDC(pyM, loc, compName, ip, p, t):
@@ -325,10 +326,16 @@ class LOPFModel(TransmissionModel):
         super().setOptimalValues(esM, pyM, ip)
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        phaseAngleVar = getattr(pyM, 'phaseAngle_' + abbrvName)
+        phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
 
-        optVal_ = utils.formatOptimizationOutput(phaseAngleVar.get_values(), 'operationVariables', '1dim',
-                                                 ip, esM.periodsOrder[ip], esM=esM)
+        optVal_ = utils.formatOptimizationOutput(
+            phaseAngleVar.get_values(),
+            "operationVariables",
+            "1dim",
+            ip,
+            esM.periodsOrder[ip],
+            esM=esM,
+        )
         self.phaseAngleVariablesOptimum = optVal_
 
     def getOptimalValues(self, name="all"):

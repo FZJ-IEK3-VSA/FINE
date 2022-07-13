@@ -245,8 +245,8 @@ class Transmission(Component):
 
         ## New code for perfect foresight!
         # create emtpy dicts
-        self.opexPerOperation=opexPerOperation
-        self.processedOpexPerOperation = {}       
+        self.opexPerOperation = opexPerOperation
+        self.processedOpexPerOperation = {}
         self.operationRateMax = operationRateMax
         self.fullOperationRateMax = {}
         self.aggregatedOperationRateMax = {}
@@ -256,70 +256,132 @@ class Transmission(Component):
         self.fullOperationRateFix = {}
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
-        self.partLoadMin=partLoadMin
-        self.processedPartLoadMin = {}     
+        self.partLoadMin = partLoadMin
+        self.processedPartLoadMin = {}
 
-        for param in [operationRateMax ,operationRateFix, partLoadMin]:
+        for param in [operationRateMax, operationRateFix, partLoadMin]:
             utils.checkParamInput(param)
-
 
         # iterate over all ips
         for ip in esM.investmentPeriods:
-            self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC) 
-            
-            # opexPerOperation 
-            if (isinstance(opexPerOperation, int) or isinstance(opexPerOperation, float) or isinstance(opexPerOperation, pd.Series)): 
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '2dim',self.locationalEligibility)
-            elif isinstance(opexPerOperation, dict): 
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerOperation[ip],'2dim', self.locationalEligibility)
+            self.opexPerOperation = utils.preprocess2dimData(
+                opexPerOperation, self._mapC
+            )
+
+            # opexPerOperation
+            if (
+                isinstance(opexPerOperation, int)
+                or isinstance(opexPerOperation, float)
+                or isinstance(opexPerOperation, pd.Series)
+            ):
+                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
+                    esM, name, opexPerOperation, "2dim", self.locationalEligibility
+                )
+            elif isinstance(opexPerOperation, dict):
+                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
+                    esM, name, opexPerOperation[ip], "2dim", self.locationalEligibility
+                )
             elif isinstance(opexPerOperation, pd.DataFrame):
                 self.opexPerOperation = utils.checkAndSetCostParameter(
                     esM, name, self.opexPerOperation, "2dim", self.locationalEligibility
-                    )
+                )
             else:
-                raise TypeError('opexPerOperation should be an int, float, pandas series, pandas dataframe or a dictionary.') 
+                raise TypeError(
+                    "opexPerOperation should be an int, float, pandas series, pandas dataframe or a dictionary."
+                )
 
             # Operation Rate Max
-            if isinstance(operationRateMax, pd.DataFrame) or isinstance(operationRateMax, pd.Series) or operationRateMax is None: 
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax, self.locationalEligibility)
-            elif isinstance(operationRateMax, dict): 
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax[ip], self.locationalEligibility)
+            if (
+                isinstance(operationRateMax, pd.DataFrame)
+                or isinstance(operationRateMax, pd.Series)
+                or operationRateMax is None
+            ):
+                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, operationRateMax, self.locationalEligibility
+                )
+            elif isinstance(operationRateMax, dict):
+                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, operationRateMax[ip], self.locationalEligibility
+                )
             else:
-                raise TypeError('OperationRateMax should be a pandas dataframe or a dictionary.')
-            self.aggregatedOperationRateMax[ip]= None
-            
+                raise TypeError(
+                    "OperationRateMax should be a pandas dataframe or a dictionary."
+                )
+            self.aggregatedOperationRateMax[ip] = None
+
             # Operation Rate Fix
-            if isinstance(operationRateFix, pd.DataFrame) or isinstance(operationRateFix, pd.Series) or operationRateFix is None:
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix, self.locationalEligibility)
-            elif isinstance(operationRateFix, dict): 
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix[ip], self.locationalEligibility)
+            if (
+                isinstance(operationRateFix, pd.DataFrame)
+                or isinstance(operationRateFix, pd.Series)
+                or operationRateFix is None
+            ):
+                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, operationRateFix, self.locationalEligibility
+                )
+            elif isinstance(operationRateFix, dict):
+                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, operationRateFix[ip], self.locationalEligibility
+                )
             else:
-                raise TypeError('OperationRateFix should be a pandas dataframe or a dictionary.')
+                raise TypeError(
+                    "OperationRateFix should be a pandas dataframe or a dictionary."
+                )
             self.aggregatedOperationRateFix[ip] = None
 
             # part load
             if isinstance(partLoadMin, float) or partLoadMin is None:
                 self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[ip]            
+                self.processedPartLoadMin[ip] = partLoadMin[ip]
             if self.processedPartLoadMin is not None:
                 if self.processedPartLoadMin[ip] is not None:
                     if self.fullOperationRateMax[ip] is not None:
-                        if ((self.fullOperationRateMax[ip] > 0) & (self.fullOperationRateMax[ip] < self.processedPartLoadMin[ip])).any().any():
-                            raise ValueError('"operationRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+                        if (
+                            (
+                                (self.fullOperationRateMax[ip] > 0)
+                                & (
+                                    self.fullOperationRateMax[ip]
+                                    < self.processedPartLoadMin[ip]
+                                )
+                            )
+                            .any()
+                            .any()
+                        ):
+                            raise ValueError(
+                                '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
+                                + name
+                            )
                     if self.fullOperationRateFix[ip] is not None:
-                        if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.processedPartLoadMin[ip])).any().any():
-                            raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name ) 
+                        if (
+                            (
+                                (self.fullOperationRateFix[ip] > 0)
+                                & (
+                                    self.fullOperationRateFix[ip]
+                                    < self.processedPartLoadMin[ip]
+                                )
+                            )
+                            .any()
+                            .any()
+                        ):
+                            raise ValueError(
+                                '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
+                                + name
+                            )
 
-       
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
         # New code for perfect foresight
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateFix.values()):
-            self.fullOperationRateFix=None
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullOperationRateMax.values()):
-            self.fullOperationRateMax=None
+        if all(
+            type(value) != pd.core.frame.DataFrame
+            for value in self.fullOperationRateFix.values()
+        ):
+            self.fullOperationRateFix = None
+        if all(
+            type(value) != pd.core.frame.DataFrame
+            for value in self.fullOperationRateMax.values()
+        ):
+            self.fullOperationRateMax = None
         if not any(value for value in self.processedPartLoadMin.values()):
             self.processedPartLoadMin = None
 
@@ -347,17 +409,24 @@ class Transmission(Component):
             self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
         )
 
-    def getDataForTimeSeriesAggregation(self,ip):
+    def getDataForTimeSeriesAggregation(self, ip):
         """ Function for getting the required data if a time series aggregation is requested. 
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
         """
         weightDict, data = {}, []
-        weightDict, data = self.prepareTSAInput(self.fullOperationRateFix, self.fullOperationRateMax,
-                                                '_operationRate_', self.tsaWeight, weightDict, data, ip)
+        weightDict, data = self.prepareTSAInput(
+            self.fullOperationRateFix,
+            self.fullOperationRateMax,
+            "_operationRate_",
+            self.tsaWeight,
+            weightDict,
+            data,
+            ip,
+        )
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
-    def setAggregatedTimeSeriesData(self, data,ip):
+    def setAggregatedTimeSeriesData(self, data, ip):
         """
         Function for determining the aggregated maximum rate and the aggregated fixed operation rate.
 
@@ -367,20 +436,27 @@ class Transmission(Component):
         :param ip: investment period of transformation path analysis (perfect foresight).
         :type ip: int
         """
-       
-        self.aggregatedOperationRateFix[ip] = self.getTSAOutput(self.fullOperationRateFix, '_operationRate_', data, ip)
-        self.aggregatedOperationRateMax[ip] = self.getTSAOutput(self.fullOperationRateMax, '_operationRate_', data, ip)
+
+        self.aggregatedOperationRateFix[ip] = self.getTSAOutput(
+            self.fullOperationRateFix, "_operationRate_", data, ip
+        )
+        self.aggregatedOperationRateMax[ip] = self.getTSAOutput(
+            self.fullOperationRateMax, "_operationRate_", data, ip
+        )
 
     def checkProcessedDataSets(self):
         """
         Check processed time series data after applying time series aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
-        for parameter in ["processedOperationRateFix","processedOperationRateMax"]:
-            if getattr(self,parameter) is not None: 
-                if all(type(value)!=pd.core.frame.DataFrame for value in getattr(self,parameter).values()):
+        for parameter in ["processedOperationRateFix", "processedOperationRateMax"]:
+            if getattr(self, parameter) is not None:
+                if all(
+                    type(value) != pd.core.frame.DataFrame
+                    for value in getattr(self, parameter).values()
+                ):
                     setattr(self, parameter, None)
-    
+
     def initializeProcessedDataSets(self, investmentperiods):
         """
         Initialize dicts (keys are investment periods, values are None)
@@ -388,6 +464,7 @@ class Transmission(Component):
         """
         self.processedOperationRateMax = dict.fromkeys(investmentperiods)
         self.processedOperationRateFix = dict.fromkeys(investmentperiods)
+
 
 class TransmissionModel(ComponentModel):
     """
@@ -481,8 +558,9 @@ class TransmissionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        capVar, capVarSet = getattr(pyM, "cap_" + abbrvName), getattr(
-            pyM, "designDimensionVarSet_" + abbrvName
+        capVar, capVarSet = (
+            getattr(pyM, "cap_" + abbrvName),
+            getattr(pyM, "designDimensionVarSet_" + abbrvName),
         )
 
         def symmetricalCapacity(pyM, loc, compName):
@@ -515,21 +593,40 @@ class TransmissionModel(ComponentModel):
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = getattr(pyM, opVarName + "_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        opVar, capVar = (
+            getattr(pyM, opVarName + "_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         constrSet1 = getattr(pyM, constrSetName + "1_" + abbrvName)
 
         if not pyM.hasSegmentation:
+
             def op1(pyM, loc, compName, ip, p, t):
-                return opVar[loc, compName, ip, p, t] + opVar[compDict[compName]._mapI[loc], compName, ip, p, t] <= \
-                       capVar[loc, compName] * esM.hoursPerTimeStep
-            setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    + opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
+                    <= capVar[loc, compName] * esM.hoursPerTimeStep
+                )
+
+            setattr(
+                pyM,
+                constrName + "_" + abbrvName,
+                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+            )
         else:
+
             def op1(pyM, loc, compName, ip, p, t):
-                return opVar[loc, compName, ip, p, t] + opVar[compDict[compName]._mapI[loc], compName, ip, p, t] <= \
-                       capVar[loc, compName] * esM.hoursPerSegment[ip].to_dict()[p,t]
-            setattr(pyM, constrName + '_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    + opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
+                    <= capVar[loc, compName] * esM.hoursPerSegment[ip].to_dict()[p, t]
+                )
+
+            setattr(
+                pyM,
+                constrName + "_" + abbrvName,
+                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+            )
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -631,19 +728,31 @@ class TransmissionModel(ComponentModel):
             
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, opVarDictIn = getattr(pyM, 'op_' + abbrvName), getattr(pyM, 'operationVarDictIn_' + abbrvName)
-        opVarDictOut = getattr(pyM, 'operationVarDictOut_' + abbrvName)
-        return sum(opVar[loc_ + '_' + loc, compName, ip, p, t] *
-                   (1 - compDict[compName].losses[loc_ + '_' + loc] * compDict[compName].distances[loc_ + '_' + loc])
-                   for loc_ in opVarDictIn[loc].keys()
-                   for compName in opVarDictIn[loc][loc_]
-                   if commod in compDict[compName].commodity) - \
-               sum(opVar[loc + '_' + loc_, compName, ip, p, t]
-                   for loc_ in opVarDictOut[loc].keys()
-                   for compName in opVarDictOut[loc][loc_]
-                   if commod in compDict[compName].commodity)
-    
-    def getBalanceLimitContribution(self, esM, pyM, ID, loc, timeSeriesAggregation): # ToDo: Check whether ip is needed
+        opVar, opVarDictIn = (
+            getattr(pyM, "op_" + abbrvName),
+            getattr(pyM, "operationVarDictIn_" + abbrvName),
+        )
+        opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
+        return sum(
+            opVar[loc_ + "_" + loc, compName, ip, p, t]
+            * (
+                1
+                - compDict[compName].losses[loc_ + "_" + loc]
+                * compDict[compName].distances[loc_ + "_" + loc]
+            )
+            for loc_ in opVarDictIn[loc].keys()
+            for compName in opVarDictIn[loc][loc_]
+            if commod in compDict[compName].commodity
+        ) - sum(
+            opVar[loc + "_" + loc_, compName, ip, p, t]
+            for loc_ in opVarDictOut[loc].keys()
+            for compName in opVarDictOut[loc][loc_]
+            if commod in compDict[compName].commodity
+        )
+
+    def getBalanceLimitContribution(
+        self, esM, pyM, ID, loc, timeSeriesAggregation
+    ):  # ToDo: Check whether ip is needed
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
         Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
@@ -673,8 +782,9 @@ class TransmissionModel(ComponentModel):
         :type loc: string
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, opVarDictIn = getattr(pyM, "op_" + abbrvName), getattr(
-            pyM, "operationVarDictIn_" + abbrvName
+        opVar, opVarDictIn = (
+            getattr(pyM, "op_" + abbrvName),
+            getattr(pyM, "operationVarDictIn_" + abbrvName),
         )
         opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
         limitDict = getattr(pyM, "balanceLimitDict")
@@ -1000,13 +1110,26 @@ class TransmissionModel(ComponentModel):
                 optSummaryBasic.loc[compName, cost] = (data).values
 
         # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
-                                                esM=esM)
-        optVal_ = utils.formatOptimizationOutput(opVar.get_values(), 'operationVariables', '2dim', ip, esM.periodsOrder[ip],
-                                                 compDict=compDict, esM=esM)
+        optVal = utils.formatOptimizationOutput(
+            opVar.get_values(),
+            "operationVariables",
+            "1dim",
+            ip,
+            esM.periodsOrder[ip],
+            esM=esM,
+        )
+        optVal_ = utils.formatOptimizationOutput(
+            opVar.get_values(),
+            "operationVariables",
+            "2dim",
+            ip,
+            esM.periodsOrder[ip],
+            compDict=compDict,
+            esM=esM,
+        )
         # Quick fix if several runs with one investment period
         if type(self.operationVariablesOptimum) is not dict:
-            self.operationVariablesOptimum={}
+            self.operationVariablesOptimum = {}
         self.operationVariablesOptimum[ip] = optVal_
 
         props = ["operation", "opexOp"]
@@ -1038,23 +1161,45 @@ class TransmissionModel(ComponentModel):
         if optVal is not None:
             # new code
             idx = pd.IndexSlice
-            optVal = optVal.loc[idx[:,:],:] # perfect foresight: added ip and deleted again
-            #optVal = optVal.droplevel([1])
+            optVal = optVal.loc[
+                idx[:, :], :
+            ]  # perfect foresight: added ip and deleted again
+            # optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
-            
+
             # New index for opex is required as indexing with list with missing labels is deprecated
             # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-with-list-with-missing-labels-is-deprecated
             newIndex = opSum.columns.tolist()
             for name in compDict.keys():
-                compDict[name].processedOpexPerOperation[ip] = compDict[name].processedOpexPerOperation[ip].reindex(newIndex, fill_value=0.0)
-            
-            ox = opSum.apply(lambda op: op * compDict[op.name].processedOpexPerOperation[ip][op.index], axis=1)
-            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
-                            opSum.columns] = opSum.values/esM.numberOfYears
-            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h]') for ix in opSum.index],
-                           opSum.columns] = opSum.values
-            optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                ox.values/esM.numberOfYears * 0.5
+                compDict[name].processedOpexPerOperation[ip] = (
+                    compDict[name]
+                    .processedOpexPerOperation[ip]
+                    .reindex(newIndex, fill_value=0.0)
+                )
+
+            ox = opSum.apply(
+                lambda op: op
+                * compDict[op.name].processedOpexPerOperation[ip][op.index],
+                axis=1,
+            )
+            optSummary.loc[
+                [
+                    (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
+                    for ix in opSum.index
+                ],
+                opSum.columns,
+            ] = (opSum.values / esM.numberOfYears)
+            optSummary.loc[
+                [
+                    (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
+                    for ix in opSum.index
+                ],
+                opSum.columns,
+            ] = opSum.values
+            optSummary.loc[
+                [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                ox.columns,
+            ] = (ox.values / esM.numberOfYears * 0.5)
 
         optSummary = optSummary.append(optSummaryBasic).sort_index()
 
@@ -1082,7 +1227,7 @@ class TransmissionModel(ComponentModel):
         optSummary.index.set_names(names, inplace=True)
         # Quick fix if several runs with one investment period
         if type(self.optSummary) is not dict:
-            self.optSummary={}
+            self.optSummary = {}
         self.optSummary[ip] = optSummary
 
     def getOptimalValues(self, name="all"):

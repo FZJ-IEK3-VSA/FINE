@@ -136,39 +136,51 @@ class DemandSideManagementBETA(Sink):
 
         for ip in esM.investmentPeriods:
 
-            if isinstance(operationRateFix, pd.DataFrame) or isinstance(operationRateFix, pd.Series): #operationRateFix is dataframe or series
-                _operationRateFix[ip] = pd.concat([operationRateFix.iloc[-tBwd:], operationRateFix.iloc[:-tBwd]]).reset_index(drop=True)
-            elif isinstance(operationRateFix, dict): # operationRateFix is dict
-                _operationRateFix[ip] = pd.concat([operationRateFix[ip].iloc[-tBwd:], operationRateFix[ip].iloc[:-tBwd]]).reset_index(drop=True)
+            if isinstance(operationRateFix, pd.DataFrame) or isinstance(
+                operationRateFix, pd.Series
+            ):  # operationRateFix is dataframe or series
+                _operationRateFix[ip] = pd.concat(
+                    [operationRateFix.iloc[-tBwd:], operationRateFix.iloc[:-tBwd]]
+                ).reset_index(drop=True)
+            elif isinstance(operationRateFix, dict):  # operationRateFix is dict
+                _operationRateFix[ip] = pd.concat(
+                    [
+                        operationRateFix[ip].iloc[-tBwd:],
+                        operationRateFix[ip].iloc[:-tBwd],
+                    ]
+                ).reset_index(drop=True)
             else:
-                raise TypeError('operationRateFix should be a pandas dataframe or a dictionary.')
+                raise TypeError(
+                    "operationRateFix should be a pandas dataframe or a dictionary."
+                )
 
             if shiftUpMax is None:
                 self.shiftUpMax[ip] = _operationRateFix[ip].max()
-                print('shiftUpMax was set to', _operationRateFix[ip].max())
+                print("shiftUpMax was set to", _operationRateFix[ip].max())
             else:
                 if isinstance(shiftUpMax, dict):
                     self.shiftUpMax[ip] = shiftUpMax[ip]
                 else:
                     self.shiftUpMax[ip] = shiftUpMax
-            
+
             if shiftDownMax is None:
                 self.shiftDownMax[ip] = _operationRateFix[ip].max()
-                print('shiftDownMax was set to', _operationRateFix[ip].max())
+                print("shiftDownMax was set to", _operationRateFix[ip].max())
             else:
                 if isinstance(shiftDownMax, dict):
                     self.shiftDownMax[ip] = shiftDownMax[ip]
                 else:
                     self.shiftDownMax[ip] = shiftDownMax
 
-
-        Sink.__init__(self, 
-                      esM, 
-                      name, 
-                      commodity, 
-                      hasCapacityVariable, 
-                      operationRateFix=_operationRateFix, 
-                      **kwargs)
+        Sink.__init__(
+            self,
+            esM,
+            name,
+            commodity,
+            hasCapacityVariable,
+            operationRateFix=_operationRateFix,
+            **kwargs
+        )
 
         self.modelingClass = DSMModel
 
@@ -181,39 +193,75 @@ class DemandSideManagementBETA(Sink):
             for ip in esM.investmentPeriods:
                 SOCmax[ip] = _operationRateFix[ip].copy()
                 SOCmax[ip][SOCmax[ip] > 0] = 0
-                
-                SOCmax_ = pd.concat([_operationRateFix[ip][_operationRateFix[ip].index % self.tDelta == i]]*self.tDelta).\
-                    sort_index().reset_index(drop=True)
-                
-                if (len(SOCmax_) > len(esM.totalTimeSteps)):
-                    SOCmax_ = pd.concat([SOCmax_.iloc[tFwd+tBwd-i:], SOCmax_.iloc[:tFwd+tBwd-i]]).reset_index(drop=True)
-                    print('tBwd+tFwd+1 is not a divisor of the total number of time steps of the energy system. ' +
-                        'This shortens the shiftable timeframe of demand_' + str(i) + ' by ' +
-                        str(len(SOCmax_)-len(esM.totalTimeSteps)) + ' time steps')
-                    SOCmax[ip] = SOCmax_.iloc[:len(esM.totalTimeSteps)]
+
+                SOCmax_ = (
+                    pd.concat(
+                        [
+                            _operationRateFix[ip][
+                                _operationRateFix[ip].index % self.tDelta == i
+                            ]
+                        ]
+                        * self.tDelta
+                    )
+                    .sort_index()
+                    .reset_index(drop=True)
+                )
+
+                if len(SOCmax_) > len(esM.totalTimeSteps):
+                    SOCmax_ = pd.concat(
+                        [
+                            SOCmax_.iloc[tFwd + tBwd - i :],
+                            SOCmax_.iloc[: tFwd + tBwd - i],
+                        ]
+                    ).reset_index(drop=True)
+                    print(
+                        "tBwd+tFwd+1 is not a divisor of the total number of time steps of the energy system. "
+                        + "This shortens the shiftable timeframe of demand_"
+                        + str(i)
+                        + " by "
+                        + str(len(SOCmax_) - len(esM.totalTimeSteps))
+                        + " time steps"
+                    )
+                    SOCmax[ip] = SOCmax_.iloc[: len(esM.totalTimeSteps)]
 
                 elif len(SOCmax_) < len(esM.totalTimeSteps):
-                    SOCmax[ip].iloc[0:len(SOCmax_.iloc[tFwd+tBwd-i:])] = SOCmax_.iloc[tFwd+tBwd-i:].values
-                    if len(SOCmax_.iloc[:tFwd+tBwd-i]) > 0:
-                        SOCmax[ip].iloc[-len(SOCmax_.iloc[:tFwd+tBwd-i]):] = SOCmax_.iloc[:tFwd+tBwd-i].values
-                        
+                    SOCmax[ip].iloc[
+                        0 : len(SOCmax_.iloc[tFwd + tBwd - i :])
+                    ] = SOCmax_.iloc[tFwd + tBwd - i :].values
+                    if len(SOCmax_.iloc[: tFwd + tBwd - i]) > 0:
+                        SOCmax[ip].iloc[
+                            -len(SOCmax_.iloc[: tFwd + tBwd - i]) :
+                        ] = SOCmax_.iloc[: tFwd + tBwd - i].values
+
                 else:
-                    SOCmax_ = pd.concat([SOCmax_.iloc[tFwd+tBwd-i:], SOCmax_.iloc[:tFwd+tBwd-i]]).reset_index(drop=True)
+                    SOCmax_ = pd.concat(
+                        [
+                            SOCmax_.iloc[tFwd + tBwd - i :],
+                            SOCmax_.iloc[: tFwd + tBwd - i],
+                        ]
+                    ).reset_index(drop=True)
                     SOCmax[ip] = SOCmax_
 
                 chargeOpRateMax[ip] = SOCmax[ip].copy()
 
                 if i < self.tDelta - 1:
-                    SOCmax[ip][SOCmax[ip].index % self.tDelta == i+1] = 0
+                    SOCmax[ip][SOCmax[ip].index % self.tDelta == i + 1] = 0
                 else:
                     SOCmax[ip][SOCmax[ip].index % self.tDelta == 0] = 0
 
                 dischargeFix[ip] = _operationRateFix[ip].copy()
                 dischargeFix[ip][dischargeFix[ip].index % self.tDelta != i] = 0
-                
-                opexPerChargeOpTimeSeries[ip] = pd.DataFrame([[opexShift for loc in self.locationalEligibility] for t in esM.totalTimeSteps],
-                                columns=self.locationalEligibility.index)
-                opexPerChargeOpTimeSeries[ip][(opexPerChargeOpTimeSeries[ip].index - i ) % self.tDelta == tBwd + 1] = 0
+
+                opexPerChargeOpTimeSeries[ip] = pd.DataFrame(
+                    [
+                        [opexShift for loc in self.locationalEligibility]
+                        for t in esM.totalTimeSteps
+                    ],
+                    columns=self.locationalEligibility.index,
+                )
+                opexPerChargeOpTimeSeries[ip][
+                    (opexPerChargeOpTimeSeries[ip].index - i) % self.tDelta == tBwd + 1
+                ] = 0
 
             opexPerChargeOpTimeSeries = pd.DataFrame(
                 [
@@ -258,7 +306,7 @@ class DSMModel(SourceSinkModel):
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
         self.optSummary = {}
-        self.operationVariablesOptimum={}
+        self.operationVariablesOptimum = {}
 
     def limitUpDownShifts(self, pyM, esM):
         """
@@ -277,20 +325,36 @@ class DSMModel(SourceSinkModel):
 
         def limitUpDownShifts(pyM, loc, compName, ip, p, t):
             for i in range(compDict[compName].tDelta):
-                if esM.getComponent(compName + '_' + str(i)).processedOpexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
+                if (
+                    esM.getComponent(compName + "_" + str(i))
+                    .processedOpexPerChargeOpTimeSeries[ip]
+                    .loc[(p, t), loc]
+                    == 0
+                ):
                     ixDown = str(i)
                     break
 
-            ixUp = [str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown]
+            ixUp = [
+                str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown
+            ]
 
-            return (sum(chargeOp[loc, compName + '_' + compName_i, ip, p, t] for compName_i in ixUp) +
-                    (esM.getComponent(compName + '_' + ixDown).processedChargeOpRateMax[ip].loc[(p, t), loc] -
-                     chargeOp[loc, compName + '_' + ixDown, ip, p, t]) <=
-                    max(compDict[compName].shiftUpMax[ip], compDict[compName].shiftDownMax[ip]))
+            return sum(
+                chargeOp[loc, compName + "_" + compName_i, ip, p, t]
+                for compName_i in ixUp
+            ) + (
+                esM.getComponent(compName + "_" + ixDown)
+                .processedChargeOpRateMax[ip]
+                .loc[(p, t), loc]
+                - chargeOp[loc, compName + "_" + ixDown, ip, p, t]
+            ) <= max(
+                compDict[compName].shiftUpMax[ip], compDict[compName].shiftDownMax[ip]
+            )
 
-        setattr(pyM, 'limitUpDownShifts_' + abbrvName,
-                pyomo.Constraint(constrSet, pyM.timeSet, rule=limitUpDownShifts))
-
+        setattr(
+            pyM,
+            "limitUpDownShifts_" + abbrvName,
+            pyomo.Constraint(constrSet, pyM.timeSet, rule=limitUpDownShifts),
+        )
 
     def shiftUpMax(self, pyM, esM):
         """
@@ -309,17 +373,31 @@ class DSMModel(SourceSinkModel):
 
         def shiftUpMax(pyM, loc, compName, ip, p, t):
             for i in range(compDict[compName].tDelta):
-                if esM.getComponent(compName + '_' + str(i)).processedOpexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
+                if (
+                    esM.getComponent(compName + "_" + str(i))
+                    .processedOpexPerChargeOpTimeSeries[ip]
+                    .loc[(p, t), loc]
+                    == 0
+                ):
                     ixDown = str(i)
                     break
-            ixUp = [str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown]
+            ixUp = [
+                str(i) for i in range(compDict[compName].tDelta) if str(i) != ixDown
+            ]
 
-            return (sum(chargeOp[loc, compName + '_' + compName_i, ip, p, t] for compName_i in ixUp) <=
-                    compDict[compName].shiftUpMax[ip])
+            return (
+                sum(
+                    chargeOp[loc, compName + "_" + compName_i, ip, p, t]
+                    for compName_i in ixUp
+                )
+                <= compDict[compName].shiftUpMax[ip]
+            )
 
-        setattr(pyM, 'shiftUpMax_' + abbrvName,
-                pyomo.Constraint(constrSet, pyM.timeSet, rule=shiftUpMax))
-
+        setattr(
+            pyM,
+            "shiftUpMax_" + abbrvName,
+            pyomo.Constraint(constrSet, pyM.timeSet, rule=shiftUpMax),
+        )
 
     def shiftDownMax(self, pyM, esM):
         """
@@ -338,12 +416,22 @@ class DSMModel(SourceSinkModel):
 
         def shiftDownMax(pyM, loc, compName, ip, p, t):
             for i in range(compDict[compName].tDelta):
-                if esM.getComponent(compName + '_' + str(i)).processedOpexPerChargeOpTimeSeries[ip].loc[(p, t), loc] == 0:
+                if (
+                    esM.getComponent(compName + "_" + str(i))
+                    .processedOpexPerChargeOpTimeSeries[ip]
+                    .loc[(p, t), loc]
+                    == 0
+                ):
                     ixDown = str(i)
                     break
 
-            return (esM.getComponent(compName + '_' + ixDown).processedChargeOpRateMax[ip].loc[(p, t), loc] - 
-                    chargeOp[loc, compName + '_' + ixDown, ip, p, t] <= compDict[compName].shiftDownMax[ip])
+            return (
+                esM.getComponent(compName + "_" + ixDown)
+                .processedChargeOpRateMax[ip]
+                .loc[(p, t), loc]
+                - chargeOp[loc, compName + "_" + ixDown, ip, p, t]
+                <= compDict[compName].shiftDownMax[ip]
+            )
 
         setattr(
             pyM,
@@ -394,9 +482,15 @@ class DSMModel(SourceSinkModel):
         )
 
         # Set optimal operation variables and append optimization summary
-        chargeOp = getattr(pyM, 'chargeOp_storExt')
-        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
-                                                esM=esM)
+        chargeOp = getattr(pyM, "chargeOp_storExt")
+        optVal = utils.formatOptimizationOutput(
+            chargeOp.get_values(),
+            "operationVariables",
+            "1dim",
+            ip,
+            esM.periodsOrder[ip],
+            esM=esM,
+        )
 
         def groupStor(x):
             ix = optVal.loc[x].name
@@ -410,7 +504,7 @@ class DSMModel(SourceSinkModel):
         optVal.index = pd.MultiIndex.from_tuples(optVal.index)
 
         if type(self.operationVariablesOptimum) is not dict:
-            self.operationVariablesOptimum={}
+            self.operationVariablesOptimum = {}
         self.operationVariablesOptimum[ip] = optVal
 
         props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
@@ -443,15 +537,33 @@ class DSMModel(SourceSinkModel):
         if optVal is not None:
 
             opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(lambda op: op * compDict[op.name].processedOpexPerOperation[ip][op.index], axis=1)
-            cCost = opSum.apply(lambda op: op * compDict[op.name].processedCommodityCost[ip][op.index], axis=1)
-            cRevenue = opSum.apply(lambda op: op * compDict[op.name].processedCommodityRevenue[ip][op.index], axis=1)
-            
-            optSummary.loc[[(ix, 'operation', '[' + compDict[ix].commodityUnit + '*h/a]') for ix in opSum.index],
-                            opSum.columns] = opSum.values/esM.numberOfYears
-            optSummary.loc[[(ix, 'opexOp', '[' + esM.costUnit + '/a]') for ix in ox.index], ox.columns] = \
-                ox.values/esM.numberOfYears
-            
+            ox = opSum.apply(
+                lambda op: op
+                * compDict[op.name].processedOpexPerOperation[ip][op.index],
+                axis=1,
+            )
+            cCost = opSum.apply(
+                lambda op: op * compDict[op.name].processedCommodityCost[ip][op.index],
+                axis=1,
+            )
+            cRevenue = opSum.apply(
+                lambda op: op
+                * compDict[op.name].processedCommodityRevenue[ip][op.index],
+                axis=1,
+            )
+
+            optSummary.loc[
+                [
+                    (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
+                    for ix in opSum.index
+                ],
+                opSum.columns,
+            ] = (opSum.values / esM.numberOfYears)
+            optSummary.loc[
+                [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                ox.columns,
+            ] = (ox.values / esM.numberOfYears)
+
             # get empty datframe for resulting time dependent (TD) cost sum
             cRevenueTD = pd.DataFrame(
                 0.0, index=list(compDict.keys()), columns=opSum.columns
@@ -464,8 +576,15 @@ class DSMModel(SourceSinkModel):
                 if not compDict[compName].commodityCostTimeSeries is None:
                     # in case of time series aggregation rearange clustered cost time series
                     calcCostTD = utils.buildFullTimeSeries(
-                        compDict[compName].commodityCostTimeSeries[ip].unstack(level=1).stack(level=0),
-                        esM.periodsOrder[ip], ip, esM=esM, divide=False)
+                        compDict[compName]
+                        .commodityCostTimeSeries[ip]
+                        .unstack(level=1)
+                        .stack(level=0),
+                        esM.periodsOrder[ip],
+                        ip,
+                        esM=esM,
+                        divide=False,
+                    )
                     # multiply with operation values to get the total cost
                     cCostTD.loc[compName, :] = (
                         optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
@@ -474,8 +593,15 @@ class DSMModel(SourceSinkModel):
                 if not compDict[compName].processedCommodityRevenueTimeSeries is None:
                     # in case of time series aggregation rearange clustered revenue time series
                     calcRevenueTD = utils.buildFullTimeSeries(
-                        compDict[compName].commodityRevenueTimeSeries[ip].unstack(level=1).stack(level=0),
-                        esM.periodsOrder[ip], ip, esM=esM, divide=False)
+                        compDict[compName]
+                        .commodityRevenueTimeSeries[ip]
+                        .unstack(level=1)
+                        .stack(level=0),
+                        esM.periodsOrder[ip],
+                        ip,
+                        esM=esM,
+                        divide=False,
+                    )
                     # multiply with operation values to get the total revenue
                     cRevenueTD.loc[compName, :] = (
                         optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
@@ -512,5 +638,5 @@ class DSMModel(SourceSinkModel):
 
         # Quick fix if several runs with one investment period
         if type(self.optSummary) is not dict:
-            self.optSummary={}
+            self.optSummary = {}
         self.optSummary[ip] = optSummary

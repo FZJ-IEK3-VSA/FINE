@@ -36,15 +36,17 @@ def test_DSM(dsm_test_esM):
 
     # benchmark generation without dsm
     cheap_without_dsm = load_without_dsm.clip(0, cheap_capacity).copy()
-    cheap_without_dsm.name = ('cheap', 'location')
+    cheap_without_dsm.name = ("cheap", "location")
     expensive_without_dsm = load_without_dsm - cheap_without_dsm
-    expensive_without_dsm.name = ('expensive', 'location')
+    expensive_without_dsm.name = ("expensive", "location")
 
     # test without dsm
-    print('generator_outputs')
-    print(generator_outputs)
-    pd.testing.assert_series_equal(generator_outputs.loc[('cheap', 'location')], cheap_without_dsm)
-    pd.testing.assert_series_equal(generator_outputs.loc[('expensive', 'location')], expensive_without_dsm)
+    pd.testing.assert_series_equal(
+        generator_outputs.loc[("cheap", "location")], cheap_without_dsm
+    )
+    pd.testing.assert_series_equal(
+        generator_outputs.loc[("expensive", "location")], expensive_without_dsm
+    )
 
     # add DSM
     tFwd = 3
@@ -81,52 +83,21 @@ def test_DSM(dsm_test_esM):
 
     # benchmark generation and load with dsm
     expensive_with_dsm = expensive_without_dsm.copy()
-    expensive_with_dsm[timestep_up:timestep_up + time_shift] -= 10
-    expensive_with_dsm[timestep_down - time_shift:timestep_down] -= 10
-    expensive_with_dsm.name = ('expensive','location')
+    expensive_with_dsm[timestep_up : timestep_up + time_shift] -= 10
+    expensive_with_dsm[timestep_down - time_shift : timestep_down] -= 10
+    expensive_with_dsm.name = ("expensive", "location")
 
     cheap_with_dsm = cheap_without_dsm.copy()
-    cheap_with_dsm[timestep_up - time_shift:timestep_up] += 10
-    cheap_with_dsm[timestep_down:timestep_down + time_shift] += 10
-    cheap_with_dsm.name = ('cheap', 'location')
+    cheap_with_dsm[timestep_up - time_shift : timestep_up] += 10
+    cheap_with_dsm[timestep_down : timestep_down + time_shift] += 10
+    cheap_with_dsm.name = ("cheap", "location")
 
     load_with_dsm = load_without_dsm.copy()
-    load_with_dsm[timestep_up - time_shift:timestep_up] += 10
-    load_with_dsm[timestep_up:timestep_up + time_shift] -= 10
-    load_with_dsm[timestep_down - time_shift:timestep_down] -= 10
-    load_with_dsm[timestep_down:timestep_down + time_shift] += 10
-    load_with_dsm.name = ('flexible demand', 'location')
-
-    # test with dsm
-    pd.testing.assert_series_equal(generator_outputs.loc[('cheap',  'location')], cheap_with_dsm)
-    pd.testing.assert_series_equal(generator_outputs.loc[('expensive',  'location')], expensive_with_dsm)
-    pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand',  'location')], load_with_dsm)
-
-    esM_with.aggregateTemporally(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)    
-    esM_with.optimize(timeSeriesAggregation=True, solver='gurobi', optimizationSpecs='LogToConsole=0')
-
-    # benchmark generation and load with dsm
-    expensive_with_dsm = expensive_without_dsm.copy()
-    expensive_with_dsm[timestep_up:timestep_up + time_shift] -= 10
-    expensive_with_dsm[timestep_down - time_shift:timestep_down] -= 10
-    expensive_with_dsm.name = ('expensive', 'location')
-
-    cheap_with_dsm = cheap_without_dsm.copy()
-    cheap_with_dsm[timestep_up - time_shift:timestep_up] += 10
-    cheap_with_dsm[timestep_down:timestep_down + time_shift] += 10
-    cheap_with_dsm.name = ('cheap',  'location')
-
-    load_with_dsm = load_without_dsm.copy()
-    load_with_dsm[timestep_up - time_shift:timestep_up] += 10
-    load_with_dsm[timestep_up:timestep_up + time_shift] -= 10
-    load_with_dsm[timestep_down - time_shift:timestep_down] -= 10
-    load_with_dsm[timestep_down:timestep_down + time_shift] += 10
-    load_with_dsm.name = ('flexible demand',  'location')
-    
-    # test with dsm
-    pd.testing.assert_series_equal(generator_outputs.loc[('cheap',  'location')], cheap_with_dsm)
-    pd.testing.assert_series_equal(generator_outputs.loc[('expensive',  'location')], expensive_with_dsm)
-    pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand',  'location')], load_with_dsm)
+    load_with_dsm[timestep_up - time_shift : timestep_up] += 10
+    load_with_dsm[timestep_up : timestep_up + time_shift] -= 10
+    load_with_dsm[timestep_down - time_shift : timestep_down] -= 10
+    load_with_dsm[timestep_down : timestep_down + time_shift] += 10
+    load_with_dsm.name = ("flexible demand", "location")
 
     # test with dsm
     pd.testing.assert_series_equal(
@@ -146,27 +117,66 @@ def test_DSM(dsm_test_esM):
 
     # benchmark generation and load with dsm
     expensive_with_dsm = expensive_without_dsm.copy()
-    expensive_with_dsm[timestep_up:timestep_up + time_shift] -= 10
-    expensive_with_dsm[timestep_down - time_shift:timestep_down] -= 10
-    expensive_with_dsm.name = ('expensive', 'location')
+    expensive_with_dsm[timestep_up : timestep_up + time_shift] -= 10
+    expensive_with_dsm[timestep_down - time_shift : timestep_down] -= 10
+    expensive_with_dsm.name = ("expensive", "location")
 
     cheap_with_dsm = cheap_without_dsm.copy()
-    cheap_with_dsm[timestep_up - time_shift:timestep_up] += 10
-    cheap_with_dsm[timestep_down:timestep_down + time_shift] += 10
-    cheap_with_dsm.name = ('cheap',  'location')
+    cheap_with_dsm[timestep_up - time_shift : timestep_up] += 10
+    cheap_with_dsm[timestep_down : timestep_down + time_shift] += 10
+    cheap_with_dsm.name = ("cheap", "location")
 
     load_with_dsm = load_without_dsm.copy()
-    load_with_dsm[timestep_up - time_shift:timestep_up] += 10
-    load_with_dsm[timestep_up:timestep_up + time_shift] -= 10
-    load_with_dsm[timestep_down - time_shift:timestep_down] -= 10
-    load_with_dsm[timestep_down:timestep_down + time_shift] += 10
-    load_with_dsm.name = ('flexible demand',  'location')
+    load_with_dsm[timestep_up - time_shift : timestep_up] += 10
+    load_with_dsm[timestep_up : timestep_up + time_shift] -= 10
+    load_with_dsm[timestep_down - time_shift : timestep_down] -= 10
+    load_with_dsm[timestep_down : timestep_down + time_shift] += 10
+    load_with_dsm.name = ("flexible demand", "location")
 
     # test with dsm
-    pd.testing.assert_series_equal(generator_outputs.loc[('cheap', 'location')], cheap_with_dsm)
-    pd.testing.assert_series_equal(generator_outputs.loc[('expensive', 'location')], expensive_with_dsm)
-    pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand', 'location')], load_with_dsm)
+    pd.testing.assert_series_equal(
+        generator_outputs.loc[("cheap", "location")], cheap_with_dsm
+    )
+    pd.testing.assert_series_equal(
+        generator_outputs.loc[("expensive", "location")], expensive_with_dsm
+    )
+    pd.testing.assert_series_equal(
+        esM_load_with_DSM.loc[("flexible demand", "location")], load_with_dsm
+    )
 
+    esM_with.aggregateTemporally(
+        numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25
+    )
+    esM_with.optimize(timeSeriesAggregation=True, solver="glpk")
+
+    # benchmark generation and load with dsm
+    expensive_with_dsm = expensive_without_dsm.copy()
+    expensive_with_dsm[timestep_up : timestep_up + time_shift] -= 10
+    expensive_with_dsm[timestep_down - time_shift : timestep_down] -= 10
+    expensive_with_dsm.name = ("expensive", "location")
+
+    cheap_with_dsm = cheap_without_dsm.copy()
+    cheap_with_dsm[timestep_up - time_shift : timestep_up] += 10
+    cheap_with_dsm[timestep_down : timestep_down + time_shift] += 10
+    cheap_with_dsm.name = ("cheap", "location")
+
+    load_with_dsm = load_without_dsm.copy()
+    load_with_dsm[timestep_up - time_shift : timestep_up] += 10
+    load_with_dsm[timestep_up : timestep_up + time_shift] -= 10
+    load_with_dsm[timestep_down - time_shift : timestep_down] -= 10
+    load_with_dsm[timestep_down : timestep_down + time_shift] += 10
+    load_with_dsm.name = ("flexible demand", "location")
+
+    # test with dsm
+    pd.testing.assert_series_equal(
+        generator_outputs.loc[("cheap", "location")], cheap_with_dsm
+    )
+    pd.testing.assert_series_equal(
+        generator_outputs.loc[("expensive", "location")], expensive_with_dsm
+    )
+    pd.testing.assert_series_equal(
+        esM_load_with_DSM.loc[("flexible demand", "location")], load_with_dsm
+    )
 
 
 def dsm_test_esM(scope="session"):

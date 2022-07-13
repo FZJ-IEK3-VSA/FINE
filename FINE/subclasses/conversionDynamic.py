@@ -287,9 +287,10 @@ class ConversionDynamicModel(ConversionModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         opVarBin = getattr(pyM, "op_bin_" + abbrvName)
-        opVarStartBin, opVarStopBin = getattr(
-            pyM, "startVariable_" + abbrvName
-        ), getattr(pyM, "stopVariable_" + abbrvName)
+        opVarStartBin, opVarStopBin = (
+            getattr(pyM, "startVariable_" + abbrvName),
+            getattr(pyM, "stopVariable_" + abbrvName),
+        )
         constrSetMinDownTime = getattr(pyM, "opConstrSet" + "downTimeMin_" + abbrvName)
         if not pyM.hasSegmentation:
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
@@ -297,21 +298,46 @@ class ConversionDynamicModel(ConversionModel):
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
 
         def minimumDownTime1(pyM, loc, compName, ip, p, t):
-            if t>=1:
-                return (opVarBin[loc, compName, ip, p, t]-opVarBin[loc, compName, ip, p, t-1]-opVarStartBin[loc, compName, ip, p, t]+opVarStopBin[loc, compName, ip, p, t] == 0)
+            if t >= 1:
+                return (
+                    opVarBin[loc, compName, ip, p, t]
+                    - opVarBin[loc, compName, ip, p, t - 1]
+                    - opVarStartBin[loc, compName, ip, p, t]
+                    + opVarStopBin[loc, compName, ip, p, t]
+                    == 0
+                )
             else:
-                return (opVarBin[loc, compName, ip, p, t]-opVarBin[loc, compName, ip, p, numberOfTimeSteps-1]-opVarStartBin[loc, compName, ip, p, t] \
-                + opVarStopBin[loc, compName, ip, p, t] == 0)
-        setattr(pyM, 'ConstrMinDownTime1_' + abbrvName, pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime1))
-          
+                return (
+                    opVarBin[loc, compName, ip, p, t]
+                    - opVarBin[loc, compName, ip, p, numberOfTimeSteps - 1]
+                    - opVarStartBin[loc, compName, ip, p, t]
+                    + opVarStopBin[loc, compName, ip, p, t]
+                    == 0
+                )
+
+        setattr(
+            pyM,
+            "ConstrMinDownTime1_" + abbrvName,
+            pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime1),
+        )
+
         def minimumDownTime2(pyM, loc, compName, ip, p, t):
-            downTimeMin = getattr(compDict[compName], 'downTimeMin')
+            downTimeMin = getattr(compDict[compName], "downTimeMin")
             if t >= downTimeMin:
-                return opVarBin[loc, compName, ip, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, ip, p, t_down] for t_down in range(t-downTimeMin+1, t))
+                return opVarBin[loc, compName, ip, p, t] <= 1 - pyomo.quicksum(
+                    opVarStopBin[loc, compName, ip, p, t_down]
+                    for t_down in range(t - downTimeMin + 1, t)
+                )
             else:
-                return opVarBin[loc, compName, ip, p, t] <= 1 -pyomo.quicksum(opVarStopBin[loc, compName, ip, p, t_down] for t_down in range(0, t)) \
-                    - pyomo.quicksum(opVarStopBin[loc, compName, ip, p, t_down] for t_down in range(numberOfTimeSteps-(downTimeMin-t), numberOfTimeSteps))
-        
+                return opVarBin[loc, compName, ip, p, t] <= 1 - pyomo.quicksum(
+                    opVarStopBin[loc, compName, ip, p, t_down] for t_down in range(0, t)
+                ) - pyomo.quicksum(
+                    opVarStopBin[loc, compName, ip, p, t_down]
+                    for t_down in range(
+                        numberOfTimeSteps - (downTimeMin - t), numberOfTimeSteps
+                    )
+                )
+
         setattr(
             pyM,
             "ConstrMinDownTime2_" + abbrvName,
@@ -329,44 +355,64 @@ class ConversionDynamicModel(ConversionModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         opVarBin = getattr(pyM, "op_bin_" + abbrvName)
-        opVarStartBin, opVarStopBin = getattr(
-            pyM, "startVariable_" + abbrvName
-        ), getattr(pyM, "stopVariable_" + abbrvName)
+        opVarStartBin, opVarStopBin = (
+            getattr(pyM, "startVariable_" + abbrvName),
+            getattr(pyM, "stopVariable_" + abbrvName),
+        )
         constrSetMinUpTime = getattr(pyM, "opConstrSet" + "upTimeMin_" + abbrvName)
         if not pyM.hasSegmentation:
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
-    
-        def minimumUpTime1(pyM, loc, compName, ip, p, t):
-            downTimeMin = getattr(compDict[compName], 'downTimeMin')
-            if (t>=1 and downTimeMin==None): # avoid to set constraints twice
-                return (
-                    opVarBin[loc, compName, ip, p, t]
-                    -opVarBin[loc, compName, ip, p, t-1]
-                    -opVarStartBin[loc, compName, ip, p, t]
-                    +opVarStopBin[loc, compName, ip, p, t] 
-                    == 0)
-            else:
-                return (
-                    opVarBin[loc, compName, ip, p, t]
-                    -opVarBin[loc, compName, ip, p, numberOfTimeSteps-1]
-                    -opVarStartBin[loc, compName, ip, p, t] \
-                    + opVarStopBin[loc, compName, ip, p, t] 
-                    == 0)
-        setattr(pyM, 'ConstrMinUpTime1_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime1))
-            
-        def minimumUpTime2(pyM, loc, compName, ip, p, t):
-            upTimeMin = getattr(compDict[compName], 'upTimeMin')
-            if t >= upTimeMin:
-                return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(t-upTimeMin+1, t))
-            else:
-                return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(0, t)) \
-                    + pyomo.quicksum(opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(numberOfTimeSteps-(upTimeMin-t), numberOfTimeSteps))
 
-        setattr(pyM, 'ConstrMinUpTime2_' + abbrvName, pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime2))    
-    
-    
+        def minimumUpTime1(pyM, loc, compName, ip, p, t):
+            downTimeMin = getattr(compDict[compName], "downTimeMin")
+            if t >= 1 and downTimeMin == None:  # avoid to set constraints twice
+                return (
+                    opVarBin[loc, compName, ip, p, t]
+                    - opVarBin[loc, compName, ip, p, t - 1]
+                    - opVarStartBin[loc, compName, ip, p, t]
+                    + opVarStopBin[loc, compName, ip, p, t]
+                    == 0
+                )
+            else:
+                return (
+                    opVarBin[loc, compName, ip, p, t]
+                    - opVarBin[loc, compName, ip, p, numberOfTimeSteps - 1]
+                    - opVarStartBin[loc, compName, ip, p, t]
+                    + opVarStopBin[loc, compName, ip, p, t]
+                    == 0
+                )
+
+        setattr(
+            pyM,
+            "ConstrMinUpTime1_" + abbrvName,
+            pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime1),
+        )
+
+        def minimumUpTime2(pyM, loc, compName, ip, p, t):
+            upTimeMin = getattr(compDict[compName], "upTimeMin")
+            if t >= upTimeMin:
+                return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
+                    opVarStartBin[loc, compName, ip, p, t_up]
+                    for t_up in range(t - upTimeMin + 1, t)
+                )
+            else:
+                return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
+                    opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(0, t)
+                ) + pyomo.quicksum(
+                    opVarStartBin[loc, compName, ip, p, t_up]
+                    for t_up in range(
+                        numberOfTimeSteps - (upTimeMin - t), numberOfTimeSteps
+                    )
+                )
+
+        setattr(
+            pyM,
+            "ConstrMinUpTime2_" + abbrvName,
+            pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime2),
+        )
+
     def rampUpMax(self, pyM, esM):
         """
         Ensure that conversion unit is not ramping up too fast by implementing a maximum ramping rate as share of the installed capacity.
@@ -385,21 +431,44 @@ class ConversionDynamicModel(ConversionModel):
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
-    
+
         def rampUpMax(pyM, loc, compName, ip, p, t):
-            rampRateMax = getattr(compDict[compName], 'rampUpMax')
+            rampRateMax = getattr(compDict[compName], "rampUpMax")
             if not pyM.hasSegmentation:
-                if (t>=1): # avoid to set constraints twice
-                    return (opVar[loc, compName, ip, p, t]-opVar[loc, compName, ip, p, t-1] <= rampRateMax*capVar[loc, compName])
+                if t >= 1:  # avoid to set constraints twice
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        - opVar[loc, compName, ip, p, t - 1]
+                        <= rampRateMax * capVar[loc, compName]
+                    )
                 else:
-                    return (opVar[loc, compName, ip, p, t]-opVar[loc, compName, ip, p, numberOfTimeSteps-1] <= rampRateMax*capVar[loc, compName])
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        - opVar[loc, compName, ip, p, numberOfTimeSteps - 1]
+                        <= rampRateMax * capVar[loc, compName]
+                    )
             else:
-                if (t>=1): # avoid to set constraints twice
-                    return (opVar[loc, compName, ip, p, t]-opVar[loc, compName, ip, p, t-1] <= rampRateMax*capVar[loc, compName])
+                if t >= 1:  # avoid to set constraints twice
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        - opVar[loc, compName, ip, p, t - 1]
+                        <= rampRateMax * capVar[loc, compName]
+                    )
                 else:
-                    return (opVar[loc, compName, ip, p, t]-opVar[loc, compName, ip, p, numberOfTimeSteps-1] <= rampRateMax*esM.timeStepsPerSegment.to_dict()[ip, p, t]*capVar[loc, compName])
-        setattr(pyM, 'ConstrRampUpMax_' + abbrvName, pyomo.Constraint(constrSetRampUpMax, pyM.timeSet, rule=rampUpMax))
-              
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        - opVar[loc, compName, ip, p, numberOfTimeSteps - 1]
+                        <= rampRateMax
+                        * esM.timeStepsPerSegment.to_dict()[ip, p, t]
+                        * capVar[loc, compName]
+                    )
+
+        setattr(
+            pyM,
+            "ConstrRampUpMax_" + abbrvName,
+            pyomo.Constraint(constrSetRampUpMax, pyM.timeSet, rule=rampUpMax),
+        )
+
     def rampDownMax(self, pyM, esM):
         """
         Ensure that conversion unit is not ramping down too fast by implementing a maximum ramping rate as share of the installed capacity.
@@ -418,23 +487,44 @@ class ConversionDynamicModel(ConversionModel):
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
-   
+
         def rampDownMax(pyM, loc, compName, ip, p, t):
-            rampRateMax = getattr(compDict[compName], 'rampDownMax')
+            rampRateMax = getattr(compDict[compName], "rampDownMax")
             if not pyM.hasSegmentation:
-                if (t>=1): # avoid to set constraints twice
-                    return (opVar[loc, compName, ip, p, t-1]-opVar[loc, compName, ip, p, t] <= rampRateMax*capVar[loc, compName])
+                if t >= 1:  # avoid to set constraints twice
+                    return (
+                        opVar[loc, compName, ip, p, t - 1]
+                        - opVar[loc, compName, ip, p, t]
+                        <= rampRateMax * capVar[loc, compName]
+                    )
                 else:
-                    return (opVar[loc, compName, ip, p, numberOfTimeSteps-1]-opVar[loc, compName, ip, p, t] <= rampRateMax*capVar[loc, compName])
+                    return (
+                        opVar[loc, compName, ip, p, numberOfTimeSteps - 1]
+                        - opVar[loc, compName, ip, p, t]
+                        <= rampRateMax * capVar[loc, compName]
+                    )
             else:
-                if (t>=1): # avoid to set constraints twice
-                    return (opVar[loc, compName, ip, p, t-1]-opVar[loc, compName, ip, p, t] <= rampRateMax*capVar[loc, compName])
+                if t >= 1:  # avoid to set constraints twice
+                    return (
+                        opVar[loc, compName, ip, p, t - 1]
+                        - opVar[loc, compName, ip, p, t]
+                        <= rampRateMax * capVar[loc, compName]
+                    )
                 else:
-                    return (opVar[loc, compName, ip, p, numberOfTimeSteps-1]-opVar[loc, compName, ip, p, t] <= rampRateMax*esM.timeStepsPerSegment.to_dict()[ip, p, t]*capVar[loc, compName])
-        setattr(pyM, 'ConstrRampDownMax_' + abbrvName, pyomo.Constraint(constrSetRampDownMax, pyM.timeSet, rule=rampDownMax))
-                    
-    
-    
+                    return (
+                        opVar[loc, compName, ip, p, numberOfTimeSteps - 1]
+                        - opVar[loc, compName, ip, p, t]
+                        <= rampRateMax
+                        * esM.timeStepsPerSegment.to_dict()[ip, p, t]
+                        * capVar[loc, compName]
+                    )
+
+        setattr(
+            pyM,
+            "ConstrRampDownMax_" + abbrvName,
+            pyomo.Constraint(constrSetRampDownMax, pyM.timeSet, rule=rampDownMax),
+        )
+
     def declareComponentConstraints(self, esM, pyM):
         """
         Declare time independent and dependent constraints.

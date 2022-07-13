@@ -366,8 +366,15 @@ def getDualValues(pyM):
     return pd.Series(list(pyM.dual.values()), index=pd.Index(list(pyM.dual.keys())))
 
 
-def getShadowPrices(esM, constraint, ip=0, dualValues=None, hasTimeSeries=False, periodOccurrences=None,
-    periodsOrder=None):
+def getShadowPrices(
+    esM,
+    constraint,
+    ip=0,
+    dualValues=None,
+    hasTimeSeries=False,
+    periodOccurrences=None,
+    periodsOrder=None,
+):
     """
     Get dual values of constraint ("shadow prices").
 
@@ -403,7 +410,9 @@ def getShadowPrices(esM, constraint, ip=0, dualValues=None, hasTimeSeries=False,
     if dualValues is None:
         dualValues = getDualValues(esM.pyM)
 
-    SP = pd.Series(list(constraint.values()), index=pd.Index(list(constraint.keys()))).map(dualValues)
+    SP = pd.Series(
+        list(constraint.values()), index=pd.Index(list(constraint.keys()))
+    ).map(dualValues)
     # Select rows where ip is equal to investigated ip
     SP = SP.iloc[SP.index.get_level_values(2) == ip]
     # Delete ip from multiindex
@@ -413,8 +422,10 @@ def getShadowPrices(esM, constraint, ip=0, dualValues=None, hasTimeSeries=False,
         SP = pd.DataFrame(SP).swaplevel(i=0, j=-2).sort_index()
         SP = SP.unstack(level=-1)
         SP.columns = SP.columns.droplevel()
-        SP = SP.apply(lambda x: x/(periodOccurrences[ip][x.name[0]]), axis=1)
-        SP = fn.utils.buildFullTimeSeries(SP, periodsOrder[ip], ip, esM=esM, divide=False)
+        SP = SP.apply(lambda x: x / (periodOccurrences[ip][x.name[0]]), axis=1)
+        SP = fn.utils.buildFullTimeSeries(
+            SP, periodsOrder[ip], ip, esM=esM, divide=False
+        )
         SP = SP.stack()
 
     return SP
@@ -694,17 +705,17 @@ def plotOperationColorMap(
     _data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
         variableName
     )
-    
+
     if esM.numberOfInvestmentPeriods == 1:
-        data=_data
+        data = _data
     else:
-        data=_data[ip]
+        data = _data[ip]
 
     if locTrans is None:
-        timeSeries = data['values'].loc[(compName, loc)].values
+        timeSeries = data["values"].loc[(compName, loc)].values
     else:
-        timeSeries = data['values'].loc[(compName, loc, locTrans)].values
-    timeSeries = timeSeries/esM.hoursPerTimeStep if not isStorage else timeSeries
+        timeSeries = data["values"].loc[(compName, loc, locTrans)].values
+    timeSeries = timeSeries / esM.hoursPerTimeStep if not isStorage else timeSeries
 
     try:
         timeSeries = timeSeries.reshape(nbPeriods, nbTimeStepsPerPeriod).T

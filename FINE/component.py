@@ -477,7 +477,9 @@ class Component(metaclass=ABCMeta):
             esM.componentModelingDict.update({mdl: self.modelingClass()})
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
-    def prepareTSAInput(self, rateFix, rateMax, rateName, rateWeight, weightDict, data, ip):
+    def prepareTSAInput(
+        self, rateFix, rateMax, rateName, rateWeight, weightDict, data, ip
+    ):
         """
         Format the time series data of a component to fit the requirements of the time series aggregation package and
         return a list of formatted data.
@@ -514,18 +516,18 @@ class Component(metaclass=ABCMeta):
             print("\n\n RateFix und ip")
             print(rateFix)
             print(ip)
-            if isinstance(rateFix,dict):
+            if isinstance(rateFix, dict):
                 rateFix = rateFix[ip]
-            elif isinstance(rateFix,pd.DataFrame):
-                rateFix=rateFix
-        
+            elif isinstance(rateFix, pd.DataFrame):
+                rateFix = rateFix
+
         if rateMax is None:
             pass
         else:
-            if isinstance(rateMax,dict):
+            if isinstance(rateMax, dict):
                 rateMax = rateMax[ip]
-            elif isinstance(rateMax,pd.DataFrame):
-                rateMax=rateMax
+            elif isinstance(rateMax, pd.DataFrame):
+                rateMax = rateMax
 
         data_ = rateFix if rateFix is not None else rateMax
         if data_ is not None:
@@ -562,16 +564,26 @@ class Component(metaclass=ABCMeta):
         """
         if rate is not None:
             if isinstance(rate, dict):
-                uniqueIdentifiers = [self.name + rateName + loc for loc in rate[ip].columns]
+                uniqueIdentifiers = [
+                    self.name + rateName + loc for loc in rate[ip].columns
+                ]
                 data_ = data[uniqueIdentifiers].copy()
-                data_.rename(columns={self.name + rateName + loc: loc for loc in rate[ip].columns}, inplace=True)
+                data_.rename(
+                    columns={
+                        self.name + rateName + loc: loc for loc in rate[ip].columns
+                    },
+                    inplace=True,
+                )
             elif isinstance(rate, pd.DataFrame):
                 uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
                 data_ = data[uniqueIdentifiers].copy()
-                data_.rename(columns={self.name + rateName + loc: loc for loc in rate.columns}, inplace=True)
+                data_.rename(
+                    columns={self.name + rateName + loc: loc for loc in rate.columns},
+                    inplace=True,
+                )
             else:
                 raise ValueError
-            #TODO fill Error
+            # TODO fill Error
             return data_
         else:
             return None
@@ -589,7 +601,7 @@ class Component(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def getDataForTimeSeriesAggregation(self,ip):
+    def getDataForTimeSeriesAggregation(self, ip):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Get
         all time series data of a component for time series aggregation.
@@ -612,8 +624,7 @@ class Component(metaclass=ABCMeta):
         :type ip: int
         """
         raise NotImplementedError
-    
-    
+
     @abstractmethod
     def checkProcessedDataSets(self):
         """
@@ -1205,8 +1216,9 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        capVar, nbRealVar = getattr(pyM, "cap_" + abbrvName), getattr(
-            pyM, "nbReal_" + abbrvName
+        capVar, nbRealVar = (
+            getattr(pyM, "cap_" + abbrvName),
+            getattr(pyM, "nbReal_" + abbrvName),
         )
         nbRealVarSet = getattr(pyM, "continuousDesignDimensionVarSet_" + abbrvName)
 
@@ -1234,8 +1246,9 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        capVar, nbIntVar = getattr(pyM, "cap_" + abbrvName), getattr(
-            pyM, "nbInt_" + abbrvName
+        capVar, nbIntVar = (
+            getattr(pyM, "cap_" + abbrvName),
+            getattr(pyM, "nbInt_" + abbrvName),
         )
         nbIntVarSet = getattr(pyM, "discreteDesignDimensionVarSet_" + abbrvName)
 
@@ -1263,8 +1276,9 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        capVar, designBinVar = getattr(pyM, "cap_" + abbrvName), getattr(
-            pyM, "designBin_" + abbrvName
+        capVar, designBinVar = (
+            getattr(pyM, "cap_" + abbrvName),
+            getattr(pyM, "designBin_" + abbrvName),
         )
         designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
 
@@ -1289,8 +1303,9 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
-        capVar, designBinVar = getattr(pyM, "cap_" + abbrvName), getattr(
-            pyM, "designBin_" + abbrvName
+        capVar, designBinVar = (
+            getattr(pyM, "cap_" + abbrvName),
+            getattr(pyM, "designBin_" + abbrvName),
         )
         designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
 
@@ -1390,21 +1405,50 @@ class ComponentModel(metaclass=ABCMeta):
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = getattr(pyM, opVarName + '_' + abbrvName), getattr(pyM, 'cap_' + abbrvName)
-        constrSet1 = getattr(pyM, constrSetName + '1_' + abbrvName)
+        opVar, capVar = (
+            getattr(pyM, opVarName + "_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
+        )
+        constrSet1 = getattr(pyM, constrSetName + "1_" + abbrvName)
         # operationRate is the same for all ip
         if not pyM.hasSegmentation:
             factor1 = 1 if isStateOfCharge else esM.hoursPerTimeStep
+
             def op1(pyM, loc, compName, ip, p, t):
-                factor2 = 1 if factorName is None else getattr(compDict[compName], factorName)
-                return opVar[loc, compName, ip, p, t] <= factor1 * factor2 * capVar[loc, compName]
-            setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+                factor2 = (
+                    1 if factorName is None else getattr(compDict[compName], factorName)
+                )
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    <= factor1 * factor2 * capVar[loc, compName]
+                )
+
+            setattr(
+                pyM,
+                constrName + "1_" + abbrvName,
+                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+            )
         else:
+
             def op1(pyM, loc, compName, ip, p, t):
-                factor1 = (esM.hoursPerSegment[ip]/esM.hoursPerSegment[ip]).to_dict() if isStateOfCharge else esM.hoursPerSegment[ip].to_dict()
-                factor2 = 1 if factorName is None else getattr(compDict[compName], factorName)
-                return opVar[loc, compName, ip, p, t] <= factor1[ p, t] * factor2 * capVar[loc, compName] #factor not dependend on ip
-            setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
+                factor1 = (
+                    (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                    if isStateOfCharge
+                    else esM.hoursPerSegment[ip].to_dict()
+                )
+                factor2 = (
+                    1 if factorName is None else getattr(compDict[compName], factorName)
+                )
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    <= factor1[p, t] * factor2 * capVar[loc, compName]
+                )  # factor not dependend on ip
+
+            setattr(
+                pyM,
+                constrName + "1_" + abbrvName,
+                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+            )
 
     def operationMode2(
         self,
@@ -1430,23 +1474,46 @@ class ComponentModel(metaclass=ABCMeta):
         # additions for perfect foresight
         # operationRate is the same for all ip
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = getattr(pyM, opVarName + "_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        opVar, capVar = (
+            getattr(pyM, opVarName + "_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         constrSet2 = getattr(pyM, constrSetName + "2_" + abbrvName)
 
         if not pyM.hasSegmentation:
             factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+
             def op2(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] == capVar[loc, compName] * rate[loc][ p, t] * factor #rate independent from ip
-            setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    == capVar[loc, compName] * rate[loc][p, t] * factor
+                )  # rate independent from ip
+
+            setattr(
+                pyM,
+                constrName + "2_" + abbrvName,
+                pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2),
+            )
         else:
+
             def op2(pyM, loc, compName, ip, p, t):
-                factor = (esM.hoursPerSegment[ip]/esM.hoursPerSegment[ip]).to_dict() if isStateOfCharge else esM.hoursPerSegment[ip].to_dict()
+                factor = (
+                    (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                    if isStateOfCharge
+                    else esM.hoursPerSegment[ip].to_dict()
+                )
                 rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] == capVar[loc, compName] * rate[loc][ p, t] * factor[ p, t]
-            setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    == capVar[loc, compName] * rate[loc][p, t] * factor[p, t]
+                )
+
+            setattr(
+                pyM,
+                constrName + "2_" + abbrvName,
+                pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2),
+            )
 
     def operationMode3(
         self,
@@ -1470,23 +1537,46 @@ class ComponentModel(metaclass=ABCMeta):
         """
         # operationRate is the same for all ip
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = getattr(pyM, opVarName + "_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        opVar, capVar = (
+            getattr(pyM, opVarName + "_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         constrSet3 = getattr(pyM, constrSetName + "3_" + abbrvName)
 
         if not pyM.hasSegmentation:
             factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+
             def op3(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] <= capVar[loc, compName] * rate[loc][ p, t] * factor #rate independent from ip
-            setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    <= capVar[loc, compName] * rate[loc][p, t] * factor
+                )  # rate independent from ip
+
+            setattr(
+                pyM,
+                constrName + "3_" + abbrvName,
+                pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3),
+            )
         else:
+
             def op3(pyM, loc, compName, ip, p, t):
-                factor = (esM.hoursPerSegment[ip]/esM.hoursPerSegment[ip]).to_dict() if isStateOfCharge else esM.hoursPerSegment.to_dict()
+                factor = (
+                    (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                    if isStateOfCharge
+                    else esM.hoursPerSegment.to_dict()
+                )
                 rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] <= capVar[loc, compName] * rate[loc][ p, t] * factor[ p, t] #rate and factor independent from ip
-            setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    <= capVar[loc, compName] * rate[loc][p, t] * factor[p, t]
+                )  # rate and factor independent from ip
+
+            setattr(
+                pyM,
+                constrName + "3_" + abbrvName,
+                pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3),
+            )
 
     def operationMode4(
         self,
@@ -1510,15 +1600,32 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet4 = getattr(pyM, constrSetName + "4_" + abbrvName)
 
         if not pyM.hasSegmentation:
+
             def op4(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] == rate[loc][ p, t] #rate independent from ip
-            setattr(pyM, constrName + '4_' + abbrvName, pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4))
+                return (
+                    opVar[loc, compName, ip, p, t] == rate[loc][p, t]
+                )  # rate independent from ip
+
+            setattr(
+                pyM,
+                constrName + "4_" + abbrvName,
+                pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4),
+            )
         else:
+
             def op4(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] == rate[loc][ p, t] * esM.timeStepsPerSegment[ip].to_dict()[ p, t] #rate independent from ip
-            setattr(pyM, constrName + '4_' + abbrvName, pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4))
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    == rate[loc][p, t] * esM.timeStepsPerSegment[ip].to_dict()[p, t]
+                )  # rate independent from ip
+
+            setattr(
+                pyM,
+                constrName + "4_" + abbrvName,
+                pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4),
+            )
 
     def operationMode5(
         self,
@@ -1542,16 +1649,30 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            def op5(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] <= rate[loc][ p, t]
-            setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
-        else:
-            def op5(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] <= rate[loc][ p, t] * esM.timeStepsPerSegment[ip].to_dict()[ p, t] #rate independent from ip
-            setattr(pyM, constrName + '5_' + abbrvName, pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5))
 
+            def op5(pyM, loc, compName, ip, p, t):
+                rate = getattr(compDict[compName], opRateName)[ip]
+                return opVar[loc, compName, ip, p, t] <= rate[loc][p, t]
+
+            setattr(
+                pyM,
+                constrName + "5_" + abbrvName,
+                pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5),
+            )
+        else:
+
+            def op5(pyM, loc, compName, ip, p, t):
+                rate = getattr(compDict[compName], opRateName)[ip]
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    <= rate[loc][p, t] * esM.timeStepsPerSegment[ip].to_dict()[p, t]
+                )  # rate independent from ip
+
+            setattr(
+                pyM,
+                constrName + "5_" + abbrvName,
+                pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5),
+            )
 
     def additionalMinPartLoad(
         self, pyM, esM, constrName, constrSetName, opVarName, opVarBinName, capVarName
@@ -1564,27 +1685,45 @@ class ComponentModel(metaclass=ABCMeta):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        opVar = getattr(pyM, opVarName + '_' + abbrvName)
-        opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)
-        capVar = getattr(pyM, capVarName + '_' + abbrvName)
-        constrSetMinPartLoad = getattr(pyM, constrSetName + 'partLoadMin_' + abbrvName)
-        
+        opVar = getattr(pyM, opVarName + "_" + abbrvName)
+        opVarBin = getattr(pyM, opVarBinName + "_" + abbrvName)
+        capVar = getattr(pyM, capVarName + "_" + abbrvName)
+        constrSetMinPartLoad = getattr(pyM, constrSetName + "partLoadMin_" + abbrvName)
+
         def opMinPartLoad1(pyM, loc, compName, ip, p, t):
             # To-DO: look into the usage of opVarBin in the testcases
             # old code:
-            #opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
-            bigM = getattr(compDict[compName], 'bigM')
-            return opVar[loc, compName, ip, p, t] <= opVarBin[loc, compName, ip, p, t]*bigM
-        setattr(pyM, constrName + 'partLoadMin_1_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad1))
-        
+            # opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
+            bigM = getattr(compDict[compName], "bigM")
+            return (
+                opVar[loc, compName, ip, p, t]
+                <= opVarBin[loc, compName, ip, p, t] * bigM
+            )
+
+        setattr(
+            pyM,
+            constrName + "partLoadMin_1_" + abbrvName,
+            pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad1),
+        )
+
         def opMinPartLoad2(pyM, loc, compName, ip, p, t):
-            #old code:
-            #opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
-            processedPartLoadMin = getattr(compDict[compName], 'processedPartLoadMin')[ip]
-            bigM = getattr(compDict[compName], 'bigM')
-            return opVar[loc, compName, ip, p, t] >= processedPartLoadMin*capVar[loc, compName]-(1-opVarBin[loc, compName, ip, p, t])*bigM
-        setattr(pyM, constrName + 'partLoadMin_2_' + abbrvName, pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2))
-        
+            # old code:
+            # opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
+            processedPartLoadMin = getattr(compDict[compName], "processedPartLoadMin")[
+                ip
+            ]
+            bigM = getattr(compDict[compName], "bigM")
+            return (
+                opVar[loc, compName, ip, p, t]
+                >= processedPartLoadMin * capVar[loc, compName]
+                - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
+            )
+
+        setattr(
+            pyM,
+            constrName + "partLoadMin_2_" + abbrvName,
+            pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2),
+        )
 
     def yearlyFullLoadHoursMin(self, pyM, esM):
         # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
@@ -1820,19 +1959,34 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean
         """
-        var = getattr(pyM, varName + '_' + self.abbrvName)
-        factors = [getattr(self.componentsDict[compName], factorName)[ip][loc] for factorName in factorNames]
+        var = getattr(pyM, varName + "_" + self.abbrvName)
+        factors = [
+            getattr(self.componentsDict[compName], factorName)[ip][loc]
+            for factorName in factorNames
+        ]
         factor = 1.0
         for factor_ in factors:
             factor *= factor_
         # create a timeSet for the current ip
-        timeSet_pt = [(p,t) for ip0, p, t in pyM.timeSet if ip0 == ip]
+        timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
         if not getOptValue:
-            return (factor * sum(var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                                 for p, t in timeSet_pt)/esM.numberOfYears)
+            return (
+                factor
+                * sum(
+                    var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
+                )
+                / esM.numberOfYears
+            )
         else:
-            return (factor * sum(var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
-                                 for p, t in timeSet_pt)/esM.numberOfYears)
+            return (
+                factor
+                * sum(
+                    var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
+                )
+                / esM.numberOfYears
+            )
 
     def getLocEconomicsTI(
         self,
@@ -2031,19 +2185,37 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean
         """
-        indices = getattr(pyM, dictName + '_' + self.abbrvName).items()
-        if self.dimension == '1dim':
-            return sum(self.getLocEconomicsTD(pyM, esM, factorNames, varName, loc, compName, ip, getOptValue)
-                       for loc, compNames in indices for compName in compNames for ip in esM.investmentPeriods)
+        indices = getattr(pyM, dictName + "_" + self.abbrvName).items()
+        if self.dimension == "1dim":
+            return sum(
+                self.getLocEconomicsTD(
+                    pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
+                )
+                for loc, compNames in indices
+                for compName in compNames
+                for ip in esM.investmentPeriods
+            )
         else:
-            return sum(self.getLocEconomicsTD(pyM, esM, factorNames, varName, loc + '_' + loc_, compName, ip, getOptValue)
-                       for loc, subDict in indices
-                       for loc_, compNames in subDict.items()
-                       for compName in compNames
-                       for ip in esM.investmentPeriods)
+            return sum(
+                self.getLocEconomicsTD(
+                    pyM,
+                    esM,
+                    factorNames,
+                    varName,
+                    loc + "_" + loc_,
+                    compName,
+                    ip,
+                    getOptValue,
+                )
+                for loc, subDict in indices
+                for loc_, compNames in subDict.items()
+                for compName in compNames
+                for ip in esM.investmentPeriods
+            )
 
-
-    def getLocEconomicsTimeSeries(self, pyM, esM, factorName, varName, loc, compName, ip, getOptValue=False):
+    def getLocEconomicsTimeSeries(
+        self, pyM, esM, factorName, varName, loc, compName, ip, getOptValue=False
+    ):
         """
         Set time-dependent cost functions for the individual components. The equations will be set for all components
         of a modeling class and all locations as well as for each considered time step.
@@ -2082,17 +2254,31 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean
         """
-        var = getattr(pyM, varName + '_' + self.abbrvName)
+        var = getattr(pyM, varName + "_" + self.abbrvName)
         # create new timeSet for current ip
-        timeSet_pt = [(p,t) for ip0, p, t in pyM.timeSet if ip0 == ip]
+        timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
         if getattr(self.componentsDict[compName], factorName) is not None:
             factor = getattr(self.componentsDict[compName], factorName)[ip][loc]
             if not getOptValue:
-                return sum(factor[p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                                       for p, t in timeSet_pt)/esM.numberOfYears
+                return (
+                    sum(
+                        factor[p, t]
+                        * var[loc, compName, ip, p, t]
+                        * esM.periodOccurrences[ip][p]
+                        for p, t in timeSet_pt
+                    )
+                    / esM.numberOfYears
+                )
             else:
-                return sum(factor[p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
-                                       for p, t in timeSet_pt)/esM.numberOfYears
+                return (
+                    sum(
+                        factor[p, t]
+                        * var[loc, compName, ip, p, t].value
+                        * esM.periodOccurrences[ip][p]
+                        for p, t in timeSet_pt
+                    )
+                    / esM.numberOfYears
+                )
         else:
             return 0
 
@@ -2131,16 +2317,33 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean
         """
-        indices = getattr(pyM, dictName + '_' + self.abbrvName).items()
-        if self.dimension == '1dim':
-            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc, compName, ip, getOptValue)
-                       for loc, compNames in indices for compName in compNames for ip in esM.investmentPeriods)
+        indices = getattr(pyM, dictName + "_" + self.abbrvName).items()
+        if self.dimension == "1dim":
+            return sum(
+                self.getLocEconomicsTimeSeries(
+                    pyM, esM, factorName, varName, loc, compName, ip, getOptValue
+                )
+                for loc, compNames in indices
+                for compName in compNames
+                for ip in esM.investmentPeriods
+            )
         else:
-            return sum(self.getLocEconomicsTimeSeries(pyM, esM, factorName, varName, loc + '_' + loc_, compName, ip, getOptValue)
-                        for loc, subDict in indices
-                        for loc_, compNames in subDict.items()
-                        for compName in compNames
-                        for ip in esM.investmentPeriods)
+            return sum(
+                self.getLocEconomicsTimeSeries(
+                    pyM,
+                    esM,
+                    factorName,
+                    varName,
+                    loc + "_" + loc_,
+                    compName,
+                    ip,
+                    getOptValue,
+                )
+                for loc, subDict in indices
+                for loc_, compNames in subDict.items()
+                for compName in compNames
+                for ip in esM.investmentPeriods
+            )
 
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
         """

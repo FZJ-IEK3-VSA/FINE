@@ -30,7 +30,7 @@ class Storage(Component):
         hasIsBuiltBinaryVariable=False,
         bigM=None,
         doPreciseTsaModeling=False,
-        chargeOpRateMax=None,   
+        chargeOpRateMax=None,
         chargeOpRateFix=None,
         chargeTsaWeight=1,
         dischargeOpRateMax=None,
@@ -290,61 +290,119 @@ class Storage(Component):
         self.fullChargeOpRateFix = {}
         self.aggregatedChargeOpRateFix = {}
 
-        
         for ip in esM.investmentPeriods:
-            
-            # opexPerChargeOperation 
-            if (isinstance(opexPerChargeOperation, int) or isinstance(opexPerChargeOperation, float) or isinstance(opexPerChargeOperation, pd.Series)): 
-                self.processedOpexPerChargeOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerChargeOperation, '1dim',locationalEligibility)
-            elif isinstance(opexPerChargeOperation, dict): 
-                self.processedOpexPerChargeOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerChargeOperation[ip],'1dim', locationalEligibility)
+
+            # opexPerChargeOperation
+            if (
+                isinstance(opexPerChargeOperation, int)
+                or isinstance(opexPerChargeOperation, float)
+                or isinstance(opexPerChargeOperation, pd.Series)
+            ):
+                self.processedOpexPerChargeOperation[
+                    ip
+                ] = utils.checkAndSetCostParameter(
+                    esM, name, opexPerChargeOperation, "1dim", locationalEligibility
+                )
+            elif isinstance(opexPerChargeOperation, dict):
+                self.processedOpexPerChargeOperation[
+                    ip
+                ] = utils.checkAndSetCostParameter(
+                    esM, name, opexPerChargeOperation[ip], "1dim", locationalEligibility
+                )
             else:
-                raise TypeError('opexPerChargeOperation should be a pandas series or a dictionary.')
-        
-            # opexPerDischargeOperation 
-            if (isinstance(opexPerDischargeOperation, int) or isinstance(opexPerDischargeOperation, float) or isinstance(opexPerDischargeOperation, pd.Series)): 
-                self.processedOpexPerDischargeOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation, '1dim',locationalEligibility)
-            elif isinstance(opexPerDischargeOperation, dict): 
-                self.processedOpexPerDischargeOperation[ip] = utils.checkAndSetCostParameter(esM, name, opexPerDischargeOperation[ip],'1dim', locationalEligibility)
+                raise TypeError(
+                    "opexPerChargeOperation should be a pandas series or a dictionary."
+                )
+
+            # opexPerDischargeOperation
+            if (
+                isinstance(opexPerDischargeOperation, int)
+                or isinstance(opexPerDischargeOperation, float)
+                or isinstance(opexPerDischargeOperation, pd.Series)
+            ):
+                self.processedOpexPerDischargeOperation[
+                    ip
+                ] = utils.checkAndSetCostParameter(
+                    esM, name, opexPerDischargeOperation, "1dim", locationalEligibility
+                )
+            elif isinstance(opexPerDischargeOperation, dict):
+                self.processedOpexPerDischargeOperation[
+                    ip
+                ] = utils.checkAndSetCostParameter(
+                    esM,
+                    name,
+                    opexPerDischargeOperation[ip],
+                    "1dim",
+                    locationalEligibility,
+                )
             else:
-                raise TypeError('opexPerDischargeOperation should be a pandas series or a dictionary.')
+                raise TypeError(
+                    "opexPerDischargeOperation should be a pandas series or a dictionary."
+                )
 
             # chargeOpRateMax and chargeOpRateFix
-            _chargeOpRateMax=chargeOpRateMax[ip] if isinstance(chargeOpRateMax,dict) else chargeOpRateMax
-            _chargeOpRateFix=chargeOpRateFix[ip] if isinstance(chargeOpRateFix,dict) else chargeOpRateFix
-            
-            if (
-                _chargeOpRateMax is not None
-                and _chargeOpRateFix is not None
-            ):
-                if isinstance(chargeOpRateMax,dict):
-                    chargeOpRateMax[ip] = None  
-                else: 
-                    chargeOpRateMax = None  
+            _chargeOpRateMax = (
+                chargeOpRateMax[ip]
+                if isinstance(chargeOpRateMax, dict)
+                else chargeOpRateMax
+            )
+            _chargeOpRateFix = (
+                chargeOpRateFix[ip]
+                if isinstance(chargeOpRateFix, dict)
+                else chargeOpRateFix
+            )
+
+            if _chargeOpRateMax is not None and _chargeOpRateFix is not None:
+                if isinstance(chargeOpRateMax, dict):
+                    chargeOpRateMax[ip] = None
+                else:
+                    chargeOpRateMax = None
                 if esM.verbose < 2:
-                    warnings.warn('If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n' +
-                                  'The chargeOpRateMax time series was set to None.')
+                    warnings.warn(
+                        "If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n"
+                        + "The chargeOpRateMax time series was set to None."
+                    )
 
             # chargeOpRateMax
-            if isinstance(chargeOpRateMax, pd.DataFrame) or isinstance(chargeOpRateMax, pd.Series) or chargeOpRateMax is None: 
-                self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax, locationalEligibility)
-            elif isinstance(chargeOpRateMax, dict): 
-                self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateMax[ip], locationalEligibility)
+            if (
+                isinstance(chargeOpRateMax, pd.DataFrame)
+                or isinstance(chargeOpRateMax, pd.Series)
+                or chargeOpRateMax is None
+            ):
+                self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, chargeOpRateMax, locationalEligibility
+                )
+            elif isinstance(chargeOpRateMax, dict):
+                self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, chargeOpRateMax[ip], locationalEligibility
+                )
             else:
-                raise TypeError('chargeOpRateMax should be a pandas dataframe or a dictionary.')
-            
+                raise TypeError(
+                    "chargeOpRateMax should be a pandas dataframe or a dictionary."
+                )
+
             self.aggregatedChargeOpRateMax[ip] = None
-            
+
             # chargeOpRateFix
-            if isinstance(chargeOpRateFix, pd.DataFrame) or isinstance(chargeOpRateFix, pd.Series) or chargeOpRateFix is None: 
-                self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix, locationalEligibility)
-            elif isinstance(chargeOpRateFix, dict): 
-                self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, chargeOpRateFix[ip], locationalEligibility)
+            if (
+                isinstance(chargeOpRateFix, pd.DataFrame)
+                or isinstance(chargeOpRateFix, pd.Series)
+                or chargeOpRateFix is None
+            ):
+                self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, chargeOpRateFix, locationalEligibility
+                )
+            elif isinstance(chargeOpRateFix, dict):
+                self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, chargeOpRateFix[ip], locationalEligibility
+                )
             else:
-                raise TypeError('chargeOpRateFix should be a pandas dataframe or a dictionary.')
-            
+                raise TypeError(
+                    "chargeOpRateFix should be a pandas dataframe or a dictionary."
+                )
+
             self.aggregatedChargeOpRateFix[ip] = None
-        
+
         # new code for perfect foresight
         self.partLoadMin = partLoadMin
         self.processedPartLoadMin = {}
@@ -356,8 +414,8 @@ class Storage(Component):
             elif isinstance(partLoadMin, dict):
                 self.processedPartLoadMin[ip] = partLoadMin[ip]
             else:
-                raise TypeError('partLoadMin should be a float, dict or None.')
-        
+                raise TypeError("partLoadMin should be a float, dict or None.")
+
         # TODO delete? set variable per ip!
         if not any(value for value in self.processedPartLoadMin.values()):
             self.processedPartLoadMin = None
@@ -365,11 +423,37 @@ class Storage(Component):
             for ip in esM.investmentPeriods:
                 if self.processedPartLoadMin[ip] is not None:
                     if self.fullChargeOpRateMax[ip] is not None:
-                        if ((self.fullChargeOpRateMax[ip] > 0) & (self.fullChargeOpRateMax[ip] < self.processedPartLoadMin[ip])).any().any():
-                            raise ValueError('"fullChargeOpRateMax" needs to be higher than "partLoadMin" or 0 for component ' + name )
+                        if (
+                            (
+                                (self.fullChargeOpRateMax[ip] > 0)
+                                & (
+                                    self.fullChargeOpRateMax[ip]
+                                    < self.processedPartLoadMin[ip]
+                                )
+                            )
+                            .any()
+                            .any()
+                        ):
+                            raise ValueError(
+                                '"fullChargeOpRateMax" needs to be higher than "partLoadMin" or 0 for component '
+                                + name
+                            )
                     if self.fullChargeOpRateFix[ip] is not None:
-                        if ((self.fullChargeOpRateFix[ip] > 0) & (self.fullChargeOpRateFix[ip] < self.processedPartLoadMin[ip])).any().any():
-                            raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name ) 
+                        if (
+                            (
+                                (self.fullChargeOpRateFix[ip] > 0)
+                                & (
+                                    self.fullChargeOpRateFix[ip]
+                                    < self.processedPartLoadMin[ip]
+                                )
+                            )
+                            .any()
+                            .any()
+                        ):
+                            raise ValueError(
+                                '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
+                                + name
+                            )
 
         utils.isPositiveNumber(chargeTsaWeight)
         self.chargeTsaWeight = chargeTsaWeight
@@ -382,58 +466,111 @@ class Storage(Component):
 
         self.fullDischargeOpRateFix = {}
         self.aggregatedDischargeOpRateFix = {}
-        
+
         # iterate over all ips
         for ip in esM.investmentPeriods:
             # dischargeOpRateMax
-            if isinstance(dischargeOpRateMax, pd.DataFrame) or isinstance(dischargeOpRateMax, pd.Series) or dischargeOpRateMax is None: 
-                self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax, locationalEligibility)
-            elif isinstance(dischargeOpRateMax, dict): 
-                self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateMax[ip], locationalEligibility)
+            if (
+                isinstance(dischargeOpRateMax, pd.DataFrame)
+                or isinstance(dischargeOpRateMax, pd.Series)
+                or dischargeOpRateMax is None
+            ):
+                self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, dischargeOpRateMax, locationalEligibility
+                )
+            elif isinstance(dischargeOpRateMax, dict):
+                self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, dischargeOpRateMax[ip], locationalEligibility
+                )
             else:
-                raise TypeError('dischargeOpRateMax should be a pandas dataframe or a dictionary.')
+                raise TypeError(
+                    "dischargeOpRateMax should be a pandas dataframe or a dictionary."
+                )
             self.aggregatedDischargeOpRateMax[ip] = None
-            
-            # dischargeOpRateFix
-            if isinstance(dischargeOpRateFix, pd.DataFrame) or isinstance(dischargeOpRateFix, pd.Series) or dischargeOpRateFix is None: 
-                self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix, locationalEligibility)
-            elif isinstance(dischargeOpRateFix, dict): 
-                self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, dischargeOpRateFix[ip], locationalEligibility)
-            else:
-                raise TypeError('dischargeOpRateFix should be a pandas dataframe or a dictionary.')
-            self.aggregatedDischargeOpRateFix[ip] = None
 
+            # dischargeOpRateFix
+            if (
+                isinstance(dischargeOpRateFix, pd.DataFrame)
+                or isinstance(dischargeOpRateFix, pd.Series)
+                or dischargeOpRateFix is None
+            ):
+                self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, dischargeOpRateFix, locationalEligibility
+                )
+            elif isinstance(dischargeOpRateFix, dict):
+                self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, dischargeOpRateFix[ip], locationalEligibility
+                )
+            else:
+                raise TypeError(
+                    "dischargeOpRateFix should be a pandas dataframe or a dictionary."
+                )
+            self.aggregatedDischargeOpRateFix[ip] = None
 
         utils.isPositiveNumber(dischargeTsaWeight)
         self.dischargeTsaWeight = dischargeTsaWeight
 
-
         timeSeriesData = {}
         for ip in esM.investmentPeriods:
 
-            tsNb = sum([0 if data is None else 1 for data in [self.fullChargeOpRateMax[ip], self.fullChargeOpRateFix[ip],
-                                                            self.fullDischargeOpRateMax[ip], self.fullDischargeOpRateFix[ip]]])
+            tsNb = sum(
+                [
+                    0 if data is None else 1
+                    for data in [
+                        self.fullChargeOpRateMax[ip],
+                        self.fullChargeOpRateFix[ip],
+                        self.fullDischargeOpRateMax[ip],
+                        self.fullDischargeOpRateFix[ip],
+                    ]
+                ]
+            )
             if tsNb > 0:
-                timeSeriesData[ip] = sum([data for data in [self.fullChargeOpRateMax[ip], self.fullChargeOpRateFix[ip],
-                                    self.fullDischargeOpRateMax[ip], self.fullDischargeOpRateFix[ip]] if data is not None])
+                timeSeriesData[ip] = sum(
+                    [
+                        data
+                        for data in [
+                            self.fullChargeOpRateMax[ip],
+                            self.fullChargeOpRateFix[ip],
+                            self.fullDischargeOpRateMax[ip],
+                            self.fullDischargeOpRateFix[ip],
+                        ]
+                        if data is not None
+                    ]
+                )
 
-        self.locationalEligibility = \
-            utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
-                                           self.isBuiltFix, self.hasCapacityVariable, timeSeriesData)
+        self.locationalEligibility = utils.setLocationalEligibility(
+            esM,
+            self.locationalEligibility,
+            self.capacityMax,
+            self.capacityFix,
+            self.isBuiltFix,
+            self.hasCapacityVariable,
+            timeSeriesData,
+        )
 
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullChargeOpRateFix.values()):
-            self.fullChargeOpRateFix=None
-        
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullChargeOpRateMax.values()):
-            self.fullChargeOpRateMax=None
+        if all(
+            type(value) != pd.core.frame.DataFrame
+            for value in self.fullChargeOpRateFix.values()
+        ):
+            self.fullChargeOpRateFix = None
 
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullDischargeOpRateFix.values()):
-            self.fullDischargeOpRateFix=None
-        
-        if all(type(value)!=pd.core.frame.DataFrame for value in self.fullDischargeOpRateMax.values()):
-            self.fullDischargeOpRateMax=None
+        if all(
+            type(value) != pd.core.frame.DataFrame
+            for value in self.fullChargeOpRateMax.values()
+        ):
+            self.fullChargeOpRateMax = None
 
+        if all(
+            type(value) != pd.core.frame.DataFrame
+            for value in self.fullDischargeOpRateFix.values()
+        ):
+            self.fullDischargeOpRateFix = None
 
+        if all(
+            type(value) != pd.core.frame.DataFrame
+            for value in self.fullDischargeOpRateMax.values()
+        ):
+            self.fullDischargeOpRateMax = None
 
     def addToEnergySystemModel(self, esM):
         """
@@ -489,7 +626,9 @@ class Storage(Component):
         ]
 
         for rateFix, rateMax, rateName, rateWeight in I:
-            weightDict, data = self.prepareTSAInput(rateFix, rateMax, rateName, rateWeight, weightDict, data, ip)
+            weightDict, data = self.prepareTSAInput(
+                rateFix, rateMax, rateName, rateWeight, weightDict, data, ip
+            )
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data, ip):
@@ -504,33 +643,49 @@ class Storage(Component):
         :type ip: int
         """
 
-        self.aggregatedChargeOpRateFix[ip] = self.getTSAOutput(self.fullChargeOpRateFix, 'chargeRate_', data, ip)
-        self.aggregatedChargeOpRateMax[ip] = self.getTSAOutput(self.fullChargeOpRateMax, 'chargeRate_', data, ip)
+        self.aggregatedChargeOpRateFix[ip] = self.getTSAOutput(
+            self.fullChargeOpRateFix, "chargeRate_", data, ip
+        )
+        self.aggregatedChargeOpRateMax[ip] = self.getTSAOutput(
+            self.fullChargeOpRateMax, "chargeRate_", data, ip
+        )
 
-        self.aggregatedDischargeOpRateFix[ip] = self.getTSAOutput(self.fullDischargeOpRateFix, 'dischargeRate_', data, ip)
-        self.aggregatedDischargeOpRateMax[ip] = self.getTSAOutput(self.fullDischargeOpRateMax, 'dischargeRate_', data, ip)
+        self.aggregatedDischargeOpRateFix[ip] = self.getTSAOutput(
+            self.fullDischargeOpRateFix, "dischargeRate_", data, ip
+        )
+        self.aggregatedDischargeOpRateMax[ip] = self.getTSAOutput(
+            self.fullDischargeOpRateMax, "dischargeRate_", data, ip
+        )
 
     def checkProcessedDataSets(self):
         """
         Check processed time series data after applying time series aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
-        for parameter in ["processedChargeOpRateFix","processedChargeOpRateMax","processedDischargeOpRateFix","processedDischargeOpRateMax"]:
-            if getattr(self,parameter) is not None: 
-                if all(type(value)!=pd.core.frame.DataFrame for value in getattr(self,parameter).values()):
+        for parameter in [
+            "processedChargeOpRateFix",
+            "processedChargeOpRateMax",
+            "processedDischargeOpRateFix",
+            "processedDischargeOpRateMax",
+        ]:
+            if getattr(self, parameter) is not None:
+                if all(
+                    type(value) != pd.core.frame.DataFrame
+                    for value in getattr(self, parameter).values()
+                ):
                     setattr(self, parameter, None)
 
-            
     def initializeProcessedDataSets(self, investmentperiods):
         """
         Initialize dicts (keys are investment periods, values are None)
         for processed data sets.
         """
-        self.processedChargeOpRateMax =dict.fromkeys(investmentperiods)
-        self.processedChargeOpRateFix =dict.fromkeys(investmentperiods)
-        self.processedDischargeOpRateMax =dict.fromkeys(investmentperiods)
-        self.processedDischargeOpRateFix =dict.fromkeys(investmentperiods)
-        
+        self.processedChargeOpRateMax = dict.fromkeys(investmentperiods)
+        self.processedChargeOpRateFix = dict.fromkeys(investmentperiods)
+        self.processedDischargeOpRateMax = dict.fromkeys(investmentperiods)
+        self.processedDischargeOpRateFix = dict.fromkeys(investmentperiods)
+
+
 class StorageModel(ComponentModel):
     """
     A StorageModel class instance will be instantly created if a Storage class instance is initialized.
@@ -804,23 +959,40 @@ class StorageModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
-        chargeOp, dischargeOp = getattr(pyM, "chargeOp_" + abbrvName), getattr(
-            pyM, "dischargeOp_" + abbrvName
+        chargeOp, dischargeOp = (
+            getattr(pyM, "chargeOp_" + abbrvName),
+            getattr(pyM, "dischargeOp_" + abbrvName),
         )
         opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         def connectSOCs(pyM, loc, compName, ip, p, t):
             if not pyM.hasSegmentation:
-                return (SOC[loc, compName, ip, p, t+1] - SOC[loc, compName, ip, p, t] *
-                        (1 - compDict[compName].selfDischarge) ** esM.hoursPerTimeStep ==
-                        chargeOp[loc, compName, ip, p, t] * compDict[compName].chargeEfficiency -
-                        dischargeOp[loc, compName, ip, p, t] / compDict[compName].dischargeEfficiency)
+                return (
+                    SOC[loc, compName, ip, p, t + 1]
+                    - SOC[loc, compName, ip, p, t]
+                    * (1 - compDict[compName].selfDischarge) ** esM.hoursPerTimeStep
+                    == chargeOp[loc, compName, ip, p, t]
+                    * compDict[compName].chargeEfficiency
+                    - dischargeOp[loc, compName, ip, p, t]
+                    / compDict[compName].dischargeEfficiency
+                )
             else:
-                return (SOC[loc, compName, ip, p, t+1] - SOC[loc, compName, ip, p, t] *
-                        (1 - compDict[compName].selfDischarge) ** esM.hoursPerSegment[ip].to_dict()[p, t] ==
-                        chargeOp[loc, compName, ip, p, t] * compDict[compName].chargeEfficiency -
-                        dischargeOp[loc, compName, ip, p, t] / compDict[compName].dischargeEfficiency)
-        setattr(pyM, 'ConstrConnectSOC_' + abbrvName, pyomo.Constraint(opVarSet, pyM.timeSet, rule=connectSOCs))
+                return (
+                    SOC[loc, compName, ip, p, t + 1]
+                    - SOC[loc, compName, ip, p, t]
+                    * (1 - compDict[compName].selfDischarge)
+                    ** esM.hoursPerSegment[ip].to_dict()[p, t]
+                    == chargeOp[loc, compName, ip, p, t]
+                    * compDict[compName].chargeEfficiency
+                    - dischargeOp[loc, compName, ip, p, t]
+                    / compDict[compName].dischargeEfficiency
+                )
+
+        setattr(
+            pyM,
+            "ConstrConnectSOC_" + abbrvName,
+            pyomo.Constraint(opVarSet, pyM.timeSet, rule=connectSOCs),
+        )
 
     def cyclicState(self, pyM, esM):
         """
@@ -850,23 +1022,48 @@ class StorageModel(ComponentModel):
         offsetDown = getattr(pyM, "stateOfChargeOffsetDown_" + abbrvName)
 
         if not pyM.hasTSA:
-            def cyclicState(pyM, loc, compName, ip,p):
-                offsetUp_ = offsetUp[loc, compName, 0] if (loc, compName, 0) in offsetUp else 0
-                offsetDown_ = offsetDown[loc, compName, 0] if (loc, compName, 0) in offsetDown else 0
-                return SOC[loc, compName, ip, 0, 0] == \
-                    SOC[loc, compName, ip, 0, esM.timeStepsPerPeriod[-1] + 1] + (offsetUp_ - offsetDown_)
+
+            def cyclicState(pyM, loc, compName, ip, p):
+                offsetUp_ = (
+                    offsetUp[loc, compName, 0] if (loc, compName, 0) in offsetUp else 0
+                )
+                offsetDown_ = (
+                    offsetDown[loc, compName, 0]
+                    if (loc, compName, 0) in offsetDown
+                    else 0
+                )
+                return SOC[loc, compName, ip, 0, 0] == SOC[
+                    loc, compName, ip, 0, esM.timeStepsPerPeriod[-1] + 1
+                ] + (offsetUp_ - offsetDown_)
+
         else:
-            SOCInter = getattr(pyM, 'stateOfChargeInterPeriods_' + abbrvName)
+            SOCInter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
             # tests for testing the storage class with ip and TSAM
-            def cyclicState(pyM, loc, compName, ip,p):
+            def cyclicState(pyM, loc, compName, ip, p):
                 # Question to Max: Is this correct?
-                #tLast = esM.interPeriodTimeSteps[-1]
+                # tLast = esM.interPeriodTimeSteps[-1]
                 tLast = esM.numberOfInterPeriodTimeSteps
-                offsetUp_ = offsetUp[loc, compName, tLast] if (loc, compName, tLast) in offsetUp else 0
-                offsetDown_ = offsetDown[loc, compName, tLast] if (loc, compName, tLast) in offsetDown else 0
-                return SOCInter[loc, compName, ip, 0] == \
-                    SOCInter[loc, compName, ip, tLast] + (offsetUp_ - offsetDown_)
-        setattr(pyM, 'ConstrCyclicState_' + abbrvName, pyomo.Constraint(opVarSet, pyM.investPeriodInterPeriodSet, rule=cyclicState))
+                offsetUp_ = (
+                    offsetUp[loc, compName, tLast]
+                    if (loc, compName, tLast) in offsetUp
+                    else 0
+                )
+                offsetDown_ = (
+                    offsetDown[loc, compName, tLast]
+                    if (loc, compName, tLast) in offsetDown
+                    else 0
+                )
+                return SOCInter[loc, compName, ip, 0] == SOCInter[
+                    loc, compName, ip, tLast
+                ] + (offsetUp_ - offsetDown_)
+
+        setattr(
+            pyM,
+            "ConstrCyclicState_" + abbrvName,
+            pyomo.Constraint(
+                opVarSet, pyM.investPeriodInterPeriodSet, rule=cyclicState
+            ),
+        )
 
     def cyclicLifetime(self, pyM, esM):
         """
@@ -888,18 +1085,35 @@ class StorageModel(ComponentModel):
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        chargeOp, capVar = getattr(pyM, "chargeOp_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        chargeOp, capVar = (
+            getattr(pyM, "chargeOp_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
         def cyclicLifetime(pyM, loc, compName):
-            return (sum(chargeOp[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p] for ip, p, t in pyM.timeSet) /
-                    esM.numberOfYears <= capVar[loc, compName] *
-                    (compDict[compName].stateOfChargeMax - compDict[compName].stateOfChargeMin) *
-                    compDict[compName].cyclicLifetime / compDict[compName].economicLifetime[loc]
-                    if compDict[compName].cyclicLifetime is not None else pyomo.Constraint.Skip)
-        setattr(pyM, 'ConstrCyclicLifetime_' + abbrvName, pyomo.Constraint(capVarSet, rule=cyclicLifetime))
+            return (
+                sum(
+                    chargeOp[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                    for ip, p, t in pyM.timeSet
+                )
+                / esM.numberOfYears
+                <= capVar[loc, compName]
+                * (
+                    compDict[compName].stateOfChargeMax
+                    - compDict[compName].stateOfChargeMin
+                )
+                * compDict[compName].cyclicLifetime
+                / compDict[compName].economicLifetime[loc]
+                if compDict[compName].cyclicLifetime is not None
+                else pyomo.Constraint.Skip
+            )
+
+        setattr(
+            pyM,
+            "ConstrCyclicLifetime_" + abbrvName,
+            pyomo.Constraint(capVarSet, rule=cyclicLifetime),
+        )
 
     def connectInterPeriodSOC(self, pyM, esM):
         """
@@ -929,27 +1143,57 @@ class StorageModel(ComponentModel):
         offsetDown = getattr(pyM, "stateOfChargeOffsetDown_" + abbrvName)
 
         def connectInterSOC(pyM, loc, compName, ip, pInter):
-            offsetUp_ = offsetUp[loc, compName, pInter] if (loc, compName, pInter) in offsetUp else 0
-            offsetDown_ = offsetDown[loc, compName, pInter] if (loc, compName, pInter) in offsetDown else 0
+            offsetUp_ = (
+                offsetUp[loc, compName, pInter]
+                if (loc, compName, pInter) in offsetUp
+                else 0
+            )
+            offsetDown_ = (
+                offsetDown[loc, compName, pInter]
+                if (loc, compName, pInter) in offsetDown
+                else 0
+            )
             if not esM.pyM.hasSegmentation:
-                return SOCInter[loc, compName, ip, pInter + 1] == \
-                    SOCInter[loc, compName, ip, pInter] * (1 - compDict[compName].selfDischarge) ** \
-                    ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
-                    SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], esM.timeStepsPerPeriod[-1] + 1] + \
-                    (offsetUp_ - offsetDown_)
+                return SOCInter[loc, compName, ip, pInter + 1] == SOCInter[
+                    loc, compName, ip, pInter
+                ] * (1 - compDict[compName].selfDischarge) ** (
+                    (esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep
+                ) + SOC[
+                    loc,
+                    compName,
+                    ip,
+                    esM.periodsOrder[ip][pInter],
+                    esM.timeStepsPerPeriod[-1] + 1,
+                ] + (
+                    offsetUp_ - offsetDown_
+                )
             else:
                 # return SOCInter[loc, compName, pInter + 1] == \
                 #     SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
                 #     ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
                 #     SOC[loc, compName, esM.periodsOrder[pInter], esM.segmentsPerPeriod[-1] + 1] + \
                 #     (offsetUp_ - offsetDown_)
-                return SOCInter[loc, compName, ip, pInter + 1] == \
-                    SOCInter[loc, compName, ip, pInter] * (1 - compDict[compName].selfDischarge) ** \
-                    ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
-                    SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], esM.segmentsPerPeriod[-1] + 1] + \
-                    (offsetUp_ - offsetDown_)
+                return SOCInter[loc, compName, ip, pInter + 1] == SOCInter[
+                    loc, compName, ip, pInter
+                ] * (1 - compDict[compName].selfDischarge) ** (
+                    (esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep
+                ) + SOC[
+                    loc,
+                    compName,
+                    ip,
+                    esM.periodsOrder[ip][pInter],
+                    esM.segmentsPerPeriod[-1] + 1,
+                ] + (
+                    offsetUp_ - offsetDown_
+                )
 
-        setattr(pyM, 'ConstrInterSOC_' + abbrvName, pyomo.Constraint(opVarSet, pyM.investSet, esM.periods, rule=connectInterSOC))
+        setattr(
+            pyM,
+            "ConstrInterSOC_" + abbrvName,
+            pyomo.Constraint(
+                opVarSet, pyM.investSet, esM.periods, rule=connectInterSOC
+            ),
+        )
 
     def intraSOCstart(self, pyM, esM):
         """
@@ -971,8 +1215,14 @@ class StorageModel(ComponentModel):
 
         def intraSOCstart(pyM, loc, compName, ip, p):
             return SOC[loc, compName, ip, p, 0] == 0
-        setattr(pyM, 'ConstrSOCPeriodStart_' + abbrvName,
-                pyomo.Constraint(opVarSet, pyM.investSet, esM.typicalPeriods, rule=intraSOCstart))
+
+        setattr(
+            pyM,
+            "ConstrSOCPeriodStart_" + abbrvName,
+            pyomo.Constraint(
+                opVarSet, pyM.investSet, esM.typicalPeriods, rule=intraSOCstart
+            ),
+        )
 
     def equalInterSOC(self, pyM, esM):
         """
@@ -1020,13 +1270,22 @@ class StorageModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
-        SOC, capVar = getattr(pyM, "stateOfCharge_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        SOC, capVar = (
+            getattr(pyM, "stateOfCharge_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
 
         def SOCMin(pyM, loc, compName, ip, p, t):
-            return SOC[loc, compName, ip, p, t] >= capVar[loc, compName] * compDict[compName].stateOfChargeMin
-        setattr(pyM, 'ConstrSOCMin_' + abbrvName, pyomo.Constraint(capVarSet, pyM.timeSet, rule=SOCMin))
+            return (
+                SOC[loc, compName, ip, p, t]
+                >= capVar[loc, compName] * compDict[compName].stateOfChargeMin
+            )
+
+        setattr(
+            pyM,
+            "ConstrSOCMin_" + abbrvName,
+            pyomo.Constraint(capVarSet, pyM.timeSet, rule=SOCMin),
+        )
 
     def limitSOCwithSimpleTsa(self, pyM, esM):
         """
@@ -1053,11 +1312,13 @@ class StorageModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSimpleSet = getattr(pyM, "varSetSimple_" + abbrvName)
-        SOC, capVar = getattr(pyM, "stateOfCharge_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        SOC, capVar = (
+            getattr(pyM, "stateOfCharge_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
-        SOCmax, SOCmin = getattr(pyM, "stateOfChargeMax_" + abbrvName), getattr(
-            pyM, "stateOfChargeMin_" + abbrvName
+        SOCmax, SOCmin = (
+            getattr(pyM, "stateOfChargeMax_" + abbrvName),
+            getattr(pyM, "stateOfChargeMin_" + abbrvName),
         )
         SOCInter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
 
@@ -1065,44 +1326,73 @@ class StorageModel(ComponentModel):
         # states of charge in that period (the last time step is considered in the subsequent period for t=0).
         def SOCintraPeriodMax(pyM, loc, compName, ip, p, t):
             return SOC[loc, compName, ip, p, t] <= SOCmax[loc, compName, p]
-        setattr(pyM, 'ConstSOCintraPeriodMax_' + abbrvName,
-                pyomo.Constraint(varSimpleSet, pyM.timeSet, rule=SOCintraPeriodMax))
+
+        setattr(
+            pyM,
+            "ConstSOCintraPeriodMax_" + abbrvName,
+            pyomo.Constraint(varSimpleSet, pyM.timeSet, rule=SOCintraPeriodMax),
+        )
 
         # The minimum (virtual) state of charge during a typical period is smaller than all occurring (virtual)
         # states of charge in that period (the last time step is considered in the subsequent period for t=0).
         def SOCintraPeriodMin(pyM, loc, compName, ip, p, t):
             return SOC[loc, compName, ip, p, t] >= SOCmin[loc, compName, p]
-        setattr(pyM, 'ConstSOCintraPeriodMin_' + abbrvName,
-                pyomo.Constraint(varSimpleSet, pyM.timeSet, rule=SOCintraPeriodMin))
+
+        setattr(
+            pyM,
+            "ConstSOCintraPeriodMin_" + abbrvName,
+            pyomo.Constraint(varSimpleSet, pyM.timeSet, rule=SOCintraPeriodMin),
+        )
 
         # The state of charge at the beginning of one period plus the maximum (virtual) state of charge
         # during that period has to be smaller than the installed capacities multiplied with the relative maximum
         # state of charge.
         def SOCMaxSimple(pyM, loc, compName, ip, pInter):
             if compDict[compName].hasCapacityVariable:
-                return (SOCInter[loc, compName, ip, pInter] + SOCmax[loc, compName, esM.periodsOrder[ip][pInter]]
-                        <= capVar[loc, compName] * compDict[compName].stateOfChargeMax)
+                return (
+                    SOCInter[loc, compName, ip, pInter]
+                    + SOCmax[loc, compName, esM.periodsOrder[ip][pInter]]
+                    <= capVar[loc, compName] * compDict[compName].stateOfChargeMax
+                )
             else:
                 pyomo.Constraint.Skip
-        setattr(pyM, 'ConstrSOCMaxSimple_' + abbrvName,
-                pyomo.Constraint(varSimpleSet, pyM.investSet, esM.periods, rule=SOCMaxSimple))
+
+        setattr(
+            pyM,
+            "ConstrSOCMaxSimple_" + abbrvName,
+            pyomo.Constraint(
+                varSimpleSet, pyM.investSet, esM.periods, rule=SOCMaxSimple
+            ),
+        )
 
         # The state of charge at the beginning of one period plus the minimum (virtual) state of charge
         # during that period has to be larger than the installed capacities multiplied with the relative minimum
         # state of charge.
         def SOCMinSimple(pyM, loc, compName, ip, pInter):
             if compDict[compName].hasCapacityVariable:
-                return (SOCInter[loc, compName, ip, pInter] * (1 - compDict[compName].selfDischarge) **
-                        ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
-                        + SOCmin[loc, compName, esM.periodsOrder[ip][pInter]]
-                        >= capVar[loc, compName] * compDict[compName].stateOfChargeMin)
+                return (
+                    SOCInter[loc, compName, ip, pInter]
+                    * (1 - compDict[compName].selfDischarge)
+                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
+                    + SOCmin[loc, compName, esM.periodsOrder[ip][pInter]]
+                    >= capVar[loc, compName] * compDict[compName].stateOfChargeMin
+                )
             else:
-                return (SOCInter[loc, compName, ip, pInter] * (1 - compDict[compName].selfDischarge) **
-                        ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
-                        + SOCmin[loc, compName, esM.periodsOrder[ip][pInter]]
-                        >= compDict[compName].stateOfChargeMin)
-        setattr(pyM, 'ConstrSOCMinSimple_' + abbrvName,
-                pyomo.Constraint(varSimpleSet, pyM.investSet, esM.periods, rule=SOCMinSimple))
+                return (
+                    SOCInter[loc, compName, ip, pInter]
+                    * (1 - compDict[compName].selfDischarge)
+                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
+                    + SOCmin[loc, compName, esM.periodsOrder[ip][pInter]]
+                    >= compDict[compName].stateOfChargeMin
+                )
+
+        setattr(
+            pyM,
+            "ConstrSOCMinSimple_" + abbrvName,
+            pyomo.Constraint(
+                varSimpleSet, pyM.investSet, esM.periods, rule=SOCMinSimple
+            ),
+        )
 
     def operationModeSOC(self, pyM, esM):
         """
@@ -1120,17 +1410,25 @@ class StorageModel(ComponentModel):
         :type esM: esM - EnergySystemModel class instance
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = getattr(pyM, "stateOfCharge_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        opVar, capVar = (
+            getattr(pyM, "stateOfCharge_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         constrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
         # Operation [commodityUnit*h] limited by the installed capacity [commodityUnit*h] multiplied by the relative
         # maximum state of charge.
         def op(pyM, loc, compName, ip, p, t):
-            return (opVar[loc, compName, ip, p, t] <=
-                    compDict[compName].stateOfChargeMax * capVar[loc, compName])
-        setattr(pyM, 'ConstrSOCMaxPrecise_' + abbrvName, pyomo.Constraint(constrSet, pyM.timeSet, rule=op))
+            return (
+                opVar[loc, compName, ip, p, t]
+                <= compDict[compName].stateOfChargeMax * capVar[loc, compName]
+            )
+
+        setattr(
+            pyM,
+            "ConstrSOCMaxPrecise_" + abbrvName,
+            pyomo.Constraint(constrSet, pyM.timeSet, rule=op),
+        )
 
     def operationModeSOCwithTSA(self, pyM, esM):
         """
@@ -1149,28 +1447,53 @@ class StorageModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
-        SOC, capVar = getattr(pyM, "stateOfCharge_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        SOC, capVar = (
+            getattr(pyM, "stateOfCharge_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         constrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
         def SOCMaxPrecise(pyM, loc, compName, ip, pInter, t):
             if compDict[compName].doPreciseTsaModeling:
                 if not pyM.hasSegmentation:
-                    return (SOCinter[loc, compName, ip, pInter] *
-                            ((1 - compDict[compName].selfDischarge) ** (t * esM.hoursPerTimeStep)) +
-                            SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                            <= capVar[loc, compName] * compDict[compName].stateOfChargeMax)
+                    return (
+                        SOCinter[loc, compName, ip, pInter]
+                        * (
+                            (1 - compDict[compName].selfDischarge)
+                            ** (t * esM.hoursPerTimeStep)
+                        )
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        <= capVar[loc, compName] * compDict[compName].stateOfChargeMax
+                    )
                 else:
-                    return (SOCinter[loc, compName, ip, pInter] *
-                            ((1 - compDict[compName].selfDischarge) **
-                            (esM.segmentStartTime[ip].to_dict()[esM.periodsOrder[ip][pInter], t] * esM.hoursPerTimeStep)) +
-                            SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                            <= capVar[loc, compName] * compDict[compName].stateOfChargeMax)
+                    return (
+                        SOCinter[loc, compName, ip, pInter]
+                        * (
+                            (1 - compDict[compName].selfDischarge)
+                            ** (
+                                esM.segmentStartTime[ip].to_dict()[
+                                    esM.periodsOrder[ip][pInter], t
+                                ]
+                                * esM.hoursPerTimeStep
+                            )
+                        )
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        <= capVar[loc, compName] * compDict[compName].stateOfChargeMax
+                    )
             else:
                 return pyomo.Constraint.Skip
-        setattr(pyM, 'ConstrSOCMaxPrecise_' + abbrvName,
-                pyomo.Constraint(constrSet, esM.investmentPeriods, esM.periods, esM.timeStepsPerPeriod, rule=SOCMaxPrecise))
+
+        setattr(
+            pyM,
+            "ConstrSOCMaxPrecise_" + abbrvName,
+            pyomo.Constraint(
+                constrSet,
+                esM.investmentPeriods,
+                esM.periods,
+                esM.timeStepsPerPeriod,
+                rule=SOCMaxPrecise,
+            ),
+        )
 
     def minSOCwithTSAprecise(self, pyM, esM):
         """
@@ -1189,34 +1512,77 @@ class StorageModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
-        SOC, capVar = getattr(pyM, "stateOfCharge_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        SOC, capVar = (
+            getattr(pyM, "stateOfCharge_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         preciseSet = getattr(pyM, "varSetPrecise_" + abbrvName)
 
         def SOCMinPrecise(pyM, loc, compName, ip, pInter, t):
             if compDict[compName].hasCapacityVariable:
                 if not pyM.hasSegmentation:
-                    return (SOCinter[loc, compName, ip, pInter] * ((1 - compDict[compName].selfDischarge) **
-                            (t * esM.hoursPerTimeStep)) + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                            >= capVar[loc, compName] * compDict[compName].stateOfChargeMin)
+                    return (
+                        SOCinter[loc, compName, ip, pInter]
+                        * (
+                            (1 - compDict[compName].selfDischarge)
+                            ** (t * esM.hoursPerTimeStep)
+                        )
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        >= capVar[loc, compName] * compDict[compName].stateOfChargeMin
+                    )
                 else:
-                    return (SOCinter[loc, compName, ip, pInter] * ((1 - compDict[compName].selfDischarge) **
-                            (esM.segmentStartTime[ip].to_dict()[esM.periodsOrder[ip][pInter], t] * esM.hoursPerTimeStep)) +
-                            SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                            >= capVar[loc, compName] * compDict[compName].stateOfChargeMin)
+                    return (
+                        SOCinter[loc, compName, ip, pInter]
+                        * (
+                            (1 - compDict[compName].selfDischarge)
+                            ** (
+                                esM.segmentStartTime[ip].to_dict()[
+                                    esM.periodsOrder[ip][pInter], t
+                                ]
+                                * esM.hoursPerTimeStep
+                            )
+                        )
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        >= capVar[loc, compName] * compDict[compName].stateOfChargeMin
+                    )
             else:
                 if not pyM.hasSegmentation:
-                    return (SOCinter[loc, compName, ip, pInter] * ((1 - compDict[compName].selfDischarge) **
-                            (t * esM.hoursPerTimeStep)) + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                            >= compDict[compName].stateOfChargeMin)
+                    return (
+                        SOCinter[loc, compName, ip, pInter]
+                        * (
+                            (1 - compDict[compName].selfDischarge)
+                            ** (t * esM.hoursPerTimeStep)
+                        )
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        >= compDict[compName].stateOfChargeMin
+                    )
                 else:
-                    return (SOCinter[loc, compName, ip, pInter] * ((1 - compDict[compName].selfDischarge) **
-                            (esM.segmentStartTime[ip].to_dict()[esM.periodsOrder[ip][pInter], t] * esM.hoursPerTimeStep)) +
-                            SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                            >= compDict[compName].stateOfChargeMin)
-        setattr(pyM, 'ConstrSOCMinPrecise_' + abbrvName,
-                pyomo.Constraint(preciseSet, esM.investmentPeriods, esM.periods, esM.timeStepsPerPeriod, rule=SOCMinPrecise))
+                    return (
+                        SOCinter[loc, compName, ip, pInter]
+                        * (
+                            (1 - compDict[compName].selfDischarge)
+                            ** (
+                                esM.segmentStartTime[ip].to_dict()[
+                                    esM.periodsOrder[ip][pInter], t
+                                ]
+                                * esM.hoursPerTimeStep
+                            )
+                        )
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        >= compDict[compName].stateOfChargeMin
+                    )
+
+        setattr(
+            pyM,
+            "ConstrSOCMinPrecise_" + abbrvName,
+            pyomo.Constraint(
+                preciseSet,
+                esM.investmentPeriods,
+                esM.periods,
+                esM.timeStepsPerPeriod,
+                rule=SOCMinPrecise,
+            ),
+        )
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -1455,10 +1821,16 @@ class StorageModel(ComponentModel):
         
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        chargeOp, dischargeOp = getattr(pyM, 'chargeOp_' + abbrvName), getattr(pyM, 'dischargeOp_' + abbrvName)
-        opVarDict = getattr(pyM, 'operationVarDict_' + abbrvName)
-        return sum(dischargeOp[loc, compName, ip, p, t] - chargeOp[loc, compName, ip, p, t]
-                   for compName in opVarDict[loc] if commod == self.componentsDict[compName].commodity)
+        chargeOp, dischargeOp = (
+            getattr(pyM, "chargeOp_" + abbrvName),
+            getattr(pyM, "dischargeOp_" + abbrvName),
+        )
+        opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
+        return sum(
+            dischargeOp[loc, compName, ip, p, t] - chargeOp[loc, compName, ip, p, t]
+            for compName in opVarDict[loc]
+            if commod == self.componentsDict[compName].commodity
+        )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
@@ -1477,10 +1849,18 @@ class StorageModel(ComponentModel):
         opexCap = self.getEconomicsTI(pyM, ["opexPerCapacity"], "cap")
         opexDec = self.getEconomicsTI(pyM, ["opexIfBuilt"], "designBin")
         opexOp1 = self.getEconomicsTD(
-            pyM, esM, ["processedOpexPerChargeOperation"], "chargeOp", "operationVarDict"
+            pyM,
+            esM,
+            ["processedOpexPerChargeOperation"],
+            "chargeOp",
+            "operationVarDict",
         )
         opexOp2 = self.getEconomicsTD(
-            pyM, esM, ["processedOpexPerDischargeOperation"], "dischargeOp", "operationVarDict"
+            pyM,
+            esM,
+            ["processedOpexPerDischargeOperation"],
+            "dischargeOp",
+            "operationVarDict",
         )
 
         offsetUp = getattr(pyM, "stateOfChargeOffsetUp_" + abbrvName)
@@ -1523,8 +1903,9 @@ class StorageModel(ComponentModel):
         :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        chargeOp, dischargeOp = getattr(pyM, "chargeOp_" + abbrvName), getattr(
-            pyM, "dischargeOp_" + abbrvName
+        chargeOp, dischargeOp = (
+            getattr(pyM, "chargeOp_" + abbrvName),
+            getattr(pyM, "dischargeOp_" + abbrvName),
         )
         SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
 
@@ -1575,34 +1956,64 @@ class StorageModel(ComponentModel):
 
         # Quick fix if several runs with one investment period
         if type(self.chargeOperationVariablesOptimum) is not dict:
-            self.chargeOperationVariablesOptimum={}
-        
+            self.chargeOperationVariablesOptimum = {}
+
         # * charge variables and contributions
-        optVal = utils.formatOptimizationOutput(chargeOp.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
-                                                esM=esM)
+        optVal = utils.formatOptimizationOutput(
+            chargeOp.get_values(),
+            "operationVariables",
+            "1dim",
+            ip,
+            esM.periodsOrder[ip],
+            esM=esM,
+        )
         self.chargeOperationVariablesOptimum[ip] = optVal
 
         if optVal is not None:
             idx = pd.IndexSlice
-            optVal = optVal.loc[idx[:,:],:] # perfect foresight: added ip and deleted again
-            #optVal = optVal.droplevel([1])
+            optVal = optVal.loc[
+                idx[:, :], :
+            ]  # perfect foresight: added ip and deleted again
+            # optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
 
-            ox = opSum.apply(lambda op: op * compDict[op.name].processedOpexPerChargeOperation[ip][op.index], axis=1)
-            optSummary.loc[[(ix, 'operationCharge', '[' + compDict[ix].commodityUnit + '*h/a]')
-                             for ix in opSum.index], opSum.columns] = opSum.values/esM.numberOfYears
-            optSummary.loc[[(ix, 'operationCharge', '[' + compDict[ix].commodityUnit + '*h]')
-                            for ix in opSum.index], opSum.columns] = opSum.values
-            optSummary.loc[[(ix, 'opexCharge', '[' + esM.costUnit + '/a]') for ix in ox.index],
-                            ox.columns] = ox.values/esM.numberOfYears
+            ox = opSum.apply(
+                lambda op: op
+                * compDict[op.name].processedOpexPerChargeOperation[ip][op.index],
+                axis=1,
+            )
+            optSummary.loc[
+                [
+                    (ix, "operationCharge", "[" + compDict[ix].commodityUnit + "*h/a]")
+                    for ix in opSum.index
+                ],
+                opSum.columns,
+            ] = (opSum.values / esM.numberOfYears)
+            optSummary.loc[
+                [
+                    (ix, "operationCharge", "[" + compDict[ix].commodityUnit + "*h]")
+                    for ix in opSum.index
+                ],
+                opSum.columns,
+            ] = opSum.values
+            optSummary.loc[
+                [(ix, "opexCharge", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                ox.columns,
+            ] = (ox.values / esM.numberOfYears)
 
         # Quick fix if several runs with one investment period
         if type(self.dischargeOperationVariablesOptimum) is not dict:
-            self.dischargeOperationVariablesOptimum={}
+            self.dischargeOperationVariablesOptimum = {}
 
         # * discharge variables and contributions
-        optVal = utils.formatOptimizationOutput(dischargeOp.get_values(), 'operationVariables', '1dim', ip,
-                                                esM.periodsOrder[ip], esM=esM)
+        optVal = utils.formatOptimizationOutput(
+            dischargeOp.get_values(),
+            "operationVariables",
+            "1dim",
+            ip,
+            esM.periodsOrder[ip],
+            esM=esM,
+        )
         self.dischargeOperationVariablesOptimum[ip] = optVal
         # Check if there are time steps, at which a storage component is both charging and discharging
         for compName in opSum.index:
@@ -1622,22 +2033,48 @@ class StorageModel(ComponentModel):
         if optVal is not None:
             opSum = optVal.sum(axis=1).unstack(-1)
 
-            ox = opSum.apply(lambda op: op * compDict[op.name].processedOpexPerDischargeOperation[ip][op.index], axis=1)
-            optSummary.loc[[(ix, 'operationDischarge', '[' + compDict[ix].commodityUnit + '*h/a]')
-                             for ix in opSum.index], opSum.columns] = opSum.values/esM.numberOfYears
-            optSummary.loc[[(ix, 'operationDischarge', '[' + compDict[ix].commodityUnit + '*h]')
-                            for ix in opSum.index], opSum.columns] = opSum.values
-            optSummary.loc[[(ix, 'opexDischarge', '[' + esM.costUnit + '/a]') for ix in ox.index],
-                            ox.columns] = ox.values/esM.numberOfYears
+            ox = opSum.apply(
+                lambda op: op
+                * compDict[op.name].processedOpexPerDischargeOperation[ip][op.index],
+                axis=1,
+            )
+            optSummary.loc[
+                [
+                    (
+                        ix,
+                        "operationDischarge",
+                        "[" + compDict[ix].commodityUnit + "*h/a]",
+                    )
+                    for ix in opSum.index
+                ],
+                opSum.columns,
+            ] = (opSum.values / esM.numberOfYears)
+            optSummary.loc[
+                [
+                    (ix, "operationDischarge", "[" + compDict[ix].commodityUnit + "*h]")
+                    for ix in opSum.index
+                ],
+                opSum.columns,
+            ] = opSum.values
+            optSummary.loc[
+                [(ix, "opexDischarge", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                ox.columns,
+            ] = (ox.values / esM.numberOfYears)
 
         # Quick fix if several runs with one investment period
         if type(self.stateOfChargeOperationVariablesOptimum) is not dict:
-            self.stateOfChargeOperationVariablesOptimum={}
-        
+            self.stateOfChargeOperationVariablesOptimum = {}
+
         # * set state of charge variables
         if not pyM.hasTSA:
-            optVal = utils.formatOptimizationOutput(SOC.get_values(), 'operationVariables', '1dim', ip, esM.periodsOrder[ip],
-                                                    esM=esM)
+            optVal = utils.formatOptimizationOutput(
+                SOC.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
             # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
             # other)
             optVal = optVal.loc[:, : len(optVal.columns) - 2]
@@ -1676,9 +2113,19 @@ class StorageModel(ComponentModel):
                         # Repeat each segment in each period as often as time steps are represented by the corresponding
                         # segment
                         repList = esM.timeStepsPerSegment[ip].loc[p, :].tolist()
-                        #repList = esM.timeStepsPerSegment.loc[p, :].tolist()
-                        dataPeriod = pd.DataFrame(np.repeat(stateOfChargeIntra.loc[p].loc[:, :esM.segmentsPerPeriod[-1]].values, repList, axis=1),
-                                                  index=stateOfChargeIntra.xs(p, level=0, drop_level=False).index)
+                        # repList = esM.timeStepsPerSegment.loc[p, :].tolist()
+                        dataPeriod = pd.DataFrame(
+                            np.repeat(
+                                stateOfChargeIntra.loc[p]
+                                .loc[:, : esM.segmentsPerPeriod[-1]]
+                                .values,
+                                repList,
+                                axis=1,
+                            ),
+                            index=stateOfChargeIntra.xs(
+                                p, level=0, drop_level=False
+                            ).index,
+                        )
                         dataAllPeriods.append(dataPeriod)
                     # Concat data to multiindex dataframe with periods, components and locations as indices and inner-
                     # period time steps as columns
@@ -1686,8 +2133,14 @@ class StorageModel(ComponentModel):
                 # Concat data according to periods order to cover the full time horizon
                 data = []
                 for count, p in enumerate(esM.periodsOrder[ip]):
-                    data.append((stateOfChargeInter.loc[:, count] +
-                                 stateOfChargeIntra.loc[p].loc[:, :esM.timeStepsPerPeriod[-1]].T).T)
+                    data.append(
+                        (
+                            stateOfChargeInter.loc[:, count]
+                            + stateOfChargeIntra.loc[p]
+                            .loc[:, : esM.timeStepsPerPeriod[-1]]
+                            .T
+                        ).T
+                    )
                 optVal = pd.concat(data, axis=1, ignore_index=True)
             else:
                 optVal = None
@@ -1713,7 +2166,7 @@ class StorageModel(ComponentModel):
 
         # Quick fix if several runs with one investment period
         if type(self.optSummary) is not dict:
-            self.optSummary={}
+            self.optSummary = {}
         self.optSummary[ip] = optSummary
 
     def getOptimalValues(self, name="all"):
