@@ -1,4 +1,9 @@
 import pytest
+import sys
+import os
+
+import numpy as np
+import pandas as pd
 
 import FINE as fn
 
@@ -13,6 +18,8 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "commodityUnitsDict",
                 "numberOfTimeSteps",
                 "hoursPerTimeStep",
+                "numberOfInvestmentPeriods",
+                "yearsPerInvestmentPeriod",
                 "costUnit",
                 "lengthUnit",
                 "verboseLogLevel",
@@ -25,6 +32,8 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.commodityUnitsDict,
                 minimal_test_esM.numberOfTimeSteps,
                 minimal_test_esM.hoursPerTimeStep,
+                minimal_test_esM.numberOfInvestmentPeriods,
+                minimal_test_esM.yearsPerInvestmentPeriod,
                 minimal_test_esM.costUnit,
                 minimal_test_esM.lengthUnit,
                 minimal_test_esM.verboseLogLevel,
@@ -78,6 +87,8 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "commodityUnitsDict",
                 "numberOfTimeSteps",
                 "hoursPerTimeStep",
+                "numberOfInvestmentPeriods",
+                "yearsPerInvestmentPeriod",
                 "costUnit",
                 "lengthUnit",
                 "verboseLogLevel",
@@ -90,6 +101,8 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.commodityUnitsDict,
                 single_node_test_esM.numberOfTimeSteps,
                 single_node_test_esM.hoursPerTimeStep,
+                single_node_test_esM.numberOfInvestmentPeriods,
+                single_node_test_esM.yearsPerInvestmentPeriod,
                 single_node_test_esM.costUnit,
                 single_node_test_esM.lengthUnit,
                 single_node_test_esM.verboseLogLevel,
@@ -145,6 +158,8 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "commodityUnitsDict",
                 "numberOfTimeSteps",
                 "hoursPerTimeStep",
+                "numberOfInvestmentPeriods",
+                "yearsPerInvestmentPeriod",
                 "costUnit",
                 "lengthUnit",
                 "verboseLogLevel",
@@ -157,6 +172,8 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.commodityUnitsDict,
                 multi_node_test_esM_init.numberOfTimeSteps,
                 multi_node_test_esM_init.hoursPerTimeStep,
+                multi_node_test_esM_init.numberOfInvestmentPeriods,
+                multi_node_test_esM_init.yearsPerInvestmentPeriod,
                 multi_node_test_esM_init.costUnit,
                 multi_node_test_esM_init.lengthUnit,
                 multi_node_test_esM_init.verboseLogLevel,
@@ -291,7 +308,6 @@ def test_import_from_dict(test_esM_fixture, request):
 
     assert output_df.equals(expected_df)
     assert output_series.equals(expected_series)
-
 
 if __name__ == "__main__":
     test_export_to_dict_minimal()
