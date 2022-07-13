@@ -188,39 +188,10 @@ class Conversion(Component):
                     )
                     self.aggregatedCommodityConversionFactors[ip][commod] = None
                 elif isinstance(self.commodityConversionFactors[commod], (int, float)):
-                    # self.fullCommodityConversionFactors[commod] = None
-                    # self.aggregatedCommodityConversionFactors[commod] = None
                     self.processedCommodityConversionFactors[ip][
                         commod
                     ] = _commodityConversionFactors[commod]
-
-                       
-        # old###################################
-        # Set general conversion data: commodityConversionFactors, physicalUnit, linkedConversionCapacityID
-        # utils.checkCommodities(esM, set(commodityConversionFactors.keys()))
-        # utils.checkCommodityUnits(esM, physicalUnit)
-        # if linkedConversionCapacityID is not None:
-        #     utils.isString(linkedConversionCapacityID)
-
-        # self.commodityConversionFactors = commodityConversionFactors
-        # self.fullCommodityConversionFactors = {}
-        # self.aggregatedCommodityConversionFactors = {}
-        # self.processedCommodityConversionFactors = {}
-        # for commod in self.commodityConversionFactors.keys():
-        #     if not isinstance(self.commodityConversionFactors[commod], (int, float)):
-        #         self.fullCommodityConversionFactors[
-        #             commod
-        #         ] = utils.checkAndSetTimeSeriesConversionFactors(
-        #             esM, commodityConversionFactors[commod], self.locationalEligibility
-        #         )
-        #         self.aggregatedCommodityConversionFactors[commod] = None
-        #     elif isinstance(self.commodityConversionFactors[commod], (int, float)):
-        #         # self.fullCommodityConversionFactors[commod] = None
-        #         # self.aggregatedCommodityConversionFactors[commod] = None
-        #         self.processedCommodityConversionFactors[
-        #             commod
-        #         ] = self.commodityConversionFactors[commod]
-
+                     
         self.physicalUnit = physicalUnit
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
@@ -241,10 +212,6 @@ class Conversion(Component):
             else:
                 raise TypeError('opexPerOperation should be a pandas series or a dictionary.')
 
-        # # Set additional economic data: opexPerOperation
-        # self.opexPerOperation = utils.checkAndSetCostParameter(esM, name, opexPerOperation, '1dim',
-        #                                                         locationalEligibility)
-
         # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
         self.operationRateMax = operationRateMax
         self.operationRateFix = operationRateFix
@@ -254,12 +221,6 @@ class Conversion(Component):
             if esM.verbose < 2:
                 warnings.warn('If operationRateFix is specified, the operationRateMax parameter is not required.\n' +
                               'The operationRateMax time series was set to None.')
-        # old code  
-        # self.fullOperationRateMax = utils.checkAndSetTimeSeries(esM, name, operationRateMax, locationalEligibility)
-        # self.aggregatedOperationRateMax, self.operationRateMax = None, None
-
-        # self.fullOperationRateFix = utils.checkAndSetTimeSeries(esM, name, operationRateFix, locationalEligibility)
-        # self.aggregatedOperationRateFix, self.operationRateFix = None, None
 
         ## New code for perfect foresight!
         # create emtpy dicts
@@ -448,7 +409,6 @@ class Conversion(Component):
         """
         self.processedOperationRateMax =dict.fromkeys(investmentperiods)
         self.processedOperationRateFix =dict.fromkeys(investmentperiods)
-        #self.processedCommodityConversionFactors=dict.fromkeys(investmentperiods)
         # TODO müsste eigentlich auch neu initialisiert wereden, WIRD ES PRO IP UND COMMOD GEBRAUCHT?
 
 class ConversionModel(ComponentModel):
@@ -711,9 +671,6 @@ class ConversionModel(ComponentModel):
             else:
                 return commodCommodityConversionFactors[loc][p, t] # ToDo: Now ip dependent
 
-        # return sum(opVar[loc, compName, ip, p, t] * compDict[compName].commodityConversionFactors[commod]
-        #            for compName in opVarDict[loc] if commod in compDict[compName].commodityConversionFactors)
-
         return sum(
             opVar[loc, compName, ip, p, t]
             * getFactor(
@@ -805,10 +762,8 @@ class ConversionModel(ComponentModel):
         if optVal is not None:
             idx = pd.IndexSlice
             optVal = optVal.loc[idx[:,:],:] # perfect foresight: added ip and deleted again
-            #optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
             ox = opSum.apply(lambda op: op * compDict[op.name].processedOpexPerOperation[ip][op.index], axis=1)
-            #ox = opSum.apply(lambda op: op * compDict[op.name].opexPerOperation[op.index], axis=1)
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h/a]') for ix in opSum.index],
                            opSum.columns] = opSum.values/esM.numberOfYears
             optSummary.loc[[(ix, 'operation', '[' + compDict[ix].physicalUnit + '*h]') for ix in opSum.index],

@@ -449,12 +449,6 @@ class Component(metaclass=ABCMeta):
         )
         self.QPcostDev = utils.getQPcostDev(self.QPcostScale)
 
-        #
-        # # Variables at optimum (set after optimization)
-        # self.capacityVariablesOptimum = None
-        # self.isBuiltVariablesOptimum = None
-        # self.operationVariablesOptimum = {}
-
     def addToEnergySystemModel(self, esM):
         """
         Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -567,9 +561,6 @@ class Component(metaclass=ABCMeta):
         :rtype: Pandas DataFrame
         """
         if rate is not None:
-            # if rate[ip] is None:
-            #     return None
-            # elif isinstance(rate, dict):
             if isinstance(rate, dict):
                 uniqueIdentifiers = [self.name + rateName + loc for loc in rate[ip].columns]
                 data_ = data[uniqueIdentifiers].copy()
@@ -1409,8 +1400,6 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, ip, p, t] <= factor1 * factor2 * capVar[loc, compName]
             setattr(pyM, constrName + '1_' + abbrvName, pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1))
         else:
-            # old
-            #factor1 = (esM.hoursPerSegment/esM.hoursPerSegment).to_dict() if isStateOfCharge else esM.hoursPerSegment.to_dict()
             def op1(pyM, loc, compName, ip, p, t):
                 factor1 = (esM.hoursPerSegment[ip]/esM.hoursPerSegment[ip]).to_dict() if isStateOfCharge else esM.hoursPerSegment[ip].to_dict()
                 factor2 = 1 if factorName is None else getattr(compDict[compName], factorName)
@@ -1453,8 +1442,6 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, ip, p, t] == capVar[loc, compName] * rate[loc][ p, t] * factor #rate independent from ip
             setattr(pyM, constrName + '2_' + abbrvName, pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2))
         else:
-            # old
-            #factor = (esM.hoursPerSegment/esM.hoursPerSegment).to_dict() if isStateOfCharge else esM.hoursPerSegment.to_dict()
             def op2(pyM, loc, compName, ip, p, t):
                 factor = (esM.hoursPerSegment[ip]/esM.hoursPerSegment[ip]).to_dict() if isStateOfCharge else esM.hoursPerSegment[ip].to_dict()
                 rate = getattr(compDict[compName], opRateName)[ip]
@@ -1495,8 +1482,6 @@ class ComponentModel(metaclass=ABCMeta):
                 return opVar[loc, compName, ip, p, t] <= capVar[loc, compName] * rate[loc][ p, t] * factor #rate independent from ip
             setattr(pyM, constrName + '3_' + abbrvName, pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3))
         else:
-            #old
-            #factor = (esM.hoursPerSegment/esM.hoursPerSegment).to_dict() if isStateOfCharge else esM.hoursPerSegment.to_dict()
             def op3(pyM, loc, compName, ip, p, t):
                 factor = (esM.hoursPerSegment[ip]/esM.hoursPerSegment[ip]).to_dict() if isStateOfCharge else esM.hoursPerSegment.to_dict()
                 rate = getattr(compDict[compName], opRateName)[ip]
@@ -1843,17 +1828,9 @@ class ComponentModel(metaclass=ABCMeta):
         # create a timeSet for the current ip
         timeSet_pt = [(p,t) for ip0, p, t in pyM.timeSet if ip0 == ip]
         if not getOptValue:
-            # old code:
-            # return (factor * sum(var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
-            #                      for ip, p, t in pyM.timeSet)/esM.numberOfYears)
-            # new with timeSet for current ip
             return (factor * sum(var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
                                  for p, t in timeSet_pt)/esM.numberOfYears)
         else:
-            # old code:
-            # return (factor * sum(var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
-            #                      for ip, p, t in pyM.timeSet)/esM.numberOfYears)
-            # new with timeSet for current ip
             return (factor * sum(var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
                                  for p, t in timeSet_pt)/esM.numberOfYears)
 
@@ -2111,17 +2088,9 @@ class ComponentModel(metaclass=ABCMeta):
         if getattr(self.componentsDict[compName], factorName) is not None:
             factor = getattr(self.componentsDict[compName], factorName)[ip][loc]
             if not getOptValue:
-                # old code
-                # return sum(factor[p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[p]
-                #                        for ip, p, t in pyM.timeSet)/esM.numberOfYears
-                # new with timeSet for current ip
                 return sum(factor[p, t] * var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
                                        for p, t in timeSet_pt)/esM.numberOfYears
             else:
-                # old code
-                # return sum(factor[p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[p]
-                #                        for ip, p, t in pyM.timeSet)/esM.numberOfYears
-                # new with timeSet for current ip
                 return sum(factor[p, t] * var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
                                        for p, t in timeSet_pt)/esM.numberOfYears
         else:
@@ -2274,7 +2243,7 @@ class ComponentModel(metaclass=ABCMeta):
                     and (comp.capacityMax is None)
                     and optVal.loc[compName].max() >= comp.bigM * 0.9
                     and esM.verbose < 2
-                ):  # and comp.capacityMax is None
+                ):
                     warnings.warn(
                         "the capacity of component "
                         + compName

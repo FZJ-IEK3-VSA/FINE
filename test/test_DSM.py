@@ -102,19 +102,7 @@ def test_DSM(dsm_test_esM):
     pd.testing.assert_series_equal(generator_outputs.loc[('expensive',  'location')], expensive_with_dsm)
     pd.testing.assert_series_equal(esM_load_with_DSM.loc[('flexible demand',  'location')], load_with_dsm)
 
-    esM_with.aggregateTemporally(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)
-    
-    for component_name in esM_with.componentNames.keys():
-        component=esM_with.getComponent(component_name)
-        param_dict=component.__dict__
-
-        for param in param_dict.keys():
-            if (param.startswith("aggregated") or param.startswith("processed"))  and param_dict[param] is not None:
-                if "TimeSeries" in param or "OperationRate" in param:
-                    print(param)
-                    param_dict[param]={}
-                    param_dict[param][0]=None
-        
+    esM_with.aggregateTemporally(numberOfTimeStepsPerPeriod=1, numberOfTypicalPeriods=25)    
     esM_with.optimize(timeSeriesAggregation=True, solver='gurobi', optimizationSpecs='LogToConsole=0')
 
     # benchmark generation and load with dsm

@@ -113,52 +113,37 @@ class StorageExtBETA(Storage):
         self.aggregatedOpexPerChargeOpTimeSeries = {}
         self.opexPerChargeOpTimeSeries = {}
 
-        # iterate over all ips
         for ip in esM.investmentPeriods:
-
             #fullStateOfChargeOpRateMax
-            if isinstance(stateOfChargeOpRateMax, pd.DataFrame) or isinstance(stateOfChargeOpRateMax, pd.Series) or stateOfChargeOpRateMax is None: #stateOfChargeOpRateMax is dataframe or series
+            if isinstance(stateOfChargeOpRateMax, pd.DataFrame) or isinstance(stateOfChargeOpRateMax, pd.Series) or stateOfChargeOpRateMax is None: 
                 self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateMax, self.locationalEligibility)
-            elif isinstance(stateOfChargeOpRateMax, dict): # stateOfChargeOpRateMax is dict
+            elif isinstance(stateOfChargeOpRateMax, dict): 
                 self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateMax[ip], self.locationalEligibility)
             else:
                 raise TypeError('stateOfChargeOpRateMax should be a pandas dataframe or a dictionary.')
 
             self.aggregatedStateOfChargeOpRateMax[ip], self.stateOfChargeOpRateMax[ip] = None, None
 
-        # self.fullStateOfChargeOpRateMax = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateMax,
-        #                                                               self.locationalEligibility)
-        # self.aggregatedStateOfChargeOpRateMax, self.stateOfChargeOpRateMax = None, None
 
             #fullStateOfChargeOpRateFix
-            if isinstance(stateOfChargeOpRateFix, pd.DataFrame) or isinstance(stateOfChargeOpRateFix, pd.Series) or stateOfChargeOpRateFix is None: #stateOfChargeOpRateFix is dataframe or series
+            if isinstance(stateOfChargeOpRateFix, pd.DataFrame) or isinstance(stateOfChargeOpRateFix, pd.Series) or stateOfChargeOpRateFix is None: 
                 self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateFix, self.locationalEligibility)
-            elif isinstance(stateOfChargeOpRateFix, dict): # stateOfChargeOpRateFix is dict
+            elif isinstance(stateOfChargeOpRateFix, dict): 
                 self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateFix[ip], self.locationalEligibility)
             else:
                 raise TypeError('stateOfChargeOpRateFix should be a pandas dataframe or a dictionary.')
 
             self.aggregatedStateOfChargeOpRateFix[ip], self.stateOfChargeOpRateFix[ip] = None, None
 
-
-        # self.fullStateOfChargeOpRateFix = utils.checkAndSetTimeSeries(esM, name, stateOfChargeOpRateFix,
-        #                                                               self.locationalEligibility)
-        # self.aggregatedStateOfChargeOpRateFix, self.stateOfChargeOpRateFix = None, None
-
-
             #fullOpexPerChargeOpTimeSeries
-            if isinstance(opexPerChargeOpTimeSeries, pd.DataFrame) or isinstance(opexPerChargeOpTimeSeries, pd.Series) or opexPerChargeOpTimeSeries is None: #opexPerChargeOpTimeSeries is dataframe or series
+            if isinstance(opexPerChargeOpTimeSeries, pd.DataFrame) or isinstance(opexPerChargeOpTimeSeries, pd.Series) or opexPerChargeOpTimeSeries is None: 
                 self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility)
-            elif isinstance(opexPerChargeOpTimeSeries, dict): # opexPerChargeOpTimeSeries is dict
+            elif isinstance(opexPerChargeOpTimeSeries, dict): 
                 self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(esM, name, opexPerChargeOpTimeSeries[ip], self.locationalEligibility)
             else:
                 raise TypeError('opexPerChargeOpTimeSeries should be a pandas dataframe or a dictionary.')
 
             self.aggregatedOpexPerChargeOpTimeSeries[ip], self.opexPerChargeOpTimeSeries[ip] = None, None
-
-        # self.fullOpexPerChargeOpTimeSeries = \
-        #     utils.checkAndSetTimeSeries(esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility)
-        # self.aggregatedOpexPerChargeOpTimeSeries, self.opexPerChargeOpTimeSeries = None, None
 
         utils.isPositiveNumber(stateOfChargeTsaWeight), utils.isPositiveNumber(opexChargeOpTsaWeight)
         self.stateOfChargeTsaWeight, self.opexChargeOpTsaWeight = stateOfChargeTsaWeight, opexChargeOpTsaWeight
@@ -188,22 +173,7 @@ class StorageExtBETA(Storage):
                         tsNb+=_sum                
                 timeSeriesData[ip] = _sum
             
-            
-        # for ip in esM.investmentPeriods:    
-        #     tsNb = sum([0 if data is None elif 0 if isinstance(data,dict) and NOT ALL NONE  else 1 for data in [self.chargeOpRateMax[ip], self.chargeOpRateFix[ip], self.dischargeOpRateMax[ip],
-        #                 self.dischargeOpRateFix[ip], self.stateOfChargeOpRateMax[ip], self.stateOfChargeOpRateFix[ip]]])
-        #     if tsNb > 0:
-        #         timeSeriesData[ip] = sum([data for data in [self.chargeOpRateMax[ip], self.chargeOpRateFix[ip], self.dischargeOpRateMax[ip],
-        #                             self.dischargeOpRateFix[ip], self.stateOfChargeOpRateMax[ip], self.stateOfChargeOpRateFix[ip]]
-        #                             if data is not None])
-
-        # timeSeriesData = None
-        # tsNb = sum([0 if data is None else 1 for data in [self.chargeOpRateMax, self.chargeOpRateFix, self.dischargeOpRateMax,
-        #             self.dischargeOpRateFix, stateOfChargeOpRateMax, stateOfChargeOpRateFix]])
-        # if tsNb > 0:
-        #     timeSeriesData = sum([data for data in [self.chargeOpRateMax, self.chargeOpRateFix, self.dischargeOpRateMax,
-        #                           self.dischargeOpRateFix, stateOfChargeOpRateMax, stateOfChargeOpRateFix]
-        #                           if data is not None])
+        
         self.locationalEligibility = \
             utils.setLocationalEligibility(esM, self.locationalEligibility, self.capacityMax, self.capacityFix,
                                            self.isBuiltFix, self.hasCapacityVariable, timeSeriesData)

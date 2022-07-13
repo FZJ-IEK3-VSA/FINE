@@ -265,7 +265,7 @@ class Transmission(Component):
 
         # iterate over all ips
         for ip in esM.investmentPeriods:
-            self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC) # ToDo: New in develop branch. Check the functionality
+            self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC) 
             
             # opexPerOperation 
             if (isinstance(opexPerOperation, int) or isinstance(opexPerOperation, float) or isinstance(opexPerOperation, pd.Series)): 
@@ -276,10 +276,8 @@ class Transmission(Component):
                 self.opexPerOperation = utils.checkAndSetCostParameter(
                     esM, name, self.opexPerOperation, "2dim", self.locationalEligibility
                     )
-
             else:
                 raise TypeError('opexPerOperation should be an int, float, pandas series, pandas dataframe or a dictionary.') 
-
 
             # Operation Rate Max
             if isinstance(operationRateMax, pd.DataFrame) or isinstance(operationRateMax, pd.Series) or operationRateMax is None: 
@@ -288,7 +286,6 @@ class Transmission(Component):
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateMax[ip], self.locationalEligibility)
             else:
                 raise TypeError('OperationRateMax should be a pandas dataframe or a dictionary.')
-            
             self.aggregatedOperationRateMax[ip]= None
             
             # Operation Rate Fix
@@ -298,7 +295,6 @@ class Transmission(Component):
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(esM, name, operationRateFix[ip], self.locationalEligibility)
             else:
                 raise TypeError('OperationRateFix should be a pandas dataframe or a dictionary.')
-            
             self.aggregatedOperationRateFix[ip] = None
 
             # part load
@@ -306,7 +302,6 @@ class Transmission(Component):
                 self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
                 self.processedPartLoadMin[ip] = partLoadMin[ip]            
-
             if self.processedPartLoadMin is not None:
                 if self.processedPartLoadMin[ip] is not None:
                     if self.fullOperationRateMax[ip] is not None:
@@ -316,8 +311,7 @@ class Transmission(Component):
                         if ((self.fullOperationRateFix[ip] > 0) & (self.fullOperationRateFix[ip] < self.processedPartLoadMin[ip])).any().any():
                             raise ValueError('"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component ' + name ) 
 
-
-        
+       
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 

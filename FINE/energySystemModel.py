@@ -814,7 +814,6 @@ class EnergySystemModel:
             timeSeriesData, weightDict = [], {}
             for mdlName, mdl in self.componentModelingDict.items():
                 for compName, comp in mdl.componentsDict.items():
-                    #compTimeSeriesData, compWeightDict = comp.getDataForTimeSeriesAggregation()
                     compTimeSeriesData, compWeightDict = comp.getDataForTimeSeriesAggregation(
                         ip)
                     if compTimeSeriesData is not None:
@@ -856,7 +855,6 @@ class EnergySystemModel:
             # To-Do: Continue here
             for mdlName, mdl in self.componentModelingDict.items():  # for-loop for ip
                 for compName, comp in mdl.componentsDict.items():
-                    # comp.setAggregatedTimeSeriesData(data)
                     comp.setAggregatedTimeSeriesData(data, ip)
 
             # Store time series aggregation parameters in class instance
@@ -882,18 +880,6 @@ class EnergySystemModel:
                 segmentStartTime[segmentStartTime.index.get_level_values(
                     1) == 0] = 0
                 self.segmentStartTime[ip] = segmentStartTime  # ip-dependent
-            # old code:
-            # if segmentation:
-            #     self.segmentsPerPeriod = list(range(numberOfSegmentsPerPeriod))
-            #     self.timeStepsPerSegment = timeStepsPerSegment # ip-dependent
-            #     self.hoursPerSegment = self.hoursPerTimeStep * self.timeStepsPerSegment #ip-dependent
-            #     # Define start time hour of each segment in each typical period
-            #     segmentStartTime = self.hoursPerSegment.groupby(level=0).cumsum() # ip-dependent
-            #     segmentStartTime.index = segmentStartTime.index.set_levels(segmentStartTime.index.levels[1] + 1, level=1) # ip-dependent
-            #     lvl0, lvl1 = segmentStartTime.index.levels
-            #     segmentStartTime = segmentStartTime.reindex(pd.MultiIndex.from_product([lvl0, [0, *lvl1]]))
-            #     segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
-            #     self.segmentStartTime = segmentStartTime
 
             self.periodsOrder[ip] = clusterClass.clusterOrder
             self.periodOccurrences[ip] = [
@@ -904,16 +890,9 @@ class EnergySystemModel:
 
         self.interPeriodTimeSteps = list(
             range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1))
-        #self.interPeriodTimeSteps=(((ip, t_inter) for ip in self.investmentPeriods for t_inter in range(int(len(self.totalTimeSteps)/len(self.timeStepsPerPeriod))+1)))
 
         self.numberOfInterPeriodTimeSteps = int(
             len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
-
-        ################################################################################################################
-
-        # for mdlName, mdl in self.componentModelingDict.items():  # for-loop for ip
-        #     for compName, comp in mdl.componentsDict.items():
-        #         comp.checkAggregatedTimeSeriesData()
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
@@ -974,9 +953,6 @@ class EnergySystemModel:
                       len(self.timeStepsPerPeriod)) + 1)
             )
             self.periods = [0]
-            # self.periodsOrder = [0]
-            # self.periodOccurrences = [1]
-            # now as dictionary
             self.periodsOrder = {}
             self.periodOccurrences = {}
 

@@ -337,19 +337,6 @@ class ConversionDynamicModel(ConversionModel):
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
-
-        # def minimumUpTime1(pyM, loc, compName, p, t):
-        #     downTimeMin = getattr(compDict[compName], "downTimeMin")
-        #     if t >= 1 and downTimeMin == None:  # avoid to set constraints twice
-        #         return (
-        #             opVarBin[loc, compName, p, t]
-        #             - opVarBin[loc, compName, p, t - 1]
-        #             - opVarStartBin[loc, compName, p, t]
-        #             + opVarStopBin[loc, compName, p, t]
-        #             == 0
-        #         )
-        #     else:
-        #         numberOfTimeSteps = len(esM.segmentsPerPeriod)
     
         def minimumUpTime1(pyM, loc, compName, ip, p, t):
             downTimeMin = getattr(compDict[compName], 'downTimeMin')
