@@ -81,7 +81,8 @@ class Source(Component):
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit for each time step.
             |br| * the default value is None
-        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict with entries of
+            None or Pandas DataFrame with positive (>=0) per investement period. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
@@ -91,7 +92,8 @@ class Source(Component):
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit for each time step.
             |br| * the default value is None
-        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict with entries of
+            None or Pandas DataFrame with positive (>=0) per investement period. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
@@ -99,7 +101,8 @@ class Source(Component):
             time step by a positive float. The values are given as specific values relative to the commodityUnit
             for each time step.
             |br| * the default value is None
-        :type commodityCostTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type commodityCostTimeSeries: None or Pandas DataFrame with positive (>= 0) entries or dict of None or
+            Pandas DataFrame with positive (>= 0) entries per investment period. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
 
@@ -107,7 +110,8 @@ class Source(Component):
             each time step by a positive float. The values are given as specific values relative to the
             commodityUnit for each time step.
             |br| * the default value is None
-        :type commodityRevenueTimeSeries: None or Pandas DataFrame with positive (>= 0) entries. The row indices
+        :type commodityRevenueTimeSeries: None or Pandas DataFrame with positive (>= 0) entries or dict of None or
+            Pandas DataFrame with positive (>= 0) entries per investment period. The row indices
             have to match the in the energy system model specified time steps. The column indices have to equal
             the in the energy system model specified locations. The data in ineligible locations are set to zero.
 
@@ -149,7 +153,8 @@ class Source(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
+        :type opexPerOperation: positive (>=0) float or Pandas Series with positive (>=0) values or dict
+            with entries of positive (>=0) float or Pandas Series with positive (>=0) per investement period.
             The indices of the series have to equal the in the energy system model specified locations.
 
         :param commodityCost: describes the cost value of one operation´s unit of the component.
@@ -165,7 +170,8 @@ class Source(Component):
               certain cost.
 
             |br| * the default value is 0
-        :type commodityCost: positive (>=0) float or Pandas Series with positive (>=0) values.
+        :type commodityCost: positive (>=0) float or Pandas Series with positive (>=0) values  or dict
+            with entries of positive (>=0) float or Pandas Series with positive (>=0) per investement period.
             The indices of the series have to equal the in the energy system model specified locations.
 
         :param commodityRevenue: describes the revenue of one operation´s unit of the component.
@@ -180,7 +186,8 @@ class Source(Component):
             * Modeling a PV electricity feed-in tariff for a household
 
             |br| * the default value is 0
-        :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values.
+        :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values or dict
+            with entries of positive (>=0) float or Pandas Series with positive (>=0) per investement period.
             The indices of the series have to equal the in the energy system model specified locations.
 
         :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
@@ -268,11 +275,11 @@ class Source(Component):
                 isinstance(opexPerOperation, int)
                 or isinstance(opexPerOperation, float)
                 or isinstance(opexPerOperation, pd.Series)
-            ):  # opexPerOperation is series/float/int
+            ):
                 self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
                     esM, name, opexPerOperation, "1dim", locationalEligibility
                 )
-            elif isinstance(opexPerOperation, dict):  # opexPerOperations is dict
+            elif isinstance(opexPerOperation, dict):
                 self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
                     esM, name, opexPerOperation[ip], "1dim", locationalEligibility
                 )
@@ -286,7 +293,7 @@ class Source(Component):
                 isinstance(commodityCost, int)
                 or isinstance(commodityCost, float)
                 or isinstance(commodityCost, pd.Series)
-            ):  # commodityCost is series/float/int
+            ):
                 self.processedCommodityCost[ip] = utils.checkAndSetCostParameter(
                     esM, name, commodityCost, "1dim", locationalEligibility
                 )
@@ -304,11 +311,11 @@ class Source(Component):
                 isinstance(commodityRevenue, int)
                 or isinstance(commodityRevenue, float)
                 or isinstance(commodityRevenue, pd.Series)
-            ):  # commodityRevenue is series/float/int
+            ):
                 self.processedCommodityRevenue[ip] = utils.checkAndSetCostParameter(
                     esM, name, commodityRevenue, "1dim", locationalEligibility
                 )
-            elif isinstance(commodityRevenue, dict):  # commodityRevenue is dict
+            elif isinstance(commodityRevenue, dict):
                 self.processedCommodityRevenue[ip] = utils.checkAndSetCostParameter(
                     esM, name, commodityRevenue[ip], "1dim", locationalEligibility
                 )

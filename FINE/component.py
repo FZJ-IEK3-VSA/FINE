@@ -163,6 +163,7 @@ class Component(metaclass=ABCMeta):
         :type partLoadMin:
             * None or
             * Float value in range ]0;1]
+            * Dict with keys of investment periods and float values in range ]0;1]
 
         :param sharedPotentialID: if specified, indicates that the component has to share its maximum
             potential capacity with other components (e.g. due to space limitations). The shares of how

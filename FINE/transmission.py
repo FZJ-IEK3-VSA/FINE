@@ -83,7 +83,8 @@ class Transmission(Component):
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
-        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
+            DataFrame with positive (>= 0) entries per investment period. The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
@@ -97,7 +98,8 @@ class Transmission(Component):
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
-        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
+            DataFrame with positive (>= 0) entries per investment period.. The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
@@ -117,7 +119,8 @@ class Transmission(Component):
             system model (e.g. Euro, Dollar, 1e6 Euro). The value has to match the unit costUnit/operationUnit
             (e.g. Euro/kWh, Dollar/kWh).
             |br| * the default value is 0
-        :type opexPerOperation: positive (>=0) float or Pandas DataFrame with positive (>=0) values.
+        :type opexPerOperation: positive (>=0) float or Pandas DataFrame with positive (>=0) values or dict of
+            positive (>=0) float or Pandas DataFrame with positive (>=0) values per investment period.
             The row and column indices of the DataFrame have to equal the in the energy system model
             specified locations.
 

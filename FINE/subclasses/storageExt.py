@@ -40,7 +40,8 @@ class StorageExtBETA(Storage):
             values in form of the commodityUnit, referring to the commodity stored in the component at the
             beginning of one time step.
             |br| * the default value is None
-        :type stateOfChargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type stateOfChargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
+            DataFrame with positive (>= 0) entries per investment period. The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
 
@@ -51,7 +52,8 @@ class StorageExtBETA(Storage):
             values in form of the commodityUnit, referring to the commodity stored in the component at the
             beginning of one time step.
             |br| * the default value is None
-        :type stateOfChargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type stateOfChargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
+            DataFrame with positive (>= 0) entries per investment period.. The row indices have
             to match the in the energy system model specified time steps. The column indices have to match the
             in the energy system model specified locations.
 

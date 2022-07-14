@@ -130,7 +130,8 @@ class Storage(Component):
             of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
             during one time step.
             |br| * the default value is None
-        :type chargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type chargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict of
+            None or Pandas DataFrame with positive (>=0) values per investement period.. The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
 
@@ -141,7 +142,8 @@ class Storage(Component):
             of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
             during one time step.
             |br| * the default value is None
-        :type chargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type chargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict of
+            None or Pandas DataFrame with positive (>=0) values per investement period. The row indices have
             to match the in the energy system model specified time steps. The column indices have to match the
             in the energy system model specified locations.
 
@@ -191,7 +193,8 @@ class Storage(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerChargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
+        :type opexPerChargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values or dict of
+            positive (>=0) float or Pandas Series with positive (>=0) values per investement period.
             The indices of the series have to equal the in the energy system model specified locations.
 
         :param opexPerDischargeOperation: describes the cost for one unit of the discharge operation.
@@ -202,7 +205,8 @@ class Storage(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerDischargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
+        :type opexPerDischargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values or dict of
+            positive (>=0) float or Pandas Series with positive (>=0) values per investement period.
             The indices of the series have to equal the in the energy system model specified locations.
 
         :param socOffsetDown: determines whether the state of charge at the end of a period p has

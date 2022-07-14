@@ -77,7 +77,8 @@ class Conversion(Component):
                 -> the commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.
 
         :type commodityConversionFactors: dictionary, assigns commodities (string) to a conversion factors
-            (float, pandas.Series or pandas.DataFrame)
+            (float, pandas.Series or pandas.DataFrame) or dictionary with assigned conversion factors per
+            investment period
 
         **Default arguments:**
 
@@ -92,7 +93,8 @@ class Conversion(Component):
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the physicalUnit of the plant for each time step.
             |br| * the default value is None
-        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict with entries of
+            None or Pandas DataFrame with positive (>=0) per investement period. The row indices have
             to match the in the energy system model specified time steps. The column indices have to match the
             in the energy system model specified locations.
 
@@ -102,7 +104,8 @@ class Conversion(Component):
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the physicalUnit of the plant for each time step.
             |br| * the default value is None
-        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict with entries of
+            None or Pandas DataFrame with positive (>=0) per investement period. The row indices have
             to match the in the energy system model specified time steps. The column indices have to match the
             in the energy system model specified locations.
 
@@ -118,7 +121,8 @@ class Conversion(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerOperation: positive (>=0) float or Pandas Series with positive (>=0) values.
+        :type opexPerOperation: positive (>=0) float or Pandas Series with positive (>=0) values or dict with
+            entries per investemenr periods of positive (>=0) float or Pandas Series with positive (>=0).
             The indices of the series have to equal the in the energy system model specified locations.
         """
         Component.__init__(
@@ -196,8 +200,6 @@ class Conversion(Component):
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
 
-        ## New code for perfect foresight!
-        # create emtpy dicts
         self.opexPerOperation = opexPerOperation
         self.processedOpexPerOperation = {}
 
@@ -209,11 +211,11 @@ class Conversion(Component):
                 isinstance(opexPerOperation, int)
                 or isinstance(opexPerOperation, float)
                 or isinstance(opexPerOperation, pd.Series)
-            ):  # opexPerOperation is series/float/int
+            ):
                 self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
                     esM, name, opexPerOperation, "1dim", locationalEligibility
                 )
-            elif isinstance(opexPerOperation, dict):  # opexPerOperations is dict
+            elif isinstance(opexPerOperation, dict):
                 self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
                     esM, name, opexPerOperation[ip], "1dim", locationalEligibility
                 )
@@ -252,16 +254,14 @@ class Conversion(Component):
                 isinstance(operationRateMax, pd.DataFrame)
                 or isinstance(operationRateMax, pd.Series)
                 or operationRateMax is None
-            ):  # operationRate is dataframe or series
+            ):
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
                     esM, name, operationRateMax, locationalEligibility
                 )
-            elif isinstance(operationRateMax, dict):  # operationRate is dict
+            elif isinstance(operationRateMax, dict):
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
                     esM, name, operationRateMax[ip], locationalEligibility
                 )
-            # elif operationRateMax is None:
-            #     pass
             else:
                 raise TypeError(
                     "OperationRateMax should be a pandas dataframe or a dictionary."
