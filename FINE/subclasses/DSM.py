@@ -470,7 +470,7 @@ class DSMModel(SourceSinkModel):
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
 
-        :param ip: investment period
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName

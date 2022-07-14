@@ -502,7 +502,7 @@ class Component(metaclass=ABCMeta):
         :param data: list to which the formatted data is added
         :type data: list of Pandas DataFrames
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
 
         :return: data
@@ -512,10 +512,6 @@ class Component(metaclass=ABCMeta):
         if rateFix is None:
             pass
         else:
-            # TODO REFACTOR
-            print("\n\n RateFix und ip")
-            print(rateFix)
-            print(ip)
             if isinstance(rateFix, dict):
                 rateFix = rateFix[ip]
             elif isinstance(rateFix, pd.DataFrame):
@@ -556,7 +552,7 @@ class Component(metaclass=ABCMeta):
         :param data: Pandas DataFrame with the clustered time series data of all components in the energy system
         :type data: Pandas DataFrame
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
 
         :return: reformatted data or None
@@ -582,8 +578,7 @@ class Component(metaclass=ABCMeta):
                     inplace=True,
                 )
             else:
-                raise ValueError
-            # TODO fill Error
+                raise ValueError(f"Wrong type for rate of '{self.name}': {type(rate)}")
             return data_
         else:
             return None
@@ -606,7 +601,7 @@ class Component(metaclass=ABCMeta):
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Get
         all time series data of a component for time series aggregation.
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
         raise NotImplementedError
@@ -620,7 +615,7 @@ class Component(metaclass=ABCMeta):
         :param data: time series data
         :type data: Pandas DataFrame
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
         raise NotImplementedError
@@ -1949,6 +1944,9 @@ class ComponentModel(metaclass=ABCMeta):
         :param compName: String of the component name for which the equation should be set up.
         :type compName: string
 
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
+
         **Default arguments:**
 
         :param getOptValue: Boolean that defines the output of the function:
@@ -2243,6 +2241,9 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param compName: String of the component name for which the equation should be set up.
         :type compName: string
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
 
         **Default arguments:**
 

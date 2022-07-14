@@ -416,7 +416,6 @@ class Storage(Component):
             else:
                 raise TypeError("partLoadMin should be a float, dict or None.")
 
-        # TODO delete? set variable per ip!
         if not any(value for value in self.processedPartLoadMin.values()):
             self.processedPartLoadMin = None
         if self.processedPartLoadMin is not None:
@@ -605,7 +604,7 @@ class Storage(Component):
     def getDataForTimeSeriesAggregation(self, ip):
         """Function for getting the required data if a time series aggregation is requested.
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
 
         """
@@ -639,7 +638,7 @@ class Storage(Component):
         :param data: Pandas DataFrame with the clustered time series data of the source component
         :type data: Pandas DataFrame
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
 
@@ -679,6 +678,9 @@ class Storage(Component):
         """
         Initialize dicts (keys are investment periods, values are None)
         for processed data sets.
+
+        :param investmentperiods: investmentperiods of transformation path analysis.
+        :type investmentperiods: list
         """
         self.processedChargeOpRateMax = dict.fromkeys(investmentperiods)
         self.processedChargeOpRateFix = dict.fromkeys(investmentperiods)
@@ -1901,7 +1903,7 @@ class StorageModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
-        :param ip: investment period
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName

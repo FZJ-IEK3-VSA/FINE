@@ -416,7 +416,8 @@ class Conversion(Component):
 
     def getDataForTimeSeriesAggregation(self, ip):
         """Function for getting the required data if a time series aggregation is requested.
-        :param ip: investment period of transformation path analysis (perfect foresight).
+
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
 
@@ -451,7 +452,7 @@ class Conversion(Component):
         :param data: Pandas DataFrame with the clustered time series data of the conversion component
         :type data: Pandas DataFrame
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
 
@@ -491,11 +492,12 @@ class Conversion(Component):
         """
         Initialize dicts (keys are investment periods, values are None)
         for processed data sets.
+
+        :param investmentperiods: investmentperiods of transformation path analysis.
+        :type investmentperiods: list
         """
         self.processedOperationRateMax = dict.fromkeys(investmentperiods)
         self.processedOperationRateFix = dict.fromkeys(investmentperiods)
-        # TODO müsste eigentlich auch neu initialisiert wereden,
-        # WIRD ES PRO IP UND COMMOD GEBRAUCHT?
 
 
 class ConversionModel(ComponentModel):
@@ -764,7 +766,7 @@ class ConversionModel(ComponentModel):
             else:
                 return commodCommodityConversionFactors[loc][
                     p, t
-                ]  # ToDo: Now ip dependent
+                ]  
 
         return sum(
             opVar[loc, compName, ip, p, t]
@@ -809,7 +811,7 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
-        :param ip: investment period
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName

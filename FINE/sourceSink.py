@@ -377,7 +377,6 @@ class Source(Component):
         for ip in esM.investmentPeriods:
             #  ugly test to check that for every ip there is either
             # operationRateMax or operationRateFix
-            # TODO improve
             _operationRateMax = (
                 operationRateMax[ip]
                 if isinstance(operationRateMax, dict)
@@ -575,7 +574,7 @@ class Source(Component):
     def getDataForTimeSeriesAggregation(self, ip):
         """Function for getting the required data if a time series aggregation is requested.
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
 
@@ -616,7 +615,7 @@ class Source(Component):
         :param data: Pandas DataFrame with the clustered time series data of the source component
         :type data: Pandas DataFrame
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
 
         """
@@ -659,6 +658,9 @@ class Source(Component):
         """
         Initialize dicts (keys are investment periods, values are None)
         for processed data sets.
+
+        :param investmentperiods: investmentperiods of transformation path analysis.
+        :type investmentperiods: list
         """
         self.processedOperationRateFix = dict.fromkeys(investmentperiods)
         self.processedOperationRateMax = dict.fromkeys(investmentperiods)
@@ -1143,7 +1145,7 @@ class SourceSinkModel(ComponentModel):
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
 
-        :param ip: investment period
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName

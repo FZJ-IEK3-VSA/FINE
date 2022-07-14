@@ -1356,7 +1356,7 @@ def formatOptimizationOutput(
         * '2dim'.
     :type dimension: string
 
-    :param ip: #ToDo: Add documentation for ip
+    :param ip: investment period of transformation path analysis.
     :type ip: int
 
     **Default arguments:**

@@ -384,7 +384,7 @@ def getShadowPrices(
     :param constraint: constraint from which the dual values should be obtained (e.g. pyM.commodityBalanceConstraint)
     :type constraint: pyomo.core.base.constraint.SimpleConstraint
 
-    :param ip: investment period of transformation path analysis (perfect foresight).
+    :param ip: investment period of transformation path analysis.
     :type ip: int
 
     :param dualValues: dual values of the optimized model instance. If it is not specified, it is set by using the
@@ -588,7 +588,7 @@ def plotOperationColorMap(
 
     **Default arguments:**
 
-    :param ip: investment period of transformation path analysis (perfect foresight).
+    :param ip: investment period of transformation path analysis.
     :type ip: int
 
     :param locTrans: second location, required when Transmission components are plotted

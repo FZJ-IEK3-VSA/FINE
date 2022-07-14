@@ -411,7 +411,8 @@ class Transmission(Component):
 
     def getDataForTimeSeriesAggregation(self, ip):
         """Function for getting the required data if a time series aggregation is requested.
-        :param ip: investment period of transformation path analysis (perfect foresight).
+
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
         weightDict, data = {}, []
@@ -433,7 +434,7 @@ class Transmission(Component):
         :param data: Pandas DataFrame with the clustered time series data of the conversion component
         :type data: Pandas DataFrame
 
-        :param ip: investment period of transformation path analysis (perfect foresight).
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
 
@@ -461,6 +462,9 @@ class Transmission(Component):
         """
         Initialize dicts (keys are investment periods, values are None)
         for processed data sets.
+
+        :param investmentperiods: investmentperiods of transformation path analysis.
+        :type investmentperiods: list
         """
         self.processedOperationRateMax = dict.fromkeys(investmentperiods)
         self.processedOperationRateFix = dict.fromkeys(investmentperiods)
@@ -752,7 +756,7 @@ class TransmissionModel(ComponentModel):
 
     def getBalanceLimitContribution(
         self, esM, pyM, ID, loc, timeSeriesAggregation
-    ):  # ToDo: Check whether ip is needed
+    ):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
         Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
@@ -868,7 +872,7 @@ class TransmissionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
-        :param ip: investment period
+        :param ip: investment period of transformation path analysis.
         :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1159,12 +1163,6 @@ class TransmissionModel(ComponentModel):
         ).sort_index()
 
         if optVal is not None:
-            # new code
-            idx = pd.IndexSlice
-            optVal = optVal.loc[
-                idx[:, :], :
-            ]  # perfect foresight: added ip and deleted again
-            # optVal = optVal.droplevel([1])
             opSum = optVal.sum(axis=1).unstack(-1)
 
             # New index for opex is required as indexing with list with missing labels is deprecated

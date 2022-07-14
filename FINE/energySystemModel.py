@@ -114,12 +114,12 @@ class EnergySystemModel:
         :type hoursPerTimeStep: strictly positive float
 
         :param numberOfInvestmentPeriods: number of investment periods of transformation
-            path analysis (perfect foresight)
+            path analysis 
             |br| * the default value is 1
         : type numberOfInvestmentPeriods: strictly positive integer
 
         :param yearsPerInvestmentPeriod: years per investment period of transformation
-            path analysis (perfect foresight)
+            path analysis 
             |br| * the default value is 1
         : type yearsPerInvestmentPeriod: strictly positive integer
 

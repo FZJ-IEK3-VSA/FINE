@@ -120,7 +120,6 @@ def generateIterationDicts(component_dict, ip):
                     description_tuple, _variable_description, _data
                 ):
                     if isinstance(_data, dict) and not description_tuple[2]:
-                        # TODO check if ip-dict oder conversion dict
                         for key, value in _data.items():
 
                             nested_variable_description = f"{_variable_description}.{key}"  # NOTE: a . is introduced in the variable here
@@ -135,14 +134,6 @@ def generateIterationDicts(component_dict, ip):
                         raise NotImplementedError(
                             "Currently different conversion factors for ips are not supported."
                         )
-                        # for _ip, _ip_data in _data.items():
-                        #     for key, value in _ip_data.items():
-
-                        #         nested_variable_description = f"{_variable_description}.{key}"  # NOTE: a . is introduced in the variable here
-
-                        #         _append_to_iteration_dicts(
-                        #             description_tuple, nested_variable_description, value)
-                        #    break # TODO currently only for the first ip
 
                     elif isinstance(_data, pd.DataFrame) or (
                         description_tuple[2]
@@ -175,7 +166,6 @@ def generateIterationDicts(component_dict, ip):
                                 description_tuple
                             )
 
-                    # TODO type changes for different ips
                     elif description_tuple[2]:
                         raise NotImplementedError(
                             "Not implemented that dict can have different types."
@@ -239,7 +229,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
                     _multi_index_dataframe["ip"] = _ip
                     _multi_index_dataframe.index.set_names(
                         "ip", level=0, inplace=True
-                    )  # TODO funktioniert das so?
+                    )  
                     _multi_index_dataframe.index.set_names(
                         "time", level=1, inplace=True
                     )
@@ -359,7 +349,6 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 if ip_depending is True:
                     for _ip, ip_data in data.items():
                         if locations == sorted(ip_data.index.values):
-                            # TODO Kevin fragen -> hier auch ip? was ist space?
                             space_dict[df_description] = ip_data.rename_axis("space")
                         else:
                             time_dict[df_description] = ip_data.rename_axis("time")
@@ -505,10 +494,9 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
                 _ip_df_variable = pd.DataFrame(ip_data)
                 _ip_df_variable["ip"] = _ip
                 _ip_df_variable.set_index("ip", level=1, inplace=True)
-                # TODO ip hoinzufügen, einzelne jahre mergen
                 _ip_df_variable.index.set_names(
                     "component", level=0, inplace=True
-                )  # TODo funktioniert das so
+                )  
                 df_variables.append(_ip_df_variable)
             df_variable = pd.concat(df_variables, axis=0)
             ds_component = xr.Dataset()
