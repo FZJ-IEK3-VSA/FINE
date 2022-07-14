@@ -118,6 +118,8 @@ def aggregate_time_series_spatially(
             )
 
         if mode == "weighted mean":
+            # xr_data_array_in dytpe is set as float, this to avoid the division by zero error when dytpe=object
+            xr_data_array_in = xr_data_array_in.astype(dtype=float)
             weighted_xr_data_array_in = xr_data_array_in * xr_weight_array
 
             xr_data_array_out.loc[
@@ -129,7 +131,7 @@ def aggregate_time_series_spatially(
             ).sum(
                 dim="space", skipna=False
             )
-
+        
         if mode == "sum":
             xr_data_array_out.loc[dict(space=sup_region_id)] = (
                 xr_data_array_in.sel(space=sub_region_id_list)
