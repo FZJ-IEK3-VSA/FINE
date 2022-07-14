@@ -131,7 +131,7 @@ def aggregate_time_series_spatially(
             ).sum(
                 dim="space", skipna=False
             )
-        
+
         if mode == "sum":
             xr_data_array_out.loc[dict(space=sup_region_id)] = (
                 xr_data_array_in.sel(space=sub_region_id_list)
