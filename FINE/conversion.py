@@ -764,9 +764,7 @@ class ConversionModel(ComponentModel):
             if isinstance(commodCommodityConversionFactors, (int, float)):
                 return commodCommodityConversionFactors
             else:
-                return commodCommodityConversionFactors[loc][
-                    p, t
-                ]  
+                return commodCommodityConversionFactors[loc][p, t]
 
         return sum(
             opVar[loc, compName, ip, p, t]

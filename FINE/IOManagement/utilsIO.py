@@ -227,9 +227,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
                 for _ip, ip_data in data.items():
                     _multi_index_dataframe = ip_data.stack()
                     _multi_index_dataframe["ip"] = _ip
-                    _multi_index_dataframe.index.set_names(
-                        "ip", level=0, inplace=True
-                    )  
+                    _multi_index_dataframe.index.set_names("ip", level=0, inplace=True)
                     _multi_index_dataframe.index.set_names(
                         "time", level=1, inplace=True
                     )
@@ -494,9 +492,7 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
                 _ip_df_variable = pd.DataFrame(ip_data)
                 _ip_df_variable["ip"] = _ip
                 _ip_df_variable.set_index("ip", level=1, inplace=True)
-                _ip_df_variable.index.set_names(
-                    "component", level=0, inplace=True
-                )  
+                _ip_df_variable.index.set_names("component", level=0, inplace=True)
                 df_variables.append(_ip_df_variable)
             df_variable = pd.concat(df_variables, axis=0)
             ds_component = xr.Dataset()

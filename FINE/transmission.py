@@ -754,9 +754,7 @@ class TransmissionModel(ComponentModel):
             if commod in compDict[compName].commodity
         )
 
-    def getBalanceLimitContribution(
-        self, esM, pyM, ID, loc, timeSeriesAggregation
-    ):
+    def getBalanceLimitContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
         Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:

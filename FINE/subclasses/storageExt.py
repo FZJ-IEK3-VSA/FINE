@@ -306,7 +306,7 @@ class StorageExtBETA(Storage):
     def getDataForTimeSeriesAggregation(self, ip):
         """
         Function for getting the required data if a time series aggregation is requested.
-        
+
         :param ip: investment period of transformation path analysis.
         :type ip: int
         """
