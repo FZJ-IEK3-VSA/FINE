@@ -244,8 +244,6 @@ def dsm_test_esM(scope="session"):
     return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
 
 
-
-
 if __name__ == "__main__":
-    _test=dsm_test_esM()
+    _test = dsm_test_esM()
     test_DSM(_test)
