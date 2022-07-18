@@ -305,7 +305,7 @@ class DSMModel(SourceSinkModel):
         self.abbrvName = "dsm"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
         self.optSummary = {}
         self.operationVariablesOptimum = {}
 
@@ -479,7 +479,7 @@ class DSMModel(SourceSinkModel):
 
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super(SourceSinkModel, self).setOptimalValues(
-            esM, pyM, esM.locations, "commodityUnit"
+            esM, pyM, ip, esM.locations, "commodityUnit"
         )
 
         # Set optimal operation variables and append optimization summary

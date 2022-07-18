@@ -106,7 +106,7 @@ class ConversionPartLoadModel(ConversionModel):
         self.abbrvName = "partLoad"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
         self.operationVariablesOptimum = None
         self.optSummary = None
 

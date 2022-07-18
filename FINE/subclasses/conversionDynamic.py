@@ -94,7 +94,7 @@ class ConversionDynamicModel(ConversionModel):
         self.abbrvName = "conv_dyn"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
         self.operationVariablesOptimum = None
         self.optSummary = None
 

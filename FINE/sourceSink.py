@@ -782,8 +782,9 @@ class SourceSinkModel(ComponentModel):
         self.abbrvName = "srcSnk"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum = None
+        self.capacityVariablesOptimum={}
+        self.isBuiltVariablesOptimum = {}
+        self.operationVariablesOptimum = {}
         self.optSummary = {}
         self.operationVariablesOptimum = {}
 
@@ -833,10 +834,10 @@ class SourceSinkModel(ComponentModel):
         """
 
         # Declare design variable sets
-        self.declareDesignVarSet(pyM)
-        self.declareContinuousDesignVarSet(pyM)
-        self.declareDiscreteDesignVarSet(pyM)
-        self.declareDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM, esM)
+        self.declareContinuousDesignVarSet(pyM,esM)
+        self.declareDiscreteDesignVarSet(pyM,esM)
+        self.declareDesignDecisionVarSet(pyM,esM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
@@ -872,7 +873,7 @@ class SourceSinkModel(ComponentModel):
         """
 
         # Capacity variables [commodityUnit]
-        self.declareCapacityVars(pyM)
+        self.declareCapacityVars(pyM,esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -945,7 +946,7 @@ class SourceSinkModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM)
+        self.capToNbReal(pyM,esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -953,7 +954,7 @@ class SourceSinkModel(ComponentModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM)
+        self.capacityFix(pyM,esM)
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Set yearly full load hours minimum limit
@@ -1160,7 +1161,7 @@ class SourceSinkModel(ComponentModel):
 
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(
-            esM, pyM, esM.locations, "commodityUnit"
+            esM, pyM, ip, esM.locations, "commodityUnit"
         )
 
         # Set optimal operation variables and append optimization summary

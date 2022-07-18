@@ -643,7 +643,8 @@ class ComponentModel(metaclass=ABCMeta):
         self.abbrvName = ""
         self.dimension = ""
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum={}
+        self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
         self.optSummary = None
 
@@ -651,94 +652,151 @@ class ComponentModel(metaclass=ABCMeta):
     #                           Functions for declaring design and operation variables sets                            #
     ####################################################################################################################
 
-    def declareDesignVarSet(self, pyM):
+    def declareDesignVarSet(self, pyM, esM):
         """
         Declare set for capacity variables in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
         """
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareDesignVarSet(pyM):
-            return (
-                (loc, compName)
-                for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
-                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
-            )
+            if esM.mode == "perfectForesight":
+                return (
+                    (loc, compName, ip)
+                    for compName, comp in compDict.items()
+                    for loc in comp.locationalEligibility.index
+                    for ip in esM.investmentPeriods
+                    if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                )
+            else:
+                return (
+                    (loc, compName)
+                    for compName, comp in compDict.items()
+                    for loc in comp.locationalEligibility.index
+                    if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                )
 
+        n = 3 if esM.mode == "perfectForesight" else 2
         setattr(
             pyM,
             "designDimensionVarSet_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareDesignVarSet),
+            pyomo.Set(dimen=n, initialize=declareDesignVarSet),
         )
 
-    def declareContinuousDesignVarSet(self, pyM):
+    def declareContinuousDesignVarSet(self, pyM, esM):
         """
         Declare set for continuous number of installed components in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareContinuousDesignVarSet(pyM):
-            return (
-                (loc, compName)
-                for loc, compName in getattr(pyM, "designDimensionVarSet_" + abbrvName)
-                if compDict[compName].capacityVariableDomain == "continuous"
-            )
+            if esM.mode == "perfectForesight":
+                return (
+                    (loc, compName, ip)
+                    for loc, compName, ip in getattr(
+                        pyM, "designDimensionVarSet_" + abbrvName
+                    )
+                )
+            else:
+                return (
+                    (loc, compName)
+                    for loc, compName in getattr(
+                        pyM, "designDimensionVarSet_" + abbrvName
+                    )
+                    if compDict[compName].capacityVariableDomain == "continuous"
+                )
 
+        n = 3 if esM.mode == "perfectForesight" else 2
         setattr(
             pyM,
             "continuousDesignDimensionVarSet_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareContinuousDesignVarSet),
+            pyomo.Set(dimen=n, initialize=declareContinuousDesignVarSet),
         )
 
-    def declareDiscreteDesignVarSet(self, pyM):
+    def declareDiscreteDesignVarSet(self, pyM, esM):
         """
         Declare set for discrete number of installed components in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareDiscreteDesignVarSet(pyM):
-            return (
-                (loc, compName)
-                for loc, compName in getattr(pyM, "designDimensionVarSet_" + abbrvName)
-                if compDict[compName].capacityVariableDomain == "discrete"
-            )
+            if esM.mode == "perfectForesight":
+                return (
+                    (loc, compName, ip)
+                    for loc, compName, ip in getattr(
+                        pyM, "designDimensionVarSet_" + abbrvName
+                    )
+                    if compDict[compName].capacityVariableDomain == "discrete"
+                )
+            else:
+                return (
+                    (loc, compName)
+                    for loc, compName in getattr(
+                        pyM, "designDimensionVarSet_" + abbrvName
+                    )
+                    if compDict[compName].capacityVariableDomain == "discrete"
+                )
 
+        n = 3 if esM.mode == "perfectForesight" else 2
         setattr(
             pyM,
             "discreteDesignDimensionVarSet_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareDiscreteDesignVarSet),
+            pyomo.Set(dimen=n, initialize=declareDiscreteDesignVarSet),
         )
 
-    def declareDesignDecisionVarSet(self, pyM):
+    def declareDesignDecisionVarSet(self, pyM, esM):
         """
         Declare set for design decision variables in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareDesignDecisionVarSet(pyM):
-            return (
-                (loc, compName)
-                for loc, compName in getattr(pyM, "designDimensionVarSet_" + abbrvName)
-                if compDict[compName].hasIsBuiltBinaryVariable
-            )
+            if esM.mode == "perfectForesight":
+                return (
+                    (loc, compName, ip)
+                    for loc, compName,ip in getattr(
+                        pyM, "designDimensionVarSet_" + abbrvName
+                    )
+                    if compDict[compName].hasIsBuiltBinaryVariable
+                )
+            else:
+                return (
+                    (loc, compName)
+                    for loc, compName in getattr(
+                        pyM, "designDimensionVarSet_" + abbrvName
+                    )
+                    if compDict[compName].hasIsBuiltBinaryVariable
+                )
 
+        n = 3 if esM.mode == "perfectForesight" else 2
         setattr(
             pyM,
             "designDecisionVarSet_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareDesignDecisionVarSet),
+            pyomo.Set(dimen=n, initialize=declareDesignDecisionVarSet),
         )
 
     def declareOpVarSet(self, esM, pyM):
@@ -1047,7 +1105,7 @@ class ComponentModel(metaclass=ABCMeta):
     #                                         Functions for declaring variables                                        #
     ####################################################################################################################
 
-    def declareCapacityVars(self, pyM):
+    def declareCapacityVars(self, pyM, esM):
         """
         Declare capacity variables.
 
@@ -1057,9 +1115,12 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
         """
         abbrvName = self.abbrvName
-
+        
         def capBounds(pyM, loc, compName):
             """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
@@ -1069,8 +1130,28 @@ class ComponentModel(metaclass=ABCMeta):
                 else 0,
                 comp.capacityMax[loc] if comp.capacityMax is not None else None,
             )
-
-        setattr(
+        def capBoundsPerfectForesight(pyM, loc, compName, ip):
+            """Function for setting lower and upper capacity bounds."""
+            comp = self.componentsDict[compName]
+            return (
+                comp.capacityMin[loc]
+                if (comp.capacityMin is not None and not comp.hasIsBuiltBinaryVariable)
+                else 0,
+                comp.capacityMax[loc] if comp.capacityMax is not None else None,
+            )
+        
+        if esM.mode =="perfectForesight":        
+            setattr(
+            pyM,
+            "cap_" + abbrvName,
+            pyomo.Var(
+                getattr(pyM, "designDimensionVarSet_" + abbrvName),
+                domain=pyomo.NonNegativeReals,
+                bounds=capBoundsPerfectForesight,
+            ),
+            )
+        else:
+            setattr(
             pyM,
             "cap_" + abbrvName,
             pyomo.Var(
@@ -1078,7 +1159,7 @@ class ComponentModel(metaclass=ABCMeta):
                 domain=pyomo.NonNegativeReals,
                 bounds=capBounds,
             ),
-        )
+            )
 
     def declareOperationBinary(self, pyM):
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1200,7 +1281,7 @@ class ComponentModel(metaclass=ABCMeta):
     #                              Functions for declaring time independent constraints                                #
     ####################################################################################################################
 
-    def capToNbReal(self, pyM):
+    def capToNbReal(self, pyM,esM):
         """
         Determine the components' capacities from the number of installed units.
 
@@ -1210,6 +1291,9 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar, nbRealVar = (
@@ -1223,12 +1307,24 @@ class ComponentModel(metaclass=ABCMeta):
                 capVar[loc, compName]
                 == nbRealVar[loc, compName] * compDict[compName].capacityPerPlantUnit
             )
+        def capToNbRealPerfectForesight(pyM, loc, compName, ip):
+            return (
+                capVar[loc, compName,ip]
+                == nbRealVar[loc, compName,ip] * compDict[compName].capacityPerPlantUnit
+            )
 
-        setattr(
-            pyM,
-            "ConstrCapToNbReal_" + abbrvName,
-            pyomo.Constraint(nbRealVarSet, rule=capToNbReal),
-        )
+        if esM.mode =="perfectForesight":  
+            setattr(
+                pyM,
+                "ConstrCapToNbReal_" + abbrvName,
+                pyomo.Constraint(nbRealVarSet, rule=capToNbRealPerfectForesight),
+            )
+        else:
+            setattr(
+                pyM,
+                "ConstrCapToNbReal_" + abbrvName,
+                pyomo.Constraint(nbRealVarSet, rule=capToNbReal),
+            )
 
     def capToNbInt(self, pyM):
         """
@@ -1319,7 +1415,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Constraint(designBinVarSet, rule=capacityMinDec),
         )
 
-    def capacityFix(self, pyM):
+    def capacityFix(self, pyM,esM):
         """
         Set, if applicable, the installed capacities of a component.
 
@@ -1329,6 +1425,9 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
         """
         compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
         capVar = getattr(pyM, "cap_" + abbrvName)
@@ -1340,12 +1439,25 @@ class ComponentModel(metaclass=ABCMeta):
                 if compDict[compName].capacityFix is not None
                 else pyomo.Constraint.Skip
             )
+        def capacityFixPerfectForesight(pyM, loc, compName, ip):
+            return (
+                capVar[loc, compName, ip] == compDict[compName].capacityFix[loc]
+                if compDict[compName].capacityFix is not None
+                else pyomo.Constraint.Skip
+            )
 
-        setattr(
-            pyM,
-            "ConstrCapacityFix_" + abbrvName,
-            pyomo.Constraint(capVarSet, rule=capacityFix),
-        )
+        if esM.mode=="perfectForesight":
+            setattr(
+                pyM,
+                "ConstrCapacityFix_" + abbrvName,
+                pyomo.Constraint(capVarSet, rule=capacityFixPerfectForesight),
+            )
+        else:
+            setattr(
+                pyM,
+                "ConstrCapacityFix_" + abbrvName,
+                pyomo.Constraint(capVarSet, rule=capacityFix),
+            )
 
     def designBinFix(self, pyM):
         """
@@ -1544,10 +1656,16 @@ class ComponentModel(metaclass=ABCMeta):
 
             def op3(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= capVar[loc, compName] * rate[loc][p, t] * factor
-                )  # rate independent from ip
+                if esM.mode == "perfectForesight":
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        <= capVar[loc, compName,ip] * rate[loc][p, t] * factor
+                    )  
+                else:
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        <= capVar[loc, compName] * rate[loc][p, t] * factor
+                    )  
 
             setattr(
                 pyM,
@@ -1884,21 +2002,23 @@ class ComponentModel(metaclass=ABCMeta):
         """
         capexCap = self.getEconomicsTI(
             pyM,
+            esM,
             factorNames=["investPerCapacity", "QPcostDev"],
             QPfactorNames=["QPcostScale", "investPerCapacity"],
             varName="cap",
             divisorName="CCF",
             QPdivisorNames=["QPbound", "CCF"],
         )
-        capexDec = self.getEconomicsTI(pyM, ["investIfBuilt"], "designBin", "CCF")
+        capexDec = self.getEconomicsTI(pyM, esM, ["investIfBuilt"], "designBin", "CCF")
         opexCap = self.getEconomicsTI(
             pyM,
+            esM,
             factorNames=["opexPerCapacity", "QPcostDev"],
             QPfactorNames=["QPcostScale", "opexPerCapacity"],
             varName="cap",
             QPdivisorNames=["QPbound"],
         )
-        opexDec = self.getEconomicsTI(pyM, ["opexIfBuilt"], "designBin")
+        opexDec = self.getEconomicsTI(pyM, esM, ["opexIfBuilt"], "designBin")
 
         return capexCap + capexDec + opexCap + opexDec
 
@@ -1990,22 +2110,27 @@ class ComponentModel(metaclass=ABCMeta):
     def getLocEconomicsTI(
         self,
         pyM,
+        esM,
         factorNames,
         varName,
         loc,
         compName,
+        ip=None,
         divisorName="",
         QPfactorNames=[],
         QPdivisorNames=[],
         getOptValue=False,
     ):
         """
-        Set time-independent equation specified for one component in one location.
+        Set time-independent equation specified for one component in one location in one investment period.
 
         **Required arguments:**
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
 
         :param factorNames: Strings of the parameters that have to be multiplied within the equation.
             (e.g. ['investPerCapacity'] to multiply the capacity variable with the investment per each capacity unit).
@@ -2021,6 +2146,9 @@ class ComponentModel(metaclass=ABCMeta):
         :type compName: string
 
         **Default arguments:**
+        
+        :param ip: investement period
+        :type ip: int
 
         :param divisorName: String of the variable that is used as a divisor within the equation (e.g. 'CCF').
             If the divisorName is an empty string, there is no division within the equation.
@@ -2055,12 +2183,16 @@ class ComponentModel(metaclass=ABCMeta):
         factor = 1.0 / divisor
         for factor_ in factors:
             factor *= factor_
-
+        
+        if esM.mode=="perfectForesight":
+            _var=var[loc, compName,ip]
+        else: 
+            _var=var[loc, compName]
         if self.componentsDict[compName].QPcostScale[loc] == 0:
             if not getOptValue:
-                return factor * var[loc, compName]
+                return factor * _var
             else:
-                return factor * var[loc, compName].value
+                return factor * _var.value
         else:
             QPfactors = [
                 getattr(self.componentsDict[compName], QPfactorName)[loc]
@@ -2077,18 +2209,19 @@ class ComponentModel(metaclass=ABCMeta):
                 QPfactor /= QPdivisor
             if not getOptValue:
                 return (
-                    factor * var[loc, compName]
-                    + QPfactor * var[loc, compName] * var[loc, compName]
+                    factor * _var
+                    + QPfactor * _var * _var
                 )
             else:
                 return (
-                    factor * var[loc, compName].value
-                    + QPfactor * var[loc, compName].value * var[loc, compName].value
+                    factor * _var.value
+                    + QPfactor * _var.value * _var.value
                 )
 
     def getEconomicsTI(
         self,
         pyM,
+        esM,
         factorNames,
         varName,
         divisorName="",
@@ -2104,6 +2237,9 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+    
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
 
         :param factorNames: Strings of the parameters that have to be multiplied within the equation.
             (e.g. ['investPerCapacity'] to multiply the capacity variable with the investment per each capacity unit).
@@ -2132,20 +2268,41 @@ class ComponentModel(metaclass=ABCMeta):
         :type getoptValue: boolean
         """
         var = getattr(pyM, varName + "_" + self.abbrvName)
-        return sum(
-            self.getLocEconomicsTI(
-                pyM,
-                factorNames,
-                varName,
-                loc,
-                compName,
-                divisorName,
-                QPfactorNames,
-                QPdivisorNames,
-                getOptValue,
+        if esM.mode=="perfectForesight":
+            return sum(
+                self.getLocEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames,
+                    varName,
+                    loc,
+                    compName,
+                    ip,
+                    divisorName,
+                    QPfactorNames,
+                    QPdivisorNames,
+                    getOptValue,
+                )
+                for loc, compName, ip in var
             )
-            for loc, compName in var
-        )
+        else:
+            ip=None
+            return sum(
+                self.getLocEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames,
+                    varName,
+                    loc,
+                    ip,
+                    compName,
+                    divisorName,
+                    QPfactorNames,
+                    QPdivisorNames,
+                    getOptValue,
+                )
+                for loc, compName in var
+            )
 
     def getEconomicsTD(
         self, pyM, esM, factorNames, varName, dictName, getOptValue=False
@@ -2347,7 +2504,7 @@ class ComponentModel(metaclass=ABCMeta):
                 for ip in esM.investmentPeriods
             )
 
-    def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
+    def setOptimalValues(self, esM, pyM, ip, indexColumns, plantUnit, unitApp=""):
         """
         Set the optimal values for the considered components and return a summary of them.
         The function is called after optimization was successful and an optimal solution was found.
@@ -2361,6 +2518,9 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        
+        :param ip: investement period
+        :type ip: int
 
         :param indexColumns: set of strings with the columns indices of the summary. The indices represent the locations
             or connections between the locations are used to call the optimal values of the variables of the components
@@ -2433,11 +2593,17 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Get and set optimal variable values for expanded capacities
         values = capVar.get_values()
-        optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-        optVal_ = utils.formatOptimizationOutput(
-            values, "designVariables", self.dimension, compDict=compDict
-        )
-        self.capacityVariablesOptimum = optVal_
+        if esM.mode == "perfectForesight":
+            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
+            optVal_ = utils.formatOptimizationOutput(
+                values, "designVariables", self.dimension, ip, compDict=compDict
+            )
+        else:
+            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
+            optVal_ = utils.formatOptimizationOutput(
+                values, "designVariables", self.dimension, compDict=compDict
+            )
+        self.capacityVariablesOptimum[ip] = optVal_
 
         if optVal is not None:
             # Check if the installed capacities are close to a bigM value for components with design decision variables but
@@ -2531,10 +2697,16 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
         values = binVar.get_values()
-        optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-        optVal_ = utils.formatOptimizationOutput(
-            values, "designVariables", self.dimension, compDict=compDict
-        )
+        if esM.mode == "perfectForesight":
+            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
+            optVal_ = utils.formatOptimizationOutput(
+                values, "designVariables", self.dimension,  compDict=compDict
+            )
+        else:
+            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
+            optVal_ = utils.formatOptimizationOutput(
+                values, "designVariables", self.dimension, compDict=compDict
+            )
         self.isBuiltVariablesOptimum = optVal_
 
         if optVal is not None:

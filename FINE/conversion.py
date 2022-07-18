@@ -513,7 +513,8 @@ class ConversionModel(ComponentModel):
         self.abbrvName = "conv"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum={}
+        self.isBuiltVariablesOptimum = {}
         self.optSummary = {}
         self.operationVariablesOptimum = {}
 
@@ -578,10 +579,10 @@ class ConversionModel(ComponentModel):
         """
 
         # Declare design variable sets
-        self.declareDesignVarSet(pyM)
-        self.declareContinuousDesignVarSet(pyM)
-        self.declareDiscreteDesignVarSet(pyM)
-        self.declareDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM,esM)
+        self.declareContinuousDesignVarSet(pyM,esM)
+        self.declareDiscreteDesignVarSet(pyM,esM)
+        self.declareDesignDecisionVarSet(pyM,esM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
@@ -617,7 +618,7 @@ class ConversionModel(ComponentModel):
         """
 
         # Capacity variables [physicalUnit]
-        self.declareCapacityVars(pyM)
+        self.declareCapacityVars(pyM,esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -671,7 +672,7 @@ class ConversionModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM)
+        self.capToNbReal(pyM,esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -679,7 +680,7 @@ class ConversionModel(ComponentModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM)
+        self.capacityFix(pyM,esM)
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Link, if applicable, the capacity of components with the same linkedConversionCapacityID
@@ -817,7 +818,7 @@ class ConversionModel(ComponentModel):
 
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(
-            esM, pyM, esM.locations, "physicalUnit"
+            esM, pyM, ip, esM.locations, "physicalUnit"
         )
 
         # Set optimal operation variables and append optimization summary

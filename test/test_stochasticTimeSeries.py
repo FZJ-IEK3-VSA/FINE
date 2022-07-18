@@ -3,21 +3,20 @@
 
 # # Test case for perfect foresight approach
 
-# Status: Working with FINE w/o Perfect Foresight
-# Status: No errors with perfect foresight version, results identical with developed FINE version
-# Status: Obviously not doing perfect foresight yet, required expansions will come in the future
-
-# 1. Import required packages and set input data path
+# Status: First step towards perfect foresight
+# -> one design of energy system
+# -> several operation years
+# robustness optimizations possible 
 
 import FINE as fn
 import numpy as np
 import pandas as pd
 
 
-def test_perfectForesight():
+def test_stochasticTimeSeries():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
-    numberOfInvestmentPeriods = 2  # new test, before =1
+    numberOfInvestmentPeriods = 2  
     yearsPerInvestmentPeriod = 1
 
     # Create an energy system model instance
@@ -330,4 +329,4 @@ def test_perfectForesight():
 
 
 if __name__ == "__main__":
-    test_perfectForesight()
+    test_stochasticTimeSeries()

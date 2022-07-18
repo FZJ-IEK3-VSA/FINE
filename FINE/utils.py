@@ -1391,6 +1391,9 @@ def formatOptimizationOutput(
         # Convert dictionary to DataFrame, transpose, put the components name first and sort the index
         # Results in a one dimensional DataFrame
         df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=1, axis=0).sort_index()
+        if ip is not None: 
+            df=df[df.index.get_level_values(2) == ip]
+            df=df.reset_index(level=2,drop=True)
         # Unstack the regions (convert to a two dimensional DataFrame with the region indices being the columns)
         # and fill NaN values (i.e. when a component variable was not initiated for that region)
         df = df.unstack(level=-1)

@@ -434,7 +434,7 @@ class StorageExtModel(StorageModel):
         self.abbrvName = "storExt"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
         (
             self.chargeOperationVariablesOptimum,
             self.dischargeOperationVariablesOptimum,
@@ -789,7 +789,7 @@ class StorageExtModel(StorageModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM)
+        self.capToNbReal(pyM,esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -797,7 +797,7 @@ class StorageExtModel(StorageModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Sets, if applicable, the installed capacities of a component
-        self.capacityFix(pyM)
+        self.capacityFix(pyM,esM)
         # Sets, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
 

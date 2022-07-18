@@ -72,6 +72,7 @@ class EnergySystemModel:
         hoursPerTimeStep=1,
         numberOfInvestmentPeriods=1,
         yearsPerInvestmentPeriod=1,
+        mode=None,
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
@@ -123,6 +124,10 @@ class EnergySystemModel:
             |br| * the default value is 1
         : type yearsPerInvestmentPeriod: strictly positive integer
 
+        :param mode: linking method for several investment periods
+            |br| * the default value is None
+        : type mode: str or None        
+        
         :param costUnit: cost unit of all cost related values in the energy system. This argument sets the unit of
             all cost parameters which are given as an input to the EnergySystemModel instance (e.g. for the
             invest per capacity or the cost per operation).
@@ -243,6 +248,21 @@ class EnergySystemModel:
         self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
         self.investmentPeriods = list(range(numberOfInvestmentPeriods))
         self.yearsPerInvestmentPeriod = yearsPerInvestmentPeriod
+        
+        if mode not in [None,"stochastic", "perfectForesight"]:
+            raise ValueError("Parameter 'mode' must be None, 'stochastic' or 'perfectForesight'")
+        if mode in ["stochastic","perfectForesight"] and numberOfInvestmentPeriods==1:
+            raise ValueError() # TODO
+        if mode is None and numberOfInvestmentPeriods>1:
+            raise ValueError()
+        if numberOfInvestmentPeriods ==0:
+            raise ValueError()
+        
+        self.mode=mode
+            
+        # TODO implment checks for stochastic
+        # if mode =="stochastic" and numberOfInvestmentPeriods>1:
+        #     raise ValueError("Stochastic optimization can")
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
         # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents
@@ -1483,6 +1503,7 @@ class EnergySystemModel:
             timeSeriesAggregation, self.isTimeSeriesDataClustered
         )
 
+
         ################################################################################################################
         #                           Initialize mathematical model (ConcreteModel) instance                             #
         ################################################################################################################
@@ -1497,7 +1518,7 @@ class EnergySystemModel:
 
         # Set time sets for the model instance
         self.declareTimeSets(pyM, timeSeriesAggregation, segmentation)
-
+        
         ################################################################################################################
         #                         Declare component specific sets, variables and constraints                           #
         ################################################################################################################
@@ -1657,7 +1678,7 @@ class EnergySystemModel:
                     "The optimization problem is not declared yet. Set the argument declaresOptimization"
                     " problem to True or call the declareOptimizationProblem function first."
                 )
-
+        
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
 
@@ -1849,6 +1870,7 @@ class EnergySystemModel:
                         )
                     else:
                         mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
+                    mdl.capacityVariablesOptimum=mdl.capacityVariablesOptimum[0]
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()

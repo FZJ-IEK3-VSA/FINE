@@ -486,7 +486,8 @@ class TransmissionModel(ComponentModel):
         self.abbrvName = "trans"
         self.dimension = "2dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
+        self.capacityVariablesOptimum = {}
+        self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
         self.optSummary = {}
 
@@ -506,10 +507,10 @@ class TransmissionModel(ComponentModel):
         """
 
         # # Declare design variable sets
-        self.declareDesignVarSet(pyM)
-        self.declareContinuousDesignVarSet(pyM)
-        self.declareDiscreteDesignVarSet(pyM)
-        self.declareDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM,esM)
+        self.declareContinuousDesignVarSet(pyM,esM)
+        self.declareDiscreteDesignVarSet(pyM,esM)
+        self.declareDesignDecisionVarSet(pyM,esM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
@@ -536,7 +537,7 @@ class TransmissionModel(ComponentModel):
         """
 
         # Capacity variables [commodityUnit]
-        self.declareCapacityVars(pyM)
+        self.declareCapacityVars(pyM,esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -651,7 +652,7 @@ class TransmissionModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM)
+        self.capToNbReal(pyM,esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -659,7 +660,7 @@ class TransmissionModel(ComponentModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM)
+        self.capacityFix(pyM,esM)
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Enforce the equality of the capacities cap_loc1_loc2 and cap_loc2_loc1
@@ -843,6 +844,7 @@ class TransmissionModel(ComponentModel):
 
         capexCap = self.getEconomicsTI(
             pyM,
+            esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
             QPfactorNames=["QPcostScale", "processedInvestPerCapacity"],
             varName="cap",
@@ -850,16 +852,17 @@ class TransmissionModel(ComponentModel):
             QPdivisorNames=["QPbound", "CCF"],
         )
         capexDec = self.getEconomicsTI(
-            pyM, ["processedInvestIfBuilt"], "designBin", "CCF"
+            pyM, esM, ["processedInvestIfBuilt"], "designBin", "CCF"
         )
         opexCap = self.getEconomicsTI(
             pyM,
+            esM,
             factorNames=["processedOpexPerCapacity", "QPcostDev"],
             QPfactorNames=["QPcostScale", "processedOpexPerCapacity"],
             varName="cap",
             QPdivisorNames=["QPbound"],
         )
-        opexDec = self.getEconomicsTI(pyM, ["processedOpexIfBuilt"], "designBin")
+        opexDec = self.getEconomicsTI(pyM, esM, ["processedOpexIfBuilt"], "designBin")
 
         return opexOp + capexCap + capexDec + opexCap + opexDec
 
@@ -936,11 +939,17 @@ class TransmissionModel(ComponentModel):
 
             # Get and set optimal variable values for expanded capacities
             values = capVar.get_values()
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-            optVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, compDict=compDict
-            )
-            self.capacityVariablesOptimum = optVal_
+            if esM.mode =="perfectForesight":
+                optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
+                optVal_ = utils.formatOptimizationOutput(
+                    values, "designVariables", self.dimension, compDict=compDict
+                )
+            else:
+                optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
+                optVal_ = utils.formatOptimizationOutput(
+                    values, "designVariables", self.dimension, compDict=compDict
+                )
+            self.capacityVariablesOptimum[ip] = optVal_
 
             if optVal is not None:
                 # Check if the installed capacities are close to a bigM value for components with design decision variables but
@@ -1035,10 +1044,16 @@ class TransmissionModel(ComponentModel):
 
             # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
             values = binVar.get_values()
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-            optVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, compDict=compDict
-            )
+            if esM.mode =="perfectForesight":
+                optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
+                optVal_ = utils.formatOptimizationOutput(
+                    values, "designVariables", self.dimension, compDict=compDict
+                )
+            else:
+                optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
+                optVal_ = utils.formatOptimizationOutput(
+                    values, "designVariables", self.dimension, compDict=compDict
+                )
             self.isBuiltVariablesOptimum = optVal_
 
             if optVal is not None:

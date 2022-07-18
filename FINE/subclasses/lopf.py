@@ -123,7 +123,7 @@ class LOPFModel(TransmissionModel):
         self.abbrvName = "lopf"
         self.dimension = "2dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
         self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
         self.optSummary = None
 
@@ -167,10 +167,10 @@ class LOPFModel(TransmissionModel):
         """
 
         # # Declare design variable sets
-        self.declareDesignVarSet(pyM)
-        self.declareContinuousDesignVarSet(pyM)
-        self.declareDiscreteDesignVarSet(pyM)
-        self.declareDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM,esM)
+        self.declareContinuousDesignVarSet(pyM,esM)
+        self.declareDiscreteDesignVarSet(pyM,esM)
+        self.declareDesignDecisionVarSet(pyM,esM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
@@ -215,7 +215,7 @@ class LOPFModel(TransmissionModel):
         """
 
         # Capacity variables in [commodityUnit]
-        self.declareCapacityVars(pyM)
+        self.declareCapacityVars(pyM,esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]

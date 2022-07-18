@@ -705,7 +705,8 @@ class StorageModel(ComponentModel):
         self.abbrvName = "stor"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum = {}
+        self.isBuiltVariablesOptimum = {}
         (
             self.chargeOperationVariablesOptimum,
             self.dischargeOperationVariablesOptimum,
@@ -731,10 +732,10 @@ class StorageModel(ComponentModel):
         compDict = self.componentsDict
 
         # Declare design variable sets
-        self.declareDesignVarSet(pyM)
-        self.declareContinuousDesignVarSet(pyM)
-        self.declareDiscreteDesignVarSet(pyM)
-        self.declareDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM,esM)
+        self.declareContinuousDesignVarSet(pyM,esM)
+        self.declareDiscreteDesignVarSet(pyM,esM)
+        self.declareDesignDecisionVarSet(pyM,esM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
@@ -827,7 +828,7 @@ class StorageModel(ComponentModel):
         """
 
         # Capacity variables [commodityUnit*hour]
-        self.declareCapacityVars(pyM)
+        self.declareCapacityVars(pyM,esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -1608,7 +1609,7 @@ class StorageModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM)
+        self.capToNbReal(pyM,esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -1616,7 +1617,7 @@ class StorageModel(ComponentModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Sets, if applicable, the installed capacities of a component
-        self.capacityFix(pyM)
+        self.capacityFix(pyM,esM)
         # Sets, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
 
@@ -1852,10 +1853,10 @@ class StorageModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        capexCap = self.getEconomicsTI(pyM, ["investPerCapacity"], "cap", "CCF")
-        capexDec = self.getEconomicsTI(pyM, ["investIfBuilt"], "designBin", "CCF")
-        opexCap = self.getEconomicsTI(pyM, ["opexPerCapacity"], "cap")
-        opexDec = self.getEconomicsTI(pyM, ["opexIfBuilt"], "designBin")
+        capexCap = self.getEconomicsTI(pyM, esM, ["investPerCapacity"], "cap", "CCF")
+        capexDec = self.getEconomicsTI(pyM, esM, ["investIfBuilt"], "designBin", "CCF")
+        opexCap = self.getEconomicsTI(pyM, esM, ["opexPerCapacity"], "cap")
+        opexDec = self.getEconomicsTI(pyM, esM, ["opexIfBuilt"], "designBin")
         opexOp1 = self.getEconomicsTD(
             pyM,
             esM,
@@ -1919,7 +1920,7 @@ class StorageModel(ComponentModel):
 
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(
-            esM, pyM, esM.locations, "commodityUnit", "*h"
+            esM, pyM, ip, esM.locations, "commodityUnit", "*h"
         )
 
         # Set optimal operation variables and append optimization summary
