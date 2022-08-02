@@ -1081,6 +1081,11 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
         )
     return _data
 
+def checkTechnicalLifetimeInvestmenPeriod(esM,name,technicalLifetime):
+    ip_technicalLifeTime=technicalLifetime/( esM.yearsPerInvestmentPeriod)
+    if not ip_technicalLifeTime.is_integer():
+        raise ValueError(f"The technical lifetime of '{name}' devided by length of investment period nicht rund")
+    return ip_technicalLifeTime
 
 def checkAndSetTimeSeriesConversionFactors(
     esM, commodityConversionFactorsTimeSeries, locationalEligibility
@@ -1285,6 +1290,8 @@ def checkOptimizeInput(
 
     if not isinstance(warmstart, bool):
         raise ValueError("The warmstart parameter has to be a boolean.")
+
+
 
 
 def setFormattedTimeSeries(timeSeries):

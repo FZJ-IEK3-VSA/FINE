@@ -27,6 +27,7 @@ def test_stochasticTimeSeries():
         commodityUnitsDict={"electricity": r"kW$_{el}$"},
         hoursPerTimeStep=hoursPerTimeStep,
         costUnit="1 Euro",
+        mode="stochastic",
         numberOfInvestmentPeriods=numberOfInvestmentPeriods,
         yearsPerInvestmentPeriod=yearsPerInvestmentPeriod,
         lengthUnit="km",

@@ -424,6 +424,8 @@ class Component(metaclass=ABCMeta):
         self.technicalLifetime = utils.checkAndSetCostParameter(
             esM, name, technicalLifetime, dimension, elig
         )
+        if esM.mode =="perfectForesight":
+            self.ipTechnicalLifetime=utils.checkTechnicalLifetimeInvestmenPeriod(esM,name,technicalLifetime)
         self.CCF = utils.getCapitalChargeFactor(
             self.interestRate, self.economicLifetime
         )
@@ -688,6 +690,33 @@ class ComponentModel(metaclass=ABCMeta):
             "designDimensionVarSet_" + abbrvName,
             pyomo.Set(dimen=n, initialize=declareDesignVarSet),
         )
+
+    def declarePathwaySets(self,pyM):
+        """
+        Declare set for capacity development in the pyomo object for a modeling class.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+        """
+        if self.mode == "perfectForesight":
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            def initCommissioningConstraintSet(pyM):
+                if self.mode == "perfectForesight":
+                    return (
+                        (loc, compName, ip)
+                        for compName, comp in compDict.items()
+                        for loc in comp.locationalEligibility.index
+                        for ip in self.investmentPeriods[:,-1]
+                        if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                    )
+            setattr(
+                pyM,
+                "designDevelopmentVarSet_" + abbrvName,
+                pyomo.Set(dimen=3, initialize=initCommissioningConstraintSet),
+            )   
 
     def declareContinuousDesignVarSet(self, pyM, esM):
         """
@@ -1139,7 +1168,7 @@ class ComponentModel(metaclass=ABCMeta):
                 else 0,
                 comp.capacityMax[loc] if comp.capacityMax is not None else None,
             )
-        
+
         if esM.mode =="perfectForesight":        
             setattr(
             pyM,
@@ -1161,6 +1190,57 @@ class ComponentModel(metaclass=ABCMeta):
             ),
             )
 
+    def declareCommissioningVars(self,pyM,esM):
+        """
+        Declare commissioning variable for capacity of component.
+
+        .. math::
+
+            TODO
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+        """
+        if esM.mode =="perfectForesight":   
+            abbrvName = self.abbrvName     
+            setattr(
+                pyM,
+                "commis_" + abbrvName,
+                pyomo.Var(
+                    getattr(pyM, "designDimensionVarSet_" + abbrvName),
+                    domain=pyomo.NonNegativeReals,
+                ),
+            )
+
+    
+    def declareDecommissioningVars(self,pyM,esM):
+        """
+        Declare decommissioning variable for capacity of component.
+
+        .. math::
+
+            TODO
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+        """
+        if esM.mode =="perfectForesight":   
+            abbrvName = self.abbrvName     
+            setattr(
+                pyM,
+                "decommis_" + abbrvName,
+                pyomo.Var(
+                    getattr(pyM, "designDimensionVarSet_" + abbrvName),
+                    domain=pyomo.NonNegativeReals,
+                ),
+            )
+    
     def declareOperationBinary(self, pyM):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -1486,7 +1566,71 @@ class ComponentModel(metaclass=ABCMeta):
             "ConstrDesignBinFix_" + abbrvName,
             pyomo.Constraint(designBinVarSet, rule=designBinFix),
         )
+    
+    ####################################################################################################################
+    #                               Functions for declaring pathway dependent constraints                              #
+    ####################################################################################################################    
+    def designDevelopment(self,pyM,esM):
+        """
+        Link the capacity development between investment periods.
 
+        .. math::
+
+            TODO
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+        """
+        if esM.mode=="perfectForesight":
+            abbrvName = self.abbrvName
+            capVar = getattr(pyM, "cap_" + abbrvName)
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            decommisVar = getattr(pyM, "decommis_" + abbrvName)
+            commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
+
+            def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
+                return(capVar[loc, compName, ip+1]==capVar[loc, compName, ip] + commisVar[loc, compName, ip+1] - decommisVar[loc, compName, ip+1])
+
+
+            setattr(
+                pyM,
+                "ConstrCapacityDevelopment_" + abbrvName,
+                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight),
+            )
+
+    def decommissioningConstraint(self,pyM,esM):
+        """
+        Declare decommissioning xyz years after commissioning (tech lifetime).
+
+        .. math::
+
+            TODO
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+        """
+        if esM.mode=="perfectForesight":
+            abbrvName = self.abbrvName
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            decommisVar = getattr(pyM, "decommis_" + abbrvName)
+            commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
+
+            def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
+                return(decommisVar[loc, compName, ip+self.ipTechnicalLifetime]==commisVar[loc, compName, ip])
+
+
+            setattr(
+                pyM,
+                "ConstrCapacityDevelopment_" + abbrvName,
+                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight),
+            )
+    
     ####################################################################################################################
     #                               Functions for declaring time dependent constraints                                 #
     ####################################################################################################################
@@ -2294,8 +2438,8 @@ class ComponentModel(metaclass=ABCMeta):
                     factorNames,
                     varName,
                     loc,
-                    ip,
                     compName,
+                    ip,
                     divisorName,
                     QPfactorNames,
                     QPdivisorNames,

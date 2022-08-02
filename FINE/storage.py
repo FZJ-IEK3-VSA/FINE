@@ -842,6 +842,9 @@ class StorageModel(ComponentModel):
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "chargeOp_bin")
         self.declareOperationBinaryVars(pyM, "dischargeOp_bin")
+        # Capacity development variables [physicalUnit]
+        self.declareCommissioningVars(pyM,esM)
+        self.declareDecommissioningVars(pyM,esM)
 
         # Inventory of storage components [commodityUnit*hour]
         if not pyM.hasTSA:
@@ -1620,7 +1623,13 @@ class StorageModel(ComponentModel):
         self.capacityFix(pyM,esM)
         # Sets, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
-
+        
+        ################################################################################################################
+        #                                    Declare pathway constraints                                               #
+        ################################################################################################################
+        # Set capacity development constraints over investment periods
+        self.designDevelopment(pyM,esM)         
+        
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################

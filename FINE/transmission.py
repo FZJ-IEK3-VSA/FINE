@@ -548,6 +548,9 @@ class TransmissionModel(ComponentModel):
         self.declareOperationVars(pyM, "op")
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
+        # Capacity development variables [physicalUnit]
+        self.declareCommissioningVars(pyM,esM)
+        self.declareDecommissioningVars(pyM,esM)
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -666,6 +669,12 @@ class TransmissionModel(ComponentModel):
         # Enforce the equality of the capacities cap_loc1_loc2 and cap_loc2_loc1
         self.symmetricalCapacity(pyM)
 
+        ################################################################################################################
+        #                                    Declare pathway constraints                                               #
+        ################################################################################################################
+        # Set capacity development constraints over investment periods
+        self.designDevelopment(pyM,esM)      
+        
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################

@@ -884,6 +884,9 @@ class SourceSinkModel(ComponentModel):
         self.declareOperationVars(pyM, "op")
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
+        # Capacity development variables [physicalUnit]
+        self.declareCommissioningVars(pyM,esM)
+        self.declareDecommissioningVars(pyM,esM)
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -961,6 +964,12 @@ class SourceSinkModel(ComponentModel):
         self.yearlyFullLoadHoursMin(pyM, esM)
         # Set yearly full load hours maximum limit
         self.yearlyFullLoadHoursMax(pyM, esM)
+
+        ################################################################################################################
+        #                                    Declare pathway constraints                                               #
+        ################################################################################################################
+        # Set capacity development constraints over investment periods
+        self.designDevelopment(pyM,esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #

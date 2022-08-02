@@ -3,7 +3,7 @@ import FINE as fn
 import numpy as np
 
 
-def test_DSM(dsm_test_esM):
+def test_DSM():
     """
     Given a one-node system with two generators, check whether the load and generation is shifted correctly in both
     directions with and without demand side management.
@@ -16,7 +16,7 @@ def test_DSM(dsm_test_esM):
         timestep_down,
         time_shift,
         cheap_capacity,
-    ) = dsm_test_esM
+    ) = dsm_test_esM()
 
     esM_without.add(
         fn.Sink(
@@ -51,7 +51,7 @@ def test_DSM(dsm_test_esM):
     # add DSM
     tFwd = 3
     tBwd = 3
-    esM_with = dsm_test_esM[0]
+    esM_with = esM_without
     esM_with.removeComponent("load")
     shiftMax = 10
 
@@ -177,3 +177,72 @@ def test_DSM(dsm_test_esM):
     pd.testing.assert_series_equal(
         esM_load_with_DSM.loc[("flexible demand", "location")], load_with_dsm
     )
+
+
+def dsm_test_esM():
+    """
+    Generate a simple energy system model with one node, two fixed generators and one load time series
+    for testing demand side management functionality.
+    """
+    # load without dsm
+    now = pd.Timestamp.now().round("h")
+    number_of_time_steps = 28
+    # t_index = pd.date_range(now, now + pd.DateOffset(hours=number_of_timeSteps - 1), freq='h')
+    t_index = range(number_of_time_steps)
+    load_without_dsm = pd.Series([80.0] * number_of_time_steps, index=t_index)
+
+    timestep_up = 10
+    timestep_down = 20
+    load_without_dsm[timestep_up:timestep_down] += 40.0
+
+    time_shift = 3
+    cheap_capacity = 100.0
+    expensive_capacity = 20.0
+
+    # set up energy model
+    esM = fn.EnergySystemModel(
+        locations={"location"},
+        commodities={"electricity"},
+        numberOfTimeSteps=number_of_time_steps,
+        commodityUnitsDict={"electricity": r"MW$_{el}$"},
+        hoursPerTimeStep=1,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="cheap",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateMax=pd.Series(cheap_capacity, index=t_index),
+            opexPerOperation=25,
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="expensive",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateMax=pd.Series(expensive_capacity, index=t_index),
+            opexPerOperation=50,
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="back-up",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateMax=pd.Series(1000, index=t_index),
+            opexPerOperation=1000,
+        )
+    )
+
+    return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
+
+
+if __name__=="__main__":
+    test_DSM()

@@ -10,6 +10,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
             (
                 "locations",
                 "commodities",
+                "mode",
                 "commodityUnitsDict",
                 "numberOfTimeSteps",
                 "hoursPerTimeStep",
@@ -24,6 +25,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
             (
                 minimal_test_esM.locations,
                 minimal_test_esM.commodities,
+                minimal_test_esM.mode,
                 minimal_test_esM.commodityUnitsDict,
                 minimal_test_esM.numberOfTimeSteps,
                 minimal_test_esM.hoursPerTimeStep,
@@ -79,6 +81,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
             (
                 "locations",
                 "commodities",
+                "mode",
                 "commodityUnitsDict",
                 "numberOfTimeSteps",
                 "hoursPerTimeStep",
@@ -93,6 +96,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
             (
                 single_node_test_esM.locations,
                 single_node_test_esM.commodities,
+                single_node_test_esM.mode,
                 single_node_test_esM.commodityUnitsDict,
                 single_node_test_esM.numberOfTimeSteps,
                 single_node_test_esM.hoursPerTimeStep,
@@ -150,6 +154,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
             (
                 "locations",
                 "commodities",
+                "mode",
                 "commodityUnitsDict",
                 "numberOfTimeSteps",
                 "hoursPerTimeStep",
@@ -164,6 +169,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
             (
                 multi_node_test_esM_init.locations,
                 multi_node_test_esM_init.commodities,
+                multi_node_test_esM_init.mode,
                 multi_node_test_esM_init.commodityUnitsDict,
                 multi_node_test_esM_init.numberOfTimeSteps,
                 multi_node_test_esM_init.hoursPerTimeStep,

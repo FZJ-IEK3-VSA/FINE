@@ -72,7 +72,7 @@ class EnergySystemModel:
         hoursPerTimeStep=1,
         numberOfInvestmentPeriods=1,
         yearsPerInvestmentPeriod=1,
-        mode=None,
+        mode="singleYearOptimization",
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
@@ -249,20 +249,17 @@ class EnergySystemModel:
         self.investmentPeriods = list(range(numberOfInvestmentPeriods))
         self.yearsPerInvestmentPeriod = yearsPerInvestmentPeriod
         
-        if mode not in [None,"stochastic", "perfectForesight"]:
-            raise ValueError("Parameter 'mode' must be None, 'stochastic' or 'perfectForesight'")
+        if mode not in ["singleYearOptimization","stochastic", "perfectForesight"]:
+            raise ValueError("Parameter 'mode' must be 'singleYearOptimization', 'stochastic' or 'perfectForesight'")
         if mode in ["stochastic","perfectForesight"] and numberOfInvestmentPeriods==1:
             raise ValueError() # TODO
-        if mode is None and numberOfInvestmentPeriods>1:
-            raise ValueError()
+        if mode is "singleYearOptimization" and numberOfInvestmentPeriods>1:
+            raise ValueError() # TODO
         if numberOfInvestmentPeriods ==0:
-            raise ValueError()
+            raise ValueError("Definition of 'numberOfInvestmen") # TODO
         
         self.mode=mode
             
-        # TODO implment checks for stochastic
-        # if mode =="stochastic" and numberOfInvestmentPeriods>1:
-        #     raise ValueError("Stochastic optimization can")
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
         # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents
@@ -1027,6 +1024,7 @@ class EnergySystemModel:
 
             def initInvestSet(pyM):
                 return (ip for ip in self.investmentPeriods)
+            
 
             def initInvestPeriodInterPeriodSet(pyM):
                 return (
@@ -1071,6 +1069,7 @@ class EnergySystemModel:
                 def initInvestSet(pyM):
                     return (ip for ip in self.investmentPeriods)
 
+                
                 def initInvestPeriodInterPeriodSet(pyM):
                     return (
                         (ip, t_inter)
@@ -1132,7 +1131,11 @@ class EnergySystemModel:
         pyM.investPeriodInterPeriodSet = pyomo.Set(
             dimen=2, initialize=initInvestPeriodInterPeriodSet
         )
-
+        
+            
+     
+        
+    
     def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
         """
         Declare balance limit constraint.
@@ -1842,8 +1845,11 @@ class EnergySystemModel:
             for key, mdl in self.componentModelingDict.items():
                 for ip in self.investmentPeriods:
                     __t = time.time()
-                    # test for DSM
-                    # print(mdl)
+                    # if capacityVariablesOptimum is not a dict, convert to dict
+                    # (if single year system is optimized several times)
+                    if not isinstance(mdl.capacityVariablesOptimum,dict):
+                        mdl.capacityVariablesOptimum={}
+
                     mdl.setOptimalValues(self, self.pyM, ip)
                     outputString = (
                         ("for {:" + w + "}").format(key + " ...")
