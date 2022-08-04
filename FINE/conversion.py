@@ -155,19 +155,22 @@ class Conversion(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
         )
 
-        # check if parameter has None values, if it is a dict
-        for param in [operationRateMax, operationRateFix, partLoadMin]:
-            utils.checkParamInput(param)
-
         # new code for commodity conversions
         self.commodityConversionFactors = commodityConversionFactors
         self.fullCommodityConversionFactors = {}
         self.aggregatedCommodityConversionFactors = {}
         self.processedCommodityConversionFactors = {}
-
+        
+        # check input data
+        check_data={"operationRateMax":operationRateMax,"operationRateFix":operationRateFix,"partLoadMin":partLoadMin}
+        for name, data in check_data.items():
+            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriods)
+        utils.checkInvestmentPeriodsCommodityConversion(commodityConversionFactors, esM.investmentPeriods)
+        
+        
         for ip in esM.investmentPeriods:
-            # 1. dict aus Jahren -> verschiedene commoditiyconversion für jahr
-            if list(commodityConversionFactors.keys())[0] in esM.investmentPeriods:
+            # 1. dict aus Jahren -> verschiedene commoditiyconversion für jahr  
+            if all(item in esM.investmentPeriods for item in commodityConversionFactors.keys()):
                 _commodityConversionFactors = commodityConversionFactors[ip]
             else:
                 _commodityConversionFactors = commodityConversionFactors
@@ -181,7 +184,6 @@ class Conversion(Component):
             self.processedCommodityConversionFactors[ip] = {}
 
             for commod in _commodityConversionFactors.keys():
-
                 if not isinstance(_commodityConversionFactors[commod], (int, float)):
                     self.fullCommodityConversionFactors[ip][
                         commod
@@ -195,6 +197,8 @@ class Conversion(Component):
                     self.processedCommodityConversionFactors[ip][
                         commod
                     ] = _commodityConversionFactors[commod]
+                else:
+                    raise ValueError
 
         self.physicalUnit = physicalUnit
         self.modelingClass = ConversionModel

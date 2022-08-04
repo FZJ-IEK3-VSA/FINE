@@ -278,9 +278,6 @@ class Storage(Component):
         self.socOffsetDown = socOffsetDown
         self.modelingClass = StorageModel
 
-        for param in [chargeOpRateMax, chargeOpRateFix, partLoadMin]:
-            utils.checkParamInput(param)
-
         self.opexPerChargeOperation = opexPerChargeOperation
         self.opexPerDischargeOperation = opexPerDischargeOperation
         self.processedOpexPerChargeOperation = {}
@@ -293,6 +290,17 @@ class Storage(Component):
         self.chargeOpRateFix = chargeOpRateFix
         self.fullChargeOpRateFix = {}
         self.aggregatedChargeOpRateFix = {}
+
+        # check input data
+        check_data={"chargeOpRateFix":chargeOpRateFix,
+                    "chargeOpRateMax":chargeOpRateMax,
+                    "opexPerDischargeOperation":opexPerDischargeOperation,
+                    "opexPerChargeOperation":opexPerChargeOperation,
+                    "dischargeOpRateFix":dischargeOpRateFix,
+                    "dischargeOpRateMax":dischargeOpRateMax,
+                    "partLoadMin":partLoadMin,}
+        for name, data in check_data.items():
+            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriods)
 
         for ip in esM.investmentPeriods:
 

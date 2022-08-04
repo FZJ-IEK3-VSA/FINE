@@ -240,16 +240,6 @@ class Source(Component):
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
-        # check if parameter has None values, if it is a dict
-        for param in [
-            operationRateMax,
-            operationRateFix,
-            partLoadMin,
-            commodityCostTimeSeries,
-            commodityRevenueTimeSeries,
-        ]:
-            utils.checkParamInput(param)
-
         self.opexPerOperation = opexPerOperation
         self.commodityCost = commodityCost
         self.commodityRevenue = commodityRevenue
@@ -266,10 +256,14 @@ class Source(Component):
         self.fullCommodityRevenueTimeSeries = {}
         self.aggregatedCommodityRevenueTimeSeries = {}
         self.processedCommodityRevenueTimeSeries = {}
+        
+        # check input data
+        check_data = {"opexPerOperation":opexPerOperation, "commodityCost":commodityCost, "commodityRevenue":commodityRevenue, "commodityCostTimeSeries":commodityCostTimeSeries, "commodityRevenueTimeSeries": commodityRevenueTimeSeries, "operationRateMax":operationRateMax, "operationRateFix":operationRateFix, "partLoadMin":partLoadMin}
+        for name, data in check_data.items():
+            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriods)
 
         # iterate over all ips
         for ip in esM.investmentPeriods:
-
             # opexPerOperation
             if (
                 isinstance(opexPerOperation, int)

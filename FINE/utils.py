@@ -686,6 +686,28 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 + " if partLoadMin is not None."
             )
 
+def checkInvestmentPeriodParameters(name,param,investmentPeriods):
+    if isinstance(param,dict):
+        if len(param.keys()) != len(investmentPeriods):
+            raise ValueError(f"Parameter '{name}' is initialized as dict, but does not contain values for each investment-period")
+        if sorted(param.keys()) != sorted(investmentPeriods):
+            raise ValueError(f"Parameter '{name}' has different ip-names ('{param.keys()}') than the investment periods of the esM ('{investmentPeriods}')","TODO: implement correct year naming")
+
+        for key, value in param.items():
+            if value is None:
+                raise ValueError(
+                    f"Currently a dict containing None values cannot be passed for '{name}'"
+                )
+    
+
+
+def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPeriods):
+    # for commodity conversions, if ip depending -> dict in dict
+    if any(isinstance(commodityConversion[x],dict) for x in commodityConversion.keys()):
+        if len(commodityConversion.keys()) != len(investmentPeriods):
+            raise ValueError(f"CommodtityConversion is initialized as dict but does not contain values for each investment-period")
+        if sorted(commodityConversion.keys()) != sorted(investmentPeriods):
+            raise ValueError(f"CommodtityConversion has different ip-names ('{commodityConversion.keys()}') than the investment periods of the esM ('{investmentPeriods}')","TODO: implement correct year naming")                
 
 def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     downTimeMin = compFancy.downTimeMin
@@ -1871,10 +1893,3 @@ def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
         )
 
 
-def checkParamInput(param):
-    if isinstance(param, dict):
-        for key, value in param.items():
-            if value is None:
-                raise ValueError(
-                    f"Currently a dict containing None values cannot be passed for '{param}'"
-                )

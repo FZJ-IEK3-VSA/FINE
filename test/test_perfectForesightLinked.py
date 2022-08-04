@@ -16,7 +16,7 @@ import pandas as pd
 def test_perfectForesight_linked():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
-    numberOfInvestmentPeriods = 2 
+    numberOfInvestmentPeriods = 6
     yearsPerInvestmentPeriod = 1
 
     # Create an energy system model instance
@@ -77,6 +77,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
+    costs[2]=costs[1]
+    costs[3]=costs[1]
+    costs[4]=costs[1]
+    costs[5]=costs[1]
 
     revenues = {}
     revenues[0] = pd.DataFrame(
@@ -105,6 +109,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
+    revenues[2]=revenues[1]
+    revenues[3]=revenues[1]
+    revenues[4]=revenues[1]
+    revenues[5]=revenues[1]
 
     maxpurchase = {}
     maxpurchase[0] = pd.DataFrame(
@@ -133,6 +141,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
+    maxpurchase[2]=maxpurchase[1]
+    maxpurchase[3]=maxpurchase[1]
+    maxpurchase[4]=maxpurchase[1]
+    maxpurchase[5]=maxpurchase[1]
 
     esM.add(
         fn.Source(
@@ -180,10 +192,21 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
+    PVoperationRateMax[2]=PVoperationRateMax[1]
+    PVoperationRateMax[3]=PVoperationRateMax[1]
+    PVoperationRateMax[4]=PVoperationRateMax[1]
+    PVoperationRateMax[5]=PVoperationRateMax[1]
+
+    
+    
     # different opexPerOperation per investmentperiod
     PVopexPerOperation = {}
     PVopexPerOperation[0] = 0.01
     PVopexPerOperation[1] = 0.02
+    PVopexPerOperation[2]=PVopexPerOperation[1]
+    PVopexPerOperation[3]=PVopexPerOperation[1]
+    PVopexPerOperation[4]=PVopexPerOperation[1]
+    PVopexPerOperation[5]=PVopexPerOperation[1]
 
     esM.add(
         fn.Source(
@@ -238,6 +261,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
+    revenuesDemand[2]=revenuesDemand[1]
+    revenuesDemand[3]=revenuesDemand[1]
+    revenuesDemand[4]=revenuesDemand[1]
+    revenuesDemand[5]=revenuesDemand[1]
 
     demand = {}
     demand[0] = pd.DataFrame(
@@ -266,6 +293,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T  # second investmentperiod
+    demand[2]=demand[1]
+    demand[3]=demand[1]
+    demand[4]=demand[1]
+    demand[5]=demand[1]
 
     esM.add(
         fn.Sink(
@@ -279,7 +310,7 @@ def test_perfectForesight_linked():
     )
 
     # Optimize energy system model
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="gurobi")
     print("Objective value:")
     print(esM.pyM.Obj()) 
     
@@ -288,8 +319,8 @@ def test_perfectForesight_linked():
     np.testing.assert_almost_equal(PV_cap_year0 ,1.71232876712329 )
     PV_cap_year1=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs("PV").values[0]
     np.testing.assert_almost_equal(PV_cap_year1 ,1.71232876712329 )
-    PV_cap_year6=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[6].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year6 ,0)
+    PV_cap_year5=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[5].xs("PV").values[0]
+    np.testing.assert_almost_equal(PV_cap_year5 , 0)
     
     raise ValueError("Currently we dont know the correct results for linked ip's")
     np.testing.assert_almost_equal(esM.pyM.Obj(),11545)

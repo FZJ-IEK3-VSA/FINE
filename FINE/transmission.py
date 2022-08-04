@@ -262,8 +262,10 @@ class Transmission(Component):
         self.partLoadMin = partLoadMin
         self.processedPartLoadMin = {}
 
-        for param in [operationRateMax, operationRateFix, partLoadMin]:
-            utils.checkParamInput(param)
+        # check input data
+        check_data={"opexPerOperation":opexPerOperation,"operationRateMax":operationRateMax,"operationRateFix":operationRateFix,"partLoadMin":partLoadMin}
+        for name,data in check_data.items():
+            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriods)
 
         # iterate over all ips
         for ip in esM.investmentPeriods:

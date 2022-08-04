@@ -395,6 +395,8 @@ class Component(metaclass=ABCMeta):
         self.bigM = bigM
         self.partLoadMin = partLoadMin
 
+        # TODO make some more ip depending -> invest per capacity
+        
         # Set economic data
         elig = locationalEligibility
         self.investPerCapacity = utils.checkAndSetCostParameter(
@@ -1651,10 +1653,10 @@ class ComponentModel(metaclass=ABCMeta):
             decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                decomm_date=ip+self.componentsDict[compName].ipTechnicalLifetime
+                comm_date=ip-self.componentsDict[compName].ipTechnicalLifetime
                 # only set constraint if decomm_date is within investment periods
-                if decomm_date in pyM.investSet._values.values():
-                    return(decommisVar[loc, compName, decomm_date]==commisVar[loc, compName, ip])
+                if comm_date in pyM.investSet._values.values():
+                    return(decommisVar[loc, compName, ip]==commisVar[loc, compName, ip-self.componentsDict[compName].ipTechnicalLifetime])
                 else:
                     return(decommisVar[loc, compName, ip]==0)
 
