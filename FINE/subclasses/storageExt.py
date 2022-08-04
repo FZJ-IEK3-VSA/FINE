@@ -806,6 +806,8 @@ class StorageExtModel(StorageModel):
         ################################################################################################################
         # Set capacity development constraints over investment periods
         self.designDevelopment(pyM,esM)
+        self.decommissioningConstraint(pyM,esM)
+        self.initialStockConstraint(pyM,esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #

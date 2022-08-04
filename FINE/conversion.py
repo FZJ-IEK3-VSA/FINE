@@ -583,6 +583,9 @@ class ConversionModel(ComponentModel):
         self.declareContinuousDesignVarSet(pyM,esM)
         self.declareDiscreteDesignVarSet(pyM,esM)
         self.declareDesignDecisionVarSet(pyM,esM)
+        
+        # Declare design pathway sets
+        self.declarePathwaySets(pyM,esM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
@@ -698,6 +701,8 @@ class ConversionModel(ComponentModel):
         ################################################################################################################
         # Set capacity development constraints over investment periods
         self.designDevelopment(pyM,esM)
+        self.decommissioningConstraint(pyM,esM)
+        self.initialStockConstraint(pyM,esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
@@ -720,7 +725,7 @@ class ConversionModel(ComponentModel):
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )
-
+    
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################

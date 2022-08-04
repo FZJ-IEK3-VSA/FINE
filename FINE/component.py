@@ -691,7 +691,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=n, initialize=declareDesignVarSet),
         )
 
-    def declarePathwaySets(self,pyM):
+    def declarePathwaySets(self,pyM,esM):
         """
         Declare set for capacity development in the pyomo object for a modeling class.
 
@@ -701,17 +701,16 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        if self.mode == "perfectForesight":
+        if esM.mode == "perfectForesight":
             compDict, abbrvName = self.componentsDict, self.abbrvName
             def initCommissioningConstraintSet(pyM):
-                if self.mode == "perfectForesight":
-                    return (
-                        (loc, compName, ip)
-                        for compName, comp in compDict.items()
-                        for loc in comp.locationalEligibility.index
-                        for ip in self.investmentPeriods[:,-1]
-                        if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
-                    )
+                return (
+                    (loc, compName, ip)
+                    for compName, comp in compDict.items()
+                    for loc in comp.locationalEligibility.index
+                    for ip in esM.investmentPeriods[:-1]
+                    if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                )
             setattr(
                 pyM,
                 "designDevelopmentVarSet_" + abbrvName,
@@ -1600,7 +1599,37 @@ class ComponentModel(metaclass=ABCMeta):
                 "ConstrCapacityDevelopment_" + abbrvName,
                 pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight),
             )
+            
+    def initialStockConstraint(self,pyM,esM):
+        """
+        Set stock in first year
 
+        .. math::
+
+            TODO
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+        """
+        if esM.mode=="perfectForesight":
+            abbrvName = self.abbrvName
+            capVar = getattr(pyM, "cap_" + abbrvName)
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            decommisVar = getattr(pyM, "decommis_" + abbrvName)
+            commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
+
+            def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
+                return capVar[loc, compName, 0]==0 + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] #if ip==0 else pyomo.Constraint.Skip) # TODO stock instead of stock
+
+            setattr(
+                pyM,
+                "InitialStock_" + abbrvName,
+                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight), # TODO use other set with just comp and location
+            )
+            
     def decommissioningConstraint(self,pyM,esM):
         """
         Declare decommissioning xyz years after commissioning (tech lifetime).
@@ -1619,16 +1648,20 @@ class ComponentModel(metaclass=ABCMeta):
             abbrvName = self.abbrvName
             commisVar = getattr(pyM, "commis_" + abbrvName)
             decommisVar = getattr(pyM, "decommis_" + abbrvName)
-            commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
+            decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                return(decommisVar[loc, compName, ip+self.ipTechnicalLifetime]==commisVar[loc, compName, ip])
-
+                decomm_date=ip+self.componentsDict[compName].ipTechnicalLifetime
+                # only set constraint if decomm_date is within investment periods
+                if decomm_date in pyM.investSet._values.values():
+                    return(decommisVar[loc, compName, decomm_date]==commisVar[loc, compName, ip])
+                else:
+                    return(decommisVar[loc, compName, ip]==0)
 
             setattr(
                 pyM,
-                "ConstrCapacityDevelopment_" + abbrvName,
-                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight),
+                "DecommConstrCapacityDevelopment_" + abbrvName,
+                pyomo.Constraint(decommisConstrSet, rule=capacityDevelopmentPerfectForesight),
             )
     
     ####################################################################################################################
