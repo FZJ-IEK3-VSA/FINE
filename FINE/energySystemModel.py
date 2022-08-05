@@ -1,5 +1,6 @@
 import time
 import warnings
+import numpy as np
 
 import pandas as pd
 import pyomo.environ as pyomo
@@ -70,8 +71,9 @@ class EnergySystemModel:
         commodityUnitsDict,
         numberOfTimeSteps=8760,
         hoursPerTimeStep=1,
-        numberOfInvestmentPeriods=1,
-        yearsPerInvestmentPeriod=1,
+        investmentPeriods=None,
+        numberOfInvestmentPeriods=None,
+        yearsPerInvestmentPeriod=None,
         mode="singleYearOptimization",
         costUnit="1e9 Euro",
         lengthUnit="km",
@@ -116,13 +118,17 @@ class EnergySystemModel:
 
         :param numberOfInvestmentPeriods: number of investment periods of transformation
             path analysis
-            |br| * the default value is 1
+            |br| * the default value is None
         : type numberOfInvestmentPeriods: strictly positive integer
 
         :param yearsPerInvestmentPeriod: years per investment period of transformation
             path analysis
-            |br| * the default value is 1
+            |br| * the default value is None
         : type yearsPerInvestmentPeriod: strictly positive integer
+        
+        :param investmentPeriods: list of investment periods of transformation
+            |br| * the default value is None
+        : type investmentPeriods: list of strictly positive integer
 
         :param mode: linking method for several investment periods
             |br| * the default value is None
@@ -201,18 +207,18 @@ class EnergySystemModel:
         """
 
         # Check correctness of inputs
-        utils.checkEnergySystemModelInput(
-            locations,
-            commodities,
-            commodityUnitsDict,
-            numberOfTimeSteps,
-            numberOfInvestmentPeriods,
-            yearsPerInvestmentPeriod,
-            hoursPerTimeStep,
-            costUnit,
-            lengthUnit,
-            balanceLimit,
-        )
+        # utils.checkEnergySystemModelInput(
+        #     locations,
+        #     commodities,
+        #     commodityUnitsDict,
+        #     numberOfTimeSteps,
+        #     numberOfInvestmentPeriods,
+        #     yearsPerInvestmentPeriod,
+        #     hoursPerTimeStep,
+        #     costUnit,
+        #     lengthUnit,
+        #     balanceLimit,
+        # )
 
         ################################################################################################################
         #                                        Spatial resolution parameters                                         #
@@ -245,16 +251,47 @@ class EnergySystemModel:
         )
         self.numberOfTimeSteps = numberOfTimeSteps
         self.numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
-        self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
-        self.investmentPeriods = list(range(numberOfInvestmentPeriods))
-        self.yearsPerInvestmentPeriod = yearsPerInvestmentPeriod
         
+        ######################################################################
+        # Perfect Foresight related
+
+        
+        if investmentPeriods is not None and numberOfInvestmentPeriods is not None: 
+            raise ValueError("You cannot define a list of investmentPeriods and define numberOfInvestmentPeriods with yearsPerInvestmentPeriods. Please choose one approach.")
+        if investmentPeriods is not None and yearsPerInvestmentPeriod is not None: 
+            raise ValueError("You cannot define a list of investmentPeriods and define numberOfInvestmentPeriods with yearsPerInvestmentPeriods. Please choose one approach.")
+        if investmentPeriods is None and numberOfInvestmentPeriods is None and yearsPerInvestmentPeriod is None: 
+            numberOfInvestmentPeriods=1
+            yearsPerInvestmentPeriod=1
+        
+        # check for list investmentPeriods        
+        # sorted gleich ursprünlich -> keine falsch sortiereten jahre
+        # diff auf liste -> alle invervalle gleich
+        if investmentPeriods is not None: 
+            if any(not isinstance(x,int)for x in investmentPeriods):
+                raise ValueError("Passed investmentperiods must be int")
+            if sorted(investmentPeriods) != investmentPeriods:
+                raise ValueError("Investment Periods must be in ascending order")
+            if len(np.unique(np.diff(investmentPeriods))) != 1:
+                raise ValueError("Interval must be constant between Investment Periods")
+        
+        if investmentPeriods is None:
+            self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
+            self.investmentPeriods = list(range(numberOfInvestmentPeriods))
+            self.investmentPeriodsNames=dict(zip(self.investmentPeriods, self.investmentPeriods)) # TODO
+            self.yearsPerInvestmentPeriod = yearsPerInvestmentPeriod
+        else:
+            self.numberOfInvestmentPeriods = len(investmentPeriods)
+            self.investmentPeriods = list(range(len(investmentPeriods)))
+            self.investmentPeriodsNames=dict(zip(self.investmentPeriods, investmentPeriods))
+            self.yearsPerInvestmentPeriod = np.diff(investmentPeriods)[0]
+                   
         if mode not in ["singleYearOptimization","stochastic", "perfectForesight"]:
             raise ValueError("Parameter 'mode' must be 'singleYearOptimization', 'stochastic' or 'perfectForesight'")
         if mode in ["stochastic","perfectForesight"] and numberOfInvestmentPeriods==1:
-            raise ValueError() # TODO
+            raise ValueError("A stochastic optimization needs more than one numberOfInvestementPeriod") # TODO irgendwie unlogisch :D 
         if mode is "singleYearOptimization" and numberOfInvestmentPeriods>1:
-            raise ValueError() # TODO
+            raise ValueError("A single year optimization can only have numberOfInvestmentPeriods=None or numberOfInvestmentPeriods=1") # TODO
         if numberOfInvestmentPeriods ==0:
             raise ValueError("Definition of 'numberOfInvestmen") # TODO
         
@@ -1454,9 +1491,11 @@ class EnergySystemModel:
         utils.output("Declaring objective function...", self.verbose, 0)
 
         def objective(pyM):
+            
             TAC = sum(
-                mdl.getObjectiveFunctionContribution(self, pyM)
+                mdl.getObjectiveFunctionContribution(self, pyM) 
                 for mdl in self.componentModelingDict.values()
+                # for ip in XYZ
             )
             return TAC
 

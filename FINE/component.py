@@ -1624,7 +1624,7 @@ class ComponentModel(metaclass=ABCMeta):
             commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                return capVar[loc, compName, 0]==0 + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] #if ip==0 else pyomo.Constraint.Skip) # TODO stock instead of stock
+                return capVar[loc, compName, esM.investmentPeriods[0]]==0 + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] #if ip==0 else pyomo.Constraint.Skip) # TODO stock instead of stock
 
             setattr(
                 pyM,
@@ -2198,7 +2198,7 @@ class ComponentModel(metaclass=ABCMeta):
             QPdivisorNames=["QPbound"],
         )
         opexDec = self.getEconomicsTI(pyM, esM, ["opexIfBuilt"], "designBin")
-
+        
         return capexCap + capexDec + opexCap + opexDec
 
     def getSharedPotentialContribution(self, pyM, key, loc):
@@ -2267,24 +2267,45 @@ class ComponentModel(metaclass=ABCMeta):
             factor *= factor_
         # create a timeSet for the current ip
         timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
-        if not getOptValue:
-            return (
-                factor
-                * sum(
-                    var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                    for p, t in timeSet_pt
+        if esM.mode =="stochastic" or esM.mode == "singleYearOptimization":
+            if not getOptValue: # TODO PERFECT FORESIGHT NEW CODE
+                return (
+                    factor
+                    * sum(
+                        var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                        for p, t in timeSet_pt
+                    )
+                    / esM.numberOfYears 
                 )
-                / esM.numberOfYears
-            )
-        else:
-            return (
-                factor
-                * sum(
-                    var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
-                    for p, t in timeSet_pt
+            else:
+                return (
+                    factor
+                    * sum(
+                        var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
+                        for p, t in timeSet_pt
+                    )
+                    / esM.numberOfYears 
                 )
-                / esM.numberOfYears
-            )
+        elif esM.mode =="perfectForesight":
+            if not getOptValue: # TODO PERFECT FORESIGHT NEW CODE
+                return (
+                    factor
+                    * sum(
+                        var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                        for p, t in timeSet_pt
+                    )
+                )
+            else:
+                return (
+                    factor
+                    * sum(
+                        var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
+                        for p, t in timeSet_pt
+                    )
+                )            
+        
+        else: 
+            raise NotImplementedError()
 
     def getLocEconomicsTI(
         self,
@@ -2597,26 +2618,48 @@ class ComponentModel(metaclass=ABCMeta):
         timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
         if getattr(self.componentsDict[compName], factorName) is not None:
             factor = getattr(self.componentsDict[compName], factorName)[ip][loc]
-            if not getOptValue:
-                return (
-                    sum(
-                        factor[p, t]
-                        * var[loc, compName, ip, p, t]
-                        * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
+            if esM.mode =="stochastic" or esM.mode == "singleYearOptimization":
+                if not getOptValue:
+                    return (
+                        sum(
+                            factor[p, t]
+                            * var[loc, compName, ip, p, t]
+                            * esM.periodOccurrences[ip][p]
+                            for p, t in timeSet_pt
+                        )
+                        / esM.numberOfYears
                     )
-                    / esM.numberOfYears
-                )
+                else:
+                    return (
+                        sum(
+                            factor[p, t]
+                            * var[loc, compName, ip, p, t].value
+                            * esM.periodOccurrences[ip][p]
+                            for p, t in timeSet_pt
+                        )
+                        / esM.numberOfYears
+                    )
+            elif esM.mode =="perfectForesight":
+                if not getOptValue:
+                    return (
+                        sum(
+                            factor[p, t]
+                            * var[loc, compName, ip, p, t]
+                            * esM.periodOccurrences[ip][p]
+                            for p, t in timeSet_pt
+                        )
+                    )
+                else:
+                    return (
+                        sum(
+                            factor[p, t]
+                            * var[loc, compName, ip, p, t].value
+                            * esM.periodOccurrences[ip][p]
+                            for p, t in timeSet_pt
+                        )
+                    )                
             else:
-                return (
-                    sum(
-                        factor[p, t]
-                        * var[loc, compName, ip, p, t].value
-                        * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
-                    )
-                    / esM.numberOfYears
-                )
+                raise NotImplementedError()
         else:
             return 0
 

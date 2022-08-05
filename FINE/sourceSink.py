@@ -223,7 +223,7 @@ class Source(Component):
             QPcostScale=QPcostScale,
             interestRate=interestRate,
             economicLifetime=economicLifetime,
-            technicalLifetime=None,
+            technicalLifetime=technicalLifetime, # TODO changed
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
         )

@@ -17,7 +17,7 @@ def test_perfectForesight_linked():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
     numberOfInvestmentPeriods = 6
-    yearsPerInvestmentPeriod = 1
+    yearsPerInvestmentPeriod = 2 # vorher 1
 
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
@@ -27,6 +27,7 @@ def test_perfectForesight_linked():
         commodityUnitsDict={"electricity": r"kW$_{el}$"},
         hoursPerTimeStep=hoursPerTimeStep,
         costUnit="1 Euro",
+        #investmentPeriods=[2020,2021,2022,2023,2024,2025],
         numberOfInvestmentPeriods=numberOfInvestmentPeriods,
         yearsPerInvestmentPeriod=yearsPerInvestmentPeriod,
         mode="perfectForesight",
@@ -218,10 +219,10 @@ def test_perfectForesight_linked():
             capacityMax=4e6,
             investPerCapacity=2 * 2190,
             opexPerCapacity=0,
-            interestRate=0,
+            interestRate=0.02,  # formerly 0
             opexPerOperation=PVopexPerOperation,  # 0.01,
             economicLifetime=5,
-            technicalLifetime=5
+            technicalLifetime=6
         )
     )
 
@@ -320,7 +321,7 @@ def test_perfectForesight_linked():
     PV_cap_year1=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs("PV").values[0]
     np.testing.assert_almost_equal(PV_cap_year1 ,1.71232876712329 )
     PV_cap_year5=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[5].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year5 , 0)
+    np.testing.assert_almost_equal(PV_cap_year5 , 1.1415525114155252)
     
     raise ValueError("Currently we dont know the correct results for linked ip's")
     np.testing.assert_almost_equal(esM.pyM.Obj(),11545)
@@ -333,6 +334,16 @@ def test_perfectForesight_linked():
     # year 1
     esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs("PV").values[0]
     np.testing.assert_almost_equal(esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs("PV").values[0]  ,0 )
+
+
+# _df_tac=pd.DataFrame()
+# for i in range(0,6):
+#     _df_tac.loc[i,"TAC"]=esM.getOptimizationSummary("SourceSinkModel")[i].loc["PV","TAC"].iloc[0,0]
+#     _df_tac.loc[i,"Capacity"]=esM.getOptimizationSummary("SourceSinkModel")[i].loc["PV","capacity"].iloc[0,0]
+#     _df_tac.loc[i,"capexCap"]=esM.getOptimizationSummary("SourceSinkModel")[i].loc["PV","capexCap"].iloc[0,0]
+#     _df_tac.loc[i,"invest"]=esM.getOptimizationSummary("SourceSinkModel")[i].loc["PV","invest"].iloc[0,0]
+#     _df_tac.loc[i,"opexOp"]=esM.getOptimizationSummary("SourceSinkModel")[i].loc["PV","opexOp"].iloc[0,0]
+#     #print(esM.getOptimizationSummary("SourceSinkModel")[i].loc["PV","TAC"].iloc[0,0])
 
 
 if __name__ == "__main__":
