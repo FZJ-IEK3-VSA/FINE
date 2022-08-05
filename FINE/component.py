@@ -2483,11 +2483,45 @@ class ComponentModel(metaclass=ABCMeta):
                     QPdivisorNames,
                     getOptValue,
                 )
+                * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
+                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))\
+                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc] !=0 else
+                self.getLocEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames,
+                    varName,
+                    loc,
+                    compName,
+                    ip,
+                    divisorName,
+                    QPfactorNames,
+                    QPdivisorNames,
+                    getOptValue,
+                )
                 for loc, compName, ip in var
             )
         else:
             ip=None
             return sum(
+                self.getLocEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames,
+                    varName,
+                    loc,
+                    compName,
+                    ip,
+                    divisorName,
+                    QPfactorNames,
+                    QPdivisorNames,
+                    getOptValue,
+                )
+                * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
+                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))\
+                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc] !=0 else
                 self.getLocEconomicsTI(
                     pyM,
                     esM,
@@ -2546,7 +2580,14 @@ class ComponentModel(metaclass=ABCMeta):
             return sum(
                 self.getLocEconomicsTD(
                     pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
-                )
+                ) 
+                * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
+                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))\
+                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc] !=0 else
+                self.getLocEconomicsTD(
+                    pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
+                ) 
                 for loc, compNames in indices
                 for compName in compNames
                 for ip in esM.investmentPeriods
@@ -2554,6 +2595,20 @@ class ComponentModel(metaclass=ABCMeta):
         else:
             return sum(
                 self.getLocEconomicsTD(
+                    pyM,
+                    esM,
+                    factorNames,
+                    varName,
+                    loc + "_" + loc_,
+                    compName,
+                    ip,
+                    getOptValue,
+                )
+                 * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
+                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))\
+                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc] !=0 else
+                 self.getLocEconomicsTD(
                     pyM,
                     esM,
                     factorNames,
@@ -2704,12 +2759,33 @@ class ComponentModel(metaclass=ABCMeta):
                 self.getLocEconomicsTimeSeries(
                     pyM, esM, factorName, varName, loc, compName, ip, getOptValue
                 )
+                * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
+                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))\
+                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc] !=0 else
+                self.getLocEconomicsTimeSeries(
+                    pyM, esM, factorName, varName, loc, compName, ip, getOptValue
+                )
                 for loc, compNames in indices
                 for compName in compNames
                 for ip in esM.investmentPeriods
             )
         else:
             return sum(
+                self.getLocEconomicsTimeSeries(
+                    pyM,
+                    esM,
+                    factorName,
+                    varName,
+                    loc + "_" + loc_,
+                    compName,
+                    ip,
+                    getOptValue,
+                )
+                * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
+                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))\
+                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc] !=0 else
                 self.getLocEconomicsTimeSeries(
                     pyM,
                     esM,

@@ -1491,13 +1491,12 @@ class EnergySystemModel:
         utils.output("Declaring objective function...", self.verbose, 0)
 
         def objective(pyM):
+            NPV = sum(
+                    mdl.getObjectiveFunctionContribution(self, pyM) 
+                    for mdl in self.componentModelingDict.values()
+                )
             
-            TAC = sum(
-                mdl.getObjectiveFunctionContribution(self, pyM) 
-                for mdl in self.componentModelingDict.values()
-                # for ip in XYZ
-            )
-            return TAC
+            return NPV
 
         pyM.Obj = pyomo.Objective(rule=objective)
 
