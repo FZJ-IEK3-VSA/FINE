@@ -114,7 +114,7 @@ def checkEnergySystemModelInput(
         if not (numberOfInvestmentPeriods is None and yearsPerInvestmentPeriod is None):
             if mode in ["stochastic","perfectForesight"] and numberOfInvestmentPeriods==1:
                 raise ValueError("A stochastic optimization needs more than one numberOfInvestementPeriod") 
-            if mode is "singleYearOptimization" and (numberOfInvestmentPeriods!=1 or numberOfInvestmentPeriods!=None):
+            if mode is "singleYearOptimization" and (numberOfInvestmentPeriods!=1 and numberOfInvestmentPeriods!=None):
                 raise ValueError("A single year optimization can only have numberOfInvestmentPeriods=None or numberOfInvestmentPeriods=1") 
     else:
         if mode in ["stochastic","perfectForesight"] and len(investmentPeriodList)==1:

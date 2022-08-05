@@ -270,6 +270,7 @@ class EnergySystemModel:
             self.investmentPeriods = list(range(len(investmentPeriodList)))
             self.investmentPeriodsNames=dict(zip(self.investmentPeriods, investmentPeriodList))
             self.yearsPerInvestmentPeriod = np.diff(investmentPeriodList)[0]
+        self.investmentPeriodList=investmentPeriodList
                    
 
         self.mode=mode
