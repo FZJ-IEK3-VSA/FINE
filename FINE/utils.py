@@ -58,7 +58,6 @@ def isEnergySystemModelInstance(esM):
     if not isinstance(esM, fn.EnergySystemModel):
         raise TypeError("The input is not an EnergySystemModel instance.")
 
-
 def checkEnergySystemModelInput(
     locations,
     commodities,
@@ -67,6 +66,8 @@ def checkEnergySystemModelInput(
     hoursPerTimeStep,
     numberOfInvestmentPeriods,
     yearsPerInvestmentPeriod,
+    investmentPeriodList,
+    mode,
     costUnit,
     lengthUnit,
     balanceLimit,
@@ -86,14 +87,42 @@ def checkEnergySystemModelInput(
         )
     isSetOfStrings(set(commodityUnitsDict.values()))
 
-    # The numberOfTimeSteps and the hoursPerTimeStep have to be strictly positive numbers
     isStrictlyPositiveInt(numberOfTimeSteps), isStrictlyPositiveNumber(hoursPerTimeStep)
-
-    # The investmentPerdios and yearsPerInvestmentPeriod have to be strictly positive integers
-    isStrictlyPositiveInt(numberOfInvestmentPeriods), isStrictlyPositiveNumber(
-        yearsPerInvestmentPeriod
-    )
-
+    
+    # check transformation path variables
+    if investmentPeriodList is not None and numberOfInvestmentPeriods is not None: 
+        raise ValueError("You cannot define a list of investmentPeriods and define numberOfInvestmentPeriods with yearsPerInvestmentPeriods. Please choose one approach.")
+    if investmentPeriodList is not None and yearsPerInvestmentPeriod is not None: 
+        raise ValueError("You cannot define a list of investmentPeriods and define numberOfInvestmentPeriods with yearsPerInvestmentPeriods. Please choose one approach.")
+    if investmentPeriodList is None:
+        if not (numberOfInvestmentPeriods is None and yearsPerInvestmentPeriod is None):
+            isStrictlyPositiveInt(numberOfInvestmentPeriods), isStrictlyPositiveNumber(
+                yearsPerInvestmentPeriod
+            )
+    else:
+        if any(not isinstance(x,int)for x in investmentPeriodList):
+            raise ValueError("Passed investmentperiods must be int")
+        if sorted(investmentPeriodList) != investmentPeriodList:
+            raise ValueError("Investment Periods must be in ascending order")
+        if len(np.unique(np.diff(investmentPeriodList))) != 1:
+            raise ValueError("Interval must be constant between Investment Periods")
+    
+    # check mode variable
+    if mode not in ["singleYearOptimization","stochastic", "perfectForesight"]:
+        raise ValueError("Parameter 'mode' must be 'singleYearOptimization', 'stochastic' or 'perfectForesight'")
+    if investmentPeriodList is None:
+        if not (numberOfInvestmentPeriods is None and yearsPerInvestmentPeriod is None):
+            if mode in ["stochastic","perfectForesight"] and numberOfInvestmentPeriods==1:
+                raise ValueError("A stochastic optimization needs more than one numberOfInvestementPeriod") 
+            if mode is "singleYearOptimization" and (numberOfInvestmentPeriods!=1 or numberOfInvestmentPeriods!=None):
+                raise ValueError("A single year optimization can only have numberOfInvestmentPeriods=None or numberOfInvestmentPeriods=1") 
+    else:
+        if mode in ["stochastic","perfectForesight"] and len(investmentPeriodList)==1:
+            raise ValueError("A stochastic optimization needs more than one numberOfInvestementPeriod") 
+        if mode is "singleYearOptimization" and len(investmentPeriodList)>1:
+            raise ValueError("A single year optimization can only have numberOfInvestmentPeriods=None or numberOfInvestmentPeriods=1")
+        
+        
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
 
@@ -118,7 +147,6 @@ def checkEnergySystemModelInput(
                 + "Input regions: "
                 + str(locations)
             )
-
 
 def checkTimeUnit(timeUnit):
     """
