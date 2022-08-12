@@ -1821,8 +1821,6 @@ class EnergySystemModel:
             for key, mdl in self.componentModelingDict.items():
                 for ip in self.investmentPeriods:
                     __t = time.time()
-                    # test for DSM
-                    # print(mdl)
                     mdl.setOptimalValues(self, self.pyM, ip)
                     outputString = (
                         ("for {:" + w + "}").format(key + " ...")

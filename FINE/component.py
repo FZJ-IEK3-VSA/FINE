@@ -1528,7 +1528,7 @@ class ComponentModel(metaclass=ABCMeta):
         * [commodityUnit] multiplied by the hours per time step (else).\n
 
         .. math::
-            op^{comp,opType}_{loc,p,t} = \\tau^{hours} \cdot \\text{opRateFix}^{comp,opType}_{loc,p,t} \cdot cap^{comp}_{loc}
+            op^{comp,opType}_{loc,ip,p,t} = \\tau^{hours} \cdot \\text{opRateFix}^{comp,opType}_{loc,ip,p,t} \cdot cap^{comp}_{loc}
 
         """
         # operationRate is the same for all ip
@@ -1587,7 +1587,7 @@ class ComponentModel(metaclass=ABCMeta):
         Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
 
         .. math::
-            op^{comp,opType}_{loc,p,t} = \\text{opRateFix}^{comp,opType}_{loc,p,t}
+            op^{comp,opType}_{loc,ip,p,t} = \\text{opRateFix}^{comp,opType}_{loc,ip,p,t}
 
         """
         # operationRate is the same for all ip
@@ -1636,7 +1636,7 @@ class ComponentModel(metaclass=ABCMeta):
         Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
 
         .. math::
-            op^{comp,opType}_{loc,p,t} \leq \\text{opRateMax}^{comp,opType}_{loc,p,t}
+            op^{comp,opType}_{loc,ip,p,t} \leq \\text{opRateMax}^{comp,opType}_{loc,ip,p,t}
 
         """
         # operationRate is the same for all ip

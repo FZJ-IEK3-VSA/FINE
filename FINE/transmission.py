@@ -591,7 +591,7 @@ class TransmissionModel(ComponentModel):
 
         .. math::
 
-            op^{comp,op}_{(loc_1,loc_2),p,t} + op^{op}_{(loc_2,loc_1),p,t} \leq \\tau^{hours} \cdot \\text{cap}^{comp}_{(loc_{in},loc_{out})}
+            op^{comp,op}_{(loc_1,loc_2),ip,p,t} + op^{op}_{(loc_2,loc_1),ip,p,t} \leq \\tau^{hours} \cdot \\text{cap}^{comp}_{(loc_{in},loc_{out})}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -729,8 +729,8 @@ class TransmissionModel(ComponentModel):
             :nowrap:
 
             \\begin{eqnarray*}
-            \\text{C}^{comp,comm}_{loc,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),p,t} \\\\
-            & - & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),p,t}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
+            & - & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
             \\end{eqnarray*}
             
         """

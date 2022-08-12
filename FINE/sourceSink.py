@@ -1088,10 +1088,10 @@ class SourceSinkModel(ComponentModel):
         """Get contribution to a commodity balance.
                 .. math::
 
-            \\text{C}^{comp,comm}_{loc,p,t} = - op_{loc,p,t}^{comp,op}  \\text{Sink}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = - op_{loc,ip,p,t}^{comp,op}  \\text{Sink}
 
         .. math::
-            \\text{C}^{comp,comm}_{loc,p,t} = op_{loc,p,t}^{comp,op} \\text{Source}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = op_{loc,ip,p,t}^{comp,op} \\text{Source}
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = (

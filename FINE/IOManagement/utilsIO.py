@@ -83,15 +83,15 @@ class PowerDict(dict):
             val.key = key
 
 
-def generateIterationDicts(component_dict, ip):
+def generateIterationDicts(component_dict, investmentperiods):
     """Creates iteration dictionaries that contain descriptions of all
     dataframes, series, and constants present in component_dict.
 
     :param component_dict: dictionary containing information about the esM instance's components
     :type component_dict: dict
 
-    :param ip: investment periods
-    :type ip: list
+    :param investmentperiods: investment periods
+    :type investmentperiods: list
 
     :return: df_iteration_dict, series_iteration_dict, constants_iteration_dict
     """
@@ -106,12 +106,12 @@ def generateIterationDicts(component_dict, ip):
             for variable_description, data in component_dict[classname][
                 component
             ].items():
-                if isinstance(data, dict) and data.keys() == ip:
-                    ip_depending = True
+                if isinstance(data, dict) and data.keys() == investmentperiods:
+                    is_depending_on_ip = True
                 else:
-                    ip_depending = False
+                    is_depending_on_ip = False
 
-                description_tuple = (classname, component, ip_depending)
+                description_tuple = (classname, component, is_depending_on_ip)
 
                 # private function to check if the current variable is a dict, df, series or constant.
                 # If its a dict (in the case of commodityConversionFactors), this is unpacked and the
@@ -132,7 +132,7 @@ def generateIterationDicts(component_dict, ip):
                         isinstance(value, dict) for value in _data.values()
                     ]:
                         raise NotImplementedError(
-                            "Currently different conversion factors for ips are not supported."
+                            "Different conversion factors for different investment periods are currenty not supported for netCDF functions."
                         )
 
                     elif isinstance(_data, pd.DataFrame) or (
@@ -210,7 +210,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
         df_dict = {}
 
         for description_tuple in description_tuple_list:
-            classname, component, ip_depending = description_tuple
+            classname, component, is_depending_on_ip = description_tuple
 
             df_description = f"{classname}; {component}"
 
@@ -222,7 +222,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
             else:
                 data = component_dict[classname][component][variable_description]
 
-            if ip_depending:
+            if is_depending_on_ip:
                 multi_index_dataframes = []
                 for _ip, ip_data in data.items():
                     _multi_index_dataframe = ip_data.stack()
@@ -304,7 +304,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
         time_dict = {}
 
         for description_tuple in description_tuple_list:
-            classname, component, ip_depending = description_tuple
+            classname, component, is_depending_on_ip = description_tuple
 
             df_description = f"{classname}; {component}"
 
@@ -319,7 +319,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             # Only ['Transmission', 'LinearOptimalPowerFlow'] are 2d classes.
             # So, if classname is one of these, append the data to space_space_dict
             if classname in ["Transmission", "LinearOptimalPowerFlow"]:
-                if ip_depending == True:
+                if is_depending_on_ip == True:
                     multi_index_dataframes = []
                     for _ip, ip_data in data.items():
                         df = transform1dSeriesto2dDataFrame(ip_data, locations)
@@ -344,7 +344,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             else:
                 # If the data indices correspond to esM locations, then the
                 # data is appended to space_dict, else time_dict
-                if ip_depending is True:
+                if is_depending_on_ip is True:
                     for _ip, ip_data in data.items():
                         if locations == sorted(ip_data.index.values):
                             space_dict[df_description] = ip_data.rename_axis("space")
@@ -475,7 +475,7 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
 
         df_dict = {}
         for description_tuple in description_tuple_list:
-            classname, component, ip_depending = description_tuple
+            classname, component, is_depending_on_ip = description_tuple
             df_description = f"{classname}; {component}"
 
             if "." in variable_description:
@@ -486,7 +486,7 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
 
             df_dict[df_description] = data
 
-        if ip_depending:
+        if is_depending_on_ip:
             df_variables = []
             for _ip, ip_data in df_dict.items():
                 _ip_df_variable = pd.DataFrame(ip_data)
