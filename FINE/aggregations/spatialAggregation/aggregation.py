@@ -7,7 +7,6 @@ import logging
 import warnings
 from copy import deepcopy
 import numpy as np
-import pytest
 import shapely
 import xarray as xr
 from shapely.ops import cascaded_union
