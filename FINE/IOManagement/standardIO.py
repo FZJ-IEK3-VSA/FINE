@@ -369,6 +369,7 @@ def getDualValues(pyM):
 def getShadowPrices(
     esM,
     constraint,
+    ip=0,
     dualValues=None,
     hasTimeSeries=False,
     periodOccurrences=None,
@@ -382,6 +383,9 @@ def getShadowPrices(
 
     :param constraint: constraint from which the dual values should be obtained (e.g. pyM.commodityBalanceConstraint)
     :type constraint: pyomo.core.base.constraint.SimpleConstraint
+
+    :param ip: investment period of transformation path analysis.
+    :type ip: int
 
     :param dualValues: dual values of the optimized model instance. If it is not specified, it is set by using the
         function getDualValues().
@@ -409,13 +413,19 @@ def getShadowPrices(
     SP = pd.Series(
         list(constraint.values()), index=pd.Index(list(constraint.keys()))
     ).map(dualValues)
+    # Select rows where ip is equal to investigated ip
+    SP = SP.iloc[SP.index.get_level_values(2) == ip]
+    # Delete ip from multiindex
+    SP = SP.droplevel(2, axis=0)
 
     if hasTimeSeries:
         SP = pd.DataFrame(SP).swaplevel(i=0, j=-2).sort_index()
         SP = SP.unstack(level=-1)
         SP.columns = SP.columns.droplevel()
-        SP = SP.apply(lambda x: x / (periodOccurrences[x.name[0]]), axis=1)
-        SP = fn.utils.buildFullTimeSeries(SP, periodsOrder, esM=esM, divide=False)
+        SP = SP.apply(lambda x: x / (periodOccurrences[ip][x.name[0]]), axis=1)
+        SP = fn.utils.buildFullTimeSeries(
+            SP, periodsOrder[ip], ip, esM=esM, divide=False
+        )
         SP = SP.stack()
 
     return SP
@@ -535,6 +545,7 @@ def plotOperationColorMap(
     esM,
     compName,
     loc,
+    ip=0,
     locTrans=None,
     nbPeriods=365,
     nbTimeStepsPerPeriod=24,
@@ -576,6 +587,9 @@ def plotOperationColorMap(
     :type loc: string
 
     **Default arguments:**
+
+    :param ip: investment period of transformation path analysis.
+    :type ip: int
 
     :param locTrans: second location, required when Transmission components are plotted
         |br| * the default value is None
@@ -688,9 +702,14 @@ def plotOperationColorMap(
         isStorage = True
         unit = unit + "*h"
 
-    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
+    _data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
         variableName
     )
+
+    if esM.numberOfInvestmentPeriods == 1:
+        data = _data
+    else:
+        data = _data[ip]
 
     if locTrans is None:
         timeSeries = data["values"].loc[(compName, loc)].values

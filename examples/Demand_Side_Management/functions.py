@@ -105,10 +105,10 @@ def plotShift(
     if timeSeriesAggregation:
         demand = pd.concat(
             [
-                esM_with.getComponent("flexible demand").aggregatedOperationRateFix.loc[
+                esM_with.getComponent("flexible demand").aggregatedOperationRateFix[0].loc[
                     p
                 ]
-                for p in esM_with.periodsOrder
+                for p in esM_with.periodsOrder[0]
             ],
             ignore_index=True,
         )
@@ -123,7 +123,7 @@ def plotShift(
             label="Demand w/o DSM",
         )
     else:
-        demand = esM_with.getComponent("flexible demand").fullOperationRateFix.loc[0]
+        demand = esM_with.getComponent("flexible demand").fullOperationRateFix[0].loc[0]
         demand = pd.concat([demand.iloc[tFwd:], demand.iloc[:tFwd]]).reset_index(
             drop=True
         )
@@ -160,15 +160,15 @@ def plotShift(
                         (h - (h % numberOfTimeStepsPerPeriod))
                         / numberOfTimeStepsPerPeriod
                     )
-                    tp = esM_with.periodsOrder[p]
+                    tp = esM_with.periodsOrder[0][p]
                     h_ = h % numberOfTimeStepsPerPeriod
                     chargeMax = esM_with.getComponent(
                         "flexible demand_" + str(i)
-                    ).aggregatedChargeOpRateMax.loc[(tp, h_), "location"]
+                    ).aggregatedChargeOpRateMax[0].loc[(tp, h_), "location"]
                 else:
                     chargeMax = esM_with.getComponent(
                         "flexible demand_" + str(i)
-                    ).fullChargeOpRateMax.loc[(0, h), "location"]
+                    ).fullChargeOpRateMax[0].loc[(0, h), "location"]
                 if x == 0:
                     ax.bar(
                         [x + 0.5],
@@ -366,7 +366,7 @@ def run_esM_with_DSM(
     ].chargeOperationVariablesOptimum
     chargeMax = pd.concat(
         [
-            esM_with.getComponent("flexible demand_" + str(i)).fullChargeOpRateMax.loc[
+            esM_with.getComponent("flexible demand_" + str(i)).fullChargeOpRateMax[0].loc[
                 0
             ]
             for i in range(tBwd + tFwd + 1)
