@@ -227,12 +227,12 @@ def perform_spatial_aggregation(
     geom_id_col_name = kwargs.get("geom_id_col_name", "index")
 
     if grouping_mode == "string_based":
-        add_centorids = False
+        add_centroids = False
     else:
-        add_centorids = True
+        add_centroids = True
 
     geom_xr = manUtils.create_geom_xarray(
-        shapefile, geom_col_name, geom_id_col_name, add_centorids
+        shapefile, geom_col_name, geom_id_col_name, add_centroids
     )
 
     xr_datasets["Geometry"] = geom_xr

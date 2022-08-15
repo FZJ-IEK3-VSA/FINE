@@ -54,7 +54,7 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
 
 
 def create_geom_xarray(
-    shapefile, geom_col_name="geometry", geom_id_col_name="index", add_centorids=True
+    shapefile, geom_col_name="geometry", geom_id_col_name="index", add_centroids=True
 ):
     """
     Creates an xr.Dataset with geometry info from the `shapefile`.
@@ -72,6 +72,11 @@ def create_geom_xarray(
         |br| * the default value is 'index'
     :type geom_id_col_name: str
 
+    :param add_centroids: Indicates whether region centroids and centroid distances should be
+        added to the resulting geom xarray
+        |br| * the default value is True
+    :type add_centroids: bool
+
     :returns: xr_ds - The xarray dataset holding 'geometries', 'centroids', 'centroid_distances'
     :rtype: xr.Dataset
     """
@@ -88,7 +93,7 @@ def create_geom_xarray(
 
     xr_ds = xr.Dataset({"geometries": geometries_da})
 
-    if add_centorids:
+    if add_centroids:
         # centroids
         centroids = pd.Series([geom.centroid for geom in geometries_da.values])
         centroids_da = xr.DataArray(

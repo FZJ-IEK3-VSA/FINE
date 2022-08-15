@@ -34,8 +34,8 @@ def test_create_gdf():
     shutil.rmtree(path_to_test_dir)
 
 
-@pytest.mark.parametrize("add_centorids", [True, False])
-def test_create_geom_xarray(sample_shapefile, add_centorids):
+@pytest.mark.parametrize("add_centroids", [True, False])
+def test_create_geom_xarray(sample_shapefile, add_centroids):
 
     expected_centroids = [Point(2, 2), Point(5.5, 2)]
     expected_centroid_distances = 0.001 * np.array(
@@ -44,11 +44,11 @@ def test_create_geom_xarray(sample_shapefile, add_centorids):
 
     # FUNCTION CALL
     output_xr = manUtils.create_geom_xarray(
-        sample_shapefile, geom_id_col_name="region_ids", add_centorids=add_centorids
+        sample_shapefile, geom_id_col_name="region_ids", add_centroids=add_centroids
     )
 
     # ASSERTION
-    if add_centorids:
+    if add_centroids:
         output_centroids = output_xr["centroids"].values
         output_centroid_distances = output_xr["centroid_distances"].values
 
