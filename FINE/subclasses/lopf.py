@@ -243,18 +243,19 @@ class LOPFModel(TransmissionModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
-        opVar, opVarSet = getattr(pyM, "op_" + abbrvName), getattr(
-            pyM, "operationVarSet_" + abbrvName
+        opVar, opVarSet = (
+            getattr(pyM, "op_" + abbrvName),
+            getattr(pyM, "operationVarSet_" + abbrvName),
         )
 
-        def powerFlowDC(pyM, loc, compName, p, t):
+        def powerFlowDC(pyM, loc, compName, ip, p, t):
             node1, node2 = compDict[compName]._mapC[loc]
             return (
-                opVar[loc, compName, p, t]
-                - opVar[compDict[compName]._mapI[loc], compName, p, t]
+                opVar[loc, compName, ip, p, t]
+                - opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
                 == (
-                    phaseAngleVar[node1, compName, p, t]
-                    - phaseAngleVar[node2, compName, p, t]
+                    phaseAngleVar[node1, compName, ip, p, t]
+                    - phaseAngleVar[node2, compName, ip, p, t]
                 )
                 / compDict[compName].reactances[loc]
             )
@@ -275,9 +276,9 @@ class LOPFModel(TransmissionModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
 
-        def basePhaseAngle(pyM, compName, p, t):
+        def basePhaseAngle(pyM, compName, ip, p, t):
             node0 = sorted(compDict[compName]._mapL)[0]
-            return phaseAngleVar[node0, compName, p, t] == 0
+            return phaseAngleVar[node0, compName, ip, p, t] == 0
 
         setattr(
             pyM,
@@ -308,7 +309,7 @@ class LOPFModel(TransmissionModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
+    def setOptimalValues(self, esM, pyM, ip):
         """
         Set the optimal values of the components.
 
@@ -317,9 +318,12 @@ class LOPFModel(TransmissionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
+
+        :param ip: investment period
+        :type ip: int
         """
 
-        super().setOptimalValues(esM, pyM)
+        super().setOptimalValues(esM, pyM, ip)
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
         phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
@@ -328,7 +332,8 @@ class LOPFModel(TransmissionModel):
             phaseAngleVar.get_values(),
             "operationVariables",
             "1dim",
-            esM.periodsOrder,
+            ip,
+            esM.periodsOrder[ip],
             esM=esM,
         )
         self.phaseAngleVariablesOptimum = optVal_

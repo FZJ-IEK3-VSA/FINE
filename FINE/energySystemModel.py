@@ -70,6 +70,8 @@ class EnergySystemModel:
         commodityUnitsDict,
         numberOfTimeSteps=8760,
         hoursPerTimeStep=1,
+        numberOfInvestmentPeriods=1,
+        yearsPerInvestmentPeriod=1,
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
@@ -110,6 +112,16 @@ class EnergySystemModel:
         :param hoursPerTimeStep: hours per time step
             |br| * the default value is 1
         :type hoursPerTimeStep: strictly positive float
+
+        :param numberOfInvestmentPeriods: number of investment periods of transformation
+            path analysis
+            |br| * the default value is 1
+        : type numberOfInvestmentPeriods: strictly positive integer
+
+        :param yearsPerInvestmentPeriod: years per investment period of transformation
+            path analysis
+            |br| * the default value is 1
+        : type yearsPerInvestmentPeriod: strictly positive integer
 
         :param costUnit: cost unit of all cost related values in the energy system. This argument sets the unit of
             all cost parameters which are given as an input to the EnergySystemModel instance (e.g. for the
@@ -189,6 +201,8 @@ class EnergySystemModel:
             commodities,
             commodityUnitsDict,
             numberOfTimeSteps,
+            numberOfInvestmentPeriods,
+            yearsPerInvestmentPeriod,
             hoursPerTimeStep,
             costUnit,
             lengthUnit,
@@ -226,6 +240,9 @@ class EnergySystemModel:
         )
         self.numberOfTimeSteps = numberOfTimeSteps
         self.numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
+        self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
+        self.investmentPeriods = list(range(numberOfInvestmentPeriods))
+        self.yearsPerInvestmentPeriod = yearsPerInvestmentPeriod
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
         # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents
@@ -435,7 +452,14 @@ class EnergySystemModel:
         :returns: the attribute specified by the attributeName of the component with the name componentName
         :rtype: depends on the specified attribute
         """
-        return getattr(self.getComponent(componentName), attributeName)
+        if (
+            isinstance(getattr(self.getComponent(componentName), attributeName), dict)
+            and list(getattr(self.getComponent(componentName), attributeName).keys())
+            == self.investmentPeriods
+        ):
+            return getattr(self.getComponent(componentName), attributeName)[0]
+        else:
+            return getattr(self.getComponent(componentName), attributeName)
 
     def getOptimizationSummary(self, modelingClass, outputLevel=0):
         """
@@ -776,100 +800,127 @@ class EnergySystemModel:
         # (a) append the time series data from all components stored in all initialized modeling classes to a pandas
         #     DataFrame with unique column names
         # (b) thereby collect the weights which should be considered for each time series as well in a dictionary
-        timeSeriesData, weightDict = [], {}
-        for mdlName, mdl in self.componentModelingDict.items():
-            for compName, comp in mdl.componentsDict.items():
-                (
-                    compTimeSeriesData,
-                    compWeightDict,
-                ) = comp.getDataForTimeSeriesAggregation()
-                if compTimeSeriesData is not None:
-                    timeSeriesData.append(compTimeSeriesData), weightDict.update(
-                        compWeightDict
-                    )
-        timeSeriesData = pd.concat(timeSeriesData, axis=1)
-        # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
-        timeSeriesData.index = pd.date_range(
-            "2050-01-01 00:30:00",
-            periods=len(self.totalTimeSteps),
-            freq=(str(self.hoursPerTimeStep) + "H"),
-            tz="Europe/Berlin",
-        )
 
-        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
-        # call) depending on whether segmentation is activated or not
-        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
-        if segmentation:
-            clusterClass = TimeSeriesAggregation(
-                timeSeries=timeSeriesData,
-                noTypicalPeriods=numberOfTypicalPeriods,
-                segmentation=segmentation,
-                noSegments=numberOfSegmentsPerPeriod,
-                hoursPerPeriod=hoursPerPeriod,
-                clusterMethod=clusterMethod,
-                sortValues=sortValues,
-                weightDict=weightDict,
-                **kwargs
-            )
-            # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-            # second index as segment number per typical period.
-            data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict).reset_index(
-                level=2, drop=True
-            )
-            # Get the length of each segment in each typical period with the first index as typical period number and
-            # the second index as segment number per typical period.
-            timeStepsPerSegment = pd.DataFrame.from_dict(
-                clusterClass.segmentDurationDict
-            )["Segment Duration"]
-        else:
-            clusterClass = TimeSeriesAggregation(
-                timeSeries=timeSeriesData,
-                noTypicalPeriods=numberOfTypicalPeriods,
-                hoursPerPeriod=hoursPerPeriod,
-                clusterMethod=clusterMethod,
-                sortValues=sortValues,
-                weightDict=weightDict,
-                **kwargs
-            )
-            # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-            # second index as time step number per typical period.
-            data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
-        # Store the respective clustered time series data in the associated components
-        for mdlName, mdl in self.componentModelingDict.items():
-            for compName, comp in mdl.componentsDict.items():
-                comp.setAggregatedTimeSeriesData(data)
+        #############################################################################################################
+        # adjusted for perfect foresight approach
+        # periodsOrder and Occurrences now dictionaries
+        self.periodsOrder = {}
+        self.periodOccurrences = {}
+        self.timeStepsPerSegment = {}
+        self.hoursPerSegment = {}
+        self.segmentStartTime = {}
 
-        # Store time series aggregation parameters in class instance
-        if storeTSAinstance:
-            self.tsaInstance = clusterClass
-        self.typicalPeriods = clusterClass.clusterPeriodIdx
-        self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
-        self.segmentation = segmentation
-        if segmentation:
-            self.segmentsPerPeriod = list(range(numberOfSegmentsPerPeriod))
-            self.timeStepsPerSegment = timeStepsPerSegment
-            self.hoursPerSegment = self.hoursPerTimeStep * self.timeStepsPerSegment
-            # Define start time hour of each segment in each typical period
-            segmentStartTime = self.hoursPerSegment.groupby(level=0).cumsum()
-            segmentStartTime.index = segmentStartTime.index.set_levels(
-                segmentStartTime.index.levels[1] + 1, level=1
+        # loop over all ips
+        for ip in self.investmentPeriods:
+
+            timeSeriesData, weightDict = [], {}
+            for mdlName, mdl in self.componentModelingDict.items():
+                for compName, comp in mdl.componentsDict.items():
+                    (
+                        compTimeSeriesData,
+                        compWeightDict,
+                    ) = comp.getDataForTimeSeriesAggregation(ip)
+                    if compTimeSeriesData is not None:
+                        timeSeriesData.append(compTimeSeriesData), weightDict.update(
+                            compWeightDict
+                        )
+            timeSeriesData = pd.concat(timeSeriesData, axis=1)
+            # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
+            timeSeriesData.index = pd.date_range(
+                "2050-01-01 00:30:00",
+                periods=len(self.totalTimeSteps),
+                freq=(str(self.hoursPerTimeStep) + "H"),
+                tz="Europe/Berlin",
             )
-            lvl0, lvl1 = segmentStartTime.index.levels
-            segmentStartTime = segmentStartTime.reindex(
-                pd.MultiIndex.from_product([lvl0, [0, *lvl1]])
+
+            # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
+            # call) depending on whether segmentation is activated or not
+            timeSeriesData = timeSeriesData.reindex(
+                sorted(timeSeriesData.columns), axis=1
             )
-            segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
-            self.segmentStartTime = segmentStartTime
+            if segmentation:
+                clusterClass = TimeSeriesAggregation(
+                    timeSeries=timeSeriesData,
+                    noTypicalPeriods=numberOfTypicalPeriods,
+                    segmentation=segmentation,
+                    noSegments=numberOfSegmentsPerPeriod,
+                    hoursPerPeriod=hoursPerPeriod,
+                    clusterMethod=clusterMethod,
+                    sortValues=sortValues,
+                    weightDict=weightDict,
+                    **kwargs
+                )
+                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
+                # second index as segment number per typical period.
+                data = pd.DataFrame.from_dict(
+                    clusterClass.clusterPeriodDict
+                ).reset_index(level=2, drop=True)
+                # Get the length of each segment in each typical period with the first index as typical period number and
+                # the second index as segment number per typical period.
+                timeStepsPerSegment = pd.DataFrame.from_dict(
+                    clusterClass.segmentDurationDict
+                )["Segment Duration"]
+            else:
+                clusterClass = TimeSeriesAggregation(
+                    timeSeries=timeSeriesData,
+                    noTypicalPeriods=numberOfTypicalPeriods,
+                    hoursPerPeriod=hoursPerPeriod,
+                    clusterMethod=clusterMethod,
+                    sortValues=sortValues,
+                    weightDict=weightDict,
+                    **kwargs
+                )
+                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
+                # second index as time step number per typical period.
+                data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+
+            # Store the respective clustered time series data in the associated components
+            # To-Do: Continue here
+            for mdlName, mdl in self.componentModelingDict.items():  # for-loop for ip
+                for compName, comp in mdl.componentsDict.items():
+                    comp.setAggregatedTimeSeriesData(data, ip)
+
+            # Store time series aggregation parameters in class instance
+            if storeTSAinstance:
+                self.tsaInstance = clusterClass
+            self.typicalPeriods = clusterClass.clusterPeriodIdx
+            self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
+            self.segmentation = segmentation
+            if segmentation:
+                self.segmentsPerPeriod = list(range(numberOfSegmentsPerPeriod))
+                # ip-dependent
+                self.timeStepsPerSegment[ip] = timeStepsPerSegment
+                self.hoursPerSegment[ip] = (
+                    self.hoursPerTimeStep * self.timeStepsPerSegment[ip]
+                )  # ip-dependent
+                # Define start time hour of each segment in each typical period
+                segmentStartTime = self.hoursPerSegment[ip].groupby(level=0).cumsum()
+                segmentStartTime.index = segmentStartTime.index.set_levels(
+                    segmentStartTime.index.levels[1] + 1, level=1
+                )
+                lvl0, lvl1 = segmentStartTime.index.levels
+                segmentStartTime = segmentStartTime.reindex(
+                    pd.MultiIndex.from_product([lvl0, [0, *lvl1]])
+                )
+                segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
+                self.segmentStartTime[ip] = segmentStartTime  # ip-dependent
+
+            self.periodsOrder[ip] = clusterClass.clusterOrder
+            self.periodOccurrences[ip] = [
+                (self.periodsOrder[ip] == tp).sum() for tp in self.typicalPeriods
+            ]
+
         self.periods = list(
             range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)))
         )
+
         self.interPeriodTimeSteps = list(
             range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1)
         )
-        self.periodsOrder = clusterClass.clusterOrder
-        self.periodOccurrences = [
-            (self.periodsOrder == tp).sum() for tp in self.typicalPeriods
-        ]
+
+        self.numberOfInterPeriodTimeSteps = int(
+            len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)
+        )
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
@@ -909,7 +960,9 @@ class EnergySystemModel:
         pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
             for comp in mdl.componentsDict.values():
+                comp.initializeProcessedDataSets(self.investmentPeriods)
                 comp.setTimeSeriesData(pyM.hasTSA)
+                comp.checkProcessedDataSets()
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
         # entries, the first one indicates an index of a period and the second one indicates a time step inside that
@@ -927,18 +980,41 @@ class EnergySystemModel:
                 range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1)
             )
             self.periods = [0]
-            self.periodsOrder = [0]
-            self.periodOccurrences = [1]
+            self.periodsOrder = {}
+            self.periodOccurrences = {}
+
+            # fill dictionaries with zeros or ones, if no TSA
+            for ip in self.investmentPeriods:
+                self.periodsOrder[ip] = [0]
+                self.periodOccurrences[ip] = [1]
 
             # Define sets
             def initTimeSet(pyM):
-                return ((p, t) for p in self.periods for t in self.timeStepsPerPeriod)
+                return (
+                    (ip, p, t)
+                    for ip in self.investmentPeriods
+                    for p in self.periods
+                    for t in self.timeStepsPerPeriod
+                )
 
             def initInterTimeStepsSet(pyM):
                 return (
-                    (p, t)
+                    (ip, p, t)
+                    for ip in self.investmentPeriods
                     for p in self.periods
                     for t in range(len(self.timeStepsPerPeriod) + 1)
+                )
+
+            def initInvestSet(pyM):
+                return (ip for ip in self.investmentPeriods)
+
+            def initInvestPeriodInterPeriodSet(pyM):
+                return (
+                    (ip, t_inter)
+                    for ip in self.investmentPeriods
+                    for t_inter in range(
+                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1
+                    )
                 )
 
         else:
@@ -955,18 +1031,34 @@ class EnergySystemModel:
                 )
 
                 # Define sets
+                # To-Do: Add explanation perfect foresight
                 def initTimeSet(pyM):
                     return (
-                        (p, t)
+                        (ip, p, t)
+                        for ip in self.investmentPeriods
                         for p in self.typicalPeriods
                         for t in self.timeStepsPerPeriod
                     )
 
                 def initInterTimeStepsSet(pyM):
                     return (
-                        (p, t)
+                        (ip, p, t)
+                        for ip in self.investmentPeriods
                         for p in self.typicalPeriods
                         for t in range(len(self.timeStepsPerPeriod) + 1)
+                    )
+
+                def initInvestSet(pyM):
+                    return (ip for ip in self.investmentPeriods)
+
+                def initInvestPeriodInterPeriodSet(pyM):
+                    return (
+                        (ip, t_inter)
+                        for ip in self.investmentPeriods
+                        for t_inter in range(
+                            int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
+                            + 1
+                        )
                     )
 
             else:
@@ -986,21 +1078,40 @@ class EnergySystemModel:
                 # Define sets
                 def initTimeSet(pyM):
                     return (
-                        (p, t)
+                        (ip, p, t)
+                        for ip in self.investmentPeriods
                         for p in self.typicalPeriods
                         for t in self.segmentsPerPeriod
                     )
 
                 def initInterTimeStepsSet(pyM):
                     return (
-                        (p, t)
+                        (ip, p, t)
+                        for ip in self.investmentPeriods
                         for p in self.typicalPeriods
                         for t in range(len(self.segmentsPerPeriod) + 1)
                     )
 
+                def initInvestSet(pyM):
+                    return (ip for ip in self.investmentPeriods)
+
+                def initInvestPeriodInterPeriodSet(pyM):
+                    return (
+                        (ip, t_inter)
+                        for ip in self.investmentPeriods
+                        for t_inter in range(
+                            int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
+                            + 1
+                        )
+                    )
+
         # Initialize sets
-        pyM.timeSet = pyomo.Set(dimen=2, initialize=initTimeSet)
-        pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
+        pyM.timeSet = pyomo.Set(dimen=3, initialize=initTimeSet)
+        pyM.interTimeStepsSet = pyomo.Set(dimen=3, initialize=initInterTimeStepsSet)
+        pyM.investSet = pyomo.Set(dimen=1, initialize=initInvestSet)
+        pyM.investPeriodInterPeriodSet = pyomo.Set(
+            dimen=2, initialize=initInvestPeriodInterPeriodSet
+        )
 
     def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
         """
@@ -1275,10 +1386,11 @@ class EnergySystemModel:
         # Declare and initialize commodity balance constraints by checking for each location and commodity in the
         # locationCommoditySet and for each period and time step within the period if the commodity source and sink
         # terms add up to zero. For this, get the contribution to commodity balance from each modeling class.
-        def commodityBalanceConstraint(pyM, loc, commod, p, t):
+        # To-Do: Perfect Foresight Explanation
+        def commodityBalanceConstraint(pyM, loc, commod, ip, p, t):
             return (
                 sum(
-                    mdl.getCommodityBalanceContribution(pyM, commod, loc, p, t)
+                    mdl.getCommodityBalanceContribution(pyM, commod, loc, ip, p, t)
                     for mdl in self.componentModelingDict.values()
                 )
                 == 0
@@ -1293,7 +1405,7 @@ class EnergySystemModel:
         Declare the objective function by obtaining the contributions to the objective function from all modeling
         classes. Currently, the only objective function which can be selected is the sum of the total annual cost of all
         components.
-        
+
         .. math::
             z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum} 
             \\left( TAC_{loc}^{comp,cap}  +  TAC_{loc}^{comp,bin} + TAC_{loc}^{comp,op} \\right)
@@ -1311,7 +1423,7 @@ class EnergySystemModel:
             + \\text{opexIfBuilt}^{comp}_{loc} \\right)  \\cdot  bin^{comp}_{loc} \\\\
             & & \\left. + \\left( \\underset{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}}{\\sum} \\ \\underset{\\text{opType} \\in \\mathcal{O}^{comp}}{\\sum} \\text{factorPerOp}^{comp,opType}_{loc} \\cdot op^{comp,opType}_{loc,p,t} \\cdot  \\frac{\\text{freq(p)}}{\\tau^{years}} \\right) \\right]
             \\end{eqnarray*}
-        
+
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
@@ -1704,15 +1816,38 @@ class EnergySystemModel:
             utils.output("\nProcessing optimization output...", self.verbose, 0)
             # Declare component specific sets, variables and constraints
             w = str(len(max(self.componentModelingDict.keys())) + 6)
+
+            # iterate over investment periods, to get yearly results
             for key, mdl in self.componentModelingDict.items():
-                __t = time.time()
-                mdl.setOptimalValues(self, self.pyM)
-                outputString = (
-                    ("for {:" + w + "}").format(key + " ...")
-                    + "(%.4f" % (time.time() - __t)
-                    + "sec)"
-                )
-                utils.output(outputString, self.verbose, 0)
+                for ip in self.investmentPeriods:
+                    __t = time.time()
+                    mdl.setOptimalValues(self, self.pyM, ip)
+                    outputString = (
+                        ("for {:" + w + "}").format(key + " ...")
+                        + "(%.4f" % (time.time() - __t)
+                        + "sec)"
+                    )
+                    utils.output(outputString, self.verbose, 0)
+
+                # for single year optimization, prepare results data in "old"
+                # format just for one year
+                if self.numberOfInvestmentPeriods == 1:
+                    mdl.optSummary = mdl.optSummary[0]
+                    if key is "StorageModel" or key is "StorageExtModel":
+                        mdl.stateOfChargeOperationVariablesOptimum = (
+                            mdl.stateOfChargeOperationVariablesOptimum[0]
+                        )
+
+                        mdl.chargeOperationVariablesOptimum = (
+                            mdl.chargeOperationVariablesOptimum[0]
+                        )
+
+                        mdl.dischargeOperationVariablesOptimum = (
+                            mdl.dischargeOperationVariablesOptimum[0]
+                        )
+                    else:
+                        mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
+
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 
