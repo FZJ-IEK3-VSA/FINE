@@ -65,6 +65,8 @@ def checkEnergySystemModelInput(
     commodityUnitsDict,
     numberOfTimeSteps,
     hoursPerTimeStep,
+    numberOfInvestmentPeriods,
+    yearsPerInvestmentPeriod,
     costUnit,
     lengthUnit,
     balanceLimit,
@@ -86,6 +88,11 @@ def checkEnergySystemModelInput(
 
     # The numberOfTimeSteps and the hoursPerTimeStep have to be strictly positive numbers
     isStrictlyPositiveInt(numberOfTimeSteps), isStrictlyPositiveNumber(hoursPerTimeStep)
+
+    # The investmentPerdios and yearsPerInvestmentPeriod have to be strictly positive integers
+    isStrictlyPositiveInt(numberOfInvestmentPeriods), isStrictlyPositiveNumber(
+        yearsPerInvestmentPeriod
+    )
 
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
@@ -781,15 +788,30 @@ def setLocationalEligibility(
         return locationalEligibility
     else:
         # If the location eligibility is None set it based on other information available
+        # if not hasCapacityVariable and all(not isinstance(value,type(None)) for value in operationTimeSeries.values()):
         if not hasCapacityVariable and operationTimeSeries is not None:
             if dimension == "1dim":
-                data = operationTimeSeries.copy().sum()
+                data = 0
+                # sum values over ips
+                for ip in esM.investmentPeriods:
+                    # tests for checking the operationtimeseries
+                    # print('operationTimeSeries1')
+                    # print(operationTimeSeries)
+                    data += operationTimeSeries[ip].copy().sum()
                 data[data > 0] = 1
                 return data
+            # Problems here ? Adapt this?
             elif dimension == "2dim":
-                data = operationTimeSeries.copy().sum()
+                # New for perfect foresight
+                data = 0
+                # sum values over ips
+                for ip in esM.investmentPeriods:
+                    data += operationTimeSeries[ip].copy().sum()
+
                 data.loc[:] = 1
-                return data
+                locationalEligibility = data
+                print(locationalEligibility)
+                return locationalEligibility
             else:
                 raise ValueError(
                     "The dimension parameter has to be either '1dim' or '2dim' "
@@ -1274,7 +1296,7 @@ def setFormattedTimeSeries(timeSeries):
         return data.set_index(["Period", "TimeStep"])
 
 
-def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
+def buildFullTimeSeries(df, periodsOrder, ip, axis=1, esM=None, divide=True):
     # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
     # time steps first
     if esM is not None and esM.segmentation:
@@ -1282,7 +1304,9 @@ def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
         for p in esM.typicalPeriods:
             # Repeat each segment in each period as often as time steps are represented by the corresponding
             # segment
-            repList = esM.timeStepsPerSegment.loc[p, :].tolist()
+            repList = (
+                esM.timeStepsPerSegment[ip].loc[p, :].tolist()
+            )  # timeStepsPerSegment now ip-dependent
             # if divide is set to True, the values are divided when being unravelled, e.g. in order to fit provided
             # energy per segment provided energy per time step
             if divide:
@@ -1306,11 +1330,12 @@ def buildFullTimeSeries(df, periodsOrder, axis=1, esM=None, divide=True):
     data = []
     for p in periodsOrder:
         data.append(df.loc[p])
+
     return pd.concat(data, axis=axis, ignore_index=True)
 
 
 def formatOptimizationOutput(
-    data, varType, dimension, periodsOrder=None, compDict=None, esM=None
+    data, varType, dimension, ip=None, periodsOrder=None, compDict=None, esM=None
 ):
     """
     Functionality for formatting the optimization output. The function is used in the
@@ -1330,6 +1355,9 @@ def formatOptimizationOutput(
         * '1dim',
         * '2dim'.
     :type dimension: string
+
+    :param ip: investment period of transformation path analysis.
+    :type ip: int
 
     **Default arguments:**
     :param periodsOrder: order of the periods of the time series data
@@ -1388,15 +1416,22 @@ def formatOptimizationOutput(
         return df
     elif varType == "operationVariables" and dimension == "1dim":
         # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
+
         # Results in a one dimensional DataFrame
-        df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-2).sort_index()
+        df = (
+            pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=-2).sort_index()
+        )  # swap location with periods --> periods is first column
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level
         df.columns = df.columns.droplevel()
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
-        return buildFullTimeSeries(df, periodsOrder, esM=esM)
+        # filter results for ip
+        df = df[df.index.get_level_values(2) == ip]
+        # drop ip from index
+        df.reset_index(level=2, drop=True, inplace=True)
+        return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
     elif varType == "operationVariables" and dimension == "2dim":
         # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
         # regions and sort the index
@@ -1405,8 +1440,15 @@ def formatOptimizationOutput(
         indexNew = []
         for tup in df.index.tolist():
             loc1, loc2 = compDict[tup[1]]._mapC[tup[0]]
-            indexNew.append((loc1, loc2, tup[1], tup[2], tup[3]))
+            indexNew.append((loc1, loc2, tup[1], tup[2], tup[3], tup[4]))
+            # indexNew.append((loc1, loc2, tup[1], tup[2], tup[3]))
         df.index = pd.MultiIndex.from_tuples(indexNew)
+
+        # Select rows where ip is equal to investigated ip
+        df = df.iloc[df.index.get_level_values(3) == ip]
+        # Delete ip from multiindex
+        df = df.droplevel(3, axis=0)
+
         df = (
             df.swaplevel(i=1, j=2, axis=0)
             .swaplevel(i=0, j=3, axis=0)
@@ -1415,11 +1457,13 @@ def formatOptimizationOutput(
         )
         # Unstack the time steps (convert to a two dimensional DataFrame with the time indices being the columns)
         df = df.unstack(level=-1)
+
         # Get rid of the unnecessary 0 level
         df.columns = df.columns.droplevel()
+
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
-        return buildFullTimeSeries(df, periodsOrder, esM=esM)
+        return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
     else:
         raise ValueError(
             "The varType parameter has to be either 'designVariables' or 'operationVariables'\n"
@@ -1815,3 +1859,12 @@ def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
             "yearlyLimit",
             CO2Reference * (1 - CO2ReductionTargets[step] / 100),
         )
+
+
+def checkParamInput(param):
+    if isinstance(param, dict):
+        for key, value in param.items():
+            if value is None:
+                raise ValueError(
+                    f"Currently a dict containing None values cannot be passed for '{param}'"
+                )
