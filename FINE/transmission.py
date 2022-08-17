@@ -265,10 +265,12 @@ class Transmission(Component):
         # check input data
         check_data={"opexPerOperation":opexPerOperation,"operationRateMax":operationRateMax,"operationRateFix":operationRateFix,"partLoadMin":partLoadMin}
         for name,data in check_data.items():
-            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriods)
+            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
 
         # iterate over all ips
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
             self.opexPerOperation = utils.preprocess2dimData(
                 opexPerOperation, self._mapC
             )
@@ -284,7 +286,7 @@ class Transmission(Component):
                 )
             elif isinstance(opexPerOperation, dict):
                 self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation[ip], "2dim", self.locationalEligibility
+                    esM, name, opexPerOperation[_ip], "2dim", self.locationalEligibility
                 )
             elif isinstance(opexPerOperation, pd.DataFrame):
                 self.opexPerOperation = utils.checkAndSetCostParameter(
@@ -306,7 +308,7 @@ class Transmission(Component):
                 )
             elif isinstance(operationRateMax, dict):
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax[ip], self.locationalEligibility
+                    esM, name, operationRateMax[_ip], self.locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -325,7 +327,7 @@ class Transmission(Component):
                 )
             elif isinstance(operationRateFix, dict):
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix[ip], self.locationalEligibility
+                    esM, name, operationRateFix[_ip], self.locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -337,7 +339,7 @@ class Transmission(Component):
             if isinstance(partLoadMin, float) or partLoadMin is None:
                 self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[ip]
+                self.processedPartLoadMin[ip] = partLoadMin[_ip]
             if self.processedPartLoadMin is not None:
                 if self.processedPartLoadMin[ip] is not None:
                     if self.fullOperationRateMax[ip] is not None:
@@ -965,7 +967,7 @@ class TransmissionModel(ComponentModel):
                 optVal_ = utils.formatOptimizationOutput(
                     values, "designVariables", self.dimension, compDict=compDict
                 )
-            self.capacityVariablesOptimum[ip] = optVal_
+            self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
             if optVal is not None:
                 # Check if the installed capacities are close to a bigM value for components with design decision variables but
@@ -1166,7 +1168,7 @@ class TransmissionModel(ComponentModel):
         # Quick fix if several runs with one investment period
         if type(self.operationVariablesOptimum) is not dict:
             self.operationVariablesOptimum = {}
-        self.operationVariablesOptimum[ip] = optVal_
+        self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
         props = ["operation", "opexOp"]
         # Unit dict: Specify units for props
@@ -1262,7 +1264,7 @@ class TransmissionModel(ComponentModel):
         # Quick fix if several runs with one investment period
         if type(self.optSummary) is not dict:
             self.optSummary = {}
-        self.optSummary[ip] = optSummary
+        self.optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all"):
         """

@@ -17,7 +17,7 @@ def test_perfectForesight_linked():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
     numberOfInvestmentPeriods = 6
-    yearsPerInvestmentPeriod = 2 # vorher 1
+    yearsPerInvestmentPeriod = 1 # vorher 1
 
     # Create an energy system model instance
     esM = fn.EnergySystemModel(

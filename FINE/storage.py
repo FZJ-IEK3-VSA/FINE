@@ -300,9 +300,11 @@ class Storage(Component):
                     "dischargeOpRateMax":dischargeOpRateMax,
                     "partLoadMin":partLoadMin,}
         for name, data in check_data.items():
-            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriods)
+            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
 
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
 
             # opexPerChargeOperation
             if (
@@ -319,7 +321,7 @@ class Storage(Component):
                 self.processedOpexPerChargeOperation[
                     ip
                 ] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerChargeOperation[ip], "1dim", locationalEligibility
+                    esM, name, opexPerChargeOperation[_ip], "1dim", locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -343,7 +345,7 @@ class Storage(Component):
                 ] = utils.checkAndSetCostParameter(
                     esM,
                     name,
-                    opexPerDischargeOperation[ip],
+                    opexPerDischargeOperation[_ip],
                     "1dim",
                     locationalEligibility,
                 )
@@ -354,12 +356,12 @@ class Storage(Component):
 
             # chargeOpRateMax and chargeOpRateFix
             _chargeOpRateMax = (
-                chargeOpRateMax[ip]
+                chargeOpRateMax[_ip]
                 if isinstance(chargeOpRateMax, dict)
                 else chargeOpRateMax
             )
             _chargeOpRateFix = (
-                chargeOpRateFix[ip]
+                chargeOpRateFix[_ip]
                 if isinstance(chargeOpRateFix, dict)
                 else chargeOpRateFix
             )
@@ -386,7 +388,7 @@ class Storage(Component):
                 )
             elif isinstance(chargeOpRateMax, dict):
                 self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, chargeOpRateMax[ip], locationalEligibility
+                    esM, name, chargeOpRateMax[_ip], locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -406,7 +408,7 @@ class Storage(Component):
                 )
             elif isinstance(chargeOpRateFix, dict):
                 self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, chargeOpRateFix[ip], locationalEligibility
+                    esM, name, chargeOpRateFix[_ip], locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -420,11 +422,13 @@ class Storage(Component):
         self.processedPartLoadMin = {}
 
         # iterate over all ips
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
             if isinstance(partLoadMin, float) or partLoadMin is None:
                 self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[ip]
+                self.processedPartLoadMin[ip] = partLoadMin[_ip]
             else:
                 raise TypeError("partLoadMin should be a float, dict or None.")
 
@@ -479,7 +483,9 @@ class Storage(Component):
         self.aggregatedDischargeOpRateFix = {}
 
         # iterate over all ips
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
             # dischargeOpRateMax
             if (
                 isinstance(dischargeOpRateMax, pd.DataFrame)
@@ -491,7 +497,7 @@ class Storage(Component):
                 )
             elif isinstance(dischargeOpRateMax, dict):
                 self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, dischargeOpRateMax[ip], locationalEligibility
+                    esM, name, dischargeOpRateMax[_ip], locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -510,7 +516,7 @@ class Storage(Component):
                 )
             elif isinstance(dischargeOpRateFix, dict):
                 self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, dischargeOpRateFix[ip], locationalEligibility
+                    esM, name, dischargeOpRateFix[_ip], locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -1998,7 +2004,7 @@ class StorageModel(ComponentModel):
             esM.periodsOrder[ip],
             esM=esM,
         )
-        self.chargeOperationVariablesOptimum[ip] = optVal
+        self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]]  = optVal
 
         if optVal is not None:
             idx = pd.IndexSlice
@@ -2049,12 +2055,12 @@ class StorageModel(ComponentModel):
             esM.periodsOrder[ip],
             esM=esM,
         )
-        self.dischargeOperationVariablesOptimum[ip] = optVal
+        self.dischargeOperationVariablesOptimum[esM.investmentPeriodList[ip]]  = optVal
         # Check if there are time steps, at which a storage component is both charging and discharging
         for compName in opSum.index:
             simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
-                tsCharge=self.chargeOperationVariablesOptimum[ip].loc[compName],
-                tsDischarge=self.dischargeOperationVariablesOptimum[ip].loc[compName],
+                tsCharge=self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]].loc[compName],
+                tsDischarge=self.dischargeOperationVariablesOptimum[esM.investmentPeriodList[ip]].loc[compName],
             )
             if simultaneousChargeDischarge:
                 if esM.verbose < 2:
@@ -2117,7 +2123,7 @@ class StorageModel(ComponentModel):
             # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
             # other)
             optVal = optVal.loc[:, : len(optVal.columns) - 2]
-            self.stateOfChargeOperationVariablesOptimum[ip] = optVal
+            self.stateOfChargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
             utils.setOptimalComponentVariables(
                 optVal, "_stateOfChargeVariablesOptimum", compDict
             )
@@ -2183,7 +2189,7 @@ class StorageModel(ComponentModel):
                 optVal = pd.concat(data, axis=1, ignore_index=True)
             else:
                 optVal = None
-            self.stateOfChargeOperationVariablesOptimum[ip] = optVal
+            self.stateOfChargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
             utils.setOptimalComponentVariables(
                 optVal, "_stateOfChargeVariablesOptimum", compDict
             )
@@ -2206,7 +2212,7 @@ class StorageModel(ComponentModel):
         # Quick fix if several runs with one investment period
         if type(self.optSummary) is not dict:
             self.optSummary = {}
-        self.optSummary[ip] = optSummary
+        self.optSummary[esM.investmentPeriodList[ip]]  = optSummary
 
     def getOptimalValues(self, name="all"):
         """

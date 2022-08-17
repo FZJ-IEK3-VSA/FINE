@@ -260,10 +260,12 @@ class Source(Component):
         # check input data
         check_data = {"opexPerOperation":opexPerOperation, "commodityCost":commodityCost, "commodityRevenue":commodityRevenue, "commodityCostTimeSeries":commodityCostTimeSeries, "commodityRevenueTimeSeries": commodityRevenueTimeSeries, "operationRateMax":operationRateMax, "operationRateFix":operationRateFix, "partLoadMin":partLoadMin}
         for name, data in check_data.items():
-            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriods)
+            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
 
         # iterate over all ips
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
             # opexPerOperation
             if (
                 isinstance(opexPerOperation, int)
@@ -275,7 +277,7 @@ class Source(Component):
                 )
             elif isinstance(opexPerOperation, dict):
                 self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation[ip], "1dim", locationalEligibility
+                    esM, name, opexPerOperation[_ip], "1dim", locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -293,7 +295,7 @@ class Source(Component):
                 )
             elif isinstance(commodityCost, dict):  # commodityCost is dict
                 self.processedCommodityCost[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityCost[ip], "1dim", locationalEligibility
+                    esM, name, commodityCost[_ip], "1dim", locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -311,7 +313,7 @@ class Source(Component):
                 )
             elif isinstance(commodityRevenue, dict):
                 self.processedCommodityRevenue[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityRevenue[ip], "1dim", locationalEligibility
+                    esM, name, commodityRevenue[_ip], "1dim", locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -329,7 +331,7 @@ class Source(Component):
                 )
             elif isinstance(commodityCostTimeSeries, dict):
                 self.fullCommodityCostTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityCostTimeSeries[ip], locationalEligibility
+                    esM, name, commodityCostTimeSeries[_ip], locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -352,7 +354,7 @@ class Source(Component):
                 )
             elif isinstance(commodityRevenueTimeSeries, dict):
                 self.fullCommodityRevenueTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityRevenueTimeSeries[ip], locationalEligibility
+                    esM, name, commodityRevenueTimeSeries[_ip], locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -375,23 +377,25 @@ class Source(Component):
         self.processedOperationRateFix = {}
 
         # iterate over all ips
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip = esM.investmentPeriodList.index(_ip)
             #  ugly test to check that for every ip there is either
             # operationRateMax or operationRateFix
             _operationRateMax = (
-                operationRateMax[ip]
+                operationRateMax[_ip]
                 if isinstance(operationRateMax, dict)
                 else operationRateMax
             )
             _operationRateFix = (
-                operationRateFix[ip]
+                operationRateFix[_ip]
                 if isinstance(operationRateFix, dict)
                 else operationRateFix
             )
 
             if _operationRateMax is not None and _operationRateFix is not None:
                 if isinstance(operationRateMax, dict):
-                    operationRateMax[ip] = None
+                    operationRateMax[_ip] = None
                 else:
                     operationRateMax = None
                 if esM.verbose < 2:
@@ -411,7 +415,7 @@ class Source(Component):
                 )
             elif isinstance(operationRateMax, dict):  # operationRate is dict
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax[ip], locationalEligibility
+                    esM, name, operationRateMax[_ip], locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -433,7 +437,7 @@ class Source(Component):
                 )
             elif isinstance(operationRateFix, dict):  # operationRate is dict
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix[ip], locationalEligibility
+                    esM, name, operationRateFix[_ip], locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -447,11 +451,13 @@ class Source(Component):
         # Part Load Min
         self.partLoadMin = partLoadMin
         self.processedPartLoadMin = {}
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
             if isinstance(partLoadMin, float) or partLoadMin is None:
                 self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[ip]
+                self.processedPartLoadMin[ip] = partLoadMin[_ip]
 
         if not any(value for value in self.processedPartLoadMin.values()):
             self.processedPartLoadMin = None
@@ -522,7 +528,9 @@ class Source(Component):
             for ip in esM.investmentPeriods:
                 operationTimeSeries[ip] = self.fullOperationRateFix[ip]
         elif self.fullOperationRateMax is not None:
-            for ip in esM.investmentPeriods:
+            for _ip in esM.investmentPeriodList:
+                # map name of investment period (e.g. 2020) to index (e.g. 0)
+                ip=esM.investmentPeriodList.index(_ip)
                 operationTimeSeries[ip] = self.fullOperationRateMax[ip]
         else:
             operationTimeSeries = None
@@ -1184,7 +1192,7 @@ class SourceSinkModel(ComponentModel):
         # Quick fix if several runs with one investment period
         if type(self.operationVariablesOptimum) is not dict:
             self.operationVariablesOptimum = {}
-        self.operationVariablesOptimum[ip] = optVal
+        self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
         props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
         # Unit dict: Specify units for props
@@ -1328,7 +1336,7 @@ class SourceSinkModel(ComponentModel):
         # Quick fix if several runs with one investment period
         if type(self.optSummary) is not dict:
             self.optSummary = {}
-        self.optSummary[ip] = optSummary
+        self.optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all"):
         """

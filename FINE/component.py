@@ -2884,7 +2884,7 @@ class ComponentModel(metaclass=ABCMeta):
             optVal_ = utils.formatOptimizationOutput(
                 values, "designVariables", self.dimension, compDict=compDict
             )
-        self.capacityVariablesOptimum[ip] = optVal_
+        self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
         if optVal is not None:
             # Check if the installed capacities are close to a bigM value for components with design decision variables but

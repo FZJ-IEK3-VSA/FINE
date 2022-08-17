@@ -117,7 +117,8 @@ class StorageExtBETA(Storage):
         self.aggregatedOpexPerChargeOpTimeSeries = {}
         self.opexPerChargeOpTimeSeries = {}
 
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            ip=esM.investmentPeriodList.index(_ip)
             # fullStateOfChargeOpRateMax
             if (
                 isinstance(stateOfChargeOpRateMax, pd.DataFrame)
@@ -129,7 +130,7 @@ class StorageExtBETA(Storage):
                 )
             elif isinstance(stateOfChargeOpRateMax, dict):
                 self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, stateOfChargeOpRateMax[ip], self.locationalEligibility
+                    esM, name, stateOfChargeOpRateMax[_ip], self.locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -152,7 +153,7 @@ class StorageExtBETA(Storage):
                 )
             elif isinstance(stateOfChargeOpRateFix, dict):
                 self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, stateOfChargeOpRateFix[ip], self.locationalEligibility
+                    esM, name, stateOfChargeOpRateFix[_ip], self.locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -175,7 +176,7 @@ class StorageExtBETA(Storage):
                 )
             elif isinstance(opexPerChargeOpTimeSeries, dict):
                 self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, opexPerChargeOpTimeSeries[ip], self.locationalEligibility
+                    esM, name, opexPerChargeOpTimeSeries[_ip], self.locationalEligibility
                 )
             else:
                 raise TypeError(

@@ -714,12 +714,12 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 + " if partLoadMin is not None."
             )
 
-def checkInvestmentPeriodParameters(name,param,investmentPeriods):
+def checkInvestmentPeriodParameters(name,param,investmentPeriodList):
     if isinstance(param,dict):
-        if len(param.keys()) != len(investmentPeriods):
+        if len(param.keys()) != len(investmentPeriodList):
             raise ValueError(f"Parameter '{name}' is initialized as dict, but does not contain values for each investment-period")
-        if sorted(param.keys()) != sorted(investmentPeriods):
-            raise ValueError(f"Parameter '{name}' has different ip-names ('{param.keys()}') than the investment periods of the esM ('{investmentPeriods}')","TODO: implement correct year naming")
+        if sorted(param.keys()) != sorted(investmentPeriodList):
+            raise ValueError(f"Parameter '{name}' has different ip-names ('{param.keys()}') than the investment periods of the esM ('{investmentPeriodList}')","TODO: implement correct year naming")
 
         for key, value in param.items():
             if value is None:

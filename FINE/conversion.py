@@ -164,14 +164,16 @@ class Conversion(Component):
         # check input data
         check_data={"operationRateMax":operationRateMax,"operationRateFix":operationRateFix,"partLoadMin":partLoadMin}
         for name, data in check_data.items():
-            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriods)
+            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
         utils.checkInvestmentPeriodsCommodityConversion(commodityConversionFactors, esM.investmentPeriods)
         
         
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
             # 1. dict aus Jahren -> verschiedene commoditiyconversion für jahr  
             if all(item in esM.investmentPeriods for item in commodityConversionFactors.keys()):
-                _commodityConversionFactors = commodityConversionFactors[ip]
+                _commodityConversionFactors = commodityConversionFactors[_ip]
             else:
                 _commodityConversionFactors = commodityConversionFactors
 
@@ -221,7 +223,7 @@ class Conversion(Component):
                 )
             elif isinstance(opexPerOperation, dict):
                 self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation[ip], "1dim", locationalEligibility
+                    esM, name, opexPerOperation[_ip], "1dim", locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -251,7 +253,9 @@ class Conversion(Component):
         self.processedOperationRateFix = {}
 
         # iterate over all ips
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
 
             # Operation Rate Max
             if (
@@ -264,7 +268,7 @@ class Conversion(Component):
                 )
             elif isinstance(operationRateMax, dict):
                 self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax[ip], locationalEligibility
+                    esM, name, operationRateMax[_ip], locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -287,7 +291,7 @@ class Conversion(Component):
                 )
             elif isinstance(operationRateFix, dict):  # operationRate is dict
                 self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix[ip], locationalEligibility
+                    esM, name, operationRateFix[_ip], locationalEligibility
                 )
             # elif operationRateFix is None:
             #     pass
@@ -306,11 +310,13 @@ class Conversion(Component):
         self.processedPartLoadMin = {}
 
         # iterate over all ips
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
             if isinstance(partLoadMin, float) or partLoadMin is None:
                 self.processedPartLoadMin[ip] = partLoadMin
             elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[ip]
+                self.processedPartLoadMin[ip] = partLoadMin[_ip]
 
         if not any(value for value in self.processedPartLoadMin.values()):
             self.processedPartLoadMin = None
@@ -851,7 +857,7 @@ class ConversionModel(ComponentModel):
         # Quick fix if several runs with one investment period
         if type(self.operationVariablesOptimum) is not dict:
             self.operationVariablesOptimum = {}
-        self.operationVariablesOptimum[ip] = optVal
+        self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
         props = ["operation", "opexOp"]
         # Unit dict: Specify units for props
@@ -928,7 +934,7 @@ class ConversionModel(ComponentModel):
         # Quick fix if several runs with one investment period
         if type(self.optSummary) is not dict:
             self.optSummary = {}
-        self.optSummary[ip] = optSummary
+        self.optSummary[esM.investmentPeriodList[ip]]  = optSummary
 
     def getOptimalValues(self, name="all"):
         """

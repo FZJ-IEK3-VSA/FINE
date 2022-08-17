@@ -135,7 +135,8 @@ class DemandSideManagementBETA(Sink):
         self.shiftUpMax = {}
         self.shiftDownMax = {}
 
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            ip=esM.investmentPeriodList.index(_ip)
 
             if isinstance(operationRateFix, pd.DataFrame) or isinstance(
                 operationRateFix, pd.Series
@@ -146,8 +147,8 @@ class DemandSideManagementBETA(Sink):
             elif isinstance(operationRateFix, dict):  # operationRateFix is dict
                 _operationRateFix[ip] = pd.concat(
                     [
-                        operationRateFix[ip].iloc[-tBwd:],
-                        operationRateFix[ip].iloc[:-tBwd],
+                        operationRateFix[_ip].iloc[-tBwd:],
+                        operationRateFix[_ip].iloc[:-tBwd],
                     ]
                 ).reset_index(drop=True)
             else:
@@ -160,7 +161,7 @@ class DemandSideManagementBETA(Sink):
                 print("shiftUpMax was set to", _operationRateFix[ip].max())
             else:
                 if isinstance(shiftUpMax, dict):
-                    self.shiftUpMax[ip] = shiftUpMax[ip]
+                    self.shiftUpMax[ip] = shiftUpMax[_ip]
                 else:
                     self.shiftUpMax[ip] = shiftUpMax
 
@@ -169,7 +170,7 @@ class DemandSideManagementBETA(Sink):
                 print("shiftDownMax was set to", _operationRateFix[ip].max())
             else:
                 if isinstance(shiftDownMax, dict):
-                    self.shiftDownMax[ip] = shiftDownMax[ip]
+                    self.shiftDownMax[ip] = shiftDownMax[_ip]
                 else:
                     self.shiftDownMax[ip] = shiftDownMax
 
@@ -191,7 +192,8 @@ class DemandSideManagementBETA(Sink):
             chargeOpRateMax = {}
             opexPerChargeOpTimeSeries = {}
 
-            for ip in esM.investmentPeriods:
+            for _ip in esM.investmentPeriodList:
+                ip=esM.investmentPeriodList.index(_ip)
                 SOCmax[ip] = _operationRateFix[ip].copy()
                 SOCmax[ip][SOCmax[ip] > 0] = 0
 
@@ -506,7 +508,7 @@ class DSMModel(SourceSinkModel):
 
         if type(self.operationVariablesOptimum) is not dict:
             self.operationVariablesOptimum = {}
-        self.operationVariablesOptimum[ip] = optVal
+        self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
         props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
         units = [
@@ -644,4 +646,4 @@ class DSMModel(SourceSinkModel):
         # Quick fix if several runs with one investment period
         if type(self.optSummary) is not dict:
             self.optSummary = {}
-        self.optSummary[ip] = optSummary
+        self.optSummary[esM.investmentPeriodList[ip]]  = optSummary
