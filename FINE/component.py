@@ -40,6 +40,7 @@ class Component(metaclass=ABCMeta):
         technicalLifetime=None,
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
+        stock={"installationyears":pd.DataFrame(),""}
     ):
         """
         Constructor for creating an Component class instance.
@@ -427,7 +428,8 @@ class Component(metaclass=ABCMeta):
             esM, name, technicalLifetime, dimension, elig
         )
         if esM.mode =="perfectForesight":
-            self.ipTechnicalLifetime=utils.checkTechnicalLifetimeInvestmenPeriod(esM,name,technicalLifetime)
+            self.ipTechnicalLifetime=utils.checkLifetimeInvestmenPeriod(esM,name,self.technicalLifetime)
+            self.ipEconomicLifetime=utils.checkLifetimeInvestmenPeriod(esM,name,self.economicLifetime)
         self.CCF = utils.getCapitalChargeFactor(
             self.interestRate, self.economicLifetime
         )
@@ -1653,10 +1655,10 @@ class ComponentModel(metaclass=ABCMeta):
             decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                comm_date=ip-self.componentsDict[compName].ipTechnicalLifetime
+                comm_date=ip-self.componentsDict[compName].ipTechnicalLifetime[loc]
                 # only set constraint if decomm_date is within investment periods
                 if comm_date in pyM.investSet._values.values():
-                    return(decommisVar[loc, compName, ip]==commisVar[loc, compName, ip-self.componentsDict[compName].ipTechnicalLifetime])
+                    return(decommisVar[loc, compName, ip]==commisVar[loc, compName, ip-self.componentsDict[compName].ipTechnicalLifetime[loc]])
                 else:
                     return(decommisVar[loc, compName, ip]==0)
 
@@ -2179,25 +2181,45 @@ class ComponentModel(metaclass=ABCMeta):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
+        if esM.mode=="perfectForesight":
+            _varName="commis"
+        else:
+            _varName="cap"
+            
         capexCap = self.getEconomicsTI(
             pyM,
             esM,
             factorNames=["investPerCapacity", "QPcostDev"],
             QPfactorNames=["QPcostScale", "investPerCapacity"],
-            varName="cap",
+            lifetimeAttr="ipEconomicLifetime",
+            varName=_varName,
             divisorName="CCF",
             QPdivisorNames=["QPbound", "CCF"],
         )
-        capexDec = self.getEconomicsTI(pyM, esM, ["investIfBuilt"], "designBin", "CCF")
+        capexDec = self.getEconomicsTI(
+            pyM, 
+            esM, 
+            factorNames=["investIfBuilt"], 
+            lifetimeAttr="ipEconomicLifetime", 
+            varName="designBin", 
+            divisorName="CCF"
+        )
         opexCap = self.getEconomicsTI(
             pyM,
             esM,
             factorNames=["opexPerCapacity", "QPcostDev"],
             QPfactorNames=["QPcostScale", "opexPerCapacity"],
-            varName="cap",
+            lifetimeAttr="ipTechnicalLifetime",
+            varName=_varName,
             QPdivisorNames=["QPbound"],
         )
-        opexDec = self.getEconomicsTI(pyM, esM, ["opexIfBuilt"], "designBin")
+        opexDec = self.getEconomicsTI(
+            pyM, 
+            esM, 
+            factorNames=["opexIfBuilt"], 
+            lifetimeAttr="ipTechnicalLifetime", 
+            varName="designBin"
+        )
         
         return capexCap + capexDec + opexCap + opexDec
 
@@ -2423,6 +2445,7 @@ class ComponentModel(metaclass=ABCMeta):
         pyM,
         esM,
         factorNames,
+        lifetimeAttr,
         varName,
         divisorName="",
         QPfactorNames=[],
@@ -2469,39 +2492,92 @@ class ComponentModel(metaclass=ABCMeta):
         """
         var = getattr(pyM, varName + "_" + self.abbrvName)
         if esM.mode=="perfectForesight":
-            return sum(
-                self.getLocEconomicsTI(
-                    pyM,
-                    esM,
-                    factorNames,
-                    varName,
-                    loc,
-                    compName,
-                    ip,
-                    divisorName,
-                    QPfactorNames,
-                    QPdivisorNames,
-                    getOptValue,
-                )
-                * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
-                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))*(1+esM.getComponent(compName).interestRate[loc])\
-                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
-                if esM.getComponent(compName).interestRate[loc] !=0 and esM.mode !="stochastic" else
-                self.getLocEconomicsTI(
-                    pyM,
-                    esM,
-                    factorNames,
-                    varName,
-                    loc,
-                    compName,
-                    ip,
-                    divisorName,
-                    QPfactorNames,
-                    QPdivisorNames,
-                    getOptValue,
-                )
-                for loc, compName, ip in var
-            )
+            def annuityPresentValueFactor(esM,compName,ip,loc ):
+                # DE:Rentenbarwertfaktor
+                intrestRate = esM.getComponent(compName).interestRate[loc]
+                return (((1+intrestRate)**(esM.yearsPerInvestmentPeriod))-1)\
+                        /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))*(1+intrestRate)
+            
+            # Special case for perfect foresight: Components can have different 
+            # investPerCapacity in different years. The capex contribution 
+            # however only depends on the capex of the commissioning year.
+            # Therefore, we initialize a dataframe with index and columns of the 
+            # investement periods. The rows describe the commissioning years, 
+            # e.g. a component build in year 2 but with a lifetime of three 
+            # years would have entries for df.loc[2,2:5]. Afterwards we 
+            # sum the contributions per column, multiply it with the annuity 
+            # present value factor to get the npv of the component for 
+            # different investPerCapacity and several ip for commissioning
+            
+            # TODO WHAT ELSE THAN CAPEX IS HERE???
+            # if "investPerCapacity" in factorNames:
+            #     _lifetime_name="ipEconomicLifetime"
+            # elif "opexPerCapacity" in factorNames:
+            #     _lifetime_name="ipTechnicalLifetime"
+            # elif "investIfBuilt" in factorNames:
+            #     pass
+            # else:
+            #     raise ValueError("??")
+            costContribution={}
+            for loc, compName, commisYear in var:
+                # TODO improve!
+                if (loc,compName) not in costContribution.keys():
+                    costContribution[(loc,compName)] = pd.DataFrame(0, index=esM.investmentPeriods, columns=esM.investmentPeriods)
+                decommisYear=commisYear+getattr(esM.getComponent(compName),lifetimeAttr)[loc]
+                costContribution[(loc,compName)].loc[commisYear,commisYear:decommisYear] =\
+                    self.getLocEconomicsTI(
+                        pyM,
+                        esM,
+                        factorNames,
+                        varName,
+                        loc,
+                        compName,
+                        commisYear,
+                        divisorName,
+                        QPfactorNames,
+                        QPdivisorNames,
+                        getOptValue,
+                    )
+            return sum(costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc )\
+                    * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
+                    for loc, compName, ip in var)
+
+            
+            # for loc, compName, ip in var:
+            #     ds = pd.Series(0, index=esM.investmentPeriods)
+            #     ds[ip:ip+esM.getComponent(compName).ipEconomicLifetime[loc]] =      self.getLocEconomicsTI(
+            #             pyM,
+            #             esM,
+            #             factorNames,
+            #             varName,
+            #             loc,
+            #             compName,
+            #             ip,
+            #             divisorName,
+            #             QPfactorNames,
+            #             QPdivisorNames,
+            #             getOptValue,
+            #         )
+            
+            # return sum(
+            #         self.getLocEconomicsTI(
+            #             pyM,
+            #             esM,
+            #             factorNames,
+            #             varName,
+            #             loc,
+            #             compName,
+            #             ip,
+            #             divisorName,
+            #             QPfactorNames,
+            #             QPdivisorNames,
+            #             getOptValue,
+            #         )
+            #         * annuityPresentValueFactor(esM,compName,ip,loc )\
+            #         * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
+            #         for loc, compName, ip in var
+            #     )
+
         else:
             ip=None
             return sum(

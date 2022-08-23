@@ -859,28 +859,46 @@ class TransmissionModel(ComponentModel):
         opexOp = self.getEconomicsTD(
             pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDictOut"
         )
-
+        
+        if esM.mode=="perfectForesight":
+            _varName="commis"
+        else:
+            _varName="cap"
+            
         capexCap = self.getEconomicsTI(
             pyM,
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
             QPfactorNames=["QPcostScale", "processedInvestPerCapacity"],
-            varName="cap",
+            lifetimeAttr="ipEconomicLifetime",
+            varName=_varName,
             divisorName="CCF",
             QPdivisorNames=["QPbound", "CCF"],
         )
         capexDec = self.getEconomicsTI(
-            pyM, esM, ["processedInvestIfBuilt"], "designBin", "CCF"
+            pyM, 
+            esM, 
+            factorNames=["processedInvestIfBuilt"],
+            lifetimeAttr="ipEconomicLifetime", 
+            varName="designBin", 
+            divisorName="CCF"
         )
         opexCap = self.getEconomicsTI(
             pyM,
             esM,
             factorNames=["processedOpexPerCapacity", "QPcostDev"],
             QPfactorNames=["QPcostScale", "processedOpexPerCapacity"],
-            varName="cap",
+            lifetimeAttr="ipTechnicalLifetime",
+            varName=_varName,
             QPdivisorNames=["QPbound"],
         )
-        opexDec = self.getEconomicsTI(pyM, esM, ["processedOpexIfBuilt"], "designBin")
+        opexDec = self.getEconomicsTI(
+            pyM, 
+            esM, 
+            factorNames=["processedOpexIfBuilt"], 
+            lifetimeAttr="ipTechnicalLifetime",
+            varName="designBin"
+        )
 
         return opexOp + capexCap + capexDec + opexCap + opexDec
 

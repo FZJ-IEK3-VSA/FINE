@@ -1112,11 +1112,14 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
         )
     return _data
 
-def checkTechnicalLifetimeInvestmenPeriod(esM,name,technicalLifetime):
-    ip_technicalLifeTime=technicalLifetime/( esM.yearsPerInvestmentPeriod)
-    if not ip_technicalLifeTime.is_integer():
-        raise ValueError(f"The technical lifetime of '{name}' devided by length of investment period nicht rund")
-    return ip_technicalLifeTime
+def checkLifetimeInvestmenPeriod(esM,name,lifetime):
+    ip_LifeTime=lifetime/( esM.yearsPerInvestmentPeriod)
+    if any(not x.is_integer() for x in ip_LifeTime.values):
+        raise ValueError(f"The lifetime of '{name}' devided by length of investment period nicht rund")
+    ip_LifeTime=ip_LifeTime.astype(int)
+    return ip_LifeTime
+
+
 
 def checkAndSetTimeSeriesConversionFactors(
     esM, commodityConversionFactorsTimeSeries, locationalEligibility

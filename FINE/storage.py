@@ -1880,11 +1880,16 @@ class StorageModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-
-        capexCap = self.getEconomicsTI(pyM, esM, ["investPerCapacity"], "cap", "CCF")
-        capexDec = self.getEconomicsTI(pyM, esM, ["investIfBuilt"], "designBin", "CCF")
-        opexCap = self.getEconomicsTI(pyM, esM, ["opexPerCapacity"], "cap")
-        opexDec = self.getEconomicsTI(pyM, esM, ["opexIfBuilt"], "designBin")
+        
+        if esM.mode=="perfectForesight":
+            _varName="commis"
+        else:
+            _varName="cap"
+            
+        capexCap = self.getEconomicsTI(pyM, esM, ["investPerCapacity"],lifetimeAttr="ipEconomicLifetime", varName=_varName, divisorName="CCF")
+        capexDec = self.getEconomicsTI(pyM, esM, ["investIfBuilt"], lifetimeAttr="ipEconomicLifetime", varName="designBin", divisorName="CCF")
+        opexCap = self.getEconomicsTI(pyM, esM, ["opexPerCapacity"], lifetimeAttr="ipTechnicalLifetime", varName=_varName)
+        opexDec = self.getEconomicsTI(pyM, esM, ["opexIfBuilt"], lifetimeAttr="ipTechnicalLifetime", varName="designBin")
         opexOp1 = self.getEconomicsTD(
             pyM,
             esM,
