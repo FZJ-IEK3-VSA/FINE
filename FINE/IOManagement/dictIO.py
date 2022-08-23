@@ -17,7 +17,6 @@ def exportToDict(esM):
 
     # Get all input properties of the esM
     inputkwargs = inspect.getfullargspec(fn.EnergySystemModel.__init__)
-
     esmDict = {}
     # Loop over all props
     for arg in inputkwargs.args:

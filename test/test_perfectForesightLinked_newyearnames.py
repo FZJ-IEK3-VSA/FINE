@@ -16,9 +16,7 @@ import pandas as pd
 def test_perfectForesight_linked():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
-    numberOfInvestmentPeriods = 6
-    yearsPerInvestmentPeriod = 1 # vorher 1
-    investmentPeriodList=[2020,2021,2022,2023,2024,2025]
+    investmentPeriodList_for_testing=[2020,2021,2022,2023,2024,2025]
 
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
@@ -28,9 +26,9 @@ def test_perfectForesight_linked():
         commodityUnitsDict={"electricity": r"kW$_{el}$"},
         hoursPerTimeStep=hoursPerTimeStep,
         costUnit="1 Euro",
-        investmentPeriodList=investmentPeriodList,
-        #numberOfInvestmentPeriods=numberOfInvestmentPeriods,
-        #yearsPerInvestmentPeriod=yearsPerInvestmentPeriod,
+        startyear=2020,
+        numberOfInvestmentPeriods=6,
+        yearsPerInvestmentPeriod=1,
         mode="perfectForesight",
         lengthUnit="km",
         verboseLogLevel=2,
@@ -317,7 +315,7 @@ def test_perfectForesight_linked():
     print(esM.pyM.Obj())    # 44655?
     
     # check 
-    assert esM.getOptimizationSummary("SourceSinkModel").keys() != investmentPeriodList
+    assert esM.getOptimizationSummary("SourceSinkModel").keys() != investmentPeriodList_for_testing
     
     # check 
     PV_cap_year0=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[2020].xs("PV").values[0]

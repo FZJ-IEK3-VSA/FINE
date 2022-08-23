@@ -16,8 +16,7 @@ import pandas as pd
 def test_perfectForesight_linked():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
-    numberOfInvestmentPeriods = 6
-    yearsPerInvestmentPeriod = 1 # vorher 1
+
 
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
@@ -27,9 +26,8 @@ def test_perfectForesight_linked():
         commodityUnitsDict={"electricity": r"kW$_{el}$"},
         hoursPerTimeStep=hoursPerTimeStep,
         costUnit="1 Euro",
-        #investmentPeriods=[2020,2021,2022,2023,2024,2025],
-        numberOfInvestmentPeriods=numberOfInvestmentPeriods,
-        yearsPerInvestmentPeriod=yearsPerInvestmentPeriod,
+        numberOfInvestmentPeriods=6,
+        yearsPerInvestmentPeriod=1,
         mode="perfectForesight",
         lengthUnit="km",
         verboseLogLevel=2,

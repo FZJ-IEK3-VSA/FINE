@@ -71,9 +71,9 @@ class EnergySystemModel:
         commodityUnitsDict,
         numberOfTimeSteps=8760,
         hoursPerTimeStep=1,
-        investmentPeriodList=None,
-        numberOfInvestmentPeriods=None,
-        yearsPerInvestmentPeriod=None,
+        startyear=0,
+        numberOfInvestmentPeriods=1,
+        yearsPerInvestmentPeriod=1,
         mode="singleYearOptimization",
         costUnit="1e9 Euro",
         lengthUnit="km",
@@ -118,17 +118,17 @@ class EnergySystemModel:
 
         :param numberOfInvestmentPeriods: number of investment periods of transformation
             path analysis
-            |br| * the default value is None
+            |br| * the default value is 1
         : type numberOfInvestmentPeriods: strictly positive integer
 
         :param yearsPerInvestmentPeriod: years per investment period of transformation
             path analysis
-            |br| * the default value is None
+            |br| * the default value is 1
         : type yearsPerInvestmentPeriod: strictly positive integer
         
-        :param investmentPeriodList: list of investment periods of transformation
+        :param startyear: year name of first investment period, e.g. 2020
             |br| * the default value is None
-        : type investmentPeriodList: list of strictly positive integer
+        : type investmentPeriodList: integer
 
         :param mode: linking method for several investment periods
             |br| * the default value is None
@@ -215,7 +215,7 @@ class EnergySystemModel:
             hoursPerTimeStep,
             numberOfInvestmentPeriods,
             yearsPerInvestmentPeriod,
-            investmentPeriodList,
+            startyear,
             mode,
             costUnit,
             lengthUnit,
@@ -256,21 +256,15 @@ class EnergySystemModel:
         
         ######################################################################
         # Perfect Foresight related
-        if investmentPeriodList is None and numberOfInvestmentPeriods is None and yearsPerInvestmentPeriod is None: 
-            numberOfInvestmentPeriods=1
-            yearsPerInvestmentPeriod=1
-            
-        if investmentPeriodList is None:
-            self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
-            self.investmentPeriods = list(range(numberOfInvestmentPeriods))
-            self.yearsPerInvestmentPeriod = yearsPerInvestmentPeriod
-            self.investmentPeriodList = list(range(numberOfInvestmentPeriods))
-        else:
-            self.numberOfInvestmentPeriods = len(investmentPeriodList)
-            self.investmentPeriods = list(range(len(investmentPeriodList)))
-            self.yearsPerInvestmentPeriod = np.diff(investmentPeriodList)[0]
-            self.investmentPeriodList=investmentPeriodList
-                   
+        # TODO comments
+        finalyear=startyear+numberOfInvestmentPeriods*yearsPerInvestmentPeriod-1
+        self.investmentPeriodList = list(range(startyear,finalyear+1,yearsPerInvestmentPeriod))
+        
+        self.yearsPerInvestmentPeriod=yearsPerInvestmentPeriod
+        self.startyear=startyear
+        self.investmentPeriods = list(range(numberOfInvestmentPeriods))
+        self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
+                 
         self.mode=mode
             
 
