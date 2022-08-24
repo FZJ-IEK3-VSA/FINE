@@ -40,7 +40,7 @@ class Component(metaclass=ABCMeta):
         technicalLifetime=None,
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
-        stock={"installationyears":pd.DataFrame(),""}
+        #stock={"installationyears":pd.DataFrame(),""}
     ):
         """
         Constructor for creating an Component class instance.
@@ -400,6 +400,19 @@ class Component(metaclass=ABCMeta):
         
         # Set economic data
         elig = locationalEligibility
+        
+        # self.investPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
+        #     esM, name, investPerCapacity, dimension, elig
+        # )
+        # self.investIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
+        #     esM, name, investIfBuilt, dimension, elig
+        # )
+        # self.opexPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
+        #     esM, name, opexPerCapacity, dimension, elig
+        # )
+        # self.opexIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
+        #     esM, name, opexIfBuilt, dimension, elig
+        # )
         self.investPerCapacity = utils.checkAndSetCostParameter(
             esM, name, investPerCapacity, dimension, elig
         )
@@ -412,6 +425,7 @@ class Component(metaclass=ABCMeta):
         self.opexIfBuilt = utils.checkAndSetCostParameter(
             esM, name, opexIfBuilt, dimension, elig
         )
+        
         self.QPcostScale = utils.checkAndSetCostParameter(
             esM, name, QPcostScale, dimension, elig
         )
@@ -428,8 +442,8 @@ class Component(metaclass=ABCMeta):
             esM, name, technicalLifetime, dimension, elig
         )
         if esM.mode =="perfectForesight":
-            self.ipTechnicalLifetime=utils.checkLifetimeInvestmenPeriod(esM,name,self.technicalLifetime)
-            self.ipEconomicLifetime=utils.checkLifetimeInvestmenPeriod(esM,name,self.economicLifetime)
+            self.ipTechnicalLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.technicalLifetime)
+            self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.economicLifetime)
         self.CCF = utils.getCapitalChargeFactor(
             self.interestRate, self.economicLifetime
         )
@@ -2496,7 +2510,7 @@ class ComponentModel(metaclass=ABCMeta):
                 # DE:Rentenbarwertfaktor
                 intrestRate = esM.getComponent(compName).interestRate[loc]
                 return (((1+intrestRate)**(esM.yearsPerInvestmentPeriod))-1)\
-                        /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))*(1+intrestRate)
+                        /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))
             
             # Special case for perfect foresight: Components can have different 
             # investPerCapacity in different years. The capex contribution 
@@ -2538,8 +2552,8 @@ class ComponentModel(metaclass=ABCMeta):
                         QPdivisorNames,
                         getOptValue,
                     )
-            return sum(costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc )\
-                    * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
+            return sum(costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
+                    * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
                     for loc, compName, ip in var)
 
             

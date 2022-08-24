@@ -884,7 +884,31 @@ def setLocationalEligibility(
             data = capacityFix.copy() if capacityFix is not None else capacityMax.copy()
             data[data > 0] = 1
             return data
-
+        
+def checkAndSetInvestmentPeriodTimeSeries(
+    esM, name, data, locationalEligibility, dimension="1dim"
+):
+    parameter={}
+    for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip = esM.investmentPeriodList.index(_ip)
+            if (
+                isinstance(data, pd.DataFrame)
+                or data is None
+                or isinstance(data, pd.Series)
+            ):
+                parameter[ip] = checkAndSetTimeSeries(
+                    esM, name, data, locationalEligibility,dimension
+                )
+            elif isinstance(data, dict):  # operationRate is dict
+                parameter[ip] = checkAndSetTimeSeries(
+                    esM, name, data[_ip], locationalEligibility,dimension
+                )
+            else:
+                raise TypeError(
+                    "OperationRateFix should be a pandas dataframe or a dictionary."
+                )
+    return parameter
 
 def checkAndSetTimeSeries(
     esM, name, operationTimeSeries, locationalEligibility, dimension="1dim"
@@ -1040,7 +1064,6 @@ def checkTechnicalLifetime(esM, technicalLifetime, economicLifetime):
         technicalLifetime = economicLifetime
     return technicalLifetime
 
-
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     if dimension == "1dim":
         if not (
@@ -1112,7 +1135,77 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
         )
     return _data
 
-def checkLifetimeInvestmenPeriod(esM,name,lifetime):
+def checkAndSetPartLoadMin(esM,name,partLoadMin,fullOperationMax, fullOperationFix):
+    checkInvestmentPeriodParameters(name,partLoadMin,esM.investmentPeriodList)
+    partLoadMin_ip={}
+    for _ip in esM.investmentPeriodList:
+        # map name of investment period (e.g. 2020) to index (e.g. 0)
+        ip=esM.investmentPeriodList.index(_ip)
+        if isinstance(partLoadMin, float) or partLoadMin is None:
+            partLoadMin_ip[ip] = partLoadMin
+        elif isinstance(partLoadMin, dict):
+            partLoadMin_ip[ip] = partLoadMin[_ip]
+        if partLoadMin_ip is not None:
+            if fullOperationMax[ip] is not None:
+                if (
+                    (
+                        (fullOperationMax[ip] > 0)
+                        & (
+                            fullOperationMax[ip]
+                            < partLoadMin_ip
+                        )
+                    )
+                    .any()
+                    .any()
+                ):
+                    raise ValueError(
+                        '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
+                        + name
+                    )
+            if fullOperationFix[ip] is not None:
+                if (
+                    (
+                        (fullOperationFix[ip] > 0)
+                        & (
+                            fullOperationFix[ip]
+                            < partLoadMin_ip
+                        )
+                    )
+                    .any()
+                    .any()
+                ):
+                    raise ValueError(
+                        '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
+                        + name
+                    )
+    return partLoadMin_ip
+
+def checkAndSetInvestmentPeriodCostParameter(esM, name, data, dimension, locationalEligibility):
+    # first check
+    checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
+    parameter={}
+    for _ip in esM.investmentPeriodList:
+        # map name of investment period (e.g. 2020) to index (e.g. 0)
+        ip=esM.investmentPeriodList.index(_ip)
+        if (
+                isinstance(data, int)
+                or isinstance(data, float)
+                or isinstance(data, pd.Series)
+            ):
+            parameter[ip] = checkAndSetCostParameter(
+                    esM, name, data, dimension, locationalEligibility
+                )
+        elif isinstance(data, dict):
+            parameter[ip] = checkAndSetCostParameter(
+                esM, name, data[_ip], dimension, locationalEligibility
+            )
+        else:
+            raise TypeError(
+                f"{name} should be a pandas series or a dictionary."
+            )
+    return parameter
+
+def checkLifetimeInvestmentPeriod(esM,name,lifetime):
     ip_LifeTime=lifetime/( esM.yearsPerInvestmentPeriod)
     if any(not x.is_integer() for x in ip_LifeTime.values):
         raise ValueError(f"The lifetime of '{name}' devided by length of investment period nicht rund")

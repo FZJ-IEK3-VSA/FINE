@@ -246,20 +246,28 @@ class Transmission(Component):
 
         # Set additional economic data
 
-        ## New code for perfect foresight!
-        # create emtpy dicts
+        # opexPerOperation
         self.opexPerOperation = opexPerOperation
         self.processedOpexPerOperation = {}
+        # self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
+        #             esM, name, opexPerOperation, "2dim", self.locationalEligibility
+        #         )
+        # operationRateMax
         self.operationRateMax = operationRateMax
         self.fullOperationRateMax = {}
         self.aggregatedOperationRateMax = {}
         self.processedOperationRateMax = {}
-
+        
+        # operationRateFix
         self.operationRateFix = operationRateFix
+        self.processedOperationRateFix = {}
         self.fullOperationRateFix = {}
         self.aggregatedOperationRateFix = {}
-        self.processedOperationRateFix = {}
+        
+        
+        # partLoadMin
         self.partLoadMin = partLoadMin
+        self.processedPartLoadMin=utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullOperationMax, self.fullOperationFix)
         self.processedPartLoadMin = {}
 
         # check input data

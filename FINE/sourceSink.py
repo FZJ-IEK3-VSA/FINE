@@ -240,20 +240,42 @@ class Source(Component):
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
+        # opexPerOperation
         self.opexPerOperation = opexPerOperation
-        self.commodityCost = commodityCost
-        self.commodityRevenue = commodityRevenue
         self.processedOpexPerOperation = {}
+        # self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
+        #             esM, name, opexPerOperation, "1dim", locationalEligibility
+        #         )
+        
+        # commodityCost
+        self.commodityCost = commodityCost
         self.processedCommodityCost = {}
+        # self.processedCommodityCost = utils.checkAndSetInvestmentPeriodCostParameter(
+        #             esM, name, commodityCost, "1dim", locationalEligibility
+        #         )
+        
+        # commodtyRevenue
+        self.commodityRevenue = commodityRevenue       
         self.processedCommodityRevenue = {}
+        # self.processedCommodityRevenue= utils.checkAndSetInvestmentPeriodCostParameter(
+        #             esM, name, commodityRevenue, "1dim", locationalEligibility
+        #         )
 
+        # commodityCostTimeSeries
         self.commodityCostTimeSeries = commodityCostTimeSeries
+        # self.fullCommodityCostTimeSeries=utils.checkAndSetInvestmentPeriodTimeSeries(
+        #             esM, name, commodityCostTimeSeries, locationalEligibility
+        #         )
         self.fullCommodityCostTimeSeries = {}
         self.aggregatedCommodityCostTimeSeries = {}
         self.processedCommodityCostTimeSeries = {}
 
+        # commodityRevenueTimeSeries
         self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
         self.fullCommodityRevenueTimeSeries = {}
+        # self.fullCommodityRevenueTimeSeries = utils.checkAndSetInvestmentPeriodTimeSeries(
+        #     esM, name, commodityRevenueTimeSeries, locationalEligibility
+        #          )
         self.aggregatedCommodityRevenueTimeSeries = {}
         self.processedCommodityRevenueTimeSeries = {}
         
