@@ -478,22 +478,26 @@ def castToSeries(data, esM):
     return pd.Series(data, index=list(esM.locations))
 
 
-def getQPbound(QPcostScale, capacityMax, capacityMin):
+def getQPbound(investmentPeriods, QPcostScale, capacityMax, capacityMin):
     """Compute and return lower and upper capacity bounds."""
-    index = QPcostScale.index
-    QPbound = pd.Series([np.inf] * len(index), index)
+    QPbound={}
+    for ip in investmentPeriods:
+        index = QPcostScale[ip].index
+        QPbound[ip] = pd.Series([np.inf] * len(index), index)
 
-    if capacityMin is not None and capacityMax is not None:
-        minS = pd.Series(capacityMin.isna(), index)
-        maxS = pd.Series(capacityMax.isna(), index)
-        for x in index:
-            if not minS.loc[x] and not maxS.loc[x]:
-                QPbound.loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
+        if capacityMin is not None and capacityMax is not None:
+            minS = pd.Series(capacityMin.isna(), index)
+            maxS = pd.Series(capacityMax.isna(), index)
+            for x in index:
+                if not minS.loc[x] and not maxS.loc[x]:
+                    QPbound[ip].loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
     return QPbound
 
 
-def getQPcostDev(QPcostScale):
-    QPcostDev = 1 - QPcostScale
+def getQPcostDev(investmentPeriods, QPcostScale):
+    QPcostDev={}
+    for ip in investmentPeriods:
+        QPcostDev[ip] = 1 - QPcostScale[ip]
     return QPcostDev
 
 
@@ -825,9 +829,6 @@ def setLocationalEligibility(
                 data = 0
                 # sum values over ips
                 for ip in esM.investmentPeriods:
-                    # tests for checking the operationtimeseries
-                    # print('operationTimeSeries1')
-                    # print(operationTimeSeries)
                     data += operationTimeSeries[ip].copy().sum()
                 data[data > 0] = 1
                 return data
@@ -841,7 +842,6 @@ def setLocationalEligibility(
 
                 data.loc[:] = 1
                 locationalEligibility = data
-                print(locationalEligibility)
                 return locationalEligibility
             else:
                 raise ValueError(
@@ -888,6 +888,7 @@ def setLocationalEligibility(
 def checkAndSetInvestmentPeriodTimeSeries(
     esM, name, data, locationalEligibility, dimension="1dim"
 ):
+    checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
     parameter={}
     for _ip in esM.investmentPeriodList:
             # map name of investment period (e.g. 2020) to index (e.g. 0)
@@ -900,13 +901,13 @@ def checkAndSetInvestmentPeriodTimeSeries(
                 parameter[ip] = checkAndSetTimeSeries(
                     esM, name, data, locationalEligibility,dimension
                 )
-            elif isinstance(data, dict):  # operationRate is dict
+            elif isinstance(data, dict):  
                 parameter[ip] = checkAndSetTimeSeries(
                     esM, name, data[_ip], locationalEligibility,dimension
                 )
             else:
                 raise TypeError(
-                    "OperationRateFix should be a pandas dataframe or a dictionary."
+                    f"{name}should be a pandas dataframe or a dictionary."
                 )
     return parameter
 
@@ -1145,39 +1146,42 @@ def checkAndSetPartLoadMin(esM,name,partLoadMin,fullOperationMax, fullOperationF
             partLoadMin_ip[ip] = partLoadMin
         elif isinstance(partLoadMin, dict):
             partLoadMin_ip[ip] = partLoadMin[_ip]
-        if partLoadMin_ip is not None:
-            if fullOperationMax[ip] is not None:
-                if (
-                    (
-                        (fullOperationMax[ip] > 0)
-                        & (
-                            fullOperationMax[ip]
-                            < partLoadMin_ip
-                        )
+
+    if not any(value for value in partLoadMin_ip.values()):
+        partLoadMin_ip = None
+    if partLoadMin_ip is not None:
+        if fullOperationMax[ip] is not None:
+            if (
+                (
+                    (fullOperationMax[ip] > 0)
+                    & (
+                        fullOperationMax[ip]
+                        < partLoadMin_ip[ip]
                     )
-                    .any()
-                    .any()
-                ):
-                    raise ValueError(
-                        '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
-                        + name
+                )
+                .any()
+                .any()
+            ):
+                raise ValueError(
+                    '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
+                    + name
+                )
+        if fullOperationFix[ip] is not None:
+            if (
+                (
+                    (fullOperationFix[ip] > 0)
+                    & (
+                        fullOperationFix[ip]
+                        < partLoadMin_ip[ip]
                     )
-            if fullOperationFix[ip] is not None:
-                if (
-                    (
-                        (fullOperationFix[ip] > 0)
-                        & (
-                            fullOperationFix[ip]
-                            < partLoadMin_ip
-                        )
-                    )
-                    .any()
-                    .any()
-                ):
-                    raise ValueError(
-                        '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
-                        + name
-                    )
+                )
+                .any()
+                .any()
+            ):
+                raise ValueError(
+                    '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
+                    + name
+                )
     return partLoadMin_ip
 
 def checkAndSetInvestmentPeriodCostParameter(esM, name, data, dimension, locationalEligibility):

@@ -155,19 +155,45 @@ class Conversion(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
         )
 
-        # new code for commodity conversions
+        # opexPerOperation
+        self.opexPerOperation = opexPerOperation
+        self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
+                    esM, name, opexPerOperation, "1dim", locationalEligibility)
+        
+        # operationRateMax and operationRateFix -> TODO move theck 
+        if operationRateMax is not None and operationRateFix is not None:
+            operationRateMax = None
+            if esM.verbose < 2:
+                warnings.warn(
+                    "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
+                    + "The operationRateMax time series was set to None."
+                )
+        #operationRateMax
+        self.operationRateMax = operationRateMax
+        self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
+                    esM, name, operationRateMax, locationalEligibility)
+        self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
+        self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
+        
+        #operationRateFix
+        self.operationRateFix = operationRateFix
+        self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
+                    esM, name, operationRateFix, locationalEligibility)
+        self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
+        self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
+        
+        # commodity conversions
         self.commodityConversionFactors = commodityConversionFactors
         self.fullCommodityConversionFactors = {}
         self.aggregatedCommodityConversionFactors = {}
         self.processedCommodityConversionFactors = {}
         
-        # check input data
-        check_data={"operationRateMax":operationRateMax,"operationRateFix":operationRateFix,"partLoadMin":partLoadMin}
-        for name, data in check_data.items():
-            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
-        utils.checkInvestmentPeriodsCommodityConversion(commodityConversionFactors, esM.investmentPeriods)
         
+        # partLoadMin
+        self.partLoadMin = partLoadMin
+        self.processedPartLoadMin=utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullOperationRateMax, self.fullOperationRateFix)        
         
+        ########################
         for _ip in esM.investmentPeriodList:
             # map name of investment period (e.g. 2020) to index (e.g. 0)
             ip=esM.investmentPeriodList.index(_ip)
@@ -205,157 +231,6 @@ class Conversion(Component):
         self.physicalUnit = physicalUnit
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
-
-        self.opexPerOperation = opexPerOperation
-        self.processedOpexPerOperation = {}
-
-        # iterate over all ips
-        for ip in esM.investmentPeriods:
-
-            # opexPerOperation
-            if (
-                isinstance(opexPerOperation, int)
-                or isinstance(opexPerOperation, float)
-                or isinstance(opexPerOperation, pd.Series)
-            ):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation, "1dim", locationalEligibility
-                )
-            elif isinstance(opexPerOperation, dict):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation[_ip], "1dim", locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "opexPerOperation should be a pandas series or a dictionary."
-                )
-
-        # Set location-specific operation parameters: operationRateMax or operationRateFix, tsaweight
-        self.operationRateMax = operationRateMax
-        self.operationRateFix = operationRateFix
-
-        if operationRateMax is not None and operationRateFix is not None:
-            operationRateMax = None
-            if esM.verbose < 2:
-                warnings.warn(
-                    "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
-                    + "The operationRateMax time series was set to None."
-                )
-
-        ## New code for perfect foresight!
-        # create emtpy dicts
-        self.fullOperationRateMax = {}
-        self.aggregatedOperationRateMax = {}
-        self.processedOperationRateMax = {}
-
-        self.fullOperationRateFix = {}
-        self.aggregatedOperationRateFix = {}
-        self.processedOperationRateFix = {}
-
-        # iterate over all ips
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)
-
-            # Operation Rate Max
-            if (
-                isinstance(operationRateMax, pd.DataFrame)
-                or isinstance(operationRateMax, pd.Series)
-                or operationRateMax is None
-            ):
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax, locationalEligibility
-                )
-            elif isinstance(operationRateMax, dict):
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax[_ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "OperationRateMax should be a pandas dataframe or a dictionary."
-                )
-
-            self.aggregatedOperationRateMax[ip], self.processedOperationRateMax[ip] = (
-                None,
-                None,
-            )
-
-            # Operation Rate Fix
-            if (
-                isinstance(operationRateFix, pd.DataFrame)
-                or isinstance(operationRateFix, pd.Series)
-                or operationRateFix is None
-            ):  # operationRate is dataframe or series
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix, locationalEligibility
-                )
-            elif isinstance(operationRateFix, dict):  # operationRate is dict
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix[_ip], locationalEligibility
-                )
-            # elif operationRateFix is None:
-            #     pass
-            else:
-                raise TypeError(
-                    "OperationRateFix should be a pandas dataframe or a dictionary."
-                )
-
-            self.aggregatedOperationRateFix[ip], self.processedOperationRateFix[ip] = (
-                None,
-                None,
-            )
-
-        # new code for perfect foresight
-        self.partLoadMin = partLoadMin
-        self.processedPartLoadMin = {}
-
-        # iterate over all ips
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)
-            if isinstance(partLoadMin, float) or partLoadMin is None:
-                self.processedPartLoadMin[ip] = partLoadMin
-            elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[_ip]
-
-        if not any(value for value in self.processedPartLoadMin.values()):
-            self.processedPartLoadMin = None
-
-        if self.processedPartLoadMin is not None:
-            for ip in esM.investmentPeriods:
-                if self.processedPartLoadMin[ip] is not None:
-                    if self.fullOperationRateMax[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateMax[ip] > 0)
-                                & (
-                                    self.fullOperationRateMax[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
-                    if self.fullOperationRateFix[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateFix[ip] > 0)
-                                & (
-                                    self.fullOperationRateFix[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight

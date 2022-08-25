@@ -239,149 +239,45 @@ class Transmission(Component):
         self.modelingClass = TransmissionModel
 
         # Set distance related costs data
-        self.processedInvestPerCapacity = self.investPerCapacity * self.distances * 0.5
-        self.processedInvestIfBuilt = self.investIfBuilt * self.distances * 0.5
-        self.processedOpexPerCapacity = self.opexPerCapacity * self.distances * 0.5
-        self.processedOpexIfBuilt = self.opexIfBuilt * self.distances * 0.5
+        self.processedInvestPerCapacity={} 
+        self.processedInvestIfBuilt = {}
+        self.processedOpexPerCapacity={}
+        self.processedOpexIfBuilt={}
+        for ip in esM.investmentPeriods:
+            self.processedInvestPerCapacity[ip] = self.investPerCapacity[ip] * self.distances * 0.5
+            self.processedInvestIfBuilt[ip] = self.investIfBuilt[ip] * self.distances * 0.5
+            self.processedOpexPerCapacity[ip] = self.opexPerCapacity[ip] * self.distances * 0.5
+            self.processedOpexIfBuilt[ip] = self.opexIfBuilt[ip] * self.distances * 0.5
 
         # Set additional economic data
-
         # opexPerOperation
-        self.opexPerOperation = opexPerOperation
-        self.processedOpexPerOperation = {}
-        # self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-        #             esM, name, opexPerOperation, "2dim", self.locationalEligibility
-        #         )
+        self.opexPerOperation = utils.preprocess2dimData(
+                opexPerOperation, self._mapC
+            )
+        self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
+                    esM, name, self.opexPerOperation, "2dim", 
+                    self.locationalEligibility)
+        
         # operationRateMax
         self.operationRateMax = operationRateMax
-        self.fullOperationRateMax = {}
-        self.aggregatedOperationRateMax = {}
+        self.fullOperationRateMax= utils.checkAndSetInvestmentPeriodTimeSeries(
+                    esM, name, operationRateMax, self.locationalEligibility
+                )
+        self.aggregatedOperationRateMax =dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = {}
         
         # operationRateFix
         self.operationRateFix = operationRateFix
-        self.processedOperationRateFix = {}
-        self.fullOperationRateFix = {}
-        self.aggregatedOperationRateFix = {}
-        
-        
-        # partLoadMin
-        self.partLoadMin = partLoadMin
-        self.processedPartLoadMin=utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullOperationMax, self.fullOperationFix)
-        self.processedPartLoadMin = {}
-
-        # check input data
-        check_data={"opexPerOperation":opexPerOperation,"operationRateMax":operationRateMax,"operationRateFix":operationRateFix,"partLoadMin":partLoadMin}
-        for name,data in check_data.items():
-            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
-
-        # iterate over all ips
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)
-            self.opexPerOperation = utils.preprocess2dimData(
-                opexPerOperation, self._mapC
-            )
-
-            # opexPerOperation
-            if (
-                isinstance(opexPerOperation, int)
-                or isinstance(opexPerOperation, float)
-                or isinstance(opexPerOperation, pd.Series)
-            ):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation, "2dim", self.locationalEligibility
-                )
-            elif isinstance(opexPerOperation, dict):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation[_ip], "2dim", self.locationalEligibility
-                )
-            elif isinstance(opexPerOperation, pd.DataFrame):
-                self.opexPerOperation = utils.checkAndSetCostParameter(
-                    esM, name, self.opexPerOperation, "2dim", self.locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "opexPerOperation should be an int, float, pandas series, pandas dataframe or a dictionary."
-                )
-
-            # Operation Rate Max
-            if (
-                isinstance(operationRateMax, pd.DataFrame)
-                or isinstance(operationRateMax, pd.Series)
-                or operationRateMax is None
-            ):
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax, self.locationalEligibility
-                )
-            elif isinstance(operationRateMax, dict):
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax[_ip], self.locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "OperationRateMax should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedOperationRateMax[ip] = None
-
-            # Operation Rate Fix
-            if (
-                isinstance(operationRateFix, pd.DataFrame)
-                or isinstance(operationRateFix, pd.Series)
-                or operationRateFix is None
-            ):
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
+        self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
                     esM, name, operationRateFix, self.locationalEligibility
                 )
-            elif isinstance(operationRateFix, dict):
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix[_ip], self.locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "OperationRateFix should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedOperationRateFix[ip] = None
-
-            # part load
-            if isinstance(partLoadMin, float) or partLoadMin is None:
-                self.processedPartLoadMin[ip] = partLoadMin
-            elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[_ip]
-            if self.processedPartLoadMin is not None:
-                if self.processedPartLoadMin[ip] is not None:
-                    if self.fullOperationRateMax[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateMax[ip] > 0)
-                                & (
-                                    self.fullOperationRateMax[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
-                    if self.fullOperationRateFix[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateFix[ip] > 0)
-                                & (
-                                    self.fullOperationRateFix[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
+        self.aggregatedOperationRateFix =dict.fromkeys(esM.investmentPeriods)
+        self.processedOperationRateFix = {}
+    
+        # partLoadMin
+        self.partLoadMin = partLoadMin
+        self.processedPartLoadMin=utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullOperationRateMax, self.fullOperationRateFix)
+        self.processedPartLoadMin = {}
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
@@ -1016,12 +912,12 @@ class TransmissionModel(ComponentModel):
                 # Calculate the investment costs i (proportional to capacity expansion)
                 i = optVal.apply(
                     lambda cap: cap
-                    * compDict[cap.name].processedInvestPerCapacity
-                    * compDict[cap.name].QPcostDev
+                    * compDict[cap.name].processedInvestPerCapacity[ip]
+                    * compDict[cap.name].QPcostDev[ip]
                     + (
-                        compDict[cap.name].processedInvestPerCapacity
-                        * compDict[cap.name].QPcostScale
-                        / (compDict[cap.name].QPbound)
+                        compDict[cap.name].processedInvestPerCapacity[ip]
+                        * compDict[cap.name].QPcostScale[ip]
+                        / (compDict[cap.name].QPbound[ip])
                         * cap
                         * cap
                     ),
@@ -1031,15 +927,15 @@ class TransmissionModel(ComponentModel):
                 cx = optVal.apply(
                     lambda cap: (
                         cap
-                        * compDict[cap.name].processedInvestPerCapacity
-                        * compDict[cap.name].QPcostDev
+                        * compDict[cap.name].processedInvestPerCapacity[ip]
+                        * compDict[cap.name].QPcostDev[ip]
                         / compDict[cap.name].CCF
                     )
                     + (
-                        compDict[cap.name].processedInvestPerCapacity
+                        compDict[cap.name].processedInvestPerCapacity[ip]
                         / compDict[cap.name].CCF
-                        * compDict[cap.name].QPcostScale
-                        / (compDict[cap.name].QPbound)
+                        * compDict[cap.name].QPcostScale[ip]
+                        / (compDict[cap.name].QPbound[ip])
                         * cap
                         * cap
                     ),
@@ -1048,12 +944,12 @@ class TransmissionModel(ComponentModel):
                 # Calculate the annualized operational costs ox (OPEX)
                 ox = optVal.apply(
                     lambda cap: cap
-                    * compDict[cap.name].processedOpexPerCapacity
-                    * compDict[cap.name].QPcostDev
+                    * compDict[cap.name].processedOpexPerCapacity[ip]
+                    * compDict[cap.name].QPcostDev[ip]
                     + (
-                        compDict[cap.name].processedOpexPerCapacity
-                        * compDict[cap.name].QPcostScale
-                        / (compDict[cap.name].QPbound)
+                        compDict[cap.name].processedOpexPerCapacity[ip]
+                        * compDict[cap.name].QPcostScale[ip]
+                        / (compDict[cap.name].QPbound[ip])
                         * cap
                         * cap
                     ),
@@ -1103,18 +999,18 @@ class TransmissionModel(ComponentModel):
             if optVal is not None:
                 # Calculate the investment costs i (fix value if component is built)
                 i = optVal.apply(
-                    lambda dec: dec * compDict[dec.name].processedInvestIfBuilt, axis=1
+                    lambda dec: dec * compDict[dec.name].processedInvestIfBuilt[ip], axis=1
                 )
                 # Calculate the annualized investment costs cx (fix value if component is built)
                 cx = optVal.apply(
                     lambda dec: dec
-                    * compDict[dec.name].processedInvestIfBuilt
+                    * compDict[dec.name].processedInvestIfBuilt[ip]
                     / compDict[dec.name].CCF,
                     axis=1,
                 )
                 # Calculate the annualized operational costs ox (fix value if component is built)
                 ox = optVal.apply(
-                    lambda dec: dec * compDict[dec.name].processedOpexIfBuilt, axis=1
+                    lambda dec: dec * compDict[dec.name].processedOpexIfBuilt[ip], axis=1
                 )
 
                 # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
