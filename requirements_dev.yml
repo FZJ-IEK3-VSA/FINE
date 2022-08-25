@@ -1,7 +1,7 @@
 name: FINE_dev
 
 dependencies:
-- python
+- python=3.10
 - conda-forge::libiconv
 - conda-forge::gdal=3.4
 - conda-forge::geopandas
