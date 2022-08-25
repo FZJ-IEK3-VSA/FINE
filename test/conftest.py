@@ -332,11 +332,9 @@ def single_node_test_esM():
     return esM
 
 
-@pytest.fixture
-def multi_node_test_esM_init(scope="session"):
-    data = getData()
+@pytest.fixture(scope="session")
+def esM_init():
 
-    # 2. Create an energy system model instance
     locations = {
         "cluster_0",
         "cluster_1",
@@ -366,6 +364,16 @@ def multi_node_test_esM_init(scope="session"):
         lengthUnit="km",
         verboseLogLevel=0,
     )
+
+    return esM
+
+
+@pytest.fixture(scope="session")
+def multi_node_test_esM_init(esM_init):
+    data = getData()
+
+    # 2. Create an energy system model instance
+    esM = esM_init
 
     CO2_reductionTarget = 1
 
@@ -803,8 +811,8 @@ def multi_node_test_esM_init(scope="session"):
     return esM
 
 
-@pytest.fixture
-def test_esM_for_spagat(scope="session"):
+@pytest.fixture(scope="session")
+def test_esM_for_spagat(esM_init):
     """
     Simpler version of multi_node_test_esM_init.
     Makes spagat tests faster.
@@ -812,34 +820,7 @@ def test_esM_for_spagat(scope="session"):
     data = getData()
 
     # Create an energy system model instance
-    locations = {
-        "cluster_0",
-        "cluster_1",
-        "cluster_2",
-        "cluster_3",
-        "cluster_4",
-        "cluster_5",
-        "cluster_6",
-        "cluster_7",
-    }
-
-    commodityUnitDict = {
-        "electricity": r"GW$_{el}$",
-        "CO2": r"Mio. t$_{CO_2}$/h",
-        "hydrogen": r"GW$_{H_{2},LHV}$",
-    }
-    commodities = {"electricity", "hydrogen", "CO2"}
-
-    esM = fn.EnergySystemModel(
-        locations=locations,
-        commodities=commodities,
-        numberOfTimeSteps=8760,
-        commodityUnitsDict=commodityUnitDict,
-        hoursPerTimeStep=1,
-        costUnit="1e9 Euro",
-        lengthUnit="km",
-        verboseLogLevel=0,
-    )
+    esM = esM_init
 
     # onshore wind
     esM.add(
@@ -932,45 +913,12 @@ def test_esM_for_spagat(scope="session"):
     return esM
 
 
-@pytest.fixture
-def multi_node_test_esM_optimized(scope="session"):
-    cwd = os.getcwd()
-    data = getData()
+@pytest.fixture(scope="session")
+def multi_node_test_esM_optimized(esM_init):
+    data = getData(esM_init)
 
     # 2. Create an energy system model instance
-    locations = {
-        "cluster_0",
-        "cluster_1",
-        "cluster_2",
-        "cluster_3",
-        "cluster_4",
-        "cluster_5",
-        "cluster_6",
-        "cluster_7",
-    }
-    commodityUnitDict = {
-        "electricity": r"GW$_{el}$",
-        "methane": r"GW$_{CH_{4},LHV}$",
-        "biogas": r"GW$_{biogas,LHV}$",
-        "CO2": r"Mio. t$_{CO_2}$/h",
-        "hydrogen": r"GW$_{H_{2},LHV}$",
-    }
-    commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
-    numberOfTimeSteps = 8760
-    hoursPerTimeStep = 1
-
-    esM = fn.EnergySystemModel(
-        locations=locations,
-        commodities=commodities,
-        numberOfTimeSteps=8760,
-        commodityUnitsDict=commodityUnitDict,
-        hoursPerTimeStep=1,
-        costUnit="1e9 Euro",
-        lengthUnit="km",
-        verboseLogLevel=0,
-        balanceLimit=None,
-        lowerBound=False,
-    )
+    esM = esM_init
 
     CO2_reductionTarget = 1
 

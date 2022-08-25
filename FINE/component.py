@@ -442,6 +442,7 @@ class Component(metaclass=ABCMeta):
             esM, name, yearlyFullLoadHoursMax, dimension, elig
         )
         self.isBuiltFix = isBuiltFix
+
         utils.checkLocationSpecficDesignInputParams(self, esM)
 
         # Set quadratic capacity bounds and residual cost scale (1-cost scale)
