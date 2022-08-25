@@ -1894,6 +1894,7 @@ def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
             CO2Reference * (1 - CO2ReductionTargets[step] / 100),
         )
 
+
 def checkParamInput(param):
     if isinstance(param, dict):
         for key, value in param.items():
@@ -1901,6 +1902,7 @@ def checkParamInput(param):
                 raise ValueError(
                     f"Currently a dict containing None values cannot be passed for '{param}'"
                 )
+
 
 def addEmptyRegions(esM, data):
     """
