@@ -835,10 +835,12 @@ def writeEnergySystemModelToDatasets(esM):
     :rtype: xr.DataSet
     """
     # TODO implementation required.
-    # currently the saving and reading of esM with netcdf is not 
+    # currently the saving and reading of esM with netcdf is not
     # supported for more than one investment period
-    if esM.numberOfInvestmentPeriods>1:
-        raise NotImplementedError("Saving esM to netCDF is currently not supported for a esM with more than one investment period.")
+    if esM.numberOfInvestmentPeriods > 1:
+        raise NotImplementedError(
+            "Saving esM to netCDF is currently not supported for a esM with more than one investment period."
+        )
     if esM.objectiveValue != None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
         xr_dss_input = convertOptimizationInputToDatasets(esM)
