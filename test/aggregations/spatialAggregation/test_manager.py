@@ -2,6 +2,7 @@ import os
 import pytest
 import numpy as np
 from FINE import xarrayIO as xrIO
+import geopandas as gpd
 
 
 @pytest.mark.parametrize("use_saved_file", [False, True])
@@ -215,3 +216,24 @@ def test_spatial_aggregation_parameter_based(
     #  Additional check - if the optimization runs through
     aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=4)
     aggregated_esM.optimize(timeSeriesAggregation=True)
+
+
+def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):
+    esM = balanceLimitConstraint_test_esM[0]
+    SHAPEFILE_PATH = os.path.join(
+        os.path.dirname(__file__),
+        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
+    )
+
+    gdf = gpd.read_file(SHAPEFILE_PATH)
+    gdf = gdf.iloc[:2]
+    gdf["index"] = [f"Region{i}" for i in [1, 2]]
+
+    # FUNCTION CALL
+    aggregated_esM = esM.aggregateSpatially(
+        shapefile=gdf,
+        grouping_mode="distance_based",
+        n_groups=1,
+        aggregatedResultsPath=None,
+    )
