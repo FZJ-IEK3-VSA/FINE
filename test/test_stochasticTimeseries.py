@@ -14,9 +14,10 @@ import numpy as np
 import pandas as pd
 
 
-def test_perfectForesight():
+def stochastical_optimization_model():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
+
     numberOfInvestmentPeriods = 2  # new test, before =1
     yearsPerInvestmentPeriod = 1
 
@@ -276,7 +277,77 @@ def test_perfectForesight():
             commodityRevenueTimeSeries=revenuesDemand,  # new compared to original model
         )
     )
+    return esM
 
+
+def test_stochasticalOpt_withSegmentation():
+    # values not logical, just check of the workflow
+    esM = stochastical_optimization_model()
+    # Optimize energy system model
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=1,
+        numberOfTimeStepsPerPeriod=4,
+        storeTSAinstance=False,
+        segmentation=True,
+        numberOfSegmentsPerPeriod=1,
+        clusterMethod="hierarchical",
+        representationMethod="durationRepresentation",
+        sortValues=False,
+        rescaleClusterPeriods=False,
+    )
+    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    print("Objective value:")
+    print(esM.pyM.Obj())
+    np.testing.assert_almost_equal(
+        esM.pyM.Obj(), 3650
+    )  # capacity costs only taken for one year
+    print("Electricity Market:")
+    assert list(
+        esM.componentModelingDict["SourceSinkModel"]
+        .operationVariablesOptimum[0]
+        .xs("Electricity market")
+        .values[0]
+    ) == [0, 0, 0, 0]
+
+    assert list(
+        esM.componentModelingDict["SourceSinkModel"]
+        .operationVariablesOptimum[1]
+        .xs("Electricity market")
+        .values[0]
+    ) == [0, 0, 0, 0]
+
+    print("Photovoltaic:")
+    assert list(
+        esM.componentModelingDict["SourceSinkModel"]
+        .operationVariablesOptimum[0]
+        .xs("PV")
+        .values[0]
+    ) == [1250, 1250, 1250, 1250]
+    assert list(
+        esM.componentModelingDict["SourceSinkModel"]
+        .operationVariablesOptimum[1]
+        .xs("PV")
+        .values[0]
+    ) == [1250, 1250, 1250, 1250]
+
+    print("Demand:")
+    # print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('EDemand')) ### Thomas and Stefan:  [2000,1000,1000,1000] correct values
+    assert list(
+        esM.componentModelingDict["SourceSinkModel"]
+        .operationVariablesOptimum[0]
+        .xs("EDemand")
+        .values[0]
+    ) == [1250, 1250, 1250, 1250]
+    assert list(
+        esM.componentModelingDict["SourceSinkModel"]
+        .operationVariablesOptimum[1]
+        .xs("EDemand")
+        .values[0]
+    ) == [1250, 1250, 1250, 1250]
+
+
+def test_stochasticalOpt_withoutSegmentation():
+    esM = stochastical_optimization_model()
     # Optimize energy system model
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
     print("Objective value:")
@@ -330,4 +401,5 @@ def test_perfectForesight():
 
 
 if __name__ == "__main__":
-    test_perfectForesight()
+    test_stochasticalOpt_withSegmentation()
+    test_stochasticalOpt_withoutSegmentation()
