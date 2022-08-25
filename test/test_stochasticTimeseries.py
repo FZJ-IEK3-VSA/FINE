@@ -13,10 +13,11 @@ import FINE as fn
 import numpy as np
 import pandas as pd
 
+
 def stochastical_optimization_model():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
-    
+
     numberOfInvestmentPeriods = 2  # new test, before =1
     yearsPerInvestmentPeriod = 1
 
@@ -278,9 +279,10 @@ def stochastical_optimization_model():
     )
     return esM
 
+
 def test_stochasticalOpt_withSegmentation():
     # values not logical, just check of the workflow
-    esM=stochastical_optimization_model()
+    esM = stochastical_optimization_model()
     # Optimize energy system model
     esM.aggregateTemporally(
         numberOfTypicalPeriods=1,
@@ -291,7 +293,8 @@ def test_stochasticalOpt_withSegmentation():
         clusterMethod="hierarchical",
         representationMethod="durationRepresentation",
         sortValues=False,
-        rescaleClusterPeriods=False)
+        rescaleClusterPeriods=False,
+    )
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
     print("Objective value:")
     print(esM.pyM.Obj())
@@ -344,7 +347,7 @@ def test_stochasticalOpt_withSegmentation():
 
 
 def test_stochasticalOpt_withoutSegmentation():
-    esM=stochastical_optimization_model()
+    esM = stochastical_optimization_model()
     # Optimize energy system model
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
     print("Objective value:")
