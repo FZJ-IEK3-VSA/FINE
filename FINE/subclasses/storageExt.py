@@ -1,3 +1,4 @@
+from pickle import NONE
 from FINE.component import Component, ComponentModel
 from FINE.storage import Storage, StorageModel
 from FINE import utils
@@ -39,7 +40,8 @@ class StorageExtBETA(Storage):
             values in form of the commodityUnit, referring to the commodity stored in the component at the
             beginning of one time step.
             |br| * the default value is None
-        :type stateOfChargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type stateOfChargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
+            DataFrame with positive (>= 0) entries per investment period. The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
 
@@ -50,7 +52,8 @@ class StorageExtBETA(Storage):
             values in form of the commodityUnit, referring to the commodity stored in the component at the
             beginning of one time step.
             |br| * the default value is None
-        :type stateOfChargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type stateOfChargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
+            DataFrame with positive (>= 0) entries per investment period.. The row indices have
             to match the in the energy system model specified time steps. The column indices have to match the
             in the energy system model specified locations.
 
@@ -102,30 +105,87 @@ class StorageExtBETA(Storage):
                     + "is set to isPeriodicalStorage)."
                 )
 
-        self.fullStateOfChargeOpRateMax = utils.checkAndSetTimeSeries(
-            esM, name, stateOfChargeOpRateMax, self.locationalEligibility
-        )
-        self.aggregatedStateOfChargeOpRateMax, self.processedStateOfChargeOpRateMax = (
-            None,
-            None,
-        )
+        self.fullStateOfChargeOpRateMax = {}
+        self.aggregatedStateOfChargeOpRateMax = {}
+        self.stateOfChargeOpRateMax = {}
 
-        self.fullStateOfChargeOpRateFix = utils.checkAndSetTimeSeries(
-            esM, name, stateOfChargeOpRateFix, self.locationalEligibility
-        )
-        self.aggregatedStateOfChargeOpRateFix, self.processedStateOfChargeOpRateFix = (
-            None,
-            None,
-        )
+        self.fullStateOfChargeOpRateFix = {}
+        self.aggregatedStateOfChargeOpRateFix = {}
+        self.stateOfChargeOpRateFix = {}
 
-        self.opexPerChargeOpTimeSeries = opexPerChargeOpTimeSeries
-        self.fullOpexPerChargeOpTimeSeries = utils.checkAndSetTimeSeries(
-            esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility
-        )
-        (
-            self.aggregatedOpexPerChargeOpTimeSeries,
-            self.processedOpexPerChargeOpTimeSeries,
-        ) = (None, None)
+        self.fullOpexPerChargeOpTimeSeries = {}
+        self.aggregatedOpexPerChargeOpTimeSeries = {}
+        self.opexPerChargeOpTimeSeries = {}
+
+        for ip in esM.investmentPeriods:
+            # fullStateOfChargeOpRateMax
+            if (
+                isinstance(stateOfChargeOpRateMax, pd.DataFrame)
+                or isinstance(stateOfChargeOpRateMax, pd.Series)
+                or stateOfChargeOpRateMax is None
+            ):
+                self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, stateOfChargeOpRateMax, self.locationalEligibility
+                )
+            elif isinstance(stateOfChargeOpRateMax, dict):
+                self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, stateOfChargeOpRateMax[ip], self.locationalEligibility
+                )
+            else:
+                raise TypeError(
+                    "stateOfChargeOpRateMax should be a pandas dataframe or a dictionary."
+                )
+
+            (
+                self.aggregatedStateOfChargeOpRateMax[ip],
+                self.stateOfChargeOpRateMax[ip],
+            ) = (None, None)
+
+            # fullStateOfChargeOpRateFix
+            if (
+                isinstance(stateOfChargeOpRateFix, pd.DataFrame)
+                or isinstance(stateOfChargeOpRateFix, pd.Series)
+                or stateOfChargeOpRateFix is None
+            ):
+                self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, stateOfChargeOpRateFix, self.locationalEligibility
+                )
+            elif isinstance(stateOfChargeOpRateFix, dict):
+                self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, stateOfChargeOpRateFix[ip], self.locationalEligibility
+                )
+            else:
+                raise TypeError(
+                    "stateOfChargeOpRateFix should be a pandas dataframe or a dictionary."
+                )
+
+            (
+                self.aggregatedStateOfChargeOpRateFix[ip],
+                self.stateOfChargeOpRateFix[ip],
+            ) = (None, None)
+
+            # fullOpexPerChargeOpTimeSeries
+            if (
+                isinstance(opexPerChargeOpTimeSeries, pd.DataFrame)
+                or isinstance(opexPerChargeOpTimeSeries, pd.Series)
+                or opexPerChargeOpTimeSeries is None
+            ):
+                self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility
+                )
+            elif isinstance(opexPerChargeOpTimeSeries, dict):
+                self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
+                    esM, name, opexPerChargeOpTimeSeries[ip], self.locationalEligibility
+                )
+            else:
+                raise TypeError(
+                    "opexPerChargeOpTimeSeries should be a pandas dataframe or a dictionary."
+                )
+
+            (
+                self.aggregatedOpexPerChargeOpTimeSeries[ip],
+                self.opexPerChargeOpTimeSeries[ip],
+            ) = (None, None)
 
         utils.isPositiveNumber(stateOfChargeTsaWeight), utils.isPositiveNumber(
             opexChargeOpTsaWeight
@@ -136,35 +196,42 @@ class StorageExtBETA(Storage):
         )
 
         # Set locational eligibility
-        timeSeriesData = None
-        tsNb = sum(
-            [
-                0 if data is None else 1
+        timeSeriesData = {}
+        for ip in esM.investmentPeriods:
+            tsNb = 0
+            for data in [
+                self.chargeOpRateMax,
+                self.chargeOpRateFix,
+                self.dischargeOpRateMax,
+                self.dischargeOpRateFix,
+                self.stateOfChargeOpRateMax,
+                self.stateOfChargeOpRateFix,
+            ]:
+                if data is None:
+                    tsNb += 0
+                elif isinstance(data, dict):  # and all None!
+                    tsNb += 0
+                else:
+                    tsNb += 1
+
+            if tsNb > 0:
+                _sum = 0
                 for data in [
                     self.chargeOpRateMax,
                     self.chargeOpRateFix,
                     self.dischargeOpRateMax,
                     self.dischargeOpRateFix,
-                    stateOfChargeOpRateMax,
-                    stateOfChargeOpRateFix,
-                ]
-            ]
-        )
-        if tsNb > 0:
-            timeSeriesData = sum(
-                [
-                    data
-                    for data in [
-                        self.chargeOpRateMax,
-                        self.chargeOpRateFix,
-                        self.dischargeOpRateMax,
-                        self.dischargeOpRateFix,
-                        stateOfChargeOpRateMax,
-                        stateOfChargeOpRateFix,
-                    ]
-                    if data is not None
-                ]
-            )
+                    self.stateOfChargeOpRateMax,
+                    self.stateOfChargeOpRateFix,
+                ]:
+                    if data is None:
+                        tsNb += 0
+                    elif isinstance(data, dict):  # and all None!
+                        tsNb += _sum[ip]
+                    else:
+                        tsNb += _sum
+                timeSeriesData[ip] = _sum
+
         self.locationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
@@ -174,6 +241,24 @@ class StorageExtBETA(Storage):
             self.hasCapacityVariable,
             timeSeriesData,
         )
+
+        if all(
+            type(value) != pd.core.frame.DataFrame
+            for value in self.fullStateOfChargeOpRateMax.values()
+        ):
+            self.fullStateOfChargeOpRateMax = None
+
+        if all(
+            type(value) != pd.core.frame.DataFrame
+            for value in self.fullStateOfChargeOpRateFix.values()
+        ):
+            self.fullStateOfChargeOpRateFix = None
+
+        if all(
+            type(value) != pd.core.frame.DataFrame
+            for value in self.fullOpexPerChargeOpTimeSeries.values()
+        ):
+            self.fullOpexPerChargeOpTimeSeries = None
 
     def addToEnergySystemModel(self, esM):
         """
@@ -209,7 +294,7 @@ class StorageExtBETA(Storage):
             if hasTSA
             else self.fullStateOfChargeOpRateMax
         )
-        self.processedDtateOfChargeOpRateFix = (
+        self.processedStateOfChargeOpRateFix = (
             self.aggregatedStateOfChargeOpRateFix
             if hasTSA
             else self.fullStateOfChargeOpRateFix
@@ -220,8 +305,13 @@ class StorageExtBETA(Storage):
             else self.fullOpexPerChargeOpTimeSeries
         )
 
-    def getDataForTimeSeriesAggregation(self):
-        """Function for getting the required data if a time series aggregation is requested."""
+    def getDataForTimeSeriesAggregation(self, ip):
+        """
+        Function for getting the required data if a time series aggregation is requested.
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
+        """
         weightDict, data = {}, []
         I = [
             (
@@ -252,42 +342,83 @@ class StorageExtBETA(Storage):
 
         for rateFix, rateMax, rateName, rateWeight in I:
             weightDict, data = self.prepareTSAInput(
-                rateFix, rateMax, rateName, rateWeight, weightDict, data
+                rateFix, rateMax, rateName, rateWeight, weightDict, data, ip
             )
 
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
-    def setAggregatedTimeSeriesData(self, data):
+    def setAggregatedTimeSeriesData(self, data, ip):
         """
         Function for determining the aggregated maximum and fixed state of charge/ discharge rate/ charge rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the source component
         :type data: Pandas DataFrame
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
         """
-        self.aggregatedChargeOpRateFix = self.getTSAOutput(
-            self.fullChargeOpRateFix, "chargeRate_", data
+        self.aggregatedChargeOpRateFix[ip] = self.getTSAOutput(
+            self.fullChargeOpRateFix, "chargeRate_", data, ip
         )
-        self.aggregatedChargeOpRateMax = self.getTSAOutput(
-            self.fullChargeOpRateMax, "chargeRate_", data
-        )
-
-        self.aggregatedDischargeOpRateFix = self.getTSAOutput(
-            self.fullDischargeOpRateFix, "dischargeRate_", data
-        )
-        self.aggregatedDischargeOpRateMax = self.getTSAOutput(
-            self.fullDischargeOpRateMax, "dischargeRate_", data
+        self.aggregatedChargeOpRateMax[ip] = self.getTSAOutput(
+            self.fullChargeOpRateMax, "chargeRate_", data, ip
         )
 
-        self.aggregatedStateOfChargeOpRateFix = self.getTSAOutput(
-            self.fullStateOfChargeOpRateFix, "_SOCRate_", data
+        self.aggregatedDischargeOpRateFix[ip] = self.getTSAOutput(
+            self.fullDischargeOpRateFix, "dischargeRate_", data, ip
         )
-        self.aggregatedStateOfChargeOpRateMax = self.getTSAOutput(
-            self.fullStateOfChargeOpRateMax, "_SOCRate_", data
+        self.aggregatedDischargeOpRateMax[ip] = self.getTSAOutput(
+            self.fullDischargeOpRateMax, "dischargeRate_", data, ip
         )
 
-        self.aggregatedOpexPerChargeOpTimeSeries = self.getTSAOutput(
-            self.fullOpexPerChargeOpTimeSeries, "_opexPerChargeOp_", data
+        self.aggregatedStateOfChargeOpRateFix[ip] = self.getTSAOutput(
+            self.fullStateOfChargeOpRateFix, "_SOCRate_", data, ip
         )
+        self.aggregatedStateOfChargeOpRateMax[ip] = self.getTSAOutput(
+            self.fullStateOfChargeOpRateMax, "_SOCRate_", data, ip
+        )
+
+        self.aggregatedOpexPerChargeOpTimeSeries[ip] = self.getTSAOutput(
+            self.fullOpexPerChargeOpTimeSeries, "_opexPerChargeOp_", data, ip
+        )
+
+    def checkProcessedDataSets(self):
+        """
+        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
+        the parameter itself is set to None.
+        """
+
+        for parameter in [
+            "processedChargeOpRateFix",
+            "processedChargeOpRateMax",
+            "processedDischargeOpRateFix",
+            "processedDischargeOpRateMax",
+            "processedStateOfChargeOpRateFix",
+            "processedStateOfChargeOpRateMax",
+            "processedOpexPerChargeOpTimeSeries",
+        ]:
+            if getattr(self, parameter) is not None:
+                if all(
+                    type(value) != pd.core.frame.DataFrame
+                    for value in getattr(self, parameter).values()
+                ):
+                    setattr(self, parameter, None)
+
+    def initializeProcessedDataSets(self, investmentperiods):
+        """
+        Initialize dicts (keys are investment periods, values are None)
+        for processed data sets.
+
+        :param investmentperiods: investmentperiods of transformation path analysis.
+        :type investmentperiods: list
+        """
+        self.processedChargeOpRateMax = dict.fromkeys(investmentperiods)
+        self.processedChargeOpRateFix = dict.fromkeys(investmentperiods)
+        self.processedDischargeOpRateMax = dict.fromkeys(investmentperiods)
+        self.processedDischargeOpRateFix = dict.fromkeys(investmentperiods)
+        self.processedStateOfChargeOpRateMax = dict.fromkeys(investmentperiods)
+        self.processedStateOfChargeOpRateFix = dict.fromkeys(investmentperiods)
+        self.processedOpexPerChargeOpTimeSeries = dict.fromkeys(investmentperiods)
 
 
 class StorageExtModel(StorageModel):
@@ -331,8 +462,8 @@ class StorageExtModel(StorageModel):
         self.declareOperationModeSets(
             pyM,
             "stateOfChargeOpConstrSet",
-            "stateOfChargeOpRateMax",
-            "stateOfChargeOpRateFix",
+            "processedStateOfChargeOpRateMax",
+            "processedStateOfChargeOpRateFix",
         )
 
     ####################################################################################################################
@@ -352,8 +483,9 @@ class StorageExtModel(StorageModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
-        SOC, capVar = getattr(pyM, "stateOfCharge_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        SOC, capVar = (
+            getattr(pyM, "stateOfCharge_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         constrSet1 = getattr(pyM, "stateOfChargeOpConstrSet1_" + abbrvName)
 
@@ -408,8 +540,9 @@ class StorageExtModel(StorageModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
-        SOC, capVar = getattr(pyM, "stateOfCharge_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        SOC, capVar = (
+            getattr(pyM, "stateOfCharge_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         constrSet2 = getattr(pyM, "stateOfChargeOpConstrSet2_" + abbrvName)
 
@@ -470,8 +603,9 @@ class StorageExtModel(StorageModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         SOCinter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
-        SOC, capVar = getattr(pyM, "stateOfCharge_" + abbrvName), getattr(
-            pyM, "cap_" + abbrvName
+        SOC, capVar = (
+            getattr(pyM, "stateOfCharge_" + abbrvName),
+            getattr(pyM, "cap_" + abbrvName),
         )
         constrSet3 = getattr(pyM, "stateOfChargeOpConstrSet3_" + abbrvName)
 
@@ -593,35 +727,35 @@ class StorageExtModel(StorageModel):
         SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
         constrSet5 = getattr(pyM, "stateOfChargeOpConstrSet5_" + abbrvName)
 
-        def SOCMaxPrecise5(pyM, loc, compName, pInter, t):
+        def SOCMaxPrecise5(pyM, loc, compName, ip, pInter, t):
             if compDict[compName].doPreciseTsaModeling:
                 if not pyM.hasSegmentation:
                     return (
-                        SOCinter[loc, compName, pInter]
+                        SOCinter[loc, compName, ip, pInter]
                         * (
                             (1 - compDict[compName].selfDischarge)
                             ** (t * esM.hoursPerTimeStep)
                         )
-                        + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= compDict[compName].processedStateOfChargeOpRateMax[loc][
-                            esM.periodsOrder[pInter], t
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        <= compDict[compName].processedStateOfChargeOpRateMax[ip][loc][
+                            esM.periodsOrder[ip][pInter], t
                         ]
                     )
                 else:
                     return (
-                        SOCinter[loc, compName, pInter]
+                        SOCinter[loc, compName, ip, pInter]
                         * (
                             (1 - compDict[compName].selfDischarge)
                             ** (
-                                esM.segmentStartTime.to_dict()[
-                                    esM.periodsOrder[pInter], t
+                                esM.segmentStartTime[ip].to_dict()[
+                                    esM.periodsOrder[ip][pInter], t
                                 ]
                                 * esM.hoursPerTimeStep
                             )
                         )
-                        + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= compDict[compName].processedStateOfChargeOpRateMax[loc][
-                            esM.periodsOrder[pInter], t
+                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                        <= compDict[compName].processedStateOfChargeOpRateMax[ip][loc][
+                            esM.periodsOrder[ip][pInter], t
                         ]
                     )
             else:
@@ -631,7 +765,11 @@ class StorageExtModel(StorageModel):
             pyM,
             "ConstrSOCMaxPrecise5_" + abbrvName,
             pyomo.Constraint(
-                constrSet5, esM.periods, esM.timeStepsPerPeriod, rule=SOCMaxPrecise5
+                constrSet5,
+                esM.investmentPeriods,
+                esM.periods,
+                esM.timeStepsPerPeriod,
+                rule=SOCMaxPrecise5,
             ),
         )
 
@@ -896,9 +1034,9 @@ class StorageExtModel(StorageModel):
         """
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
-    def getCommodityBalanceContribution(self, pyM, commod, loc, p, t):
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         """Get contribution to a commodity balance."""
-        return super().getCommodityBalanceContribution(pyM, commod, loc, p, t)
+        return super().getCommodityBalanceContribution(pyM, commod, loc, ip, p, t)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
@@ -926,7 +1064,7 @@ class StorageExtModel(StorageModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
+    def setOptimalValues(self, esM, pyM, ip):
         """
         Set the optimal values of the components.
 
@@ -935,8 +1073,11 @@ class StorageExtModel(StorageModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
         """
-        return super().setOptimalValues(esM, pyM)
+        return super().setOptimalValues(esM, pyM, ip)
 
     def getOptimalValues(self, name="all"):
         """
