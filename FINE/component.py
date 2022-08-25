@@ -1561,7 +1561,7 @@ class ComponentModel(metaclass=ABCMeta):
                 factor = (
                     (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
                     if isStateOfCharge
-                    else esM.hoursPerSegment.to_dict()
+                    else esM.hoursPerSegment[ip].to_dict()
                 )
                 rate = getattr(compDict[compName], opRateName)[ip]
                 return (
