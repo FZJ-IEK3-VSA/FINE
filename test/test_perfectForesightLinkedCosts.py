@@ -27,7 +27,7 @@ def test_perfectForesight_linked_costs():
         hoursPerTimeStep=hoursPerTimeStep,
         costUnit="1 Euro",
         numberOfInvestmentPeriods=6,
-        yearsPerInvestmentPeriod=1,
+        yearsPerInvestmentPeriod=2,
         mode="perfectForesight",
         lengthUnit="km",
         verboseLogLevel=2,
@@ -40,7 +40,7 @@ def test_perfectForesight_linked_costs():
 
     # 2 investmentperiods
     PVoperationRateMax = {}
-    PVoperationRateMax[0] = pd.DataFrame(
+    PVoperationRateMax = pd.DataFrame(
         [
             np.array(
                 [
@@ -53,22 +53,11 @@ def test_perfectForesight_linked_costs():
         ],
         index=["PerfectLand"],
     ).T
-    PVoperationRateMax[1]=PVoperationRateMax[0]
-    PVoperationRateMax[2]=PVoperationRateMax[0]
-    PVoperationRateMax[3]=PVoperationRateMax[0]
-    PVoperationRateMax[4]=PVoperationRateMax[0]
-    PVoperationRateMax[5]=PVoperationRateMax[0]
 
     
     
     # different opexPerOperation per investmentperiod
-    PVopexPerOperation = {}
-    PVopexPerOperation[0] = 0.01
-    PVopexPerOperation[1] = 0.01
-    PVopexPerOperation[2]=PVopexPerOperation[1]
-    PVopexPerOperation[3]=PVopexPerOperation[1]
-    PVopexPerOperation[4]=PVopexPerOperation[1]
-    PVopexPerOperation[5]=PVopexPerOperation[1]
+    PVopexPerOperation = {0:0.01, 2:0.01, 4:0.01, 6:0.02, 8:0.02, 10:0.02,}
 
     esM.add(
         fn.Source(
@@ -77,56 +66,16 @@ def test_perfectForesight_linked_costs():
             commodity="electricity",
             hasCapacityVariable=True,
             operationRateMax=PVoperationRateMax,
-            # capacityMax=4e6,
-            investPerCapacity=1,
-            opexPerCapacity=0,
-            interestRate=0.02,  # formerly 0
-            opexPerOperation=0, #0.01, #PVopexPerOperation,  # 0.01,
-            economicLifetime=6,
-            technicalLifetime=6
+            investPerCapacity=100,
+            #opexPerCapacity=1,
+            interestRate=0.02,
+            #opexPerOperation=PVopexPerOperation,
+            economicLifetime=4,
+            technicalLifetime=4
         )
     )
 
     # Sinks
-
-    ### Industry site
-    # for one ip:
-    # demand = pd.DataFrame([np.array([2/5, 1/5, 1/5, 1/5,])],
-    #                 index = ['PerfectLand']).T
-    # demand now as dict:
-    # two investmentperiods
-
-    revenuesDemand = {}
-    revenuesDemand[0] = pd.DataFrame(
-        [
-            np.array(
-                [
-                    0.1,
-                    0.1,
-                    0.1,
-                    0.1,
-                ]
-            )
-        ],
-        index=["PerfectLand"],
-    ).T
-    revenuesDemand[1] = pd.DataFrame(
-        [
-            np.array(
-                [
-                    0.2,
-                    0.2,
-                    0.2,
-                    0.2,
-                ]
-            )
-        ],
-        index=["PerfectLand"],
-    ).T
-    revenuesDemand[2]=revenuesDemand[1]
-    revenuesDemand[3]=revenuesDemand[1]
-    revenuesDemand[4]=revenuesDemand[1]
-    revenuesDemand[5]=revenuesDemand[1]
 
     demand = {}
     demand[0] = pd.DataFrame(
@@ -142,7 +91,7 @@ def test_perfectForesight_linked_costs():
         ],
         index=["PerfectLand"],
     ).T  # first investmentperiod
-    demand[1] = pd.DataFrame(
+    demand[2] = pd.DataFrame(
         [
             np.array(
                 [
@@ -155,10 +104,10 @@ def test_perfectForesight_linked_costs():
         ],
         index=["PerfectLand"],
     ).T  # second investmentperiod
-    demand[2]=demand[1]
-    demand[3]=demand[1]
-    demand[4]=demand[1]
-    demand[5]=demand[1]
+    demand[4]=demand[2]
+    demand[6]=demand[2]
+    demand[8]=demand[2]
+    demand[10]=demand[2]
 
     esM.add(
         fn.Sink(
@@ -167,7 +116,6 @@ def test_perfectForesight_linked_costs():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateFix=demand,
-            # commodityRevenueTimeSeries=revenuesDemand,
         )
     )
 
@@ -178,11 +126,11 @@ def test_perfectForesight_linked_costs():
     
     # 
     PV_cap_year0=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year0 ,1.71232876712329 )
-    PV_cap_year1=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year1 ,1.71232876712329 )
-    PV_cap_year5=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[5].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year5 , 1.1415525114155252)
+    np.testing.assert_almost_equal(PV_cap_year0 ,2.5)
+    PV_cap_year4=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[4].xs("PV").values[0]
+    np.testing.assert_almost_equal(PV_cap_year1 ,1.25)
+    PV_cap_year8=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[8].xs("PV").values[0]
+    np.testing.assert_almost_equal(PV_cap_year5 ,1.25)
     
     raise ValueError("Currently we dont know the correct results for linked ip's")
     np.testing.assert_almost_equal(esM.pyM.Obj(),11545)

@@ -2537,7 +2537,7 @@ class ComponentModel(metaclass=ABCMeta):
                 # TODO improve!
                 if (loc,compName) not in costContribution.keys():
                     costContribution[(loc,compName)] = pd.DataFrame(0, index=esM.investmentPeriods, columns=esM.investmentPeriods)
-                decommisYear=commisYear+getattr(esM.getComponent(compName),lifetimeAttr)[loc]
+                decommisYear=commisYear+getattr(esM.getComponent(compName),lifetimeAttr)[loc]-1
                 costContribution[(loc,compName)].loc[commisYear,commisYear:decommisYear] =\
                     self.getLocEconomicsTI(
                         pyM,
@@ -2650,12 +2650,17 @@ class ComponentModel(metaclass=ABCMeta):
         """
         indices = getattr(pyM, dictName + "_" + self.abbrvName).items()
         if self.dimension == "1dim":
+            def annuityPresentValueFactor(esM,compName,loc):
+                # DE:Rentenbarwertfaktor
+                intrestRate = esM.getComponent(compName).interestRate[loc]
+                return (((1+intrestRate)**(esM.yearsPerInvestmentPeriod))-1)\
+                        /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))
+            
             return sum(
                 self.getLocEconomicsTD(
                     pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
                 ) 
-                * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
-                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))*(1+esM.getComponent(compName).interestRate[loc])\
+                * annuityPresentValueFactor(esM,compName,loc)*(1+esM.getComponent(compName).interestRate[loc])\
                 * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
                 if esM.getComponent(compName).interestRate[loc] !=0 and esM.mode !="stochastic" else
                 self.getLocEconomicsTD(
@@ -2666,6 +2671,12 @@ class ComponentModel(metaclass=ABCMeta):
                 for ip in esM.investmentPeriods
             )
         else:
+            def annuityPresentValueFactor(esM,compName,loc, loc_):
+                # DE:Rentenbarwertfaktor
+                intrestRate = esM.getComponent(compName).interestRate[loc + "_" + loc_]
+                return (((1+intrestRate)**(esM.yearsPerInvestmentPeriod))-1)\
+                        /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))
+
             return sum(
                 self.getLocEconomicsTD(
                     pyM,
@@ -2677,8 +2688,7 @@ class ComponentModel(metaclass=ABCMeta):
                     ip,
                     getOptValue,
                 )
-                 * (((1+esM.getComponent(compName).interestRate[loc + "_" + loc_])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
-                        /(esM.getComponent(compName).interestRate[loc + "_" + loc_]*(1+esM.getComponent(compName).interestRate[loc + "_" + loc_])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))*(1+esM.getComponent(compName).interestRate[loc + "_" + loc_])\
+                * annuityPresentValueFactor(esM,compName,loc, loc_)*(1+esM.getComponent(compName).interestRate[loc + "_" + loc_])\
                 * 1/(1+esM.getComponent(compName).interestRate[loc + "_" + loc_])**(ip*esM.yearsPerInvestmentPeriod)
                 if esM.getComponent(compName).interestRate[loc + "_" + loc_] !=0 else
                  self.getLocEconomicsTD(
