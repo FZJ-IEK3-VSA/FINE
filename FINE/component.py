@@ -234,6 +234,7 @@ class Component(metaclass=ABCMeta):
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
+            * dict with keys for investment period and one of the options above for the value
 
         :param investIfBuilt: a capacity-independent invest which only arises in a location if a component
             is built at that location. The investIfBuilt can either be given as
@@ -395,38 +396,36 @@ class Component(metaclass=ABCMeta):
         self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self.bigM = bigM
         self.partLoadMin = partLoadMin
-
-        # TODO make some more ip depending -> invest per capacity
-        
+      
         # Set economic data
         elig = locationalEligibility
         
-        # self.investPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
-        #     esM, name, investPerCapacity, dimension, elig
-        # )
-        # self.investIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
-        #     esM, name, investIfBuilt, dimension, elig
-        # )
-        # self.opexPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
-        #     esM, name, opexPerCapacity, dimension, elig
-        # )
-        # self.opexIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
-        #     esM, name, opexIfBuilt, dimension, elig
-        # )
-        self.investPerCapacity = utils.checkAndSetCostParameter(
+        self.investPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, investPerCapacity, dimension, elig
         )
-        self.investIfBuilt = utils.checkAndSetCostParameter(
+        self.investIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, investIfBuilt, dimension, elig
         )
-        self.opexPerCapacity = utils.checkAndSetCostParameter(
+        self.opexPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, opexPerCapacity, dimension, elig
         )
-        self.opexIfBuilt = utils.checkAndSetCostParameter(
+        self.opexIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, opexIfBuilt, dimension, elig
         )
+        # self.investPerCapacity = utils.checkAndSetCostParameter(
+        #     esM, name, investPerCapacity, dimension, elig
+        # )
+        # self.investIfBuilt = utils.checkAndSetCostParameter(
+        #     esM, name, investIfBuilt, dimension, elig
+        # )
+        # self.opexPerCapacity = utils.checkAndSetCostParameter(
+        #     esM, name, opexPerCapacity, dimension, elig
+        # )
+        # self.opexIfBuilt = utils.checkAndSetCostParameter(
+        #     esM, name, opexIfBuilt, dimension, elig
+        # )
         
-        self.QPcostScale = utils.checkAndSetCostParameter(
+        self.QPcostScale = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, QPcostScale, dimension, elig
         )
         self.interestRate = utils.checkAndSetCostParameter(
@@ -444,9 +443,15 @@ class Component(metaclass=ABCMeta):
         if esM.mode =="perfectForesight":
             self.ipTechnicalLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.technicalLifetime)
             self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.economicLifetime)
-        self.CCF = utils.getCapitalChargeFactor(
+            
+        self.CCF=utils.getCapitalChargeFactor(
             self.interestRate, self.economicLifetime
         )
+        # self.CCF={}
+        # for ip in esM.investmentPeriods:
+        #     self.CCF[ip]=utils.getCapitalChargeFactor(
+        #     self.interestRate, self.economicLifetime
+        # )
 
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
@@ -462,13 +467,13 @@ class Component(metaclass=ABCMeta):
             esM, name, yearlyFullLoadHoursMax, dimension, elig
         )
         self.isBuiltFix = isBuiltFix
-        utils.checkLocationSpecficDesignInputParams(self, esM)
+        # utils.checkLocationSpecficDesignInputParams(self, esM)
 
         # Set quadratic capacity bounds and residual cost scale (1-cost scale)
-        self.QPbound = utils.getQPbound(
-            self.QPcostScale, self.capacityMax, self.capacityMin
-        )
-        self.QPcostDev = utils.getQPcostDev(self.QPcostScale)
+        self.QPbound = utils.getQPbound(esM.investmentPeriods,
+                self.QPcostScale, self.capacityMax, self.capacityMin
+            )
+        self.QPcostDev = utils.getQPcostDev(esM.investmentPeriods,self.QPcostScale)
 
     def addToEnergySystemModel(self, esM):
         """
@@ -2351,7 +2356,7 @@ class ComponentModel(metaclass=ABCMeta):
         varName,
         loc,
         compName,
-        ip=None,
+        ip=0,
         divisorName="",
         QPfactorNames=[],
         QPdivisorNames=[],
@@ -2406,9 +2411,9 @@ class ComponentModel(metaclass=ABCMeta):
         :type getoptValue: boolean
         """
 
-        var = getattr(pyM, varName + "_" + self.abbrvName)
+        var = getattr(pyM, varName + "_" + self.abbrvName)      
         factors = [
-            getattr(self.componentsDict[compName], factorName)[loc]
+            getattr(self.componentsDict[compName], factorName)[ip][loc]
             for factorName in factorNames
         ]
         divisor = (
@@ -2424,18 +2429,18 @@ class ComponentModel(metaclass=ABCMeta):
             _var=var[loc, compName,ip]
         else: 
             _var=var[loc, compName]
-        if self.componentsDict[compName].QPcostScale[loc] == 0:
+        if self.componentsDict[compName].QPcostScale[ip][loc] == 0:
             if not getOptValue:
                 return factor * _var
             else:
                 return factor * _var.value
         else:
             QPfactors = [
-                getattr(self.componentsDict[compName], QPfactorName)[loc]
+                getattr(self.componentsDict[compName], QPfactorName)[ip][loc]
                 for QPfactorName in QPfactorNames
             ]
             QPdivisors = [
-                getattr(self.componentsDict[compName], QPdivisorName)[loc]
+                getattr(self.componentsDict[compName], QPdivisorName)[ip][loc]
                 for QPdivisorName in QPdivisorNames
             ]
             QPfactor = 1
@@ -2593,7 +2598,7 @@ class ComponentModel(metaclass=ABCMeta):
             #     )
 
         else:
-            ip=None
+            ip=0
             return sum(
                 self.getLocEconomicsTI(
                     pyM,
@@ -3005,14 +3010,15 @@ class ComponentModel(metaclass=ABCMeta):
                     )
 
             # Calculate the investment costs i (proportional to capacity expansion)
+            # TODO massiv falsch! muss commis year sein
             i = optVal.apply(
                 lambda cap: cap
-                * compDict[cap.name].investPerCapacity
-                * compDict[cap.name].QPcostDev
+                * compDict[cap.name].investPerCapacity[ip]
+                * compDict[cap.name].QPcostDev[ip]
                 + (
-                    compDict[cap.name].investPerCapacity
-                    * compDict[cap.name].QPcostScale
-                    / (compDict[cap.name].QPbound)
+                    compDict[cap.name].investPerCapacity[ip]
+                    * compDict[cap.name].QPcostScale[ip]
+                    / (compDict[cap.name].QPbound[ip])
                     * cap
                     * cap
                 ),
@@ -3022,15 +3028,15 @@ class ComponentModel(metaclass=ABCMeta):
             cx = optVal.apply(
                 lambda cap: (
                     cap
-                    * compDict[cap.name].investPerCapacity
-                    * compDict[cap.name].QPcostDev
+                    * compDict[cap.name].investPerCapacity[ip]
+                    * compDict[cap.name].QPcostDev[ip]
                     / compDict[cap.name].CCF
                 )
                 + (
-                    compDict[cap.name].investPerCapacity
+                    compDict[cap.name].investPerCapacity[ip]
                     / compDict[cap.name].CCF
-                    * compDict[cap.name].QPcostScale
-                    / (compDict[cap.name].QPbound)
+                    * compDict[cap.name].QPcostScale[ip]
+                    / (compDict[cap.name].QPbound[ip])
                     * cap
                     * cap
                 ),
@@ -3039,12 +3045,12 @@ class ComponentModel(metaclass=ABCMeta):
             # Calculate the annualized operational costs ox (OPEX)
             ox = optVal.apply(
                 lambda cap: cap
-                * compDict[cap.name].opexPerCapacity
-                * compDict[cap.name].QPcostDev
+                * compDict[cap.name].opexPerCapacity[ip]
+                * compDict[cap.name].QPcostDev[ip]
                 + (
-                    compDict[cap.name].opexPerCapacity
-                    * compDict[cap.name].QPcostScale
-                    / (compDict[cap.name].QPbound)
+                    compDict[cap.name].opexPerCapacity[ip]
+                    * compDict[cap.name].QPcostScale[ip]
+                    / (compDict[cap.name].QPbound[ip])
                     * cap
                     * cap
                 ),
@@ -3092,16 +3098,16 @@ class ComponentModel(metaclass=ABCMeta):
 
         if optVal is not None:
             # Calculate the investment costs i (fix value if component is built)
-            i = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt, axis=1)
+            i = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt[ip], axis=1)
             # Calculate the annualized investment costs cx (fix value if component is built)
             cx = optVal.apply(
                 lambda dec: dec
-                * compDict[dec.name].investIfBuilt
+                * compDict[dec.name].investIfBuilt[ip]
                 / compDict[dec.name].CCF,
                 axis=1,
             )
             # Calculate the annualized operational costs ox (fix value if component is built)
-            ox = optVal.apply(lambda dec: dec * compDict[dec.name].opexIfBuilt, axis=1)
+            ox = optVal.apply(lambda dec: dec * compDict[dec.name].opexIfBuilt[ip], axis=1)
 
             # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
             # (due to isBuilt decisions).

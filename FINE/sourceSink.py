@@ -242,163 +242,40 @@ class Source(Component):
 
         # opexPerOperation
         self.opexPerOperation = opexPerOperation
-        self.processedOpexPerOperation = {}
-        # self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-        #             esM, name, opexPerOperation, "1dim", locationalEligibility
-        #         )
+        self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
+                    esM, name, opexPerOperation, "1dim", locationalEligibility
+                )
         
         # commodityCost
         self.commodityCost = commodityCost
-        self.processedCommodityCost = {}
-        # self.processedCommodityCost = utils.checkAndSetInvestmentPeriodCostParameter(
-        #             esM, name, commodityCost, "1dim", locationalEligibility
-        #         )
+        self.processedCommodityCost = utils.checkAndSetInvestmentPeriodCostParameter(
+                    esM, name, commodityCost, "1dim", locationalEligibility
+                )
         
         # commodtyRevenue
         self.commodityRevenue = commodityRevenue       
-        self.processedCommodityRevenue = {}
-        # self.processedCommodityRevenue= utils.checkAndSetInvestmentPeriodCostParameter(
-        #             esM, name, commodityRevenue, "1dim", locationalEligibility
-        #         )
+        self.processedCommodityRevenue= utils.checkAndSetInvestmentPeriodCostParameter(
+                    esM, name, commodityRevenue, "1dim", locationalEligibility
+                )
 
         # commodityCostTimeSeries
         self.commodityCostTimeSeries = commodityCostTimeSeries
-        # self.fullCommodityCostTimeSeries=utils.checkAndSetInvestmentPeriodTimeSeries(
-        #             esM, name, commodityCostTimeSeries, locationalEligibility
-        #         )
-        self.fullCommodityCostTimeSeries = {}
-        self.aggregatedCommodityCostTimeSeries = {}
-        self.processedCommodityCostTimeSeries = {}
+        self.fullCommodityCostTimeSeries=utils.checkAndSetInvestmentPeriodTimeSeries(
+                    esM, name, commodityCostTimeSeries, locationalEligibility
+                )
+        self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
+        self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
         # commodityRevenueTimeSeries
         self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
         self.fullCommodityRevenueTimeSeries = {}
-        # self.fullCommodityRevenueTimeSeries = utils.checkAndSetInvestmentPeriodTimeSeries(
-        #     esM, name, commodityRevenueTimeSeries, locationalEligibility
-        #          )
-        self.aggregatedCommodityRevenueTimeSeries = {}
-        self.processedCommodityRevenueTimeSeries = {}
+        self.fullCommodityRevenueTimeSeries = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, commodityRevenueTimeSeries, locationalEligibility
+                 )
+        self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
+        self.processedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
         
-        # check input data
-        check_data = {"opexPerOperation":opexPerOperation, "commodityCost":commodityCost, "commodityRevenue":commodityRevenue, "commodityCostTimeSeries":commodityCostTimeSeries, "commodityRevenueTimeSeries": commodityRevenueTimeSeries, "operationRateMax":operationRateMax, "operationRateFix":operationRateFix, "partLoadMin":partLoadMin}
-        for name, data in check_data.items():
-            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
-
-        # iterate over all ips
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)
-            # opexPerOperation
-            if (
-                isinstance(opexPerOperation, int)
-                or isinstance(opexPerOperation, float)
-                or isinstance(opexPerOperation, pd.Series)
-            ):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation, "1dim", locationalEligibility
-                )
-            elif isinstance(opexPerOperation, dict):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation[_ip], "1dim", locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "opexPerOperation should be a pandas series or a dictionary."
-                )
-
-            # Commodity Cost
-            if (
-                isinstance(commodityCost, int)
-                or isinstance(commodityCost, float)
-                or isinstance(commodityCost, pd.Series)
-            ):
-                self.processedCommodityCost[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityCost, "1dim", locationalEligibility
-                )
-            elif isinstance(commodityCost, dict):  # commodityCost is dict
-                self.processedCommodityCost[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityCost[_ip], "1dim", locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "commodityCost should be a pandas series or a dictionary."
-                )
-
-            # Commodity Revenue
-            if (
-                isinstance(commodityRevenue, int)
-                or isinstance(commodityRevenue, float)
-                or isinstance(commodityRevenue, pd.Series)
-            ):
-                self.processedCommodityRevenue[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityRevenue, "1dim", locationalEligibility
-                )
-            elif isinstance(commodityRevenue, dict):
-                self.processedCommodityRevenue[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityRevenue[_ip], "1dim", locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "commodityRevenue should be a pandas series or a dictionary."
-                )
-
-            # Commodity Cost Time Series
-            if (
-                isinstance(commodityCostTimeSeries, pd.DataFrame)
-                or commodityCostTimeSeries is None
-                or isinstance(commodityCostTimeSeries, pd.Series)
-            ):
-                self.fullCommodityCostTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityCostTimeSeries, locationalEligibility
-                )
-            elif isinstance(commodityCostTimeSeries, dict):
-                self.fullCommodityCostTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityCostTimeSeries[_ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "commodityCostTimeSeries should be a pandas dataframe or a dictionary."
-                )
-
-            (
-                self.aggregatedCommodityCostTimeSeries[ip],
-                self.processedCommodityCostTimeSeries[ip],
-            ) = (None, None)
-
-            # commodityRevenueTimeSeries
-            if (
-                isinstance(commodityRevenueTimeSeries, pd.DataFrame)
-                or commodityRevenueTimeSeries is None
-                or isinstance(commodityRevenueTimeSeries, pd.Series)
-            ):
-                self.fullCommodityRevenueTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityRevenueTimeSeries, locationalEligibility
-                )
-            elif isinstance(commodityRevenueTimeSeries, dict):
-                self.fullCommodityRevenueTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityRevenueTimeSeries[_ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "commodityRevenueTimeSeries should be a pandas dataframe or a dictionary."
-                )
-
-            (
-                self.aggregatedCommodityRevenueTimeSeries[ip],
-                self.processedCommodityRevenueTimeSeries[ip],
-            ) = (None, None)
-
-        self.operationRateMax = operationRateMax
-        self.fullOperationRateMax = {}
-        self.aggregatedOperationRateMax = {}
-        self.processedOperationRateMax = {}
-
-        self.operationRateFix = operationRateFix
-        self.fullOperationRateFix = {}
-        self.aggregatedOperationRateFix = {}
-        self.processedOperationRateFix = {}
-
-        # iterate over all ips
+        # operationRateMaxx and Fix test -> TODO mode
         for _ip in esM.investmentPeriodList:
             # map name of investment period (e.g. 2020) to index (e.g. 0)
             ip = esM.investmentPeriodList.index(_ip)
@@ -425,102 +302,28 @@ class Source(Component):
                         "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
                         + "The operationRateMax time series was set to None."
                     )
-
-            # Operation Rate Max
-            if (
-                isinstance(operationRateMax, pd.DataFrame)
-                or operationRateMax is None
-                or isinstance(operationRateMax, pd.Series)
-            ):
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
+        
+        # operationRateMax
+        self.operationRateMax = operationRateMax
+        self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
                     esM, name, operationRateMax, locationalEligibility
                 )
-            elif isinstance(operationRateMax, dict):  # operationRate is dict
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax[_ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "OperationRateMax should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedOperationRateMax[ip], self.processedOperationRateMax[ip] = (
-                None,
-                None,
-            )
-
-            # Operation Rate Fix
-            if (
-                isinstance(operationRateFix, pd.DataFrame)
-                or operationRateFix is None
-                or isinstance(operationRateFix, pd.Series)
-            ):
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
+        self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
+        self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
+        
+        # operationRateFix
+        self.operationRateFix = operationRateFix
+        self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
                     esM, name, operationRateFix, locationalEligibility
                 )
-            elif isinstance(operationRateFix, dict):  # operationRate is dict
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix[_ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "OperationRateFix should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedOperationRateFix[ip], self.processedOperationRateFix[ip] = (
-                None,
-                None,
-            )
-
-        # Part Load Min
+        self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
+        self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
+        
+        # partLoadMin
         self.partLoadMin = partLoadMin
+        self.processedPartLoadMin=utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullOperationRateMax, self.fullOperationRateFix)
         self.processedPartLoadMin = {}
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)
-            if isinstance(partLoadMin, float) or partLoadMin is None:
-                self.processedPartLoadMin[ip] = partLoadMin
-            elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[_ip]
-
-        if not any(value for value in self.processedPartLoadMin.values()):
-            self.processedPartLoadMin = None
-
-        if self.processedPartLoadMin is not None:
-            for ip in esM.investmentPeriods:
-                if self.processedPartLoadMin[ip] is not None:
-                    if self.fullOperationRateMax[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateMax[ip] > 0)
-                                & (
-                                    self.fullOperationRateMax[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
-                    if self.fullOperationRateFix[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateFix[ip] > 0)
-                                & (
-                                    self.fullOperationRateFix[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"fullOperationRateFix" needs to be higher'
-                                + ' than "partLoadMin" or 0 for component '
-                                + name
-                            )
-
+        
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 

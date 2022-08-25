@@ -278,83 +278,25 @@ class Storage(Component):
         self.socOffsetDown = socOffsetDown
         self.modelingClass = StorageModel
 
+        # opexPerChargeOperation
         self.opexPerChargeOperation = opexPerChargeOperation
-        self.opexPerDischargeOperation = opexPerDischargeOperation
-        self.processedOpexPerChargeOperation = {}
-        self.processedOpexPerDischargeOperation = {}
-
-        self.chargeOpRateMax = chargeOpRateMax
-        self.fullChargeOpRateMax = {}
-        self.aggregatedChargeOpRateMax = {}
-
-        self.chargeOpRateFix = chargeOpRateFix
-        self.fullChargeOpRateFix = {}
-        self.aggregatedChargeOpRateFix = {}
-
-        # check input data
-        check_data={"chargeOpRateFix":chargeOpRateFix,
-                    "chargeOpRateMax":chargeOpRateMax,
-                    "opexPerDischargeOperation":opexPerDischargeOperation,
-                    "opexPerChargeOperation":opexPerChargeOperation,
-                    "dischargeOpRateFix":dischargeOpRateFix,
-                    "dischargeOpRateMax":dischargeOpRateMax,
-                    "partLoadMin":partLoadMin,}
-        for name, data in check_data.items():
-            utils.checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
-
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)
-
-            # opexPerChargeOperation
-            if (
-                isinstance(opexPerChargeOperation, int)
-                or isinstance(opexPerChargeOperation, float)
-                or isinstance(opexPerChargeOperation, pd.Series)
-            ):
-                self.processedOpexPerChargeOperation[
-                    ip
-                ] = utils.checkAndSetCostParameter(
+        self.processedOpexPerChargeOperation = utils.checkAndSetInvestmentPeriodCostParameter(
                     esM, name, opexPerChargeOperation, "1dim", locationalEligibility
                 )
-            elif isinstance(opexPerChargeOperation, dict):
-                self.processedOpexPerChargeOperation[
-                    ip
-                ] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerChargeOperation[_ip], "1dim", locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "opexPerChargeOperation should be a pandas series or a dictionary."
-                )
-
-            # opexPerDischargeOperation
-            if (
-                isinstance(opexPerDischargeOperation, int)
-                or isinstance(opexPerDischargeOperation, float)
-                or isinstance(opexPerDischargeOperation, pd.Series)
-            ):
-                self.processedOpexPerDischargeOperation[
-                    ip
-                ] = utils.checkAndSetCostParameter(
+        
+        # opexPerDischargeOperation
+        self.opexPerDischargeOperation = opexPerDischargeOperation
+        self.processedOpexPerDischargeOperation = utils.checkAndSetInvestmentPeriodCostParameter(
                     esM, name, opexPerDischargeOperation, "1dim", locationalEligibility
                 )
-            elif isinstance(opexPerDischargeOperation, dict):
-                self.processedOpexPerDischargeOperation[
-                    ip
-                ] = utils.checkAndSetCostParameter(
-                    esM,
-                    name,
-                    opexPerDischargeOperation[_ip],
-                    "1dim",
-                    locationalEligibility,
-                )
-            else:
-                raise TypeError(
-                    "opexPerDischargeOperation should be a pandas series or a dictionary."
-                )
 
-            # chargeOpRateMax and chargeOpRateFix
+        # chargeOpRateFix and chargeOpRateMax
+        self.chargeOpRateMax = chargeOpRateMax
+        self.chargeOpRateFix = chargeOpRateFix
+        # last check here -> move to utils?
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)        
             _chargeOpRateMax = (
                 chargeOpRateMax[_ip]
                 if isinstance(chargeOpRateMax, dict)
@@ -376,156 +318,37 @@ class Storage(Component):
                         "If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n"
                         + "The chargeOpRateMax time series was set to None."
                     )
+        
+        #chargeOpRateMax
+        self.fullChargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
+                    esM, name, chargeOpRateMax, locationalEligibility)
+        self.aggregatedChargeOpRateMax = dict.fromkeys(esM.investmentPeriods)
 
-            # chargeOpRateMax
-            if (
-                isinstance(chargeOpRateMax, pd.DataFrame)
-                or isinstance(chargeOpRateMax, pd.Series)
-                or chargeOpRateMax is None
-            ):
-                self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, chargeOpRateMax, locationalEligibility
-                )
-            elif isinstance(chargeOpRateMax, dict):
-                self.fullChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, chargeOpRateMax[_ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "chargeOpRateMax should be a pandas dataframe or a dictionary."
-                )
-
-            self.aggregatedChargeOpRateMax[ip] = None
-
-            # chargeOpRateFix
-            if (
-                isinstance(chargeOpRateFix, pd.DataFrame)
-                or isinstance(chargeOpRateFix, pd.Series)
-                or chargeOpRateFix is None
-            ):
-                self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, chargeOpRateFix, locationalEligibility
-                )
-            elif isinstance(chargeOpRateFix, dict):
-                self.fullChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, chargeOpRateFix[_ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "chargeOpRateFix should be a pandas dataframe or a dictionary."
-                )
-
-            self.aggregatedChargeOpRateFix[ip] = None
-
-        # new code for perfect foresight
-        self.partLoadMin = partLoadMin
-        self.processedPartLoadMin = {}
-
-        # iterate over all ips
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)
-            if isinstance(partLoadMin, float) or partLoadMin is None:
-                self.processedPartLoadMin[ip] = partLoadMin
-            elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[_ip]
-            else:
-                raise TypeError("partLoadMin should be a float, dict or None.")
-
-        if not any(value for value in self.processedPartLoadMin.values()):
-            self.processedPartLoadMin = None
-        if self.processedPartLoadMin is not None:
-            for ip in esM.investmentPeriods:
-                if self.processedPartLoadMin[ip] is not None:
-                    if self.fullChargeOpRateMax[ip] is not None:
-                        if (
-                            (
-                                (self.fullChargeOpRateMax[ip] > 0)
-                                & (
-                                    self.fullChargeOpRateMax[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"fullChargeOpRateMax" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
-                    if self.fullChargeOpRateFix[ip] is not None:
-                        if (
-                            (
-                                (self.fullChargeOpRateFix[ip] > 0)
-                                & (
-                                    self.fullChargeOpRateFix[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
-
-        utils.isPositiveNumber(chargeTsaWeight)
-        self.chargeTsaWeight = chargeTsaWeight
-
+        #chargeOpRateFix
+        self.fullChargeOpRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
+                    esM, name, chargeOpRateFix, locationalEligibility)
+        self.aggregatedChargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
+        
+        # dischargeOpRateMax
         self.dischargeOpRateMax = dischargeOpRateMax
-        self.dischargeOpRateFix = dischargeOpRateFix
-
-        self.fullDischargeOpRateMax = {}
+        self.fullDischargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
+                    esM, name, dischargeOpRateMax, locationalEligibility)
         self.aggregatedDischargeOpRateMax = {}
-
-        self.fullDischargeOpRateFix = {}
-        self.aggregatedDischargeOpRateFix = {}
-
-        # iterate over all ips
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)
-            # dischargeOpRateMax
-            if (
-                isinstance(dischargeOpRateMax, pd.DataFrame)
-                or isinstance(dischargeOpRateMax, pd.Series)
-                or dischargeOpRateMax is None
-            ):
-                self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, dischargeOpRateMax, locationalEligibility
-                )
-            elif isinstance(dischargeOpRateMax, dict):
-                self.fullDischargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, dischargeOpRateMax[_ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "dischargeOpRateMax should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedDischargeOpRateMax[ip] = None
-
-            # dischargeOpRateFix
-            if (
-                isinstance(dischargeOpRateFix, pd.DataFrame)
-                or isinstance(dischargeOpRateFix, pd.Series)
-                or dischargeOpRateFix is None
-            ):
-                self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, dischargeOpRateFix, locationalEligibility
-                )
-            elif isinstance(dischargeOpRateFix, dict):
-                self.fullDischargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, dischargeOpRateFix[_ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "dischargeOpRateFix should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedDischargeOpRateFix[ip] = None
+        
+        # dischargeOpRateFix
+        self.dischargeOpRateFix = dischargeOpRateFix
+        self.fullDischargeOpRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
+                    esM, name, dischargeOpRateFix, locationalEligibility)
+        self.aggregatedDischargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
+        
+        # partLoadMin
+        self.partLoadMin = partLoadMin
+        self.processedPartLoadMin =utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullChargeOpRateMax, self.fullChargeOpRateFix)
 
         utils.isPositiveNumber(dischargeTsaWeight)
         self.dischargeTsaWeight = dischargeTsaWeight
+        utils.isPositiveNumber(chargeTsaWeight)
+        self.chargeTsaWeight = chargeTsaWeight
 
         timeSeriesData = {}
         for ip in esM.investmentPeriods:
