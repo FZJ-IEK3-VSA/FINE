@@ -395,37 +395,31 @@ class Component(metaclass=ABCMeta):
         self.capacityPerPlantUnit = capacityPerPlantUnit
         self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self.bigM = bigM
-        self.partLoadMin = partLoadMin
-      
+
+        self.partLoadMin=partLoadMin
+        self.partLoadMin=utils.setPartLoadMin(esM,partLoadMin) # TODO make processedPartLoadMin
+        
         # Set economic data
         elig = locationalEligibility
         
-        self.investPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
+        self.investPerCapacity = investPerCapacity
+        self.processedInvestPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, investPerCapacity, dimension, elig
         )
-        self.investIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
+        self.investIfBuilt = investIfBuilt
+        self.processedInvestIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, investIfBuilt, dimension, elig
         )
-        self.opexPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
+        self.opexPerCapacity=opexPerCapacity
+        self.processedOpexPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, opexPerCapacity, dimension, elig
         )
-        self.opexIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
+        self.opexIfBuilt=opexIfBuilt
+        self.processedOpexIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, opexIfBuilt, dimension, elig
         )
-        # self.investPerCapacity = utils.checkAndSetCostParameter(
-        #     esM, name, investPerCapacity, dimension, elig
-        # )
-        # self.investIfBuilt = utils.checkAndSetCostParameter(
-        #     esM, name, investIfBuilt, dimension, elig
-        # )
-        # self.opexPerCapacity = utils.checkAndSetCostParameter(
-        #     esM, name, opexPerCapacity, dimension, elig
-        # )
-        # self.opexIfBuilt = utils.checkAndSetCostParameter(
-        #     esM, name, opexIfBuilt, dimension, elig
-        # )
-        
-        self.QPcostScale = utils.checkAndSetInvestmentPeriodCostParameter(
+        self.QPcostScale=QPcostScale
+        self.processedQPcostScale = utils.checkAndSetInvestmentPeriodCostParameter(
             esM, name, QPcostScale, dimension, elig
         )
         self.interestRate = utils.checkAndSetCostParameter(
@@ -467,13 +461,13 @@ class Component(metaclass=ABCMeta):
             esM, name, yearlyFullLoadHoursMax, dimension, elig
         )
         self.isBuiltFix = isBuiltFix
-        # utils.checkLocationSpecficDesignInputParams(self, esM)
+        utils.checkLocationSpecficDesignInputParams(self, esM)
 
         # Set quadratic capacity bounds and residual cost scale (1-cost scale)
         self.QPbound = utils.getQPbound(esM.investmentPeriods,
-                self.QPcostScale, self.capacityMax, self.capacityMin
+                self.processedQPcostScale, self.capacityMax, self.capacityMin
             )
-        self.QPcostDev = utils.getQPcostDev(esM.investmentPeriods,self.QPcostScale)
+        self.QPcostDev = utils.getQPcostDev(esM.investmentPeriods,self.processedQPcostScale)
 
     def addToEnergySystemModel(self, esM):
         """
@@ -2208,8 +2202,8 @@ class ComponentModel(metaclass=ABCMeta):
         capexCap = self.getEconomicsTI(
             pyM,
             esM,
-            factorNames=["investPerCapacity", "QPcostDev"],
-            QPfactorNames=["QPcostScale", "investPerCapacity"],
+            factorNames=["processedInvestPerCapacity", "QPcostDev"],
+            QPfactorNames=["processedQPcostScale", "investPerCapacity"],
             lifetimeAttr="ipEconomicLifetime",
             varName=_varName,
             divisorName="CCF",
@@ -2218,7 +2212,7 @@ class ComponentModel(metaclass=ABCMeta):
         capexDec = self.getEconomicsTI(
             pyM, 
             esM, 
-            factorNames=["investIfBuilt"], 
+            factorNames=["processedInvestIfBuilt"], 
             lifetimeAttr="ipEconomicLifetime", 
             varName="designBin", 
             divisorName="CCF"
@@ -2226,8 +2220,8 @@ class ComponentModel(metaclass=ABCMeta):
         opexCap = self.getEconomicsTI(
             pyM,
             esM,
-            factorNames=["opexPerCapacity", "QPcostDev"],
-            QPfactorNames=["QPcostScale", "opexPerCapacity"],
+            factorNames=["processedOpexPerCapacity", "QPcostDev"],
+            QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
             lifetimeAttr="ipTechnicalLifetime",
             varName=_varName,
             QPdivisorNames=["QPbound"],
@@ -2235,7 +2229,7 @@ class ComponentModel(metaclass=ABCMeta):
         opexDec = self.getEconomicsTI(
             pyM, 
             esM, 
-            factorNames=["opexIfBuilt"], 
+            factorNames=["processedOpexIfBuilt"], 
             lifetimeAttr="ipTechnicalLifetime", 
             varName="designBin"
         )
@@ -2374,7 +2368,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type esM: EnergySystemModel instance from the FINE package
 
         :param factorNames: Strings of the parameters that have to be multiplied within the equation.
-            (e.g. ['investPerCapacity'] to multiply the capacity variable with the investment per each capacity unit).
+            (e.g. ['processedInvestPerCapacity'] to multiply the capacity variable with the investment per each capacity unit).
         :type factorNames: list of strings
 
         :param varName: String of the variable that has to be multiplied within the equation (e.g. 'cap' for capacity variable).
@@ -2396,7 +2390,7 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is ''.
         :type divisorName: string
 
-        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['QPcostScale'])
+        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['processedQPcostScale'])
         :type QPfactorNames: list of strings
 
         :param QPdivisorNames: Strings of the parameters that have to be used as divisors when quadratic programming is used. (e.g. ['QPbound'])
@@ -2411,7 +2405,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type getoptValue: boolean
         """
 
-        var = getattr(pyM, varName + "_" + self.abbrvName)      
+        var = getattr(pyM, varName + "_" + self.abbrvName)    
         factors = [
             getattr(self.componentsDict[compName], factorName)[ip][loc]
             for factorName in factorNames
@@ -2429,7 +2423,7 @@ class ComponentModel(metaclass=ABCMeta):
             _var=var[loc, compName,ip]
         else: 
             _var=var[loc, compName]
-        if self.componentsDict[compName].QPcostScale[ip][loc] == 0:
+        if self.componentsDict[compName].processedQPcostScale[ip][loc] == 0:
             if not getOptValue:
                 return factor * _var
             else:
@@ -2484,7 +2478,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type esM: EnergySystemModel instance from the FINE package
 
         :param factorNames: Strings of the parameters that have to be multiplied within the equation.
-            (e.g. ['investPerCapacity'] to multiply the capacity variable with the investment per each capacity unit).
+            (e.g. ['processedInvestPerCapacity'] to multiply the capacity variable with the investment per each capacity unit).
         :type factorNames: list of strings
 
         :param varName: String of the variable that has to be multiplied within the equation (e.g. 'cap' for capacity variable).
@@ -2495,7 +2489,7 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is ''.
         :type divisorName: string
 
-        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['QPcostScale'])
+        :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['processedQPcostScale'])
         :type QPfactorNames: list of strings
 
         :param QPdivisorNames: Strings of the parameters that have to be used as divisors when quadratic programming is used. (e.g. ['QPbound'])
@@ -2526,17 +2520,7 @@ class ComponentModel(metaclass=ABCMeta):
             # years would have entries for df.loc[2,2:5]. Afterwards we 
             # sum the contributions per column, multiply it with the annuity 
             # present value factor to get the npv of the component for 
-            # different investPerCapacity and several ip for commissioning
-            
-            # TODO WHAT ELSE THAN CAPEX IS HERE???
-            # if "investPerCapacity" in factorNames:
-            #     _lifetime_name="ipEconomicLifetime"
-            # elif "opexPerCapacity" in factorNames:
-            #     _lifetime_name="ipTechnicalLifetime"
-            # elif "investIfBuilt" in factorNames:
-            #     pass
-            # else:
-            #     raise ValueError("??")
+            # different investPerCapacity and several ip for commissioning           
             costContribution={}
             for loc, compName, commisYear in var:
                 # TODO improve!
@@ -2939,7 +2923,7 @@ class ComponentModel(metaclass=ABCMeta):
             "capexCap",
             "capexIfBuilt",
             "opexCap",
-            "opexIfBuilt",
+            "processedOpexIfBuilt",
             "TAC",
             "invest",
         ]
@@ -3013,11 +2997,11 @@ class ComponentModel(metaclass=ABCMeta):
             # TODO massiv falsch! muss commis year sein
             i = optVal.apply(
                 lambda cap: cap
-                * compDict[cap.name].investPerCapacity[ip]
+                * compDict[cap.name].processedInvestPerCapacity[ip]
                 * compDict[cap.name].QPcostDev[ip]
                 + (
-                    compDict[cap.name].investPerCapacity[ip]
-                    * compDict[cap.name].QPcostScale[ip]
+                    compDict[cap.name].processedInvestPerCapacity[ip]
+                    * compDict[cap.name].processedQPcostScale[ip]
                     / (compDict[cap.name].QPbound[ip])
                     * cap
                     * cap
@@ -3028,14 +3012,14 @@ class ComponentModel(metaclass=ABCMeta):
             cx = optVal.apply(
                 lambda cap: (
                     cap
-                    * compDict[cap.name].investPerCapacity[ip]
+                    * compDict[cap.name].processedInvestPerCapacity[ip]
                     * compDict[cap.name].QPcostDev[ip]
                     / compDict[cap.name].CCF
                 )
                 + (
-                    compDict[cap.name].investPerCapacity[ip]
+                    compDict[cap.name].processedInvestPerCapacity[ip]
                     / compDict[cap.name].CCF
-                    * compDict[cap.name].QPcostScale[ip]
+                    * compDict[cap.name].processedQPcostScale[ip]
                     / (compDict[cap.name].QPbound[ip])
                     * cap
                     * cap
@@ -3045,11 +3029,11 @@ class ComponentModel(metaclass=ABCMeta):
             # Calculate the annualized operational costs ox (OPEX)
             ox = optVal.apply(
                 lambda cap: cap
-                * compDict[cap.name].opexPerCapacity[ip]
+                * compDict[cap.name].processedOpexPerCapacity[ip]
                 * compDict[cap.name].QPcostDev[ip]
                 + (
-                    compDict[cap.name].opexPerCapacity[ip]
-                    * compDict[cap.name].QPcostScale[ip]
+                    compDict[cap.name].processedOpexPerCapacity[ip]
+                    * compDict[cap.name].processedQPcostScale[ip]
                     / (compDict[cap.name].QPbound[ip])
                     * cap
                     * cap
@@ -3098,16 +3082,16 @@ class ComponentModel(metaclass=ABCMeta):
 
         if optVal is not None:
             # Calculate the investment costs i (fix value if component is built)
-            i = optVal.apply(lambda dec: dec * compDict[dec.name].investIfBuilt[ip], axis=1)
+            i = optVal.apply(lambda dec: dec * compDict[dec.name].processedInvestIfBuilt[ip], axis=1)
             # Calculate the annualized investment costs cx (fix value if component is built)
             cx = optVal.apply(
                 lambda dec: dec
-                * compDict[dec.name].investIfBuilt[ip]
+                * compDict[dec.name].processedInvestIfBuilt[ip]
                 / compDict[dec.name].CCF,
                 axis=1,
             )
             # Calculate the annualized operational costs ox (fix value if component is built)
-            ox = optVal.apply(lambda dec: dec * compDict[dec.name].opexIfBuilt[ip], axis=1)
+            ox = optVal.apply(lambda dec: dec * compDict[dec.name].processedOpexIfBuilt[ip], axis=1)
 
             # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
             # (due to isBuilt decisions).
@@ -3123,7 +3107,7 @@ class ComponentModel(metaclass=ABCMeta):
                 cx.columns,
             ] = cx.values
             optSummary.loc[
-                [(ix, "opexIfBuilt", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                [(ix, "processedOpexIfBuilt", "[" + esM.costUnit + "/a]") for ix in ox.index],
                 ox.columns,
             ] = ox.values
 
@@ -3133,7 +3117,7 @@ class ComponentModel(metaclass=ABCMeta):
                 (optSummary.index.get_level_values(1) == "capexCap")
                 | (optSummary.index.get_level_values(1) == "opexCap")
                 | (optSummary.index.get_level_values(1) == "capexIfBuilt")
-                | (optSummary.index.get_level_values(1) == "opexIfBuilt")
+                | (optSummary.index.get_level_values(1) == "processedOpexIfBuilt")
             ]
             .groupby(level=0)
             .sum()

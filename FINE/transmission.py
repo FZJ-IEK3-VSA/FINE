@@ -180,13 +180,11 @@ class Transmission(Component):
         self.capacityMin = utils.preprocess2dimData(
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
-        self.investPerCapacity = utils.preprocess2dimData(investPerCapacity, self._mapC)
-        self.investIfBuilt = utils.preprocess2dimData(investIfBuilt, self._mapC)
+
         self.isBuiltFix = utils.preprocess2dimData(
             isBuiltFix, self._mapC, locationalEligibility=self.locationalEligibility
         )
-        self.opexPerCapacity = utils.preprocess2dimData(opexPerCapacity, self._mapC)
-        self.opexIfBuilt = utils.preprocess2dimData(opexIfBuilt, self._mapC)
+        
         self.interestRate = utils.preprocess2dimData(interestRate, self._mapC)
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
@@ -210,16 +208,15 @@ class Transmission(Component):
             linkedQuantityID=linkedQuantityID,
             capacityFix=self.capacityFix,
             isBuiltFix=self.isBuiltFix,
-            investPerCapacity=self.investPerCapacity,
-            investIfBuilt=self.investIfBuilt,
-            opexPerCapacity=self.opexPerCapacity,
-            opexIfBuilt=self.opexIfBuilt,
+            investPerCapacity=0, 
+            investIfBuilt=0,
+            opexPerCapacity=0,
+            opexIfBuilt=0,
             interestRate=self.interestRate,
             QPcostScale=QPcostScale,
             economicLifetime=self.economicLifetime,
             technicalLifetime=self.technicalLifetime,
         )
-
         # Set general component data
         utils.checkCommodities(esM, {commodity})
         self.commodity, self.commodityUnit = (
@@ -237,6 +234,20 @@ class Transmission(Component):
             self.losses, self.distances, self.locationalEligibility
         )
         self.modelingClass = TransmissionModel
+        
+        # these are initialized with 0 in the component.__init__ and overwritten here,
+        # due to its different structure otherwise the tests fail in the component
+        self.investPerCapacity=investPerCapacity
+        _processedInvestPerCapacity = utils.preprocess2dimInvestmentPeriodData(esM, "investPerCapacity" ,investPerCapacity, self._mapC)
+
+        self.investIfBuilt=investIfBuilt
+        _processedInvestIfBuilt = utils.preprocess2dimInvestmentPeriodData(esM, "investIfBuilt", investIfBuilt, self._mapC)
+        
+        self.opexPerCapacity = opexPerCapacity
+        _processedOpexPerCapacity= utils.preprocess2dimInvestmentPeriodData(esM, "opexPerCapacity", opexPerCapacity, self._mapC)
+
+        self.opexIfBuilt = opexIfBuilt
+        _processedOpexIfBuilt = utils.preprocess2dimInvestmentPeriodData(esM, "opexIfBuilt", opexIfBuilt, self._mapC)
 
         # Set distance related costs data
         self.processedInvestPerCapacity={} 
@@ -244,11 +255,14 @@ class Transmission(Component):
         self.processedOpexPerCapacity={}
         self.processedOpexIfBuilt={}
         for ip in esM.investmentPeriods:
-            self.processedInvestPerCapacity[ip] = self.investPerCapacity[ip] * self.distances * 0.5
-            self.processedInvestIfBuilt[ip] = self.investIfBuilt[ip] * self.distances * 0.5
-            self.processedOpexPerCapacity[ip] = self.opexPerCapacity[ip] * self.distances * 0.5
-            self.processedOpexIfBuilt[ip] = self.opexIfBuilt[ip] * self.distances * 0.5
+            self.processedInvestPerCapacity[ip] = _processedInvestPerCapacity[ip] * self.distances * 0.5
+            self.processedInvestIfBuilt[ip] = _processedInvestIfBuilt[ip] * self.distances * 0.5
+            self.processedOpexPerCapacity[ip] = _processedOpexPerCapacity[ip] * self.distances * 0.5
+            self.processedOpexIfBuilt[ip] = _processedOpexIfBuilt[ip] * self.distances * 0.5
+        
+        
 
+        
         # Set additional economic data
         # opexPerOperation
         self.opexPerOperation = utils.preprocess2dimData(
@@ -773,7 +787,7 @@ class TransmissionModel(ComponentModel):
             pyM,
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            QPfactorNames=["QPcostScale", "processedInvestPerCapacity"],
+            QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
             lifetimeAttr="ipEconomicLifetime",
             varName=_varName,
             divisorName="CCF",
@@ -791,7 +805,7 @@ class TransmissionModel(ComponentModel):
             pyM,
             esM,
             factorNames=["processedOpexPerCapacity", "QPcostDev"],
-            QPfactorNames=["QPcostScale", "processedOpexPerCapacity"],
+            QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
             lifetimeAttr="ipTechnicalLifetime",
             varName=_varName,
             QPdivisorNames=["QPbound"],
@@ -916,7 +930,7 @@ class TransmissionModel(ComponentModel):
                     * compDict[cap.name].QPcostDev[ip]
                     + (
                         compDict[cap.name].processedInvestPerCapacity[ip]
-                        * compDict[cap.name].QPcostScale[ip]
+                        * compDict[cap.name].processedQPcostScale[ip]
                         / (compDict[cap.name].QPbound[ip])
                         * cap
                         * cap
@@ -934,7 +948,7 @@ class TransmissionModel(ComponentModel):
                     + (
                         compDict[cap.name].processedInvestPerCapacity[ip]
                         / compDict[cap.name].CCF
-                        * compDict[cap.name].QPcostScale[ip]
+                        * compDict[cap.name].processedQPcostScale[ip]
                         / (compDict[cap.name].QPbound[ip])
                         * cap
                         * cap
@@ -948,7 +962,7 @@ class TransmissionModel(ComponentModel):
                     * compDict[cap.name].QPcostDev[ip]
                     + (
                         compDict[cap.name].processedOpexPerCapacity[ip]
-                        * compDict[cap.name].QPcostScale[ip]
+                        * compDict[cap.name].processedQPcostScale[ip]
                         / (compDict[cap.name].QPbound[ip])
                         * cap
                         * cap

@@ -128,7 +128,7 @@ class EnergySystemModel:
         
         :param startyear: year name of first investment period, e.g. 2020
             |br| * the default value is None
-        : type investmentPeriodList: integer
+        : type startyear: integer
 
         :param mode: linking method for several investment periods
             |br| * the default value is None

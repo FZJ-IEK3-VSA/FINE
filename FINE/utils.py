@@ -508,13 +508,12 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         comp.capacityMax = castToSeries(comp.capacityMax, esM)
         comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
-        comp.QPcostScale = castToSeries(comp.QPcostScale, esM)
-
+    
     capacityMin, capacityFix, capacityMax, QPcostScale = (
         comp.capacityMin,
         comp.capacityFix,
         comp.capacityMax,
-        comp.QPcostScale,
+        comp.processedQPcostScale,
     )
     locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
     hasCapacityVariable, hasIsBuiltBinaryVariable = (
@@ -527,14 +526,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     bigM = comp.bigM
     hasCapacityVariable = comp.hasCapacityVariable
 
-    for data in [
-        capacityMin,
-        capacityFix,
-        capacityMax,
-        QPcostScale,
-        locationalEligibility,
-        isBuiltFix,
-    ]:
+    def checkAndSet(data,comp,esM):
         if data is not None:
             if comp.dimension == "1dim":
                 if not isinstance(data, pd.Series):
@@ -548,6 +540,18 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError(
                     "The dimension parameter has to be either '1dim' or '2dim' "
                 )
+
+    for data in [
+        capacityMin,
+        capacityFix,
+        capacityMax,
+        locationalEligibility,
+        isBuiltFix,
+    ]:
+        checkAndSet(data,comp,esM)
+    
+    for ip in esM.investmentPeriods:
+        checkAndSet(QPcostScale[ip],comp,esM)
 
     if capacityMin is not None and (capacityMin < 0).any():
         raise ValueError("capacityMin values smaller than 0 were detected.")
@@ -593,15 +597,6 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     if capacityFix is not None and capacityMin is not None:
         if (capacityFix < capacityMin).any():
             raise ValueError("capacityFix values < capacityMax values detected.")
-
-    if capacityMax is None or capacityMin is None:
-        if (QPcostScale > 0).any():
-            raise ValueError(
-                "QPcostScale is given but lower or upper capacity bounds are not specified."
-            )
-
-    if (QPcostScale < 0).any() or (QPcostScale > 1).any():
-        raise ValueError('QPcostScale must ba a number between "0" and "1".')
 
     if locationalEligibility is not None:
         # Check if values are either one or zero
@@ -665,39 +660,50 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError(
                     "The isBuiltFix and capacityMin parameters indicate different design decisions."
                 )
+    for ip in esM.investmentPeriods:
+        if capacityMax is None or capacityMin is None:
+            if (QPcostScale[ip] > 0).any():
+                raise ValueError(
+                    "QPcostScale is given but lower or upper capacity bounds are not specified."
+                )
+        # QPcostScale
+        comp.processedQPcostScale[ip] = castToSeries(comp.processedQPcostScale[ip], esM)
+        if (QPcostScale[ip] < 0).any() or (QPcostScale[ip] > 1).any():
+            raise ValueError('QPcostScale must ba a number between "0" and "1".')
 
-    if partLoadMin is not None:
-        # Check if values are floats and the intervall ]0,1].
-        if type(partLoadMin) != float:
-            raise TypeError(
-                "partLoadMin for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
-            )
-        if partLoadMin <= 0:
-            raise ValueError(
-                "partLoadMin for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
-            )
-        if partLoadMin > 1:
-            raise ValueError(
-                "partLoadMin for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
-            )
-        if bigM is None:
-            raise ValueError(
-                "bigM needs to be defined for component "
-                + name
-                + " if partLoadMin is not None."
-            )
-        if not hasCapacityVariable:
-            raise ValueError(
-                "hasCapacityVariable needs to be True for component "
-                + name
-                + " if partLoadMin is not None."
-            )
+        # partLoadMin
+        if partLoadMin[ip] is not None:
+            # Check if values are floats and the intervall ]0,1].
+            if type(partLoadMin[ip]) != float:
+                raise TypeError(
+                    "partLoadMin for "
+                    + name
+                    + " needs to be a float in the intervall ]0,1]."
+                )
+            if partLoadMin[ip] <= 0:
+                raise ValueError(
+                    "partLoadMin for "
+                    + name
+                    + " needs to be a float in the intervall ]0,1]."
+                )
+            if partLoadMin[ip] > 1:
+                raise ValueError(
+                    "partLoadMin for "
+                    + name
+                    + " needs to be a float in the intervall ]0,1]."
+                )
+            if bigM is None:
+                raise ValueError(
+                    "bigM needs to be defined for component "
+                    + name
+                    + " if partLoadMin is not None."
+                )
+            if not hasCapacityVariable:
+                raise ValueError(
+                    "hasCapacityVariable needs to be True for component "
+                    + name
+                    + " if partLoadMin is not None."
+                )
 
 def checkInvestmentPeriodParameters(name,param,investmentPeriodList):
     if isinstance(param,dict):
@@ -1136,8 +1142,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
         )
     return _data
 
-def checkAndSetPartLoadMin(esM,name,partLoadMin,fullOperationMax, fullOperationFix):
-    checkInvestmentPeriodParameters(name,partLoadMin,esM.investmentPeriodList)
+def setPartLoadMin(esM,partLoadMin):
     partLoadMin_ip={}
     for _ip in esM.investmentPeriodList:
         # map name of investment period (e.g. 2020) to index (e.g. 0)
@@ -1146,42 +1151,50 @@ def checkAndSetPartLoadMin(esM,name,partLoadMin,fullOperationMax, fullOperationF
             partLoadMin_ip[ip] = partLoadMin
         elif isinstance(partLoadMin, dict):
             partLoadMin_ip[ip] = partLoadMin[_ip]
+    return partLoadMin_ip
+
+def checkAndSetPartLoadMin(esM,name,partLoadMin,fullOperationMax, fullOperationFix):
+    checkInvestmentPeriodParameters(name,partLoadMin,esM.investmentPeriodList)
+    partLoadMin_ip=setPartLoadMin(esM,partLoadMin)
 
     if not any(value for value in partLoadMin_ip.values()):
         partLoadMin_ip = None
     if partLoadMin_ip is not None:
-        if fullOperationMax[ip] is not None:
-            if (
-                (
-                    (fullOperationMax[ip] > 0)
-                    & (
-                        fullOperationMax[ip]
-                        < partLoadMin_ip[ip]
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip=esM.investmentPeriodList.index(_ip)
+            if fullOperationMax[ip] is not None:
+                if (
+                    (
+                        (fullOperationMax[ip] > 0)
+                        & (
+                            fullOperationMax[ip]
+                            < partLoadMin_ip[ip]
+                        )
                     )
-                )
-                .any()
-                .any()
-            ):
-                raise ValueError(
-                    '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
-                    + name
-                )
-        if fullOperationFix[ip] is not None:
-            if (
-                (
-                    (fullOperationFix[ip] > 0)
-                    & (
-                        fullOperationFix[ip]
-                        < partLoadMin_ip[ip]
+                    .any()
+                    .any()
+                ):
+                    raise ValueError(
+                        '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
+                        + name
                     )
-                )
-                .any()
-                .any()
-            ):
-                raise ValueError(
-                    '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
-                    + name
-                )
+            if fullOperationFix[ip] is not None:
+                if (
+                    (
+                        (fullOperationFix[ip] > 0)
+                        & (
+                            fullOperationFix[ip]
+                            < partLoadMin_ip[ip]
+                        )
+                    )
+                    .any()
+                    .any()
+                ):
+                    raise ValueError(
+                        '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
+                        + name
+                    )
     return partLoadMin_ip
 
 def checkAndSetInvestmentPeriodCostParameter(esM, name, data, dimension, locationalEligibility):
@@ -1619,6 +1632,29 @@ def setOptimalComponentVariables(optVal, varType, compDict):
                 setattr(comp, varType, optVal.loc[compName])
             else:
                 setattr(comp, varType, None)
+
+
+def preprocess2dimInvestmentPeriodData (esM, name, data, mapC=None, locationalEligibility=None, discard=True):
+    parameter={}
+    for _ip in esM.investmentPeriodList:
+        # map name of investment period (e.g. 2020) to index (e.g. 0)
+        ip = esM.investmentPeriodList.index(_ip)
+
+        if (    isinstance(data, int) 
+                or isinstance(data, float)
+                or isinstance(data, pd.DataFrame)
+                or isinstance(data, pd.Series)
+                or data is None
+            ):
+            parameter[ip] = preprocess2dimData(data, mapC, locationalEligibility, discard)
+        elif isinstance(data, dict):  
+            parameter[ip] = preprocess2dimData(data[ip], mapC, locationalEligibility, discard)
+        else:
+            raise TypeError(
+                f"{name} should be a pandas dataframe or a dictionary."
+            )
+    
+    return parameter
 
 
 def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):

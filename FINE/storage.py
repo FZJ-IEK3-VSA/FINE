@@ -1709,10 +1709,10 @@ class StorageModel(ComponentModel):
         else:
             _varName="cap"
             
-        capexCap = self.getEconomicsTI(pyM, esM, ["investPerCapacity"],lifetimeAttr="ipEconomicLifetime", varName=_varName, divisorName="CCF")
-        capexDec = self.getEconomicsTI(pyM, esM, ["investIfBuilt"], lifetimeAttr="ipEconomicLifetime", varName="designBin", divisorName="CCF")
-        opexCap = self.getEconomicsTI(pyM, esM, ["opexPerCapacity"], lifetimeAttr="ipTechnicalLifetime", varName=_varName)
-        opexDec = self.getEconomicsTI(pyM, esM, ["opexIfBuilt"], lifetimeAttr="ipTechnicalLifetime", varName="designBin")
+        capexCap = self.getEconomicsTI(pyM, esM, ["processedInvestPerCapacity"],lifetimeAttr="ipEconomicLifetime", varName=_varName, divisorName="CCF")
+        capexDec = self.getEconomicsTI(pyM, esM, ["processedInvestIfBuilt"], lifetimeAttr="ipEconomicLifetime", varName="designBin", divisorName="CCF")
+        opexCap = self.getEconomicsTI(pyM, esM, ["processedOpexPerCapacity"], lifetimeAttr="ipTechnicalLifetime", varName=_varName)
+        opexDec = self.getEconomicsTI(pyM, esM, ["processedOpexIfBuilt"], lifetimeAttr="ipTechnicalLifetime", varName="designBin")
         opexOp1 = self.getEconomicsTD(
             pyM,
             esM,
