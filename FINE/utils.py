@@ -1967,6 +1967,66 @@ def checkAndSetTimeHorizon(
 
     return nbOfSteps, nbOfRepresentedYears
 
+def checkAndSetStock(component,esM, stockCommissioning):
+    if stockCommissioning is None:
+        return stockCommissioning
+    
+    # stocks only for transformation pathway with perfect Foresight
+    if stockCommissioning is not None and esM.mode != "perfectForesight":
+        raise ValueError("Stock Commissioning can only be considered for perfectForesight.")
+    
+    # check type of stockCommissioning
+    if not isinstance(stockCommissioning,dict):
+        raise TypeError("stockCommissioning must be None or a dict")
+    
+    # check if years are correct
+    _correct_list=sorted([esM.startYear-n*esM.yearsPerInvestmentPeriod for n in range(1,len(stockCommissioning.keys())+1)])
+    if _correct_list!=sorted(list(stockCommissioning.keys())):
+        raise ValueError(
+            f"stockCommissioning should be initialized for {_correct_list}"+
+            " but is initialized for "+
+            f"{list(stockCommissioning.keys())}")
+        
+    # check data for stockCommissioning
+    for year,yearly_stock in stockCommissioning.items():
+        if not isinstance(year, int):
+            raise ValueError("Years of stockCommissioning must be int")
+        # float and int for capacity are only allowed if there is only one region
+        if isinstance(yearly_stock, int) or isinstance(yearly_stock, float): 
+            if not len(esM.locations) ==1: 
+                raise ValueError("esM has more than one location, so the location of the stock has to be set.")
+            else: # if there is only one region, convert into pd.series region:stock
+                isPositiveNumber(yearly_stock)
+                stockCommissioning[year]=pd.Series(data={list(esM.locations)[0]:yearly_stock})
+        elif isinstance(yearly_stock, pd.Series):
+            # series must have all locations as index and float/int for values
+            if not sorted(yearly_stock.index) == sorted(esM.locations):
+                raise ValueError(
+                    f"Please initialize all regions for the year '{year}'")
+            if any(not isinstance(x, float) or not isinstance(x, int) for x in yearly_stock.values):
+                raise ValueError(
+                    f"Stock capacities in year '{year}' must be int/float")
+
+        else:
+            raise TypeError("stockCommissioning must be a dict of keys for years and pd.Series with location as index and stock as value.")
+    
+    # check if capacityMin and capacityMax is kept per region
+    for loc in esM.locations:
+        installed_sum=0
+        for year in stockCommissioning.keys():
+            if year < esM.startYear-component.technicalLifetime[loc]:
+                pass    
+            else:
+                installed_sum+=stockCommissioning[year][loc] 
+        if component.capacityMax is not None:
+            if installed_sum> component.capacityMax[loc]:
+                raise ValueError(
+                    f"The stock of '{component.name}' in region '{loc}' "+
+                    f"exceeds its capacityMax of '{component.capacityMax}'")
+        
+    
+            
+    return stockCommissioning
 
 def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
     """

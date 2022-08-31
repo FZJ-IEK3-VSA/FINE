@@ -71,7 +71,7 @@ class EnergySystemModel:
         commodityUnitsDict,
         numberOfTimeSteps=8760,
         hoursPerTimeStep=1,
-        startyear=0,
+        startYear=0,
         numberOfInvestmentPeriods=1,
         yearsPerInvestmentPeriod=1,
         mode="singleYearOptimization",
@@ -126,9 +126,9 @@ class EnergySystemModel:
             |br| * the default value is 1
         : type yearsPerInvestmentPeriod: strictly positive integer
         
-        :param startyear: year name of first investment period, e.g. 2020
+        :param startYear: year name of first investment period, e.g. 2020
             |br| * the default value is None
-        : type startyear: integer
+        : type startYear: integer
 
         :param mode: linking method for several investment periods
             |br| * the default value is None
@@ -215,7 +215,7 @@ class EnergySystemModel:
             hoursPerTimeStep,
             numberOfInvestmentPeriods,
             yearsPerInvestmentPeriod,
-            startyear,
+            startYear,
             mode,
             costUnit,
             lengthUnit,
@@ -257,11 +257,11 @@ class EnergySystemModel:
         ######################################################################
         # Perfect Foresight related
         # TODO comments
-        finalyear=startyear+numberOfInvestmentPeriods*yearsPerInvestmentPeriod-1
-        self.investmentPeriodList = list(range(startyear,finalyear+1,yearsPerInvestmentPeriod))
+        finalyear=startYear+numberOfInvestmentPeriods*yearsPerInvestmentPeriod-1
+        self.investmentPeriodList = list(range(startYear,finalyear+1,yearsPerInvestmentPeriod))
         
         self.yearsPerInvestmentPeriod=yearsPerInvestmentPeriod
-        self.startyear=startyear
+        self.startYear=startYear
         self.investmentPeriods = list(range(numberOfInvestmentPeriods))
         self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
                  

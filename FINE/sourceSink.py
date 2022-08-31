@@ -49,6 +49,7 @@ class Source(Component):
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
         balanceLimitID=None,
+        stockCommissioning=None
     ):
 
         """
@@ -226,6 +227,7 @@ class Source(Component):
             technicalLifetime=technicalLifetime, # TODO changed
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
+            stockCommissioning=stockCommissioning
         )
 
         # Set general source/sink data: ID and yearly limit

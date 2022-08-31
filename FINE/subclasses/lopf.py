@@ -43,6 +43,7 @@ class LinearOptimalPowerFlow(Transmission):
         interestRate=0.08,
         economicLifetime=10,
         technicalLifetime=None,
+        stockCommissioning=None,
     ):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.
@@ -87,6 +88,7 @@ class LinearOptimalPowerFlow(Transmission):
             interestRate=interestRate,
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
+            stockCommissioning=stockCommissioning
         )
 
         self.modelingClass = LOPFModel

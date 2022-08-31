@@ -40,7 +40,7 @@ class Component(metaclass=ABCMeta):
         technicalLifetime=None,
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
-        #stock={"installationyears":pd.DataFrame(),""}
+        stockCommissioning=None
     ):
         """
         Constructor for creating an Component class instance.
@@ -370,6 +370,13 @@ class Component(metaclass=ABCMeta):
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim).
+              
+        :param stockCommissioning: if specified, indicates in which years how much stock capacities
+            were commissioned per location. 
+            |br| * the default value is None
+        :type stockCommissioning:
+            * None or
+            * Dict which consists out of pd.Series if more than one location is specified in esM
 
         :param modelingClass: to the Component connected modeling class.
             |br| * the default value is ModelingClass
@@ -434,9 +441,8 @@ class Component(metaclass=ABCMeta):
         self.technicalLifetime = utils.checkAndSetCostParameter(
             esM, name, technicalLifetime, dimension, elig
         )
-        if esM.mode =="perfectForesight":
-            self.ipTechnicalLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.technicalLifetime)
-            self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.economicLifetime)
+        
+            
             
         self.CCF=utils.getCapitalChargeFactor(
             self.interestRate, self.economicLifetime
@@ -468,6 +474,11 @@ class Component(metaclass=ABCMeta):
                 self.processedQPcostScale, self.capacityMax, self.capacityMin
             )
         self.QPcostDev = utils.getQPcostDev(esM.investmentPeriods,self.processedQPcostScale)
+        
+        self.stockCommissioning = utils.checkAndSetStock(self, esM,stockCommissioning)
+        if esM.mode == "perfectForesight":
+            self.ipTechnicalLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.technicalLifetime)
+            self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.economicLifetime)
 
     def addToEnergySystemModel(self, esM):
         """

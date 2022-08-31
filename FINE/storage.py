@@ -56,6 +56,7 @@ class Storage(Component):
         technicalLifetime=None,
         socOffsetDown=-1,
         socOffsetUp=-1,
+        stockCommissioning=None,
     ):
         """
         Constructor for creating an Storage class instance.
@@ -250,6 +251,7 @@ class Storage(Component):
             interestRate=interestRate,
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
+            stockCommissioning=stockCommissioning,
         )
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,

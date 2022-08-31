@@ -43,6 +43,7 @@ class Transmission(Component):
         economicLifetime=10,
         technicalLifetime=None,
         balanceLimitID=None,
+        stockCommissioning=None
     ):
         """
         Constructor for creating an Transmission class instance.
@@ -216,6 +217,7 @@ class Transmission(Component):
             QPcostScale=QPcostScale,
             economicLifetime=self.economicLifetime,
             technicalLifetime=self.technicalLifetime,
+            stockCommissioning=stockCommissioning
         )
         # Set general component data
         utils.checkCommodities(esM, {commodity})
