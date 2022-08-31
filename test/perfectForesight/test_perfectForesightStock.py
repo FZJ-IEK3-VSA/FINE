@@ -37,7 +37,7 @@ def test_Stock_wrongStockYears():
             opexPerOperation= 0.01,
             economicLifetime=5,
             technicalLifetime=6,
-            stockCommissioning={2017:0,2018:5}
+            stockCommissioning={2015:2,2017:0,2018:5}
         )
 
 
@@ -251,7 +251,7 @@ def test_perfectForesightStock():
             opexPerOperation=PVopexPerOperation,  # 0.01,
             economicLifetime=5,
             technicalLifetime=6,
-            stockCommissioning={2018:0,2019:0.5}
+            stockCommissioning={2018:1,2019:0.5}
         )
     )
 

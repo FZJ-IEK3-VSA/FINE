@@ -475,11 +475,17 @@ class Component(metaclass=ABCMeta):
             )
         self.QPcostDev = utils.getQPcostDev(esM.investmentPeriods,self.processedQPcostScale)
         
-        self.stockCommissioning = utils.checkAndSetStock(self, esM,stockCommissioning)
+        if esM.mode != "perfectForesight" and stockCommissioning != None:
+            raise ValueError("Stocks are only allowed for mode perfectForesight")
+        
         if esM.mode == "perfectForesight":
             self.ipTechnicalLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.technicalLifetime)
             self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.economicLifetime)
-
+            self.stockCommissioning = stockCommissioning
+            self.processedStockCommissioning=utils.checkAndSetStock(self, esM,stockCommissioning)
+            self.stockCapacityStartYear=utils.setStockCapacityStartYear(self,esM)
+        
+        
     def addToEnergySystemModel(self, esM):
         """
         Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -1650,7 +1656,8 @@ class ComponentModel(metaclass=ABCMeta):
             commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                return capVar[loc, compName, esM.investmentPeriods[0]]==0 + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] #if ip==0 else pyomo.Constraint.Skip) # TODO stock instead of stock
+                stock_cap=self.componentsDict[compName].stockCapacityStartYear[loc]
+                return capVar[loc, compName, esM.investmentPeriods[0]]==stock_cap + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] #if ip==0 else pyomo.Constraint.Skip) # TODO stock instead of stock
 
             setattr(
                 pyM,
@@ -1679,12 +1686,13 @@ class ComponentModel(metaclass=ABCMeta):
             decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                comm_date=ip-self.componentsDict[compName].ipTechnicalLifetime[loc]
+                tech_lifetime=self.componentsDict[compName].ipTechnicalLifetime[loc]
+                comm_date=ip-tech_lifetime
                 # only set constraint if decomm_date is within investment periods
                 if comm_date in pyM.investSet._values.values():
-                    return(decommisVar[loc, compName, ip]==commisVar[loc, compName, ip-self.componentsDict[compName].ipTechnicalLifetime[loc]])
+                    return(decommisVar[loc, compName, ip]==commisVar[loc, compName, ip-tech_lifetime])
                 else:
-                    return(decommisVar[loc, compName, ip]==0)
+                    return(decommisVar[loc, compName, ip]== self.componentsDict[compName].processedStockCommissioning[ip-tech_lifetime][loc])#0)
 
             setattr(
                 pyM,

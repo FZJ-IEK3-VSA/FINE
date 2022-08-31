@@ -2023,11 +2023,37 @@ def checkAndSetStock(component,esM, stockCommissioning):
                 raise ValueError(
                     f"The stock of '{component.name}' in region '{loc}' "+
                     f"exceeds its capacityMax of '{component.capacityMax}'")
+        if component.capacityFix is not None:
+            if installed_sum> component.capacityFix[loc]:
+                raise ValueError(
+                    f"The stock of '{component.name}' in region '{loc}' "+
+                    f"exceeds its capacityFix of '{component.capacityFix}'")
+        
+    # set into correct format, add 0'values and transform ip into [-1,-2,-3,...]
+    processedStockCommissioning={}
+    for year in range(-1,-component.ipTechnicalLifetime.max()-1,-1):
+        full_name_year=esM.startYear + year*esM.yearsPerInvestmentPeriod
+        if full_name_year in stockCommissioning.keys():
+            processedStockCommissioning[year]=stockCommissioning[full_name_year]
+        else:
+            processedStockCommissioning[year]=\
+                pd.Series(index=list(esM.locations),data=0)
+        
+    return processedStockCommissioning
+
+def setStockCapacityStartYear(component,esM):
+    if component.processedStockCommissioning is None:
+        return pd.Series(index=esM.locations,data=0)
+    else:
+        stockCapacityStartYear=pd.Series()
+        for loc in esM.locations:
+            _stock_location=0
+            for year in range(-1,-component.ipTechnicalLifetime[loc]-1,-1):
+                _stock_location+=component.processedStockCommissioning[year].loc[loc]
+            stockCapacityStartYear[loc]=_stock_location
+        return stockCapacityStartYear
         
     
-            
-    return stockCommissioning
-
 def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
     """
     Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
