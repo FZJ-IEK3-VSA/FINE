@@ -1851,20 +1851,20 @@ class EnergySystemModel:
 
             # iterate over investment periods, to get yearly results
             for key, mdl in self.componentModelingDict.items():
-                for ip in self.investmentPeriods:
-                    __t = time.time()
-                    # if capacityVariablesOptimum is not a dict, convert to dict
-                    # (if single year system is optimized several times)
-                    if not isinstance(mdl.capacityVariablesOptimum,dict):
-                        mdl.capacityVariablesOptimum={}
+                if not isinstance(mdl.capacityVariablesOptimum,dict):
+                    mdl.capacityVariablesOptimum={}
+                __t = time.time()
+                # if capacityVariablesOptimum is not a dict, convert to dict
+                # (if single year system is optimized several times)
+                
 
-                    mdl.setOptimalValues(self, self.pyM, ip)
-                    outputString = (
-                        ("for {:" + w + "}").format(key + " ...")
-                        + "(%.4f" % (time.time() - __t)
-                        + "sec)"
-                    )
-                    utils.output(outputString, self.verbose, 0)
+                mdl.setOptimalValues(self, self.pyM)
+                outputString = (
+                    ("for {:" + w + "}").format(key + " ...")
+                    + "(%.4f" % (time.time() - __t)
+                    + "sec)"
+                )
+                utils.output(outputString, self.verbose, 0)
 
                 # for single year optimization, prepare results data in "old"
                 # format just for one year
@@ -1885,7 +1885,7 @@ class EnergySystemModel:
                     else:
                         mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
                     mdl.capacityVariablesOptimum=mdl.capacityVariablesOptimum[0]
-
+                    
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 

@@ -628,7 +628,7 @@ class ConversionPartLoadModel(ConversionModel):
         """
         return super().getObjectiveFunctionContribution(esM, pyM)
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -637,13 +637,8 @@ class ConversionPartLoadModel(ConversionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
-
-        :param ip: investment period
-        :type ip: int
         """
-
-        super().setOptimalValues(esM, pyM, ip)
-
+        super().setOptimalValues(esM, pyM)
         abbrvName = self.abbrvName
         discretizationPointVariables = getattr(pyM, "discretizationPoint_" + abbrvName)
         discretizationSegmentConVariables = getattr(
@@ -652,39 +647,40 @@ class ConversionPartLoadModel(ConversionModel):
         discretizationSegmentBinVariables = getattr(
             pyM, "discretizationSegmentBin_" + abbrvName
         )
+        
+        for ip in esM.investmentPeriods:
+            discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(
+                discretizationPointVariables.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(
+                discretizationSegmentConVariables.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(
+                discretizationSegmentBinVariables.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
 
-        discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(
-            discretizationPointVariables.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(
-            discretizationSegmentConVariables.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(
-            discretizationSegmentBinVariables.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-
-        self.discretizationPointVariablesOptimun = discretizationPointVariablesOptVal_
-        self.discretizationSegmentConVariablesOptimun = (
-            discretizationSegmentConVariablesOptVal_
-        )
-        self.discretizationSegmentBinVariablesOptimun = (
-            discretizationSegmentBinVariablesOptVal_
-        )
+            self.discretizationPointVariablesOptimun = discretizationPointVariablesOptVal_
+            self.discretizationSegmentConVariablesOptimun = (
+                discretizationSegmentConVariablesOptVal_
+            )
+            self.discretizationSegmentBinVariablesOptimun = (
+                discretizationSegmentBinVariablesOptVal_
+            )
 
     def getOptimalValues(self, name="all"):
         """

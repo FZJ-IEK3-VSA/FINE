@@ -1757,7 +1757,7 @@ class StorageModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -1766,9 +1766,6 @@ class StorageModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         chargeOp, dischargeOp = (
@@ -1777,273 +1774,274 @@ class StorageModel(ComponentModel):
         )
         SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
 
-        # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(
-            esM, pyM, ip, esM.locations, "commodityUnit", "*h"
-        )
-
-        # Set optimal operation variables and append optimization summary
-        props = ["operationCharge", "operationDischarge", "opexCharge", "opexDischarge"]
-        # Unit dict: Specify units for props
-        units = {
-            props[0]: ["[-*h]", "[-*h/a]"],
-            props[1]: ["[-*h]", "[-*h/a]"],
-            props[2]: ["[" + esM.costUnit + "/a]"],
-            props[3]: ["[" + esM.costUnit + "/a]"],
-        }
-        # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
-        tuples = [
-            (compName, prop, unit)
-            for compName in compDict.keys()
-            for prop in props
-            for unit in units[prop]
-        ]
-        # Replace placeholder with correct unit of component
-        tuples = list(
-            map(
-                lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
-                if x[1] == "operationCharge"
-                else x,
-                tuples,
-            )
-        )
-        tuples = list(
-            map(
-                lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
-                if x[1] == "operationDischarge"
-                else x,
-                tuples,
-            )
-        )
-        mIndex = pd.MultiIndex.from_tuples(
-            tuples, names=["Component", "Property", "Unit"]
-        )
-        optSummary = pd.DataFrame(
-            index=mIndex, columns=sorted(esM.locations)
-        ).sort_index()
-
-        # Quick fix if several runs with one investment period
-        if type(self.chargeOperationVariablesOptimum) is not dict:
-            self.chargeOperationVariablesOptimum = {}
-
-        # * charge variables and contributions
-        optVal = utils.formatOptimizationOutput(
-            chargeOp.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]]  = optVal
-
-        if optVal is not None:
-            idx = pd.IndexSlice
-            optVal = optVal.loc[
-                idx[:, :], :
-            ]  # perfect foresight: added ip and deleted again
-            # optVal = optVal.droplevel([1])
-            opSum = optVal.sum(axis=1).unstack(-1)
-
-            ox = opSum.apply(
-                lambda op: op
-                * compDict[op.name].processedOpexPerChargeOperation[ip][op.index],
-                axis=1,
-            )
-            optSummary.loc[
-                [
-                    (ix, "operationCharge", "[" + compDict[ix].commodityUnit + "*h/a]")
-                    for ix in opSum.index
-                ],
-                opSum.columns,
-            ] = (
-                opSum.values / esM.numberOfYears
-            )
-            optSummary.loc[
-                [
-                    (ix, "operationCharge", "[" + compDict[ix].commodityUnit + "*h]")
-                    for ix in opSum.index
-                ],
-                opSum.columns,
-            ] = opSum.values
-            optSummary.loc[
-                [(ix, "opexCharge", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                ox.columns,
-            ] = (
-                ox.values / esM.numberOfYears
+        for ip in esM.investmentPeriods:
+            # Set optimal design dimension variables and get basic optimization summary
+            optSummaryBasic = super().setOptimalValues(
+                esM, pyM, ip, esM.locations, "commodityUnit", "*h"
             )
 
-        # Quick fix if several runs with one investment period
-        if type(self.dischargeOperationVariablesOptimum) is not dict:
-            self.dischargeOperationVariablesOptimum = {}
-
-        # * discharge variables and contributions
-        optVal = utils.formatOptimizationOutput(
-            dischargeOp.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        self.dischargeOperationVariablesOptimum[esM.investmentPeriodList[ip]]  = optVal
-        # Check if there are time steps, at which a storage component is both charging and discharging
-        for compName in opSum.index:
-            simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
-                tsCharge=self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]].loc[compName],
-                tsDischarge=self.dischargeOperationVariablesOptimum[esM.investmentPeriodList[ip]].loc[compName],
+            # Set optimal operation variables and append optimization summary
+            props = ["operationCharge", "operationDischarge", "opexCharge", "opexDischarge"]
+            # Unit dict: Specify units for props
+            units = {
+                props[0]: ["[-*h]", "[-*h/a]"],
+                props[1]: ["[-*h]", "[-*h/a]"],
+                props[2]: ["[" + esM.costUnit + "/a]"],
+                props[3]: ["[" + esM.costUnit + "/a]"],
+            }
+            # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
+            tuples = [
+                (compName, prop, unit)
+                for compName in compDict.keys()
+                for prop in props
+                for unit in units[prop]
+            ]
+            # Replace placeholder with correct unit of component
+            tuples = list(
+                map(
+                    lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+                    if x[1] == "operationCharge"
+                    else x,
+                    tuples,
+                )
             )
-            if simultaneousChargeDischarge:
-                if esM.verbose < 2:
-                    warnings.warn(
-                        "Charge and discharge at the same time for component {}".format(
-                            compName
-                        ),
-                        UserWarning,
-                    )
-
-        if optVal is not None:
-            opSum = optVal.sum(axis=1).unstack(-1)
-
-            ox = opSum.apply(
-                lambda op: op
-                * compDict[op.name].processedOpexPerDischargeOperation[ip][op.index],
-                axis=1,
+            tuples = list(
+                map(
+                    lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+                    if x[1] == "operationDischarge"
+                    else x,
+                    tuples,
+                )
             )
-            optSummary.loc[
-                [
-                    (
-                        ix,
-                        "operationDischarge",
-                        "[" + compDict[ix].commodityUnit + "*h/a]",
-                    )
-                    for ix in opSum.index
-                ],
-                opSum.columns,
-            ] = (
-                opSum.values / esM.numberOfYears
+            mIndex = pd.MultiIndex.from_tuples(
+                tuples, names=["Component", "Property", "Unit"]
             )
-            optSummary.loc[
-                [
-                    (ix, "operationDischarge", "[" + compDict[ix].commodityUnit + "*h]")
-                    for ix in opSum.index
-                ],
-                opSum.columns,
-            ] = opSum.values
-            optSummary.loc[
-                [(ix, "opexDischarge", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                ox.columns,
-            ] = (
-                ox.values / esM.numberOfYears
-            )
+            optSummary = pd.DataFrame(
+                index=mIndex, columns=sorted(esM.locations)
+            ).sort_index()
 
-        # Quick fix if several runs with one investment period
-        if type(self.stateOfChargeOperationVariablesOptimum) is not dict:
-            self.stateOfChargeOperationVariablesOptimum = {}
+            # Quick fix if several runs with one investment period
+            if type(self.chargeOperationVariablesOptimum) is not dict:
+                self.chargeOperationVariablesOptimum = {}
 
-        # * set state of charge variables
-        if not pyM.hasTSA:
+            # * charge variables and contributions
             optVal = utils.formatOptimizationOutput(
-                SOC.get_values(),
+                chargeOp.get_values(),
                 "operationVariables",
                 "1dim",
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
-            # other)
-            optVal = optVal.loc[:, : len(optVal.columns) - 2]
-            self.stateOfChargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
-            utils.setOptimalComponentVariables(
-                optVal, "_stateOfChargeVariablesOptimum", compDict
+            self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]]  = optVal
+
+            if optVal is not None:
+                idx = pd.IndexSlice
+                optVal = optVal.loc[
+                    idx[:, :], :
+                ]  # perfect foresight: added ip and deleted again
+                # optVal = optVal.droplevel([1])
+                opSum = optVal.sum(axis=1).unstack(-1)
+
+                ox = opSum.apply(
+                    lambda op: op
+                    * compDict[op.name].processedOpexPerChargeOperation[ip][op.index],
+                    axis=1,
+                )
+                optSummary.loc[
+                    [
+                        (ix, "operationCharge", "[" + compDict[ix].commodityUnit + "*h/a]")
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = (
+                    opSum.values / esM.numberOfYears
+                )
+                optSummary.loc[
+                    [
+                        (ix, "operationCharge", "[" + compDict[ix].commodityUnit + "*h]")
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values
+                optSummary.loc[
+                    [(ix, "opexCharge", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                    ox.columns,
+                ] = (
+                    ox.values / esM.numberOfYears
+                )
+
+            # Quick fix if several runs with one investment period
+            if type(self.dischargeOperationVariablesOptimum) is not dict:
+                self.dischargeOperationVariablesOptimum = {}
+
+            # * discharge variables and contributions
+            optVal = utils.formatOptimizationOutput(
+                dischargeOp.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
             )
-        else:
-            SOCinter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
-            stateOfChargeIntra = SOC.get_values()
-            stateOfChargeInter = SOCinter.get_values()
-            if stateOfChargeIntra is not None:
-                # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
-                # Results in a one dimensional DataFrame
-                stateOfChargeIntra = (
-                    pd.DataFrame(stateOfChargeIntra, index=[0])
-                    .T.swaplevel(i=0, j=-2)
-                    .sort_index()
+            self.dischargeOperationVariablesOptimum[esM.investmentPeriodList[ip]]  = optVal
+            # Check if there are time steps, at which a storage component is both charging and discharging
+            for compName in opSum.index:
+                simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
+                    tsCharge=self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]].loc[compName],
+                    tsDischarge=self.dischargeOperationVariablesOptimum[esM.investmentPeriodList[ip]].loc[compName],
                 )
-                stateOfChargeInter = (
-                    pd.DataFrame(stateOfChargeInter, index=[0])
-                    .T.swaplevel(i=0, j=1)
-                    .sort_index()
-                )
-                # Unstack time steps (convert to a two dimensional DataFrame with the time indices being the columns)
-                stateOfChargeIntra = stateOfChargeIntra.unstack(level=-1)
-                stateOfChargeInter = stateOfChargeInter.unstack(level=-1)
-                # Get rid of the unnecessary 0 level
-                stateOfChargeIntra.columns = stateOfChargeIntra.columns.droplevel()
-                stateOfChargeInter.columns = stateOfChargeInter.columns.droplevel()
-                # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
-                # time steps first
-                if esM.segmentation:
-                    dataAllPeriods = []
-                    for p in esM.typicalPeriods:
-                        # Repeat each segment in each period as often as time steps are represented by the corresponding
-                        # segment
-                        repList = esM.timeStepsPerSegment[ip].loc[p, :].tolist()
-                        # repList = esM.timeStepsPerSegment.loc[p, :].tolist()
-                        dataPeriod = pd.DataFrame(
-                            np.repeat(
-                                stateOfChargeIntra.loc[p]
-                                .loc[:, : esM.segmentsPerPeriod[-1]]
-                                .values,
-                                repList,
-                                axis=1,
+                if simultaneousChargeDischarge:
+                    if esM.verbose < 2:
+                        warnings.warn(
+                            "Charge and discharge at the same time for component {}".format(
+                                compName
                             ),
-                            index=stateOfChargeIntra.xs(
-                                p, level=0, drop_level=False
-                            ).index,
+                            UserWarning,
                         )
-                        dataAllPeriods.append(dataPeriod)
-                    # Concat data to multiindex dataframe with periods, components and locations as indices and inner-
-                    # period time steps as columns
-                    stateOfChargeIntra = pd.concat(dataAllPeriods, axis=0)
-                # Concat data according to periods order to cover the full time horizon
-                data = []
-                for count, p in enumerate(esM.periodsOrder[ip]):
-                    data.append(
+
+            if optVal is not None:
+                opSum = optVal.sum(axis=1).unstack(-1)
+
+                ox = opSum.apply(
+                    lambda op: op
+                    * compDict[op.name].processedOpexPerDischargeOperation[ip][op.index],
+                    axis=1,
+                )
+                optSummary.loc[
+                    [
                         (
-                            stateOfChargeInter.loc[:, count]
-                            + stateOfChargeIntra.loc[p]
-                            .loc[:, : esM.timeStepsPerPeriod[-1]]
-                            .T
-                        ).T
-                    )
-                optVal = pd.concat(data, axis=1, ignore_index=True)
+                            ix,
+                            "operationDischarge",
+                            "[" + compDict[ix].commodityUnit + "*h/a]",
+                        )
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = (
+                    opSum.values / esM.numberOfYears
+                )
+                optSummary.loc[
+                    [
+                        (ix, "operationDischarge", "[" + compDict[ix].commodityUnit + "*h]")
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values
+                optSummary.loc[
+                    [(ix, "opexDischarge", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                    ox.columns,
+                ] = (
+                    ox.values / esM.numberOfYears
+                )
+
+            # Quick fix if several runs with one investment period
+            if type(self.stateOfChargeOperationVariablesOptimum) is not dict:
+                self.stateOfChargeOperationVariablesOptimum = {}
+
+            # * set state of charge variables
+            if not pyM.hasTSA:
+                optVal = utils.formatOptimizationOutput(
+                    SOC.get_values(),
+                    "operationVariables",
+                    "1dim",
+                    ip,
+                    esM.periodsOrder[ip],
+                    esM=esM,
+                )
+                # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
+                # other)
+                optVal = optVal.loc[:, : len(optVal.columns) - 2]
+                self.stateOfChargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+                utils.setOptimalComponentVariables(
+                    optVal, "_stateOfChargeVariablesOptimum", compDict
+                )
             else:
-                optVal = None
-            self.stateOfChargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
-            utils.setOptimalComponentVariables(
-                optVal, "_stateOfChargeVariablesOptimum", compDict
+                SOCinter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
+                stateOfChargeIntra = SOC.get_values()
+                stateOfChargeInter = SOCinter.get_values()
+                if stateOfChargeIntra is not None:
+                    # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
+                    # Results in a one dimensional DataFrame
+                    stateOfChargeIntra = (
+                        pd.DataFrame(stateOfChargeIntra, index=[0])
+                        .T.swaplevel(i=0, j=-2)
+                        .sort_index()
+                    )
+                    stateOfChargeInter = (
+                        pd.DataFrame(stateOfChargeInter, index=[0])
+                        .T.swaplevel(i=0, j=1)
+                        .sort_index()
+                    )
+                    # Unstack time steps (convert to a two dimensional DataFrame with the time indices being the columns)
+                    stateOfChargeIntra = stateOfChargeIntra.unstack(level=-1)
+                    stateOfChargeInter = stateOfChargeInter.unstack(level=-1)
+                    # Get rid of the unnecessary 0 level
+                    stateOfChargeIntra.columns = stateOfChargeIntra.columns.droplevel()
+                    stateOfChargeInter.columns = stateOfChargeInter.columns.droplevel()
+                    # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
+                    # time steps first
+                    if esM.segmentation:
+                        dataAllPeriods = []
+                        for p in esM.typicalPeriods:
+                            # Repeat each segment in each period as often as time steps are represented by the corresponding
+                            # segment
+                            repList = esM.timeStepsPerSegment[ip].loc[p, :].tolist()
+                            # repList = esM.timeStepsPerSegment.loc[p, :].tolist()
+                            dataPeriod = pd.DataFrame(
+                                np.repeat(
+                                    stateOfChargeIntra.loc[p]
+                                    .loc[:, : esM.segmentsPerPeriod[-1]]
+                                    .values,
+                                    repList,
+                                    axis=1,
+                                ),
+                                index=stateOfChargeIntra.xs(
+                                    p, level=0, drop_level=False
+                                ).index,
+                            )
+                            dataAllPeriods.append(dataPeriod)
+                        # Concat data to multiindex dataframe with periods, components and locations as indices and inner-
+                        # period time steps as columns
+                        stateOfChargeIntra = pd.concat(dataAllPeriods, axis=0)
+                    # Concat data according to periods order to cover the full time horizon
+                    data = []
+                    for count, p in enumerate(esM.periodsOrder[ip]):
+                        data.append(
+                            (
+                                stateOfChargeInter.loc[:, count]
+                                + stateOfChargeIntra.loc[p]
+                                .loc[:, : esM.timeStepsPerPeriod[-1]]
+                                .T
+                            ).T
+                        )
+                    optVal = pd.concat(data, axis=1, ignore_index=True)
+                else:
+                    optVal = None
+                self.stateOfChargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+                utils.setOptimalComponentVariables(
+                    optVal, "_stateOfChargeVariablesOptimum", compDict
+                )
+
+            # Append optimization summaries
+            optSummary = optSummary.append(optSummaryBasic).sort_index()
+
+            # Summarize all contributions to the total annual cost
+            optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "TAC")
+                    | (optSummary.index.get_level_values(1) == "opexCharge")
+                    | (optSummary.index.get_level_values(1) == "opexDischarge")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
             )
 
-        # Append optimization summaries
-        optSummary = optSummary.append(optSummaryBasic).sort_index()
-
-        # Summarize all contributions to the total annual cost
-        optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
-            optSummary.loc[
-                (optSummary.index.get_level_values(1) == "TAC")
-                | (optSummary.index.get_level_values(1) == "opexCharge")
-                | (optSummary.index.get_level_values(1) == "opexDischarge")
-            ]
-            .groupby(level=0)
-            .sum()
-            .values
-        )
-
-        # Quick fix if several runs with one investment period
-        if type(self.optSummary) is not dict:
-            self.optSummary = {}
-        self.optSummary[esM.investmentPeriodList[ip]]  = optSummary
+            # Quick fix if several runs with one investment period
+            if type(self.optSummary) is not dict:
+                self.optSummary = {}
+            self.optSummary[esM.investmentPeriodList[ip]]  = optSummary
 
     def getOptimalValues(self, name="all"):
         """

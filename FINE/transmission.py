@@ -823,7 +823,7 @@ class TransmissionModel(ComponentModel):
 
         return opexOp + capexCap + capexDec + opexCap + opexDec
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -832,9 +832,6 @@ class TransmissionModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
@@ -1069,141 +1066,142 @@ class TransmissionModel(ComponentModel):
 
             return optSummary
 
-        # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = _setOptimalValues(
-            self, esM, pyM, mapC.keys(), "commodityUnit"
-        )
-
-        for compName, comp in compDict.items():
-            for cost in [
-                "invest",
-                "capexCap",
-                "capexIfBuilt",
-                "opexCap",
-                "opexIfBuilt",
-                "TAC",
-            ]:
-                data = optSummaryBasic.loc[compName, cost]
-                optSummaryBasic.loc[compName, cost] = (data).values
-
-        # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(
-            opVar.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        optVal_ = utils.formatOptimizationOutput(
-            opVar.get_values(),
-            "operationVariables",
-            "2dim",
-            ip,
-            esM.periodsOrder[ip],
-            compDict=compDict,
-            esM=esM,
-        )
-        # Quick fix if several runs with one investment period
-        if type(self.operationVariablesOptimum) is not dict:
-            self.operationVariablesOptimum = {}
-        self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
-
-        props = ["operation", "opexOp"]
-        # Unit dict: Specify units for props
-        units = {props[0]: ["[-*h]", "[-*h/a]"], props[1]: ["[" + esM.costUnit + "/a]"]}
-        # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
-        tuples = [
-            (compName, prop, unit)
-            for compName in compDict.keys()
-            for prop in props
-            for unit in units[prop]
-        ]
-        # Replace placeholder with correct unit of component
-        tuples = list(
-            map(
-                lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
-                if x[1] == "operation"
-                else x,
-                tuples,
+        for ip in esM.investmentPeriods:
+            # Set optimal design dimension variables and get basic optimization summary
+            optSummaryBasic = _setOptimalValues(
+                self, esM, pyM, mapC.keys(), "commodityUnit"
             )
-        )
-        mIndex = pd.MultiIndex.from_tuples(
-            tuples, names=["Component", "Property", "Unit"]
-        )
-        optSummary = pd.DataFrame(
-            index=mIndex, columns=sorted(mapC.keys())
-        ).sort_index()
 
-        if optVal is not None:
-            opSum = optVal.sum(axis=1).unstack(-1)
+            for compName, comp in compDict.items():
+                for cost in [
+                    "invest",
+                    "capexCap",
+                    "capexIfBuilt",
+                    "opexCap",
+                    "opexIfBuilt",
+                    "TAC",
+                ]:
+                    data = optSummaryBasic.loc[compName, cost]
+                    optSummaryBasic.loc[compName, cost] = (data).values
 
-            # New index for opex is required as indexing with list with missing labels is deprecated
-            # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-with-list-with-missing-labels-is-deprecated
-            newIndex = opSum.columns.tolist()
-            for name in compDict.keys():
-                compDict[name].processedOpexPerOperation[ip] = (
-                    compDict[name]
-                    .processedOpexPerOperation[ip]
-                    .reindex(newIndex, fill_value=0.0)
+            # Set optimal operation variables and append optimization summary
+            optVal = utils.formatOptimizationOutput(
+                opVar.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            optVal_ = utils.formatOptimizationOutput(
+                opVar.get_values(),
+                "operationVariables",
+                "2dim",
+                ip,
+                esM.periodsOrder[ip],
+                compDict=compDict,
+                esM=esM,
+            )
+            # Quick fix if several runs with one investment period
+            if type(self.operationVariablesOptimum) is not dict:
+                self.operationVariablesOptimum = {}
+            self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
+
+            props = ["operation", "opexOp"]
+            # Unit dict: Specify units for props
+            units = {props[0]: ["[-*h]", "[-*h/a]"], props[1]: ["[" + esM.costUnit + "/a]"]}
+            # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
+            tuples = [
+                (compName, prop, unit)
+                for compName in compDict.keys()
+                for prop in props
+                for unit in units[prop]
+            ]
+            # Replace placeholder with correct unit of component
+            tuples = list(
+                map(
+                    lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+                    if x[1] == "operation"
+                    else x,
+                    tuples,
+                )
+            )
+            mIndex = pd.MultiIndex.from_tuples(
+                tuples, names=["Component", "Property", "Unit"]
+            )
+            optSummary = pd.DataFrame(
+                index=mIndex, columns=sorted(mapC.keys())
+            ).sort_index()
+
+            if optVal is not None:
+                opSum = optVal.sum(axis=1).unstack(-1)
+
+                # New index for opex is required as indexing with list with missing labels is deprecated
+                # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-with-list-with-missing-labels-is-deprecated
+                newIndex = opSum.columns.tolist()
+                for name in compDict.keys():
+                    compDict[name].processedOpexPerOperation[ip] = (
+                        compDict[name]
+                        .processedOpexPerOperation[ip]
+                        .reindex(newIndex, fill_value=0.0)
+                    )
+
+                ox = opSum.apply(
+                    lambda op: op
+                    * compDict[op.name].processedOpexPerOperation[ip][op.index],
+                    axis=1,
+                )
+                optSummary.loc[
+                    [
+                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = (
+                    opSum.values / esM.numberOfYears
+                )
+                optSummary.loc[
+                    [
+                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values
+                optSummary.loc[
+                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                    ox.columns,
+                ] = (
+                    ox.values / esM.numberOfYears * 0.5
                 )
 
-            ox = opSum.apply(
-                lambda op: op
-                * compDict[op.name].processedOpexPerOperation[ip][op.index],
-                axis=1,
-            )
-            optSummary.loc[
-                [
-                    (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
-                    for ix in opSum.index
-                ],
-                opSum.columns,
-            ] = (
-                opSum.values / esM.numberOfYears
-            )
-            optSummary.loc[
-                [
-                    (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
-                    for ix in opSum.index
-                ],
-                opSum.columns,
-            ] = opSum.values
-            optSummary.loc[
-                [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                ox.columns,
-            ] = (
-                ox.values / esM.numberOfYears * 0.5
+            optSummary = optSummary.append(optSummaryBasic).sort_index()
+
+            # Summarize all contributions to the total annual cost
+            optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "TAC")
+                    | (optSummary.index.get_level_values(1) == "opexOp")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
             )
 
-        optSummary = optSummary.append(optSummaryBasic).sort_index()
-
-        # Summarize all contributions to the total annual cost
-        optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
-            optSummary.loc[
-                (optSummary.index.get_level_values(1) == "TAC")
-                | (optSummary.index.get_level_values(1) == "opexOp")
-            ]
-            .groupby(level=0)
-            .sum()
-            .values
-        )
-
-        # Split connection indices to two location indices
-        optSummary = optSummary.stack()
-        indexNew = []
-        for tup in optSummary.index.tolist():
-            loc1, loc2 = mapC[tup[3]]
-            indexNew.append((tup[0], tup[1], tup[2], loc1, loc2))
-        optSummary.index = pd.MultiIndex.from_tuples(indexNew)
-        optSummary = optSummary.unstack(level=-1)
-        names = list(optSummaryBasic.index.names)
-        names.append("LocationIn")
-        optSummary.index.set_names(names, inplace=True)
-        # Quick fix if several runs with one investment period
-        if type(self.optSummary) is not dict:
-            self.optSummary = {}
-        self.optSummary[esM.investmentPeriodList[ip]] = optSummary
+            # Split connection indices to two location indices
+            optSummary = optSummary.stack()
+            indexNew = []
+            for tup in optSummary.index.tolist():
+                loc1, loc2 = mapC[tup[3]]
+                indexNew.append((tup[0], tup[1], tup[2], loc1, loc2))
+            optSummary.index = pd.MultiIndex.from_tuples(indexNew)
+            optSummary = optSummary.unstack(level=-1)
+            names = list(optSummaryBasic.index.names)
+            names.append("LocationIn")
+            optSummary.index.set_names(names, inplace=True)
+            # Quick fix if several runs with one investment period
+            if type(self.optSummary) is not dict:
+                self.optSummary = {}
+            self.optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all"):
         """

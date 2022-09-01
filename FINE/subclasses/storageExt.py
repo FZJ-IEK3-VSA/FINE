@@ -1073,7 +1073,7 @@ class StorageExtModel(StorageModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -1083,10 +1083,8 @@ class StorageExtModel(StorageModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
         """
-        return super().setOptimalValues(esM, pyM, ip)
+        return super().setOptimalValues(esM, pyM)
 
     def getOptimalValues(self, name="all"):
         """
