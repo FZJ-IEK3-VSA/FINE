@@ -1223,9 +1223,9 @@ def checkAndSetInvestmentPeriodCostParameter(esM, name, data, dimension, locatio
     return parameter
 
 def checkLifetimeInvestmentPeriod(esM,name,lifetime):
-    ip_LifeTime=lifetime/( esM.yearsPerInvestmentPeriod)
+    ip_LifeTime=lifetime/(esM.yearsPerInvestmentPeriod)
     if any(not x.is_integer() for x in ip_LifeTime.values):
-        raise ValueError(f"The lifetime of '{name}' devided by length of investment period nicht rund")
+        raise ValueError(f"The lifetime of '{name}' is not a multiple of the length of investment period")
     ip_LifeTime=ip_LifeTime.astype(int)
     return ip_LifeTime
 
@@ -1978,19 +1978,16 @@ def checkAndSetStock(component,esM, stockCommissioning):
     # check type of stockCommissioning
     if not isinstance(stockCommissioning,dict):
         raise TypeError("stockCommissioning must be None or a dict")
-    
-    # check if years are correct
-    _correct_list=sorted([esM.startYear-n*esM.yearsPerInvestmentPeriod for n in range(1,len(stockCommissioning.keys())+1)])
-    if _correct_list!=sorted(list(stockCommissioning.keys())):
-        raise ValueError(
-            f"stockCommissioning should be initialized for {_correct_list}"+
-            " but is initialized for "+
-            f"{list(stockCommissioning.keys())}")
-        
+           
     # check data for stockCommissioning
     for year,yearly_stock in stockCommissioning.items():
         if not isinstance(year, int):
             raise ValueError("Years of stockCommissioning must be int")
+        if (year-esM.startYear)%esM.yearsPerInvestmentPeriod != 0:
+            raise ValueError(
+                f"stockCommissioning was initialized for {year} "+
+                "but can only be initialized for "+
+                "years which are a multiple of the investment period length.")
         # float and int for capacity are only allowed if there is only one region
         if isinstance(yearly_stock, int) or isinstance(yearly_stock, float): 
             if not len(esM.locations) ==1: 
@@ -2003,7 +2000,7 @@ def checkAndSetStock(component,esM, stockCommissioning):
             if not sorted(yearly_stock.index) == sorted(esM.locations):
                 raise ValueError(
                     f"Please initialize all regions for the year '{year}'")
-            if any(not isinstance(x, float) or not isinstance(x, int) for x in yearly_stock.values):
+            if any (not isinstance(x, float) and not isinstance(x, int) and not isinstance(x, np.int64) for x in yearly_stock.values):
                 raise ValueError(
                     f"Stock capacities in year '{year}' must be int/float")
 
@@ -2036,8 +2033,7 @@ def checkAndSetStock(component,esM, stockCommissioning):
     # filter for commissioned stock older than technical lifetime and set to 0
     stock_df=pd.DataFrame.from_dict(stockCommissioning).T
     for loc in esM.locations:
-        
-        stockOlderThanTechnicalLifetime=stock_df.loc[stock_df.index[0]:esM.startYear-component.technicalLifetime[loc]-1]
+        stockOlderThanTechnicalLifetime=stock_df.loc[stock_df.index[0]:esM.startYear-component.technicalLifetime[loc]-1,loc]
         if len(stockOlderThanTechnicalLifetime)>0:
             print(
                 f"Stock of component {component.name} in location "+
@@ -2045,7 +2041,7 @@ def checkAndSetStock(component,esM, stockCommissioning):
                 f"for years {list(stockOlderThanTechnicalLifetime.index)} as it "+
                 "exceeds the technical lifetime. A capacity of "+
                 f"{stockOlderThanTechnicalLifetime.sum().sum()} wil be dropped.")
-            stock_df.loc[stock_df.index[0]:esM.startYear-component.technicalLifetime[loc]-1]=0
+            stock_df.loc[stock_df.index[0]:esM.startYear-component.technicalLifetime[loc]-1,loc]=0
         
         # missing year
         

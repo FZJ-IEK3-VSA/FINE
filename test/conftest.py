@@ -2445,14 +2445,14 @@ def perfectForesight_test_esM(scope="session"):
         [
             np.array(
                 [
-                    0.4,
-                    0.6,
+                    0.5,
+                    0.25,
                 ]
             ),
             np.array(
                 [
-                    0.4,
-                    0.6,
+                    0.25,
+                    0.5,
                 ]
             )
         ],
@@ -2468,7 +2468,7 @@ def perfectForesight_test_esM(scope="session"):
             operationRateMax=PVoperationRateMax,
             capacityMax=4e6,
             investPerCapacity=1e3,
-            opexPerCapacity=0,
+            opexPerCapacity=1,
             interestRate=0.02,
             opexPerOperation=0.01,
             economicLifetime=10,
@@ -2486,8 +2486,8 @@ def perfectForesight_test_esM(scope="session"):
             ),
             np.array(
                 [
-                    1e3,
                     2190,
+                    1e3,
                 ]
             ),
         ],
@@ -2498,8 +2498,8 @@ def perfectForesight_test_esM(scope="session"):
         [
             np.array(
                 [
-                    1e3,
                     2190,
+                    1e3,
                 ]
             ),
             np.array(
