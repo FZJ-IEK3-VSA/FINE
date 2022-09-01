@@ -19,21 +19,7 @@ def test_ConversionDynamicNeedsCapacity():
         commodityUnitsDict={"electricity": r"GW$_{el}$", "methane": r"GW$_{th}$"},
         verboseLogLevel=2,
     )
-    fn.ConversionDynamic(
-            esM=esM,
-            name="restricted",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={"electricity": 1, "methane": -1 / 0.625},
-            partLoadMin=0.3,
-            bigM=100,
-            rampDownMax=0.5,
-            investPerCapacity=0.5,
-            opexPerCapacity=0.021,
-            opexPerOperation=1,
-            interestRate=0.08,
-            economicLifetime=33,
-            hasCapacityVariable=False,
-        )
+
     with pytest.raises(ValueError, match=r".*hasCapacityVariable.*"):
 
         fn.ConversionDynamic(

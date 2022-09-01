@@ -30,7 +30,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.commodityUnitsDict,
                 minimal_test_esM.numberOfTimeSteps,
                 minimal_test_esM.hoursPerTimeStep,
-                minimal_test_esM.starYear,
+                minimal_test_esM.startYear,
                 minimal_test_esM.numberOfInvestmentPeriods,
                 minimal_test_esM.yearsPerInvestmentPeriod,
                 minimal_test_esM.costUnit,

@@ -49,7 +49,7 @@ class Source(Component):
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
         balanceLimitID=None,
-        stockCommissioning=None
+        stockCommissioning=None,
     ):
 
         """
@@ -224,7 +224,7 @@ class Source(Component):
             QPcostScale=QPcostScale,
             interestRate=interestRate,
             economicLifetime=economicLifetime,
-            technicalLifetime=technicalLifetime, # TODO changed
+            technicalLifetime=technicalLifetime, 
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning
@@ -546,6 +546,7 @@ class Sink(Source):
         economicLifetime=10,
         technicalLifetime=None,
         balanceLimitID=None,
+        stockCommissioning=None,
     ):
         """
         Constructor for creating an Sink class instance.
@@ -591,6 +592,7 @@ class Sink(Source):
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
             balanceLimitID=balanceLimitID,
+            stockCommissioning=stockCommissioning,
         )
 
         self.sign = -1

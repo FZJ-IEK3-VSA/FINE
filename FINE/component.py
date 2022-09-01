@@ -481,10 +481,10 @@ class Component(metaclass=ABCMeta):
         if esM.mode != "perfectForesight" and stockCommissioning != None:
             raise ValueError("Stocks are only allowed for mode perfectForesight")
         
+        self.stockCommissioning = stockCommissioning
         if esM.mode == "perfectForesight":
             self.ipTechnicalLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.technicalLifetime)
             self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.economicLifetime)
-            self.stockCommissioning = stockCommissioning
             self.processedStockCommissioning=utils.checkAndSetStock(self, esM,stockCommissioning)
             self.stockCapacityStartYear=utils.setStockCapacityStartYear(self,esM)
         
