@@ -185,6 +185,7 @@ def test_perfectForesightStock():
             commodityCostTimeSeries=costs,
             # commodityCost= 1,
             commodityRevenueTimeSeries=revenues,
+            stockCommissioning={2009:0.1,2010:0.1,2011:0.1,2012:0.1,2013:0.1,2014:0.1,2015:0.1,2016:0.1,2017:0.1,2018:1,2019:0.5}
         )
     )  # eur/kWh
 

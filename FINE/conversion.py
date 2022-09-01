@@ -467,6 +467,7 @@ class ConversionModel(ComponentModel):
 
         # Declare design variable sets
         self.declareDesignVarSet(pyM,esM)
+        self.declareCommissioningVarSet(pyM, esM)
         self.declareContinuousDesignVarSet(pyM,esM)
         self.declareDiscreteDesignVarSet(pyM,esM)
         self.declareDesignDecisionVarSet(pyM,esM)

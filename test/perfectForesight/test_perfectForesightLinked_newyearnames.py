@@ -26,7 +26,7 @@ def test_perfectForesight_linked():
         commodityUnitsDict={"electricity": r"kW$_{el}$"},
         hoursPerTimeStep=hoursPerTimeStep,
         costUnit="1 Euro",
-        startyear=2020,
+        startYear=2020,
         numberOfInvestmentPeriods=6,
         yearsPerInvestmentPeriod=1,
         mode="perfectForesight",

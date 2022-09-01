@@ -373,10 +373,13 @@ class Component(metaclass=ABCMeta):
               
         :param stockCommissioning: if specified, indicates in which years how much stock capacities
             were commissioned per location. 
+            e.g. if startYear is 2020 and numberOfYearsPerInvestmentPeriod is 2, stock could be given for 
+            2018 and 2016, or equivilantly if startYear is 0 and numberOfYearsPerInvestmentPeriod is 2, 
+            stock could be given for -2 and -4. 
             |br| * the default value is None
         :type stockCommissioning:
             * None or
-            * Dict which consists out of pd.Series if more than one location is specified in esM
+            * Dict of years which consists out of pd.Series if more than one location is specified in esM
 
         :param modelingClass: to the Component connected modeling class.
             |br| * the default value is ModelingClass
@@ -683,11 +686,55 @@ class ComponentModel(metaclass=ABCMeta):
         self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
         self.optSummary = None
+        
+
 
     ####################################################################################################################
     #                           Functions for declaring design and operation variables sets                            #
     ####################################################################################################################
+    
+    def declareCommissioningVarSet(self, pyM, esM):
+        """
+        Declare set for commisioning variables in the pyomo object for a modeling class.
 
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+        """
+        if esM.mode == "perfectForesight":
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            
+            # get oldestStockYear to know what set is to be init
+            oldestStockYear=0
+            for compName,comp in compDict.items():
+                if comp.processedStockCommissioning is None:
+                    pass
+                else:
+                    for year in sorted(comp.processedStockCommissioning.keys()):
+                        if any(x!=0 for x in comp.processedStockCommissioning[year]):
+                            oldestStockYear=min(oldestStockYear,year)
+                            break 
+            if oldestStockYear==0:
+                oldestStockYear = None  
+                                 
+            def declareCommisVarSet(pyM):
+                return (
+                    (loc, compName, ip)
+                    for compName, comp in compDict.items()
+                    for loc in comp.locationalEligibility.index
+                    for ip in esM.investmentPeriods
+                    if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                )
+
+            n = 3 if esM.mode == "perfectForesight" else 2
+            setattr(
+                pyM,
+                "designCommisVarSet_" + abbrvName,
+                pyomo.Set(dimen=n, initialize=declareCommisVarSet),
+            )        
+            
     def declareDesignVarSet(self, pyM, esM):
         """
         Declare set for capacity variables in the pyomo object for a modeling class.
@@ -2560,6 +2607,7 @@ class ComponentModel(metaclass=ABCMeta):
                         QPdivisorNames,
                         getOptValue,
                     )
+                
             return sum(costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
                     * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
                     for loc, compName, ip in var)

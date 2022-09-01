@@ -2008,7 +2008,9 @@ def checkAndSetStock(component,esM, stockCommissioning):
                     f"Stock capacities in year '{year}' must be int/float")
 
         else:
-            raise TypeError("stockCommissioning must be a dict of keys for years and pd.Series with location as index and stock as value.")
+            raise TypeError(
+                "stockCommissioning must be a dict of keys for years and "+
+                "pd.Series with location as index and stock as value.")
     
     # check if capacityMin and capacityMax is kept per region
     for loc in esM.locations:
@@ -2028,17 +2030,34 @@ def checkAndSetStock(component,esM, stockCommissioning):
                 raise ValueError(
                     f"The stock of '{component.name}' in region '{loc}' "+
                     f"exceeds its capacityFix of '{component.capacityFix}'")
-        
+    
+
     # set into correct format, add 0'values and transform ip into [-1,-2,-3,...]
-    processedStockCommissioning={}
-    for year in range(-1,-component.ipTechnicalLifetime.max()-1,-1):
-        full_name_year=esM.startYear + year*esM.yearsPerInvestmentPeriod
-        if full_name_year in stockCommissioning.keys():
-            processedStockCommissioning[year]=stockCommissioning[full_name_year]
-        else:
-            processedStockCommissioning[year]=\
-                pd.Series(index=list(esM.locations),data=0)
+    # filter for commissioned stock older than technical lifetime and set to 0
+    stock_df=pd.DataFrame.from_dict(stockCommissioning).T
+    for loc in esM.locations:
         
+        stockOlderThanTechnicalLifetime=stock_df.loc[stock_df.index[0]:esM.startYear-component.technicalLifetime[loc]-1]
+        if len(stockOlderThanTechnicalLifetime)>0:
+            print(
+                f"Stock of component {component.name} in location "+
+                f"{loc} will not be considered "+
+                f"for years {list(stockOlderThanTechnicalLifetime.index)} as it "+
+                "exceeds the technical lifetime. A capacity of "+
+                f"{stockOlderThanTechnicalLifetime.sum().sum()} wil be dropped.")
+            stock_df.loc[stock_df.index[0]:esM.startYear-component.technicalLifetime[loc]-1]=0
+        
+        # missing year
+        
+    # convert original years to ip named years (e.g. -1,-2,-3)
+    stock_df.index=[int((x-esM.startYear)/esM.yearsPerInvestmentPeriod) for x in stock_df.index]
+    
+    # fill missing year for timeframe of entire technical lifetime
+    all_stock_years=[x for x in range(-1,-component.ipTechnicalLifetime.max()-1,-1)]
+    stock_df=stock_df.reindex(all_stock_years).fillna(0)
+    processedStockCommissioning=stock_df.T.to_dict(orient='series')
+        
+
     return processedStockCommissioning
 
 def setStockCapacityStartYear(component,esM):
