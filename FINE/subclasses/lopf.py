@@ -127,7 +127,7 @@ class LOPFModel(TransmissionModel):
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
         self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
-        self.optSummary = None
+        self._optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #

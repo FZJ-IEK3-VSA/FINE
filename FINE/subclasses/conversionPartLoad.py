@@ -108,7 +108,7 @@ class ConversionPartLoadModel(ConversionModel):
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
         self.operationVariablesOptimum = None
-        self.optSummary = None
+        self._optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #

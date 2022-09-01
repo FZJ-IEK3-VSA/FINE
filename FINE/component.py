@@ -685,7 +685,7 @@ class ComponentModel(metaclass=ABCMeta):
         self.capacityVariablesOptimum={}
         self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
-        self.optSummary = None
+        self._optSummary = None
         
 
 

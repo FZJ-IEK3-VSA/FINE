@@ -402,7 +402,7 @@ class ConversionModel(ComponentModel):
         self.componentsDict = {}
         self.capacityVariablesOptimum={}
         self.isBuiltVariablesOptimum = {}
-        self.optSummary = {}
+        self._optSummary = {}
         self.operationVariablesOptimum = {}
 
     ####################################################################################################################
@@ -808,9 +808,9 @@ class ConversionModel(ComponentModel):
                 .values
             )
             # Quick fix if several runs with one investment period
-            if type(self.optSummary) is not dict:
-                self.optSummary = {}
-            self.optSummary[esM.investmentPeriodList[ip]]  = optSummary
+            if type(self._optSummary) is not dict:
+                self._optSummary = {}
+            self._optSummary[esM.investmentPeriodList[ip]]  = optSummary
 
     def getOptimalValues(self, name="all"):
         """

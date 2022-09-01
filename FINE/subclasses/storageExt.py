@@ -441,7 +441,7 @@ class StorageExtModel(StorageModel):
             self.dischargeOperationVariablesOptimum,
         ) = (None, None)
         self.stateOfChargeOperationVariablesOptimum = None
-        self.optSummary = None
+        self._optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #

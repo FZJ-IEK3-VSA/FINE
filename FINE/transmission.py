@@ -413,7 +413,7 @@ class TransmissionModel(ComponentModel):
         self.capacityVariablesOptimum = {}
         self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
-        self.optSummary = {}
+        self._optSummary = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -1199,9 +1199,9 @@ class TransmissionModel(ComponentModel):
             names.append("LocationIn")
             optSummary.index.set_names(names, inplace=True)
             # Quick fix if several runs with one investment period
-            if type(self.optSummary) is not dict:
-                self.optSummary = {}
-            self.optSummary[esM.investmentPeriodList[ip]] = optSummary
+            if type(self._optSummary) is not dict:
+                self._optSummary = {}
+            self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all"):
         """
