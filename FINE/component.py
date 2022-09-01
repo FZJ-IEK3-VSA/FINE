@@ -1739,7 +1739,11 @@ class ComponentModel(metaclass=ABCMeta):
                 if comm_date in pyM.investSet._values.values():
                     return(decommisVar[loc, compName, ip]==commisVar[loc, compName, ip-tech_lifetime])
                 else:
-                    return(decommisVar[loc, compName, ip]== self.componentsDict[compName].processedStockCommissioning[ip-tech_lifetime][loc])#0)
+                    procStockCommissioning=self.componentsDict[compName].processedStockCommissioning
+                    if procStockCommissioning is not None:
+                        return(decommisVar[loc, compName, ip]== self.componentsDict[compName].processedStockCommissioning[ip-tech_lifetime][loc])
+                    else:
+                        return pyomo.Constraint.Skip
 
             setattr(
                 pyM,
