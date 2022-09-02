@@ -2955,16 +2955,6 @@ class ComponentModel(metaclass=ABCMeta):
         optVal_ = utils.formatOptimizationOutput(
                 values, "designVariables", self.dimension, ip, compDict=compDict
             )
-        # if esM.mode == "perfectForesight":
-        #     optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
-        #     optVal_ = utils.formatOptimizationOutput(
-        #         values, "designVariables", self.dimension, ip, compDict=compDict
-        #     )
-        # else:
-        #     optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-        #     optVal_ = utils.formatOptimizationOutput(
-        #         values, "designVariables", self.dimension, compDict=compDict
-        #     )
         self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
         if optVal is not None:

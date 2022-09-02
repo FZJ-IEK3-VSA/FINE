@@ -1874,10 +1874,12 @@ class EnergySystemModel:
                 )
                 utils.output(outputString, self.verbose, 0)
 
-                if self.numberOfInvestmentPeriods > 1:
+                if self.mode=="perfectForesight":
                     mdl.optSummary = mdl._optSummary
                 # for single year optimization, prepare results data in "old"
                 # format just for one year
+                elif self.mode =="stochastic":
+                    mdl.optSummary = mdl._optSummary[0]
                 else:
                     mdl.optSummary = mdl._optSummary[0]
                     if key is "StorageModel" or key is "StorageExtModel":
