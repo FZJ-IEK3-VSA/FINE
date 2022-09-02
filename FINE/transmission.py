@@ -442,7 +442,7 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(pyM)
+        self.declareOperationBinarySet(esM, pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
@@ -502,9 +502,9 @@ class TransmissionModel(ComponentModel):
             getattr(pyM, "designDimensionVarSet_" + abbrvName),
         )
 
-        def symmetricalCapacity(pyM, loc, compName):
+        def symmetricalCapacity(pyM, loc, compName, ip):
             return (
-                capVar[loc, compName] == capVar[compDict[compName]._mapI[loc], compName]
+                capVar[loc, compName, ip] == capVar[compDict[compName]._mapI[loc], compName, ip]
             )
 
         setattr(
@@ -544,13 +544,13 @@ class TransmissionModel(ComponentModel):
                 return (
                     opVar[loc, compName, ip, p, t]
                     + opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
-                    <= capVar[loc, compName] * esM.hoursPerTimeStep
+                    <= capVar[loc, compName, ip] * esM.hoursPerTimeStep
                 )
 
             setattr(
                 pyM,
                 constrName + "_" + abbrvName,
-                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+                pyomo.Constraint(constrSet1, pyM.intraYearTimeSet, rule=op1),
             )
         else:
 
@@ -558,13 +558,13 @@ class TransmissionModel(ComponentModel):
                 return (
                     opVar[loc, compName, ip, p, t]
                     + opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
-                    <= capVar[loc, compName] * esM.hoursPerSegment[ip].to_dict()[p, t]
+                    <= capVar[loc, compName, ip] * esM.hoursPerSegment[ip].to_dict()[p, t]
                 )
 
             setattr(
                 pyM,
                 constrName + "_" + abbrvName,
-                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+                pyomo.Constraint(constrSet1, pyM.intraYearTimeSet, rule=op1),
             )
 
     def declareComponentConstraints(self, esM, pyM):
@@ -687,13 +687,13 @@ class TransmissionModel(ComponentModel):
                 - compDict[compName].losses[loc_ + "_" + loc]
                 * compDict[compName].distances[loc_ + "_" + loc]
             )
-            for loc_ in opVarDictIn[loc].keys()
-            for compName in opVarDictIn[loc][loc_]
+            for loc_ in opVarDictIn[ip][loc].keys()
+            for compName in opVarDictIn[ip][loc][loc_]
             if commod in compDict[compName].commodity
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t]
-            for loc_ in opVarDictOut[loc].keys()
-            for compName in opVarDictOut[loc][loc_]
+            for loc_ in opVarDictOut[ip][loc].keys()
+            for compName in opVarDictOut[ip][loc][loc_]
             if commod in compDict[compName].commodity
         )
 
@@ -749,16 +749,17 @@ class TransmissionModel(ComponentModel):
                 * compDict[compName].distances[loc_ + "_" + loc]
             )
             * esM.periodOccurrences[ip][p]
-            for loc_ in opVarDictIn[loc].keys()
-            for compName in opVarDictIn[loc][loc_]
+            for ip, subdict in opVarDictIn.items()
+            for loc_ in subdict[loc].keys()
+            for compName in subdict[loc][loc_]
             if compName in limitDict[(ID, loc)]
-            for ip in investmentPeriods
             for p in periods
             for t in timeSteps
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-            for loc_ in opVarDictOut[loc].keys()
-            for compName in opVarDictOut[loc][loc_]
+            for ip,subdict in opVarDictOut.items()
+            for loc_ in subdict[loc].keys()
+            for compName in subdict[loc][loc_]
             if compName in limitDict[(ID, loc)]
             for ip in investmentPeriods
             for p in periods
@@ -893,14 +894,8 @@ class TransmissionModel(ComponentModel):
 
             # Get and set optimal variable values for expanded capacities
             values = capVar.get_values()
-            if esM.mode =="perfectForesight":
-                optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
-                optVal_ = utils.formatOptimizationOutput(
-                    values, "designVariables", self.dimension, compDict=compDict
-                )
-            else:
-                optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-                optVal_ = utils.formatOptimizationOutput(
+            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
+            optVal_ = utils.formatOptimizationOutput(
                     values, "designVariables", self.dimension, compDict=compDict
                 )
             self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
@@ -998,15 +993,9 @@ class TransmissionModel(ComponentModel):
 
             # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
             values = binVar.get_values()
-            if esM.mode =="perfectForesight":
-                optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
-                optVal_ = utils.formatOptimizationOutput(
-                    values, "designVariables", self.dimension, compDict=compDict
-                )
-            else:
-                optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-                optVal_ = utils.formatOptimizationOutput(
-                    values, "designVariables", self.dimension, compDict=compDict
+            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
+            optVal_ = utils.formatOptimizationOutput(
+                    values, "designVariables", self.dimension, ip, compDict=compDict
                 )
             self.isBuiltVariablesOptimum = optVal_
 

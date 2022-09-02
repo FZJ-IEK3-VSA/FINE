@@ -1006,7 +1006,6 @@ class EnergySystemModel:
             self.periods = [0]
             self.periodsOrder = {}
             self.periodOccurrences = {}
-
             # fill dictionaries with zeros or ones, if no TSA
             for ip in self.investmentPeriods:
                 self.periodsOrder[ip] = [0]
@@ -1023,10 +1022,16 @@ class EnergySystemModel:
 
             def initInterTimeStepsSet(pyM):
                 return (
-                    (ip, p, t)
-                    for ip in self.investmentPeriods
+                    (p, t)
                     for p in self.periods
                     for t in range(len(self.timeStepsPerPeriod) + 1)
+                )
+
+            def initIntraYearTimeSet(pyM):
+                return ( 
+                    (p,t) 
+                    for p in self.periods
+                    for t in self.timeStepsPerPeriod
                 )
 
             def initInvestSet(pyM):
@@ -1035,8 +1040,7 @@ class EnergySystemModel:
 
             def initInvestPeriodInterPeriodSet(pyM):
                 return (
-                    (ip, t_inter)
-                    for ip in self.investmentPeriods
+                    (t_inter)
                     for t_inter in range(
                         int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1
                     )
@@ -1067,8 +1071,7 @@ class EnergySystemModel:
 
                 def initInterTimeStepsSet(pyM):
                     return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
+                        (p, t)
                         for p in self.typicalPeriods
                         for t in range(len(self.timeStepsPerPeriod) + 1)
                     )
@@ -1076,11 +1079,16 @@ class EnergySystemModel:
                 def initInvestSet(pyM):
                     return (ip for ip in self.investmentPeriods)
 
+                def initIntraYearTimeSet(pyM):
+                    return ( 
+                        (p,t) 
+                        for p in self.typicalPeriods
+                        for t in self.timeStepsPerPeriod
+                    )    
                 
                 def initInvestPeriodInterPeriodSet(pyM):
                     return (
-                        (ip, t_inter)
-                        for ip in self.investmentPeriods
+                        (t_inter)
                         for t_inter in range(
                             int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
                             + 1
@@ -1112,19 +1120,24 @@ class EnergySystemModel:
 
                 def initInterTimeStepsSet(pyM):
                     return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
+                        (p, t)
                         for p in self.typicalPeriods
                         for t in range(len(self.segmentsPerPeriod) + 1)
                     )
 
                 def initInvestSet(pyM):
                     return (ip for ip in self.investmentPeriods)
+                
+                def initIntraYearTimeSet(pyM):
+                    return ( 
+                        (p,t) 
+                        for p in self.typicalPeriods
+                        for t in self.segmentsPerPeriod
+                    )   
 
                 def initInvestPeriodInterPeriodSet(pyM):
                     return (
-                        (ip, t_inter)
-                        for ip in self.investmentPeriods
+                        (t_inter)
                         for t_inter in range(
                             int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
                             + 1
@@ -1133,16 +1146,13 @@ class EnergySystemModel:
 
         # Initialize sets
         pyM.timeSet = pyomo.Set(dimen=3, initialize=initTimeSet)
-        pyM.interTimeStepsSet = pyomo.Set(dimen=3, initialize=initInterTimeStepsSet)
+        pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
+        pyM.intraYearTimeSet = pyomo.Set(dimen=2, initialize=initIntraYearTimeSet)
         pyM.investSet = pyomo.Set(dimen=1, initialize=initInvestSet)
         pyM.investPeriodInterPeriodSet = pyomo.Set(
-            dimen=2, initialize=initInvestPeriodInterPeriodSet
+            dimen=1, initialize=initInvestPeriodInterPeriodSet
         )
-        
-            
-     
-        
-    
+
     def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
         """
         Declare balance limit constraint.
@@ -1311,7 +1321,6 @@ class EnergySystemModel:
                 )
                 <= 1
             )
-
         pyM.ConstraintSharedPotentials = pyomo.Constraint(
             pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
         )
@@ -1342,7 +1351,7 @@ class EnergySystemModel:
                     ]
         pyM.linkedQuantityDict = compDict
 
-        def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2):
+        def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2,ip):
             abbrvName1 = self.componentModelingDict[
                 self.componentNames[compName1]
             ].abbrvName
@@ -1362,13 +1371,12 @@ class EnergySystemModel:
                 .capacityPerPlantUnit
             )
             return (
-                capVar1[loc, compName1] / capPPU1 == capVar2[loc, compName2] / capPPU2
+                capVar1[loc, compName1,ip] / capPPU1 == capVar2[loc, compName2,ip] / capPPU2
             )
 
         for (i, j) in pyM.linkedQuantityDict.keys():
             linkedQuantityList = []
             linkedQuantityList.append((i, j))
-
             setattr(
                 pyM,
                 "ConstraintLinkedQuantity_" + str(i) + "_" + str(j),
@@ -1376,6 +1384,7 @@ class EnergySystemModel:
                     linkedQuantityList,
                     pyM.linkedQuantityDict[i, j],
                     pyM.linkedQuantityDict[i, j],
+                    pyM.investSet,
                     rule=linkedQuantityConstraint,
                 ),
             )
@@ -1425,7 +1434,6 @@ class EnergySystemModel:
                 )
                 == 0
             )
-
         pyM.commodityBalanceConstraint = pyomo.Constraint(
             pyM.locationCommoditySet, pyM.timeSet, rule=commodityBalanceConstraint
         )

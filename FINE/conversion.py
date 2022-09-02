@@ -477,7 +477,7 @@ class ConversionModel(ComponentModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(pyM)
+        self.declareOperationBinarySet(esM, pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
@@ -541,13 +541,13 @@ class ConversionModel(ComponentModel):
             getattr(pyM, "linkedComponentsList_" + self.abbrvName),
         )
 
-        def linkedCapacity(pyM, loc, compName1, compName2):
-            return capVar[loc, compName1] == capVar[loc, compName2]
+        def linkedCapacity(pyM, loc, compName1, compName2, ip):
+            return capVar[loc, compName1, ip] == capVar[loc, compName2, ip]
 
         setattr(
             pyM,
             "ConstrLinkedCapacity_" + abbrvName,
-            pyomo.Constraint(linkedList, rule=linkedCapacity),
+            pyomo.Constraint(linkedList, pyM.investSet, rule=linkedCapacity),
         )
 
     def declareComponentConstraints(self, esM, pyM):
@@ -677,7 +677,7 @@ class ConversionModel(ComponentModel):
                 p,
                 t,
             )
-            for compName in opVarDict[loc]
+            for compName in opVarDict[ip][loc]
             if commod in compDict[compName].processedCommodityConversionFactors[ip]
         )
 

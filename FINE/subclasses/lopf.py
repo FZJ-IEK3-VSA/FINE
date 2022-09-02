@@ -178,7 +178,7 @@ class LOPFModel(TransmissionModel):
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
-        self.declareOperationBinarySet(pyM)
+        self.declareOperationBinarySet(esM, pyM)
 
         # Declare operation variable set
         self.declareOperationModeSets(
@@ -266,7 +266,7 @@ class LOPFModel(TransmissionModel):
         setattr(
             pyM,
             "ConstrpowerFlowDC_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.timeSet, rule=powerFlowDC),
+            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=powerFlowDC),
         )
 
     def basePhaseAngle(self, pyM):

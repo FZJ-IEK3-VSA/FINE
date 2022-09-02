@@ -288,7 +288,7 @@ class ConversionPartLoadModel(ConversionModel):
         setattr(
             pyM,
             "ConstrSegmentSOS1_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentSOS1),
+            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=segmentSOS1),
         )
 
     def segmentBigM(self, pyM):
@@ -350,13 +350,13 @@ class ConversionPartLoadModel(ConversionModel):
                         ]
                         for discretStep in range(compDict[compName].nSegments)
                     )
-                    == esM.hoursPerTimeStep * capVar[loc, compName]
+                    == esM.hoursPerTimeStep * capVar[loc, compName, ip]
                 )
 
             setattr(
                 pyM,
                 "ConstrSegmentCapacity_" + abbrvName,
-                pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint),
+                pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=segmentCapacityConstraint),
             )
         else:
 
@@ -368,7 +368,7 @@ class ConversionPartLoadModel(ConversionModel):
                         ]
                         for discretStep in range(compDict[compName].nSegments)
                     )
-                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName, ip]
                 )
 
             setattr(
@@ -383,7 +383,7 @@ class ConversionPartLoadModel(ConversionModel):
                         discretizationSegmentConVar[loc, compName, discretStep, p, t]
                         for discretStep in range(compDict[compName].nSegments)
                     )
-                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName, ip]
                 )
 
             setattr(
@@ -416,13 +416,13 @@ class ConversionPartLoadModel(ConversionModel):
                         discretizationPointConVar[loc, compName, discretStep, ip, p, t]
                         for discretStep in range(nPoints)
                     )
-                    == esM.hoursPerTimeStep * capVar[loc, compName]
+                    == esM.hoursPerTimeStep * capVar[loc, compName, ip]
                 )
 
             setattr(
                 pyM,
                 "ConstrPointCapacity_" + abbrvName,
-                pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint),
+                pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=pointCapacityConstraint),
             )
         else:
 
@@ -433,7 +433,7 @@ class ConversionPartLoadModel(ConversionModel):
                         discretizationPointConVar[loc, compName, discretStep, ip, p, t]
                         for discretStep in range(nPoints)
                     )
-                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName, ip]
                 )
 
             setattr(
@@ -451,15 +451,16 @@ class ConversionPartLoadModel(ConversionModel):
 
         def declareOpConstrSetMinPartLoad(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if getattr(compDict[compName], "partLoadMin") is not None
             )
+            # TODO MAKE IP DEPENDING!!!
 
         setattr(
             pyM,
             constrSetName + "partLoadMin_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSetMinPartLoad),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSetMinPartLoad),
         )
 
     def pointSOS2(self, pyM):
@@ -543,7 +544,7 @@ class ConversionPartLoadModel(ConversionModel):
         setattr(
             pyM,
             "ConstrpartLoadOperationOutput_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.timeSet, rule=partLoadOperationOutput),
+            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=partLoadOperationOutput),
         )
 
     def declareComponentConstraints(self, esM, pyM):
@@ -612,7 +613,7 @@ class ConversionPartLoadModel(ConversionModel):
                 ]
                 for discretStep in range(compDict[compName].nSegments + 1)
             )
-            for compName in opVarDict[loc]
+            for compName in opVarDict[ip][loc]
             if commod in compDict[compName].discretizedPartLoad
         )
 

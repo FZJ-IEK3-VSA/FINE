@@ -728,11 +728,10 @@ class ComponentModel(metaclass=ABCMeta):
                     if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
                 )
 
-            n = 3 if esM.mode == "perfectForesight" else 2
             setattr(
                 pyM,
                 "designCommisVarSet_" + abbrvName,
-                pyomo.Set(dimen=n, initialize=declareCommisVarSet),
+                pyomo.Set(dimen=3, initialize=declareCommisVarSet),
             )        
             
     def declareDesignVarSet(self, pyM, esM):
@@ -749,27 +748,18 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareDesignVarSet(pyM):
-            if esM.mode == "perfectForesight":
-                return (
+            return (
                     (loc, compName, ip)
                     for compName, comp in compDict.items()
                     for loc in comp.locationalEligibility.index
                     for ip in esM.investmentPeriods
                     if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
                 )
-            else:
-                return (
-                    (loc, compName)
-                    for compName, comp in compDict.items()
-                    for loc in comp.locationalEligibility.index
-                    if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
-                )
 
-        n = 3 if esM.mode == "perfectForesight" else 2
         setattr(
             pyM,
             "designDimensionVarSet_" + abbrvName,
-            pyomo.Set(dimen=n, initialize=declareDesignVarSet),
+            pyomo.Set(dimen=3, initialize=declareDesignVarSet),
         )
 
     def declarePathwaySets(self,pyM,esM):
@@ -811,27 +801,17 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareContinuousDesignVarSet(pyM):
-            if esM.mode == "perfectForesight":
-                return (
+            return (
                     (loc, compName, ip)
                     for loc, compName, ip in getattr(
                         pyM, "designDimensionVarSet_" + abbrvName
                     )
                 )
-            else:
-                return (
-                    (loc, compName)
-                    for loc, compName in getattr(
-                        pyM, "designDimensionVarSet_" + abbrvName
-                    )
-                    if compDict[compName].capacityVariableDomain == "continuous"
-                )
-
-        n = 3 if esM.mode == "perfectForesight" else 2
+        
         setattr(
             pyM,
             "continuousDesignDimensionVarSet_" + abbrvName,
-            pyomo.Set(dimen=n, initialize=declareContinuousDesignVarSet),
+            pyomo.Set(dimen=3, initialize=declareContinuousDesignVarSet),
         )
 
     def declareDiscreteDesignVarSet(self, pyM, esM):
@@ -847,28 +827,18 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareDiscreteDesignVarSet(pyM):
-            if esM.mode == "perfectForesight":
-                return (
+            return (
                     (loc, compName, ip)
                     for loc, compName, ip in getattr(
                         pyM, "designDimensionVarSet_" + abbrvName
                     )
                     if compDict[compName].capacityVariableDomain == "discrete"
                 )
-            else:
-                return (
-                    (loc, compName)
-                    for loc, compName in getattr(
-                        pyM, "designDimensionVarSet_" + abbrvName
-                    )
-                    if compDict[compName].capacityVariableDomain == "discrete"
-                )
 
-        n = 3 if esM.mode == "perfectForesight" else 2
         setattr(
             pyM,
             "discreteDesignDimensionVarSet_" + abbrvName,
-            pyomo.Set(dimen=n, initialize=declareDiscreteDesignVarSet),
+            pyomo.Set(dimen=3, initialize=declareDiscreteDesignVarSet),
         )
 
     def declareDesignDecisionVarSet(self, pyM, esM):
@@ -884,28 +854,18 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareDesignDecisionVarSet(pyM):
-            if esM.mode == "perfectForesight":
-                return (
+            return (
                     (loc, compName, ip)
                     for loc, compName,ip in getattr(
                         pyM, "designDimensionVarSet_" + abbrvName
                     )
                     if compDict[compName].hasIsBuiltBinaryVariable
                 )
-            else:
-                return (
-                    (loc, compName)
-                    for loc, compName in getattr(
-                        pyM, "designDimensionVarSet_" + abbrvName
-                    )
-                    if compDict[compName].hasIsBuiltBinaryVariable
-                )
 
-        n = 3 if esM.mode == "perfectForesight" else 2
         setattr(
             pyM,
             "designDecisionVarSet_" + abbrvName,
-            pyomo.Set(dimen=n, initialize=declareDesignDecisionVarSet),
+            pyomo.Set(dimen=3, initialize=declareDesignDecisionVarSet),
         )
 
     def declareOpVarSet(self, esM, pyM):
@@ -924,16 +884,17 @@ class ComponentModel(metaclass=ABCMeta):
         # Set for operation variables
         def declareOpVarSet(pyM):
             return (
-                (loc, compName)
+                (loc, compName, ip)
                 for compName, comp in compDict.items()
                 for loc in comp.locationalEligibility.index
+                for ip in esM.investmentPeriods
                 if comp.locationalEligibility[loc] == 1
             )
 
         setattr(
             pyM,
             "operationVarSet_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpVarSet),
+            pyomo.Set(dimen=3, initialize=declareOpVarSet),
         )
 
         if self.dimension == "1dim":
@@ -941,52 +902,61 @@ class ComponentModel(metaclass=ABCMeta):
             setattr(
                 pyM,
                 "operationVarDict_" + abbrvName,
-                {
-                    loc: {
-                        compName
-                        for compName in compDict
-                        if (loc, compName)
-                        in getattr(pyM, "operationVarSet_" + abbrvName)
+                {   ip :
+                    {
+                        loc: {
+                            compName
+                            for compName in compDict
+                            if (loc, compName,ip)
+                            in getattr(pyM, "operationVarSet_" + abbrvName)
+                        }
+                        for loc in esM.locations
                     }
-                    for loc in esM.locations
-                },
+                    for ip in esM.investmentPeriods
+                }
             )
         elif self.dimension == "2dim":
             # Dictionaries which list all outgoing and incoming components at a location
             setattr(
                 pyM,
                 "operationVarDictOut_" + abbrvName,
-                {
-                    loc: {
-                        loc_: {
-                            compName
-                            for compName in compDict
-                            if (loc + "_" + loc_, compName)
-                            in getattr(pyM, "operationVarSet_" + abbrvName)
+                {   ip : 
+                    {
+                        loc: {
+                            loc_: {
+                                compName
+                                for compName in compDict
+                                if (loc + "_" + loc_, compName,ip)
+                                in getattr(pyM, "operationVarSet_" + abbrvName)
+                            }
+                            for loc_ in esM.locations
                         }
-                        for loc_ in esM.locations
+                        for loc in esM.locations
                     }
-                    for loc in esM.locations
-                },
-            )
+                    for ip in esM.investmentPeriods
+                } 
+                )
             setattr(
                 pyM,
                 "operationVarDictIn_" + abbrvName,
                 {
-                    loc: {
-                        loc_: {
-                            compName
-                            for compName in compDict
-                            if (loc_ + "_" + loc, compName)
-                            in getattr(pyM, "operationVarSet_" + abbrvName)
+                    ip: {
+                        loc: {
+                            loc_: {
+                                compName
+                                for compName in compDict
+                                if (loc_ + "_" + loc, compName, ip)
+                                in getattr(pyM, "operationVarSet_" + abbrvName)
+                            }
+                            for loc_ in esM.locations
                         }
-                        for loc_ in esM.locations
+                        for loc in esM.locations
                     }
-                    for loc in esM.locations
+                    for ip in esM.investmentPeriods
                 },
             )
 
-    def declareOperationBinarySet(self, pyM):
+    def declareOperationBinarySet(self, esM, pyM):
         """
         Declare operation related sets for binary decicion variables (operation variables) in the pyomo object for a
         modeling class. This reflects an on/off decision for the regarding component.
@@ -998,16 +968,17 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareOperationBinarySet(pyM):
             return (
-                (loc, compName)
+                (loc, compName, ip)
                 for compName, comp in compDict.items()
                 for loc in comp.locationalEligibility.index
+                for ip in esM.investmentPeriods
                 if comp.locationalEligibility[loc] == 1
             )
 
         setattr(
             pyM,
             "operationVarSetBin_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOperationBinarySet),
+            pyomo.Set(dimen=3, initialize=declareOperationBinarySet),
         )
 
     ####################################################################################################################
@@ -1024,8 +995,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareOpConstrSet1(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if compDict[compName].hasCapacityVariable
                 and getattr(compDict[compName], rateMax) is None
                 and getattr(compDict[compName], rateFix) is None
@@ -1034,7 +1005,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             constrSetName + "1_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSet1),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSet1),
         )
 
     def declareOpConstrSet2(self, pyM, constrSetName, rateFix):
@@ -1047,8 +1018,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareOpConstrSet2(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName,ip)
+                for loc, compName,ip in varSet
                 if compDict[compName].hasCapacityVariable
                 and getattr(compDict[compName], rateFix) is not None
             )
@@ -1056,7 +1027,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             constrSetName + "2_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSet2),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSet2),
         )
 
     def declareOpConstrSet3(self, pyM, constrSetName, rateMax):
@@ -1069,8 +1040,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareOpConstrSet3(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if compDict[compName].hasCapacityVariable
                 and getattr(compDict[compName], rateMax) is not None
             )
@@ -1078,7 +1049,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             constrSetName + "3_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSet3),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSet3),
         )
 
     def declareOpConstrSet4(self, pyM, constrSetName, rateFix):
@@ -1091,8 +1062,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareOpConstrSet4(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if not compDict[compName].hasCapacityVariable
                 and getattr(compDict[compName], rateFix) is not None
             )
@@ -1100,7 +1071,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             constrSetName + "4_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSet4),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSet4),
         )
 
     def declareOpConstrSet5(self, pyM, constrSetName, rateMax):
@@ -1113,8 +1084,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareOpConstrSet5(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if not compDict[compName].hasCapacityVariable
                 and getattr(compDict[compName], rateMax) is not None
             )
@@ -1122,7 +1093,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             constrSetName + "5_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSet5),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSet5),
         )
 
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
@@ -1134,15 +1105,15 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareOpConstrSetMinPartLoad(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if getattr(compDict[compName], "partLoadMin") is not None
             )
 
         setattr(
             pyM,
             constrSetName + "partLoadMin_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSetMinPartLoad),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSetMinPartLoad),
         )
 
     def declareOperationModeSets(
@@ -1179,15 +1150,15 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareYearlyFullLoadHoursMinSet():
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if compDict[compName].yearlyFullLoadHoursMin is not None
             )
 
         setattr(
             pyM,
             "yearlyFullLoadHoursMinSet_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareYearlyFullLoadHoursMinSet()),
+            pyomo.Set(dimen=3, initialize=declareYearlyFullLoadHoursMinSet()),
         )
 
     def declareYearlyFullLoadHoursMaxSet(self, pyM):
@@ -1199,15 +1170,15 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareYearlyFullLoadHoursMaxSet():
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if compDict[compName].yearlyFullLoadHoursMax is not None
             )
 
         setattr(
             pyM,
             "yearlyFullLoadHoursMaxSet_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareYearlyFullLoadHoursMaxSet()),
+            pyomo.Set(dimen=3, initialize=declareYearlyFullLoadHoursMaxSet()),
         )
 
     ####################################################################################################################
@@ -1230,16 +1201,7 @@ class ComponentModel(metaclass=ABCMeta):
         """
         abbrvName = self.abbrvName
         
-        def capBounds(pyM, loc, compName):
-            """Function for setting lower and upper capacity bounds."""
-            comp = self.componentsDict[compName]
-            return (
-                comp.capacityMin[loc]
-                if (comp.capacityMin is not None and not comp.hasIsBuiltBinaryVariable)
-                else 0,
-                comp.capacityMax[loc] if comp.capacityMax is not None else None,
-            )
-        def capBoundsPerfectForesight(pyM, loc, compName, ip):
+        def capBounds(pyM, loc, compName, ip):
             """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
             return (
@@ -1249,18 +1211,8 @@ class ComponentModel(metaclass=ABCMeta):
                 comp.capacityMax[loc] if comp.capacityMax is not None else None,
             )
 
-        if esM.mode =="perfectForesight":        
-            setattr(
-            pyM,
-            "cap_" + abbrvName,
-            pyomo.Var(
-                getattr(pyM, "designDimensionVarSet_" + abbrvName),
-                domain=pyomo.NonNegativeReals,
-                bounds=capBoundsPerfectForesight,
-            ),
-            )
-        else:
-            setattr(
+
+        setattr(
             pyM,
             "cap_" + abbrvName,
             pyomo.Var(
@@ -1414,7 +1366,7 @@ class ComponentModel(metaclass=ABCMeta):
             opVarName + "_" + abbrvName,
             pyomo.Var(
                 getattr(pyM, "operationVarSet_" + abbrvName),
-                pyM.timeSet,
+                pyM.intraYearTimeSet,
                 domain=pyomo.NonNegativeReals,
             ),
         )
@@ -1432,7 +1384,7 @@ class ComponentModel(metaclass=ABCMeta):
             opVarBinName + "_" + abbrvName,
             pyomo.Var(
                 getattr(pyM, "operationVarSetBin_" + abbrvName),
-                pyM.timeSet,
+                pyM.intraYearTimeSet,
                 domain=pyomo.Binary,
             ),
         )
@@ -1462,25 +1414,12 @@ class ComponentModel(metaclass=ABCMeta):
         )
         nbRealVarSet = getattr(pyM, "continuousDesignDimensionVarSet_" + abbrvName)
 
-        def capToNbReal(pyM, loc, compName):
+        def capToNbReal(pyM, loc, compName,ip):
             return (
-                capVar[loc, compName]
-                == nbRealVar[loc, compName] * compDict[compName].capacityPerPlantUnit
-            )
-        def capToNbRealPerfectForesight(pyM, loc, compName, ip):
-            return (
-                capVar[loc, compName,ip]
+                capVar[loc, compName, ip]
                 == nbRealVar[loc, compName,ip] * compDict[compName].capacityPerPlantUnit
             )
-
-        if esM.mode =="perfectForesight":  
-            setattr(
-                pyM,
-                "ConstrCapToNbReal_" + abbrvName,
-                pyomo.Constraint(nbRealVarSet, rule=capToNbRealPerfectForesight),
-            )
-        else:
-            setattr(
+        setattr(
                 pyM,
                 "ConstrCapToNbReal_" + abbrvName,
                 pyomo.Constraint(nbRealVarSet, rule=capToNbReal),
@@ -1504,9 +1443,9 @@ class ComponentModel(metaclass=ABCMeta):
         )
         nbIntVarSet = getattr(pyM, "discreteDesignDimensionVarSet_" + abbrvName)
 
-        def capToNbInt(pyM, loc, compName):
+        def capToNbInt(pyM, loc, compName,ip):
             return (
-                capVar[loc, compName]
+                capVar[loc, compName, ip]
                 == nbIntVar[loc, compName] * compDict[compName].capacityPerPlantUnit
             )
 
@@ -1534,10 +1473,10 @@ class ComponentModel(metaclass=ABCMeta):
         )
         designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
 
-        def bigM(pyM, loc, compName):
+        def bigM(pyM, loc, compName,ip):
             comp = compDict[compName]
             M = comp.capacityMax[loc] if comp.capacityMax is not None else comp.bigM
-            return capVar[loc, compName] <= designBinVar[loc, compName] * M
+            return capVar[loc, compName, ip] <= designBinVar[loc, compName, ip] * M
 
         setattr(
             pyM, "ConstrBigM_" + abbrvName, pyomo.Constraint(designBinVarSet, rule=bigM)
@@ -1561,10 +1500,10 @@ class ComponentModel(metaclass=ABCMeta):
         )
         designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
 
-        def capacityMinDec(pyM, loc, compName):
+        def capacityMinDec(pyM, loc, compName, ip):
             return (
-                capVar[loc, compName]
-                >= compDict[compName].capacityMin[loc] * designBinVar[loc, compName]
+                capVar[loc, compName, ip]
+                >= compDict[compName].capacityMin[loc] * designBinVar[loc, compName, ip]
                 if compDict[compName].capacityMin is not None
                 else pyomo.Constraint.Skip
             )
@@ -1593,31 +1532,18 @@ class ComponentModel(metaclass=ABCMeta):
         capVar = getattr(pyM, "cap_" + abbrvName)
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
-        def capacityFix(pyM, loc, compName):
-            return (
-                capVar[loc, compName] == compDict[compName].capacityFix[loc]
-                if compDict[compName].capacityFix is not None
-                else pyomo.Constraint.Skip
-            )
-        def capacityFixPerfectForesight(pyM, loc, compName, ip):
+        def capacityFix(pyM, loc, compName,ip):
             return (
                 capVar[loc, compName, ip] == compDict[compName].capacityFix[loc]
                 if compDict[compName].capacityFix is not None
                 else pyomo.Constraint.Skip
             )
-
-        if esM.mode=="perfectForesight":
-            setattr(
-                pyM,
-                "ConstrCapacityFix_" + abbrvName,
-                pyomo.Constraint(capVarSet, rule=capacityFixPerfectForesight),
-            )
-        else:
-            setattr(
+        setattr(
                 pyM,
                 "ConstrCapacityFix_" + abbrvName,
                 pyomo.Constraint(capVarSet, rule=capacityFix),
             )
+
 
     def designBinFix(self, pyM):
         """
@@ -1634,9 +1560,9 @@ class ComponentModel(metaclass=ABCMeta):
         designBinVar = getattr(pyM, "designBin_" + abbrvName)
         designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
 
-        def designBinFix(pyM, loc, compName):
+        def designBinFix(pyM, loc, compName, ip):
             return (
-                designBinVar[loc, compName] == compDict[compName].isBuiltFix[loc]
+                designBinVar[loc, compName,ip] == compDict[compName].isBuiltFix[loc]
                 if compDict[compName].isBuiltFix is not None
                 else pyomo.Constraint.Skip
             )
@@ -1792,13 +1718,13 @@ class ComponentModel(metaclass=ABCMeta):
                 )
                 return (
                     opVar[loc, compName, ip, p, t]
-                    <= factor1 * factor2 * capVar[loc, compName]
+                    <= factor1 * factor2 * capVar[loc, compName, ip]
                 )
 
             setattr(
                 pyM,
                 constrName + "1_" + abbrvName,
-                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+                pyomo.Constraint(constrSet1, pyM.intraYearTimeSet, rule=op1),
             )
         else:
 
@@ -1813,13 +1739,13 @@ class ComponentModel(metaclass=ABCMeta):
                 )
                 return (
                     opVar[loc, compName, ip, p, t]
-                    <= factor1[p, t] * factor2 * capVar[loc, compName]
+                    <= factor1[p, t] * factor2 * capVar[loc, compName, ip]
                 )  # factor not dependend on ip
 
             setattr(
                 pyM,
                 constrName + "1_" + abbrvName,
-                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+                pyomo.Constraint(constrSet1, pyM.intraYearTimeSet, rule=op1),
             )
 
     def operationMode2(
@@ -1859,13 +1785,13 @@ class ComponentModel(metaclass=ABCMeta):
                 rate = getattr(compDict[compName], opRateName)[ip]
                 return (
                     opVar[loc, compName, ip, p, t]
-                    == capVar[loc, compName] * rate[loc][p, t] * factor
+                    == capVar[loc, compName, ip] * rate[loc][p, t] * factor
                 )  # rate independent from ip
 
             setattr(
                 pyM,
                 constrName + "2_" + abbrvName,
-                pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2),
+                pyomo.Constraint(constrSet2, pyM.intraYearTimeSet, rule=op2),
             )
         else:
 
@@ -1878,13 +1804,13 @@ class ComponentModel(metaclass=ABCMeta):
                 rate = getattr(compDict[compName], opRateName)[ip]
                 return (
                     opVar[loc, compName, ip, p, t]
-                    == capVar[loc, compName] * rate[loc][p, t] * factor[p, t]
+                    == capVar[loc, compName, ip] * rate[loc][p, t] * factor[p, t]
                 )
 
             setattr(
                 pyM,
                 constrName + "2_" + abbrvName,
-                pyomo.Constraint(constrSet2, pyM.timeSet, rule=op2),
+                pyomo.Constraint(constrSet2, pyM.intraYearTimeSet, rule=op2),
             )
 
     def operationMode3(
@@ -1920,21 +1846,15 @@ class ComponentModel(metaclass=ABCMeta):
 
             def op3(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
-                if esM.mode == "perfectForesight":
-                    return (
+                return (
                         opVar[loc, compName, ip, p, t]
-                        <= capVar[loc, compName,ip] * rate[loc][p, t] * factor
-                    )  
-                else:
-                    return (
-                        opVar[loc, compName, ip, p, t]
-                        <= capVar[loc, compName] * rate[loc][p, t] * factor
+                        <= capVar[loc, compName, ip] * rate[loc][p, t] * factor
                     )  
 
             setattr(
                 pyM,
                 constrName + "3_" + abbrvName,
-                pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3),
+                pyomo.Constraint(constrSet3, pyM.intraYearTimeSet, rule=op3),
             )
         else:
 
@@ -1947,13 +1867,13 @@ class ComponentModel(metaclass=ABCMeta):
                 rate = getattr(compDict[compName], opRateName)[ip]
                 return (
                     opVar[loc, compName, ip, p, t]
-                    <= capVar[loc, compName] * rate[loc][p, t] * factor[p, t]
+                    <= capVar[loc, compName, ip] * rate[loc][p, t] * factor[p, t]
                 )  # rate and factor independent from ip
 
             setattr(
                 pyM,
                 constrName + "3_" + abbrvName,
-                pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3),
+                pyomo.Constraint(constrSet3, pyM.intraYearTimeSet, rule=op3),
             )
 
     def operationMode4(
@@ -1976,7 +1896,6 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
         constrSet4 = getattr(pyM, constrSetName + "4_" + abbrvName)
-
         if not pyM.hasSegmentation:
 
             def op4(pyM, loc, compName, ip, p, t):
@@ -1988,7 +1907,7 @@ class ComponentModel(metaclass=ABCMeta):
             setattr(
                 pyM,
                 constrName + "4_" + abbrvName,
-                pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4),
+                pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
         else:
 
@@ -2002,7 +1921,7 @@ class ComponentModel(metaclass=ABCMeta):
             setattr(
                 pyM,
                 constrName + "4_" + abbrvName,
-                pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4),
+                pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
     def operationMode5(
@@ -2031,11 +1950,12 @@ class ComponentModel(metaclass=ABCMeta):
             def op5(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
                 return opVar[loc, compName, ip, p, t] <= rate[loc][p, t]
-
+            
+          
             setattr(
                 pyM,
                 constrName + "5_" + abbrvName,
-                pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5),
+                pyomo.Constraint(constrSet5, pyM.intraYearTimeSet, rule=op5),
             )
         else:
 
@@ -2049,7 +1969,7 @@ class ComponentModel(metaclass=ABCMeta):
             setattr(
                 pyM,
                 constrName + "5_" + abbrvName,
-                pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5),
+                pyomo.Constraint(constrSet5, pyM.intraYearTimeSet, rule=op5),
             )
 
     def additionalMinPartLoad(
@@ -2081,7 +2001,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             constrName + "partLoadMin_1_" + abbrvName,
-            pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad1),
+            pyomo.Constraint(constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1),
         )
 
         def opMinPartLoad2(pyM, loc, compName, ip, p, t):
@@ -2093,14 +2013,14 @@ class ComponentModel(metaclass=ABCMeta):
             bigM = getattr(compDict[compName], "bigM")
             return (
                 opVar[loc, compName, ip, p, t]
-                >= processedPartLoadMin * capVar[loc, compName]
+                >= processedPartLoadMin * capVar[loc, compName, ip]
                 - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
             )
 
         setattr(
             pyM,
             constrName + "partLoadMin_2_" + abbrvName,
-            pyomo.Constraint(constrSetMinPartLoad, pyM.timeSet, rule=opMinPartLoad2),
+            pyomo.Constraint(constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad2),
         )
 
     def yearlyFullLoadHoursMin(self, pyM, esM):
@@ -2121,7 +2041,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyM, "yearlyFullLoadHoursMinSet_" + abbrvName
         )
 
-        def yearlyFullLoadHoursMinConstraint(pyM, loc, compName):
+        def yearlyFullLoadHoursMinConstraint(pyM, loc, compName, ip):
             full_load_hours = (
                 sum(
                     opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
@@ -2131,7 +2051,7 @@ class ComponentModel(metaclass=ABCMeta):
             )
             return (
                 full_load_hours
-                >= capVar[loc, compName]
+                >= capVar[loc, compName, ip]
                 * compDict[compName].yearlyFullLoadHoursMin[loc]
             )
 
@@ -2160,7 +2080,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyM, "yearlyFullLoadHoursMaxSet_" + abbrvName
         )
 
-        def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName):
+        def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName,ip):
             full_load_hours = (
                 sum(
                     opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
@@ -2170,7 +2090,7 @@ class ComponentModel(metaclass=ABCMeta):
             )
             return (
                 full_load_hours
-                <= capVar[loc, compName]
+                <= capVar[loc, compName, ip]
                 * compDict[compName].yearlyFullLoadHoursMax[loc]
             )
 
@@ -2313,12 +2233,12 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(pyM, "cap_" + abbrvName)
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
-
         return sum(
-            capVar[loc, compName] / compDict[compName].capacityMax[loc]
+            capVar[loc, compName, ip] / compDict[compName].capacityMax[loc]
+            for ip in pyM.investSet
             for compName in compDict
             if compDict[compName].sharedPotentialID == key
-            and (loc, compName) in capVarSet
+            and (loc, compName,ip) in capVarSet
         )
 
     def getLocEconomicsTD(
@@ -2489,10 +2409,8 @@ class ComponentModel(metaclass=ABCMeta):
         for factor_ in factors:
             factor *= factor_
         
-        if esM.mode=="perfectForesight":
-            _var=var[loc, compName,ip]
-        else: 
-            _var=var[loc, compName]
+        _var=var[loc, compName,ip]
+
         if self.componentsDict[compName].processedQPcostScale[ip][loc] == 0:
             if not getOptValue:
                 return factor * _var
@@ -2653,7 +2571,6 @@ class ComponentModel(metaclass=ABCMeta):
             #     )
 
         else:
-            ip=0
             return sum(
                 self.getLocEconomicsTI(
                     pyM,
@@ -2668,7 +2585,7 @@ class ComponentModel(metaclass=ABCMeta):
                     QPdivisorNames,
                     getOptValue,
                 )
-                for loc, compName in var
+                for loc, compName, ip in var
             )
 
     def getEconomicsTD(
@@ -2708,14 +2625,13 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean
         """
-        indices = getattr(pyM, dictName + "_" + self.abbrvName).items()
+        indices = getattr(pyM, dictName + "_" + self.abbrvName)#.items()
         if self.dimension == "1dim":
             def annuityPresentValueFactor(esM,compName,loc):
                 # DE:Rentenbarwertfaktor
                 intrestRate = esM.getComponent(compName).interestRate[loc]
                 return (((1+intrestRate)**(esM.yearsPerInvestmentPeriod))-1)\
                         /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))
-            
             return sum(
                 self.getLocEconomicsTD(
                     pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
@@ -2726,9 +2642,9 @@ class ComponentModel(metaclass=ABCMeta):
                 self.getLocEconomicsTD(
                     pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
                 ) 
-                for loc, compNames in indices
+                for ip, subDict in indices.items()
+                for loc, compNames in subDict.items()
                 for compName in compNames
-                for ip in esM.investmentPeriods
             )
         else:
             def annuityPresentValueFactor(esM,compName,loc, loc_):
@@ -2736,7 +2652,7 @@ class ComponentModel(metaclass=ABCMeta):
                 intrestRate = esM.getComponent(compName).interestRate[loc + "_" + loc_]
                 return (((1+intrestRate)**(esM.yearsPerInvestmentPeriod))-1)\
                         /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))
-
+            
             return sum(
                 self.getLocEconomicsTD(
                     pyM,
@@ -2761,10 +2677,10 @@ class ComponentModel(metaclass=ABCMeta):
                     ip,
                     getOptValue,
                 )
-                for loc, subDict in indices
-                for loc_, compNames in subDict.items()
+                for ip, subDict in indices.items()
+                for loc, subDict2 in subDict.items()
+                for loc_, compNames in subDict2.items()
                 for compName in compNames
-                for ip in esM.investmentPeriods
             )
 
     def getLocEconomicsTimeSeries(
@@ -2909,9 +2825,10 @@ class ComponentModel(metaclass=ABCMeta):
                 self.getLocEconomicsTimeSeries(
                     pyM, esM, factorName, varName, loc, compName, ip, getOptValue
                 )
-                for loc, compNames in indices
+                for ip, subdict in indices
+                for loc, compNames in subdict.items()
                 for compName in compNames
-                for ip in esM.investmentPeriods
+                #for ip in esM.investmentPeriods
             )
         else:
             return sum(
@@ -3034,20 +2951,25 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Get and set optimal variable values for expanded capacities
         values = capVar.get_values()
-        if esM.mode == "perfectForesight":
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
-            optVal_ = utils.formatOptimizationOutput(
+        optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
+        optVal_ = utils.formatOptimizationOutput(
                 values, "designVariables", self.dimension, ip, compDict=compDict
             )
-        else:
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-            optVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, compDict=compDict
-            )
+        # if esM.mode == "perfectForesight":
+        #     optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
+        #     optVal_ = utils.formatOptimizationOutput(
+        #         values, "designVariables", self.dimension, ip, compDict=compDict
+        #     )
+        # else:
+        #     optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
+        #     optVal_ = utils.formatOptimizationOutput(
+        #         values, "designVariables", self.dimension, compDict=compDict
+        #     )
         self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
         if optVal is not None:
-            # Check if the installed capacities are close to a bigM value for components with design decision variables but
+            # Check if the installed capacities are close to a bigM val
+            # ue for components with design decision variables but
             # ignores cases where bigM was substituted by capacityMax parameter (see bigM constraint)
             for compName, comp in compDict.items():
                 if (
@@ -3139,15 +3061,9 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
         values = binVar.get_values()
-        if esM.mode == "perfectForesight":
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
-            optVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension,  compDict=compDict
-            )
-        else:
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-            optVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, compDict=compDict
+        optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
+        optVal_ = utils.formatOptimizationOutput(
+                values, "designVariables", self.dimension, ip=ip, compDict=compDict
             )
         self.isBuiltVariablesOptimum = optVal_
 

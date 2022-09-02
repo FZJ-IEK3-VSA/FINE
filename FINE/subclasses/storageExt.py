@@ -500,7 +500,7 @@ class StorageExtModel(StorageModel):
                             ** (t * esM.hoursPerTimeStep)
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName] * compDict[compName].stateOfChargeMax
+                        <= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMax
                     )
                 else:
                     return (
@@ -515,7 +515,7 @@ class StorageExtModel(StorageModel):
                             )
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName] * compDict[compName].stateOfChargeMax
+                        <= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMax
                     )
             else:
                 return pyomo.Constraint.Skip
@@ -557,7 +557,7 @@ class StorageExtModel(StorageModel):
                             ** (t * esM.hoursPerTimeStep)
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        == capVar[loc, compName]
+                        == capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeOpRateFix[loc][
                             esM.periodsOrder[pInter], t
                         ]
@@ -575,7 +575,7 @@ class StorageExtModel(StorageModel):
                             )
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        == capVar[loc, compName]
+                        == capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeOpRateFix[loc][
                             esM.periodsOrder[pInter], t
                         ]
@@ -620,7 +620,7 @@ class StorageExtModel(StorageModel):
                             ** (t * esM.hoursPerTimeStep)
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName]
+                        <= capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeOpRateMax[loc][
                             esM.periodsOrder[pInter], t
                         ]
@@ -638,7 +638,7 @@ class StorageExtModel(StorageModel):
                             )
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName]
+                        <= capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeOpRateMax[loc][
                             esM.periodsOrder[pInter], t
                         ]
@@ -767,7 +767,6 @@ class StorageExtModel(StorageModel):
             "ConstrSOCMaxPrecise5_" + abbrvName,
             pyomo.Constraint(
                 constrSet5,
-                esM.investmentPeriods,
                 esM.periods,
                 esM.timeStepsPerPeriod,
                 rule=SOCMaxPrecise5,

@@ -676,7 +676,7 @@ class SourceSinkModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(pyM)
+        self.declareOperationBinarySet(esM, pyM)
 
         # Declare sets for case differentiation of operating modes
         self.declareOperationModeSets(
@@ -935,11 +935,12 @@ class SourceSinkModel(ComponentModel):
         """Get contribution to a commodity balance.
                 .. math::
 
-            \\text{C}^{comp,comm}_{loc,p,t} = - op_{loc,p,t}^{comp,op}  \\text{Sink}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = - op_{loc,ip,p,t}^{comp,op}  \\text{Sink}
 
         .. math::
-            \\text{C}^{comp,comm}_{loc,p,t} = op_{loc,p,t}^{comp,op} \\text{Source}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = op_{loc,ip,p,t}^{comp,op} \\text{Source}
         """
+        
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = (
             getattr(pyM, "op_" + abbrvName),
@@ -947,7 +948,7 @@ class SourceSinkModel(ComponentModel):
         )
         return sum(
             opVar[loc, compName, ip, p, t] * compDict[compName].sign
-            for compName in opVarDict[loc]
+            for compName in opVarDict[ip][loc]
             if compDict[compName].commodity == commod
         )
 

@@ -356,7 +356,7 @@ class DSMModel(SourceSinkModel):
         setattr(
             pyM,
             "limitUpDownShifts_" + abbrvName,
-            pyomo.Constraint(constrSet, pyM.timeSet, rule=limitUpDownShifts),
+            pyomo.Constraint(constrSet, pyM.intraYearTimeSet, rule=limitUpDownShifts),
         )
 
     def shiftUpMax(self, pyM, esM):
@@ -399,7 +399,7 @@ class DSMModel(SourceSinkModel):
         setattr(
             pyM,
             "shiftUpMax_" + abbrvName,
-            pyomo.Constraint(constrSet, pyM.timeSet, rule=shiftUpMax),
+            pyomo.Constraint(constrSet, pyM.intraYearTimeSet, rule=shiftUpMax),
         )
 
     def shiftDownMax(self, pyM, esM):
@@ -439,7 +439,7 @@ class DSMModel(SourceSinkModel):
         setattr(
             pyM,
             "shiftDownMax_" + abbrvName,
-            pyomo.Constraint(constrSet, pyM.timeSet, rule=shiftDownMax),
+            pyomo.Constraint(constrSet, pyM.intraYearTimeSet, rule=shiftDownMax),
         )
 
     def declareComponentConstraints(self, esM, pyM):
