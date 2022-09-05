@@ -717,14 +717,16 @@ class ComponentModel(metaclass=ABCMeta):
                             oldestStockYear=min(oldestStockYear,year)
                             break 
             if oldestStockYear==0:
-                oldestStockYear = None  
-                                 
+                stockInvestmentPeriods = []
+            else:
+                stockInvestmentPeriods = list(range(oldestStockYear,0,1))
+            
             def declareCommisVarSet(pyM):
                 return (
                     (loc, compName, ip)
                     for compName, comp in compDict.items()
                     for loc in comp.locationalEligibility.index
-                    for ip in esM.investmentPeriods
+                    for ip in stockInvestmentPeriods + esM.investmentPeriods
                     if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
                 )
 
@@ -732,7 +734,9 @@ class ComponentModel(metaclass=ABCMeta):
                 pyM,
                 "designCommisVarSet_" + abbrvName,
                 pyomo.Set(dimen=3, initialize=declareCommisVarSet),
-            )        
+            )       
+            import pytest
+            pytest.set_trace() 
             
     def declareDesignVarSet(self, pyM, esM):
         """
@@ -786,7 +790,7 @@ class ComponentModel(metaclass=ABCMeta):
                 pyM,
                 "designDevelopmentVarSet_" + abbrvName,
                 pyomo.Set(dimen=3, initialize=initCommissioningConstraintSet),
-            )   
+            )  
 
     def declareContinuousDesignVarSet(self, pyM, esM):
         """
@@ -1242,7 +1246,7 @@ class ComponentModel(metaclass=ABCMeta):
                 pyM,
                 "commis_" + abbrvName,
                 pyomo.Var(
-                    getattr(pyM, "designDimensionVarSet_" + abbrvName),
+                    getattr(pyM, "designCommisVarSet_" + abbrvName),
                     domain=pyomo.NonNegativeReals,
                 ),
             )
@@ -1576,7 +1580,7 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
     #                               Functions for declaring pathway dependent constraints                              #
     ####################################################################################################################    
-    def designDevelopment(self,pyM,esM):
+    def designDevelopmentConstraint(self,pyM,esM):
         """
         Link the capacity development between investment periods.
 
@@ -1606,6 +1610,23 @@ class ComponentModel(metaclass=ABCMeta):
                 "ConstrCapacityDevelopment_" + abbrvName,
                 pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight),
             )
+        elif esM.mode =="stochastic":
+            abbrvName = self.abbrvName
+            capVar = getattr(pyM, "cap_" + abbrvName)
+
+            def capacityDevelopmentStochastic(pyM, loc, compName, ip):
+                # all investmentperiods must have the same capacity
+                if ip in esM.investmentPeriods[:-1]:
+                    return (capVar[loc, compName, ip+1]==capVar[loc, compName, ip])
+                else: 
+                    return pyomo.Constraint.Skip
+
+            setattr(
+                pyM,
+                "ConstrCapacityDevelopment_" + abbrvName,
+                pyomo.Constraint(getattr(pyM, "designDimensionVarSet_" + abbrvName), rule=capacityDevelopmentStochastic),
+            )
+        
             
     def initialStockConstraint(self,pyM,esM):
         """
@@ -2340,7 +2361,7 @@ class ComponentModel(metaclass=ABCMeta):
         varName,
         loc,
         compName,
-        ip=0,
+        ip,
         divisorName="",
         QPfactorNames=[],
         QPdivisorNames=[],
@@ -2534,41 +2555,23 @@ class ComponentModel(metaclass=ABCMeta):
                     * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
                     for loc, compName, ip in var)
 
-            
-            # for loc, compName, ip in var:
-            #     ds = pd.Series(0, index=esM.investmentPeriods)
-            #     ds[ip:ip+esM.getComponent(compName).ipEconomicLifetime[loc]] =      self.getLocEconomicsTI(
-            #             pyM,
-            #             esM,
-            #             factorNames,
-            #             varName,
-            #             loc,
-            #             compName,
-            #             ip,
-            #             divisorName,
-            #             QPfactorNames,
-            #             QPdivisorNames,
-            #             getOptValue,
-            #         )
-            
-            # return sum(
-            #         self.getLocEconomicsTI(
-            #             pyM,
-            #             esM,
-            #             factorNames,
-            #             varName,
-            #             loc,
-            #             compName,
-            #             ip,
-            #             divisorName,
-            #             QPfactorNames,
-            #             QPdivisorNames,
-            #             getOptValue,
-            #         )
-            #         * annuityPresentValueFactor(esM,compName,ip,loc )\
-            #         * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
-            #         for loc, compName, ip in var
-            #     )
+        elif esM.mode == "stochastic":
+            return sum(
+                self.getLocEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames,
+                    varName,
+                    loc,
+                    compName,
+                    ip,
+                    divisorName,
+                    QPfactorNames,
+                    QPdivisorNames,
+                    getOptValue,
+                )
+                for loc, compName, ip in var
+            )/ esM.numberOfInvestmentPeriods
 
         else:
             return sum(

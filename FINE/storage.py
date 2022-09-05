@@ -1464,7 +1464,7 @@ class StorageModel(ComponentModel):
         #                                    Declare pathway constraints                                               #
         ################################################################################################################
         # Set capacity development constraints over investment periods
-        self.designDevelopment(pyM,esM)     
+        self.designDevelopmentConstraint(pyM,esM)     
         self.decommissioningConstraint(pyM,esM)  
         self.initialStockConstraint(pyM,esM)  
         

@@ -1034,8 +1034,7 @@ class EnergySystemModel:
                     for t in self.timeStepsPerPeriod
                 )
 
-            def initInvestSet(pyM):
-                return (ip for ip in self.investmentPeriods)
+
             
 
             def initInvestPeriodInterPeriodSet(pyM):
@@ -1076,8 +1075,6 @@ class EnergySystemModel:
                         for t in range(len(self.timeStepsPerPeriod) + 1)
                     )
 
-                def initInvestSet(pyM):
-                    return (ip for ip in self.investmentPeriods)
 
                 def initIntraYearTimeSet(pyM):
                     return ( 
@@ -1125,8 +1122,6 @@ class EnergySystemModel:
                         for t in range(len(self.segmentsPerPeriod) + 1)
                     )
 
-                def initInvestSet(pyM):
-                    return (ip for ip in self.investmentPeriods)
                 
                 def initIntraYearTimeSet(pyM):
                     return ( 
@@ -1143,6 +1138,9 @@ class EnergySystemModel:
                             + 1
                         )
                     )
+
+        def initInvestSet(pyM):
+            return (ip for ip in self.investmentPeriods)
 
         # Initialize sets
         pyM.timeSet = pyomo.Set(dimen=3, initialize=initTimeSet)
