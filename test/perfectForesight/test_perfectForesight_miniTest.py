@@ -2,6 +2,7 @@ import FINE as fn
 import numpy as np
 import pytest
 import pandas as pd
+import math
 
 def perfectForesight_test_esM():
 
@@ -189,7 +190,14 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
     # b) parameters which do not need to include stock years 
     assert list(esM.getComponent("PV").processedOpexPerOperation.keys())== [0,1,2,3,4]
     assert list(esM.getComponent("PV").processedOperationRateMax.keys())== [0,1,2,3,4]
+    
+    # check the optimization summary
+    srcSnk_optSum=esM.getOptimizationSummary("SourceSinkModel")
+    assert srcSnk_optSum[2020].loc[("PV","decommissioning","[kW$_{el}$]"),"ForesightLand"]== 10
+    assert srcSnk_optSum[2020].loc[("PV","capacity","[kW$_{el}$]"),"ForesightLand"] ==2
+    assert srcSnk_optSum[2020].loc[("PV","commissioning","[kW$_{el}$]"),"ForesightLand"] ==1.5
+    assert math.isnan(srcSnk_optSum[2020].loc[("EDemand","commissioning","[kW$_{el}$]"),"ForesightLand"])
 
 
 if __name__ == "__main__":
-    test_perfectForesight_stock(perfectForesight_test_esM())
+    test_perfectForesight_stock(perfectForesight_test_esM())    

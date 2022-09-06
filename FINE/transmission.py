@@ -411,6 +411,8 @@ class TransmissionModel(ComponentModel):
         self.dimension = "2dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum = {}
+        self.commissioningVariablesOptimum={}
+        self.decommissioningVariablesOptimum={}
         self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
         self._optSummary = {}

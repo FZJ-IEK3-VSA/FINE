@@ -308,6 +308,8 @@ class DSMModel(SourceSinkModel):
         self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
+        self.commissioningVariablesOptimum={}
+        self.decommissioningVariablesOptimum={}
         self._optSummary = {}
         self.operationVariablesOptimum = {}
 

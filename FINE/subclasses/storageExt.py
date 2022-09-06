@@ -436,6 +436,8 @@ class StorageExtModel(StorageModel):
         self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
+        self.commissioningVariablesOptimum={}
+        self.decommissioningVariablesOptimum={}
         (
             self.chargeOperationVariablesOptimum,
             self.dischargeOperationVariablesOptimum,

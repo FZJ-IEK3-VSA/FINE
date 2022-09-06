@@ -126,6 +126,8 @@ class LOPFModel(TransmissionModel):
         self.dimension = "2dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
+        self.commissioningVariablesOptimum={}
+        self.decommissioningVariablesOptimum={}
         self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
         self._optSummary = None
 

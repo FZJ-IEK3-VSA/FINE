@@ -685,6 +685,8 @@ class ComponentModel(metaclass=ABCMeta):
         self.dimension = ""
         self.componentsDict = {}
         self.capacityVariablesOptimum={}
+        self.commissioningVariablesOptimum={}
+        self.decommissioningVariablesOptimum={}
         self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
         self._optSummary = None
@@ -2966,6 +2968,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         props = [
             "capacity",
+            "commissioning",
+            "decommissioning",
             "isBuilt",
             "capexCap",
             "capexIfBuilt",
@@ -2975,6 +2979,8 @@ class ComponentModel(metaclass=ABCMeta):
             "invest",
         ]
         units = [
+            "[-]",
+            "[-]",
             "[-]",
             "[-]",
             "[" + esM.costUnit + "/a]",
@@ -2996,7 +3002,7 @@ class ComponentModel(metaclass=ABCMeta):
                     x[1],
                     "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
                 )
-                if x[1] == "capacity"
+                if x[1] in ["capacity","commissioning","decommissioning"]
                 else x,
                 tuples,
             )
@@ -3010,13 +3016,13 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Get and set optimal variable values for expanded capacities
         values = capVar.get_values()
-        optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
-        optVal_ = utils.formatOptimizationOutput(
+        capOptVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
+        capOptVal_ = utils.formatOptimizationOutput(
                 values, "designVariables", self.dimension, ip, compDict=compDict
             )
-        self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
+        self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = capOptVal_           
 
-        if optVal is not None:
+        if capOptVal is not None:
             # Check if the installed capacities are close to a bigM val
             # ue for components with design decision variables but
             # ignores cases where bigM was substituted by capacityMax parameter (see bigM constraint)
@@ -3024,7 +3030,7 @@ class ComponentModel(metaclass=ABCMeta):
                 if (
                     comp.hasIsBuiltBinaryVariable
                     and (comp.capacityMax is None)
-                    and optVal.loc[compName].max() >= comp.bigM * 0.9
+                    and capOptVal.loc[compName].max() >= comp.bigM * 0.9
                     and esM.verbose < 2
                 ):
                     warnings.warn(
@@ -3037,7 +3043,7 @@ class ComponentModel(metaclass=ABCMeta):
 
             # Calculate the investment costs i (proportional to capacity expansion)
             # TODO massiv falsch! muss commis year sein
-            i = optVal.apply(
+            i = capOptVal.apply(
                 lambda cap: cap
                 * compDict[cap.name].processedInvestPerCapacity[ip]
                 * compDict[cap.name].QPcostDev[ip]
@@ -3051,7 +3057,7 @@ class ComponentModel(metaclass=ABCMeta):
                 axis=1,
             )
             # Calculate the annualized investment costs cx (CAPEX)
-            cx = optVal.apply(
+            cx = capOptVal.apply(
                 lambda cap: (
                     cap
                     * compDict[cap.name].processedInvestPerCapacity[ip]
@@ -3069,7 +3075,7 @@ class ComponentModel(metaclass=ABCMeta):
                 axis=1,
             )
             # Calculate the annualized operational costs ox (OPEX)
-            ox = optVal.apply(
+            ox = capOptVal.apply(
                 lambda cap: cap
                 * compDict[cap.name].processedOpexPerCapacity[ip]
                 * compDict[cap.name].QPcostDev[ip]
@@ -3092,10 +3098,10 @@ class ComponentModel(metaclass=ABCMeta):
                         "capacity",
                         "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
                     )
-                    for ix in optVal.index
+                    for ix in capOptVal.index
                 ],
-                optVal.columns,
-            ] = optVal.values
+                capOptVal.columns,
+            ] = capOptVal.values
             optSummary.loc[
                 [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index], i.columns
             ] = i.values
@@ -3110,30 +3116,30 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
         values = binVar.get_values()
-        optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
-        optVal_ = utils.formatOptimizationOutput(
+        binCapOptVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
+        binCapOptVal_ = utils.formatOptimizationOutput(
                 values, "designVariables", self.dimension, ip=ip, compDict=compDict
             )
-        self.isBuiltVariablesOptimum = optVal_
+        self.isBuiltVariablesOptimum = binCapOptVal_
 
-        if optVal is not None:
+        if binCapOptVal is not None:
             # Calculate the investment costs i (fix value if component is built)
-            i = optVal.apply(lambda dec: dec * compDict[dec.name].processedInvestIfBuilt[ip], axis=1)
+            i = binCapOptVal.apply(lambda dec: dec * compDict[dec.name].processedInvestIfBuilt[ip], axis=1)
             # Calculate the annualized investment costs cx (fix value if component is built)
-            cx = optVal.apply(
+            cx = binCapOptVal.apply(
                 lambda dec: dec
                 * compDict[dec.name].processedInvestIfBuilt[ip]
                 / compDict[dec.name].CCF,
                 axis=1,
             )
             # Calculate the annualized operational costs ox (fix value if component is built)
-            ox = optVal.apply(lambda dec: dec * compDict[dec.name].processedOpexIfBuilt[ip], axis=1)
+            ox = binCapOptVal.apply(lambda dec: dec * compDict[dec.name].processedOpexIfBuilt[ip], axis=1)
 
             # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
             # (due to isBuilt decisions).
             optSummary.loc[
-                [(ix, "isBuilt", "[-]") for ix in optVal.index], optVal.columns
-            ] = optVal.values
+                [(ix, "isBuilt", "[-]") for ix in binCapOptVal.index], binCapOptVal.columns
+            ] = binCapOptVal.values
             optSummary.loc[
                 [(ix, "invest", "[" + esM.costUnit + "]") for ix in cx.index],
                 cx.columns,
@@ -3147,6 +3153,55 @@ class ComponentModel(metaclass=ABCMeta):
                 ox.columns,
             ] = ox.values
 
+        
+        # Get and set optimal values for commissioning and decommissioning
+        # not applicable for singleyear optimization, hence dropped from summary
+        if esM.mode == "singleYearOptimization":
+            for param in ["commissioning", "decommissioning"]:
+                idx=optSummary.loc[optSummary.index.get_level_values(1)==param].index
+                optSummary=optSummary.drop(idx)
+        else:
+            # get commissioning and decommissioning results
+            commisVar=getattr(esM.pyM, "commis_" + abbrvName)
+            commisValues = commisVar.get_values()
+            commisOptVal = utils.formatOptimizationOutput(commisValues, "designVariables", "1dim", ip)
+            commisOptVal_ = utils.formatOptimizationOutput(
+                commisValues, "designVariables", self.dimension, ip, compDict=compDict
+            )
+            self.commissioningVariablesOptimum[esM.investmentPeriodList[ip]]=commisOptVal_
+            
+            decommisVar=getattr(esM.pyM, "decommis_" + abbrvName)
+            decommisValues = decommisVar.get_values()
+            decommisOptVal = utils.formatOptimizationOutput(decommisValues, "designVariables", "1dim", ip)
+            decommisOptVal_ = utils.formatOptimizationOutput(
+                decommisValues, "designVariables", self.dimension, ip, compDict=compDict
+            )
+            self.decommissioningVariablesOptimum[esM.investmentPeriodList[ip]]=decommisOptVal_
+
+            # either decommissioning or capacity exists 
+            # (years can have decommissioning, leading to no left capacity)
+            if decommisOptVal is not None or capOptVal is not None:
+                # Fill in the optimiation summary for commissioning and decommissioning
+                # commissioning
+                optSummary.loc[[
+                    (
+                        ix,
+                        "commissioning",
+                        "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
+                    )
+                    for ix in commisOptVal.index
+                ], commisOptVal.columns]=commisOptVal.values
+                # decommissioning
+                optSummary.loc[[
+                    (
+                        ix,
+                        "decommissioning",
+                        "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
+                    )
+                    for ix in decommisOptVal.index
+                ], decommisOptVal.columns]=decommisOptVal.values
+                
+                          
         # Summarize all annualized contributions to the total annual cost
         optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
             optSummary.loc[
