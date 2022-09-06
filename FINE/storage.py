@@ -2050,6 +2050,10 @@ class StorageModel(ComponentModel):
             * 'dischargeOperationVariablesOptimum',
             * 'stateOfChargeOperationVariablesOptimum',
             * 'all' or another input: all variables are returned.
+            
+            For optimizations with several years also following values should be returned:
+            * 'commissioningVariablesOptimum'
+            * 'decommissioningVariablesOptimum'
 
         |br| * the default value is 'all'
         :type name: string
@@ -2063,6 +2067,24 @@ class StorageModel(ComponentModel):
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
+        elif name == "commissioningVariablesOptimum":
+            # TODO improve
+            if name not in self.__dict__.keys():
+                raise ValueError("commissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?")
+            return {
+                "values": self.commissioningVariablesOptimum,
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        elif name == "decommissioningVariablesOptimum":
+            # TODO improve
+            if name not in self.__dict__.keys():
+                raise ValueError("decommissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?")
+            return {
+                "values": self.decommissioningVariablesOptimum,
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }    
         elif name == "isBuiltVariablesOptimum":
             return {
                 "values": self.isBuiltVariablesOptimum,
@@ -2088,7 +2110,19 @@ class StorageModel(ComponentModel):
                 "dimension": self.dimension,
             }
         else:
-            return {
+            _variablesOptimum={}
+            if "commissioningVariablesOptimum" in self.__dict__.keys():
+                _variablesOptimum["commissioningVariablesOptimum"] ={
+                    "values": self.commissioningVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                }
+                _variablesOptimum["decommissioningVariablesOptimum"] ={
+                    "values": self.decommissioningVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                }
+            _variablesOptimum.update({
                 "capacityVariablesOptimum": {
                     "values": self.capacityVariablesOptimum,
                     "timeDependent": False,
@@ -2114,4 +2148,5 @@ class StorageModel(ComponentModel):
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
-            }
+            })
+            return _variablesOptimum

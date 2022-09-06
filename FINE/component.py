@@ -3248,13 +3248,45 @@ class ComponentModel(metaclass=ABCMeta):
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
-        else:
+        elif name == "commissioningVariablesOptimum":
+            # TODO improve
+            if name not in self.__dict__.keys():
+                raise ValueError("commissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?")
             return {
+                "values": self.commissioningVariablesOptimum,
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        elif name == "decommissioningVariablesOptimum":
+            # TODO improve
+            if name not in self.__dict__.keys():
+                raise ValueError("decommissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?")
+            return {
+                "values": self.decommissioningVariablesOptimum,
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        else:
+            # TODO improve, currently only possible if not single year optimization
+            _variablesOptimum={}
+            if "commissioningVariablesOptimum" in self.__dict__.keys():
+                _variablesOptimum["commissioningVariablesOptimum"] ={
+                    "values": self.commissioningVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                }
+                _variablesOptimum["decommissioningVariablesOptimum"] ={
+                    "values": self.decommissioningVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                }
+            _variablesOptimum.update({
                 "capacityVariablesOptimum": {
                     "values": self.capacityVariablesOptimum,
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
+                
                 "isBuiltVariablesOptimum": {
                     "values": self.isBuiltVariablesOptimum,
                     "timeDependent": False,
@@ -3265,4 +3297,5 @@ class ComponentModel(metaclass=ABCMeta):
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
-            }
+            })
+            return _variablesOptimum
