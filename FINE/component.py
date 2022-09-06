@@ -412,29 +412,6 @@ class Component(metaclass=ABCMeta):
         # Set economic data
         elig = locationalEligibility
         
-        self.investPerCapacity = investPerCapacity
-        self.processedInvestPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, investPerCapacity, dimension, elig
-        )
-        self.investIfBuilt = investIfBuilt
-        self.processedInvestIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, investIfBuilt, dimension, elig
-        )
-        self.opexPerCapacity=opexPerCapacity
-        self.processedOpexPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, opexPerCapacity, dimension, elig
-        )
-        self.opexIfBuilt=opexIfBuilt
-        self.processedOpexIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, opexIfBuilt, dimension, elig
-        )
-        self.QPcostScale=QPcostScale
-        self.processedQPcostScale = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, QPcostScale, dimension, elig
-        )
-        self.interestRate = utils.checkAndSetCostParameter(
-            esM, name, interestRate, dimension, elig
-        )
         self.economicLifetime = utils.checkAndSetCostParameter(
             esM, name, economicLifetime, dimension, elig
         )
@@ -444,17 +421,46 @@ class Component(metaclass=ABCMeta):
         self.technicalLifetime = utils.checkAndSetCostParameter(
             esM, name, technicalLifetime, dimension, elig
         )
+        self.ipTechnicalLifetime=utils.checkLifetimeInvestmentPeriod(
+            esM,name,self.technicalLifetime
+        )
+        self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(
+            esM,name,self.economicLifetime
+        )
         
-            
-            
+        
+        self.stockYears,self.processedStockYears=utils.checkStockYears(
+            stockCommissioning, esM.startYear, esM.yearsPerInvestmentPeriod, self.ipTechnicalLifetime
+        )
+        
+        self.investPerCapacity = investPerCapacity
+        self.processedInvestPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM, name, investPerCapacity, dimension, elig, self.processedStockYears+esM.investmentPeriods
+        )
+        self.investIfBuilt = investIfBuilt
+        self.processedInvestIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM, name, investIfBuilt, dimension, elig, self.processedStockYears+esM.investmentPeriods
+        )
+        self.opexPerCapacity=opexPerCapacity
+        self.processedOpexPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM, name, opexPerCapacity, dimension, elig, self.processedStockYears+esM.investmentPeriods
+        )
+        self.opexIfBuilt=opexIfBuilt
+        self.processedOpexIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM, name, opexIfBuilt, dimension, elig, self.processedStockYears+esM.investmentPeriods
+        )
+        self.QPcostScale=QPcostScale
+        self.processedQPcostScale = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM, name, QPcostScale, dimension, elig, self.processedStockYears+esM.investmentPeriods
+        )
+        self.interestRate = utils.checkAndSetCostParameter(
+            esM, name, interestRate, dimension, elig
+        )
+        
+    
         self.CCF=utils.getCapitalChargeFactor(
             self.interestRate, self.economicLifetime
         )
-        # self.CCF={}
-        # for ip in esM.investmentPeriods:
-        #     self.CCF[ip]=utils.getCapitalChargeFactor(
-        #     self.interestRate, self.economicLifetime
-        # )
 
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
@@ -473,22 +479,18 @@ class Component(metaclass=ABCMeta):
         utils.checkLocationSpecficDesignInputParams(self, esM)
 
         # Set quadratic capacity bounds and residual cost scale (1-cost scale)
-        self.QPbound = utils.getQPbound(esM.investmentPeriods,
+        self.QPbound = utils.getQPbound(self.processedStockYears+esM.investmentPeriods,
                 self.processedQPcostScale, self.capacityMax, self.capacityMin
             )
-        self.QPcostDev = utils.getQPcostDev(esM.investmentPeriods,self.processedQPcostScale)
-        
+        self.QPcostDev = utils.getQPcostDev(self.processedStockYears+esM.investmentPeriods,self.processedQPcostScale)
         if esM.mode != "perfectForesight" and stockCommissioning != None:
             raise ValueError("Stocks are only allowed for mode perfectForesight")
         
         self.stockCommissioning = stockCommissioning
-        if esM.mode == "perfectForesight":
-            self.ipTechnicalLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.technicalLifetime)
-            self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(esM,name,self.economicLifetime)
-            self.processedStockCommissioning=utils.checkAndSetStock(self, esM,stockCommissioning)
-            self.stockCapacityStartYear=utils.setStockCapacityStartYear(self,esM)
+        self.processedStockCommissioning=utils.checkAndSetStock(self, esM,stockCommissioning)
+        self.stockCapacityStartYear=utils.setStockCapacityStartYear(self,esM)
         
-        
+    
     def addToEnergySystemModel(self, esM):
         """
         Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -735,9 +737,7 @@ class ComponentModel(metaclass=ABCMeta):
                 "designCommisVarSet_" + abbrvName,
                 pyomo.Set(dimen=3, initialize=declareCommisVarSet),
             )       
-            import pytest
-            pytest.set_trace() 
-            
+
     def declareDesignVarSet(self, pyM, esM):
         """
         Declare set for capacity variables in the pyomo object for a modeling class.
@@ -1651,12 +1651,31 @@ class ComponentModel(metaclass=ABCMeta):
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
                 stock_cap=self.componentsDict[compName].stockCapacityStartYear[loc]
-                return capVar[loc, compName, esM.investmentPeriods[0]]==stock_cap + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] #if ip==0 else pyomo.Constraint.Skip) # TODO stock instead of stock
-
+                if ip==0:
+                    return capVar[loc, compName, esM.investmentPeriods[0]]==stock_cap + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] 
+                else:
+                    return pyomo.Constraint.Skip
             setattr(
                 pyM,
                 "InitialStock_" + abbrvName,
-                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight), # TODO use other set with just comp and location
+                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight), # TODO use other set with just comp and location,
+            )
+            
+
+            # TODO move to own function
+            commisConstrSet = getattr(pyM, "designCommisVarSet_" + abbrvName)
+            def stockCommissioning(pyM, loc, compName, ip):
+                if ip in esM.investmentPeriods: # initialize stock commissioning only for stock years
+                    return pyomo.Constraint.Skip 
+                elif self.componentsDict[compName].processedStockCommissioning is None: # set 0 if there is no stock
+                    return commisVar[loc, compName, ip] == 0
+                else: 
+                    return commisVar[loc, compName, ip] == self.componentsDict[compName].processedStockCommissioning[ip][loc]
+
+            setattr(
+                pyM,
+                "StockCommissioning_" + abbrvName,
+                pyomo.Constraint(commisConstrSet, rule=stockCommissioning), 
             )
             
     def decommissioningConstraint(self,pyM,esM):
@@ -2209,7 +2228,7 @@ class ComponentModel(metaclass=ABCMeta):
             _varName="commis"
         else:
             _varName="cap"
-            
+        
         capexCap = self.getEconomicsTI(
             pyM,
             esM,
@@ -2415,7 +2434,18 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean
         """
-
+        # negative ip (historical data) older than technical lifetime
+        if ip < -self.componentsDict[compName].ipTechnicalLifetime[loc]:
+            return 0
+        # years where component could have commissioning as it is within the technicla lifetime, but does not have commissioning 
+        elif ip < 0 and  self.componentsDict[compName].processedStockCommissioning is None:
+            return 0
+        elif ip < 0 and  self.componentsDict[compName].processedStockCommissioning is not None:
+            # import pytest
+            # pytest.set_trace()
+            if self.componentsDict[compName].processedStockCommissioning[ip][loc] ==0:
+                return 0
+   
         var = getattr(pyM, varName + "_" + self.abbrvName)    
         factors = [
             getattr(self.componentsDict[compName], factorName)[ip][loc]
@@ -2431,6 +2461,7 @@ class ComponentModel(metaclass=ABCMeta):
             factor *= factor_
         
         _var=var[loc, compName,ip]
+
 
         if self.componentsDict[compName].processedQPcostScale[ip][loc] == 0:
             if not getOptValue:
@@ -2530,11 +2561,36 @@ class ComponentModel(metaclass=ABCMeta):
             # sum the contributions per column, multiply it with the annuity 
             # present value factor to get the npv of the component for 
             # different investPerCapacity and several ip for commissioning           
+            
+            # initialize dict with (loc,comp) as key and df as values
             costContribution={}
-            for loc, compName, commisYear in var:
-                # TODO improve!
+            for loc, compName, commisYear in var: # TODO improve! 
+                # only 
                 if (loc,compName) not in costContribution.keys():
-                    costContribution[(loc,compName)] = pd.DataFrame(0, index=esM.investmentPeriods, columns=esM.investmentPeriods)
+                    years=[]
+                    for _loc, _comp, year in var:
+                        if loc==_loc and compName==_comp:
+                            years.append(year)
+                    costContribution[(loc,compName)]= pd.DataFrame(0, index=years, columns=esM.investmentPeriods)
+            
+            
+            # fill the dataframes (per location and compName) with the cost 
+            # contributions depending on the commissioning year (index) and the
+            # investment period (columns)
+            for loc, compName, commisYear in var:
+                # get all stock and investment periods
+                # years = getattr(esM.getComponent(compName), 'processedStockYears')+esM.investmentPeriods
+                # if commisYear not in years:
+                #     continue
+                # initialize dataframe per location and component
+                # if (loc,compName) not in costContribution.keys():
+                #     # get relevant years TODO improve!
+                #     years=[]
+                #     for _loc, _comp, year  in var.index_set._values:
+                #         if loc==_loc and compName==_comp:
+                #             years.append(year)
+
+                #     costContribution[(loc,compName)] = pd.DataFrame(0, index=years, columns=esM.investmentPeriods)
                 decommisYear=commisYear+getattr(esM.getComponent(compName),lifetimeAttr)[loc]-1
                 costContribution[(loc,compName)].loc[commisYear,commisYear:decommisYear] =\
                     self.getLocEconomicsTI(
@@ -2550,10 +2606,10 @@ class ComponentModel(metaclass=ABCMeta):
                         QPdivisorNames,
                         getOptValue,
                     )
-                
             return sum(costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
                     * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
-                    for loc, compName, ip in var)
+                    for loc, compName, ip in var 
+                    if ip in esM.investmentPeriods)
 
         elif esM.mode == "stochastic":
             return sum(

@@ -549,8 +549,8 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         isBuiltFix,
     ]:
         checkAndSet(data,comp,esM)
-    
-    for ip in esM.investmentPeriods:
+
+    for ip in comp.processedStockYears+esM.investmentPeriods:
         checkAndSet(QPcostScale[ip],comp,esM)
 
     if capacityMin is not None and (capacityMin < 0).any():
@@ -666,10 +666,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError(
                     "QPcostScale is given but lower or upper capacity bounds are not specified."
                 )
-        # QPcostScale
-        comp.processedQPcostScale[ip] = castToSeries(comp.processedQPcostScale[ip], esM)
-        if (QPcostScale[ip] < 0).any() or (QPcostScale[ip] > 1).any():
-            raise ValueError('QPcostScale must ba a number between "0" and "1".')
+
 
         # partLoadMin
         if partLoadMin[ip] is not None:
@@ -704,13 +701,20 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                     + name
                     + " if partLoadMin is not None."
                 )
-
-def checkInvestmentPeriodParameters(name,param,investmentPeriodList):
+    for ip in esM.investmentPeriods+comp.processedStockYears:
+        # QPcostScale
+        comp.processedQPcostScale[ip] = castToSeries(comp.processedQPcostScale[ip], esM)
+        if (QPcostScale[ip] < 0).any() or (QPcostScale[ip] > 1).any():
+            raise ValueError('QPcostScale must ba a number between "0" and "1".')
+        
+def checkInvestmentPeriodParameters(name,param,years):
     if isinstance(param,dict):
-        if len(param.keys()) != len(investmentPeriodList):
+        if len(param.keys()) != len(years):
             raise ValueError(f"Parameter '{name}' is initialized as dict, but does not contain values for each investment-period")
-        if sorted(param.keys()) != sorted(investmentPeriodList):
-            raise ValueError(f"Parameter '{name}' has different ip-names ('{param.keys()}') than the investment periods of the esM ('{investmentPeriodList}')","TODO: implement correct year naming")
+        if sorted(param.keys()) != sorted(years):
+            raise ValueError(
+                f"Parameter '{name}' has different ip-names ('{param.keys()}')"+ 
+                f" than the investment periods of the esM ('{years}')","TODO: implement correct year naming")
 
         for key, value in param.items():
             if value is None:
@@ -1197,13 +1201,15 @@ def checkAndSetPartLoadMin(esM,name,partLoadMin,fullOperationMax, fullOperationF
                     )
     return partLoadMin_ip
 
-def checkAndSetInvestmentPeriodCostParameter(esM, name, data, dimension, locationalEligibility):
+def checkAndSetInvestmentPeriodCostParameter(esM, name, data, dimension, locationalEligibility, years):
+    # stock years are only considered for parameter for which the 
     # first check
-    checkInvestmentPeriodParameters(name,data,esM.investmentPeriodList)
+    checkInvestmentPeriodParameters(name,data,years)
     parameter={}
-    for _ip in esM.investmentPeriodList:
-        # map name of investment period (e.g. 2020) to index (e.g. 0)
-        ip=esM.investmentPeriodList.index(_ip)
+    for ip in years:
+        # map of year name (e.g. 2020) to intenral name (e.g. 0)
+        #ip=int((_ip-esM.startYear)/esM.yearsPerInvestmentPeriod)
+        _ip = int(esM.startYear+ip*esM.yearsPerInvestmentPeriod)
         if (
                 isinstance(data, int)
                 or isinstance(data, float)
@@ -1967,6 +1973,28 @@ def checkAndSetTimeHorizon(
 
     return nbOfSteps, nbOfRepresentedYears
 
+def checkStockYears(stockCommissioning,startYear,yearsPerInvestmentPeriod, ipTechnicalLifetime):
+    if stockCommissioning is None:
+        return [], []
+    if not isinstance(stockCommissioning,dict):
+        raise ValueError(f"stockCommissioning must be None or a dict")
+    
+    # check years
+    for year,yearly_stock in stockCommissioning.items():
+        if not isinstance(year, int):
+            raise ValueError("Years of stockCommissioning must be int")
+        if (year-startYear)%yearsPerInvestmentPeriod != 0:
+            raise ValueError(
+                f"stockCommissioning was initialized for {year} "+
+                "but can only be initialized for "+
+                "years which are a multiple of the investment period length.")
+    stockYears=[x for x in stockCommissioning.keys()]
+    processedStockYears=[int((x-startYear)/yearsPerInvestmentPeriod) for x in stockCommissioning.keys()]
+    processedStockYears=processedStockYears[-ipTechnicalLifetime.max():]
+    
+    return stockYears, processedStockYears
+
+
 def checkAndSetStock(component,esM, stockCommissioning):
     if stockCommissioning is None:
         return stockCommissioning
@@ -2028,7 +2056,6 @@ def checkAndSetStock(component,esM, stockCommissioning):
                     f"The stock of '{component.name}' in region '{loc}' "+
                     f"exceeds its capacityFix of '{component.capacityFix}'")
     
-
     # set into correct format, add 0'values and transform ip into [-1,-2,-3,...]
     # filter for commissioned stock older than technical lifetime and set to 0
     stock_df=pd.DataFrame.from_dict(stockCommissioning).T
@@ -2042,9 +2069,7 @@ def checkAndSetStock(component,esM, stockCommissioning):
                 "exceeds the technical lifetime. A capacity of "+
                 f"{stockOlderThanTechnicalLifetime.sum().sum()} wil be dropped.")
             stock_df.loc[stock_df.index[0]:esM.startYear-component.technicalLifetime[loc]-1,loc]=0
-        
-        # missing year
-        
+         
     # convert original years to ip named years (e.g. -1,-2,-3)
     stock_df.index=[int((x-esM.startYear)/esM.yearsPerInvestmentPeriod) for x in stock_df.index]
     
@@ -2052,8 +2077,7 @@ def checkAndSetStock(component,esM, stockCommissioning):
     all_stock_years=[x for x in range(-1,-component.ipTechnicalLifetime.max()-1,-1)]
     stock_df=stock_df.reindex(all_stock_years).fillna(0)
     processedStockCommissioning=stock_df.T.to_dict(orient='series')
-        
-
+    
     return processedStockCommissioning
 
 def setStockCapacityStartYear(component,esM):

@@ -160,7 +160,7 @@ class Conversion(Component):
         # opexPerOperation
         self.opexPerOperation = opexPerOperation
         self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, opexPerOperation, "1dim", locationalEligibility)
+                    esM, name, opexPerOperation, "1dim", locationalEligibility,esM.investmentPeriods)
         
         # operationRateMax and operationRateFix -> TODO move theck 
         if operationRateMax is not None and operationRateFix is not None:

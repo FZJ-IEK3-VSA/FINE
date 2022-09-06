@@ -283,13 +283,13 @@ class Storage(Component):
         # opexPerChargeOperation
         self.opexPerChargeOperation = opexPerChargeOperation
         self.processedOpexPerChargeOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, opexPerChargeOperation, "1dim", locationalEligibility
+                    esM, name, opexPerChargeOperation, "1dim", locationalEligibility,esM.investmentPeriods
                 )
         
         # opexPerDischargeOperation
         self.opexPerDischargeOperation = opexPerDischargeOperation
         self.processedOpexPerDischargeOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, opexPerDischargeOperation, "1dim", locationalEligibility
+                    esM, name, opexPerDischargeOperation, "1dim", locationalEligibility,esM.investmentPeriods
                 )
 
         # chargeOpRateFix and chargeOpRateMax

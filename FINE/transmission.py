@@ -272,7 +272,7 @@ class Transmission(Component):
             )
         self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
                     esM, name, self.opexPerOperation, "2dim", 
-                    self.locationalEligibility)
+                    self.locationalEligibility,esM.investmentPeriods)
         
         # operationRateMax
         self.operationRateMax = operationRateMax

@@ -245,19 +245,19 @@ class Source(Component):
         # opexPerOperation
         self.opexPerOperation = opexPerOperation
         self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, opexPerOperation, "1dim", locationalEligibility
+                    esM, name, opexPerOperation, "1dim", locationalEligibility,esM.investmentPeriods
                 )
         
         # commodityCost
         self.commodityCost = commodityCost
         self.processedCommodityCost = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, commodityCost, "1dim", locationalEligibility
+                    esM, name, commodityCost, "1dim", locationalEligibility,esM.investmentPeriods
                 )
         
         # commodtyRevenue
         self.commodityRevenue = commodityRevenue       
         self.processedCommodityRevenue= utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, commodityRevenue, "1dim", locationalEligibility
+                    esM, name, commodityRevenue, "1dim", locationalEligibility,esM.investmentPeriods
                 )
 
         # commodityCostTimeSeries
