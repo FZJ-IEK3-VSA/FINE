@@ -137,7 +137,9 @@ def optimizeSimpleMyopic(
             )
 
         if trackESMs:
-            myopicResults.update({"ESM_" + str(mileStoneYear): copy.deepcopy(esM)})
+            tmp = esM
+            del tmp.pyM # Delete pyomo instance from esM before copying it (pyomo instances cannot be copied)
+            myopicResults.update({"ESM_" + str(mileStoneYear): copy.deepcopy(tmp)})
 
         # Get stock if not all optimizations are done
         if step != nbOfSteps + 1:
