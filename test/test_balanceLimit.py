@@ -16,56 +16,76 @@ import numpy as np
 
 
 def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
+    def check_selfSufficiency(esM, losses, distances, balanceLimit):
+        for i, loc in enumerate(esM.locations):
+            # Get Electricity Purchase for location
+            el_purchase = (
+                esM.componentModelingDict["SourceSinkModel"]
+                .operationVariablesOptimum.loc["Electricity purchase", loc]
+                .sum()
+            )
+            heat_purchase = (
+                esM.componentModelingDict["SourceSinkModel"]
+                .operationVariablesOptimum.loc["Heat purchase", loc]
+                .sum()
+            )
+            # Get Exchange going into region and out of region
+            cables = esM.componentModelingDict[
+                "TransmissionModel"
+            ].operationVariablesOptimum.loc["AC cables"]
 
+            pipes = esM.componentModelingDict[
+                "TransmissionModel"
+            ].operationVariablesOptimum.loc["Heat pipes"]
+
+            for j, loc_ in enumerate(esM.locations):
+                if loc != loc_:
+                    exch_in = (
+                        cables.loc[loc_, loc] * (1 - losses * distances.loc[loc_, loc])
+                    ).T.sum()
+                    exch_in_h = (
+                        pipes.loc[loc_, loc] * (1 - losses * distances.loc[loc_, loc])
+                    ).T.sum()
+                    exch_out = cables.loc[loc, loc_].T.sum()
+                    exch_out_h = pipes.loc[loc, loc_].T.sum()
+
+            tolerance = 0.001
+
+            ## Compare modelled autarky to limit set in constraint.
+            assert np.isclose(
+                (el_purchase + exch_in - exch_out), balanceLimit.loc["el", loc]
+            )
+            assert np.isclose(
+                (heat_purchase + exch_in_h - exch_out_h), balanceLimit.loc["heat", loc]
+            )
+
+    # Test without segmentation:
     esM, losses, distances, balanceLimit = balanceLimitConstraint_test_esM
-
     # 1) Optimize model
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
-
     # 2) The balanceLimit is compared to the outcome of the model
     #   purchase + exchange_in - exchange_out <= balanceLimit
-    for i, loc in enumerate(esM.locations):
-        # Get Electricity Purchase for location
-        el_purchase = (
-            esM.componentModelingDict["SourceSinkModel"]
-            .operationVariablesOptimum.loc["Electricity purchase", loc]
-            .sum()
-        )
-        heat_purchase = (
-            esM.componentModelingDict["SourceSinkModel"]
-            .operationVariablesOptimum.loc["Heat purchase", loc]
-            .sum()
-        )
-        # Get Exchange going into region and out of region
-        cables = esM.componentModelingDict[
-            "TransmissionModel"
-        ].operationVariablesOptimum.loc["AC cables"]
+    check_selfSufficiency(esM, losses, distances, balanceLimit)
 
-        pipes = esM.componentModelingDict[
-            "TransmissionModel"
-        ].operationVariablesOptimum.loc["Heat pipes"]
+    # Test self sufficiency with segmenation
+    esM_segmentation, losses, distances, balanceLimit = balanceLimitConstraint_test_esM
+    esM_segmentation.aggregateTemporally(
+        numberOfTypicalPeriods=10,
+        numberOfTimeStepsPerPeriod=24,
+        storeTSAinstance=False,
+        segmentation=True,
+        numberOfSegmentsPerPeriod=4,
+        clusterMethod="hierarchical",
+        representationMethod="durationRepresentation",
+        sortValues=False,
+        rescaleClusterPeriods=False,
+    )
 
-        for j, loc_ in enumerate(esM.locations):
-            if loc != loc_:
-                exch_in = (
-                    cables.loc[loc_, loc] * (1 - losses * distances.loc[loc_, loc])
-                ).T.sum()
-                exch_in_h = (
-                    pipes.loc[loc_, loc] * (1 - losses * distances.loc[loc_, loc])
-                ).T.sum()
-                exch_out = cables.loc[loc, loc_].T.sum()
-                exch_out_h = pipes.loc[loc, loc_].T.sum()
-
-        tolerance = 0.001
-
-        ## Compare modelled autarky to limit set in constraint.
-        assert (
-            el_purchase + exch_in - exch_out - tolerance < balanceLimit.loc["el", loc]
-        )
-        assert (
-            heat_purchase + exch_in_h - exch_out_h - tolerance
-            < balanceLimit.loc["heat", loc]
-        )
+    # 1) Optimize model
+    esM_segmentation.optimize(timeSeriesAggregation=True, solver="glpk")
+    # 2) The balanceLimit is compared to the outcome of the model
+    #   purchase + exchange_in - exchange_out <= balanceLimit
+    check_selfSufficiency(esM_segmentation, losses, distances, balanceLimit)
 
 
 # In this test the following steps are performed:

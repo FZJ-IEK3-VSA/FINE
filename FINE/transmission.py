@@ -796,7 +796,11 @@ class TransmissionModel(ComponentModel):
         if timeSeriesAggregation:
             investmentPeriods = esM.investmentPeriods
             periods = esM.typicalPeriods
-            timeSteps = esM.timeStepsPerPeriod
+            if esM.segmentation:
+                timeSteps = esM.segmentsPerPeriod
+            else:
+                timeSteps = esM.timeStepsPerPeriod
+
         else:
             investmentPeriods = esM.investmentPeriods
             periods = esM.periods
