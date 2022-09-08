@@ -1,7 +1,6 @@
 import FINE as fn
 import pandas as pd
 import numpy as np
-import pytest
 
 # Test balanceLimit constraint for autarky analysis
 # In this test the following steps are performed:
