@@ -176,6 +176,10 @@ class LOPFModel(TransmissionModel):
         self.declareContinuousDesignVarSet(pyM,esM)
         self.declareDiscreteDesignVarSet(pyM,esM)
         self.declareDesignDecisionVarSet(pyM,esM)
+        
+        # Declare design pathway sets
+        self.declarePathwaySets(pyM,esM)
+        self.declareLocationComponentSet(pyM,esM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
@@ -219,8 +223,11 @@ class LOPFModel(TransmissionModel):
         :type pyM: pyomo Concrete Model
         """
 
-        # Capacity variables in [commodityUnit]
+        # Capacity and commissioning variables in [commodityUnit]
         self.declareCapacityVars(pyM,esM)
+        # Capacity development variables [physicalUnit]
+        self.declareCommissioningVars(pyM,esM)
+        self.declareDecommissioningVars(pyM,esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]

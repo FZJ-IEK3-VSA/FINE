@@ -1,3 +1,4 @@
+from typing import Type
 from FINE.component import Component, ComponentModel
 from FINE import utils
 import warnings
@@ -181,6 +182,17 @@ class Transmission(Component):
         self.capacityMin = utils.preprocess2dimData(
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
+        if stockCommissioning is None:
+            self.stockCommissioning=stockCommissioning
+        elif isinstance(stockCommissioning,dict):
+            self.stockCommissioning={}
+            for potential_ip in stockCommissioning.keys():
+                self.stockCommissioning[potential_ip]=utils.preprocess2dimData(
+                    stockCommissioning[potential_ip], 
+                    locationalEligibility=locationalEligibility
+                )
+        else:
+            raise ValueError()
 
         self.isBuiltFix = utils.preprocess2dimData(
             isBuiltFix, self._mapC, locationalEligibility=self.locationalEligibility
@@ -217,7 +229,7 @@ class Transmission(Component):
             QPcostScale=QPcostScale,
             economicLifetime=self.economicLifetime,
             technicalLifetime=self.technicalLifetime,
-            stockCommissioning=stockCommissioning
+            stockCommissioning=self.stockCommissioning
         )
         # Set general component data
         utils.checkCommodities(esM, {commodity})
@@ -240,31 +252,36 @@ class Transmission(Component):
         # these are initialized with 0 in the component.__init__ and overwritten here,
         # due to its different structure otherwise the tests fail in the component
         self.investPerCapacity=investPerCapacity
-        _processedInvestPerCapacity = utils.preprocess2dimInvestmentPeriodData(esM, "investPerCapacity" ,investPerCapacity, self._mapC)
+        _processedInvestPerCapacity = utils.preprocess2dimInvestmentPeriodData(
+            esM, "investPerCapacity" ,investPerCapacity, self.processedStockYears+esM.investmentPeriods, self._mapC
+        )
 
         self.investIfBuilt=investIfBuilt
-        _processedInvestIfBuilt = utils.preprocess2dimInvestmentPeriodData(esM, "investIfBuilt", investIfBuilt, self._mapC)
+        _processedInvestIfBuilt = utils.preprocess2dimInvestmentPeriodData(
+            esM, "investIfBuilt", investIfBuilt, self.processedStockYears+esM.investmentPeriods, self._mapC
+        )
         
         self.opexPerCapacity = opexPerCapacity
-        _processedOpexPerCapacity= utils.preprocess2dimInvestmentPeriodData(esM, "opexPerCapacity", opexPerCapacity, self._mapC)
+        _processedOpexPerCapacity= utils.preprocess2dimInvestmentPeriodData(
+            esM, "opexPerCapacity", opexPerCapacity, self.processedStockYears+esM.investmentPeriods, self._mapC
+        )
 
         self.opexIfBuilt = opexIfBuilt
-        _processedOpexIfBuilt = utils.preprocess2dimInvestmentPeriodData(esM, "opexIfBuilt", opexIfBuilt, self._mapC)
+        _processedOpexIfBuilt = utils.preprocess2dimInvestmentPeriodData(
+            esM, "opexIfBuilt", opexIfBuilt, self.processedStockYears+esM.investmentPeriods, self._mapC
+        )
 
         # Set distance related costs data
         self.processedInvestPerCapacity={} 
         self.processedInvestIfBuilt = {}
         self.processedOpexPerCapacity={}
         self.processedOpexIfBuilt={}
-        for ip in esM.investmentPeriods:
-            self.processedInvestPerCapacity[ip] = _processedInvestPerCapacity[ip] * self.distances * 0.5
-            self.processedInvestIfBuilt[ip] = _processedInvestIfBuilt[ip] * self.distances * 0.5
-            self.processedOpexPerCapacity[ip] = _processedOpexPerCapacity[ip] * self.distances * 0.5
-            self.processedOpexIfBuilt[ip] = _processedOpexIfBuilt[ip] * self.distances * 0.5
-        
-        
+        for year in self.processedStockYears+esM.investmentPeriods:
+            self.processedInvestPerCapacity[year] = _processedInvestPerCapacity[year] * self.distances * 0.5
+            self.processedInvestIfBuilt[year] = _processedInvestIfBuilt[year] * self.distances * 0.5
+            self.processedOpexPerCapacity[year] = _processedOpexPerCapacity[year] * self.distances * 0.5
+            self.processedOpexIfBuilt[year] = _processedOpexIfBuilt[year] * self.distances * 0.5
 
-        
         # Set additional economic data
         # opexPerOperation
         self.opexPerOperation = utils.preprocess2dimData(
@@ -606,7 +623,7 @@ class TransmissionModel(ComponentModel):
         # Set capacity development constraints over investment periods
         self.designDevelopmentConstraint(pyM,esM)     
         self.decommissioningConstraint(pyM,esM) 
-        self.initialStockConstraint(pyM,esM)
+        self.initialYearConstraint(pyM,esM)
         
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #

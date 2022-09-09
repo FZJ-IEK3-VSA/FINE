@@ -710,10 +710,10 @@ def checkLocationSpecficDesignInputParams(comp, esM):
 def checkInvestmentPeriodParameters(name,param,years):
     if isinstance(param,dict):
         if len(param.keys()) != len(years):
-            raise ValueError(f"Parameter '{name}' is initialized as dict, but does not contain values for each investment-period")
+            raise ValueError(f"A parameter for '{name}' is initialized as dict for the years {sorted(list(param.keys()))}, but the expected years are {sorted(years)}")
         if sorted(param.keys()) != sorted(years):
             raise ValueError(
-                f"Parameter '{name}' has different ip-names ('{param.keys()}')"+ 
+                f"'{name}' has different ip-names ('{param.keys()}')"+ 
                 f" than the investment periods of the esM ('{years}')","TODO: implement correct year naming")
 
         for key, value in param.items():
@@ -1640,11 +1640,12 @@ def setOptimalComponentVariables(optVal, varType, compDict):
                 setattr(comp, varType, None)
 
 
-def preprocess2dimInvestmentPeriodData (esM, name, data, mapC=None, locationalEligibility=None, discard=True):
+def preprocess2dimInvestmentPeriodData (esM, name, data, years, mapC=None, locationalEligibility=None, discard=True):
     parameter={}
-    for _ip in esM.investmentPeriodList:
-        # map name of investment period (e.g. 2020) to index (e.g. 0)
-        ip = esM.investmentPeriodList.index(_ip)
+    for ip in years:
+        # map of year name (e.g. 2020) to intenral name (e.g. 0)
+        #ip=int((_ip-esM.startYear)/esM.yearsPerInvestmentPeriod)
+        _ip = int(esM.startYear+ip*esM.yearsPerInvestmentPeriod)
 
         if (    isinstance(data, int) 
                 or isinstance(data, float)
@@ -1983,6 +1984,8 @@ def checkStockYears(stockCommissioning,startYear,yearsPerInvestmentPeriod, ipTec
     for year,yearly_stock in stockCommissioning.items():
         if not isinstance(year, int):
             raise ValueError("Years of stockCommissioning must be int")
+        if year >= startYear:
+            raise ValueError("Stock years must be smaller than the start year")
         if (year-startYear)%yearsPerInvestmentPeriod != 0:
             raise ValueError(
                 f"stockCommissioning was initialized for {year} "+
@@ -1990,8 +1993,9 @@ def checkStockYears(stockCommissioning,startYear,yearsPerInvestmentPeriod, ipTec
                 "years which are a multiple of the investment period length.")
     stockYears=[x for x in stockCommissioning.keys()]
     processedStockYears=[int((x-startYear)/yearsPerInvestmentPeriod) for x in stockCommissioning.keys()]
-    processedStockYears=processedStockYears[-ipTechnicalLifetime.max():]
-    
+    processedStockYears=\
+        [x for x in processedStockYears if x>-ipTechnicalLifetime.max()]
+
     return stockYears, processedStockYears
 
 
@@ -1999,14 +2003,15 @@ def checkAndSetStock(component,esM, stockCommissioning):
     if stockCommissioning is None:
         return stockCommissioning
     
-    # stocks only for transformation pathway with perfect Foresight
-    if stockCommissioning is not None and esM.mode != "perfectForesight":
-        raise ValueError("Stock Commissioning can only be considered for perfectForesight.")
-    
     # check type of stockCommissioning
     if not isinstance(stockCommissioning,dict):
         raise TypeError("stockCommissioning must be None or a dict")
-           
+    
+    # get regions
+    if component.dimension=="1dim":
+        regions=esM.locations
+    if component.dimension=="2dim":
+        regions=component.locationalEligibility.index
     # check data for stockCommissioning
     for year,yearly_stock in stockCommissioning.items():
         if not isinstance(year, int):
@@ -2025,9 +2030,11 @@ def checkAndSetStock(component,esM, stockCommissioning):
                 stockCommissioning[year]=pd.Series(data={list(esM.locations)[0]:yearly_stock})
         elif isinstance(yearly_stock, pd.Series):
             # series must have all locations as index and float/int for values
-            if not sorted(yearly_stock.index) == sorted(esM.locations):
+            
+            if not sorted(yearly_stock.index) == sorted(regions):
                 raise ValueError(
-                    f"Please initialize all regions for the year '{year}'")
+                    f"Initialize the stock for all regions for the year '{year}'"+
+                    " even if its just 0")
             if any (not isinstance(x, float) and not isinstance(x, int) and not isinstance(x, np.int64) for x in yearly_stock.values):
                 raise ValueError(
                     f"Stock capacities in year '{year}' must be int/float")
@@ -2038,7 +2045,7 @@ def checkAndSetStock(component,esM, stockCommissioning):
                 "pd.Series with location as index and stock as value.")
     
     # check if capacityMin and capacityMax is kept per region
-    for loc in esM.locations:
+    for loc in regions:
         installed_sum=0
         for year in stockCommissioning.keys():
             if year < esM.startYear-component.technicalLifetime[loc]:
@@ -2055,37 +2062,41 @@ def checkAndSetStock(component,esM, stockCommissioning):
                 raise ValueError(
                     f"The stock of '{component.name}' in region '{loc}' "+
                     f"exceeds its capacityFix of '{component.capacityFix}'")
-    
+
     # set into correct format, add 0'values and transform ip into [-1,-2,-3,...]
     # filter for commissioned stock older than technical lifetime and set to 0
     stock_df=pd.DataFrame.from_dict(stockCommissioning).T
-    for loc in esM.locations:
-        stockOlderThanTechnicalLifetime=stock_df.loc[stock_df.index[0]:esM.startYear-component.technicalLifetime[loc]-1,loc]
-        if len(stockOlderThanTechnicalLifetime)>0:
+    for loc in regions:
+        yearsWithStockOlderThanTechLifetime=[x for x in stock_df.index if x<esM.startYear-component.technicalLifetime[loc]-1]
+        stockOlderThanTechnicalLifetime=stock_df.loc[yearsWithStockOlderThanTechLifetime,loc]
+        if len(yearsWithStockOlderThanTechLifetime)>0:
             print(
                 f"Stock of component {component.name} in location "+
                 f"{loc} will not be considered "+
                 f"for years {list(stockOlderThanTechnicalLifetime.index)} as it "+
                 "exceeds the technical lifetime. A capacity of "+
                 f"{stockOlderThanTechnicalLifetime.sum().sum()} wil be dropped.")
-            stock_df.loc[stock_df.index[0]:esM.startYear-component.technicalLifetime[loc]-1,loc]=0
+            stock_df.loc[yearsWithStockOlderThanTechLifetime,loc]=0
          
     # convert original years to ip named years (e.g. -1,-2,-3)
     stock_df.index=[int((x-esM.startYear)/esM.yearsPerInvestmentPeriod) for x in stock_df.index]
-    
+ 
     # fill missing year for timeframe of entire technical lifetime
     all_stock_years=[x for x in range(-1,-component.ipTechnicalLifetime.max()-1,-1)]
     stock_df=stock_df.reindex(all_stock_years).fillna(0)
     processedStockCommissioning=stock_df.T.to_dict(orient='series')
-    
     return processedStockCommissioning
 
-def setStockCapacityStartYear(component,esM):
+def setStockCapacityStartYear(component,esM,dimension):
+    if dimension == "1dim":
+        regions=esM.locations
+    elif dimension =="2dim":
+        regions=component.locationalEligibility.index
     if component.processedStockCommissioning is None:
-        return pd.Series(index=esM.locations,data=0)
+        return pd.Series(index=regions,data=0)
     else:
         stockCapacityStartYear=pd.Series()
-        for loc in esM.locations:
+        for loc in regions:
             _stock_location=0
             for year in range(-1,-component.ipTechnicalLifetime[loc]-1,-1):
                 _stock_location+=component.processedStockCommissioning[year].loc[loc]

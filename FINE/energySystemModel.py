@@ -476,10 +476,10 @@ class EnergySystemModel:
         :returns: the attribute specified by the attributeName of the component with the name componentName
         :rtype: depends on the specified attribute
         """
+        # TODO writer nicer,special case so old models will still run: get parameter values out of parameter dict for ip
         if (
             isinstance(getattr(self.getComponent(componentName), attributeName), dict)
-            and list(getattr(self.getComponent(componentName), attributeName).keys())
-            == self.investmentPeriods
+            and list(getattr(self.getComponent(componentName), attributeName).keys())==[0]
         ):
             return getattr(self.getComponent(componentName), attributeName)[0]
         else:

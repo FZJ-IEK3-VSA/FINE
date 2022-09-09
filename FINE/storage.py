@@ -1469,7 +1469,7 @@ class StorageModel(ComponentModel):
         # Set capacity development constraints over investment periods
         self.designDevelopmentConstraint(pyM,esM)     
         self.decommissioningConstraint(pyM,esM)  
-        self.initialStockConstraint(pyM,esM)  
+        self.initialYearConstraint(pyM,esM)  
         
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #

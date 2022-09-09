@@ -427,8 +427,7 @@ class Component(metaclass=ABCMeta):
         self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(
             esM,name,self.economicLifetime
         )
-        
-        
+               
         self.stockYears,self.processedStockYears=utils.checkStockYears(
             stockCommissioning, esM.startYear, esM.yearsPerInvestmentPeriod, self.ipTechnicalLifetime
         )
@@ -483,12 +482,10 @@ class Component(metaclass=ABCMeta):
                 self.processedQPcostScale, self.capacityMax, self.capacityMin
             )
         self.QPcostDev = utils.getQPcostDev(self.processedStockYears+esM.investmentPeriods,self.processedQPcostScale)
-        if esM.mode != "perfectForesight" and stockCommissioning != None:
-            raise ValueError("Stocks are only allowed for mode perfectForesight")
         
         self.stockCommissioning = stockCommissioning
         self.processedStockCommissioning=utils.checkAndSetStock(self, esM,stockCommissioning)
-        self.stockCapacityStartYear=utils.setStockCapacityStartYear(self,esM)
+        self.stockCapacityStartYear=utils.setStockCapacityStartYear(self,esM,dimension)
         
     
     def addToEnergySystemModel(self, esM):
@@ -738,9 +735,6 @@ class ComponentModel(metaclass=ABCMeta):
             "designCommisVarSet_" + abbrvName,
             pyomo.Set(dimen=3, initialize=declareCommisVarSet),
         )
-        import pytest
-        pytest.set_trace()
-
     def declareDesignVarSet(self, pyM, esM):
         """
         Declare set for capacity variables in the pyomo object for a modeling class.
@@ -1258,8 +1252,6 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        import pytest 
-        pytest.set_trace()
         abbrvName = self.abbrvName     
         setattr(
             pyM,
@@ -1647,7 +1639,7 @@ class ComponentModel(metaclass=ABCMeta):
             )
         
             
-    def initialStockConstraint(self,pyM,esM):
+    def initialYearConstraint(self,pyM,esM):
         """
         Set stock in first year
 
@@ -1668,10 +1660,7 @@ class ComponentModel(metaclass=ABCMeta):
         decommisVar = getattr(pyM, "decommis_" + abbrvName)
         locCompConstrSet = getattr(pyM, "DesignLocationComponentVarSet_" + abbrvName)
 
-        import pytest 
-        pytest.set_trace()
-        
-        
+       
         def initialYear(pyM, loc, compName):
             stock_cap=self.componentsDict[compName].stockCapacityStartYear[loc]    
             return capVar[loc, compName,0]==stock_cap + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] 
@@ -2458,8 +2447,6 @@ class ComponentModel(metaclass=ABCMeta):
         elif ip < 0 and  self.componentsDict[compName].processedStockCommissioning is None:
             return 0
         elif ip < 0 and  self.componentsDict[compName].processedStockCommissioning is not None:
-            # import pytest
-            # pytest.set_trace()
             if self.componentsDict[compName].processedStockCommissioning[ip][loc] ==0:
                 return 0
    
@@ -2979,7 +2966,9 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(esM.pyM, "cap_" + abbrvName)
         binVar = getattr(esM.pyM, "designBin_" + abbrvName)
-
+        commisVar=getattr(esM.pyM, "commis_" + abbrvName)
+        decommisVar=getattr(esM.pyM, "decommis_" + abbrvName)
+        
         props = [
             "capacity",
             "commissioning",
@@ -3035,7 +3024,22 @@ class ComponentModel(metaclass=ABCMeta):
         capOptVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
         capOptVal_ = utils.formatOptimizationOutput(values, "designVariables", self.dimension, ip, compDict=compDict
             )
-        self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = capOptVal_           
+        self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = capOptVal_
+        # Get and set optimal variable values for commississioning
+        commisValues = commisVar.get_values()
+        commisOptVal = utils.formatOptimizationOutput(commisValues, "designVariables", "1dim", ip)
+        commisOptVal_ = utils.formatOptimizationOutput(
+            commisValues, "designVariables", self.dimension, ip, compDict=compDict
+        )
+        self.commissioningVariablesOptimum[esM.investmentPeriodList[ip]]=commisOptVal_
+        # Get and set optimal variable values for decommississioning  
+        decommisValues = decommisVar.get_values()
+        decommisOptVal = utils.formatOptimizationOutput(decommisValues, "designVariables", "1dim", ip)
+        decommisOptVal_ = utils.formatOptimizationOutput(
+            decommisValues, "designVariables", self.dimension, ip, compDict=compDict
+        )
+        self.decommissioningVariablesOptimum[esM.investmentPeriodList[ip]]=decommisOptVal_
+       
 
         if capOptVal is not None:
             # Check if the installed capacities are close to a bigM val
@@ -3058,7 +3062,7 @@ class ComponentModel(metaclass=ABCMeta):
 
             # Calculate the investment costs i (proportional to capacity expansion)
             # TODO massiv falsch! muss commis year sein
-            i = capOptVal.apply(
+            i = commisOptVal.apply(
                 lambda cap: cap
                 * compDict[cap.name].processedInvestPerCapacity[ip]
                 * compDict[cap.name].QPcostDev[ip]
@@ -3071,21 +3075,23 @@ class ComponentModel(metaclass=ABCMeta):
                 ),
                 axis=1,
             )
-            # test_bx=capOptVal.apply(
-            #     lambda cap: 
-            #         self.getEconomicsTI( # TODO sourcesink 
-            #             pyM,
-            #             esM,
-            #             factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            #             QPfactorNames=["processedQPcostScale", "investPerCapacity"],
-            #             lifetimeAttr="ipEconomicLifetime",
-            #             varName="cap",
-            #             divisorName="CCF",
-            #             QPdivisorNames=["QPbound", "CCF"],
-            #             getOptValue=True
-            #         )[ip].loc[cap.name],
-            #     axis=1,
-            # )
+            
+            # Get NPV contribution 
+            npv_cx=capOptVal.apply(
+                lambda cap: 
+                    self.getEconomicsTI( # TODO sourcesink 
+                        pyM,
+                        esM,
+                        factorNames=["processedInvestPerCapacity", "QPcostDev"],
+                        QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+                        lifetimeAttr="ipEconomicLifetime",
+                        varName="cap",
+                        divisorName="CCF",
+                        QPdivisorNames=["QPbound", "CCF"],
+                        getOptValue=True
+                    )[ip].loc[cap.name],
+                axis=1,
+            )
 
             # Calculate the annualized investment costs cx (CAPEX)
             cx = capOptVal.apply(
@@ -3188,50 +3194,30 @@ class ComponentModel(metaclass=ABCMeta):
         
         # Get and set optimal values for commissioning and decommissioning
         # not applicable for singleyear optimization, hence dropped from summary
-        if esM.mode == "singleYearOptimization":
-            for param in ["commissioning", "decommissioning"]:
-                idx=optSummary.loc[optSummary.index.get_level_values(1)==param].index
-                optSummary=optSummary.drop(idx)
-        else:
-            # get commissioning and decommissioning results
-            commisVar=getattr(esM.pyM, "commis_" + abbrvName)
-            commisValues = commisVar.get_values()
-            commisOptVal = utils.formatOptimizationOutput(commisValues, "designVariables", "1dim", ip)
-            commisOptVal_ = utils.formatOptimizationOutput(
-                commisValues, "designVariables", self.dimension, ip, compDict=compDict
-            )
-            self.commissioningVariablesOptimum[esM.investmentPeriodList[ip]]=commisOptVal_
-            
-            decommisVar=getattr(esM.pyM, "decommis_" + abbrvName)
-            decommisValues = decommisVar.get_values()
-            decommisOptVal = utils.formatOptimizationOutput(decommisValues, "designVariables", "1dim", ip)
-            decommisOptVal_ = utils.formatOptimizationOutput(
-                decommisValues, "designVariables", self.dimension, ip, compDict=compDict
-            )
-            self.decommissioningVariablesOptimum[esM.investmentPeriodList[ip]]=decommisOptVal_
-
-            # either decommissioning or capacity exists 
-            # (years can have decommissioning, leading to no left capacity)
-            if decommisOptVal is not None or capOptVal is not None:
-                # Fill in the optimiation summary for commissioning and decommissioning
-                # commissioning
-                optSummary.loc[[
-                    (
-                        ix,
-                        "commissioning",
-                        "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
-                    )
-                    for ix in commisOptVal.index
-                ], commisOptVal.columns]=commisOptVal.values
-                # decommissioning
-                optSummary.loc[[
-                    (
-                        ix,
-                        "decommissioning",
-                        "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
-                    )
-                    for ix in decommisOptVal.index
-                ], decommisOptVal.columns]=decommisOptVal.values
+        # get commissioning and decommissioning results              
+        
+        # either decommissioning or capacity exists 
+        # (years can have decommissioning, leading to no left capacity)
+        if decommisOptVal is not None or capOptVal is not None:
+            # Fill in the optimiation summary for commissioning and decommissioning
+            # commissioning
+            optSummary.loc[[
+                (
+                    ix,
+                    "commissioning",
+                    "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
+                )
+                for ix in commisOptVal.index
+            ], commisOptVal.columns]=commisOptVal.values
+            # decommissioning
+            optSummary.loc[[
+                (
+                    ix,
+                    "decommissioning",
+                    "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
+                )
+                for ix in decommisOptVal.index
+            ], decommisOptVal.columns]=decommisOptVal.values
                 
                           
         # Summarize all annualized contributions to the total annual cost
@@ -3246,6 +3232,19 @@ class ComponentModel(metaclass=ABCMeta):
             .sum()
             .values
         )
+        
+        # TODO opex per operation rein? @max fragen
+        # optSummary.loc[optSummary.index.get_level_values(1) == "NPVcontribution"] = (
+        #     optSummary.loc[
+        #         (optSummary.index.get_level_values(1) == "capexCap") # TODO
+        #         | (optSummary.index.get_level_values(1) == "opexCap") # TODO
+        #         | (optSummary.index.get_level_values(1) == "capexIfBuilt") # TODO
+        #         | (optSummary.index.get_level_values(1) == "processedOpexIfBuilt") # TODO
+        #     ]
+        #     .groupby(level=0)
+        #     .sum()
+        #     .values
+        # )
 
         return optSummary
 
