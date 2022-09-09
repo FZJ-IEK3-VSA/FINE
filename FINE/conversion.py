@@ -476,6 +476,7 @@ class ConversionModel(ComponentModel):
         
         # Declare design pathway sets
         self.declarePathwaySets(pyM,esM)
+        self.declareLocationComponentSet(pyM,esM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)

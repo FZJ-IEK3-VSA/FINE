@@ -675,6 +675,7 @@ class SourceSinkModel(ComponentModel):
         
         # Declare design pathway sets
         self.declarePathwaySets(pyM,esM)
+        self.declareLocationComponentSet(pyM,esM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)

@@ -253,20 +253,20 @@ class EnergySystemModel:
         )
         self.numberOfTimeSteps = numberOfTimeSteps
         self.numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
-        
+
         ######################################################################
         # Perfect Foresight related
         # TODO comments
         finalyear=startYear+numberOfInvestmentPeriods*yearsPerInvestmentPeriod-1
         self.investmentPeriodList = list(range(startYear,finalyear+1,yearsPerInvestmentPeriod))
-        
+
         self.yearsPerInvestmentPeriod=yearsPerInvestmentPeriod
         self.startYear=startYear
         self.investmentPeriods = list(range(numberOfInvestmentPeriods))
         self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
-                 
+
         self.mode=mode
-            
+
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
         # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents

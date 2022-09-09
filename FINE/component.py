@@ -707,38 +707,39 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        if esM.mode == "perfectForesight":
-            compDict, abbrvName = self.componentsDict, self.abbrvName
-            
-            # get oldestStockYear to know what set is to be init
-            oldestStockYear=0
-            for compName,comp in compDict.items():
-                if comp.processedStockCommissioning is None:
-                    pass
-                else:
-                    for year in sorted(comp.processedStockCommissioning.keys()):
-                        if any(x!=0 for x in comp.processedStockCommissioning[year]):
-                            oldestStockYear=min(oldestStockYear,year)
-                            break 
-            if oldestStockYear==0:
-                stockInvestmentPeriods = []
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        
+        # get oldestStockYear to know what set is to be init
+        oldestStockYear=0
+        for compName,comp in compDict.items():
+            if comp.processedStockCommissioning is None:
+                pass
             else:
-                stockInvestmentPeriods = list(range(oldestStockYear,0,1))
-            
-            def declareCommisVarSet(pyM):
-                return (
-                    (loc, compName, ip)
-                    for compName, comp in compDict.items()
-                    for loc in comp.locationalEligibility.index
-                    for ip in stockInvestmentPeriods + esM.investmentPeriods
-                    if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
-                )
-
-            setattr(
-                pyM,
-                "designCommisVarSet_" + abbrvName,
-                pyomo.Set(dimen=3, initialize=declareCommisVarSet),
-            )       
+                for year in sorted(comp.processedStockCommissioning.keys()):
+                    if any(x!=0 for x in comp.processedStockCommissioning[year]):
+                        oldestStockYear=min(oldestStockYear,year)
+                        break 
+        if oldestStockYear==0:
+            stockInvestmentPeriods = []
+        else:
+            stockInvestmentPeriods = list(range(oldestStockYear,0,1))
+        
+        def declareCommisVarSet(pyM):
+            return (
+                (loc, compName, ip)
+                for compName, comp in compDict.items()
+                for loc in comp.locationalEligibility.index
+                for ip in stockInvestmentPeriods + esM.investmentPeriods
+                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+            )
+        
+        setattr(
+            pyM,
+            "designCommisVarSet_" + abbrvName,
+            pyomo.Set(dimen=3, initialize=declareCommisVarSet),
+        )
+        import pytest
+        pytest.set_trace()
 
     def declareDesignVarSet(self, pyM, esM):
         """
@@ -768,6 +769,21 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareDesignVarSet),
         )
 
+    def declareLocationComponentSet(self,pyM,esM):
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        def initLocationComponentSet(pyM):
+            return (
+                (loc, compName)
+                for compName, comp in compDict.items()
+                for loc in comp.locationalEligibility.index
+                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+            )
+        setattr(
+            pyM,
+            "DesignLocationComponentVarSet_" + abbrvName,
+            pyomo.Set(dimen=2, initialize=initLocationComponentSet),
+        )          
+    
     def declarePathwaySets(self,pyM,esM):
         """
         Declare set for capacity development in the pyomo object for a modeling class.
@@ -778,21 +794,21 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        if esM.mode == "perfectForesight":
-            compDict, abbrvName = self.componentsDict, self.abbrvName
-            def initCommissioningConstraintSet(pyM):
-                return (
-                    (loc, compName, ip)
-                    for compName, comp in compDict.items()
-                    for loc in comp.locationalEligibility.index
-                    for ip in esM.investmentPeriods[:-1]
-                    if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
-                )
-            setattr(
-                pyM,
-                "designDevelopmentVarSet_" + abbrvName,
-                pyomo.Set(dimen=3, initialize=initCommissioningConstraintSet),
-            )  
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        def initCommissioningConstraintSet(pyM):
+            return (
+                (loc, compName, ip)
+                for compName, comp in compDict.items()
+                for loc in comp.locationalEligibility.index
+                for ip in esM.investmentPeriods[:-1]
+                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+            )
+        
+        setattr(
+            pyM,
+            "designDevelopmentVarSet_" + abbrvName,
+            pyomo.Set(dimen=3, initialize=initCommissioningConstraintSet),
+        )  
 
     def declareContinuousDesignVarSet(self, pyM, esM):
         """
@@ -1242,16 +1258,17 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        if esM.mode =="perfectForesight":   
-            abbrvName = self.abbrvName     
-            setattr(
-                pyM,
-                "commis_" + abbrvName,
-                pyomo.Var(
-                    getattr(pyM, "designCommisVarSet_" + abbrvName),
-                    domain=pyomo.NonNegativeReals,
-                ),
-            )
+        import pytest 
+        pytest.set_trace()
+        abbrvName = self.abbrvName     
+        setattr(
+            pyM,
+            "commis_" + abbrvName,
+            pyomo.Var(
+                getattr(pyM, "designCommisVarSet_" + abbrvName),
+                domain=pyomo.NonNegativeReals,
+            ),
+        )
 
     
     def declareDecommissioningVars(self,pyM,esM):
@@ -1268,17 +1285,17 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        if esM.mode =="perfectForesight":   
-            abbrvName = self.abbrvName     
-            setattr(
-                pyM,
-                "decommis_" + abbrvName,
-                pyomo.Var(
-                    getattr(pyM, "designDimensionVarSet_" + abbrvName),
-                    domain=pyomo.NonNegativeReals,
-                ),
-            )
-    
+
+        abbrvName = self.abbrvName     
+        setattr(
+            pyM,
+            "decommis_" + abbrvName,
+            pyomo.Var(
+                getattr(pyM, "designDimensionVarSet_" + abbrvName),
+                domain=pyomo.NonNegativeReals,
+            ),
+        )
+
     def declareOperationBinary(self, pyM):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -1596,23 +1613,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        if esM.mode=="perfectForesight":
-            abbrvName = self.abbrvName
-            capVar = getattr(pyM, "cap_" + abbrvName)
-            commisVar = getattr(pyM, "commis_" + abbrvName)
-            decommisVar = getattr(pyM, "decommis_" + abbrvName)
-            commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
-
-            def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                return(capVar[loc, compName, ip+1]==capVar[loc, compName, ip] + commisVar[loc, compName, ip+1] - decommisVar[loc, compName, ip+1])
-
-
-            setattr(
-                pyM,
-                "ConstrCapacityDevelopment_" + abbrvName,
-                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight),
-            )
-        elif esM.mode =="stochastic":
+        if esM.mode =="stochastic":
             abbrvName = self.abbrvName
             capVar = getattr(pyM, "cap_" + abbrvName)
 
@@ -1627,6 +1628,22 @@ class ComponentModel(metaclass=ABCMeta):
                 pyM,
                 "ConstrCapacityDevelopment_" + abbrvName,
                 pyomo.Constraint(getattr(pyM, "designDimensionVarSet_" + abbrvName), rule=capacityDevelopmentStochastic),
+            )
+        else:
+            abbrvName = self.abbrvName
+            capVar = getattr(pyM, "cap_" + abbrvName)
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            decommisVar = getattr(pyM, "decommis_" + abbrvName)
+            commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
+
+            def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
+                return(capVar[loc, compName, ip+1]==capVar[loc, compName, ip] + commisVar[loc, compName, ip+1] - decommisVar[loc, compName, ip+1])
+
+
+            setattr(
+                pyM,
+                "ConstrCapacityDevelopment_" + abbrvName,
+                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight),
             )
         
             
@@ -1644,41 +1661,43 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        if esM.mode=="perfectForesight":
-            abbrvName = self.abbrvName
-            capVar = getattr(pyM, "cap_" + abbrvName)
-            commisVar = getattr(pyM, "commis_" + abbrvName)
-            decommisVar = getattr(pyM, "decommis_" + abbrvName)
-            commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
+    
+        abbrvName = self.abbrvName
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+        decommisVar = getattr(pyM, "decommis_" + abbrvName)
+        locCompConstrSet = getattr(pyM, "DesignLocationComponentVarSet_" + abbrvName)
 
-            def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                stock_cap=self.componentsDict[compName].stockCapacityStartYear[loc]
-                if ip==0:
-                    return capVar[loc, compName, esM.investmentPeriods[0]]==stock_cap + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] 
-                else:
-                    return pyomo.Constraint.Skip
-            setattr(
-                pyM,
-                "InitialStock_" + abbrvName,
-                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight), # TODO use other set with just comp and location,
-            )
-            
+        import pytest 
+        pytest.set_trace()
+        
+        
+        def initialYear(pyM, loc, compName):
+            stock_cap=self.componentsDict[compName].stockCapacityStartYear[loc]    
+            return capVar[loc, compName,0]==stock_cap + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] 
+        
+        setattr(
+            pyM,
+            "InitialYear_" + abbrvName,
+            pyomo.Constraint(locCompConstrSet, rule=initialYear), # TODO use other set with just comp and location,
+        )
+        
 
-            # TODO move to own function
-            commisConstrSet = getattr(pyM, "designCommisVarSet_" + abbrvName)
-            def stockCommissioning(pyM, loc, compName, ip):
-                if ip in esM.investmentPeriods: # initialize stock commissioning only for stock years
-                    return pyomo.Constraint.Skip 
-                elif self.componentsDict[compName].processedStockCommissioning is None: # set 0 if there is no stock
-                    return commisVar[loc, compName, ip] == 0
-                else: 
-                    return commisVar[loc, compName, ip] == self.componentsDict[compName].processedStockCommissioning[ip][loc]
+        # TODO move to own function
+        commisConstrSet = getattr(pyM, "designCommisVarSet_" + abbrvName)
+        def stockCommissioning(pyM, loc, compName, ip):
+            if ip in esM.investmentPeriods: # initialize stock commissioning only for stock years
+                return pyomo.Constraint.Skip 
+            elif self.componentsDict[compName].processedStockCommissioning is None: # set 0 if there is no stock
+                return commisVar[loc, compName, ip] == 0
+            else: 
+                return commisVar[loc, compName, ip] == self.componentsDict[compName].processedStockCommissioning[ip][loc]
 
-            setattr(
-                pyM,
-                "StockCommissioning_" + abbrvName,
-                pyomo.Constraint(commisConstrSet, rule=stockCommissioning), 
-            )
+        setattr(
+            pyM,
+            "StockCommissioning_" + abbrvName,
+            pyomo.Constraint(commisConstrSet, rule=stockCommissioning), 
+        )
             
     def decommissioningConstraint(self,pyM,esM):
         """
@@ -1694,30 +1713,29 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        if esM.mode=="perfectForesight":
-            abbrvName = self.abbrvName
-            commisVar = getattr(pyM, "commis_" + abbrvName)
-            decommisVar = getattr(pyM, "decommis_" + abbrvName)
-            decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
+        abbrvName = self.abbrvName
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+        decommisVar = getattr(pyM, "decommis_" + abbrvName)
+        decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
-            def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                tech_lifetime=self.componentsDict[compName].ipTechnicalLifetime[loc]
-                comm_date=ip-tech_lifetime
-                # only set constraint if decomm_date is within investment periods
-                if comm_date in pyM.investSet._values.values():
-                    return(decommisVar[loc, compName, ip]==commisVar[loc, compName, ip-tech_lifetime])
+        def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
+            tech_lifetime=self.componentsDict[compName].ipTechnicalLifetime[loc]
+            comm_date=ip-tech_lifetime
+            # only set constraint if decomm_date is within investment periods
+            if comm_date in pyM.investSet._values.values():
+                return(decommisVar[loc, compName, ip]==commisVar[loc, compName, ip-tech_lifetime])
+            else:
+                procStockCommissioning=self.componentsDict[compName].processedStockCommissioning
+                if procStockCommissioning is not None:
+                    return(decommisVar[loc, compName, ip]== self.componentsDict[compName].processedStockCommissioning[ip-tech_lifetime][loc])
                 else:
-                    procStockCommissioning=self.componentsDict[compName].processedStockCommissioning
-                    if procStockCommissioning is not None:
-                        return(decommisVar[loc, compName, ip]== self.componentsDict[compName].processedStockCommissioning[ip-tech_lifetime][loc])
-                    else:
-                        return pyomo.Constraint.Skip
+                    return pyomo.Constraint.Skip
 
-            setattr(
-                pyM,
-                "DecommConstrCapacityDevelopment_" + abbrvName,
-                pyomo.Constraint(decommisConstrSet, rule=capacityDevelopmentPerfectForesight),
-            )
+        setattr(
+            pyM,
+            "DecommConstrCapacityDevelopment_" + abbrvName,
+            pyomo.Constraint(decommisConstrSet, rule=capacityDevelopmentPerfectForesight),
+        )
     
     ####################################################################################################################
     #                               Functions for declaring time dependent constraints                                 #
@@ -2226,10 +2244,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        if esM.mode=="perfectForesight":
-            _varName="commis"
-        else:
-            _varName="cap"
+        _varName="commis"
         
         capexCap = self.getEconomicsTI(
             pyM,
@@ -2334,7 +2349,7 @@ class ComponentModel(metaclass=ABCMeta):
             factor *= factor_
         # create a timeSet for the current ip
         timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
-        if esM.mode =="stochastic" or esM.mode == "singleYearOptimization":
+        if esM.mode =="stochastic" :
             if not getOptValue: # TODO PERFECT FORESIGHT NEW CODE
                 return (
                     factor
@@ -2353,7 +2368,7 @@ class ComponentModel(metaclass=ABCMeta):
                     )
                     / esM.numberOfYears 
                 )
-        elif esM.mode =="perfectForesight":
+        elif esM.mode =="perfectForesight" or esM.mode == "singleYearOptimization":
             if not getOptValue: # TODO PERFECT FORESIGHT NEW CODE
                 return (
                     factor
@@ -2546,7 +2561,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type getoptValue: boolean
         """
         var = getattr(pyM, varName + "_" + self.abbrvName)
-        if esM.mode=="perfectForesight":
+        if esM.mode=="perfectForesight" or esM.mode=="singleYearOptimization":
             def annuityPresentValueFactor(esM,compName,ip,loc ):
                 # DE:Rentenbarwertfaktor
                 intrestRate = esM.getComponent(compName).interestRate[loc]
@@ -2567,7 +2582,6 @@ class ComponentModel(metaclass=ABCMeta):
             # initialize dict with (loc,comp) as key and df as values
             costContribution={}
             for loc, compName, commisYear in var: # TODO improve! 
-                # only 
                 if (loc,compName) not in costContribution.keys():
                     years=[]
                     for _loc, _comp, year in var:
@@ -2580,19 +2594,6 @@ class ComponentModel(metaclass=ABCMeta):
             # contributions depending on the commissioning year (index) and the
             # investment period (columns)
             for loc, compName, commisYear in var:
-                # get all stock and investment periods
-                # years = getattr(esM.getComponent(compName), 'processedStockYears')+esM.investmentPeriods
-                # if commisYear not in years:
-                #     continue
-                # initialize dataframe per location and component
-                # if (loc,compName) not in costContribution.keys():
-                #     # get relevant years TODO improve!
-                #     years=[]
-                #     for _loc, _comp, year  in var.index_set._values:
-                #         if loc==_loc and compName==_comp:
-                #             years.append(year)
-
-                #     costContribution[(loc,compName)] = pd.DataFrame(0, index=years, columns=esM.investmentPeriods)
                 decommisYear=commisYear+getattr(esM.getComponent(compName),lifetimeAttr)[loc]-1
                 costContribution[(loc,compName)].loc[commisYear,commisYear:decommisYear] =\
                     self.getLocEconomicsTI(
@@ -2608,10 +2609,22 @@ class ComponentModel(metaclass=ABCMeta):
                         QPdivisorNames,
                         getOptValue,
                     )
-            return sum(costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
-                    * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
-                    for loc, compName, ip in var 
-                    if ip in esM.investmentPeriods)
+            if getOptValue:
+                cost_results={}
+                for ip in esM.investmentPeriods:
+                    cost_results[ip]=pd.DataFrame()
+                for loc,compName,ip in var:
+                    if ip not in esM.investmentPeriods:
+                        continue
+                    cost_results[ip].loc[compName,loc]=\
+                        costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
+                        * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
+                return cost_results
+            else:
+                return sum(costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
+                        * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
+                        for loc, compName, ip in var 
+                        if ip in esM.investmentPeriods)
 
         elif esM.mode == "stochastic":
             return sum(
@@ -2632,6 +2645,7 @@ class ComponentModel(metaclass=ABCMeta):
             )/ esM.numberOfInvestmentPeriods
 
         else:
+            raise NotImplementedError()
             return sum(
                 self.getLocEconomicsTI(
                     pyM,
@@ -2793,7 +2807,7 @@ class ComponentModel(metaclass=ABCMeta):
         timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
         if getattr(self.componentsDict[compName], factorName) is not None:
             factor = getattr(self.componentsDict[compName], factorName)[ip][loc]
-            if esM.mode =="stochastic" or esM.mode == "singleYearOptimization":
+            if esM.mode =="stochastic" :
                 if not getOptValue:
                     return (
                         sum(
@@ -2814,7 +2828,7 @@ class ComponentModel(metaclass=ABCMeta):
                         )
                         / esM.numberOfYears
                     )
-            elif esM.mode =="perfectForesight":
+            elif esM.mode =="perfectForesight" or esM.mode == "singleYearOptimization":
                 if not getOptValue:
                     return (
                         sum(
@@ -2976,6 +2990,7 @@ class ComponentModel(metaclass=ABCMeta):
             "opexCap",
             "processedOpexIfBuilt",
             "TAC",
+            "NPVcontribution",
             "invest",
         ]
         units = [
@@ -2983,6 +2998,7 @@ class ComponentModel(metaclass=ABCMeta):
             "[-]",
             "[-]",
             "[-]",
+            "[" + esM.costUnit + "/a]",
             "[" + esM.costUnit + "/a]",
             "[" + esM.costUnit + "/a]",
             "[" + esM.costUnit + "/a]",
@@ -3017,8 +3033,7 @@ class ComponentModel(metaclass=ABCMeta):
         # Get and set optimal variable values for expanded capacities
         values = capVar.get_values()
         capOptVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
-        capOptVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, ip, compDict=compDict
+        capOptVal_ = utils.formatOptimizationOutput(values, "designVariables", self.dimension, ip, compDict=compDict
             )
         self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = capOptVal_           
 
@@ -3056,6 +3071,22 @@ class ComponentModel(metaclass=ABCMeta):
                 ),
                 axis=1,
             )
+            # test_bx=capOptVal.apply(
+            #     lambda cap: 
+            #         self.getEconomicsTI( # TODO sourcesink 
+            #             pyM,
+            #             esM,
+            #             factorNames=["processedInvestPerCapacity", "QPcostDev"],
+            #             QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+            #             lifetimeAttr="ipEconomicLifetime",
+            #             varName="cap",
+            #             divisorName="CCF",
+            #             QPdivisorNames=["QPbound", "CCF"],
+            #             getOptValue=True
+            #         )[ip].loc[cap.name],
+            #     axis=1,
+            # )
+
             # Calculate the annualized investment costs cx (CAPEX)
             cx = capOptVal.apply(
                 lambda cap: (
@@ -3102,9 +3133,10 @@ class ComponentModel(metaclass=ABCMeta):
                 ],
                 capOptVal.columns,
             ] = capOptVal.values
-            optSummary.loc[
-                [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index], i.columns
-            ] = i.values
+           
+            optSummary.loc[[(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index], i.columns ] = i.values
+            
+            
             optSummary.loc[
                 [(ix, "capexCap", "[" + esM.costUnit + "/a]") for ix in cx.index],
                 cx.columns,
@@ -3249,44 +3281,35 @@ class ComponentModel(metaclass=ABCMeta):
                 "dimension": self.dimension,
             }
         elif name == "commissioningVariablesOptimum":
-            # TODO improve
-            if name not in self.__dict__.keys():
-                raise ValueError("commissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?")
             return {
                 "values": self.commissioningVariablesOptimum,
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "decommissioningVariablesOptimum":
-            # TODO improve
-            if name not in self.__dict__.keys():
-                raise ValueError("decommissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?")
             return {
                 "values": self.decommissioningVariablesOptimum,
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         else:
-            # TODO improve, currently only possible if not single year optimization
-            _variablesOptimum={}
-            if "commissioningVariablesOptimum" in self.__dict__.keys():
-                _variablesOptimum["commissioningVariablesOptimum"] ={
-                    "values": self.commissioningVariablesOptimum,
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                }
-                _variablesOptimum["decommissioningVariablesOptimum"] ={
-                    "values": self.decommissioningVariablesOptimum,
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                }
-            _variablesOptimum.update({
+            return {
                 "capacityVariablesOptimum": {
                     "values": self.capacityVariablesOptimum,
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
-                
+                "commissioningVariablesOptimum":{
+                    "values": self.commissioningVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                },
+                "decommissioningVariablesOptimum":{
+                "values": self.decommissioningVariablesOptimum,
+                "timeDependent": False,
+                "dimension": self.dimension,
+                },
+        
                 "isBuiltVariablesOptimum": {
                     "values": self.isBuiltVariablesOptimum,
                     "timeDependent": False,
@@ -3297,5 +3320,4 @@ class ComponentModel(metaclass=ABCMeta):
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
-            })
-            return _variablesOptimum
+            }
