@@ -204,6 +204,86 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
 
     import pytest
     pytest.set_trace()
+    
+def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
+    esM = perfectForesight_test_esM
+
+    ### Electrolyzers
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzers",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=500,  # euro/kW
+            opexPerCapacity=500 * 0.025,
+            interestRate=0.08,
+            economicLifetime=10,
+        )
+    )
+
+    ### Hydrogen filled somewhere
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Pressure tank",
+            commodity="hydrogen",
+            hasCapacityVariable=True,
+            capacityVariableDomain="continuous",
+            stateOfChargeMin=0.33,
+            investPerCapacity=0.5,  # eur/kWh
+            interestRate=0.08,
+            economicLifetime=30,
+        )
+    )
+
+    ### Hydrogen pipelines
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="Pipelines",
+            commodity="hydrogen",
+            hasCapacityVariable=True,
+            investPerCapacity=0.177,
+            interestRate=0.08,
+            economicLifetime=40,
+        )
+    )
+
+    ### Industry site
+    demand = (
+        pd.DataFrame(
+            [
+                np.array(
+                    [
+                        0.0,
+                        0.0,
+                    ]
+                ),
+                np.array(
+                    [
+                        6e3,
+                        6e3,
+                    ]
+                ),
+            ],
+            index=["ForesightLand","PerfectLand"],
+        ).T
+        * 4380
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Industry site",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+    esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    print(esM)
+    
 
 if __name__ == "__main__":
     test_perfectForesight_stock(perfectForesight_test_esM())    
