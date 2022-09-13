@@ -108,11 +108,11 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
             oL = optSumOutputLevel
             oL_ = oL[name] if type(oL) == dict else oL
             optSum = esM.getOptimizationSummary(name, outputLevel=oL_)
-            if isinstance(optSum,pd.DataFrame):
-                if esM.numberOfInvestmentPeriods!=1:
+            if isinstance(optSum, pd.DataFrame):
+                if esM.numberOfInvestmentPeriods != 1:
                     raise ValueError()
-                optSum={}
-                optSum[esM.startYear]=optSum
+                optSum = {}
+                optSum[esM.startYear] = optSum
             if esM.componentModelingDict[name].dimension == "1dim":
                 for component in optSum[ip].index.get_level_values(0).unique():
 
@@ -135,7 +135,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
                         xr_da.attrs[variable] = unit
 
                         xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da], combine_attrs="drop_conflicts"
+                            [xr_dss[ip][name][component], xr_da],
+                            combine_attrs="drop_conflicts",
                         )
             elif esM.componentModelingDict[name].dimension == "2dim":
                 for component in optSum[ip].index.get_level_values(0).unique():
@@ -166,7 +167,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
                         xr_da.attrs[variable] = unit
 
                         xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da], combine_attrs="drop_conflicts"
+                            [xr_dss[ip][name][component], xr_da],
+                            combine_attrs="drop_conflicts",
                         )
 
             # Write output from esM.esM.componentModelingDict[name].getOptimalValues() to datasets
@@ -202,7 +204,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
                         df.name = variable
                         df.index.rename(["time", "space"], inplace=True)
                         xr_da = df.to_xarray()
-                        xr_dss[ip][name][component] = xr.merge([xr_dss[ip][name][component], xr_da])
+                        xr_dss[ip][name][component] = xr.merge(
+                            [xr_dss[ip][name][component], xr_da]
+                        )
             # Two dimensional time dependent data
             if dataTD2dim:
                 names = ["Variable", "Component", "LocationIn", "LocationOut"]
@@ -221,7 +225,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
                         df.index.rename(["space", "space_2", "time"], inplace=True)
                         df.index = df.index.reorder_levels([2, 0, 1])
                         xr_da = df.to_xarray()
-                        xr_dss[ip][name][component] = xr.merge([xr_dss[ip][name][component], xr_da])
+                        xr_dss[ip][name][component] = xr.merge(
+                            [xr_dss[ip][name][component], xr_da]
+                        )
             # Time independent data
             if dataTI:
                 # One dimensional
@@ -513,7 +519,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                     for variable in datasets["Results"][ip][model][component]:
                         if "Optimum" in variable:
                             continue
-                        if "space_2" in list(datasets["Results"][ip][model][component].coords):
+                        if "space_2" in list(
+                            datasets["Results"][ip][model][component].coords
+                        ):
                             _optSum_df = (
                                 datasets["Results"][ip][model][component][variable]
                                 .to_dataframe()
@@ -521,15 +529,15 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                             iterables = [
                                 [component, variable, unit]
-                                for variable, unit in datasets["Results"][ip][model][component][
-                                    variable
-                                ].attrs.items()
+                                for variable, unit in datasets["Results"][ip][model][
+                                    component
+                                ][variable].attrs.items()
                             ]
                             iterables2 = [
                                 [iterables[0] + [location]][0]
-                                for location in datasets["Results"][ip][model][component][
-                                    variable
-                                ]["space"].values
+                                for location in datasets["Results"][ip][model][
+                                    component
+                                ][variable]["space"].values
                             ]
                             idx = pd.MultiIndex.from_tuples(tuple(iterables2))
                             _optSum_df.index = idx
@@ -549,9 +557,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                             iterables = [
                                 [component, variable, unit]
-                                for variable, unit in datasets["Results"][ip][model][component][
-                                    variable
-                                ].attrs.items()
+                                for variable, unit in datasets["Results"][ip][model][
+                                    component
+                                ][variable].attrs.items()
                             ]
                             _optSum_df.index = pd.MultiIndex.from_tuples(iterables)
                             _optSum_df.index.names = ["Component", "Property", "Unit"]
@@ -643,7 +651,9 @@ def convertDatasetsToEnergySystemModel(datasets):
 
                         if opt_variable == "isBuiltVariablesOptimum":
                             _isBuiltVariablesOptimum_df = (
-                                xr_opt.to_dataframe().unstack(level=0).droplevel(0, axis=1)
+                                xr_opt.to_dataframe()
+                                .unstack(level=0)
+                                .droplevel(0, axis=1)
                             )
                             idx = pd.MultiIndex.from_product(
                                 [[component], _isBuiltVariablesOptimum_df.index]
@@ -654,7 +664,9 @@ def convertDatasetsToEnergySystemModel(datasets):
 
                         if opt_variable == "chargeOperationVariablesOptimum":
                             _chargeOperationVariablesOptimum_df = (
-                                xr_opt.to_dataframe().unstack(level=0).droplevel(0, axis=1)
+                                xr_opt.to_dataframe()
+                                .unstack(level=0)
+                                .droplevel(0, axis=1)
                             )
                             idx = pd.MultiIndex.from_product(
                                 [[component], _chargeOperationVariablesOptimum_df.index]
@@ -665,10 +677,15 @@ def convertDatasetsToEnergySystemModel(datasets):
 
                         if opt_variable == "dischargeOperationVariablesOptimum":
                             _dischargeOperationVariablesOptimum_df = (
-                                xr_opt.to_dataframe().unstack(level=0).droplevel(0, axis=1)
+                                xr_opt.to_dataframe()
+                                .unstack(level=0)
+                                .droplevel(0, axis=1)
                             )
                             idx = pd.MultiIndex.from_product(
-                                [[component], _dischargeOperationVariablesOptimum_df.index]
+                                [
+                                    [component],
+                                    _dischargeOperationVariablesOptimum_df.index,
+                                ]
                             )
                             _dischargeOperationVariablesOptimum_df = (
                                 _dischargeOperationVariablesOptimum_df.set_index(idx)
@@ -676,7 +693,9 @@ def convertDatasetsToEnergySystemModel(datasets):
 
                         if opt_variable == "stateOfChargeOperationVariablesOptimum":
                             _stateOfChargeOperationVariablesOptimum_df = (
-                                xr_opt.to_dataframe().unstack(level=0).droplevel(0, axis=1)
+                                xr_opt.to_dataframe()
+                                .unstack(level=0)
+                                .droplevel(0, axis=1)
                             )
                             idx = pd.MultiIndex.from_product(
                                 [
@@ -685,7 +704,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 ]
                             )
                             _stateOfChargeOperationVariablesOptimum_df = (
-                                _stateOfChargeOperationVariablesOptimum_df.set_index(idx)
+                                _stateOfChargeOperationVariablesOptimum_df.set_index(
+                                    idx
+                                )
                             )
 
                     operationVariablesOptimum_df = operationVariablesOptimum_df.append(
@@ -757,7 +778,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                     "stateOfChargeOperationVariablesOptimum",
                     stateOfChargeOperationVariablesOptimum_df,
                 )
-        if len(esM.investmentPeriods)==1:
+        if len(esM.investmentPeriods) == 1:
             setattr(esM.componentModelingDict[model], "optSummary", optSum_df[0])
         else:
             setattr(esM.componentModelingDict[model], "optSummary", optSum_df)

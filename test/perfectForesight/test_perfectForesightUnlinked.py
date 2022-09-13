@@ -281,16 +281,32 @@ def test_perfectForesight_unlinked():
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
     print("Objective value:")
     print(esM.pyM.Obj())  # year 0: 7545 year 1: 4000  -> Ziel: 11545
-    np.testing.assert_almost_equal(esM.pyM.Obj(),11545)
+    np.testing.assert_almost_equal(esM.pyM.Obj(), 11545)
 
     # Check capacity results:
     # year 0
-    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs("PV").values[0]
-    np.testing.assert_almost_equal(esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs("PV").values[0]  ,1.71232876712329 )
-    
+    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs(
+        "PV"
+    ).values[0]
+    np.testing.assert_almost_equal(
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[0]
+        .xs("PV")
+        .values[0],
+        1.71232876712329,
+    )
+
     # year 1
-    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs("PV").values[0]
-    np.testing.assert_almost_equal(esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs("PV").values[0]  ,0 )
+    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs(
+        "PV"
+    ).values[0]
+    np.testing.assert_almost_equal(
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[1]
+        .xs("PV")
+        .values[0],
+        0,
+    )
 
 
 if __name__ == "__main__":

@@ -125,15 +125,15 @@ class EnergySystemModel:
             path analysis
             |br| * the default value is 1
         : type yearsPerInvestmentPeriod: strictly positive integer
-        
+
         :param startYear: year name of first investment period, e.g. 2020
             |br| * the default value is None
         : type startYear: integer
 
         :param mode: linking method for several investment periods
             |br| * the default value is None
-        : type mode: str or None        
-        
+        : type mode: str or None
+
         :param costUnit: cost unit of all cost related values in the energy system. This argument sets the unit of
             all cost parameters which are given as an input to the EnergySystemModel instance (e.g. for the
             invest per capacity or the cost per operation).
@@ -257,16 +257,17 @@ class EnergySystemModel:
         ######################################################################
         # Perfect Foresight related
         # TODO comments
-        finalyear=startYear+numberOfInvestmentPeriods*yearsPerInvestmentPeriod-1
-        self.investmentPeriodList = list(range(startYear,finalyear+1,yearsPerInvestmentPeriod))
+        finalyear = startYear + numberOfInvestmentPeriods * yearsPerInvestmentPeriod - 1
+        self.investmentPeriodList = list(
+            range(startYear, finalyear + 1, yearsPerInvestmentPeriod)
+        )
 
-        self.yearsPerInvestmentPeriod=yearsPerInvestmentPeriod
-        self.startYear=startYear
+        self.yearsPerInvestmentPeriod = yearsPerInvestmentPeriod
+        self.startYear = startYear
         self.investmentPeriods = list(range(numberOfInvestmentPeriods))
         self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
 
-        self.mode=mode
-
+        self.mode = mode
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
         # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents
@@ -477,10 +478,11 @@ class EnergySystemModel:
         :rtype: depends on the specified attribute
         """
         # TODO writer nicer,special case so old models will still run: get parameter values out of parameter dict for ip
-        if (
-            isinstance(getattr(self.getComponent(componentName), attributeName), dict)
-            and list(getattr(self.getComponent(componentName), attributeName).keys())==[0]
-        ):
+        if isinstance(
+            getattr(self.getComponent(componentName), attributeName), dict
+        ) and list(getattr(self.getComponent(componentName), attributeName).keys()) == [
+            0
+        ]:
             return getattr(self.getComponent(componentName), attributeName)[0]
         else:
             return getattr(self.getComponent(componentName), attributeName)
@@ -1028,14 +1030,7 @@ class EnergySystemModel:
                 )
 
             def initIntraYearTimeSet(pyM):
-                return ( 
-                    (p,t) 
-                    for p in self.periods
-                    for t in self.timeStepsPerPeriod
-                )
-
-
-            
+                return ((p, t) for p in self.periods for t in self.timeStepsPerPeriod)
 
             def initInvestPeriodInterPeriodSet(pyM):
                 return (
@@ -1075,14 +1070,13 @@ class EnergySystemModel:
                         for t in range(len(self.timeStepsPerPeriod) + 1)
                     )
 
-
                 def initIntraYearTimeSet(pyM):
-                    return ( 
-                        (p,t) 
+                    return (
+                        (p, t)
                         for p in self.typicalPeriods
                         for t in self.timeStepsPerPeriod
-                    )    
-                
+                    )
+
                 def initInvestPeriodInterPeriodSet(pyM):
                     return (
                         (t_inter)
@@ -1123,11 +1117,11 @@ class EnergySystemModel:
                     )
 
                 def initIntraYearTimeSet(pyM):
-                    return ( 
-                        (p,t) 
+                    return (
+                        (p, t)
                         for p in self.typicalPeriods
                         for t in self.segmentsPerPeriod
-                    )   
+                    )
 
                 def initInvestPeriodInterPeriodSet(pyM):
                     return (
@@ -1318,6 +1312,7 @@ class EnergySystemModel:
                 )
                 <= 1
             )
+
         pyM.ConstraintSharedPotentials = pyomo.Constraint(
             pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
         )
@@ -1348,7 +1343,7 @@ class EnergySystemModel:
                     ]
         pyM.linkedQuantityDict = compDict
 
-        def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2,ip):
+        def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2, ip):
             abbrvName1 = self.componentModelingDict[
                 self.componentNames[compName1]
             ].abbrvName
@@ -1368,7 +1363,8 @@ class EnergySystemModel:
                 .capacityPerPlantUnit
             )
             return (
-                capVar1[loc, compName1,ip] / capPPU1 == capVar2[loc, compName2,ip] / capPPU2
+                capVar1[loc, compName1, ip] / capPPU1
+                == capVar2[loc, compName2, ip] / capPPU2
             )
 
         for (i, j) in pyM.linkedQuantityDict.keys():
@@ -1431,6 +1427,7 @@ class EnergySystemModel:
                 )
                 == 0
             )
+
         pyM.commodityBalanceConstraint = pyomo.Constraint(
             pyM.locationCommoditySet, pyM.timeSet, rule=commodityBalanceConstraint
         )
@@ -1467,10 +1464,10 @@ class EnergySystemModel:
 
         def objective(pyM):
             NPV = sum(
-                    mdl.getObjectiveFunctionContribution(self, pyM) 
-                    for mdl in self.componentModelingDict.values()
-                )
-            
+                mdl.getObjectiveFunctionContribution(self, pyM)
+                for mdl in self.componentModelingDict.values()
+            )
+
             return NPV
 
         pyM.Obj = pyomo.Objective(rule=objective)
@@ -1519,7 +1516,6 @@ class EnergySystemModel:
             timeSeriesAggregation, self.isTimeSeriesDataClustered
         )
 
-
         ################################################################################################################
         #                           Initialize mathematical model (ConcreteModel) instance                             #
         ################################################################################################################
@@ -1534,7 +1530,7 @@ class EnergySystemModel:
 
         # Set time sets for the model instance
         self.declareTimeSets(pyM, timeSeriesAggregation, segmentation)
-        
+
         ################################################################################################################
         #                         Declare component specific sets, variables and constraints                           #
         ################################################################################################################
@@ -1694,7 +1690,7 @@ class EnergySystemModel:
                     "The optimization problem is not declared yet. Set the argument declaresOptimization"
                     " problem to True or call the declareOptimizationProblem function first."
                 )
-        
+
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
 
@@ -1856,12 +1852,11 @@ class EnergySystemModel:
 
             # iterate over investment periods, to get yearly results
             for key, mdl in self.componentModelingDict.items():
-                if not isinstance(mdl.capacityVariablesOptimum,dict):
-                    mdl.capacityVariablesOptimum={}
+                if not isinstance(mdl.capacityVariablesOptimum, dict):
+                    mdl.capacityVariablesOptimum = {}
                 __t = time.time()
                 # if capacityVariablesOptimum is not a dict, convert to dict
                 # (if single year system is optimized several times)
-                
 
                 mdl.setOptimalValues(self, self.pyM)
                 outputString = (
@@ -1871,11 +1866,11 @@ class EnergySystemModel:
                 )
                 utils.output(outputString, self.verbose, 0)
 
-                if self.mode=="perfectForesight":
+                if self.mode == "perfectForesight":
                     mdl.optSummary = mdl._optSummary
                 # for single year optimization, prepare results data in "old"
                 # format just for one year
-                elif self.mode =="stochastic":
+                elif self.mode == "stochastic":
                     mdl.optSummary = mdl._optSummary[0]
                 else:
                     mdl.optSummary = mdl._optSummary[0]
@@ -1893,8 +1888,8 @@ class EnergySystemModel:
                         )
                     else:
                         mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
-                    mdl.capacityVariablesOptimum=mdl.capacityVariablesOptimum[0]
-                    
+                    mdl.capacityVariablesOptimum = mdl.capacityVariablesOptimum[0]
+
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 

@@ -17,7 +17,6 @@ def test_perfectForesight_linked_costs():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
-
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand"},
@@ -54,10 +53,15 @@ def test_perfectForesight_linked_costs():
         index=["PerfectLand"],
     ).T
 
-    
-    
     # different opexPerOperation per investmentperiod
-    PVopexPerOperation = {0:0.01, 2:0.01, 4:0.01, 6:0.02, 8:0.02, 10:0.02,}
+    PVopexPerOperation = {
+        0: 0.01,
+        2: 0.01,
+        4: 0.01,
+        6: 0.02,
+        8: 0.02,
+        10: 0.02,
+    }
 
     esM.add(
         fn.Source(
@@ -67,11 +71,11 @@ def test_perfectForesight_linked_costs():
             hasCapacityVariable=True,
             operationRateMax=PVoperationRateMax,
             investPerCapacity=100,
-            #opexPerCapacity=1,
+            # opexPerCapacity=1,
             interestRate=0.02,
-            #opexPerOperation=PVopexPerOperation,
+            # opexPerOperation=PVopexPerOperation,
             economicLifetime=4,
-            technicalLifetime=4
+            technicalLifetime=4,
         )
     )
 
@@ -104,10 +108,10 @@ def test_perfectForesight_linked_costs():
         ],
         index=["PerfectLand"],
     ).T  # second investmentperiod
-    demand[4]=demand[2]
-    demand[6]=demand[2]
-    demand[8]=demand[2]
-    demand[10]=demand[2]
+    demand[4] = demand[2]
+    demand[6] = demand[2]
+    demand[8] = demand[2]
+    demand[10] = demand[2]
 
     esM.add(
         fn.Sink(
@@ -122,27 +126,58 @@ def test_perfectForesight_linked_costs():
     # Optimize energy system model
     esM.optimize(timeSeriesAggregation=False, solver="gurobi")
     print("Objective value:")
-    print(esM.pyM.Obj()) 
-    
-    # 
-    PV_cap_year0=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year0 ,2.5)
-    PV_cap_year4=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[4].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year1 ,1.25)
-    PV_cap_year8=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[8].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year5 ,1.25)
-    
+    print(esM.pyM.Obj())
+
+    #
+    PV_cap_year0 = (
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[0]
+        .xs("PV")
+        .values[0]
+    )
+    np.testing.assert_almost_equal(PV_cap_year0, 2.5)
+    PV_cap_year4 = (
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[4]
+        .xs("PV")
+        .values[0]
+    )
+    np.testing.assert_almost_equal(PV_cap_year1, 1.25)
+    PV_cap_year8 = (
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[8]
+        .xs("PV")
+        .values[0]
+    )
+    np.testing.assert_almost_equal(PV_cap_year5, 1.25)
+
     raise ValueError("Currently we dont know the correct results for linked ip's")
-    np.testing.assert_almost_equal(esM.pyM.Obj(),11545)
+    np.testing.assert_almost_equal(esM.pyM.Obj(), 11545)
 
     # Check capacity results:
     # year 0
-    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs("PV").values[0]
-    np.testing.assert_almost_equal(esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs("PV").values[0]  ,1.71232876712329 )
-    
+    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs(
+        "PV"
+    ).values[0]
+    np.testing.assert_almost_equal(
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[0]
+        .xs("PV")
+        .values[0],
+        1.71232876712329,
+    )
+
     # year 1
-    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs("PV").values[0]
-    np.testing.assert_almost_equal(esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs("PV").values[0]  ,0 )
+    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs(
+        "PV"
+    ).values[0]
+    np.testing.assert_almost_equal(
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[1]
+        .xs("PV")
+        .values[0],
+        0,
+    )
 
 
 # _df_tac=pd.DataFrame()

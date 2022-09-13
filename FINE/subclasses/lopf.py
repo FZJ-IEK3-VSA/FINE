@@ -88,7 +88,7 @@ class LinearOptimalPowerFlow(Transmission):
             interestRate=interestRate,
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
-            stockCommissioning=stockCommissioning
+            stockCommissioning=stockCommissioning,
         )
 
         self.modelingClass = LOPFModel
@@ -126,8 +126,8 @@ class LOPFModel(TransmissionModel):
         self.dimension = "2dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
         self._optSummary = None
 
@@ -171,15 +171,15 @@ class LOPFModel(TransmissionModel):
         """
 
         # # Declare design variable sets
-        self.declareDesignVarSet(pyM,esM)
+        self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM,esM)
-        self.declareDiscreteDesignVarSet(pyM,esM)
-        self.declareDesignDecisionVarSet(pyM,esM)
-        
+        self.declareContinuousDesignVarSet(pyM, esM)
+        self.declareDiscreteDesignVarSet(pyM, esM)
+        self.declareDesignDecisionVarSet(pyM, esM)
+
         # Declare design pathway sets
-        self.declarePathwaySets(pyM,esM)
-        self.declareLocationComponentSet(pyM,esM)
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM, esM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
@@ -224,10 +224,10 @@ class LOPFModel(TransmissionModel):
         """
 
         # Capacity and commissioning variables in [commodityUnit]
-        self.declareCapacityVars(pyM,esM)
+        self.declareCapacityVars(pyM, esM)
         # Capacity development variables [physicalUnit]
-        self.declareCommissioningVars(pyM,esM)
-        self.declareDecommissioningVars(pyM,esM)
+        self.declareCommissioningVars(pyM, esM)
+        self.declareDecommissioningVars(pyM, esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]

@@ -136,7 +136,7 @@ class DemandSideManagementBETA(Sink):
         self.shiftDownMax = {}
 
         for _ip in esM.investmentPeriodList:
-            ip=esM.investmentPeriodList.index(_ip)
+            ip = esM.investmentPeriodList.index(_ip)
 
             if isinstance(operationRateFix, pd.DataFrame) or isinstance(
                 operationRateFix, pd.Series
@@ -193,7 +193,7 @@ class DemandSideManagementBETA(Sink):
             opexPerChargeOpTimeSeries = {}
 
             for _ip in esM.investmentPeriodList:
-                ip=esM.investmentPeriodList.index(_ip)
+                ip = esM.investmentPeriodList.index(_ip)
                 SOCmax[ip] = _operationRateFix[ip].copy()
                 SOCmax[ip][SOCmax[ip] > 0] = 0
 
@@ -308,8 +308,8 @@ class DSMModel(SourceSinkModel):
         self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self._optSummary = {}
         self.operationVariablesOptimum = {}
 
@@ -499,7 +499,8 @@ class DSMModel(SourceSinkModel):
                 ix = optVal.loc[x].name
                 for compName, comp in self.componentsDict.items():
                     if ix[0] in [
-                        compName + "_" + str(i) for i in range(comp.tBwd + comp.tFwd + 1)
+                        compName + "_" + str(i)
+                        for i in range(comp.tBwd + comp.tFwd + 1)
                     ]:
                         return (compName, ix[1])
 
@@ -546,7 +547,8 @@ class DSMModel(SourceSinkModel):
                     axis=1,
                 )
                 cCost = opSum.apply(
-                    lambda op: op * compDict[op.name].processedCommodityCost[ip][op.index],
+                    lambda op: op
+                    * compDict[op.name].processedCommodityCost[ip][op.index],
                     axis=1,
                 )
                 cRevenue = opSum.apply(
@@ -597,7 +599,10 @@ class DSMModel(SourceSinkModel):
                             optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
                         )
 
-                    if not compDict[compName].processedCommodityRevenueTimeSeries is None:
+                    if (
+                        not compDict[compName].processedCommodityRevenueTimeSeries
+                        is None
+                    ):
                         # in case of time series aggregation rearange clustered revenue time series
                         calcRevenueTD = utils.buildFullTimeSeries(
                             compDict[compName]
@@ -611,16 +616,24 @@ class DSMModel(SourceSinkModel):
                         )
                         # multiply with operation values to get the total revenue
                         cRevenueTD.loc[compName, :] = (
-                            optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
+                            optVal.xs(compName, level=0)
+                            .T.mul(calcRevenueTD.T)
+                            .sum(axis=0)
                         )
 
                 optSummary.loc[
-                    [(ix, "commodCosts", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                    [
+                        (ix, "commodCosts", "[" + esM.costUnit + "/a]")
+                        for ix in ox.index
+                    ],
                     ox.columns,
                 ] = (cCostTD.values + cCost.values) / esM.numberOfYears
 
                 optSummary.loc[
-                    [(ix, "commodRevenues", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                    [
+                        (ix, "commodRevenues", "[" + esM.costUnit + "/a]")
+                        for ix in ox.index
+                    ],
                     ox.columns,
                 ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
 
@@ -637,7 +650,9 @@ class DSMModel(SourceSinkModel):
                 .groupby(level=0)
                 .sum()
                 .values
-                - optSummary.loc[(optSummary.index.get_level_values(1) == "commodRevenues")]
+                - optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "commodRevenues")
+                ]
                 .groupby(level=0)
                 .sum()
                 .values
@@ -646,4 +661,4 @@ class DSMModel(SourceSinkModel):
             # Quick fix if several runs with one investment period
             if type(self._optSummary) is not dict:
                 self._optSummary = {}
-            self._optSummary[esM.investmentPeriodList[ip]]  = optSummary
+            self._optSummary[esM.investmentPeriodList[ip]] = optSummary

@@ -282,15 +282,29 @@ class Storage(Component):
 
         # opexPerChargeOperation
         self.opexPerChargeOperation = opexPerChargeOperation
-        self.processedOpexPerChargeOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, opexPerChargeOperation, "1dim", locationalEligibility,esM.investmentPeriods
-                )
-        
+        self.processedOpexPerChargeOperation = (
+            utils.checkAndSetInvestmentPeriodCostParameter(
+                esM,
+                name,
+                opexPerChargeOperation,
+                "1dim",
+                locationalEligibility,
+                esM.investmentPeriods,
+            )
+        )
+
         # opexPerDischargeOperation
         self.opexPerDischargeOperation = opexPerDischargeOperation
-        self.processedOpexPerDischargeOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, opexPerDischargeOperation, "1dim", locationalEligibility,esM.investmentPeriods
-                )
+        self.processedOpexPerDischargeOperation = (
+            utils.checkAndSetInvestmentPeriodCostParameter(
+                esM,
+                name,
+                opexPerDischargeOperation,
+                "1dim",
+                locationalEligibility,
+                esM.investmentPeriods,
+            )
+        )
 
         # chargeOpRateFix and chargeOpRateMax
         self.chargeOpRateMax = chargeOpRateMax
@@ -298,7 +312,7 @@ class Storage(Component):
         # last check here -> move to utils?
         for _ip in esM.investmentPeriodList:
             # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)        
+            ip = esM.investmentPeriodList.index(_ip)
             _chargeOpRateMax = (
                 chargeOpRateMax[_ip]
                 if isinstance(chargeOpRateMax, dict)
@@ -320,32 +334,38 @@ class Storage(Component):
                         "If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n"
                         + "The chargeOpRateMax time series was set to None."
                     )
-        
-        #chargeOpRateMax
+
+        # chargeOpRateMax
         self.fullChargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, chargeOpRateMax, locationalEligibility)
+            esM, name, chargeOpRateMax, locationalEligibility
+        )
         self.aggregatedChargeOpRateMax = dict.fromkeys(esM.investmentPeriods)
 
-        #chargeOpRateFix
+        # chargeOpRateFix
         self.fullChargeOpRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, chargeOpRateFix, locationalEligibility)
+            esM, name, chargeOpRateFix, locationalEligibility
+        )
         self.aggregatedChargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
-        
+
         # dischargeOpRateMax
         self.dischargeOpRateMax = dischargeOpRateMax
         self.fullDischargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, dischargeOpRateMax, locationalEligibility)
+            esM, name, dischargeOpRateMax, locationalEligibility
+        )
         self.aggregatedDischargeOpRateMax = {}
-        
+
         # dischargeOpRateFix
         self.dischargeOpRateFix = dischargeOpRateFix
         self.fullDischargeOpRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, dischargeOpRateFix, locationalEligibility)
+            esM, name, dischargeOpRateFix, locationalEligibility
+        )
         self.aggregatedDischargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
-        
+
         # partLoadMin
         self.partLoadMin = partLoadMin
-        self.processedPartLoadMin =utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullChargeOpRateMax, self.fullChargeOpRateFix)
+        self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
+            esM, name, partLoadMin, self.fullChargeOpRateMax, self.fullChargeOpRateFix
+        )
 
         utils.isPositiveNumber(dischargeTsaWeight)
         self.dischargeTsaWeight = dischargeTsaWeight
@@ -545,8 +565,8 @@ class StorageModel(ComponentModel):
         self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum = {}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.isBuiltVariablesOptimum = {}
         (
             self.chargeOperationVariablesOptimum,
@@ -573,15 +593,15 @@ class StorageModel(ComponentModel):
         compDict = self.componentsDict
 
         # Declare design variable sets
-        self.declareDesignVarSet(pyM,esM)
+        self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM,esM)
-        self.declareDiscreteDesignVarSet(pyM,esM)
-        self.declareDesignDecisionVarSet(pyM,esM)
-        
+        self.declareContinuousDesignVarSet(pyM, esM)
+        self.declareDiscreteDesignVarSet(pyM, esM)
+        self.declareDesignDecisionVarSet(pyM, esM)
+
         # Declare design pathway sets
-        self.declarePathwaySets(pyM,esM)
-        self.declareLocationComponentSet(pyM,esM)
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM, esM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
@@ -605,8 +625,8 @@ class StorageModel(ComponentModel):
 
             def initVarPreciseTSASet(pyM):
                 return (
-                    (loc, compName,ip)
-                    for loc, compName,ip in varSet
+                    (loc, compName, ip)
+                    for loc, compName, ip in varSet
                     if compDict[compName].doPreciseTsaModeling
                 )
 
@@ -619,7 +639,9 @@ class StorageModel(ComponentModel):
         def initOffsetUpSet(pyM):
             return (
                 (loc, compName, ip)
-                for loc, compName, ip in getattr(pyM, "operationVarSet_" + self.abbrvName)
+                for loc, compName, ip in getattr(
+                    pyM, "operationVarSet_" + self.abbrvName
+                )
                 if compDict[compName].socOffsetUp >= 0
             )
 
@@ -632,7 +654,9 @@ class StorageModel(ComponentModel):
         def initOffsetDownSet(pyM):
             return (
                 (loc, compName, ip)
-                for loc, compName, ip in getattr(pyM, "operationVarSet_" + self.abbrvName)
+                for loc, compName, ip in getattr(
+                    pyM, "operationVarSet_" + self.abbrvName
+                )
                 if compDict[compName].socOffsetDown >= 0
             )
 
@@ -674,7 +698,7 @@ class StorageModel(ComponentModel):
         """
 
         # Capacity variables [commodityUnit*hour]
-        self.declareCapacityVars(pyM,esM)
+        self.declareCapacityVars(pyM, esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -689,8 +713,8 @@ class StorageModel(ComponentModel):
         self.declareOperationBinaryVars(pyM, "chargeOp_bin")
         self.declareOperationBinaryVars(pyM, "dischargeOp_bin")
         # Capacity development variables [physicalUnit]
-        self.declareCommissioningVars(pyM,esM)
-        self.declareDecommissioningVars(pyM,esM)
+        self.declareCommissioningVars(pyM, esM)
+        self.declareDecommissioningVars(pyM, esM)
 
         # Inventory of storage components [commodityUnit*hour]
         if not pyM.hasTSA:
@@ -947,7 +971,7 @@ class StorageModel(ComponentModel):
         )
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
-        def cyclicLifetime(pyM, loc, compName,ip):
+        def cyclicLifetime(pyM, loc, compName, ip):
             return (
                 sum(
                     chargeOp[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
@@ -1048,9 +1072,7 @@ class StorageModel(ComponentModel):
         setattr(
             pyM,
             "ConstrInterSOC_" + abbrvName,
-            pyomo.Constraint(
-                opVarSet, esM.periods, rule=connectInterSOC
-            ),
+            pyomo.Constraint(opVarSet, esM.periods, rule=connectInterSOC),
         )
 
     def intraSOCstart(self, pyM, esM):
@@ -1077,9 +1099,7 @@ class StorageModel(ComponentModel):
         setattr(
             pyM,
             "ConstrSOCPeriodStart_" + abbrvName,
-            pyomo.Constraint(
-                opVarSet, esM.typicalPeriods, rule=intraSOCstart
-            ),
+            pyomo.Constraint(opVarSet, esM.typicalPeriods, rule=intraSOCstart),
         )
 
     def equalInterSOC(self, pyM, esM):
@@ -1103,7 +1123,8 @@ class StorageModel(ComponentModel):
 
         def equalInterSOC(pyM, loc, compName, ip, pInter):
             return (
-                SOCInter[loc, compName, ip, pInter] == SOCInter[loc, compName, ip, pInter + 1]
+                SOCInter[loc, compName, ip, pInter]
+                == SOCInter[loc, compName, ip, pInter + 1]
                 if compDict[compName].isPeriodicalStorage
                 else pyomo.Constraint.Skip
             )
@@ -1183,12 +1204,14 @@ class StorageModel(ComponentModel):
         # The maximum (virtual) state of charge during a typical period is larger than all occurring (virtual)
         # states of charge in that period (the last time step is considered in the subsequent period for t=0).
         def SOCintraPeriodMax(pyM, loc, compName, ip, p, t):
-            return SOC[loc, compName, ip, p, t] <= SOCmax[loc, compName,ip, p]
+            return SOC[loc, compName, ip, p, t] <= SOCmax[loc, compName, ip, p]
 
         setattr(
             pyM,
             "ConstSOCintraPeriodMax_" + abbrvName,
-            pyomo.Constraint(varSimpleSet, pyM.intraYearTimeSet, rule=SOCintraPeriodMax),
+            pyomo.Constraint(
+                varSimpleSet, pyM.intraYearTimeSet, rule=SOCintraPeriodMax
+            ),
         )
 
         # The minimum (virtual) state of charge during a typical period is smaller than all occurring (virtual)
@@ -1199,7 +1222,9 @@ class StorageModel(ComponentModel):
         setattr(
             pyM,
             "ConstSOCintraPeriodMin_" + abbrvName,
-            pyomo.Constraint(varSimpleSet, pyM.intraYearTimeSet, rule=SOCintraPeriodMin),
+            pyomo.Constraint(
+                varSimpleSet, pyM.intraYearTimeSet, rule=SOCintraPeriodMin
+            ),
         )
 
         # The state of charge at the beginning of one period plus the maximum (virtual) state of charge
@@ -1214,13 +1239,11 @@ class StorageModel(ComponentModel):
                 )
             else:
                 pyomo.Constraint.Skip
-        
+
         setattr(
             pyM,
             "ConstrSOCMaxSimple_" + abbrvName,
-            pyomo.Constraint(
-                varSimpleSet, esM.periods, rule=SOCMaxSimple
-            ),
+            pyomo.Constraint(varSimpleSet, esM.periods, rule=SOCMaxSimple),
         )
 
         # The state of charge at the beginning of one period plus the minimum (virtual) state of charge
@@ -1247,9 +1270,7 @@ class StorageModel(ComponentModel):
         setattr(
             pyM,
             "ConstrSOCMinSimple_" + abbrvName,
-            pyomo.Constraint(
-                varSimpleSet, esM.periods, rule=SOCMinSimple
-            ),
+            pyomo.Constraint(varSimpleSet, esM.periods, rule=SOCMinSimple),
         )
 
     def operationModeSOC(self, pyM, esM):
@@ -1281,6 +1302,7 @@ class StorageModel(ComponentModel):
                 opVar[loc, compName, ip, p, t]
                 <= compDict[compName].stateOfChargeMax * capVar[loc, compName, ip]
             )
+
         setattr(
             pyM,
             "ConstrSOCMaxPrecise_" + abbrvName,
@@ -1320,7 +1342,8 @@ class StorageModel(ComponentModel):
                             ** (t * esM.hoursPerTimeStep)
                         )
                         + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                        <= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMax
+                        <= capVar[loc, compName, ip]
+                        * compDict[compName].stateOfChargeMax
                     )
                 else:
                     return (
@@ -1335,15 +1358,19 @@ class StorageModel(ComponentModel):
                             )
                         )
                         + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                        <= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMax
+                        <= capVar[loc, compName, ip]
+                        * compDict[compName].stateOfChargeMax
                     )
             else:
                 return pyomo.Constraint.Skip
+
         setattr(
             pyM,
             "ConstrSOCMaxPrecise_" + abbrvName,
             pyomo.Constraint(
-                constrSet, pyM.intraYearTimeSet, rule=SOCMaxPrecise,
+                constrSet,
+                pyM.intraYearTimeSet,
+                rule=SOCMaxPrecise,
             ),
         )
 
@@ -1380,7 +1407,8 @@ class StorageModel(ComponentModel):
                             ** (t * esM.hoursPerTimeStep)
                         )
                         + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                        >= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMin
+                        >= capVar[loc, compName, ip]
+                        * compDict[compName].stateOfChargeMin
                     )
                 else:
                     return (
@@ -1395,7 +1423,8 @@ class StorageModel(ComponentModel):
                             )
                         )
                         + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                        >= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMin
+                        >= capVar[loc, compName, ip]
+                        * compDict[compName].stateOfChargeMin
                     )
             else:
                 if not pyM.hasSegmentation:
@@ -1451,7 +1480,7 @@ class StorageModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM,esM)
+        self.capToNbReal(pyM, esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -1459,18 +1488,18 @@ class StorageModel(ComponentModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Sets, if applicable, the installed capacities of a component
-        self.capacityFix(pyM,esM)
+        self.capacityFix(pyM, esM)
         # Sets, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
-        
+
         ################################################################################################################
         #                                    Declare pathway constraints                                               #
         ################################################################################################################
         # Set capacity development constraints over investment periods
-        self.designDevelopmentConstraint(pyM,esM)     
-        self.decommissioningConstraint(pyM,esM)  
-        self.initialYearConstraint(pyM,esM)  
-        
+        self.designDevelopmentConstraint(pyM, esM)
+        self.decommissioningConstraint(pyM, esM)
+        self.initialYearConstraint(pyM, esM)
+
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################
@@ -1702,16 +1731,42 @@ class StorageModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        
-        if esM.mode=="perfectForesight":
-            _varName="commis"
+
+        if esM.mode == "perfectForesight":
+            _varName = "commis"
         else:
-            _varName="cap"
-            
-        capexCap = self.getEconomicsTI(pyM, esM, ["processedInvestPerCapacity"],lifetimeAttr="ipEconomicLifetime", varName=_varName, divisorName="CCF")
-        capexDec = self.getEconomicsTI(pyM, esM, ["processedInvestIfBuilt"], lifetimeAttr="ipEconomicLifetime", varName="designBin", divisorName="CCF")
-        opexCap = self.getEconomicsTI(pyM, esM, ["processedOpexPerCapacity"], lifetimeAttr="ipTechnicalLifetime", varName=_varName)
-        opexDec = self.getEconomicsTI(pyM, esM, ["processedOpexIfBuilt"], lifetimeAttr="ipTechnicalLifetime", varName="designBin")
+            _varName = "cap"
+
+        capexCap = self.getEconomicsTI(
+            pyM,
+            esM,
+            ["processedInvestPerCapacity"],
+            lifetimeAttr="ipEconomicLifetime",
+            varName=_varName,
+            divisorName="CCF",
+        )
+        capexDec = self.getEconomicsTI(
+            pyM,
+            esM,
+            ["processedInvestIfBuilt"],
+            lifetimeAttr="ipEconomicLifetime",
+            varName="designBin",
+            divisorName="CCF",
+        )
+        opexCap = self.getEconomicsTI(
+            pyM,
+            esM,
+            ["processedOpexPerCapacity"],
+            lifetimeAttr="ipTechnicalLifetime",
+            varName=_varName,
+        )
+        opexDec = self.getEconomicsTI(
+            pyM,
+            esM,
+            ["processedOpexIfBuilt"],
+            lifetimeAttr="ipTechnicalLifetime",
+            varName="designBin",
+        )
         opexOp1 = self.getEconomicsTD(
             pyM,
             esM,
@@ -1777,7 +1832,12 @@ class StorageModel(ComponentModel):
             )
 
             # Set optimal operation variables and append optimization summary
-            props = ["operationCharge", "operationDischarge", "opexCharge", "opexDischarge"]
+            props = [
+                "operationCharge",
+                "operationDischarge",
+                "opexCharge",
+                "opexDischarge",
+            ]
             # Unit dict: Specify units for props
             units = {
                 props[0]: ["[-*h]", "[-*h/a]"],
@@ -1795,7 +1855,11 @@ class StorageModel(ComponentModel):
             # Replace placeholder with correct unit of component
             tuples = list(
                 map(
-                    lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+                    lambda x: (
+                        x[0],
+                        x[1],
+                        x[2].replace("-", compDict[x[0]].commodityUnit),
+                    )
                     if x[1] == "operationCharge"
                     else x,
                     tuples,
@@ -1803,7 +1867,11 @@ class StorageModel(ComponentModel):
             )
             tuples = list(
                 map(
-                    lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+                    lambda x: (
+                        x[0],
+                        x[1],
+                        x[2].replace("-", compDict[x[0]].commodityUnit),
+                    )
                     if x[1] == "operationDischarge"
                     else x,
                     tuples,
@@ -1829,7 +1897,7 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]]  = optVal
+            self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
             if optVal is not None:
                 idx = pd.IndexSlice
@@ -1846,7 +1914,11 @@ class StorageModel(ComponentModel):
                 )
                 optSummary.loc[
                     [
-                        (ix, "operationCharge", "[" + compDict[ix].commodityUnit + "*h/a]")
+                        (
+                            ix,
+                            "operationCharge",
+                            "[" + compDict[ix].commodityUnit + "*h/a]",
+                        )
                         for ix in opSum.index
                     ],
                     opSum.columns,
@@ -1855,7 +1927,11 @@ class StorageModel(ComponentModel):
                 )
                 optSummary.loc[
                     [
-                        (ix, "operationCharge", "[" + compDict[ix].commodityUnit + "*h]")
+                        (
+                            ix,
+                            "operationCharge",
+                            "[" + compDict[ix].commodityUnit + "*h]",
+                        )
                         for ix in opSum.index
                     ],
                     opSum.columns,
@@ -1880,12 +1956,18 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self.dischargeOperationVariablesOptimum[esM.investmentPeriodList[ip]]  = optVal
+            self.dischargeOperationVariablesOptimum[
+                esM.investmentPeriodList[ip]
+            ] = optVal
             # Check if there are time steps, at which a storage component is both charging and discharging
             for compName in opSum.index:
                 simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
-                    tsCharge=self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]].loc[compName],
-                    tsDischarge=self.dischargeOperationVariablesOptimum[esM.investmentPeriodList[ip]].loc[compName],
+                    tsCharge=self.chargeOperationVariablesOptimum[
+                        esM.investmentPeriodList[ip]
+                    ].loc[compName],
+                    tsDischarge=self.dischargeOperationVariablesOptimum[
+                        esM.investmentPeriodList[ip]
+                    ].loc[compName],
                 )
                 if simultaneousChargeDischarge:
                     if esM.verbose < 2:
@@ -1901,7 +1983,9 @@ class StorageModel(ComponentModel):
 
                 ox = opSum.apply(
                     lambda op: op
-                    * compDict[op.name].processedOpexPerDischargeOperation[ip][op.index],
+                    * compDict[op.name].processedOpexPerDischargeOperation[ip][
+                        op.index
+                    ],
                     axis=1,
                 )
                 optSummary.loc[
@@ -1919,13 +2003,20 @@ class StorageModel(ComponentModel):
                 )
                 optSummary.loc[
                     [
-                        (ix, "operationDischarge", "[" + compDict[ix].commodityUnit + "*h]")
+                        (
+                            ix,
+                            "operationDischarge",
+                            "[" + compDict[ix].commodityUnit + "*h]",
+                        )
                         for ix in opSum.index
                     ],
                     opSum.columns,
                 ] = opSum.values
                 optSummary.loc[
-                    [(ix, "opexDischarge", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                    [
+                        (ix, "opexDischarge", "[" + esM.costUnit + "/a]")
+                        for ix in ox.index
+                    ],
                     ox.columns,
                 ] = (
                     ox.values / esM.numberOfYears
@@ -1948,7 +2039,9 @@ class StorageModel(ComponentModel):
                 # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
                 # other)
                 optVal = optVal.loc[:, : len(optVal.columns) - 2]
-                self.stateOfChargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+                self.stateOfChargeOperationVariablesOptimum[
+                    esM.investmentPeriodList[ip]
+                ] = optVal
                 utils.setOptimalComponentVariables(
                     optVal, "_stateOfChargeVariablesOptimum", compDict
                 )
@@ -2014,7 +2107,9 @@ class StorageModel(ComponentModel):
                     optVal = pd.concat(data, axis=1, ignore_index=True)
                 else:
                     optVal = None
-                self.stateOfChargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+                self.stateOfChargeOperationVariablesOptimum[
+                    esM.investmentPeriodList[ip]
+                ] = optVal
                 utils.setOptimalComponentVariables(
                     optVal, "_stateOfChargeVariablesOptimum", compDict
                 )
@@ -2037,7 +2132,7 @@ class StorageModel(ComponentModel):
             # Quick fix if several runs with one investment period
             if type(self._optSummary) is not dict:
                 self._optSummary = {}
-            self._optSummary[esM.investmentPeriodList[ip]]  = optSummary
+            self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all"):
         """
@@ -2051,7 +2146,7 @@ class StorageModel(ComponentModel):
             * 'dischargeOperationVariablesOptimum',
             * 'stateOfChargeOperationVariablesOptimum',
             * 'all' or another input: all variables are returned.
-            
+
             For optimizations with several years also following values should be returned:
             * 'commissioningVariablesOptimum'
             * 'decommissioningVariablesOptimum'
@@ -2071,7 +2166,9 @@ class StorageModel(ComponentModel):
         elif name == "commissioningVariablesOptimum":
             # TODO improve
             if name not in self.__dict__.keys():
-                raise ValueError("commissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?")
+                raise ValueError(
+                    "commissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?"
+                )
             return {
                 "values": self.commissioningVariablesOptimum,
                 "timeDependent": False,
@@ -2080,12 +2177,14 @@ class StorageModel(ComponentModel):
         elif name == "decommissioningVariablesOptimum":
             # TODO improve
             if name not in self.__dict__.keys():
-                raise ValueError("decommissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?")
+                raise ValueError(
+                    "decommissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?"
+                )
             return {
                 "values": self.decommissioningVariablesOptimum,
                 "timeDependent": False,
                 "dimension": self.dimension,
-            }    
+            }
         elif name == "isBuiltVariablesOptimum":
             return {
                 "values": self.isBuiltVariablesOptimum,
@@ -2111,43 +2210,45 @@ class StorageModel(ComponentModel):
                 "dimension": self.dimension,
             }
         else:
-            _variablesOptimum={}
+            _variablesOptimum = {}
             if "commissioningVariablesOptimum" in self.__dict__.keys():
-                _variablesOptimum["commissioningVariablesOptimum"] ={
+                _variablesOptimum["commissioningVariablesOptimum"] = {
                     "values": self.commissioningVariablesOptimum,
                     "timeDependent": False,
                     "dimension": self.dimension,
                 }
-                _variablesOptimum["decommissioningVariablesOptimum"] ={
+                _variablesOptimum["decommissioningVariablesOptimum"] = {
                     "values": self.decommissioningVariablesOptimum,
                     "timeDependent": False,
                     "dimension": self.dimension,
                 }
-            _variablesOptimum.update({
-                "capacityVariablesOptimum": {
-                    "values": self.capacityVariablesOptimum,
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "isBuiltVariablesOptimum": {
-                    "values": self.isBuiltVariablesOptimum,
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "chargeOperationVariablesOptimum": {
-                    "values": self.chargeOperationVariablesOptimum,
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-                "dischargeOperationVariablesOptimum": {
-                    "values": self.dischargeOperationVariablesOptimum,
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-                "stateOfChargeOperationVariablesOptimum": {
-                    "values": self.stateOfChargeOperationVariablesOptimum,
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-            })
+            _variablesOptimum.update(
+                {
+                    "capacityVariablesOptimum": {
+                        "values": self.capacityVariablesOptimum,
+                        "timeDependent": False,
+                        "dimension": self.dimension,
+                    },
+                    "isBuiltVariablesOptimum": {
+                        "values": self.isBuiltVariablesOptimum,
+                        "timeDependent": False,
+                        "dimension": self.dimension,
+                    },
+                    "chargeOperationVariablesOptimum": {
+                        "values": self.chargeOperationVariablesOptimum,
+                        "timeDependent": True,
+                        "dimension": self.dimension,
+                    },
+                    "dischargeOperationVariablesOptimum": {
+                        "values": self.dischargeOperationVariablesOptimum,
+                        "timeDependent": True,
+                        "dimension": self.dimension,
+                    },
+                    "stateOfChargeOperationVariablesOptimum": {
+                        "values": self.stateOfChargeOperationVariablesOptimum,
+                        "timeDependent": True,
+                        "dimension": self.dimension,
+                    },
+                }
+            )
             return _variablesOptimum

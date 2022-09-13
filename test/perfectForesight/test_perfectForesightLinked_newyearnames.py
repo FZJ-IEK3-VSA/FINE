@@ -16,7 +16,7 @@ import pandas as pd
 def test_perfectForesight_linked():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
-    investmentPeriodList_for_testing=[2020,2021,2022,2023,2024,2025]
+    investmentPeriodList_for_testing = [2020, 2021, 2022, 2023, 2024, 2025]
 
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
@@ -77,10 +77,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
-    costs[2022]=costs[2021]
-    costs[2023]=costs[2021]
-    costs[2024]=costs[2021]
-    costs[2025]=costs[2021]
+    costs[2022] = costs[2021]
+    costs[2023] = costs[2021]
+    costs[2024] = costs[2021]
+    costs[2025] = costs[2021]
 
     revenues = {}
     revenues[2020] = pd.DataFrame(
@@ -109,10 +109,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
-    revenues[2022]=revenues[2021]
-    revenues[2023]=revenues[2021]
-    revenues[2024]=revenues[2021]
-    revenues[2025]=revenues[2021]
+    revenues[2022] = revenues[2021]
+    revenues[2023] = revenues[2021]
+    revenues[2024] = revenues[2021]
+    revenues[2025] = revenues[2021]
 
     maxpurchase = {}
     maxpurchase[2020] = pd.DataFrame(
@@ -141,10 +141,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
-    maxpurchase[2022]=maxpurchase[2021]
-    maxpurchase[2023]=maxpurchase[2021]
-    maxpurchase[2024]=maxpurchase[2021]
-    maxpurchase[2025]=maxpurchase[2021]
+    maxpurchase[2022] = maxpurchase[2021]
+    maxpurchase[2023] = maxpurchase[2021]
+    maxpurchase[2024] = maxpurchase[2021]
+    maxpurchase[2025] = maxpurchase[2021]
 
     esM.add(
         fn.Source(
@@ -192,21 +192,19 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
-    PVoperationRateMax[2022]=PVoperationRateMax[2021]
-    PVoperationRateMax[2023]=PVoperationRateMax[2021]
-    PVoperationRateMax[2024]=PVoperationRateMax[2021]
-    PVoperationRateMax[2025]=PVoperationRateMax[2021]
+    PVoperationRateMax[2022] = PVoperationRateMax[2021]
+    PVoperationRateMax[2023] = PVoperationRateMax[2021]
+    PVoperationRateMax[2024] = PVoperationRateMax[2021]
+    PVoperationRateMax[2025] = PVoperationRateMax[2021]
 
-    
-    
     # different opexPerOperation per investmentperiod
     PVopexPerOperation = {}
     PVopexPerOperation[2020] = 0.01
     PVopexPerOperation[2021] = 0.02
-    PVopexPerOperation[2022]=PVopexPerOperation[2021]
-    PVopexPerOperation[2023]=PVopexPerOperation[2021]
-    PVopexPerOperation[2024]=PVopexPerOperation[2021]
-    PVopexPerOperation[2025]=PVopexPerOperation[2021]
+    PVopexPerOperation[2022] = PVopexPerOperation[2021]
+    PVopexPerOperation[2023] = PVopexPerOperation[2021]
+    PVopexPerOperation[2024] = PVopexPerOperation[2021]
+    PVopexPerOperation[2025] = PVopexPerOperation[2021]
 
     esM.add(
         fn.Source(
@@ -221,7 +219,7 @@ def test_perfectForesight_linked():
             interestRate=0.02,
             opexPerOperation=PVopexPerOperation,  # 0.01,
             economicLifetime=5,
-            technicalLifetime=6
+            technicalLifetime=6,
         )
     )
 
@@ -261,10 +259,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T
-    revenuesDemand[2022]=revenuesDemand[2021]
-    revenuesDemand[2023]=revenuesDemand[2021]
-    revenuesDemand[2024]=revenuesDemand[2021]
-    revenuesDemand[2025]=revenuesDemand[2021]
+    revenuesDemand[2022] = revenuesDemand[2021]
+    revenuesDemand[2023] = revenuesDemand[2021]
+    revenuesDemand[2024] = revenuesDemand[2021]
+    revenuesDemand[2025] = revenuesDemand[2021]
 
     demand = {}
     demand[2020] = pd.DataFrame(
@@ -293,10 +291,10 @@ def test_perfectForesight_linked():
         ],
         index=["PerfectLand"],
     ).T  # second investmentperiod
-    demand[2022]=demand[2021]
-    demand[2023]=demand[2021]
-    demand[2024]=demand[2021]
-    demand[2025]=demand[2021]
+    demand[2022] = demand[2021]
+    demand[2023] = demand[2021]
+    demand[2024] = demand[2021]
+    demand[2025] = demand[2021]
 
     esM.add(
         fn.Sink(
@@ -312,30 +310,64 @@ def test_perfectForesight_linked():
     # Optimize energy system model
     esM.optimize(timeSeriesAggregation=False, solver="gurobi")
     print("Objective value:")
-    print(esM.pyM.Obj())    # 44655?
-    
-    # check 
-    assert esM.getOptimizationSummary("SourceSinkModel").keys() != investmentPeriodList_for_testing
-    
-    # check 
-    PV_cap_year0=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[2020].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year0 ,1.71232876712329 )
-    PV_cap_year1=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[2021].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year1 ,1.71232876712329 )
-    PV_cap_year5=esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[2025].xs("PV").values[0]
-    np.testing.assert_almost_equal(PV_cap_year5 , 1.1415525114155252)
-    
+    print(esM.pyM.Obj())  # 44655?
+
+    # check
+    assert (
+        esM.getOptimizationSummary("SourceSinkModel").keys()
+        != investmentPeriodList_for_testing
+    )
+
+    # check
+    PV_cap_year0 = (
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[2020]
+        .xs("PV")
+        .values[0]
+    )
+    np.testing.assert_almost_equal(PV_cap_year0, 1.71232876712329)
+    PV_cap_year1 = (
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[2021]
+        .xs("PV")
+        .values[0]
+    )
+    np.testing.assert_almost_equal(PV_cap_year1, 1.71232876712329)
+    PV_cap_year5 = (
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[2025]
+        .xs("PV")
+        .values[0]
+    )
+    np.testing.assert_almost_equal(PV_cap_year5, 1.1415525114155252)
+
     raise ValueError("Currently we dont know the correct results for linked ip's")
-    np.testing.assert_almost_equal(esM.pyM.Obj(),11545)
+    np.testing.assert_almost_equal(esM.pyM.Obj(), 11545)
 
     # Check capacity results:
     # year 0
-    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs("PV").values[0]
-    np.testing.assert_almost_equal(esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs("PV").values[0]  ,1.71232876712329 )
-    
+    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[0].xs(
+        "PV"
+    ).values[0]
+    np.testing.assert_almost_equal(
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[0]
+        .xs("PV")
+        .values[0],
+        1.71232876712329,
+    )
+
     # year 1
-    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[2021].xs("PV").values[0]
-    np.testing.assert_almost_equal(esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[2021].xs("PV").values[0]  ,0 )
+    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[2021].xs(
+        "PV"
+    ).values[0]
+    np.testing.assert_almost_equal(
+        esM.componentModelingDict["SourceSinkModel"]
+        .capacityVariablesOptimum[2021]
+        .xs("PV")
+        .values[0],
+        0,
+    )
 
 
 if __name__ == "__main__":

@@ -44,7 +44,7 @@ class Transmission(Component):
         economicLifetime=10,
         technicalLifetime=None,
         balanceLimitID=None,
-        stockCommissioning=None
+        stockCommissioning=None,
     ):
         """
         Constructor for creating an Transmission class instance.
@@ -183,13 +183,13 @@ class Transmission(Component):
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
         if stockCommissioning is None:
-            self.stockCommissioning=stockCommissioning
-        elif isinstance(stockCommissioning,dict):
-            self.stockCommissioning={}
+            self.stockCommissioning = stockCommissioning
+        elif isinstance(stockCommissioning, dict):
+            self.stockCommissioning = {}
             for potential_ip in stockCommissioning.keys():
-                self.stockCommissioning[potential_ip]=utils.preprocess2dimData(
-                    stockCommissioning[potential_ip], 
-                    locationalEligibility=locationalEligibility
+                self.stockCommissioning[potential_ip] = utils.preprocess2dimData(
+                    stockCommissioning[potential_ip],
+                    locationalEligibility=locationalEligibility,
                 )
         else:
             raise ValueError()
@@ -197,7 +197,7 @@ class Transmission(Component):
         self.isBuiltFix = utils.preprocess2dimData(
             isBuiltFix, self._mapC, locationalEligibility=self.locationalEligibility
         )
-        
+
         self.interestRate = utils.preprocess2dimData(interestRate, self._mapC)
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
@@ -221,7 +221,7 @@ class Transmission(Component):
             linkedQuantityID=linkedQuantityID,
             capacityFix=self.capacityFix,
             isBuiltFix=self.isBuiltFix,
-            investPerCapacity=0, 
+            investPerCapacity=0,
             investIfBuilt=0,
             opexPerCapacity=0,
             opexIfBuilt=0,
@@ -229,7 +229,7 @@ class Transmission(Component):
             QPcostScale=QPcostScale,
             economicLifetime=self.economicLifetime,
             technicalLifetime=self.technicalLifetime,
-            stockCommissioning=self.stockCommissioning
+            stockCommissioning=self.stockCommissioning,
         )
         # Set general component data
         utils.checkCommodities(esM, {commodity})
@@ -248,68 +248,97 @@ class Transmission(Component):
             self.losses, self.distances, self.locationalEligibility
         )
         self.modelingClass = TransmissionModel
-        
+
         # these are initialized with 0 in the component.__init__ and overwritten here,
         # due to its different structure otherwise the tests fail in the component
-        self.investPerCapacity=investPerCapacity
+        self.investPerCapacity = investPerCapacity
         _processedInvestPerCapacity = utils.preprocess2dimInvestmentPeriodData(
-            esM, "investPerCapacity" ,investPerCapacity, self.processedStockYears+esM.investmentPeriods, self._mapC
+            esM,
+            "investPerCapacity",
+            investPerCapacity,
+            self.processedStockYears + esM.investmentPeriods,
+            self._mapC,
         )
 
-        self.investIfBuilt=investIfBuilt
+        self.investIfBuilt = investIfBuilt
         _processedInvestIfBuilt = utils.preprocess2dimInvestmentPeriodData(
-            esM, "investIfBuilt", investIfBuilt, self.processedStockYears+esM.investmentPeriods, self._mapC
+            esM,
+            "investIfBuilt",
+            investIfBuilt,
+            self.processedStockYears + esM.investmentPeriods,
+            self._mapC,
         )
-        
+
         self.opexPerCapacity = opexPerCapacity
-        _processedOpexPerCapacity= utils.preprocess2dimInvestmentPeriodData(
-            esM, "opexPerCapacity", opexPerCapacity, self.processedStockYears+esM.investmentPeriods, self._mapC
+        _processedOpexPerCapacity = utils.preprocess2dimInvestmentPeriodData(
+            esM,
+            "opexPerCapacity",
+            opexPerCapacity,
+            self.processedStockYears + esM.investmentPeriods,
+            self._mapC,
         )
 
         self.opexIfBuilt = opexIfBuilt
         _processedOpexIfBuilt = utils.preprocess2dimInvestmentPeriodData(
-            esM, "opexIfBuilt", opexIfBuilt, self.processedStockYears+esM.investmentPeriods, self._mapC
+            esM,
+            "opexIfBuilt",
+            opexIfBuilt,
+            self.processedStockYears + esM.investmentPeriods,
+            self._mapC,
         )
 
         # Set distance related costs data
-        self.processedInvestPerCapacity={} 
+        self.processedInvestPerCapacity = {}
         self.processedInvestIfBuilt = {}
-        self.processedOpexPerCapacity={}
-        self.processedOpexIfBuilt={}
-        for year in self.processedStockYears+esM.investmentPeriods:
-            self.processedInvestPerCapacity[year] = _processedInvestPerCapacity[year] * self.distances * 0.5
-            self.processedInvestIfBuilt[year] = _processedInvestIfBuilt[year] * self.distances * 0.5
-            self.processedOpexPerCapacity[year] = _processedOpexPerCapacity[year] * self.distances * 0.5
-            self.processedOpexIfBuilt[year] = _processedOpexIfBuilt[year] * self.distances * 0.5
+        self.processedOpexPerCapacity = {}
+        self.processedOpexIfBuilt = {}
+        for year in self.processedStockYears + esM.investmentPeriods:
+            self.processedInvestPerCapacity[year] = (
+                _processedInvestPerCapacity[year] * self.distances * 0.5
+            )
+            self.processedInvestIfBuilt[year] = (
+                _processedInvestIfBuilt[year] * self.distances * 0.5
+            )
+            self.processedOpexPerCapacity[year] = (
+                _processedOpexPerCapacity[year] * self.distances * 0.5
+            )
+            self.processedOpexIfBuilt[year] = (
+                _processedOpexIfBuilt[year] * self.distances * 0.5
+            )
 
         # Set additional economic data
         # opexPerOperation
-        self.opexPerOperation = utils.preprocess2dimData(
-                opexPerOperation, self._mapC
-            )
+        self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC)
         self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, self.opexPerOperation, "2dim", 
-                    self.locationalEligibility,esM.investmentPeriods)
-        
+            esM,
+            name,
+            self.opexPerOperation,
+            "2dim",
+            self.locationalEligibility,
+            esM.investmentPeriods,
+        )
+
         # operationRateMax
         self.operationRateMax = operationRateMax
-        self.fullOperationRateMax= utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, operationRateMax, self.locationalEligibility
-                )
-        self.aggregatedOperationRateMax =dict.fromkeys(esM.investmentPeriods)
+        self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, operationRateMax, self.locationalEligibility
+        )
+        self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = {}
-        
+
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, operationRateFix, self.locationalEligibility
-                )
-        self.aggregatedOperationRateFix =dict.fromkeys(esM.investmentPeriods)
+            esM, name, operationRateFix, self.locationalEligibility
+        )
+        self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateFix = {}
-    
+
         # partLoadMin
         self.partLoadMin = partLoadMin
-        self.processedPartLoadMin=utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullOperationRateMax, self.fullOperationRateFix)
+        self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
+            esM, name, partLoadMin, self.fullOperationRateMax, self.fullOperationRateFix
+        )
         self.processedPartLoadMin = {}
 
         utils.isPositiveNumber(tsaWeight)
@@ -428,8 +457,8 @@ class TransmissionModel(ComponentModel):
         self.dimension = "2dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum = {}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
         self._optSummary = {}
@@ -450,15 +479,15 @@ class TransmissionModel(ComponentModel):
         """
 
         # # Declare design variable sets
-        self.declareDesignVarSet(pyM,esM)
+        self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM,esM)
-        self.declareDiscreteDesignVarSet(pyM,esM)
-        self.declareDesignDecisionVarSet(pyM,esM)
+        self.declareContinuousDesignVarSet(pyM, esM)
+        self.declareDiscreteDesignVarSet(pyM, esM)
+        self.declareDesignDecisionVarSet(pyM, esM)
 
         # Declare design pathway sets
-        self.declarePathwaySets(pyM,esM)
-        self.declareLocationComponentSet(pyM,esM)
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM, esM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
@@ -485,7 +514,7 @@ class TransmissionModel(ComponentModel):
         """
 
         # Capacity variables [commodityUnit]
-        self.declareCapacityVars(pyM,esM)
+        self.declareCapacityVars(pyM, esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -497,8 +526,8 @@ class TransmissionModel(ComponentModel):
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
         # Capacity development variables [physicalUnit]
-        self.declareCommissioningVars(pyM,esM)
-        self.declareDecommissioningVars(pyM,esM)
+        self.declareCommissioningVars(pyM, esM)
+        self.declareDecommissioningVars(pyM, esM)
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -524,7 +553,8 @@ class TransmissionModel(ComponentModel):
 
         def symmetricalCapacity(pyM, loc, compName, ip):
             return (
-                capVar[loc, compName, ip] == capVar[compDict[compName]._mapI[loc], compName, ip]
+                capVar[loc, compName, ip]
+                == capVar[compDict[compName]._mapI[loc], compName, ip]
             )
 
         setattr(
@@ -578,7 +608,8 @@ class TransmissionModel(ComponentModel):
                 return (
                     opVar[loc, compName, ip, p, t]
                     + opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
-                    <= capVar[loc, compName, ip] * esM.hoursPerSegment[ip].to_dict()[p, t]
+                    <= capVar[loc, compName, ip]
+                    * esM.hoursPerSegment[ip].to_dict()[p, t]
                 )
 
             setattr(
@@ -603,7 +634,7 @@ class TransmissionModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM,esM)
+        self.capToNbReal(pyM, esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -611,7 +642,7 @@ class TransmissionModel(ComponentModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM,esM)
+        self.capacityFix(pyM, esM)
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Enforce the equality of the capacities cap_loc1_loc2 and cap_loc2_loc1
@@ -621,10 +652,10 @@ class TransmissionModel(ComponentModel):
         #                                    Declare pathway constraints                                               #
         ################################################################################################################
         # Set capacity development constraints over investment periods
-        self.designDevelopmentConstraint(pyM,esM)     
-        self.decommissioningConstraint(pyM,esM) 
-        self.initialYearConstraint(pyM,esM)
-        
+        self.designDevelopmentConstraint(pyM, esM)
+        self.decommissioningConstraint(pyM, esM)
+        self.initialYearConstraint(pyM, esM)
+
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################
@@ -777,7 +808,7 @@ class TransmissionModel(ComponentModel):
             for t in timeSteps
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-            for ip,subdict in opVarDictOut.items()
+            for ip, subdict in opVarDictOut.items()
             for loc_ in subdict[loc].keys()
             for compName in subdict[loc][loc_]
             if compName in limitDict[(ID, loc)]
@@ -801,12 +832,12 @@ class TransmissionModel(ComponentModel):
         opexOp = self.getEconomicsTD(
             pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDictOut"
         )
-        
-        if esM.mode=="perfectForesight":
-            _varName="commis"
+
+        if esM.mode == "perfectForesight":
+            _varName = "commis"
         else:
-            _varName="cap"
-            
+            _varName = "cap"
+
         capexCap = self.getEconomicsTI(
             pyM,
             esM,
@@ -818,12 +849,12 @@ class TransmissionModel(ComponentModel):
             QPdivisorNames=["QPbound", "CCF"],
         )
         capexDec = self.getEconomicsTI(
-            pyM, 
-            esM, 
+            pyM,
+            esM,
             factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime", 
-            varName="designBin", 
-            divisorName="CCF"
+            lifetimeAttr="ipEconomicLifetime",
+            varName="designBin",
+            divisorName="CCF",
         )
         opexCap = self.getEconomicsTI(
             pyM,
@@ -835,11 +866,11 @@ class TransmissionModel(ComponentModel):
             QPdivisorNames=["QPbound"],
         )
         opexDec = self.getEconomicsTI(
-            pyM, 
-            esM, 
-            factorNames=["processedOpexIfBuilt"], 
+            pyM,
+            esM,
+            factorNames=["processedOpexIfBuilt"],
             lifetimeAttr="ipTechnicalLifetime",
-            varName="designBin"
+            varName="designBin",
         )
 
         return opexOp + capexCap + capexDec + opexCap + opexDec
@@ -914,10 +945,12 @@ class TransmissionModel(ComponentModel):
 
             # Get and set optimal variable values for expanded capacities
             values = capVar.get_values()
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
+            optVal = utils.formatOptimizationOutput(
+                values, "designVariables", "1dim", ip
+            )
             optVal_ = utils.formatOptimizationOutput(
-                    values, "designVariables", self.dimension, compDict=compDict
-                )
+                values, "designVariables", self.dimension, compDict=compDict
+            )
             self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
             if optVal is not None:
@@ -1013,16 +1046,19 @@ class TransmissionModel(ComponentModel):
 
             # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
             values = binVar.get_values()
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
+            optVal = utils.formatOptimizationOutput(
+                values, "designVariables", "1dim", ip
+            )
             optVal_ = utils.formatOptimizationOutput(
-                    values, "designVariables", self.dimension, ip, compDict=compDict
-                )
+                values, "designVariables", self.dimension, ip, compDict=compDict
+            )
             self.isBuiltVariablesOptimum = optVal_
 
             if optVal is not None:
                 # Calculate the investment costs i (fix value if component is built)
                 i = optVal.apply(
-                    lambda dec: dec * compDict[dec.name].processedInvestIfBuilt[ip], axis=1
+                    lambda dec: dec * compDict[dec.name].processedInvestIfBuilt[ip],
+                    axis=1,
                 )
                 # Calculate the annualized investment costs cx (fix value if component is built)
                 cx = optVal.apply(
@@ -1033,7 +1069,8 @@ class TransmissionModel(ComponentModel):
                 )
                 # Calculate the annualized operational costs ox (fix value if component is built)
                 ox = optVal.apply(
-                    lambda dec: dec * compDict[dec.name].processedOpexIfBuilt[ip], axis=1
+                    lambda dec: dec * compDict[dec.name].processedOpexIfBuilt[ip],
+                    axis=1,
                 )
 
                 # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
@@ -1118,7 +1155,10 @@ class TransmissionModel(ComponentModel):
 
             props = ["operation", "opexOp"]
             # Unit dict: Specify units for props
-            units = {props[0]: ["[-*h]", "[-*h/a]"], props[1]: ["[" + esM.costUnit + "/a]"]}
+            units = {
+                props[0]: ["[-*h]", "[-*h/a]"],
+                props[1]: ["[" + esM.costUnit + "/a]"],
+            }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
                 (compName, prop, unit)
@@ -1129,7 +1169,11 @@ class TransmissionModel(ComponentModel):
             # Replace placeholder with correct unit of component
             tuples = list(
                 map(
-                    lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+                    lambda x: (
+                        x[0],
+                        x[1],
+                        x[2].replace("-", compDict[x[0]].commodityUnit),
+                    )
                     if x[1] == "operation"
                     else x,
                     tuples,

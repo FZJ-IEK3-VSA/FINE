@@ -224,10 +224,10 @@ class Source(Component):
             QPcostScale=QPcostScale,
             interestRate=interestRate,
             economicLifetime=economicLifetime,
-            technicalLifetime=technicalLifetime, 
+            technicalLifetime=technicalLifetime,
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
-            stockCommissioning=stockCommissioning
+            stockCommissioning=stockCommissioning,
         )
 
         # Set general source/sink data: ID and yearly limit
@@ -245,38 +245,55 @@ class Source(Component):
         # opexPerOperation
         self.opexPerOperation = opexPerOperation
         self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, opexPerOperation, "1dim", locationalEligibility,esM.investmentPeriods
-                )
-        
+            esM,
+            name,
+            opexPerOperation,
+            "1dim",
+            locationalEligibility,
+            esM.investmentPeriods,
+        )
+
         # commodityCost
         self.commodityCost = commodityCost
         self.processedCommodityCost = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, commodityCost, "1dim", locationalEligibility,esM.investmentPeriods
-                )
-        
+            esM,
+            name,
+            commodityCost,
+            "1dim",
+            locationalEligibility,
+            esM.investmentPeriods,
+        )
+
         # commodtyRevenue
-        self.commodityRevenue = commodityRevenue       
-        self.processedCommodityRevenue= utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, commodityRevenue, "1dim", locationalEligibility,esM.investmentPeriods
-                )
+        self.commodityRevenue = commodityRevenue
+        self.processedCommodityRevenue = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM,
+            name,
+            commodityRevenue,
+            "1dim",
+            locationalEligibility,
+            esM.investmentPeriods,
+        )
 
         # commodityCostTimeSeries
         self.commodityCostTimeSeries = commodityCostTimeSeries
-        self.fullCommodityCostTimeSeries=utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, commodityCostTimeSeries, locationalEligibility
-                )
+        self.fullCommodityCostTimeSeries = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, commodityCostTimeSeries, locationalEligibility
+        )
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
         # commodityRevenueTimeSeries
         self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
         self.fullCommodityRevenueTimeSeries = {}
-        self.fullCommodityRevenueTimeSeries = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, commodityRevenueTimeSeries, locationalEligibility
-                 )
+        self.fullCommodityRevenueTimeSeries = (
+            utils.checkAndSetInvestmentPeriodTimeSeries(
+                esM, name, commodityRevenueTimeSeries, locationalEligibility
+            )
+        )
         self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
-        
+
         # operationRateMaxx and Fix test -> TODO mode
         for _ip in esM.investmentPeriodList:
             # map name of investment period (e.g. 2020) to index (e.g. 0)
@@ -304,28 +321,30 @@ class Source(Component):
                         "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
                         + "The operationRateMax time series was set to None."
                     )
-        
+
         # operationRateMax
         self.operationRateMax = operationRateMax
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, operationRateMax, locationalEligibility
-                )
+            esM, name, operationRateMax, locationalEligibility
+        )
         self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
-        
+
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, operationRateFix, locationalEligibility
-                )
+            esM, name, operationRateFix, locationalEligibility
+        )
         self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
-        
+
         # partLoadMin
         self.partLoadMin = partLoadMin
-        self.processedPartLoadMin=utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullOperationRateMax, self.fullOperationRateFix)
+        self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
+            esM, name, partLoadMin, self.fullOperationRateMax, self.fullOperationRateFix
+        )
         self.processedPartLoadMin = {}
-        
+
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
@@ -357,7 +376,7 @@ class Source(Component):
         elif self.fullOperationRateMax is not None:
             for _ip in esM.investmentPeriodList:
                 # map name of investment period (e.g. 2020) to index (e.g. 0)
-                ip=esM.investmentPeriodList.index(_ip)
+                ip = esM.investmentPeriodList.index(_ip)
                 operationTimeSeries[ip] = self.fullOperationRateMax[ip]
         else:
             operationTimeSeries = None
@@ -613,9 +632,9 @@ class SourceSinkModel(ComponentModel):
         self.abbrvName = "srcSnk"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum={}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.capacityVariablesOptimum = {}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
         self._optSummary = {}
@@ -669,13 +688,13 @@ class SourceSinkModel(ComponentModel):
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM,esM)
-        self.declareDiscreteDesignVarSet(pyM,esM)
-        self.declareDesignDecisionVarSet(pyM,esM)
-        
+        self.declareContinuousDesignVarSet(pyM, esM)
+        self.declareDiscreteDesignVarSet(pyM, esM)
+        self.declareDesignDecisionVarSet(pyM, esM)
+
         # Declare design pathway sets
-        self.declarePathwaySets(pyM,esM)
-        self.declareLocationComponentSet(pyM,esM)
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM, esM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
@@ -711,7 +730,7 @@ class SourceSinkModel(ComponentModel):
         """
 
         # Capacity variables [commodityUnit]
-        self.declareCapacityVars(pyM,esM)
+        self.declareCapacityVars(pyM, esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -723,8 +742,8 @@ class SourceSinkModel(ComponentModel):
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
         # Capacity development variables [physicalUnit]
-        self.declareCommissioningVars(pyM,esM)
-        self.declareDecommissioningVars(pyM,esM)
+        self.declareCommissioningVars(pyM, esM)
+        self.declareDecommissioningVars(pyM, esM)
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -787,7 +806,7 @@ class SourceSinkModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM,esM)
+        self.capToNbReal(pyM, esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -795,7 +814,7 @@ class SourceSinkModel(ComponentModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM,esM)
+        self.capacityFix(pyM, esM)
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Set yearly full load hours minimum limit
@@ -807,9 +826,9 @@ class SourceSinkModel(ComponentModel):
         #                                    Declare pathway constraints                                               #
         ################################################################################################################
         # Set capacity development constraints over investment periods
-        self.designDevelopmentConstraint(pyM,esM)
-        self.decommissioningConstraint(pyM,esM)
-        self.initialYearConstraint(pyM,esM)
+        self.designDevelopmentConstraint(pyM, esM)
+        self.decommissioningConstraint(pyM, esM)
+        self.initialYearConstraint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
@@ -943,7 +962,7 @@ class SourceSinkModel(ComponentModel):
         .. math::
             \\text{C}^{comp,comm}_{loc,ip,p,t} = op_{loc,ip,p,t}^{comp,op} \\text{Source}
         """
-        
+
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = (
             getattr(pyM, "op_" + abbrvName),
@@ -1006,7 +1025,7 @@ class SourceSinkModel(ComponentModel):
         :param ip: investment period of transformation path analysis.
         :type ip: int
         """
-        for ip in esM.investmentPeriods: 
+        for ip in esM.investmentPeriods:
             compDict, abbrvName = self.componentsDict, self.abbrvName
             opVar = getattr(pyM, "op_" + abbrvName)
 
@@ -1047,7 +1066,11 @@ class SourceSinkModel(ComponentModel):
             # Replace placeholder with correct unit of component
             tuples = list(
                 map(
-                    lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
+                    lambda x: (
+                        x[0],
+                        x[1],
+                        x[2].replace("-", compDict[x[0]].commodityUnit),
+                    )
                     if x[1] == "operation"
                     else x,
                     tuples,
@@ -1067,7 +1090,8 @@ class SourceSinkModel(ComponentModel):
                     axis=1,
                 )
                 cCost = opSum.apply(
-                    lambda op: op * compDict[op.name].processedCommodityCost[ip][op.index],
+                    lambda op: op
+                    * compDict[op.name].processedCommodityCost[ip][op.index],
                     axis=1,
                 )
                 cRevenue = opSum.apply(
@@ -1123,7 +1147,10 @@ class SourceSinkModel(ComponentModel):
                             optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
                         )
 
-                    if not compDict[compName].processedCommodityRevenueTimeSeries is None:
+                    if (
+                        not compDict[compName].processedCommodityRevenueTimeSeries
+                        is None
+                    ):
                         # in case of time series aggregation rearange clustered revenue time series
                         calcRevenueTD = utils.buildFullTimeSeries(
                             compDict[compName]
@@ -1137,15 +1164,23 @@ class SourceSinkModel(ComponentModel):
                         )
                         # multiply with operation values to get the total revenue
                         cRevenueTD.loc[compName, :] = (
-                            optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
+                            optVal.xs(compName, level=0)
+                            .T.mul(calcRevenueTD.T)
+                            .sum(axis=0)
                         )
 
                 optSummary.loc[
-                    [(ix, "commodCosts", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                    [
+                        (ix, "commodCosts", "[" + esM.costUnit + "/a]")
+                        for ix in ox.index
+                    ],
                     ox.columns,
                 ] = (cCostTD.values + cCost.values) / esM.numberOfYears
                 optSummary.loc[
-                    [(ix, "commodRevenues", "[" + esM.costUnit + "/a]") for ix in ox.index],
+                    [
+                        (ix, "commodRevenues", "[" + esM.costUnit + "/a]")
+                        for ix in ox.index
+                    ],
                     ox.columns,
                 ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
 
@@ -1162,7 +1197,9 @@ class SourceSinkModel(ComponentModel):
                 .groupby(level=0)
                 .sum()
                 .values
-                - optSummary.loc[(optSummary.index.get_level_values(1) == "commodRevenues")]
+                - optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "commodRevenues")
+                ]
                 .groupby(level=0)
                 .sum()
                 .values

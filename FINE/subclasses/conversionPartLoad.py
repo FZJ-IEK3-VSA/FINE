@@ -107,8 +107,8 @@ class ConversionPartLoadModel(ConversionModel):
         self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.operationVariablesOptimum = None
         self._optSummary = None
 
@@ -358,7 +358,9 @@ class ConversionPartLoadModel(ConversionModel):
             setattr(
                 pyM,
                 "ConstrSegmentCapacity_" + abbrvName,
-                pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=segmentCapacityConstraint),
+                pyomo.Constraint(
+                    opVarSet, pyM.intraYearTimeSet, rule=segmentCapacityConstraint
+                ),
             )
         else:
 
@@ -424,7 +426,9 @@ class ConversionPartLoadModel(ConversionModel):
             setattr(
                 pyM,
                 "ConstrPointCapacity_" + abbrvName,
-                pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=pointCapacityConstraint),
+                pyomo.Constraint(
+                    opVarSet, pyM.intraYearTimeSet, rule=pointCapacityConstraint
+                ),
             )
         else:
 
@@ -546,7 +550,9 @@ class ConversionPartLoadModel(ConversionModel):
         setattr(
             pyM,
             "ConstrpartLoadOperationOutput_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=partLoadOperationOutput),
+            pyomo.Constraint(
+                opVarSet, pyM.intraYearTimeSet, rule=partLoadOperationOutput
+            ),
         )
 
     def declareComponentConstraints(self, esM, pyM):
@@ -650,7 +656,7 @@ class ConversionPartLoadModel(ConversionModel):
         discretizationSegmentBinVariables = getattr(
             pyM, "discretizationSegmentBin_" + abbrvName
         )
-        
+
         for ip in esM.investmentPeriods:
             discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(
                 discretizationPointVariables.get_values(),
@@ -677,7 +683,9 @@ class ConversionPartLoadModel(ConversionModel):
                 esM=esM,
             )
 
-            self.discretizationPointVariablesOptimun = discretizationPointVariablesOptVal_
+            self.discretizationPointVariablesOptimun = (
+                discretizationPointVariablesOptVal_
+            )
             self.discretizationSegmentConVariablesOptimun = (
                 discretizationSegmentConVariablesOptVal_
             )

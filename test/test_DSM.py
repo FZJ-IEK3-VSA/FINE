@@ -244,5 +244,5 @@ def dsm_test_esM():
     return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     test_DSM()

@@ -40,7 +40,7 @@ class Component(metaclass=ABCMeta):
         technicalLifetime=None,
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
-        stockCommissioning=None
+        stockCommissioning=None,
     ):
         """
         Constructor for creating an Component class instance.
@@ -370,12 +370,12 @@ class Component(metaclass=ABCMeta):
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim).
-              
+
         :param stockCommissioning: if specified, indicates in which years how much stock capacities
-            were commissioned per location. 
-            e.g. if startYear is 2020 and numberOfYearsPerInvestmentPeriod is 2, stock could be given for 
-            2018 and 2016, or equivilantly if startYear is 0 and numberOfYearsPerInvestmentPeriod is 2, 
-            stock could be given for -2 and -4. 
+            were commissioned per location.
+            e.g. if startYear is 2020 and numberOfYearsPerInvestmentPeriod is 2, stock could be given for
+            2018 and 2016, or equivilantly if startYear is 0 and numberOfYearsPerInvestmentPeriod is 2,
+            stock could be given for -2 and -4.
             |br| * the default value is None
         :type stockCommissioning:
             * None or
@@ -406,12 +406,14 @@ class Component(metaclass=ABCMeta):
         self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self.bigM = bigM
 
-        self.partLoadMin=partLoadMin
-        self.partLoadMin=utils.setPartLoadMin(esM,partLoadMin) # TODO make processedPartLoadMin
-        
+        self.partLoadMin = partLoadMin
+        self.partLoadMin = utils.setPartLoadMin(
+            esM, partLoadMin
+        )  # TODO make processedPartLoadMin
+
         # Set economic data
         elig = locationalEligibility
-        
+
         self.economicLifetime = utils.checkAndSetCostParameter(
             esM, name, economicLifetime, dimension, elig
         )
@@ -421,43 +423,72 @@ class Component(metaclass=ABCMeta):
         self.technicalLifetime = utils.checkAndSetCostParameter(
             esM, name, technicalLifetime, dimension, elig
         )
-        self.ipTechnicalLifetime=utils.checkLifetimeInvestmentPeriod(
-            esM,name,self.technicalLifetime
+        self.ipTechnicalLifetime = utils.checkLifetimeInvestmentPeriod(
+            esM, name, self.technicalLifetime
         )
-        self.ipEconomicLifetime=utils.checkLifetimeInvestmentPeriod(
-            esM,name,self.economicLifetime
+        self.ipEconomicLifetime = utils.checkLifetimeInvestmentPeriod(
+            esM, name, self.economicLifetime
         )
-               
-        self.stockYears,self.processedStockYears=utils.checkStockYears(
-            stockCommissioning, esM.startYear, esM.yearsPerInvestmentPeriod, self.ipTechnicalLifetime
+
+        self.stockYears, self.processedStockYears = utils.checkStockYears(
+            stockCommissioning,
+            esM.startYear,
+            esM.yearsPerInvestmentPeriod,
+            self.ipTechnicalLifetime,
         )
-        
+
         self.investPerCapacity = investPerCapacity
-        self.processedInvestPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, investPerCapacity, dimension, elig, self.processedStockYears+esM.investmentPeriods
+        self.processedInvestPerCapacity = (
+            utils.checkAndSetInvestmentPeriodCostParameter(
+                esM,
+                name,
+                investPerCapacity,
+                dimension,
+                elig,
+                self.processedStockYears + esM.investmentPeriods,
+            )
         )
         self.investIfBuilt = investIfBuilt
         self.processedInvestIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, investIfBuilt, dimension, elig, self.processedStockYears+esM.investmentPeriods
+            esM,
+            name,
+            investIfBuilt,
+            dimension,
+            elig,
+            self.processedStockYears + esM.investmentPeriods,
         )
-        self.opexPerCapacity=opexPerCapacity
+        self.opexPerCapacity = opexPerCapacity
         self.processedOpexPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, opexPerCapacity, dimension, elig, self.processedStockYears+esM.investmentPeriods
+            esM,
+            name,
+            opexPerCapacity,
+            dimension,
+            elig,
+            self.processedStockYears + esM.investmentPeriods,
         )
-        self.opexIfBuilt=opexIfBuilt
+        self.opexIfBuilt = opexIfBuilt
         self.processedOpexIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, opexIfBuilt, dimension, elig, self.processedStockYears+esM.investmentPeriods
+            esM,
+            name,
+            opexIfBuilt,
+            dimension,
+            elig,
+            self.processedStockYears + esM.investmentPeriods,
         )
-        self.QPcostScale=QPcostScale
+        self.QPcostScale = QPcostScale
         self.processedQPcostScale = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM, name, QPcostScale, dimension, elig, self.processedStockYears+esM.investmentPeriods
+            esM,
+            name,
+            QPcostScale,
+            dimension,
+            elig,
+            self.processedStockYears + esM.investmentPeriods,
         )
         self.interestRate = utils.checkAndSetCostParameter(
             esM, name, interestRate, dimension, elig
         )
-        
-    
-        self.CCF=utils.getCapitalChargeFactor(
+
+        self.CCF = utils.getCapitalChargeFactor(
             self.interestRate, self.economicLifetime
         )
 
@@ -478,16 +509,24 @@ class Component(metaclass=ABCMeta):
         utils.checkLocationSpecficDesignInputParams(self, esM)
 
         # Set quadratic capacity bounds and residual cost scale (1-cost scale)
-        self.QPbound = utils.getQPbound(self.processedStockYears+esM.investmentPeriods,
-                self.processedQPcostScale, self.capacityMax, self.capacityMin
-            )
-        self.QPcostDev = utils.getQPcostDev(self.processedStockYears+esM.investmentPeriods,self.processedQPcostScale)
-        
+        self.QPbound = utils.getQPbound(
+            self.processedStockYears + esM.investmentPeriods,
+            self.processedQPcostScale,
+            self.capacityMax,
+            self.capacityMin,
+        )
+        self.QPcostDev = utils.getQPcostDev(
+            self.processedStockYears + esM.investmentPeriods, self.processedQPcostScale
+        )
+
         self.stockCommissioning = stockCommissioning
-        self.processedStockCommissioning=utils.checkAndSetStock(self, esM,stockCommissioning)
-        self.stockCapacityStartYear=utils.setStockCapacityStartYear(self,esM,dimension)
-        
-    
+        self.processedStockCommissioning = utils.checkAndSetStock(
+            self, esM, stockCommissioning
+        )
+        self.stockCapacityStartYear = utils.setStockCapacityStartYear(
+            self, esM, dimension
+        )
+
     def addToEnergySystemModel(self, esM):
         """
         Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -681,19 +720,17 @@ class ComponentModel(metaclass=ABCMeta):
         self.abbrvName = ""
         self.dimension = ""
         self.componentsDict = {}
-        self.capacityVariablesOptimum={}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.capacityVariablesOptimum = {}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.isBuiltVariablesOptimum = {}
         self.operationVariablesOptimum = {}
         self._optSummary = None
-        
-
 
     ####################################################################################################################
     #                           Functions for declaring design and operation variables sets                            #
     ####################################################################################################################
-    
+
     def declareCommissioningVarSet(self, pyM, esM):
         """
         Declare set for commisioning variables in the pyomo object for a modeling class.
@@ -705,22 +742,22 @@ class ComponentModel(metaclass=ABCMeta):
         :type esM: EnergySystemModel instance from the FINE package
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        
+
         # get oldestStockYear to know what set is to be init
-        oldestStockYear=0
-        for compName,comp in compDict.items():
+        oldestStockYear = 0
+        for compName, comp in compDict.items():
             if comp.processedStockCommissioning is None:
                 pass
             else:
                 for year in sorted(comp.processedStockCommissioning.keys()):
-                    if any(x!=0 for x in comp.processedStockCommissioning[year]):
-                        oldestStockYear=min(oldestStockYear,year)
-                        break 
-        if oldestStockYear==0:
+                    if any(x != 0 for x in comp.processedStockCommissioning[year]):
+                        oldestStockYear = min(oldestStockYear, year)
+                        break
+        if oldestStockYear == 0:
             stockInvestmentPeriods = []
         else:
-            stockInvestmentPeriods = list(range(oldestStockYear,0,1))
-        
+            stockInvestmentPeriods = list(range(oldestStockYear, 0, 1))
+
         def declareCommisVarSet(pyM):
             return (
                 (loc, compName, ip)
@@ -729,12 +766,13 @@ class ComponentModel(metaclass=ABCMeta):
                 for ip in stockInvestmentPeriods + esM.investmentPeriods
                 if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
             )
-        
+
         setattr(
             pyM,
             "designCommisVarSet_" + abbrvName,
             pyomo.Set(dimen=3, initialize=declareCommisVarSet),
         )
+
     def declareDesignVarSet(self, pyM, esM):
         """
         Declare set for capacity variables in the pyomo object for a modeling class.
@@ -750,12 +788,12 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareDesignVarSet(pyM):
             return (
-                    (loc, compName, ip)
-                    for compName, comp in compDict.items()
-                    for loc in comp.locationalEligibility.index
-                    for ip in esM.investmentPeriods
-                    if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
-                )
+                (loc, compName, ip)
+                for compName, comp in compDict.items()
+                for loc in comp.locationalEligibility.index
+                for ip in esM.investmentPeriods
+                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+            )
 
         setattr(
             pyM,
@@ -763,8 +801,9 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareDesignVarSet),
         )
 
-    def declareLocationComponentSet(self,pyM,esM):
+    def declareLocationComponentSet(self, pyM, esM):
         compDict, abbrvName = self.componentsDict, self.abbrvName
+
         def initLocationComponentSet(pyM):
             return (
                 (loc, compName)
@@ -772,13 +811,14 @@ class ComponentModel(metaclass=ABCMeta):
                 for loc in comp.locationalEligibility.index
                 if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
             )
+
         setattr(
             pyM,
             "DesignLocationComponentVarSet_" + abbrvName,
             pyomo.Set(dimen=2, initialize=initLocationComponentSet),
-        )          
-    
-    def declarePathwaySets(self,pyM,esM):
+        )
+
+    def declarePathwaySets(self, pyM, esM):
         """
         Declare set for capacity development in the pyomo object for a modeling class.
 
@@ -789,6 +829,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type esM: EnergySystemModel instance from the FINE package
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
+
         def initCommissioningConstraintSet(pyM):
             return (
                 (loc, compName, ip)
@@ -797,12 +838,12 @@ class ComponentModel(metaclass=ABCMeta):
                 for ip in esM.investmentPeriods[:-1]
                 if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
             )
-        
+
         setattr(
             pyM,
             "designDevelopmentVarSet_" + abbrvName,
             pyomo.Set(dimen=3, initialize=initCommissioningConstraintSet),
-        )  
+        )
 
     def declareContinuousDesignVarSet(self, pyM, esM):
         """
@@ -810,7 +851,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
@@ -818,12 +859,12 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareContinuousDesignVarSet(pyM):
             return (
-                    (loc, compName, ip)
-                    for loc, compName, ip in getattr(
-                        pyM, "designDimensionVarSet_" + abbrvName
-                    )
+                (loc, compName, ip)
+                for loc, compName, ip in getattr(
+                    pyM, "designDimensionVarSet_" + abbrvName
                 )
-        
+            )
+
         setattr(
             pyM,
             "continuousDesignDimensionVarSet_" + abbrvName,
@@ -836,7 +877,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
@@ -844,12 +885,12 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareDiscreteDesignVarSet(pyM):
             return (
-                    (loc, compName, ip)
-                    for loc, compName, ip in getattr(
-                        pyM, "designDimensionVarSet_" + abbrvName
-                    )
-                    if compDict[compName].capacityVariableDomain == "discrete"
+                (loc, compName, ip)
+                for loc, compName, ip in getattr(
+                    pyM, "designDimensionVarSet_" + abbrvName
                 )
+                if compDict[compName].capacityVariableDomain == "discrete"
+            )
 
         setattr(
             pyM,
@@ -863,7 +904,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
@@ -871,12 +912,12 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareDesignDecisionVarSet(pyM):
             return (
-                    (loc, compName, ip)
-                    for loc, compName,ip in getattr(
-                        pyM, "designDimensionVarSet_" + abbrvName
-                    )
-                    if compDict[compName].hasIsBuiltBinaryVariable
+                (loc, compName, ip)
+                for loc, compName, ip in getattr(
+                    pyM, "designDimensionVarSet_" + abbrvName
                 )
+                if compDict[compName].hasIsBuiltBinaryVariable
+            )
 
         setattr(
             pyM,
@@ -918,31 +959,31 @@ class ComponentModel(metaclass=ABCMeta):
             setattr(
                 pyM,
                 "operationVarDict_" + abbrvName,
-                {   ip :
-                    {
+                {
+                    ip: {
                         loc: {
                             compName
                             for compName in compDict
-                            if (loc, compName,ip)
+                            if (loc, compName, ip)
                             in getattr(pyM, "operationVarSet_" + abbrvName)
                         }
                         for loc in esM.locations
                     }
                     for ip in esM.investmentPeriods
-                }
+                },
             )
         elif self.dimension == "2dim":
             # Dictionaries which list all outgoing and incoming components at a location
             setattr(
                 pyM,
                 "operationVarDictOut_" + abbrvName,
-                {   ip : 
-                    {
+                {
+                    ip: {
                         loc: {
                             loc_: {
                                 compName
                                 for compName in compDict
-                                if (loc + "_" + loc_, compName,ip)
+                                if (loc + "_" + loc_, compName, ip)
                                 in getattr(pyM, "operationVarSet_" + abbrvName)
                             }
                             for loc_ in esM.locations
@@ -950,8 +991,8 @@ class ComponentModel(metaclass=ABCMeta):
                         for loc in esM.locations
                     }
                     for ip in esM.investmentPeriods
-                } 
-                )
+                },
+            )
             setattr(
                 pyM,
                 "operationVarDictIn_" + abbrvName,
@@ -1034,8 +1075,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         def declareOpConstrSet2(pyM):
             return (
-                (loc, compName,ip)
-                for loc, compName,ip in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if compDict[compName].hasCapacityVariable
                 and getattr(compDict[compName], rateFix) is not None
             )
@@ -1211,12 +1252,12 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
         abbrvName = self.abbrvName
-        
+
         def capBounds(pyM, loc, compName, ip):
             """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
@@ -1227,7 +1268,6 @@ class ComponentModel(metaclass=ABCMeta):
                 comp.capacityMax[loc] if comp.capacityMax is not None else None,
             )
 
-
         setattr(
             pyM,
             "cap_" + abbrvName,
@@ -1236,9 +1276,9 @@ class ComponentModel(metaclass=ABCMeta):
                 domain=pyomo.NonNegativeReals,
                 bounds=capBounds,
             ),
-            )
+        )
 
-    def declareCommissioningVars(self,pyM,esM):
+    def declareCommissioningVars(self, pyM, esM):
         """
         Declare commissioning variable for capacity of component.
 
@@ -1248,11 +1288,11 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        abbrvName = self.abbrvName     
+        abbrvName = self.abbrvName
         setattr(
             pyM,
             "commis_" + abbrvName,
@@ -1262,8 +1302,7 @@ class ComponentModel(metaclass=ABCMeta):
             ),
         )
 
-    
-    def declareDecommissioningVars(self,pyM,esM):
+    def declareDecommissioningVars(self, pyM, esM):
         """
         Declare decommissioning variable for capacity of component.
 
@@ -1273,12 +1312,12 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
 
-        abbrvName = self.abbrvName     
+        abbrvName = self.abbrvName
         setattr(
             pyM,
             "decommis_" + abbrvName,
@@ -1408,7 +1447,7 @@ class ComponentModel(metaclass=ABCMeta):
     #                              Functions for declaring time independent constraints                                #
     ####################################################################################################################
 
-    def capToNbReal(self, pyM,esM):
+    def capToNbReal(self, pyM, esM):
         """
         Determine the components' capacities from the number of installed units.
 
@@ -1418,7 +1457,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
@@ -1429,16 +1468,18 @@ class ComponentModel(metaclass=ABCMeta):
         )
         nbRealVarSet = getattr(pyM, "continuousDesignDimensionVarSet_" + abbrvName)
 
-        def capToNbReal(pyM, loc, compName,ip):
+        def capToNbReal(pyM, loc, compName, ip):
             return (
                 capVar[loc, compName, ip]
-                == nbRealVar[loc, compName,ip] * compDict[compName].capacityPerPlantUnit
+                == nbRealVar[loc, compName, ip]
+                * compDict[compName].capacityPerPlantUnit
             )
+
         setattr(
-                pyM,
-                "ConstrCapToNbReal_" + abbrvName,
-                pyomo.Constraint(nbRealVarSet, rule=capToNbReal),
-            )
+            pyM,
+            "ConstrCapToNbReal_" + abbrvName,
+            pyomo.Constraint(nbRealVarSet, rule=capToNbReal),
+        )
 
     def capToNbInt(self, pyM):
         """
@@ -1458,7 +1499,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
         nbIntVarSet = getattr(pyM, "discreteDesignDimensionVarSet_" + abbrvName)
 
-        def capToNbInt(pyM, loc, compName,ip):
+        def capToNbInt(pyM, loc, compName, ip):
             return (
                 capVar[loc, compName, ip]
                 == nbIntVar[loc, compName] * compDict[compName].capacityPerPlantUnit
@@ -1488,7 +1529,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
         designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
 
-        def bigM(pyM, loc, compName,ip):
+        def bigM(pyM, loc, compName, ip):
             comp = compDict[compName]
             M = comp.capacityMax[loc] if comp.capacityMax is not None else comp.bigM
             return capVar[loc, compName, ip] <= designBinVar[loc, compName, ip] * M
@@ -1529,7 +1570,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Constraint(designBinVarSet, rule=capacityMinDec),
         )
 
-    def capacityFix(self, pyM,esM):
+    def capacityFix(self, pyM, esM):
         """
         Set, if applicable, the installed capacities of a component.
 
@@ -1539,7 +1580,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
@@ -1547,18 +1588,18 @@ class ComponentModel(metaclass=ABCMeta):
         capVar = getattr(pyM, "cap_" + abbrvName)
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
-        def capacityFix(pyM, loc, compName,ip):
+        def capacityFix(pyM, loc, compName, ip):
             return (
                 capVar[loc, compName, ip] == compDict[compName].capacityFix[loc]
                 if compDict[compName].capacityFix is not None
                 else pyomo.Constraint.Skip
             )
-        setattr(
-                pyM,
-                "ConstrCapacityFix_" + abbrvName,
-                pyomo.Constraint(capVarSet, rule=capacityFix),
-            )
 
+        setattr(
+            pyM,
+            "ConstrCapacityFix_" + abbrvName,
+            pyomo.Constraint(capVarSet, rule=capacityFix),
+        )
 
     def designBinFix(self, pyM):
         """
@@ -1577,7 +1618,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         def designBinFix(pyM, loc, compName, ip):
             return (
-                designBinVar[loc, compName,ip] == compDict[compName].isBuiltFix[loc]
+                designBinVar[loc, compName, ip] == compDict[compName].isBuiltFix[loc]
                 if compDict[compName].isBuiltFix is not None
                 else pyomo.Constraint.Skip
             )
@@ -1587,11 +1628,11 @@ class ComponentModel(metaclass=ABCMeta):
             "ConstrDesignBinFix_" + abbrvName,
             pyomo.Constraint(designBinVarSet, rule=designBinFix),
         )
-    
+
     ####################################################################################################################
     #                               Functions for declaring pathway dependent constraints                              #
-    ####################################################################################################################    
-    def designDevelopmentConstraint(self,pyM,esM):
+    ####################################################################################################################
+    def designDevelopmentConstraint(self, pyM, esM):
         """
         Link the capacity development between investment periods.
 
@@ -1601,25 +1642,28 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        if esM.mode =="stochastic":
+        if esM.mode == "stochastic":
             abbrvName = self.abbrvName
             capVar = getattr(pyM, "cap_" + abbrvName)
 
             def capacityDevelopmentStochastic(pyM, loc, compName, ip):
                 # all investmentperiods must have the same capacity
                 if ip in esM.investmentPeriods[:-1]:
-                    return (capVar[loc, compName, ip+1]==capVar[loc, compName, ip])
-                else: 
+                    return capVar[loc, compName, ip + 1] == capVar[loc, compName, ip]
+                else:
                     return pyomo.Constraint.Skip
 
             setattr(
                 pyM,
                 "ConstrCapacityDevelopment_" + abbrvName,
-                pyomo.Constraint(getattr(pyM, "designDimensionVarSet_" + abbrvName), rule=capacityDevelopmentStochastic),
+                pyomo.Constraint(
+                    getattr(pyM, "designDimensionVarSet_" + abbrvName),
+                    rule=capacityDevelopmentStochastic,
+                ),
             )
         else:
             abbrvName = self.abbrvName
@@ -1629,17 +1673,22 @@ class ComponentModel(metaclass=ABCMeta):
             commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                return(capVar[loc, compName, ip+1]==capVar[loc, compName, ip] + commisVar[loc, compName, ip+1] - decommisVar[loc, compName, ip+1])
-
+                return (
+                    capVar[loc, compName, ip + 1]
+                    == capVar[loc, compName, ip]
+                    + commisVar[loc, compName, ip + 1]
+                    - decommisVar[loc, compName, ip + 1]
+                )
 
             setattr(
                 pyM,
                 "ConstrCapacityDevelopment_" + abbrvName,
-                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentPerfectForesight),
+                pyomo.Constraint(
+                    commisConstrSet, rule=capacityDevelopmentPerfectForesight
+                ),
             )
-        
-            
-    def initialYearConstraint(self,pyM,esM):
+
+    def initialYearConstraint(self, pyM, esM):
         """
         Set stock in first year
 
@@ -1649,46 +1698,61 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-    
+
         abbrvName = self.abbrvName
         capVar = getattr(pyM, "cap_" + abbrvName)
         commisVar = getattr(pyM, "commis_" + abbrvName)
         decommisVar = getattr(pyM, "decommis_" + abbrvName)
         locCompConstrSet = getattr(pyM, "DesignLocationComponentVarSet_" + abbrvName)
 
-       
         def initialYear(pyM, loc, compName):
-            stock_cap=self.componentsDict[compName].stockCapacityStartYear[loc]    
-            return capVar[loc, compName,0]==stock_cap + commisVar[loc, compName, 0] - decommisVar[loc, compName, 0] 
-        
+            stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
+            return (
+                capVar[loc, compName, 0]
+                == stock_cap
+                + commisVar[loc, compName, 0]
+                - decommisVar[loc, compName, 0]
+            )
+
         setattr(
             pyM,
             "InitialYear_" + abbrvName,
-            pyomo.Constraint(locCompConstrSet, rule=initialYear), # TODO use other set with just comp and location,
+            pyomo.Constraint(
+                locCompConstrSet, rule=initialYear
+            ),  # TODO use other set with just comp and location,
         )
-        
 
         # TODO move to own function
         commisConstrSet = getattr(pyM, "designCommisVarSet_" + abbrvName)
+
         def stockCommissioning(pyM, loc, compName, ip):
-            if ip in esM.investmentPeriods: # initialize stock commissioning only for stock years
-                return pyomo.Constraint.Skip 
-            elif self.componentsDict[compName].processedStockCommissioning is None: # set 0 if there is no stock
+            if (
+                ip in esM.investmentPeriods
+            ):  # initialize stock commissioning only for stock years
+                return pyomo.Constraint.Skip
+            elif (
+                self.componentsDict[compName].processedStockCommissioning is None
+            ):  # set 0 if there is no stock
                 return commisVar[loc, compName, ip] == 0
-            else: 
-                return commisVar[loc, compName, ip] == self.componentsDict[compName].processedStockCommissioning[ip][loc]
+            else:
+                return (
+                    commisVar[loc, compName, ip]
+                    == self.componentsDict[compName].processedStockCommissioning[ip][
+                        loc
+                    ]
+                )
 
         setattr(
             pyM,
             "StockCommissioning_" + abbrvName,
-            pyomo.Constraint(commisConstrSet, rule=stockCommissioning), 
+            pyomo.Constraint(commisConstrSet, rule=stockCommissioning),
         )
-            
-    def decommissioningConstraint(self,pyM,esM):
+
+    def decommissioningConstraint(self, pyM, esM):
         """
         Declare decommissioning xyz years after commissioning (tech lifetime).
 
@@ -1698,7 +1762,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
@@ -1708,24 +1772,36 @@ class ComponentModel(metaclass=ABCMeta):
         decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
         def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-            tech_lifetime=self.componentsDict[compName].ipTechnicalLifetime[loc]
-            comm_date=ip-tech_lifetime
+            tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
+            comm_date = ip - tech_lifetime
             # only set constraint if decomm_date is within investment periods
             if comm_date in pyM.investSet._values.values():
-                return(decommisVar[loc, compName, ip]==commisVar[loc, compName, ip-tech_lifetime])
+                return (
+                    decommisVar[loc, compName, ip]
+                    == commisVar[loc, compName, ip - tech_lifetime]
+                )
             else:
-                procStockCommissioning=self.componentsDict[compName].processedStockCommissioning
+                procStockCommissioning = self.componentsDict[
+                    compName
+                ].processedStockCommissioning
                 if procStockCommissioning is not None:
-                    return(decommisVar[loc, compName, ip]== self.componentsDict[compName].processedStockCommissioning[ip-tech_lifetime][loc])
+                    return (
+                        decommisVar[loc, compName, ip]
+                        == self.componentsDict[compName].processedStockCommissioning[
+                            ip - tech_lifetime
+                        ][loc]
+                    )
                 else:
                     return pyomo.Constraint.Skip
 
         setattr(
             pyM,
             "DecommConstrCapacityDevelopment_" + abbrvName,
-            pyomo.Constraint(decommisConstrSet, rule=capacityDevelopmentPerfectForesight),
+            pyomo.Constraint(
+                decommisConstrSet, rule=capacityDevelopmentPerfectForesight
+            ),
         )
-    
+
     ####################################################################################################################
     #                               Functions for declaring time dependent constraints                                 #
     ####################################################################################################################
@@ -1896,9 +1972,9 @@ class ComponentModel(metaclass=ABCMeta):
             def op3(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
                 return (
-                        opVar[loc, compName, ip, p, t]
-                        <= capVar[loc, compName, ip] * rate[loc][p, t] * factor
-                    )  
+                    opVar[loc, compName, ip, p, t]
+                    <= capVar[loc, compName, ip] * rate[loc][p, t] * factor
+                )
 
             setattr(
                 pyM,
@@ -1999,8 +2075,7 @@ class ComponentModel(metaclass=ABCMeta):
             def op5(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
                 return opVar[loc, compName, ip, p, t] <= rate[loc][p, t]
-            
-          
+
             setattr(
                 pyM,
                 constrName + "5_" + abbrvName,
@@ -2050,7 +2125,9 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             constrName + "partLoadMin_1_" + abbrvName,
-            pyomo.Constraint(constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1),
+            pyomo.Constraint(
+                constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1
+            ),
         )
 
         def opMinPartLoad2(pyM, loc, compName, ip, p, t):
@@ -2069,7 +2146,9 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             constrName + "partLoadMin_2_" + abbrvName,
-            pyomo.Constraint(constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad2),
+            pyomo.Constraint(
+                constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad2
+            ),
         )
 
     def yearlyFullLoadHoursMin(self, pyM, esM):
@@ -2129,7 +2208,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyM, "yearlyFullLoadHoursMaxSet_" + abbrvName
         )
 
-        def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName,ip):
+        def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, ip):
             full_load_hours = (
                 sum(
                     opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
@@ -2232,7 +2311,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        """      
+        """
         capexCap = self.getEconomicsTI(
             pyM,
             esM,
@@ -2244,12 +2323,12 @@ class ComponentModel(metaclass=ABCMeta):
             QPdivisorNames=["QPbound", "CCF"],
         )
         capexDec = self.getEconomicsTI(
-            pyM, 
-            esM, 
-            factorNames=["processedInvestIfBuilt"], 
-            lifetimeAttr="ipEconomicLifetime", 
-            varName="designBin", 
-            divisorName="CCF"
+            pyM,
+            esM,
+            factorNames=["processedInvestIfBuilt"],
+            lifetimeAttr="ipEconomicLifetime",
+            varName="designBin",
+            divisorName="CCF",
         )
         opexCap = self.getEconomicsTI(
             pyM,
@@ -2261,13 +2340,13 @@ class ComponentModel(metaclass=ABCMeta):
             QPdivisorNames=["QPbound"],
         )
         opexDec = self.getEconomicsTI(
-            pyM, 
-            esM, 
-            factorNames=["processedOpexIfBuilt"], 
-            lifetimeAttr="ipTechnicalLifetime", 
-            varName="designBin"
+            pyM,
+            esM,
+            factorNames=["processedOpexIfBuilt"],
+            lifetimeAttr="ipTechnicalLifetime",
+            varName="designBin",
         )
-        
+
         return capexCap + capexDec + opexCap + opexDec
 
     def getSharedPotentialContribution(self, pyM, key, loc):
@@ -2282,7 +2361,7 @@ class ComponentModel(metaclass=ABCMeta):
             for ip in pyM.investSet
             for compName in compDict
             if compDict[compName].sharedPotentialID == key
-            and (loc, compName,ip) in capVarSet
+            and (loc, compName, ip) in capVarSet
         )
 
     def getLocEconomicsTD(
@@ -2336,44 +2415,39 @@ class ComponentModel(metaclass=ABCMeta):
             factor *= factor_
         # create a timeSet for the current ip
         timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
-        if esM.mode =="stochastic" :
-            if not getOptValue: # TODO PERFECT FORESIGHT NEW CODE
+        if esM.mode == "stochastic":
+            if not getOptValue:  # TODO PERFECT FORESIGHT NEW CODE
                 return (
                     factor
                     * sum(
                         var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
                         for p, t in timeSet_pt
                     )
-                    / esM.numberOfYears 
+                    / esM.numberOfYears
                 )
             else:
                 return (
                     factor
                     * sum(
-                        var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
+                        var[loc, compName, ip, p, t].value
+                        * esM.periodOccurrences[ip][p]
                         for p, t in timeSet_pt
                     )
-                    / esM.numberOfYears 
+                    / esM.numberOfYears
                 )
-        elif esM.mode =="perfectForesight" or esM.mode == "singleYearOptimization":
-            if not getOptValue: # TODO PERFECT FORESIGHT NEW CODE
-                return (
-                    factor
-                    * sum(
-                        var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
-                    )
+        elif esM.mode == "perfectForesight" or esM.mode == "singleYearOptimization":
+            if not getOptValue:  # TODO PERFECT FORESIGHT NEW CODE
+                return factor * sum(
+                    var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
                 )
             else:
-                return (
-                    factor
-                    * sum(
-                        var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
-                    )
-                )            
-        
-        else: 
+                return factor * sum(
+                    var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
+                )
+
+        else:
             raise NotImplementedError()
 
     def getLocEconomicsTI(
@@ -2397,7 +2471,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
 
@@ -2415,7 +2489,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type compName: string
 
         **Default arguments:**
-        
+
         :param ip: investement period
         :type ip: int
 
@@ -2441,14 +2515,19 @@ class ComponentModel(metaclass=ABCMeta):
         # negative ip (historical data) older than technical lifetime
         if ip < -self.componentsDict[compName].ipTechnicalLifetime[loc]:
             return 0
-        # years where component could have commissioning as it is within the technicla lifetime, but does not have commissioning 
-        elif ip < 0 and  self.componentsDict[compName].processedStockCommissioning is None:
+        # years where component could have commissioning as it is within the technicla lifetime, but does not have commissioning
+        elif (
+            ip < 0 and self.componentsDict[compName].processedStockCommissioning is None
+        ):
             return 0
-        elif ip < 0 and  self.componentsDict[compName].processedStockCommissioning is not None:
-            if self.componentsDict[compName].processedStockCommissioning[ip][loc] ==0:
+        elif (
+            ip < 0
+            and self.componentsDict[compName].processedStockCommissioning is not None
+        ):
+            if self.componentsDict[compName].processedStockCommissioning[ip][loc] == 0:
                 return 0
-   
-        var = getattr(pyM, varName + "_" + self.abbrvName)    
+
+        var = getattr(pyM, varName + "_" + self.abbrvName)
         factors = [
             getattr(self.componentsDict[compName], factorName)[ip][loc]
             for factorName in factorNames
@@ -2461,9 +2540,8 @@ class ComponentModel(metaclass=ABCMeta):
         factor = 1.0 / divisor
         for factor_ in factors:
             factor *= factor_
-        
-        _var=var[loc, compName,ip]
 
+        _var = var[loc, compName, ip]
 
         if self.componentsDict[compName].processedQPcostScale[ip][loc] == 0:
             if not getOptValue:
@@ -2485,15 +2563,9 @@ class ComponentModel(metaclass=ABCMeta):
             for QPdivisor in QPdivisors:
                 QPfactor /= QPdivisor
             if not getOptValue:
-                return (
-                    factor * _var
-                    + QPfactor * _var * _var
-                )
+                return factor * _var + QPfactor * _var * _var
             else:
-                return (
-                    factor * _var.value
-                    + QPfactor * _var.value * _var.value
-                )
+                return factor * _var.value + QPfactor * _var.value * _var.value
 
     def getEconomicsTI(
         self,
@@ -2516,7 +2588,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-    
+
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
 
@@ -2545,50 +2617,107 @@ class ComponentModel(metaclass=ABCMeta):
 
             |br| * the default value is False.
         :type getoptValue: boolean
-        
+
         :param getOptValueCostType: the cost type can either be TAC (total anualized costs) or NPV (net present value)
             |br| * the default value is None.
         :type getOptValueCostType: string
         """
-        if getOptValueCostType not in ["TAC","NPV"]:
+        if getOptValueCostType not in ["TAC", "NPV"]:
             raise ValueError()
-              
+
         var = getattr(pyM, varName + "_" + self.abbrvName)
-        if esM.mode=="perfectForesight" or esM.mode=="singleYearOptimization":
-            def annuityPresentValueFactor(esM,compName,ip,loc ):
+        if esM.mode == "perfectForesight" or esM.mode == "singleYearOptimization":
+
+            def annuityPresentValueFactor(esM, compName, ip, loc):
                 # DE:Rentenbarwertfaktor
                 intrestRate = esM.getComponent(compName).interestRate[loc]
-                return (((1+intrestRate)**(esM.yearsPerInvestmentPeriod))-1)\
-                        /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))
-            
-            # Special case for perfect foresight: Components can have different 
-            # investPerCapacity in different years. The capex contribution 
+                return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
+                    intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
+                )
+
+            # Special case for perfect foresight: Components can have different
+            # investPerCapacity in different years. The capex contribution
             # however only depends on the capex of the commissioning year.
-            # Therefore, we initialize a dataframe with index and columns of the 
-            # investement periods. The rows describe the commissioning years, 
-            # e.g. a component build in year 2 but with a lifetime of three 
-            # years would have entries for df.loc[2,2:5]. Afterwards we 
-            # sum the contributions per column, multiply it with the annuity 
-            # present value factor to get the npv of the component for 
-            # different investPerCapacity and several ip for commissioning           
-            
+            # Therefore, we initialize a dataframe with index and columns of the
+            # investement periods. The rows describe the commissioning years,
+            # e.g. a component build in year 2 but with a lifetime of three
+            # years would have entries for df.loc[2,2:5]. Afterwards we
+            # sum the contributions per column, multiply it with the annuity
+            # present value factor to get the npv of the component for
+            # different investPerCapacity and several ip for commissioning
+
             # initialize dict with (loc,comp) as key and df as values
-            costContribution={}
-            for loc, compName, commisYear in var: # TODO improve! 
-                if (loc,compName) not in costContribution.keys():
-                    years=[]
+            costContribution = {}
+            for loc, compName, commisYear in var:  # TODO improve!
+                if (loc, compName) not in costContribution.keys():
+                    years = []
                     for _loc, _comp, year in var:
-                        if loc==_loc and compName==_comp:
+                        if loc == _loc and compName == _comp:
                             years.append(year)
-                    costContribution[(loc,compName)]= pd.DataFrame(0, index=years, columns=esM.investmentPeriods)
-            
-            
-            # fill the dataframes (per location and compName) with the cost 
+                    costContribution[(loc, compName)] = pd.DataFrame(
+                        0, index=years, columns=esM.investmentPeriods
+                    )
+
+            # fill the dataframes (per location and compName) with the cost
             # contributions depending on the commissioning year (index) and the
-            # investment period (columns)          
+            # investment period (columns)
             for loc, compName, commisYear in var:
-                decommisYear=commisYear+getattr(esM.getComponent(compName),lifetimeAttr)[loc]-1
-                costContribution[(loc,compName)].loc[commisYear,commisYear:decommisYear] =\
+                decommisYear = (
+                    commisYear
+                    + getattr(esM.getComponent(compName), lifetimeAttr)[loc]
+                    - 1
+                )
+                costContribution[(loc, compName)].loc[
+                    commisYear, commisYear:decommisYear
+                ] = self.getLocEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames,
+                    varName,
+                    loc,
+                    compName,
+                    commisYear,
+                    divisorName,
+                    QPfactorNames,
+                    QPdivisorNames,
+                    getOptValue,
+                )
+            if getOptValue:
+                cost_results = {}
+                for ip in esM.investmentPeriods:
+                    cost_results[ip] = pd.DataFrame()
+                for loc, compName, ip in var:
+                    if ip not in esM.investmentPeriods:
+                        continue
+                    if getOptValueCostType == "NPV":
+                        cost_results[ip].loc[compName, loc] = (
+                            costContribution[(loc, compName)][ip].sum()
+                            * annuityPresentValueFactor(esM, compName, ip, loc)
+                            * 1
+                            / (1 + esM.getComponent(compName).interestRate[loc])
+                            ** (ip * esM.yearsPerInvestmentPeriod)
+                            * (1 + esM.getComponent(compName).interestRate[loc])
+                        )
+                    elif getOptValueCostType == "TAC":  # TODO check
+                        cost_results[ip].loc[compName, loc] = costContribution[
+                            (loc, compName)
+                        ][ip].sum()
+                return cost_results
+            else:
+                return sum(
+                    costContribution[(loc, compName)][ip].sum()
+                    * annuityPresentValueFactor(esM, compName, ip, loc)
+                    * 1
+                    / (1 + esM.getComponent(compName).interestRate[loc])
+                    ** (ip * esM.yearsPerInvestmentPeriod)
+                    * (1 + esM.getComponent(compName).interestRate[loc])
+                    for loc, compName, ip in var
+                    if ip in esM.investmentPeriods
+                )
+
+        elif esM.mode == "stochastic":
+            return (
+                sum(
                     self.getLocEconomicsTI(
                         pyM,
                         esM,
@@ -2596,51 +2725,16 @@ class ComponentModel(metaclass=ABCMeta):
                         varName,
                         loc,
                         compName,
-                        commisYear,
+                        ip,
                         divisorName,
                         QPfactorNames,
                         QPdivisorNames,
                         getOptValue,
                     )
-            if getOptValue:
-                cost_results={}
-                for ip in esM.investmentPeriods:
-                    cost_results[ip]=pd.DataFrame()
-                for loc,compName,ip in var:
-                    if ip not in esM.investmentPeriods:
-                        continue
-                    if getOptValueCostType == "NPV":
-                        cost_results[ip].loc[compName,loc]=\
-                            costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
-                            * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
-                    elif getOptValueCostType == "TAC": # TODO check
-                        cost_results[ip].loc[compName,loc]=\
-                            costContribution[(loc,compName)][ip].sum()
-                return cost_results
-            else:
-                return sum(costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
-                        * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
-                        for loc, compName, ip in var 
-                        if ip in esM.investmentPeriods)
-
-        elif esM.mode == "stochastic":
-            return sum(
-                self.getLocEconomicsTI(
-                    pyM,
-                    esM,
-                    factorNames,
-                    varName,
-                    loc,
-                    compName,
-                    ip,
-                    divisorName,
-                    QPfactorNames,
-                    QPdivisorNames,
-                    getOptValue,
+                    for loc, compName, ip in var
                 )
-                for loc, compName, ip in var
-            )/ esM.numberOfInvestmentPeriods
-
+                / esM.numberOfInvestmentPeriods
+            )
 
     def getEconomicsTD(
         self, pyM, esM, factorNames, varName, dictName, getOptValue=False
@@ -2679,34 +2773,43 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean
         """
-        indices = getattr(pyM, dictName + "_" + self.abbrvName)#.items()
+        indices = getattr(pyM, dictName + "_" + self.abbrvName)  # .items()
         if self.dimension == "1dim":
-            def annuityPresentValueFactor(esM,compName,loc):
+
+            def annuityPresentValueFactor(esM, compName, loc):
                 # DE:Rentenbarwertfaktor
                 intrestRate = esM.getComponent(compName).interestRate[loc]
-                return (((1+intrestRate)**(esM.yearsPerInvestmentPeriod))-1)\
-                        /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))
+                return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
+                    intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
+                )
+
             return sum(
                 self.getLocEconomicsTD(
                     pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
-                ) 
-                * annuityPresentValueFactor(esM,compName,loc)*(1+esM.getComponent(compName).interestRate[loc])\
-                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
-                if esM.getComponent(compName).interestRate[loc] !=0 and esM.mode !="stochastic" else
-                self.getLocEconomicsTD(
+                )
+                * annuityPresentValueFactor(esM, compName, loc)
+                * (1 + esM.getComponent(compName).interestRate[loc])
+                * 1
+                / (1 + esM.getComponent(compName).interestRate[loc])
+                ** (ip * esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc] != 0
+                and esM.mode != "stochastic"
+                else self.getLocEconomicsTD(
                     pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
-                ) 
+                )
                 for ip, subDict in indices.items()
                 for loc, compNames in subDict.items()
                 for compName in compNames
             )
         else:
-            def annuityPresentValueFactor(esM,compName,loc, loc_):
+
+            def annuityPresentValueFactor(esM, compName, loc, loc_):
                 # DE:Rentenbarwertfaktor
                 intrestRate = esM.getComponent(compName).interestRate[loc + "_" + loc_]
-                return (((1+intrestRate)**(esM.yearsPerInvestmentPeriod))-1)\
-                        /(intrestRate*(1+intrestRate)**(esM.yearsPerInvestmentPeriod))
-            
+                return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
+                    intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
+                )
+
             return sum(
                 self.getLocEconomicsTD(
                     pyM,
@@ -2718,10 +2821,13 @@ class ComponentModel(metaclass=ABCMeta):
                     ip,
                     getOptValue,
                 )
-                * annuityPresentValueFactor(esM,compName,loc, loc_)*(1+esM.getComponent(compName).interestRate[loc + "_" + loc_])\
-                * 1/(1+esM.getComponent(compName).interestRate[loc + "_" + loc_])**(ip*esM.yearsPerInvestmentPeriod)
-                if esM.getComponent(compName).interestRate[loc + "_" + loc_] !=0 else
-                 self.getLocEconomicsTD(
+                * annuityPresentValueFactor(esM, compName, loc, loc_)
+                * (1 + esM.getComponent(compName).interestRate[loc + "_" + loc_])
+                * 1
+                / (1 + esM.getComponent(compName).interestRate[loc + "_" + loc_])
+                ** (ip * esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc + "_" + loc_] != 0
+                else self.getLocEconomicsTD(
                     pyM,
                     esM,
                     factorNames,
@@ -2786,7 +2892,7 @@ class ComponentModel(metaclass=ABCMeta):
         timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
         if getattr(self.componentsDict[compName], factorName) is not None:
             factor = getattr(self.componentsDict[compName], factorName)[ip][loc]
-            if esM.mode =="stochastic" :
+            if esM.mode == "stochastic":
                 if not getOptValue:
                     return (
                         sum(
@@ -2807,25 +2913,21 @@ class ComponentModel(metaclass=ABCMeta):
                         )
                         / esM.numberOfYears
                     )
-            elif esM.mode =="perfectForesight" or esM.mode == "singleYearOptimization":
+            elif esM.mode == "perfectForesight" or esM.mode == "singleYearOptimization":
                 if not getOptValue:
-                    return (
-                        sum(
-                            factor[p, t]
-                            * var[loc, compName, ip, p, t]
-                            * esM.periodOccurrences[ip][p]
-                            for p, t in timeSet_pt
-                        )
+                    return sum(
+                        factor[p, t]
+                        * var[loc, compName, ip, p, t]
+                        * esM.periodOccurrences[ip][p]
+                        for p, t in timeSet_pt
                     )
                 else:
-                    return (
-                        sum(
-                            factor[p, t]
-                            * var[loc, compName, ip, p, t].value
-                            * esM.periodOccurrences[ip][p]
-                            for p, t in timeSet_pt
-                        )
-                    )                
+                    return sum(
+                        factor[p, t]
+                        * var[loc, compName, ip, p, t].value
+                        * esM.periodOccurrences[ip][p]
+                        for p, t in timeSet_pt
+                    )
             else:
                 raise NotImplementedError()
         else:
@@ -2872,17 +2974,33 @@ class ComponentModel(metaclass=ABCMeta):
                 self.getLocEconomicsTimeSeries(
                     pyM, esM, factorName, varName, loc, compName, ip, getOptValue
                 )
-                * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
-                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))*(1+esM.getComponent(compName).interestRate[loc])\
-                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
-                if esM.getComponent(compName).interestRate[loc] !=0 and esM.mode !="stochastic" else
-                self.getLocEconomicsTimeSeries(
+                * (
+                    (
+                        (1 + esM.getComponent(compName).interestRate[loc])
+                        ** (
+                            esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod
+                        )
+                    )
+                    - 1
+                )
+                / (
+                    esM.getComponent(compName).interestRate[loc]
+                    * (1 + esM.getComponent(compName).interestRate[loc])
+                    ** (esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod)
+                )
+                * (1 + esM.getComponent(compName).interestRate[loc])
+                * 1
+                / (1 + esM.getComponent(compName).interestRate[loc])
+                ** (ip * esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc] != 0
+                and esM.mode != "stochastic"
+                else self.getLocEconomicsTimeSeries(
                     pyM, esM, factorName, varName, loc, compName, ip, getOptValue
                 )
                 for ip, subdict in indices
                 for loc, compNames in subdict.items()
                 for compName in compNames
-                #for ip in esM.investmentPeriods
+                # for ip in esM.investmentPeriods
             )
         else:
             return sum(
@@ -2896,11 +3014,27 @@ class ComponentModel(metaclass=ABCMeta):
                     ip,
                     getOptValue,
                 )
-                * (((1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))-1)\
-                        /(esM.getComponent(compName).interestRate[loc]*(1+esM.getComponent(compName).interestRate[loc])**(esM.numberOfInvestmentPeriods*esM.yearsPerInvestmentPeriod))*(1+esM.getComponent(compName).interestRate[loc])\
-                * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)
-                if esM.getComponent(compName).interestRate[loc] !=0 and esM.mode !="stochastic" else
-                self.getLocEconomicsTimeSeries(
+                * (
+                    (
+                        (1 + esM.getComponent(compName).interestRate[loc])
+                        ** (
+                            esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod
+                        )
+                    )
+                    - 1
+                )
+                / (
+                    esM.getComponent(compName).interestRate[loc]
+                    * (1 + esM.getComponent(compName).interestRate[loc])
+                    ** (esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod)
+                )
+                * (1 + esM.getComponent(compName).interestRate[loc])
+                * 1
+                / (1 + esM.getComponent(compName).interestRate[loc])
+                ** (ip * esM.yearsPerInvestmentPeriod)
+                if esM.getComponent(compName).interestRate[loc] != 0
+                and esM.mode != "stochastic"
+                else self.getLocEconomicsTimeSeries(
                     pyM,
                     esM,
                     factorName,
@@ -2930,7 +3064,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        
+
         :param ip: investement period
         :type ip: int
 
@@ -2958,9 +3092,9 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(esM.pyM, "cap_" + abbrvName)
         binVar = getattr(esM.pyM, "designBin_" + abbrvName)
-        commisVar=getattr(esM.pyM, "commis_" + abbrvName)
-        decommisVar=getattr(esM.pyM, "decommis_" + abbrvName)
-        
+        commisVar = getattr(esM.pyM, "commis_" + abbrvName)
+        decommisVar = getattr(esM.pyM, "decommis_" + abbrvName)
+
         props = [
             "capacity",
             "commissioning",
@@ -2999,7 +3133,7 @@ class ComponentModel(metaclass=ABCMeta):
                     x[1],
                     "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
                 )
-                if x[1] in ["capacity","commissioning","decommissioning"]
+                if x[1] in ["capacity", "commissioning", "decommissioning"]
                 else x,
                 tuples,
             )
@@ -3013,25 +3147,33 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Get and set optimal variable values for capacities
         values = capVar.get_values()
-        capOptVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
-        capOptVal_ = utils.formatOptimizationOutput(values, "designVariables", self.dimension, ip, compDict=compDict
-            )
+        capOptVal = utils.formatOptimizationOutput(
+            values, "designVariables", "1dim", ip
+        )
+        capOptVal_ = utils.formatOptimizationOutput(
+            values, "designVariables", self.dimension, ip, compDict=compDict
+        )
         self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = capOptVal_
         # Get and set optimal variable values for commissioning
         commisValues = commisVar.get_values()
-        commisOptVal = utils.formatOptimizationOutput(commisValues, "designVariables", "1dim", ip)
+        commisOptVal = utils.formatOptimizationOutput(
+            commisValues, "designVariables", "1dim", ip
+        )
         commisOptVal_ = utils.formatOptimizationOutput(
             commisValues, "designVariables", self.dimension, ip, compDict=compDict
         )
-        self.commissioningVariablesOptimum[esM.investmentPeriodList[ip]]=commisOptVal_
-        # Get and set optimal variable values for decommissioning  
+        self.commissioningVariablesOptimum[esM.investmentPeriodList[ip]] = commisOptVal_
+        # Get and set optimal variable values for decommissioning
         decommisValues = decommisVar.get_values()
-        decommisOptVal = utils.formatOptimizationOutput(decommisValues, "designVariables", "1dim", ip)
+        decommisOptVal = utils.formatOptimizationOutput(
+            decommisValues, "designVariables", "1dim", ip
+        )
         decommisOptVal_ = utils.formatOptimizationOutput(
             decommisValues, "designVariables", self.dimension, ip, compDict=compDict
         )
-        self.decommissioningVariablesOptimum[esM.investmentPeriodList[ip]]=decommisOptVal_
-       
+        self.decommissioningVariablesOptimum[
+            esM.investmentPeriodList[ip]
+        ] = decommisOptVal_
 
         if capOptVal is not None:
             # Check if the installed capacities are close to a bigM val
@@ -3066,80 +3208,76 @@ class ComponentModel(metaclass=ABCMeta):
                 ),
                 axis=1,
             )
-            
+
             # Get NPV contribution for investment
-            npv_cx=commisOptVal.apply(
-                lambda commis: 
-                    self.getEconomicsTI(  
-                        pyM,
-                        esM,
-                        factorNames=["processedInvestPerCapacity", "QPcostDev"],
-                        QPfactorNames=["processedQPcostScale", "investPerCapacity"],
-                        lifetimeAttr="ipEconomicLifetime",
-                        varName="commis",
-                        divisorName="CCF",
-                        QPdivisorNames=["QPbound", "CCF"],
-                        getOptValue=True,
-                        getOptValueCostType="NPV"
-                    )[ip].loc[commis.name],
+            npv_cx = commisOptVal.apply(
+                lambda commis: self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedInvestPerCapacity", "QPcostDev"],
+                    QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+                    lifetimeAttr="ipEconomicLifetime",
+                    varName="commis",
+                    divisorName="CCF",
+                    QPdivisorNames=["QPbound", "CCF"],
+                    getOptValue=True,
+                    getOptValueCostType="NPV",
+                )[ip].loc[commis.name],
                 axis=1,
             )
 
             # Calculate the annualized investment costs cx (CAPEX)
             # Get TAC for investment
-            tac_cx=commisOptVal.apply(
-                lambda cap: 
-                    self.getEconomicsTI(  
-                        pyM,
-                        esM,
-                        factorNames=["processedInvestPerCapacity", "QPcostDev"],
-                        QPfactorNames=["processedQPcostScale", "investPerCapacity"],
-                        lifetimeAttr="ipEconomicLifetime",
-                        varName="commis",
-                        divisorName="CCF",
-                        QPdivisorNames=["QPbound", "CCF"],
-                        getOptValue=True,
-                        getOptValueCostType="TAC"
-                    )[ip].loc[cap.name],
+            tac_cx = commisOptVal.apply(
+                lambda cap: self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedInvestPerCapacity", "QPcostDev"],
+                    QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+                    lifetimeAttr="ipEconomicLifetime",
+                    varName="commis",
+                    divisorName="CCF",
+                    QPdivisorNames=["QPbound", "CCF"],
+                    getOptValue=True,
+                    getOptValueCostType="TAC",
+                )[ip].loc[cap.name],
                 axis=1,
             )
-                        
-            # Get NPV cost contribution for the annualized operational costs ox (OPEX) 
-            npv_ox=commisOptVal.apply(
-                lambda commis: 
-                    self.getEconomicsTI( 
-                        pyM,
-                        esM,
-                        factorNames=["processedOpexPerCapacity", "QPcostDev"],
-                        QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
-                        lifetimeAttr="ipTechnicalLifetime",
-                        varName="commis",
-                        divisorName="CCF",
-                        QPdivisorNames=["QPbound"],
-                        getOptValue=True,
-                        getOptValueCostType="NPV"
-                    )[ip].loc[commis.name],
+
+            # Get NPV cost contribution for the annualized operational costs ox (OPEX)
+            npv_ox = commisOptVal.apply(
+                lambda commis: self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedOpexPerCapacity", "QPcostDev"],
+                    QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
+                    lifetimeAttr="ipTechnicalLifetime",
+                    varName="commis",
+                    divisorName="CCF",
+                    QPdivisorNames=["QPbound"],
+                    getOptValue=True,
+                    getOptValueCostType="NPV",
+                )[ip].loc[commis.name],
                 axis=1,
             )
 
             # Calculate the annualized operational costs ox (OPEX)
-            tac_ox=commisOptVal.apply(
-                lambda commis: 
-                    self.getEconomicsTI( 
-                        pyM,
-                        esM,
-                        factorNames=["processedOpexPerCapacity", "QPcostDev"],
-                        QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
-                        lifetimeAttr="ipTechnicalLifetime",
-                        varName="commis",
-                        divisorName="CCF",
-                        QPdivisorNames=["QPbound"],
-                        getOptValue=True,
-                        getOptValueCostType="TAC"
-                    )[ip].loc[commis.name],
+            tac_ox = commisOptVal.apply(
+                lambda commis: self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedOpexPerCapacity", "QPcostDev"],
+                    QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
+                    lifetimeAttr="ipTechnicalLifetime",
+                    varName="commis",
+                    divisorName="CCF",
+                    QPdivisorNames=["QPbound"],
+                    getOptValue=True,
+                    getOptValueCostType="TAC",
+                )[ip].loc[commis.name],
                 axis=1,
             )
-           
+
             # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
             # (due to capacity expansion).
             optSummary.loc[
@@ -3153,10 +3291,11 @@ class ComponentModel(metaclass=ABCMeta):
                 ],
                 capOptVal.columns,
             ] = capOptVal.values
-           
-            optSummary.loc[[(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index], i.columns ] = i.values
-            
-            
+
+            optSummary.loc[
+                [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index], i.columns
+            ] = i.values
+
             optSummary.loc[
                 [(ix, "capexCap", "[" + esM.costUnit + "/a]") for ix in tac_cx.index],
                 tac_cx.columns,
@@ -3168,128 +3307,137 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
         values = binVar.get_values()
-        binCapOptVal = utils.formatOptimizationOutput(values, "designVariables", "1dim",ip)
+        binCapOptVal = utils.formatOptimizationOutput(
+            values, "designVariables", "1dim", ip
+        )
         binCapOptVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, ip=ip, compDict=compDict
-            )
+            values, "designVariables", self.dimension, ip=ip, compDict=compDict
+        )
         self.isBuiltVariablesOptimum = binCapOptVal_
 
         if binCapOptVal is not None:
             # Calculate the investment costs i (fix value if component is built)
-            i = binCapOptVal.apply(lambda dec: dec * compDict[dec.name].processedInvestIfBuilt[ip], axis=1)
-            
+            i = binCapOptVal.apply(
+                lambda dec: dec * compDict[dec.name].processedInvestIfBuilt[ip], axis=1
+            )
 
             # Get NPV contribution for investmentIfBuilt
-            npv_cx_bin=commisOptVal.apply(
-                lambda commis: 
-                    self.getEconomicsTI( 
-                        pyM,
-                        esM,
-                        factorNames=["processedInvestIfBuilt"],
-                        lifetimeAttr="ipEconomicLifetime",
-                        varName="designBin", #TODO exchange for bin commis var
-                        divisorName="CCF",
-                        getOptValue=True,
-                        getOptValueCostType="NPV"
-                    )[ip].loc[commis.name],
+            npv_cx_bin = commisOptVal.apply(
+                lambda commis: self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedInvestIfBuilt"],
+                    lifetimeAttr="ipEconomicLifetime",
+                    varName="designBin",  # TODO exchange for bin commis var
+                    divisorName="CCF",
+                    getOptValue=True,
+                    getOptValueCostType="NPV",
+                )[ip].loc[commis.name],
                 axis=1,
             )
 
             # Calculate the annualized investment costs cx (CAPEX)
             # Get TAC for investmentIfBuilt
-            tac_cx_bin=commisOptVal.apply(
-                lambda cap: 
-                    self.getEconomicsTI(  
-                        pyM,
-                        esM,
-                        factorNames=["processedInvestIfBuilt"],
-                        lifetimeAttr="ipEconomicLifetime",
-                        varName="designBin", #TODO exchange for bin commis var
-                        divisorName="CCF",
-                        getOptValue=True,
-                        getOptValueCostType="TAC"
-                    )[ip].loc[cap.name],
+            tac_cx_bin = commisOptVal.apply(
+                lambda cap: self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedInvestIfBuilt"],
+                    lifetimeAttr="ipEconomicLifetime",
+                    varName="designBin",  # TODO exchange for bin commis var
+                    divisorName="CCF",
+                    getOptValue=True,
+                    getOptValueCostType="TAC",
+                )[ip].loc[cap.name],
                 axis=1,
             )
-                        
-            # Get NPV cost contribution for the annualized operational costs if built ox (OPEX) 
-            npv_ox_bin=commisOptVal.apply(
-                lambda commis: 
-                    self.getEconomicsTI(
-                        pyM,
-                        esM,
-                        factorNames=["processedOpexIfBuilt"],
-                        lifetimeAttr="ipTechnicalLifetime",
-                        varName="designBin", #TODO exchange for bin commis var
-                        getOptValue=True,
-                        getOptValueCostType="NPV"
-                    )[ip].loc[commis.name],
+
+            # Get NPV cost contribution for the annualized operational costs if built ox (OPEX)
+            npv_ox_bin = commisOptVal.apply(
+                lambda commis: self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedOpexIfBuilt"],
+                    lifetimeAttr="ipTechnicalLifetime",
+                    varName="designBin",  # TODO exchange for bin commis var
+                    getOptValue=True,
+                    getOptValueCostType="NPV",
+                )[ip].loc[commis.name],
                 axis=1,
             )
 
             # Calculate the annualized operational costs if built ox (OPEX)
-            tac_ox_bin=commisOptVal.apply(
-                lambda commis: 
-                    self.getEconomicsTI(
-                        pyM,
-                        esM,
-                        factorNames=["processedOpexIfBuilt"],
-                        lifetimeAttr="ipTechnicalLifetime",
-                        varName="designBin", #TODO exchange for bin commis var
-                        getOptValue=True,
-                        getOptValueCostType="TAC"
-                    )[ip].loc[commis.name],
+            tac_ox_bin = commisOptVal.apply(
+                lambda commis: self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedOpexIfBuilt"],
+                    lifetimeAttr="ipTechnicalLifetime",
+                    varName="designBin",  # TODO exchange for bin commis var
+                    getOptValue=True,
+                    getOptValueCostType="TAC",
+                )[ip].loc[commis.name],
                 axis=1,
             )
-            
 
             # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
             # (due to isBuilt decisions).
             optSummary.loc[
-                [(ix, "isBuilt", "[-]") for ix in binCapOptVal.index], binCapOptVal.columns
-            ] = binCapOptVal.values #TODO exchange for bin commis var
+                [(ix, "isBuilt", "[-]") for ix in binCapOptVal.index],
+                binCapOptVal.columns,
+            ] = binCapOptVal.values  # TODO exchange for bin commis var
             optSummary.loc[
                 [(ix, "invest", "[" + esM.costUnit + "]") for ix in tac_cx_bin.index],
                 tac_cx_bin.columns,
             ] += i.values
             optSummary.loc[
-                [(ix, "capexIfBuilt", "[" + esM.costUnit + "/a]") for ix in tac_cx_bin.index],
+                [
+                    (ix, "capexIfBuilt", "[" + esM.costUnit + "/a]")
+                    for ix in tac_cx_bin.index
+                ],
                 tac_cx_bin.columns,
             ] = tac_cx_bin.values
             optSummary.loc[
-                [(ix, "opexIfBuilt", "[" + esM.costUnit + "/a]") for ix in tac_ox_bin.index],
+                [
+                    (ix, "opexIfBuilt", "[" + esM.costUnit + "/a]")
+                    for ix in tac_ox_bin.index
+                ],
                 tac_ox_bin.columns,
             ] = tac_ox_bin.values
 
-        
         # Get and set optimal values for commissioning and decommissioning
         # not applicable for singleyear optimization, hence dropped from summary
-        # get commissioning and decommissioning results              
-        
-        # either decommissioning or capacity exists 
+        # get commissioning and decommissioning results
+
+        # either decommissioning or capacity exists
         # (years can have decommissioning, leading to no left capacity)
         if decommisOptVal is not None or capOptVal is not None:
             # Fill in the optimiation summary for commissioning and decommissioning
             # commissioning
-            optSummary.loc[[
-                (
-                    ix,
-                    "commissioning",
-                    "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
-                )
-                for ix in commisOptVal.index
-            ], commisOptVal.columns]=commisOptVal.values
+            optSummary.loc[
+                [
+                    (
+                        ix,
+                        "commissioning",
+                        "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
+                    )
+                    for ix in commisOptVal.index
+                ],
+                commisOptVal.columns,
+            ] = commisOptVal.values
             # decommissioning
-            optSummary.loc[[
-                (
-                    ix,
-                    "decommissioning",
-                    "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
-                )
-                for ix in decommisOptVal.index
-            ], decommisOptVal.columns]=decommisOptVal.values
-                
-                          
+            optSummary.loc[
+                [
+                    (
+                        ix,
+                        "decommissioning",
+                        "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
+                    )
+                    for ix in decommisOptVal.index
+                ],
+                decommisOptVal.columns,
+            ] = decommisOptVal.values
+
         # Summarize all annualized contributions to the total annual cost
         optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
             optSummary.loc[
@@ -3302,28 +3450,28 @@ class ComponentModel(metaclass=ABCMeta):
             .sum()
             .values
         )
-        
+
         # TODO NPV contribution berechnen.
         # opex per operation rein? @max fragen
-        npv=pd.DataFrame()
+        npv = pd.DataFrame()
         if capOptVal is not None:
-            npv=npv.add(npv_cx, fill_value=0)
-            npv=npv.add(npv_ox, fill_value=0)
+            npv = npv.add(npv_cx, fill_value=0)
+            npv = npv.add(npv_ox, fill_value=0)
         if binCapOptVal is not None:
-            npv=npv.add(npv_cx_bin, fill_value=0)
-            npv=npv.add(npv_ox_bin, fill_value=0)
+            npv = npv.add(npv_cx_bin, fill_value=0)
+            npv = npv.add(npv_ox_bin, fill_value=0)
 
         optSummary.loc[
-                [
-                    (
-                        ix,
-                        "NPVcontribution",
-                        "[" + esM.costUnit + "]",
-                    )
-                    for ix in npv.index
-                ],
-                npv.columns,
-            ] = npv.values
+            [
+                (
+                    ix,
+                    "NPVcontribution",
+                    "[" + esM.costUnit + "]",
+                )
+                for ix in npv.index
+            ],
+            npv.columns,
+        ] = npv.values
         return optSummary
 
     def getOptimalValues(self, name="all"):
@@ -3376,12 +3524,12 @@ class ComponentModel(metaclass=ABCMeta):
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
-                "commissioningVariablesOptimum":{
+                "commissioningVariablesOptimum": {
                     "values": self.commissioningVariablesOptimum,
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
-                "decommissioningVariablesOptimum":{
+                "decommissioningVariablesOptimum": {
                     "values": self.decommissioningVariablesOptimum,
                     "timeDependent": False,
                     "dimension": self.dimension,

@@ -105,9 +105,9 @@ def plotShift(
     if timeSeriesAggregation:
         demand = pd.concat(
             [
-                esM_with.getComponent("flexible demand").aggregatedOperationRateFix[0].loc[
-                    p
-                ]
+                esM_with.getComponent("flexible demand")
+                .aggregatedOperationRateFix[0]
+                .loc[p]
                 for p in esM_with.periodsOrder[0]
             ],
             ignore_index=True,
@@ -162,13 +162,17 @@ def plotShift(
                     )
                     tp = esM_with.periodsOrder[0][p]
                     h_ = h % numberOfTimeStepsPerPeriod
-                    chargeMax = esM_with.getComponent(
-                        "flexible demand_" + str(i)
-                    ).aggregatedChargeOpRateMax[0].loc[(tp, h_), "location"]
+                    chargeMax = (
+                        esM_with.getComponent("flexible demand_" + str(i))
+                        .aggregatedChargeOpRateMax[0]
+                        .loc[(tp, h_), "location"]
+                    )
                 else:
-                    chargeMax = esM_with.getComponent(
-                        "flexible demand_" + str(i)
-                    ).fullChargeOpRateMax[0].loc[(0, h), "location"]
+                    chargeMax = (
+                        esM_with.getComponent("flexible demand_" + str(i))
+                        .fullChargeOpRateMax[0]
+                        .loc[(0, h), "location"]
+                    )
                 if x == 0:
                     ax.bar(
                         [x + 0.5],
@@ -366,9 +370,9 @@ def run_esM_with_DSM(
     ].chargeOperationVariablesOptimum
     chargeMax = pd.concat(
         [
-            esM_with.getComponent("flexible demand_" + str(i)).fullChargeOpRateMax[0].loc[
-                0
-            ]
+            esM_with.getComponent("flexible demand_" + str(i))
+            .fullChargeOpRateMax[0]
+            .loc[0]
             for i in range(tBwd + tFwd + 1)
         ],
         axis=1,

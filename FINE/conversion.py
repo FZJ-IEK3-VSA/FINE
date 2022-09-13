@@ -154,15 +154,21 @@ class Conversion(Component):
             technicalLifetime=technicalLifetime,
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
-            stockCommissioning=stockCommissioning
+            stockCommissioning=stockCommissioning,
         )
 
         # opexPerOperation
         self.opexPerOperation = opexPerOperation
         self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-                    esM, name, opexPerOperation, "1dim", locationalEligibility,esM.investmentPeriods)
-        
-        # operationRateMax and operationRateFix -> TODO move theck 
+            esM,
+            name,
+            opexPerOperation,
+            "1dim",
+            locationalEligibility,
+            esM.investmentPeriods,
+        )
+
+        # operationRateMax and operationRateFix -> TODO move theck
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
             if esM.verbose < 2:
@@ -170,37 +176,43 @@ class Conversion(Component):
                     "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
                     + "The operationRateMax time series was set to None."
                 )
-        #operationRateMax
+        # operationRateMax
         self.operationRateMax = operationRateMax
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, operationRateMax, locationalEligibility)
+            esM, name, operationRateMax, locationalEligibility
+        )
         self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
-        
-        #operationRateFix
+
+        # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-                    esM, name, operationRateFix, locationalEligibility)
+            esM, name, operationRateFix, locationalEligibility
+        )
         self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
-        
+
         # commodity conversions
         self.commodityConversionFactors = commodityConversionFactors
         self.fullCommodityConversionFactors = {}
         self.aggregatedCommodityConversionFactors = {}
         self.processedCommodityConversionFactors = {}
-        
-        
+
         # partLoadMin
         self.partLoadMin = partLoadMin
-        self.processedPartLoadMin=utils.checkAndSetPartLoadMin(esM,name,partLoadMin,self.fullOperationRateMax, self.fullOperationRateFix)        
-        
+        self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
+            esM, name, partLoadMin, self.fullOperationRateMax, self.fullOperationRateFix
+        )
+
         ########################
         for _ip in esM.investmentPeriodList:
             # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip=esM.investmentPeriodList.index(_ip)
-            # 1. dict aus Jahren -> verschiedene commoditiyconversion für jahr  
-            if all(item in esM.investmentPeriods for item in commodityConversionFactors.keys()):
+            ip = esM.investmentPeriodList.index(_ip)
+            # 1. dict aus Jahren -> verschiedene commoditiyconversion für jahr
+            if all(
+                item in esM.investmentPeriods
+                for item in commodityConversionFactors.keys()
+            ):
                 _commodityConversionFactors = commodityConversionFactors[_ip]
             else:
                 _commodityConversionFactors = commodityConversionFactors
@@ -400,9 +412,9 @@ class ConversionModel(ComponentModel):
         self.abbrvName = "conv"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum={}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.capacityVariablesOptimum = {}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.isBuiltVariablesOptimum = {}
         self._optSummary = {}
         self.operationVariablesOptimum = {}
@@ -468,15 +480,15 @@ class ConversionModel(ComponentModel):
         """
 
         # Declare design variable sets
-        self.declareDesignVarSet(pyM,esM)
+        self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM,esM)
-        self.declareDiscreteDesignVarSet(pyM,esM)
-        self.declareDesignDecisionVarSet(pyM,esM)
-        
+        self.declareContinuousDesignVarSet(pyM, esM)
+        self.declareDiscreteDesignVarSet(pyM, esM)
+        self.declareDesignDecisionVarSet(pyM, esM)
+
         # Declare design pathway sets
-        self.declarePathwaySets(pyM,esM)
-        self.declareLocationComponentSet(pyM,esM)
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM, esM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
@@ -512,7 +524,7 @@ class ConversionModel(ComponentModel):
         """
 
         # Capacity variables [physicalUnit]
-        self.declareCapacityVars(pyM,esM)
+        self.declareCapacityVars(pyM, esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -524,8 +536,8 @@ class ConversionModel(ComponentModel):
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
         # Capacity development variables [physicalUnit]
-        self.declareCommissioningVars(pyM,esM)
-        self.declareDecommissioningVars(pyM,esM)
+        self.declareCommissioningVars(pyM, esM)
+        self.declareDecommissioningVars(pyM, esM)
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -569,7 +581,7 @@ class ConversionModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM,esM)
+        self.capToNbReal(pyM, esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -577,7 +589,7 @@ class ConversionModel(ComponentModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM,esM)
+        self.capacityFix(pyM, esM)
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Link, if applicable, the capacity of components with the same linkedConversionCapacityID
@@ -586,14 +598,14 @@ class ConversionModel(ComponentModel):
         self.yearlyFullLoadHoursMin(pyM, esM)
         # Set yearly full load hours maximum limit
         self.yearlyFullLoadHoursMax(pyM, esM)
-        
+
         ################################################################################################################
         #                                    Declare pathway constraints                                               #
         ################################################################################################################
         # Set capacity development constraints over investment periods
-        self.designDevelopmentConstraint(pyM,esM)
-        self.decommissioningConstraint(pyM,esM)
-        self.initialYearConstraint(pyM,esM)
+        self.designDevelopmentConstraint(pyM, esM)
+        self.decommissioningConstraint(pyM, esM)
+        self.initialYearConstraint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
@@ -616,7 +628,7 @@ class ConversionModel(ComponentModel):
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )
-    
+
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
@@ -740,7 +752,10 @@ class ConversionModel(ComponentModel):
 
             props = ["operation", "opexOp"]
             # Unit dict: Specify units for props
-            units = {props[0]: ["[-*h]", "[-*h/a]"], props[1]: ["[" + esM.costUnit + "/a]"]}
+            units = {
+                props[0]: ["[-*h]", "[-*h/a]"],
+                props[1]: ["[" + esM.costUnit + "/a]"],
+            }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
                 (compName, prop, unit)
@@ -751,7 +766,11 @@ class ConversionModel(ComponentModel):
             # Replace placeholder with correct unit of component
             tuples = list(
                 map(
-                    lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].physicalUnit))
+                    lambda x: (
+                        x[0],
+                        x[1],
+                        x[2].replace("-", compDict[x[0]].physicalUnit),
+                    )
                     if x[1] == "operation"
                     else x,
                     tuples,
@@ -813,7 +832,7 @@ class ConversionModel(ComponentModel):
             # Quick fix if several runs with one investment period
             if type(self._optSummary) is not dict:
                 self._optSummary = {}
-            self._optSummary[esM.investmentPeriodList[ip]]  = optSummary
+            self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all"):
         """

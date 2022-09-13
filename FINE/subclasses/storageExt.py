@@ -118,7 +118,7 @@ class StorageExtBETA(Storage):
         self.opexPerChargeOpTimeSeries = {}
 
         for _ip in esM.investmentPeriodList:
-            ip=esM.investmentPeriodList.index(_ip)
+            ip = esM.investmentPeriodList.index(_ip)
             # fullStateOfChargeOpRateMax
             if (
                 isinstance(stateOfChargeOpRateMax, pd.DataFrame)
@@ -176,7 +176,10 @@ class StorageExtBETA(Storage):
                 )
             elif isinstance(opexPerChargeOpTimeSeries, dict):
                 self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, opexPerChargeOpTimeSeries[_ip], self.locationalEligibility
+                    esM,
+                    name,
+                    opexPerChargeOpTimeSeries[_ip],
+                    self.locationalEligibility,
                 )
             else:
                 raise TypeError(
@@ -436,8 +439,8 @@ class StorageExtModel(StorageModel):
         self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         (
             self.chargeOperationVariablesOptimum,
             self.dischargeOperationVariablesOptimum,
@@ -502,7 +505,8 @@ class StorageExtModel(StorageModel):
                             ** (t * esM.hoursPerTimeStep)
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMax
+                        <= capVar[loc, compName, ip]
+                        * compDict[compName].stateOfChargeMax
                     )
                 else:
                     return (
@@ -517,7 +521,8 @@ class StorageExtModel(StorageModel):
                             )
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMax
+                        <= capVar[loc, compName, ip]
+                        * compDict[compName].stateOfChargeMax
                     )
             else:
                 return pyomo.Constraint.Skip
@@ -791,7 +796,7 @@ class StorageExtModel(StorageModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM,esM)
+        self.capToNbReal(pyM, esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -799,7 +804,7 @@ class StorageExtModel(StorageModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Sets, if applicable, the installed capacities of a component
-        self.capacityFix(pyM,esM)
+        self.capacityFix(pyM, esM)
         # Sets, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
 
@@ -807,9 +812,9 @@ class StorageExtModel(StorageModel):
         #                                    Declare pathway constraints                                               #
         ################################################################################################################
         # Set capacity development constraints over investment periods
-        self.designDevelopmentConstraint(pyM,esM)
-        self.decommissioningConstraint(pyM,esM)
-        self.initialYearConstraint(pyM,esM)
+        self.designDevelopmentConstraint(pyM, esM)
+        self.decommissioningConstraint(pyM, esM)
+        self.initialYearConstraint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #

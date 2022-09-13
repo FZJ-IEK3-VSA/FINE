@@ -95,8 +95,8 @@ class ConversionDynamicModel(ConversionModel):
         self.dimension = "1dim"
         self.componentsDict = {}
         self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum={}
-        self.decommissioningVariablesOptimum={}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.operationVariablesOptimum = None
         self._optSummary = None
 
@@ -321,7 +321,9 @@ class ConversionDynamicModel(ConversionModel):
         setattr(
             pyM,
             "ConstrMinDownTime1_" + abbrvName,
-            pyomo.Constraint(constrSetMinDownTime, pyM.intraYearTimeSet, rule=minimumDownTime1),
+            pyomo.Constraint(
+                constrSetMinDownTime, pyM.intraYearTimeSet, rule=minimumDownTime1
+            ),
         )
 
         def minimumDownTime2(pyM, loc, compName, ip, p, t):
@@ -344,7 +346,9 @@ class ConversionDynamicModel(ConversionModel):
         setattr(
             pyM,
             "ConstrMinDownTime2_" + abbrvName,
-            pyomo.Constraint(constrSetMinDownTime, pyM.intraYearTimeSet, rule=minimumDownTime2),
+            pyomo.Constraint(
+                constrSetMinDownTime, pyM.intraYearTimeSet, rule=minimumDownTime2
+            ),
         )
 
     def minimumUpTime(self, pyM, esM):
@@ -390,7 +394,9 @@ class ConversionDynamicModel(ConversionModel):
         setattr(
             pyM,
             "ConstrMinUpTime1_" + abbrvName,
-            pyomo.Constraint(constrSetMinUpTime, pyM.intraYearTimeSet, rule=minimumUpTime1),
+            pyomo.Constraint(
+                constrSetMinUpTime, pyM.intraYearTimeSet, rule=minimumUpTime1
+            ),
         )
 
         def minimumUpTime2(pyM, loc, compName, ip, p, t):
@@ -413,7 +419,9 @@ class ConversionDynamicModel(ConversionModel):
         setattr(
             pyM,
             "ConstrMinUpTime2_" + abbrvName,
-            pyomo.Constraint(constrSetMinUpTime, pyM.intraYearTimeSet, rule=minimumUpTime2),
+            pyomo.Constraint(
+                constrSetMinUpTime, pyM.intraYearTimeSet, rule=minimumUpTime2
+            ),
         )
 
     def rampUpMax(self, pyM, esM):
@@ -525,7 +533,9 @@ class ConversionDynamicModel(ConversionModel):
         setattr(
             pyM,
             "ConstrRampDownMax_" + abbrvName,
-            pyomo.Constraint(constrSetRampDownMax, pyM.intraYearTimeSet, rule=rampDownMax),
+            pyomo.Constraint(
+                constrSetRampDownMax, pyM.intraYearTimeSet, rule=rampDownMax
+            ),
         )
 
     def declareComponentConstraints(self, esM, pyM):

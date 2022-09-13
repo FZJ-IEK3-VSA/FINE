@@ -2422,6 +2422,7 @@ def dsm_test_esM(scope="session"):
 
     return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
 
+
 @pytest.fixture
 def perfectForesight_test_esM(scope="session"):
 
@@ -2457,7 +2458,7 @@ def perfectForesight_test_esM(scope="session"):
                     0.25,
                     0.5,
                 ]
-            )
+            ),
         ],
         index=["PerfectLand", "ForesightLand"],
     ).T
@@ -2496,7 +2497,7 @@ def perfectForesight_test_esM(scope="session"):
         ],
         index=["PerfectLand", "ForesightLand"],
     ).T  # first investmentperiod
-    demand[2025]=demand[2020]
+    demand[2025] = demand[2020]
     demand[2030] = pd.DataFrame(
         [
             np.array(
@@ -2510,12 +2511,12 @@ def perfectForesight_test_esM(scope="session"):
                     4380,
                     1e3,
                 ]
-            )
+            ),
         ],
         index=["PerfectLand", "ForesightLand"],
     ).T
-    demand[2035]=demand[2030]
-    demand[2040]=demand[2030]
+    demand[2035] = demand[2030]
+    demand[2040] = demand[2030]
 
     esM.add(
         fn.Sink(

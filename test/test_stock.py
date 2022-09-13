@@ -107,7 +107,7 @@ def stock_esM():
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
             commodityCostTimeSeries=costs,
-            opexPerCapacity={0:500* 0.025},
+            opexPerCapacity={0: 500 * 0.025},
             commodityRevenueTimeSeries=revenues,
         )
     )  # eur/kWh
@@ -120,13 +120,18 @@ def stock_esM():
             physicalUnit=r"kW$_{el}$",
             commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
             hasCapacityVariable=True,
-            investPerCapacity={-2:550,-1:350,0:500},  # euro/kW
-            opexPerCapacity={-2:550* 0.025,-1:350* 0.025,0:500* 0.025},
+            investPerCapacity={-2: 550, -1: 350, 0: 500},  # euro/kW
+            opexPerCapacity={-2: 550 * 0.025, -1: 350 * 0.025, 0: 500 * 0.025},
             interestRate=0.08,
             economicLifetime=10,
             stockCommissioning={
-                -2:pd.Series([1,2], index=["ElectrolyzerLocation", "IndustryLocation"]),
-                -1:pd.Series([0,0], index=["ElectrolyzerLocation", "IndustryLocation"])}
+                -2: pd.Series(
+                    [1, 2], index=["ElectrolyzerLocation", "IndustryLocation"]
+                ),
+                -1: pd.Series(
+                    [0, 0], index=["ElectrolyzerLocation", "IndustryLocation"]
+                ),
+            },
         )
     )
 
@@ -139,42 +144,53 @@ def stock_esM():
             hasCapacityVariable=True,
             capacityVariableDomain="continuous",
             stateOfChargeMin=0.33,
-            investPerCapacity={0:0.5, -1:0.75, -5:1, -19:1.5}, # eur/kWh
-            opexPerCapacity={-19:550* 0.025,-5:350* 0.025, -1:350* 0.025,0:500* 0.025},
-            opexPerChargeOperation={0:0.002},
-            opexPerDischargeOperation={0:0.001},
+            investPerCapacity={0: 0.5, -1: 0.75, -5: 1, -19: 1.5},  # eur/kWh
+            opexPerCapacity={
+                -19: 550 * 0.025,
+                -5: 350 * 0.025,
+                -1: 350 * 0.025,
+                0: 500 * 0.025,
+            },
+            opexPerChargeOperation={0: 0.002},
+            opexPerDischargeOperation={0: 0.001},
             interestRate=0.08,
             economicLifetime=30,
             stockCommissioning={
-                -1:pd.Series([1,2], index=["ElectrolyzerLocation", "IndustryLocation"]),
-                -5:pd.Series([2,2], index=["ElectrolyzerLocation", "IndustryLocation"]),
-                -19:pd.Series([1,1], index=["ElectrolyzerLocation",  "IndustryLocation"]),
-                -31:pd.Series([4,8], index=["ElectrolyzerLocation",  "IndustryLocation"])
+                -1: pd.Series(
+                    [1, 2], index=["ElectrolyzerLocation", "IndustryLocation"]
+                ),
+                -5: pd.Series(
+                    [2, 2], index=["ElectrolyzerLocation", "IndustryLocation"]
+                ),
+                -19: pd.Series(
+                    [1, 1], index=["ElectrolyzerLocation", "IndustryLocation"]
+                ),
+                -31: pd.Series(
+                    [4, 8], index=["ElectrolyzerLocation", "IndustryLocation"]
+                ),
             },
         )
     )
 
     ### Hydrogen pipelines
-    pipeline_stock={}
-    pipeline_stock[-1]=pd.DataFrame()
-    pipeline_stock[-1].loc["ElectrolyzerLocation", "IndustryLocation"]=1
-    pipeline_stock[-1].loc[ "IndustryLocation","ElectrolyzerLocation"]=1
-    pipeline_stock[-1].loc[ "ElectrolyzerLocation","ElectrolyzerLocation"]=0
-    pipeline_stock[-1].loc[ "IndustryLocation","IndustryLocation"]=0
-    
+    pipeline_stock = {}
+    pipeline_stock[-1] = pd.DataFrame()
+    pipeline_stock[-1].loc["ElectrolyzerLocation", "IndustryLocation"] = 1
+    pipeline_stock[-1].loc["IndustryLocation", "ElectrolyzerLocation"] = 1
+    pipeline_stock[-1].loc["ElectrolyzerLocation", "ElectrolyzerLocation"] = 0
+    pipeline_stock[-1].loc["IndustryLocation", "IndustryLocation"] = 0
+
     esM.add(
         fn.Transmission(
             esM=esM,
             name="Pipelines",
             commodity="hydrogen",
             hasCapacityVariable=True,
-            opexPerCapacity={-2:550* 0.025,-1:350* 0.025,0:500* 0.025},
-            investPerCapacity={
-                -1:0.3,
-                0:0.177},
+            opexPerCapacity={-2: 550 * 0.025, -1: 350 * 0.025, 0: 500 * 0.025},
+            investPerCapacity={-1: 0.3, 0: 0.177},
             interestRate=0.08,
             economicLifetime=40,
-            stockCommissioning=pipeline_stock
+            stockCommissioning=pipeline_stock,
         )
     )
 
@@ -215,66 +231,227 @@ def stock_esM():
 
     return esM
 
+
 def test_stock():
-    esM=stock_esM()
-    
-    
+    esM = stock_esM()
+
     # Check input of optimization
     # electrolyzers
-    assert esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[-2]["IndustryLocation"]==550
-    assert esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[-1]["IndustryLocation"]==350
-    assert esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[0]["IndustryLocation"]==500
-    assert esM.getComponentAttribute("Electrolyzers", "processedOpexPerCapacity")[-2]["IndustryLocation"]==13.75
-    assert esM.getComponentAttribute("Electrolyzers", "processedOpexPerCapacity")[-1]["IndustryLocation"]==8.75
-    assert esM.getComponentAttribute("Electrolyzers", "processedOpexPerCapacity")[0]["IndustryLocation"]==12.5
-    assert esM.getComponentAttribute("Electrolyzers", "processedStockCommissioning")[-1]["IndustryLocation"] ==0
-    assert esM.getComponentAttribute("Electrolyzers", "processedStockCommissioning")[-2]["IndustryLocation"]==2
-    assert esM.getComponentAttribute("Electrolyzers", "processedStockCommissioning")[-2]["ElectrolyzerLocation"]==1
-    
+    assert (
+        esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[-2][
+            "IndustryLocation"
+        ]
+        == 550
+    )
+    assert (
+        esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[-1][
+            "IndustryLocation"
+        ]
+        == 350
+    )
+    assert (
+        esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[0][
+            "IndustryLocation"
+        ]
+        == 500
+    )
+    assert (
+        esM.getComponentAttribute("Electrolyzers", "processedOpexPerCapacity")[-2][
+            "IndustryLocation"
+        ]
+        == 13.75
+    )
+    assert (
+        esM.getComponentAttribute("Electrolyzers", "processedOpexPerCapacity")[-1][
+            "IndustryLocation"
+        ]
+        == 8.75
+    )
+    assert (
+        esM.getComponentAttribute("Electrolyzers", "processedOpexPerCapacity")[0][
+            "IndustryLocation"
+        ]
+        == 12.5
+    )
+    assert (
+        esM.getComponentAttribute("Electrolyzers", "processedStockCommissioning")[-1][
+            "IndustryLocation"
+        ]
+        == 0
+    )
+    assert (
+        esM.getComponentAttribute("Electrolyzers", "processedStockCommissioning")[-2][
+            "IndustryLocation"
+        ]
+        == 2
+    )
+    assert (
+        esM.getComponentAttribute("Electrolyzers", "processedStockCommissioning")[-2][
+            "ElectrolyzerLocation"
+        ]
+        == 1
+    )
+
     # storages
-    assert esM.getComponentAttribute("Pressure tank", "processedInvestPerCapacity")[0]["IndustryLocation"]==0.5
-    assert esM.getComponentAttribute("Pressure tank", "processedInvestPerCapacity")[-1]["IndustryLocation"]==0.75
-    assert esM.getComponentAttribute("Pressure tank", "processedInvestPerCapacity")[-19]["IndustryLocation"]==1.5
-    assert esM.getComponentAttribute("Pressure tank", "processedOpexPerCapacity")[0]["IndustryLocation"]==12.5
-    assert esM.getComponentAttribute("Pressure tank", "processedOpexPerCapacity")[-1]["IndustryLocation"]==8.75
-    assert esM.getComponentAttribute("Pressure tank", "processedOpexPerCapacity")[-19]["IndustryLocation"]==13.75
-    assert esM.getComponentAttribute("Pressure tank", "processedStockCommissioning")[-19]["IndustryLocation"]==1
-    assert esM.getComponentAttribute("Pressure tank", "processedStockCommissioning")[-5]["ElectrolyzerLocation"]==2
-    
+    assert (
+        esM.getComponentAttribute("Pressure tank", "processedInvestPerCapacity")[0][
+            "IndustryLocation"
+        ]
+        == 0.5
+    )
+    assert (
+        esM.getComponentAttribute("Pressure tank", "processedInvestPerCapacity")[-1][
+            "IndustryLocation"
+        ]
+        == 0.75
+    )
+    assert (
+        esM.getComponentAttribute("Pressure tank", "processedInvestPerCapacity")[-19][
+            "IndustryLocation"
+        ]
+        == 1.5
+    )
+    assert (
+        esM.getComponentAttribute("Pressure tank", "processedOpexPerCapacity")[0][
+            "IndustryLocation"
+        ]
+        == 12.5
+    )
+    assert (
+        esM.getComponentAttribute("Pressure tank", "processedOpexPerCapacity")[-1][
+            "IndustryLocation"
+        ]
+        == 8.75
+    )
+    assert (
+        esM.getComponentAttribute("Pressure tank", "processedOpexPerCapacity")[-19][
+            "IndustryLocation"
+        ]
+        == 13.75
+    )
+    assert (
+        esM.getComponentAttribute("Pressure tank", "processedStockCommissioning")[-19][
+            "IndustryLocation"
+        ]
+        == 1
+    )
+    assert (
+        esM.getComponentAttribute("Pressure tank", "processedStockCommissioning")[-5][
+            "ElectrolyzerLocation"
+        ]
+        == 2
+    )
+
     # pipelines
-    assert esM.getComponentAttribute("Pipelines", "processedInvestPerCapacity")[-1]["ElectrolyzerLocation_IndustryLocation"]==0.3*0.5 
-    assert esM.getComponentAttribute("Pipelines", "processedInvestPerCapacity")[0]["ElectrolyzerLocation_IndustryLocation"]==0.177*0.5
-    assert esM.getComponentAttribute("Pipelines", "processedOpexPerCapacity")[0]["ElectrolyzerLocation_IndustryLocation"]==500*0.025*0.5
-    assert esM.getComponentAttribute("Pipelines", "processedOpexPerCapacity")[-1]["ElectrolyzerLocation_IndustryLocation"]==350*0.025*0.5
-    assert esM.getComponentAttribute("Pipelines", "processedStockCommissioning")[-1]["ElectrolyzerLocation_IndustryLocation"]==1
-    assert esM.getComponentAttribute("Pipelines", "processedStockCommissioning")[-1]["IndustryLocation_ElectrolyzerLocation"]==1
+    assert (
+        esM.getComponentAttribute("Pipelines", "processedInvestPerCapacity")[-1][
+            "ElectrolyzerLocation_IndustryLocation"
+        ]
+        == 0.3 * 0.5
+    )
+    assert (
+        esM.getComponentAttribute("Pipelines", "processedInvestPerCapacity")[0][
+            "ElectrolyzerLocation_IndustryLocation"
+        ]
+        == 0.177 * 0.5
+    )
+    assert (
+        esM.getComponentAttribute("Pipelines", "processedOpexPerCapacity")[0][
+            "ElectrolyzerLocation_IndustryLocation"
+        ]
+        == 500 * 0.025 * 0.5
+    )
+    assert (
+        esM.getComponentAttribute("Pipelines", "processedOpexPerCapacity")[-1][
+            "ElectrolyzerLocation_IndustryLocation"
+        ]
+        == 350 * 0.025 * 0.5
+    )
+    assert (
+        esM.getComponentAttribute("Pipelines", "processedStockCommissioning")[-1][
+            "ElectrolyzerLocation_IndustryLocation"
+        ]
+        == 1
+    )
+    assert (
+        esM.getComponentAttribute("Pipelines", "processedStockCommissioning")[-1][
+            "IndustryLocation_ElectrolyzerLocation"
+        ]
+        == 1
+    )
 
     # special case - not ip depending as only one year in dict # TODO change at some point?
-    assert esM.getComponentAttribute("Electricity market", "processedOpexPerCapacity")["IndustryLocation"] == 12.5
-    assert esM.getComponentAttribute("Electricity market", "processedOpexPerCapacity")["IndustryLocation"] == 12.5
-    assert esM.getComponentAttribute("Pressure tank", "processedOpexPerChargeOperation")["IndustryLocation"]==0.002
-    
-    
+    assert (
+        esM.getComponentAttribute("Electricity market", "processedOpexPerCapacity")[
+            "IndustryLocation"
+        ]
+        == 12.5
+    )
+    assert (
+        esM.getComponentAttribute("Electricity market", "processedOpexPerCapacity")[
+            "IndustryLocation"
+        ]
+        == 12.5
+    )
+    assert (
+        esM.getComponentAttribute("Pressure tank", "processedOpexPerChargeOperation")[
+            "IndustryLocation"
+        ]
+        == 0.002
+    )
+
     # check optimization output and pym model -> check commissioning and stock
     esM.optimize()
-    
+
     # pipelines
-    assert esM.pyM.commis_trans.get_values()[('ElectrolyzerLocation_IndustryLocation', 'Pipelines', -1)]==1
-    assert esM.pyM.commis_trans.get_values()[('ElectrolyzerLocation_IndustryLocation', 'Pipelines', 0)]==5999.001529680365
-    assert ((
-        esM.pyM.commis_trans.get_values()[('ElectrolyzerLocation_IndustryLocation', 'Pipelines', -1)]
-        +esM.pyM.commis_trans.get_values()[('ElectrolyzerLocation_IndustryLocation', 'Pipelines', 0)])\
-            ==esM.pyM.cap_trans.get_values()[('ElectrolyzerLocation_IndustryLocation', 'Pipelines', 0)])
-    
+    assert (
+        esM.pyM.commis_trans.get_values()[
+            ("ElectrolyzerLocation_IndustryLocation", "Pipelines", -1)
+        ]
+        == 1
+    )
+    assert (
+        esM.pyM.commis_trans.get_values()[
+            ("ElectrolyzerLocation_IndustryLocation", "Pipelines", 0)
+        ]
+        == 5999.001529680365
+    )
+    assert (
+        esM.pyM.commis_trans.get_values()[
+            ("ElectrolyzerLocation_IndustryLocation", "Pipelines", -1)
+        ]
+        + esM.pyM.commis_trans.get_values()[
+            ("ElectrolyzerLocation_IndustryLocation", "Pipelines", 0)
+        ]
+    ) == esM.pyM.cap_trans.get_values()[
+        ("ElectrolyzerLocation_IndustryLocation", "Pipelines", 0)
+    ]
+
     # storages
     assert sum(esM.pyM.commis_stor.get_values().values()) == 9
-    assert sum(esM.pyM.commis_stor.get_values().values()) == esM.getComponent('Pressure tank').stockCapacityStartYear.sum()
-    assert esM.getComponent('Pressure tank').stockCapacityStartYear["ElectrolyzerLocation"]+esM.pyM.commis_stor.get_values()[('ElectrolyzerLocation', 'Pressure tank', 0)]==esM.pyM.cap_stor.get_values()[('ElectrolyzerLocation', 'Pressure tank', 0)]
-    
+    assert (
+        sum(esM.pyM.commis_stor.get_values().values())
+        == esM.getComponent("Pressure tank").stockCapacityStartYear.sum()
+    )
+    assert (
+        esM.getComponent("Pressure tank").stockCapacityStartYear["ElectrolyzerLocation"]
+        + esM.pyM.commis_stor.get_values()[("ElectrolyzerLocation", "Pressure tank", 0)]
+        == esM.pyM.cap_stor.get_values()[("ElectrolyzerLocation", "Pressure tank", 0)]
+    )
+
     import pytest
+
     pytest.set_trace()
 
-    assert esM.getOptimizationSummary('ConversionModel').loc[('Electrolyzers','commissioning','[kW$_{el}$]'),'ElectrolyzerLocation'] == esM.pyM.commis_conv.get_values()[('ElectrolyzerLocation', 'Electrolyzers', 0)]
+    assert (
+        esM.getOptimizationSummary("ConversionModel").loc[
+            ("Electrolyzers", "commissioning", "[kW$_{el}$]"), "ElectrolyzerLocation"
+        ]
+        == esM.pyM.commis_conv.get_values()[
+            ("ElectrolyzerLocation", "Electrolyzers", 0)
+        ]
+    )
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     test_stock()
