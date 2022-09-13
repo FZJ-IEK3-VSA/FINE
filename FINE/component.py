@@ -2232,16 +2232,14 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        """
-        _varName="commis"
-        
+        """      
         capexCap = self.getEconomicsTI(
             pyM,
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
             QPfactorNames=["processedQPcostScale", "investPerCapacity"],
             lifetimeAttr="ipEconomicLifetime",
-            varName=_varName,
+            varName="commis",
             divisorName="CCF",
             QPdivisorNames=["QPbound", "CCF"],
         )
@@ -2259,7 +2257,7 @@ class ComponentModel(metaclass=ABCMeta):
             factorNames=["processedOpexPerCapacity", "QPcostDev"],
             QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
             lifetimeAttr="ipTechnicalLifetime",
-            varName=_varName,
+            varName="commis",
             QPdivisorNames=["QPbound"],
         )
         opexDec = self.getEconomicsTI(
@@ -2508,6 +2506,7 @@ class ComponentModel(metaclass=ABCMeta):
         QPfactorNames=[],
         QPdivisorNames=[],
         getOptValue=False,
+        getOptValueCostType="TAC",
     ):
         """
         Set time-independent equations for the individual components. The equations will be set for all components of a modeling class
@@ -2546,7 +2545,14 @@ class ComponentModel(metaclass=ABCMeta):
 
             |br| * the default value is False.
         :type getoptValue: boolean
+        
+        :param getOptValueCostType: the cost type can either be TAC (total anualized costs) or NPV (net present value)
+            |br| * the default value is None.
+        :type getOptValueCostType: string
         """
+        if getOptValueCostType not in ["TAC","NPV"]:
+            raise ValueError()
+              
         var = getattr(pyM, varName + "_" + self.abbrvName)
         if esM.mode=="perfectForesight" or esM.mode=="singleYearOptimization":
             def annuityPresentValueFactor(esM,compName,ip,loc ):
@@ -2579,7 +2585,7 @@ class ComponentModel(metaclass=ABCMeta):
             
             # fill the dataframes (per location and compName) with the cost 
             # contributions depending on the commissioning year (index) and the
-            # investment period (columns)
+            # investment period (columns)          
             for loc, compName, commisYear in var:
                 decommisYear=commisYear+getattr(esM.getComponent(compName),lifetimeAttr)[loc]-1
                 costContribution[(loc,compName)].loc[commisYear,commisYear:decommisYear] =\
@@ -2603,9 +2609,13 @@ class ComponentModel(metaclass=ABCMeta):
                 for loc,compName,ip in var:
                     if ip not in esM.investmentPeriods:
                         continue
-                    cost_results[ip].loc[compName,loc]=\
-                        costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
-                        * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
+                    if getOptValueCostType == "NPV":
+                        cost_results[ip].loc[compName,loc]=\
+                            costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
+                            * 1/(1+esM.getComponent(compName).interestRate[loc])**(ip*esM.yearsPerInvestmentPeriod)*(1+esM.getComponent(compName).interestRate[loc])
+                    elif getOptValueCostType == "TAC": # TODO check
+                        cost_results[ip].loc[compName,loc]=\
+                            costContribution[(loc,compName)][ip].sum()
                 return cost_results
             else:
                 return sum(costContribution[(loc,compName)][ip].sum()* annuityPresentValueFactor(esM,compName,ip,loc)\
@@ -2631,24 +2641,6 @@ class ComponentModel(metaclass=ABCMeta):
                 for loc, compName, ip in var
             )/ esM.numberOfInvestmentPeriods
 
-        else:
-            raise NotImplementedError()
-            return sum(
-                self.getLocEconomicsTI(
-                    pyM,
-                    esM,
-                    factorNames,
-                    varName,
-                    loc,
-                    compName,
-                    ip,
-                    divisorName,
-                    QPfactorNames,
-                    QPdivisorNames,
-                    getOptValue,
-                )
-                for loc, compName, ip in var
-            )
 
     def getEconomicsTD(
         self, pyM, esM, factorNames, varName, dictName, getOptValue=False
@@ -2977,7 +2969,7 @@ class ComponentModel(metaclass=ABCMeta):
             "capexCap",
             "capexIfBuilt",
             "opexCap",
-            "processedOpexIfBuilt",
+            "opexIfBuilt",
             "TAC",
             "NPVcontribution",
             "invest",
@@ -2992,7 +2984,7 @@ class ComponentModel(metaclass=ABCMeta):
             "[" + esM.costUnit + "/a]",
             "[" + esM.costUnit + "/a]",
             "[" + esM.costUnit + "/a]",
-            "[" + esM.costUnit + "/a]",
+            "[" + esM.costUnit + "]",
             "[" + esM.costUnit + "]",
         ]
         tuples = [
@@ -3019,20 +3011,20 @@ class ComponentModel(metaclass=ABCMeta):
             index=mIndex, columns=sorted(indexColumns)
         ).sort_index()
 
-        # Get and set optimal variable values for expanded capacities
+        # Get and set optimal variable values for capacities
         values = capVar.get_values()
         capOptVal = utils.formatOptimizationOutput(values, "designVariables", "1dim", ip)
         capOptVal_ = utils.formatOptimizationOutput(values, "designVariables", self.dimension, ip, compDict=compDict
             )
         self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = capOptVal_
-        # Get and set optimal variable values for commississioning
+        # Get and set optimal variable values for commissioning
         commisValues = commisVar.get_values()
         commisOptVal = utils.formatOptimizationOutput(commisValues, "designVariables", "1dim", ip)
         commisOptVal_ = utils.formatOptimizationOutput(
             commisValues, "designVariables", self.dimension, ip, compDict=compDict
         )
         self.commissioningVariablesOptimum[esM.investmentPeriodList[ip]]=commisOptVal_
-        # Get and set optimal variable values for decommississioning  
+        # Get and set optimal variable values for decommissioning  
         decommisValues = decommisVar.get_values()
         decommisOptVal = utils.formatOptimizationOutput(decommisValues, "designVariables", "1dim", ip)
         decommisOptVal_ = utils.formatOptimizationOutput(
@@ -3060,72 +3052,94 @@ class ComponentModel(metaclass=ABCMeta):
                         + " Big M."
                     )
 
-            # Calculate the investment costs i (proportional to capacity expansion)
-            # TODO massiv falsch! muss commis year sein
+            # Calculate the investment costs i (proportional to commissioning)
             i = commisOptVal.apply(
-                lambda cap: cap
-                * compDict[cap.name].processedInvestPerCapacity[ip]
-                * compDict[cap.name].QPcostDev[ip]
+                lambda commis: commis
+                * compDict[commis.name].processedInvestPerCapacity[ip]
+                * compDict[commis.name].QPcostDev[ip]
                 + (
-                    compDict[cap.name].processedInvestPerCapacity[ip]
-                    * compDict[cap.name].processedQPcostScale[ip]
-                    / (compDict[cap.name].QPbound[ip])
-                    * cap
-                    * cap
+                    compDict[commis.name].processedInvestPerCapacity[ip]
+                    * compDict[commis.name].processedQPcostScale[ip]
+                    / (compDict[commis.name].QPbound[ip])
+                    * commis
+                    * commis
                 ),
                 axis=1,
             )
             
-            # Get NPV contribution 
-            npv_cx=capOptVal.apply(
-                lambda cap: 
-                    self.getEconomicsTI( # TODO sourcesink 
+            # Get NPV contribution for investment
+            npv_cx=commisOptVal.apply(
+                lambda commis: 
+                    self.getEconomicsTI(  
                         pyM,
                         esM,
                         factorNames=["processedInvestPerCapacity", "QPcostDev"],
                         QPfactorNames=["processedQPcostScale", "investPerCapacity"],
                         lifetimeAttr="ipEconomicLifetime",
-                        varName="cap",
+                        varName="commis",
                         divisorName="CCF",
                         QPdivisorNames=["QPbound", "CCF"],
-                        getOptValue=True
-                    )[ip].loc[cap.name],
+                        getOptValue=True,
+                        getOptValueCostType="NPV"
+                    )[ip].loc[commis.name],
                 axis=1,
             )
 
             # Calculate the annualized investment costs cx (CAPEX)
-            cx = capOptVal.apply(
-                lambda cap: (
-                    cap
-                    * compDict[cap.name].processedInvestPerCapacity[ip]
-                    * compDict[cap.name].QPcostDev[ip]
-                    / compDict[cap.name].CCF
-                )
-                + (
-                    compDict[cap.name].processedInvestPerCapacity[ip]
-                    / compDict[cap.name].CCF
-                    * compDict[cap.name].processedQPcostScale[ip]
-                    / (compDict[cap.name].QPbound[ip])
-                    * cap
-                    * cap
-                ),
+            # Get TAC for investment
+            tac_cx=commisOptVal.apply(
+                lambda cap: 
+                    self.getEconomicsTI(  
+                        pyM,
+                        esM,
+                        factorNames=["processedInvestPerCapacity", "QPcostDev"],
+                        QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+                        lifetimeAttr="ipEconomicLifetime",
+                        varName="commis",
+                        divisorName="CCF",
+                        QPdivisorNames=["QPbound", "CCF"],
+                        getOptValue=True,
+                        getOptValueCostType="TAC"
+                    )[ip].loc[cap.name],
                 axis=1,
             )
-            # Calculate the annualized operational costs ox (OPEX)
-            ox = capOptVal.apply(
-                lambda cap: cap
-                * compDict[cap.name].processedOpexPerCapacity[ip]
-                * compDict[cap.name].QPcostDev[ip]
-                + (
-                    compDict[cap.name].processedOpexPerCapacity[ip]
-                    * compDict[cap.name].processedQPcostScale[ip]
-                    / (compDict[cap.name].QPbound[ip])
-                    * cap
-                    * cap
-                ),
+                        
+            # Get NPV cost contribution for the annualized operational costs ox (OPEX) 
+            npv_ox=commisOptVal.apply(
+                lambda commis: 
+                    self.getEconomicsTI( 
+                        pyM,
+                        esM,
+                        factorNames=["processedOpexPerCapacity", "QPcostDev"],
+                        QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
+                        lifetimeAttr="ipTechnicalLifetime",
+                        varName="commis",
+                        divisorName="CCF",
+                        QPdivisorNames=["QPbound"],
+                        getOptValue=True,
+                        getOptValueCostType="NPV"
+                    )[ip].loc[commis.name],
                 axis=1,
             )
 
+            # Calculate the annualized operational costs ox (OPEX)
+            tac_ox=commisOptVal.apply(
+                lambda commis: 
+                    self.getEconomicsTI( 
+                        pyM,
+                        esM,
+                        factorNames=["processedOpexPerCapacity", "QPcostDev"],
+                        QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
+                        lifetimeAttr="ipTechnicalLifetime",
+                        varName="commis",
+                        divisorName="CCF",
+                        QPdivisorNames=["QPbound"],
+                        getOptValue=True,
+                        getOptValueCostType="TAC"
+                    )[ip].loc[commis.name],
+                axis=1,
+            )
+           
             # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
             # (due to capacity expansion).
             optSummary.loc[
@@ -3144,13 +3158,13 @@ class ComponentModel(metaclass=ABCMeta):
             
             
             optSummary.loc[
-                [(ix, "capexCap", "[" + esM.costUnit + "/a]") for ix in cx.index],
-                cx.columns,
-            ] = cx.values
+                [(ix, "capexCap", "[" + esM.costUnit + "/a]") for ix in tac_cx.index],
+                tac_cx.columns,
+            ] = tac_cx.values
             optSummary.loc[
-                [(ix, "opexCap", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                ox.columns,
-            ] = ox.values
+                [(ix, "opexCap", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
+                tac_ox.columns,
+            ] = tac_ox.values
 
         # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
         values = binVar.get_values()
@@ -3163,33 +3177,89 @@ class ComponentModel(metaclass=ABCMeta):
         if binCapOptVal is not None:
             # Calculate the investment costs i (fix value if component is built)
             i = binCapOptVal.apply(lambda dec: dec * compDict[dec.name].processedInvestIfBuilt[ip], axis=1)
-            # Calculate the annualized investment costs cx (fix value if component is built)
-            cx = binCapOptVal.apply(
-                lambda dec: dec
-                * compDict[dec.name].processedInvestIfBuilt[ip]
-                / compDict[dec.name].CCF,
+            
+
+            # Get NPV contribution for investmentIfBuilt
+            npv_cx_bin=commisOptVal.apply(
+                lambda commis: 
+                    self.getEconomicsTI( 
+                        pyM,
+                        esM,
+                        factorNames=["processedInvestIfBuilt"],
+                        lifetimeAttr="ipEconomicLifetime",
+                        varName="designBin", #TODO exchange for bin commis var
+                        divisorName="CCF",
+                        getOptValue=True,
+                        getOptValueCostType="NPV"
+                    )[ip].loc[commis.name],
                 axis=1,
             )
-            # Calculate the annualized operational costs ox (fix value if component is built)
-            ox = binCapOptVal.apply(lambda dec: dec * compDict[dec.name].processedOpexIfBuilt[ip], axis=1)
+
+            # Calculate the annualized investment costs cx (CAPEX)
+            # Get TAC for investmentIfBuilt
+            tac_cx_bin=commisOptVal.apply(
+                lambda cap: 
+                    self.getEconomicsTI(  
+                        pyM,
+                        esM,
+                        factorNames=["processedInvestIfBuilt"],
+                        lifetimeAttr="ipEconomicLifetime",
+                        varName="designBin", #TODO exchange for bin commis var
+                        divisorName="CCF",
+                        getOptValue=True,
+                        getOptValueCostType="TAC"
+                    )[ip].loc[cap.name],
+                axis=1,
+            )
+                        
+            # Get NPV cost contribution for the annualized operational costs if built ox (OPEX) 
+            npv_ox_bin=commisOptVal.apply(
+                lambda commis: 
+                    self.getEconomicsTI(
+                        pyM,
+                        esM,
+                        factorNames=["processedOpexIfBuilt"],
+                        lifetimeAttr="ipTechnicalLifetime",
+                        varName="designBin", #TODO exchange for bin commis var
+                        getOptValue=True,
+                        getOptValueCostType="NPV"
+                    )[ip].loc[commis.name],
+                axis=1,
+            )
+
+            # Calculate the annualized operational costs if built ox (OPEX)
+            tac_ox_bin=commisOptVal.apply(
+                lambda commis: 
+                    self.getEconomicsTI(
+                        pyM,
+                        esM,
+                        factorNames=["processedOpexIfBuilt"],
+                        lifetimeAttr="ipTechnicalLifetime",
+                        varName="designBin", #TODO exchange for bin commis var
+                        getOptValue=True,
+                        getOptValueCostType="TAC"
+                    )[ip].loc[commis.name],
+                axis=1,
+            )
+            
 
             # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
             # (due to isBuilt decisions).
             optSummary.loc[
                 [(ix, "isBuilt", "[-]") for ix in binCapOptVal.index], binCapOptVal.columns
-            ] = binCapOptVal.values
+            ] = binCapOptVal.values #TODO exchange for bin commis var
             optSummary.loc[
-                [(ix, "invest", "[" + esM.costUnit + "]") for ix in cx.index],
-                cx.columns,
+                [(ix, "invest", "[" + esM.costUnit + "]") for ix in tac_cx_bin.index],
+                tac_cx_bin.columns,
             ] += i.values
             optSummary.loc[
-                [(ix, "capexIfBuilt", "[" + esM.costUnit + "/a]") for ix in cx.index],
-                cx.columns,
-            ] = cx.values
+                [(ix, "capexIfBuilt", "[" + esM.costUnit + "/a]") for ix in tac_cx_bin.index],
+                tac_cx_bin.columns,
+            ] = tac_cx_bin.values
             optSummary.loc[
-                [(ix, "processedOpexIfBuilt", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                ox.columns,
-            ] = ox.values
+                [(ix, "opexIfBuilt", "[" + esM.costUnit + "/a]") for ix in tac_ox_bin.index],
+                tac_ox_bin.columns,
+            ] = tac_ox_bin.values
 
         
         # Get and set optimal values for commissioning and decommissioning
@@ -3233,19 +3303,27 @@ class ComponentModel(metaclass=ABCMeta):
             .values
         )
         
-        # TODO opex per operation rein? @max fragen
-        # optSummary.loc[optSummary.index.get_level_values(1) == "NPVcontribution"] = (
-        #     optSummary.loc[
-        #         (optSummary.index.get_level_values(1) == "capexCap") # TODO
-        #         | (optSummary.index.get_level_values(1) == "opexCap") # TODO
-        #         | (optSummary.index.get_level_values(1) == "capexIfBuilt") # TODO
-        #         | (optSummary.index.get_level_values(1) == "processedOpexIfBuilt") # TODO
-        #     ]
-        #     .groupby(level=0)
-        #     .sum()
-        #     .values
-        # )
+        # TODO NPV contribution berechnen.
+        # opex per operation rein? @max fragen
+        npv=pd.DataFrame()
+        if capOptVal is not None:
+            npv=npv.add(npv_cx, fill_value=0)
+            npv=npv.add(npv_ox, fill_value=0)
+        if binCapOptVal is not None:
+            npv=npv.add(npv_cx_bin, fill_value=0)
+            npv=npv.add(npv_ox_bin, fill_value=0)
 
+        optSummary.loc[
+                [
+                    (
+                        ix,
+                        "NPVcontribution",
+                        "[" + esM.costUnit + "]",
+                    )
+                    for ix in npv.index
+                ],
+                npv.columns,
+            ] = npv.values
         return optSummary
 
     def getOptimalValues(self, name="all"):
@@ -3304,11 +3382,10 @@ class ComponentModel(metaclass=ABCMeta):
                     "dimension": self.dimension,
                 },
                 "decommissioningVariablesOptimum":{
-                "values": self.decommissioningVariablesOptimum,
-                "timeDependent": False,
-                "dimension": self.dimension,
+                    "values": self.decommissioningVariablesOptimum,
+                    "timeDependent": False,
+                    "dimension": self.dimension,
                 },
-        
                 "isBuiltVariablesOptimum": {
                     "values": self.isBuiltVariablesOptimum,
                     "timeDependent": False,

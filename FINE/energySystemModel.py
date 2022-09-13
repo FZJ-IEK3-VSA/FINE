@@ -1122,7 +1122,6 @@ class EnergySystemModel:
                         for t in range(len(self.segmentsPerPeriod) + 1)
                     )
 
-                
                 def initIntraYearTimeSet(pyM):
                     return ( 
                         (p,t) 

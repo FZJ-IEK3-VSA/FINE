@@ -1994,7 +1994,7 @@ def checkStockYears(stockCommissioning,startYear,yearsPerInvestmentPeriod, ipTec
     stockYears=[x for x in stockCommissioning.keys()]
     processedStockYears=[int((x-startYear)/yearsPerInvestmentPeriod) for x in stockCommissioning.keys()]
     processedStockYears=\
-        [x for x in processedStockYears if x>-ipTechnicalLifetime.max()]
+        [x for x in processedStockYears if x>=-ipTechnicalLifetime.max()]
 
     return stockYears, processedStockYears
 

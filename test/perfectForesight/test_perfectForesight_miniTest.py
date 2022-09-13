@@ -197,7 +197,13 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
     assert srcSnk_optSum[2020].loc[("PV","capacity","[kW$_{el}$]"),"ForesightLand"] ==2
     assert srcSnk_optSum[2020].loc[("PV","commissioning","[kW$_{el}$]"),"ForesightLand"] ==1.5
     assert math.isnan(srcSnk_optSum[2020].loc[("EDemand","commissioning","[kW$_{el}$]"),"ForesightLand"])
+    
+    # check getOptimalValue function
+    assert esM.componentModelingDict["SourceSinkModel"].getOptimalValues()["commissioningVariablesOptimum"]["values"][2020].loc["PV","ForesightLand"]==1.5
+    assert esM.componentModelingDict["SourceSinkModel"].getOptimalValues()["decommissioningVariablesOptimum"]["values"][2020].loc["PV","ForesightLand"]==10
 
+    import pytest
+    pytest.set_trace()
 
 if __name__ == "__main__":
     test_perfectForesight_stock(perfectForesight_test_esM())    
