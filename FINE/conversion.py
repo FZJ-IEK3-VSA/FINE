@@ -432,8 +432,6 @@ class Conversion(Component):
             ip,
         )
         for commod in self.fullCommodityConversionFactors[ip]:
-            print("\n\n self.fullCommodityConversionFactors[commod]")
-            print(self.fullCommodityConversionFactors[ip][commod])
             weightDict, data = self.prepareTSAInput(
                 self.fullCommodityConversionFactors[ip][commod],
                 None,

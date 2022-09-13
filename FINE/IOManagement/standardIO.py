@@ -47,7 +47,11 @@ def timer(func):
 
 
 def writeOptimizationOutputToExcel(
-    esM, outputFileName="scenarioOutput", optSumOutputLevel=2, optValOutputLevel=1
+    esM,
+    outputFileName="scenarioOutput",
+    optSumOutputLevel=2,
+    optValOutputLevel=1,
+    ip=0,
 ):
     """
     Write optimization output to an Excel file.
@@ -140,13 +144,13 @@ def writeOptimizationOutputToExcel(
                 )
 
     periodsOrder = pd.DataFrame(
-        [esM.periodsOrder], index=["periodsOrder"], columns=esM.periods
+        [esM.periodsOrder[ip]], index=["periodsOrder"], columns=esM.periods
     )
     periodsOrder.to_excel(writer, "Misc")
     if esM.segmentation:
         ls = []
-        for i in esM.periodsOrder.tolist():
-            ls.append(esM.timeStepsPerSegment[i])
+        for i in esM.periodsOrder[ip].tolist():
+            ls.append(esM.timeStepsPerSegment[ip][i])
         segmentDuration = pd.concat(ls, axis=1).rename(
             columns={"Segment Duration": "timeStepsPerSegment"}
         )
