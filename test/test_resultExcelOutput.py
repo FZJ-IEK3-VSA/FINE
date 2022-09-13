@@ -36,8 +36,8 @@ def compareTwoExcelFiles(path1, path2):
     # check all sheets
     for sheet in xl.sheet_names:
         # load as dataframe and round for numeric reasons
-        expected = pd.read_excel(path1, sheet_name=sheet).round(6)
-        output = pd.read_excel(path2, sheet_name=sheet).round(6)
+        expected = pd.read_excel(path1, sheet_name=sheet).round(4)
+        output = pd.read_excel(path2, sheet_name=sheet).round(4)
         # check for differences
         if list(expected.index) != list(output.index):
             raise ValueError(f"Diferent index for sheet {sheet}")
