@@ -2428,8 +2428,11 @@ def perfectForesight_test_esM(scope="session"):
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},
-        commodities={"electricity"},
-        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        commodities={"electricity", "hydrogen"},
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
         numberOfTimeSteps=2,
         hoursPerTimeStep=4380,
         costUnit="1 Euro",
