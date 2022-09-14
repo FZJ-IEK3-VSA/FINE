@@ -108,6 +108,8 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
     _locationalEligibility = locationalEligibility.copy()
     _locationalEligibility.update({"cluster_0": 0})
 
+    import pytest
+    pytest.set_trace()
     esM.add(
         fn.Source(
             esM=esM,

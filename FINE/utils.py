@@ -559,21 +559,18 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     def checkAndSet(data, comp, esM):
         if data is not None:
             if comp.dimension == "1dim":
-                if not isinstance(var_data, pd.Series):
+                if not isinstance(data, pd.Series):
                     raise TypeError("Input data has to be a pandas Series")
-                comp.__dict__[var_name] = checkRegionalIndex(
-                    esM, var_data, comp.locationalEligibility
-                )
+                data = checkRegionalIndex(esM, data,comp.locationalEligibility)
             elif comp.dimension == "2dim":
-                if not isinstance(var_data, pd.Series):
+                if not isinstance(data, pd.Series):
                     raise TypeError("Input data has to be a pandas DataFrame")
-                comp.__dict__[var_name] = checkConnectionIndex(
-                    var_data, comp.locationalEligibility
-                )
+                data = checkConnectionIndex(data, comp.locationalEligibility)
             else:
                 raise ValueError(
                     "The dimension parameter has to be either '1dim' or '2dim' "
                 )
+
 
     for data in [
         capacityMin,
