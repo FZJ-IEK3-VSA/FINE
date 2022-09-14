@@ -20,16 +20,16 @@ def test_TSAmultiStage(minimal_test_esM):
     pressureTank.hasIsBuiltBinaryVariable = True
     pipelines.hasIsBuiltBinaryVariable = True
 
-    electrolyzers.investIfBuilt = pd.Series(2e5, index=esM.locations)
-    pressureTank.investIfBuilt = pd.Series(1e5, index=esM.locations)
-    pipelines.investIfBuilt.loc[:] = 100
+    electrolyzers.processedInvestIfBuilt[0] = pd.Series(2e5, index=esM.locations)
+    pressureTank.processedInvestIfBuilt[0] = pd.Series(1e5, index=esM.locations)
+    pipelines.processedInvestIfBuilt[0].loc[:] = 100
 
     electrolyzers.bigM = 30e4
     pressureTank.bigM = 30e6
     pipelines.bigM = 30e3
 
-    electrolyzers.investIfBuilt = pd.Series(2e5, index=esM.locations)
-    pressureTank.investIfBuilt = pd.Series(1e5, index=esM.locations)
+    electrolyzers.processedInvestIfBuilt[0] = pd.Series(2e5, index=esM.locations)
+    pressureTank.processedInvestIfBuilt[0] = pd.Series(1e5, index=esM.locations)
 
     electrolyzers.bigM = 30e4
     pressureTank.bigM = 30e6

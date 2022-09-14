@@ -67,6 +67,8 @@ def checkEnergySystemModelInput(
     hoursPerTimeStep,
     numberOfInvestmentPeriods,
     yearsPerInvestmentPeriod,
+    startyear,
+    mode,
     costUnit,
     lengthUnit,
     balanceLimit,
@@ -86,13 +88,29 @@ def checkEnergySystemModelInput(
         )
     isSetOfStrings(set(commodityUnitsDict.values()))
 
-    # The numberOfTimeSteps and the hoursPerTimeStep have to be strictly positive numbers
     isStrictlyPositiveInt(numberOfTimeSteps), isStrictlyPositiveNumber(hoursPerTimeStep)
 
-    # The investmentPerdios and yearsPerInvestmentPeriod have to be strictly positive integers
-    isStrictlyPositiveInt(numberOfInvestmentPeriods), isStrictlyPositiveNumber(
-        yearsPerInvestmentPeriod
-    )
+    # check transformation path variables and mode
+    if not isinstance(startyear, int):
+        raise TypeError("Startyear must be an integer")
+
+    isStrictlyPositiveInt(numberOfInvestmentPeriods)
+    isStrictlyPositiveNumber(yearsPerInvestmentPeriod)
+
+    if mode not in ["singleYearOptimization", "stochastic", "perfectForesight"]:
+        raise ValueError(
+            "Parameter 'mode' must be 'singleYearOptimization', 'stochastic' or 'perfectForesight'."
+        )
+    if mode in ["stochastic", "perfectForesight"] and numberOfInvestmentPeriods == 1:
+        raise ValueError(
+            "A stochastic optimization needs more than one numberOfInvestementPeriod"
+        )
+    if mode is "singleYearOptimization" and (
+        numberOfInvestmentPeriods != 1 and numberOfInvestmentPeriods != None
+    ):
+        raise ValueError(
+            "A single year optimization can only have numberOfInvestmentPeriods=None or numberOfInvestmentPeriods=1."
+        )
 
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
@@ -488,22 +506,26 @@ def castToSeries(data, esM):
     return pd.Series(data, index=list(esM.locations))
 
 
-def getQPbound(QPcostScale, capacityMax, capacityMin):
+def getQPbound(investmentPeriods, QPcostScale, capacityMax, capacityMin):
     """Compute and return lower and upper capacity bounds."""
-    index = QPcostScale.index
-    QPbound = pd.Series([np.inf] * len(index), index)
+    QPbound = {}
+    for ip in investmentPeriods:
+        index = QPcostScale[ip].index
+        QPbound[ip] = pd.Series([np.inf] * len(index), index)
 
-    if capacityMin is not None and capacityMax is not None:
-        minS = pd.Series(capacityMin.isna(), index)
-        maxS = pd.Series(capacityMax.isna(), index)
-        for x in index:
-            if not minS.loc[x] and not maxS.loc[x]:
-                QPbound.loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
+        if capacityMin is not None and capacityMax is not None:
+            minS = pd.Series(capacityMin.isna(), index)
+            maxS = pd.Series(capacityMax.isna(), index)
+            for x in index:
+                if not minS.loc[x] and not maxS.loc[x]:
+                    QPbound[ip].loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
     return QPbound
 
 
-def getQPcostDev(QPcostScale):
-    QPcostDev = 1 - QPcostScale
+def getQPcostDev(investmentPeriods, QPcostScale):
+    QPcostDev = {}
+    for ip in investmentPeriods:
+        QPcostDev[ip] = 1 - QPcostScale[ip]
     return QPcostDev
 
 
@@ -517,20 +539,25 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
         comp.QPcostScale = castToSeries(comp.QPcostScale, esM)
 
-    for var_name, var_data in comp.__dict__.items():
-        if (
-            var_name
-            in [
-                "locationalEligibility",
-                "capacityMin",
-                "capacityFix",
-                "capacityMax",
-                "QPcostScale",
-                "isBuiltFix",
-            ]
-            and var_data is not None
-        ):
+    capacityMin, capacityFix, capacityMax, QPcostScale = (
+        comp.capacityMin,
+        comp.capacityFix,
+        comp.capacityMax,
+        comp.processedQPcostScale,
+    )
+    locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
+    hasCapacityVariable, hasIsBuiltBinaryVariable = (
+        comp.hasCapacityVariable,
+        comp.hasIsBuiltBinaryVariable,
+    )
+    sharedPotentialID = comp.sharedPotentialID
+    partLoadMin = comp.partLoadMin
+    name = comp.name
+    bigM = comp.bigM
+    hasCapacityVariable = comp.hasCapacityVariable
 
+    def checkAndSet(data, comp, esM):
+        if data is not None:
             if comp.dimension == "1dim":
                 if not isinstance(var_data, pd.Series):
                     raise TypeError("Input data has to be a pandas Series")
@@ -548,22 +575,17 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                     "The dimension parameter has to be either '1dim' or '2dim' "
                 )
 
-    capacityMin = comp.capacityMin
-    capacityFix = comp.capacityFix
-    capacityMax = comp.capacityMax
-    QPcostScale = comp.QPcostScale
+    for data in [
+        capacityMin,
+        capacityFix,
+        capacityMax,
+        locationalEligibility,
+        isBuiltFix,
+    ]:
+        checkAndSet(data, comp, esM)
 
-    locationalEligibility = comp.locationalEligibility
-    isBuiltFix = comp.isBuiltFix
-
-    hasCapacityVariable = comp.hasCapacityVariable
-    hasIsBuiltBinaryVariable = comp.hasIsBuiltBinaryVariable
-
-    sharedPotentialID = comp.sharedPotentialID
-    partLoadMin = comp.partLoadMin
-    name = comp.name
-    bigM = comp.bigM
-    hasCapacityVariable = comp.hasCapacityVariable
+    for ip in comp.processedStockYears + esM.investmentPeriods:
+        checkAndSet(QPcostScale[ip], comp, esM)
 
     if capacityMin is not None and (capacityMin < 0).any():
         raise ValueError("capacityMin values smaller than 0 were detected.")
@@ -609,15 +631,6 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     if capacityFix is not None and capacityMin is not None:
         if (capacityFix < capacityMin).any():
             raise ValueError("capacityFix values < capacityMax values detected.")
-
-    if capacityMax is None or capacityMin is None:
-        if (QPcostScale > 0).any():
-            raise ValueError(
-                "QPcostScale is given but lower or upper capacity bounds are not specified."
-            )
-
-    if (QPcostScale < 0).any() or (QPcostScale > 1).any():
-        raise ValueError('QPcostScale must ba a number between "0" and "1".')
 
     if locationalEligibility is not None:
         # Check if values are either one or zero
@@ -681,38 +694,86 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError(
                     "The isBuiltFix and capacityMin parameters indicate different design decisions."
                 )
+    for ip in esM.investmentPeriods:
+        if capacityMax is None or capacityMin is None:
+            if (QPcostScale[ip] > 0).any():
+                raise ValueError(
+                    "QPcostScale is given but lower or upper capacity bounds are not specified."
+                )
 
-    if partLoadMin is not None:
-        # Check if values are floats and the intervall ]0,1].
-        if type(partLoadMin) != float:
-            raise TypeError(
-                "partLoadMin for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
-            )
-        if partLoadMin <= 0:
+        # partLoadMin
+        if partLoadMin[ip] is not None:
+            # Check if values are floats and the intervall ]0,1].
+            if type(partLoadMin[ip]) != float:
+                raise TypeError(
+                    "partLoadMin for "
+                    + name
+                    + " needs to be a float in the intervall ]0,1]."
+                )
+            if partLoadMin[ip] <= 0:
+                raise ValueError(
+                    "partLoadMin for "
+                    + name
+                    + " needs to be a float in the intervall ]0,1]."
+                )
+            if partLoadMin[ip] > 1:
+                raise ValueError(
+                    "partLoadMin for "
+                    + name
+                    + " needs to be a float in the intervall ]0,1]."
+                )
+            if bigM is None:
+                raise ValueError(
+                    "bigM needs to be defined for component "
+                    + name
+                    + " if partLoadMin is not None."
+                )
+            if not hasCapacityVariable:
+                raise ValueError(
+                    "hasCapacityVariable needs to be True for component "
+                    + name
+                    + " if partLoadMin is not None."
+                )
+    for ip in esM.investmentPeriods + comp.processedStockYears:
+        # QPcostScale
+        comp.processedQPcostScale[ip] = castToSeries(comp.processedQPcostScale[ip], esM)
+        if (QPcostScale[ip] < 0).any() or (QPcostScale[ip] > 1).any():
+            raise ValueError('QPcostScale must ba a number between "0" and "1".')
+
+
+def checkInvestmentPeriodParameters(name, param, years):
+    if isinstance(param, dict):
+        if len(param.keys()) != len(years):
             raise ValueError(
-                "partLoadMin for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
+                f"A parameter for '{name}' is initialized as dict for the years {sorted(list(param.keys()))}, but the expected years are {sorted(years)}"
             )
-        if partLoadMin > 1:
+        if sorted(param.keys()) != sorted(years):
             raise ValueError(
-                "partLoadMin for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
+                f"'{name}' has different ip-names ('{param.keys()}')"
+                + f" than the investment periods of the esM ('{years}')",
+                "TODO: implement correct year naming",
             )
-        if bigM is None:
+
+        for key, value in param.items():
+            if value is None:
+                raise ValueError(
+                    f"Currently a dict containing None values cannot be passed for '{name}'"
+                )
+
+
+def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPeriods):
+    # for commodity conversions, if ip depending -> dict in dict
+    if any(
+        isinstance(commodityConversion[x], dict) for x in commodityConversion.keys()
+    ):
+        if len(commodityConversion.keys()) != len(investmentPeriods):
             raise ValueError(
-                "bigM needs to be defined for component "
-                + name
-                + " if partLoadMin is not None."
+                f"CommodtityConversion is initialized as dict but does not contain values for each investment-period"
             )
-        if not hasCapacityVariable:
+        if sorted(commodityConversion.keys()) != sorted(investmentPeriods):
             raise ValueError(
-                "hasCapacityVariable needs to be True for component "
-                + name
-                + " if partLoadMin is not None."
+                f"CommodtityConversion has different ip-names ('{commodityConversion.keys()}') than the investment periods of the esM ('{investmentPeriods}')",
+                "TODO: implement correct year naming",
             )
 
 
@@ -823,9 +884,6 @@ def setLocationalEligibility(
                 data = 0
                 # sum values over ips
                 for ip in esM.investmentPeriods:
-                    # tests for checking the operationtimeseries
-                    # print('operationTimeSeries1')
-                    # print(operationTimeSeries)
                     data += operationTimeSeries[ip].copy().sum()
                 data[data > 0] = 1
                 return data
@@ -839,7 +897,6 @@ def setLocationalEligibility(
 
                 data.loc[:] = 1
                 locationalEligibility = data
-                print(locationalEligibility)
                 return locationalEligibility
             else:
                 raise ValueError(
@@ -882,6 +939,31 @@ def setLocationalEligibility(
             data = capacityFix.copy() if capacityFix is not None else capacityMax.copy()
             data[data > 0] = 1
             return data
+
+
+def checkAndSetInvestmentPeriodTimeSeries(
+    esM, name, data, locationalEligibility, dimension="1dim"
+):
+    checkInvestmentPeriodParameters(name, data, esM.investmentPeriodList)
+    parameter = {}
+    for _ip in esM.investmentPeriodList:
+        # map name of investment period (e.g. 2020) to index (e.g. 0)
+        ip = esM.investmentPeriodList.index(_ip)
+        if (
+            isinstance(data, pd.DataFrame)
+            or data is None
+            or isinstance(data, pd.Series)
+        ):
+            parameter[ip] = checkAndSetTimeSeries(
+                esM, name, data, locationalEligibility, dimension
+            )
+        elif isinstance(data, dict):
+            parameter[ip] = checkAndSetTimeSeries(
+                esM, name, data[_ip], locationalEligibility, dimension
+            )
+        else:
+            raise TypeError(f"{name}should be a pandas dataframe or a dictionary.")
+    return parameter
 
 
 def checkAndSetTimeSeries(
@@ -1112,6 +1194,95 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             + "All entries in economic parameter series have to be positive."
         )
     return _data
+
+
+def setPartLoadMin(esM, partLoadMin):
+    partLoadMin_ip = {}
+    for _ip in esM.investmentPeriodList:
+        # map name of investment period (e.g. 2020) to index (e.g. 0)
+        ip = esM.investmentPeriodList.index(_ip)
+        if isinstance(partLoadMin, float) or partLoadMin is None:
+            partLoadMin_ip[ip] = partLoadMin
+        elif isinstance(partLoadMin, dict):
+            partLoadMin_ip[ip] = partLoadMin[_ip]
+    return partLoadMin_ip
+
+
+def checkAndSetPartLoadMin(esM, name, partLoadMin, fullOperationMax, fullOperationFix):
+    checkInvestmentPeriodParameters(name, partLoadMin, esM.investmentPeriodList)
+    partLoadMin_ip = setPartLoadMin(esM, partLoadMin)
+
+    if not any(value for value in partLoadMin_ip.values()):
+        partLoadMin_ip = None
+    if partLoadMin_ip is not None:
+        for _ip in esM.investmentPeriodList:
+            # map name of investment period (e.g. 2020) to index (e.g. 0)
+            ip = esM.investmentPeriodList.index(_ip)
+            if fullOperationMax[ip] is not None:
+                if (
+                    (
+                        (fullOperationMax[ip] > 0)
+                        & (fullOperationMax[ip] < partLoadMin_ip[ip])
+                    )
+                    .any()
+                    .any()
+                ):
+                    raise ValueError(
+                        '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
+                        + name
+                    )
+            if fullOperationFix[ip] is not None:
+                if (
+                    (
+                        (fullOperationFix[ip] > 0)
+                        & (fullOperationFix[ip] < partLoadMin_ip[ip])
+                    )
+                    .any()
+                    .any()
+                ):
+                    raise ValueError(
+                        '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
+                        + name
+                    )
+    return partLoadMin_ip
+
+
+def checkAndSetInvestmentPeriodCostParameter(
+    esM, name, data, dimension, locationalEligibility, years
+):
+    # stock years are only considered for parameter for which the
+    # first check
+    checkInvestmentPeriodParameters(name, data, years)
+    parameter = {}
+    for ip in years:
+        # map of year name (e.g. 2020) to intenral name (e.g. 0)
+        # ip=int((_ip-esM.startYear)/esM.yearsPerInvestmentPeriod)
+        _ip = int(esM.startYear + ip * esM.yearsPerInvestmentPeriod)
+        if (
+            isinstance(data, int)
+            or isinstance(data, float)
+            or isinstance(data, pd.Series)
+        ):
+            parameter[ip] = checkAndSetCostParameter(
+                esM, name, data, dimension, locationalEligibility
+            )
+        elif isinstance(data, dict):
+            parameter[ip] = checkAndSetCostParameter(
+                esM, name, data[_ip], dimension, locationalEligibility
+            )
+        else:
+            raise TypeError(f"{name} should be a pandas series or a dictionary.")
+    return parameter
+
+
+def checkLifetimeInvestmentPeriod(esM, name, lifetime):
+    ip_LifeTime = lifetime / (esM.yearsPerInvestmentPeriod)
+    if any(not x.is_integer() for x in ip_LifeTime.values):
+        raise ValueError(
+            f"The lifetime of '{name}' is not a multiple of the length of investment period"
+        )
+    ip_LifeTime = ip_LifeTime.astype(int)
+    return ip_LifeTime
 
 
 def checkAndSetTimeSeriesConversionFactors(
@@ -1425,6 +1596,9 @@ def formatOptimizationOutput(
         # Convert dictionary to DataFrame, transpose, put the components name first and sort the index
         # Results in a one dimensional DataFrame
         df = pd.DataFrame(data, index=[0]).T.swaplevel(i=0, j=1, axis=0).sort_index()
+        if ip is not None:
+            df = df[df.index.get_level_values(2) == ip]
+            df = df.reset_index(level=2, drop=True)
         # Unstack the regions (convert to a two dimensional DataFrame with the region indices being the columns)
         # and fill NaN values (i.e. when a component variable was not initiated for that region)
         df = df.unstack(level=-1)
@@ -1512,6 +1686,35 @@ def setOptimalComponentVariables(optVal, varType, compDict):
                 setattr(comp, varType, optVal.loc[compName])
             else:
                 setattr(comp, varType, None)
+
+
+def preprocess2dimInvestmentPeriodData(
+    esM, name, data, years, mapC=None, locationalEligibility=None, discard=True
+):
+    parameter = {}
+    for ip in years:
+        # map of year name (e.g. 2020) to intenral name (e.g. 0)
+        # ip=int((_ip-esM.startYear)/esM.yearsPerInvestmentPeriod)
+        _ip = int(esM.startYear + ip * esM.yearsPerInvestmentPeriod)
+
+        if (
+            isinstance(data, int)
+            or isinstance(data, float)
+            or isinstance(data, pd.DataFrame)
+            or isinstance(data, pd.Series)
+            or data is None
+        ):
+            parameter[ip] = preprocess2dimData(
+                data, mapC, locationalEligibility, discard
+            )
+        elif isinstance(data, dict):
+            parameter[ip] = preprocess2dimData(
+                data[ip], mapC, locationalEligibility, discard
+            )
+        else:
+            raise TypeError(f"{name} should be a pandas dataframe or a dictionary.")
+
+    return parameter
 
 
 def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
@@ -1823,6 +2026,168 @@ def checkAndSetTimeHorizon(
         nbOfRepresentedYears = 1
 
     return nbOfSteps, nbOfRepresentedYears
+
+
+def checkStockYears(
+    stockCommissioning, startYear, yearsPerInvestmentPeriod, ipTechnicalLifetime
+):
+    if stockCommissioning is None:
+        return [], []
+    if not isinstance(stockCommissioning, dict):
+        raise ValueError(f"stockCommissioning must be None or a dict")
+
+    # check years
+    for year, yearly_stock in stockCommissioning.items():
+        if not isinstance(year, int):
+            raise ValueError("Years of stockCommissioning must be int")
+        if year >= startYear:
+            raise ValueError("Stock years must be smaller than the start year")
+        if (year - startYear) % yearsPerInvestmentPeriod != 0:
+            raise ValueError(
+                f"stockCommissioning was initialized for {year} "
+                + "but can only be initialized for "
+                + "years which are a multiple of the investment period length."
+            )
+    stockYears = [x for x in stockCommissioning.keys()]
+    processedStockYears = [
+        int((x - startYear) / yearsPerInvestmentPeriod)
+        for x in stockCommissioning.keys()
+    ]
+    processedStockYears = [
+        x for x in processedStockYears if x >= -ipTechnicalLifetime.max()
+    ]
+
+    return stockYears, processedStockYears
+
+
+def checkAndSetStock(component, esM, stockCommissioning):
+    if stockCommissioning is None:
+        return stockCommissioning
+
+    # check type of stockCommissioning
+    if not isinstance(stockCommissioning, dict):
+        raise TypeError("stockCommissioning must be None or a dict")
+
+    # get regions
+    if component.dimension == "1dim":
+        regions = esM.locations
+    if component.dimension == "2dim":
+        regions = component.locationalEligibility.index
+    # check data for stockCommissioning
+    for year, yearly_stock in stockCommissioning.items():
+        if not isinstance(year, int):
+            raise ValueError("Years of stockCommissioning must be int")
+        if (year - esM.startYear) % esM.yearsPerInvestmentPeriod != 0:
+            raise ValueError(
+                f"stockCommissioning was initialized for {year} "
+                + "but can only be initialized for "
+                + "years which are a multiple of the investment period length."
+            )
+        # float and int for capacity are only allowed if there is only one region
+        if isinstance(yearly_stock, int) or isinstance(yearly_stock, float):
+            if not len(esM.locations) == 1:
+                raise ValueError(
+                    "esM has more than one location, so the location of the stock has to be set."
+                )
+            else:  # if there is only one region, convert into pd.series region:stock
+                isPositiveNumber(yearly_stock)
+                stockCommissioning[year] = pd.Series(
+                    data={list(esM.locations)[0]: yearly_stock}
+                )
+        elif isinstance(yearly_stock, pd.Series):
+            # series must have all locations as index and float/int for values
+
+            if not sorted(yearly_stock.index) == sorted(regions):
+                raise ValueError(
+                    f"Initialize the stock for all regions for the year '{year}'"
+                    + " even if its just 0"
+                )
+            if any(
+                not isinstance(x, float)
+                and not isinstance(x, int)
+                and not isinstance(x, np.int64)
+                for x in yearly_stock.values
+            ):
+                raise ValueError(f"Stock capacities in year '{year}' must be int/float")
+
+        else:
+            raise TypeError(
+                "stockCommissioning must be a dict of keys for years and "
+                + "pd.Series with location as index and stock as value."
+            )
+
+    # check if capacityMin and capacityMax is kept per region
+    for loc in regions:
+        installed_sum = 0
+        for year in stockCommissioning.keys():
+            if year < esM.startYear - component.technicalLifetime[loc]:
+                pass
+            else:
+                installed_sum += stockCommissioning[year][loc]
+        if component.capacityMax is not None:
+            if installed_sum > component.capacityMax[loc]:
+                raise ValueError(
+                    f"The stock of '{component.name}' in region '{loc}' "
+                    + f"exceeds its capacityMax of '{component.capacityMax}'"
+                )
+        if component.capacityFix is not None:
+            if installed_sum > component.capacityFix[loc]:
+                raise ValueError(
+                    f"The stock of '{component.name}' in region '{loc}' "
+                    + f"exceeds its capacityFix of '{component.capacityFix}'"
+                )
+
+    # set into correct format, add 0'values and transform ip into [-1,-2,-3,...]
+    # filter for commissioned stock older than technical lifetime and set to 0
+    stock_df = pd.DataFrame.from_dict(stockCommissioning).T
+    for loc in regions:
+        yearsWithStockOlderThanTechLifetime = [
+            x
+            for x in stock_df.index
+            if x < esM.startYear - component.technicalLifetime[loc] - 1
+        ]
+        stockOlderThanTechnicalLifetime = stock_df.loc[
+            yearsWithStockOlderThanTechLifetime, loc
+        ]
+        if len(yearsWithStockOlderThanTechLifetime) > 0:
+            print(
+                f"Stock of component {component.name} in location "
+                + f"{loc} will not be considered "
+                + f"for years {list(stockOlderThanTechnicalLifetime.index)} as it "
+                + "exceeds the technical lifetime. A capacity of "
+                + f"{stockOlderThanTechnicalLifetime.sum().sum()} wil be dropped."
+            )
+            stock_df.loc[yearsWithStockOlderThanTechLifetime, loc] = 0
+
+    # convert original years to ip named years (e.g. -1,-2,-3)
+    stock_df.index = [
+        int((x - esM.startYear) / esM.yearsPerInvestmentPeriod) for x in stock_df.index
+    ]
+
+    # fill missing year for timeframe of entire technical lifetime
+    all_stock_years = [
+        x for x in range(-1, -component.ipTechnicalLifetime.max() - 1, -1)
+    ]
+    stock_df = stock_df.reindex(all_stock_years).fillna(0)
+    processedStockCommissioning = stock_df.T.to_dict(orient="series")
+    return processedStockCommissioning
+
+
+def setStockCapacityStartYear(component, esM, dimension):
+    if dimension == "1dim":
+        regions = esM.locations
+    elif dimension == "2dim":
+        regions = component.locationalEligibility.index
+    if component.processedStockCommissioning is None:
+        return pd.Series(index=regions, data=0)
+    else:
+        stockCapacityStartYear = pd.Series()
+        for loc in regions:
+            _stock_location = 0
+            for year in range(-1, -component.ipTechnicalLifetime[loc] - 1, -1):
+                _stock_location += component.processedStockCommissioning[year].loc[loc]
+            stockCapacityStartYear[loc] = _stock_location
+        return stockCapacityStartYear
 
 
 def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):

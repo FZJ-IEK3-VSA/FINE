@@ -2635,3 +2635,111 @@ def balanceLimitConstraint_test_esM():
     )
 
     return esM, losses, distances, balanceLimit
+
+
+@pytest.fixture
+def perfectForesight_test_esM(scope="session"):
+
+    # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand", "ForesightLand"},
+        commodities={"electricity", "hydrogen"},
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=4380,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=5,
+        yearsPerInvestmentPeriod=5,
+        startYear=2020,
+        mode="perfectForesight",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+
+    PVoperationRateMax = pd.DataFrame(
+        [
+            np.array(
+                [
+                    0.5,
+                    0.25,
+                ]
+            ),
+            np.array(
+                [
+                    0.25,
+                    0.5,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=PVoperationRateMax,
+            capacityMax=4e6,
+            investPerCapacity=1e3,
+            opexPerCapacity=1,
+            interestRate=0.02,
+            opexPerOperation=0.01,
+            economicLifetime=10,
+        )
+    )
+
+    demand = {}
+    demand[2020] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T  # first investmentperiod
+    demand[2025] = demand[2020]
+    demand[2030] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+    demand[2035] = demand[2030]
+    demand[2040] = demand[2030]
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="EDemand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+
+    return esM

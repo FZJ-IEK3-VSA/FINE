@@ -83,15 +83,15 @@ class PowerDict(dict):
             val.key = key
 
 
-def generateIterationDicts(component_dict, investmentperiods):
+def generateIterationDicts(component_dict, investmentPeriods):
     """Creates iteration dictionaries that contain descriptions of all
     dataframes, series, and constants present in component_dict.
 
     :param component_dict: dictionary containing information about the esM instance's components
     :type component_dict: dict
 
-    :param investmentperiods: investment periods
-    :type investmentperiods: list
+    :param investmentPeriods: investment periods
+    :type investmentPeriods: list
 
     :return: df_iteration_dict, series_iteration_dict, constants_iteration_dict
     """
@@ -106,7 +106,7 @@ def generateIterationDicts(component_dict, investmentperiods):
             for variable_description, data in component_dict[classname][
                 component
             ].items():
-                if isinstance(data, dict) and data.keys() == investmentperiods:
+                if isinstance(data, dict) and data.keys() == investmentPeriods:
                     is_depending_on_ip = True
                 else:
                     is_depending_on_ip = False
@@ -184,7 +184,6 @@ def generateIterationDicts(component_dict, investmentperiods):
                 _append_to_iteration_dicts(
                     description_tuple, variable_description, data
                 )
-
     return df_iteration_dict, series_iteration_dict, constants_iteration_dict
 
 
@@ -477,7 +476,6 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
         for description_tuple in description_tuple_list:
             classname, component, is_depending_on_ip = description_tuple
             df_description = f"{classname}; {component}"
-
             if "." in variable_description:
                 [var_name, subvar_name] = variable_description.split(".")
                 data = component_dict[classname][component][var_name][subvar_name]

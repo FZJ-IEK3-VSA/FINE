@@ -43,6 +43,7 @@ class LinearOptimalPowerFlow(Transmission):
         interestRate=0.08,
         economicLifetime=10,
         technicalLifetime=None,
+        stockCommissioning=None,
     ):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.
@@ -87,6 +88,7 @@ class LinearOptimalPowerFlow(Transmission):
             interestRate=interestRate,
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
+            stockCommissioning=stockCommissioning,
         )
 
         self.modelingClass = LOPFModel
@@ -123,9 +125,11 @@ class LOPFModel(TransmissionModel):
         self.abbrvName = "lopf"
         self.dimension = "2dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
-        self.optSummary = None
+        self._optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -167,15 +171,20 @@ class LOPFModel(TransmissionModel):
         """
 
         # # Declare design variable sets
-        self.declareDesignVarSet(pyM)
-        self.declareContinuousDesignVarSet(pyM)
-        self.declareDiscreteDesignVarSet(pyM)
-        self.declareDesignDecisionVarSet(pyM)
+        self.declareDesignVarSet(pyM, esM)
+        self.declareCommissioningVarSet(pyM, esM)
+        self.declareContinuousDesignVarSet(pyM, esM)
+        self.declareDiscreteDesignVarSet(pyM, esM)
+        self.declareDesignDecisionVarSet(pyM, esM)
+
+        # Declare design pathway sets
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM, esM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
-        self.declareOperationBinarySet(pyM)
+        self.declareOperationBinarySet(esM, pyM)
 
         # Declare operation variable set
         self.declareOperationModeSets(
@@ -214,8 +223,11 @@ class LOPFModel(TransmissionModel):
         :type pyM: pyomo Concrete Model
         """
 
-        # Capacity variables in [commodityUnit]
-        self.declareCapacityVars(pyM)
+        # Capacity and commissioning variables in [commodityUnit]
+        self.declareCapacityVars(pyM, esM)
+        # Capacity development variables [physicalUnit]
+        self.declareCommissioningVars(pyM, esM)
+        self.declareDecommissioningVars(pyM, esM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -263,7 +275,7 @@ class LOPFModel(TransmissionModel):
         setattr(
             pyM,
             "ConstrpowerFlowDC_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.timeSet, rule=powerFlowDC),
+            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=powerFlowDC),
         )
 
     def basePhaseAngle(self, pyM):
@@ -309,7 +321,7 @@ class LOPFModel(TransmissionModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -318,25 +330,21 @@ class LOPFModel(TransmissionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
-
-        :param ip: investment period
-        :type ip: int
         """
+        super().setOptimalValues(esM, pyM)
+        for ip in esM.investmentPeriods:
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
 
-        super().setOptimalValues(esM, pyM, ip)
-
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
-
-        optVal_ = utils.formatOptimizationOutput(
-            phaseAngleVar.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        self.phaseAngleVariablesOptimum = optVal_
+            optVal_ = utils.formatOptimizationOutput(
+                phaseAngleVar.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            self.phaseAngleVariablesOptimum = optVal_
 
     def getOptimalValues(self, name="all"):
         """

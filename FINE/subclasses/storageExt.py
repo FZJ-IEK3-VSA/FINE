@@ -117,7 +117,8 @@ class StorageExtBETA(Storage):
         self.aggregatedOpexPerChargeOpTimeSeries = {}
         self.opexPerChargeOpTimeSeries = {}
 
-        for ip in esM.investmentPeriods:
+        for _ip in esM.investmentPeriodList:
+            ip = esM.investmentPeriodList.index(_ip)
             # fullStateOfChargeOpRateMax
             if (
                 isinstance(stateOfChargeOpRateMax, pd.DataFrame)
@@ -129,7 +130,7 @@ class StorageExtBETA(Storage):
                 )
             elif isinstance(stateOfChargeOpRateMax, dict):
                 self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, stateOfChargeOpRateMax[ip], self.locationalEligibility
+                    esM, name, stateOfChargeOpRateMax[_ip], self.locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -152,7 +153,7 @@ class StorageExtBETA(Storage):
                 )
             elif isinstance(stateOfChargeOpRateFix, dict):
                 self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, stateOfChargeOpRateFix[ip], self.locationalEligibility
+                    esM, name, stateOfChargeOpRateFix[_ip], self.locationalEligibility
                 )
             else:
                 raise TypeError(
@@ -175,7 +176,10 @@ class StorageExtBETA(Storage):
                 )
             elif isinstance(opexPerChargeOpTimeSeries, dict):
                 self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, opexPerChargeOpTimeSeries[ip], self.locationalEligibility
+                    esM,
+                    name,
+                    opexPerChargeOpTimeSeries[_ip],
+                    self.locationalEligibility,
                 )
             else:
                 raise TypeError(
@@ -434,13 +438,15 @@ class StorageExtModel(StorageModel):
         self.abbrvName = "storExt"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         (
             self.chargeOperationVariablesOptimum,
             self.dischargeOperationVariablesOptimum,
         ) = (None, None)
         self.stateOfChargeOperationVariablesOptimum = None
-        self.optSummary = None
+        self._optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -499,7 +505,8 @@ class StorageExtModel(StorageModel):
                             ** (t * esM.hoursPerTimeStep)
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName] * compDict[compName].stateOfChargeMax
+                        <= capVar[loc, compName, ip]
+                        * compDict[compName].stateOfChargeMax
                     )
                 else:
                     return (
@@ -514,7 +521,8 @@ class StorageExtModel(StorageModel):
                             )
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName] * compDict[compName].stateOfChargeMax
+                        <= capVar[loc, compName, ip]
+                        * compDict[compName].stateOfChargeMax
                     )
             else:
                 return pyomo.Constraint.Skip
@@ -556,7 +564,7 @@ class StorageExtModel(StorageModel):
                             ** (t * esM.hoursPerTimeStep)
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        == capVar[loc, compName]
+                        == capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeOpRateFix[loc][
                             esM.periodsOrder[pInter], t
                         ]
@@ -574,7 +582,7 @@ class StorageExtModel(StorageModel):
                             )
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        == capVar[loc, compName]
+                        == capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeOpRateFix[loc][
                             esM.periodsOrder[pInter], t
                         ]
@@ -619,7 +627,7 @@ class StorageExtModel(StorageModel):
                             ** (t * esM.hoursPerTimeStep)
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName]
+                        <= capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeOpRateMax[loc][
                             esM.periodsOrder[pInter], t
                         ]
@@ -637,7 +645,7 @@ class StorageExtModel(StorageModel):
                             )
                         )
                         + SOC[loc, compName, esM.periodsOrder[pInter], t]
-                        <= capVar[loc, compName]
+                        <= capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeOpRateMax[loc][
                             esM.periodsOrder[pInter], t
                         ]
@@ -766,7 +774,6 @@ class StorageExtModel(StorageModel):
             "ConstrSOCMaxPrecise5_" + abbrvName,
             pyomo.Constraint(
                 constrSet5,
-                esM.investmentPeriods,
                 esM.periods,
                 esM.timeStepsPerPeriod,
                 rule=SOCMaxPrecise5,
@@ -789,7 +796,7 @@ class StorageExtModel(StorageModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM)
+        self.capToNbReal(pyM, esM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -797,9 +804,17 @@ class StorageExtModel(StorageModel):
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
         # Sets, if applicable, the installed capacities of a component
-        self.capacityFix(pyM)
+        self.capacityFix(pyM, esM)
         # Sets, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
+
+        ################################################################################################################
+        #                                    Declare pathway constraints                                               #
+        ################################################################################################################
+        # Set capacity development constraints over investment periods
+        self.designDevelopmentConstraint(pyM, esM)
+        self.decommissioningConstraint(pyM, esM)
+        self.initialYearConstraint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
@@ -1064,7 +1079,7 @@ class StorageExtModel(StorageModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -1074,10 +1089,8 @@ class StorageExtModel(StorageModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
         """
-        return super().setOptimalValues(esM, pyM, ip)
+        return super().setOptimalValues(esM, pyM)
 
     def getOptimalValues(self, name="all"):
         """

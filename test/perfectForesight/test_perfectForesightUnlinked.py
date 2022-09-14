@@ -13,7 +13,11 @@ import numpy as np
 import pandas as pd
 
 
+<<<<<<< HEAD:test/test_stochasticTimeseries.py
 def stochastical_optimization_model():
+=======
+def test_perfectForesight_unlinked():
+>>>>>>> origin/issue115_pf_capacities_stock:test/perfectForesight/test_perfectForesightUnlinked.py
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 

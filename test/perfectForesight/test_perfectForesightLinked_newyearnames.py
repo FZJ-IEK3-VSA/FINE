@@ -13,12 +13,10 @@ import numpy as np
 import pandas as pd
 
 
-def stochastical_optimization_model():
+def test_perfectForesight_linked():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
-
-    numberOfInvestmentPeriods = 2  # new test, before =1
-    yearsPerInvestmentPeriod = 1
+    investmentPeriodList_for_testing = [2020, 2021, 2022, 2023, 2024, 2025]
 
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
@@ -28,8 +26,9 @@ def stochastical_optimization_model():
         commodityUnitsDict={"electricity": r"kW$_{el}$"},
         hoursPerTimeStep=hoursPerTimeStep,
         costUnit="1 Euro",
-        numberOfInvestmentPeriods=numberOfInvestmentPeriods,
-        yearsPerInvestmentPeriod=yearsPerInvestmentPeriod,
+        startYear=2020,
+        numberOfInvestmentPeriods=6,
+        yearsPerInvestmentPeriod=1,
         mode="perfectForesight",
         lengthUnit="km",
         verboseLogLevel=2,
@@ -52,7 +51,7 @@ def stochastical_optimization_model():
 
     # for two investmentperiods
     costs = {}
-    costs[0] = pd.DataFrame(
+    costs[2020] = pd.DataFrame(
         [
             np.array(
                 [
@@ -65,7 +64,7 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
-    costs[1] = pd.DataFrame(
+    costs[2021] = pd.DataFrame(
         [
             np.array(
                 [
@@ -78,9 +77,13 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
+    costs[2022] = costs[2021]
+    costs[2023] = costs[2021]
+    costs[2024] = costs[2021]
+    costs[2025] = costs[2021]
 
     revenues = {}
-    revenues[0] = pd.DataFrame(
+    revenues[2020] = pd.DataFrame(
         [
             np.array(
                 [
@@ -93,7 +96,7 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
-    revenues[1] = pd.DataFrame(
+    revenues[2021] = pd.DataFrame(
         [
             np.array(
                 [
@@ -106,9 +109,13 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
+    revenues[2022] = revenues[2021]
+    revenues[2023] = revenues[2021]
+    revenues[2024] = revenues[2021]
+    revenues[2025] = revenues[2021]
 
     maxpurchase = {}
-    maxpurchase[0] = pd.DataFrame(
+    maxpurchase[2020] = pd.DataFrame(
         [
             np.array(
                 [
@@ -121,7 +128,7 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
-    maxpurchase[1] = pd.DataFrame(
+    maxpurchase[2021] = pd.DataFrame(
         [
             np.array(
                 [
@@ -134,6 +141,10 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
+    maxpurchase[2022] = maxpurchase[2021]
+    maxpurchase[2023] = maxpurchase[2021]
+    maxpurchase[2024] = maxpurchase[2021]
+    maxpurchase[2025] = maxpurchase[2021]
 
     esM.add(
         fn.Source(
@@ -155,7 +166,7 @@ def stochastical_optimization_model():
 
     # 2 investmentperiods
     PVoperationRateMax = {}
-    PVoperationRateMax[0] = pd.DataFrame(
+    PVoperationRateMax[2020] = pd.DataFrame(
         [
             np.array(
                 [
@@ -168,7 +179,7 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
-    PVoperationRateMax[1] = pd.DataFrame(
+    PVoperationRateMax[2021] = pd.DataFrame(
         [
             np.array(
                 [
@@ -181,10 +192,19 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
+    PVoperationRateMax[2022] = PVoperationRateMax[2021]
+    PVoperationRateMax[2023] = PVoperationRateMax[2021]
+    PVoperationRateMax[2024] = PVoperationRateMax[2021]
+    PVoperationRateMax[2025] = PVoperationRateMax[2021]
+
     # different opexPerOperation per investmentperiod
     PVopexPerOperation = {}
-    PVopexPerOperation[0] = 0.01
-    PVopexPerOperation[1] = 0.02
+    PVopexPerOperation[2020] = 0.01
+    PVopexPerOperation[2021] = 0.02
+    PVopexPerOperation[2022] = PVopexPerOperation[2021]
+    PVopexPerOperation[2023] = PVopexPerOperation[2021]
+    PVopexPerOperation[2024] = PVopexPerOperation[2021]
+    PVopexPerOperation[2025] = PVopexPerOperation[2021]
 
     esM.add(
         fn.Source(
@@ -196,9 +216,10 @@ def stochastical_optimization_model():
             capacityMax=4e6,
             investPerCapacity=2 * 2190,
             opexPerCapacity=0,
-            interestRate=0,
+            interestRate=0.02,
             opexPerOperation=PVopexPerOperation,  # 0.01,
-            economicLifetime=1,
+            economicLifetime=5,
+            technicalLifetime=6,
         )
     )
 
@@ -212,7 +233,7 @@ def stochastical_optimization_model():
     # two investmentperiods
 
     revenuesDemand = {}
-    revenuesDemand[0] = pd.DataFrame(
+    revenuesDemand[2020] = pd.DataFrame(
         [
             np.array(
                 [
@@ -225,7 +246,7 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
-    revenuesDemand[1] = pd.DataFrame(
+    revenuesDemand[2021] = pd.DataFrame(
         [
             np.array(
                 [
@@ -238,9 +259,13 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T
+    revenuesDemand[2022] = revenuesDemand[2021]
+    revenuesDemand[2023] = revenuesDemand[2021]
+    revenuesDemand[2024] = revenuesDemand[2021]
+    revenuesDemand[2025] = revenuesDemand[2021]
 
     demand = {}
-    demand[0] = pd.DataFrame(
+    demand[2020] = pd.DataFrame(
         [
             np.array(
                 [
@@ -253,7 +278,7 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T  # first investmentperiod
-    demand[1] = pd.DataFrame(
+    demand[2021] = pd.DataFrame(
         [
             np.array(
                 [
@@ -266,6 +291,10 @@ def stochastical_optimization_model():
         ],
         index=["PerfectLand"],
     ).T  # second investmentperiod
+    demand[2022] = demand[2021]
+    demand[2023] = demand[2021]
+    demand[2024] = demand[2021]
+    demand[2025] = demand[2021]
 
     esM.add(
         fn.Sink(
@@ -277,81 +306,42 @@ def stochastical_optimization_model():
             commodityRevenueTimeSeries=revenuesDemand,
         )
     )
-    return esM
 
-
-def test_stochasticalOpt_withSegmentation():
-    # values not logical, just check of the workflow
-    esM = stochastical_optimization_model()
     # Optimize energy system model
-    esM.aggregateTemporally(
-        numberOfTypicalPeriods=1,
-        numberOfTimeStepsPerPeriod=4,
-        storeTSAinstance=False,
-        segmentation=True,
-        numberOfSegmentsPerPeriod=1,
-        clusterMethod="hierarchical",
-        representationMethod="durationRepresentation",
-        sortValues=False,
-        rescaleClusterPeriods=False,
+    esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    print("Objective value:")
+    print(esM.pyM.Obj())  # 44655?
+
+    # check
+    assert (
+        esM.getOptimizationSummary("SourceSinkModel").keys()
+        != investmentPeriodList_for_testing
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
-    print("Objective value:")
-    print(esM.pyM.Obj())
-    np.testing.assert_almost_equal(
-        esM.pyM.Obj(), 3650
-    )  # capacity costs only taken for one year
-    print("Electricity Market:")
-    assert list(
-        esM.componentModelingDict["SourceSinkModel"]
-        .operationVariablesOptimum[0]
-        .xs("Electricity market")
-        .values[0]
-    ) == [0, 0, 0, 0]
 
-    assert list(
+    # check
+    PV_cap_year0 = (
         esM.componentModelingDict["SourceSinkModel"]
-        .operationVariablesOptimum[1]
-        .xs("Electricity market")
-        .values[0]
-    ) == [0, 0, 0, 0]
-
-    print("Photovoltaic:")
-    assert list(
-        esM.componentModelingDict["SourceSinkModel"]
-        .operationVariablesOptimum[0]
+        .capacityVariablesOptimum[2020]
         .xs("PV")
         .values[0]
-    ) == [1250, 1250, 1250, 1250]
-    assert list(
+    )
+    np.testing.assert_almost_equal(PV_cap_year0, 1.71232876712329)
+    PV_cap_year1 = (
         esM.componentModelingDict["SourceSinkModel"]
-        .operationVariablesOptimum[1]
+        .capacityVariablesOptimum[2021]
         .xs("PV")
         .values[0]
-    ) == [1250, 1250, 1250, 1250]
-
-    print("Demand:")
-    # print(esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum.xs('EDemand')) ### Thomas and Stefan:  [2000,1000,1000,1000] correct values
-    assert list(
+    )
+    np.testing.assert_almost_equal(PV_cap_year1, 1.71232876712329)
+    PV_cap_year5 = (
         esM.componentModelingDict["SourceSinkModel"]
-        .operationVariablesOptimum[0]
-        .xs("EDemand")
+        .capacityVariablesOptimum[2025]
+        .xs("PV")
         .values[0]
-    ) == [1250, 1250, 1250, 1250]
-    assert list(
-        esM.componentModelingDict["SourceSinkModel"]
-        .operationVariablesOptimum[1]
-        .xs("EDemand")
-        .values[0]
-    ) == [1250, 1250, 1250, 1250]
+    )
+    np.testing.assert_almost_equal(PV_cap_year5, 1.1415525114155252)
 
-
-def test_stochasticalOpt_withoutSegmentation():
-    esM = stochastical_optimization_model()
-    # Optimize energy system model
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
-    print("Objective value:")
-    print(esM.pyM.Obj())  # year 0: 7545 year 1: 4000  -> Ziel: 11545
+    raise ValueError("Currently we dont know the correct results for linked ip's")
     np.testing.assert_almost_equal(esM.pyM.Obj(), 11545)
 
     # Check capacity results:
@@ -368,12 +358,12 @@ def test_stochasticalOpt_withoutSegmentation():
     )
 
     # year 1
-    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[1].xs(
+    esM.componentModelingDict["SourceSinkModel"].capacityVariablesOptimum[2021].xs(
         "PV"
     ).values[0]
     np.testing.assert_almost_equal(
         esM.componentModelingDict["SourceSinkModel"]
-        .capacityVariablesOptimum[1]
+        .capacityVariablesOptimum[2021]
         .xs("PV")
         .values[0],
         0,
@@ -381,5 +371,4 @@ def test_stochasticalOpt_withoutSegmentation():
 
 
 if __name__ == "__main__":
-    test_stochasticalOpt_withSegmentation()
-    test_stochasticalOpt_withoutSegmentation()
+    test_perfectForesight_linked()

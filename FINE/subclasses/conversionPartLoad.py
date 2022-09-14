@@ -106,9 +106,11 @@ class ConversionPartLoadModel(ConversionModel):
         self.abbrvName = "partLoad"
         self.dimension = "1dim"
         self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
+        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
+        self.commissioningVariablesOptimum = {}
+        self.decommissioningVariablesOptimum = {}
         self.operationVariablesOptimum = None
-        self.optSummary = None
+        self._optSummary = None
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -288,7 +290,7 @@ class ConversionPartLoadModel(ConversionModel):
         setattr(
             pyM,
             "ConstrSegmentSOS1_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentSOS1),
+            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=segmentSOS1),
         )
 
     def segmentBigM(self, pyM):
@@ -350,13 +352,15 @@ class ConversionPartLoadModel(ConversionModel):
                         ]
                         for discretStep in range(compDict[compName].nSegments)
                     )
-                    == esM.hoursPerTimeStep * capVar[loc, compName]
+                    == esM.hoursPerTimeStep * capVar[loc, compName, ip]
                 )
 
             setattr(
                 pyM,
                 "ConstrSegmentCapacity_" + abbrvName,
-                pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint),
+                pyomo.Constraint(
+                    opVarSet, pyM.intraYearTimeSet, rule=segmentCapacityConstraint
+                ),
             )
         else:
 
@@ -368,7 +372,7 @@ class ConversionPartLoadModel(ConversionModel):
                         ]
                         for discretStep in range(compDict[compName].nSegments)
                     )
-                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName, ip]
                 )
 
             setattr(
@@ -383,7 +387,7 @@ class ConversionPartLoadModel(ConversionModel):
                         discretizationSegmentConVar[loc, compName, discretStep, p, t]
                         for discretStep in range(compDict[compName].nSegments)
                     )
-                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName, ip]
                 )
 
             setattr(
@@ -416,13 +420,15 @@ class ConversionPartLoadModel(ConversionModel):
                         discretizationPointConVar[loc, compName, discretStep, ip, p, t]
                         for discretStep in range(nPoints)
                     )
-                    == esM.hoursPerTimeStep * capVar[loc, compName]
+                    == esM.hoursPerTimeStep * capVar[loc, compName, ip]
                 )
 
             setattr(
                 pyM,
                 "ConstrPointCapacity_" + abbrvName,
-                pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint),
+                pyomo.Constraint(
+                    opVarSet, pyM.intraYearTimeSet, rule=pointCapacityConstraint
+                ),
             )
         else:
 
@@ -433,7 +439,7 @@ class ConversionPartLoadModel(ConversionModel):
                         discretizationPointConVar[loc, compName, discretStep, ip, p, t]
                         for discretStep in range(nPoints)
                     )
-                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName, ip]
                 )
 
             setattr(
@@ -451,15 +457,16 @@ class ConversionPartLoadModel(ConversionModel):
 
         def declareOpConstrSetMinPartLoad(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if getattr(compDict[compName], "partLoadMin") is not None
             )
+            # TODO MAKE IP DEPENDING!!!
 
         setattr(
             pyM,
             constrSetName + "partLoadMin_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSetMinPartLoad),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSetMinPartLoad),
         )
 
     def pointSOS2(self, pyM):
@@ -543,7 +550,9 @@ class ConversionPartLoadModel(ConversionModel):
         setattr(
             pyM,
             "ConstrpartLoadOperationOutput_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.timeSet, rule=partLoadOperationOutput),
+            pyomo.Constraint(
+                opVarSet, pyM.intraYearTimeSet, rule=partLoadOperationOutput
+            ),
         )
 
     def declareComponentConstraints(self, esM, pyM):
@@ -612,7 +621,7 @@ class ConversionPartLoadModel(ConversionModel):
                 ]
                 for discretStep in range(compDict[compName].nSegments + 1)
             )
-            for compName in opVarDict[loc]
+            for compName in opVarDict[ip][loc]
             if commod in compDict[compName].discretizedPartLoad
         )
 
@@ -628,7 +637,7 @@ class ConversionPartLoadModel(ConversionModel):
         """
         return super().getObjectiveFunctionContribution(esM, pyM)
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -637,13 +646,8 @@ class ConversionPartLoadModel(ConversionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
-
-        :param ip: investment period
-        :type ip: int
         """
-
-        super().setOptimalValues(esM, pyM, ip)
-
+        super().setOptimalValues(esM, pyM)
         abbrvName = self.abbrvName
         discretizationPointVariables = getattr(pyM, "discretizationPoint_" + abbrvName)
         discretizationSegmentConVariables = getattr(
@@ -653,38 +657,41 @@ class ConversionPartLoadModel(ConversionModel):
             pyM, "discretizationSegmentBin_" + abbrvName
         )
 
-        discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(
-            discretizationPointVariables.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(
-            discretizationSegmentConVariables.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(
-            discretizationSegmentBinVariables.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
+        for ip in esM.investmentPeriods:
+            discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(
+                discretizationPointVariables.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(
+                discretizationSegmentConVariables.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(
+                discretizationSegmentBinVariables.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
 
-        self.discretizationPointVariablesOptimun = discretizationPointVariablesOptVal_
-        self.discretizationSegmentConVariablesOptimun = (
-            discretizationSegmentConVariablesOptVal_
-        )
-        self.discretizationSegmentBinVariablesOptimun = (
-            discretizationSegmentBinVariablesOptVal_
-        )
+            self.discretizationPointVariablesOptimun = (
+                discretizationPointVariablesOptVal_
+            )
+            self.discretizationSegmentConVariablesOptimun = (
+                discretizationSegmentConVariablesOptVal_
+            )
+            self.discretizationSegmentBinVariablesOptimun = (
+                discretizationSegmentBinVariablesOptVal_
+            )
 
     def getOptimalValues(self, name="all"):
         """
