@@ -103,15 +103,11 @@ class ConversionPartLoadModel(ConversionModel):
     """
 
     def __init__(self):
+        super().__init__()
         self.abbrvName = "partLoad"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        self.operationVariablesOptimum = None
-        self._optSummary = None
-
+        self._operationVariablesOptimum = {}
+     
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
@@ -683,17 +679,17 @@ class ConversionPartLoadModel(ConversionModel):
                 esM=esM,
             )
 
-            self.discretizationPointVariablesOptimun = (
+            self.discretizationPointVariablesOptimun[esM.investmentPeriodList[ip]] = (
                 discretizationPointVariablesOptVal_
             )
-            self.discretizationSegmentConVariablesOptimun = (
+            self.discretizationSegmentConVariablesOptimun[esM.investmentPeriodList[ip]] = (
                 discretizationSegmentConVariablesOptVal_
             )
-            self.discretizationSegmentBinVariablesOptimun = (
+            self.discretizationSegmentBinVariablesOptimun[esM.investmentPeriodList[ip]] = (
                 discretizationSegmentBinVariablesOptVal_
             )
 
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
@@ -701,11 +697,15 @@ class ConversionPartLoadModel(ConversionModel):
 
             * 'capacityVariables',
             * 'isBuiltVariables',
-            * 'operationVariablesOptimum',
+            * '_operationVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'
         :type name: string
+
+        :param ip: investment period
+        |br| * the default value is 0
+        :type ip: int
 
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
@@ -713,69 +713,69 @@ class ConversionPartLoadModel(ConversionModel):
         # return super().getOptimalValues(name)
         if name == "capacityVariablesOptimum":
             return {
-                "values": self.capacityVariablesOptimum,
+                "values": self._capacityVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "isBuiltVariablesOptimum":
             return {
-                "values": self.isBuiltVariablesOptimum,
+                "values": self._isBuiltVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "operationVariablesOptimum":
             return {
-                "values": self.operationVariablesOptimum,
+                "values": self._operationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "discretizationPointVariablesOptimun":
             return {
-                "values": self.discretizationPointVariablesOptimun,
+                "values": self._discretizationPointVariablesOptimun[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "discretizationSegmentConVariablesOptimun":
             return {
-                "values": self.discretizationSegmentConVariablesOptimun,
+                "values": self._discretizationSegmentConVariablesOptimun[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "discretizationSegmentBinVariablesOptimun":
             return {
-                "values": self.discretizationSegmentBinVariablesOptimun,
+                "values": self._discretizationSegmentBinVariablesOptimun[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         else:
             return {
                 "capacityVariablesOptimum": {
-                    "values": self.capacityVariablesOptimum,
+                    "values": self._capacityVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "isBuiltVariablesOptimum": {
-                    "values": self.isBuiltVariablesOptimum,
+                    "values": self._isBuiltVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "operationVariablesOptimum": {
-                    "values": self.operationVariablesOptimum,
+                    "values": self._operationVariablesOptimum[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
                 "discretizationPointVariablesOptimun": {
-                    "values": self.discretizationPointVariablesOptimun,
+                    "values": self._discretizationPointVariablesOptimun[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
                 "discretizationSegmentConVariablesOptimun": {
-                    "values": self.discretizationSegmentConVariablesOptimun,
+                    "values": self._discretizationSegmentConVariablesOptimun[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
                 "discretizationSegmentBinVariablesOptimun": {
-                    "values": self.discretizationSegmentBinVariablesOptimun,
+                    "values": self._discretizationSegmentBinVariablesOptimun[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },

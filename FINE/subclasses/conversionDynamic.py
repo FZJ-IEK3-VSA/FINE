@@ -91,14 +91,10 @@ class ConversionDynamicModel(ConversionModel):
     """
 
     def __init__(self):
+        super().__init__()
         self.abbrvName = "conv_dyn"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        self.operationVariablesOptimum = None
-        self._optSummary = None
+        self._operationVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #

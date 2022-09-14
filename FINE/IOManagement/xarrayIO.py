@@ -172,7 +172,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
                         )
 
             # Write output from esM.esM.componentModelingDict[name].getOptimalValues() to datasets
-            data = esM.componentModelingDict[name].getOptimalValues()
+            data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
             oL = optValOutputLevel
             oL_ = oL[name] if type(oL) == dict else oL
             dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
@@ -596,7 +596,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                         else:
                             continue
 
-                        if opt_variable == "operationVariablesOptimum":
+                        if opt_variable == "_operationVariablesOptimum":
                             if "space_2" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
@@ -631,7 +631,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     _operationVariablesOptimum_df.set_index(idx)
                                 )
 
-                        if opt_variable == "capacityVariablesOptimum":
+                        if opt_variable == "_capacityVariablesOptimum":
                             if "space_2" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
@@ -649,7 +649,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     _capacityVariablesOptimum_df.set_axis([component])
                                 )
 
-                        if opt_variable == "isBuiltVariablesOptimum":
+                        if opt_variable == "_isBuiltVariablesOptimum":
                             _isBuiltVariablesOptimum_df = (
                                 xr_opt.to_dataframe()
                                 .unstack(level=0)
@@ -750,17 +750,17 @@ def convertDatasetsToEnergySystemModel(datasets):
 
                 setattr(
                     esM.componentModelingDict[model],
-                    "operationVariablesOptimum",
+                    "_operationVariablesOptimum",
                     operationVariablesOptimum_df,
                 )
                 setattr(
                     esM.componentModelingDict[model],
-                    "capacityVariablesOptimum",
+                    "_capacityVariablesOptimum",
                     capacityVariablesOptimum_df,
                 )
                 setattr(
                     esM.componentModelingDict[model],
-                    "isBuiltVariablesOptimum",
+                    "_isBuiltVariablesOptimum",
                     isBuiltVariablesOptimum_df,
                 )
                 setattr(

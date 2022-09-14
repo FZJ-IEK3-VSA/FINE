@@ -304,14 +304,11 @@ class DSMModel(SourceSinkModel):
 
     def __init__(self):
         """Constructor for creating a DSMModel class instance"""
+        super().__init__()
         self.abbrvName = "dsm"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        self._optSummary = {}
-        self.operationVariablesOptimum = {}
+        self._operationVariablesOptimum = {}
+
 
     def limitUpDownShifts(self, pyM, esM):
         """
@@ -507,9 +504,9 @@ class DSMModel(SourceSinkModel):
             optVal = optVal.groupby(lambda x: groupStor(x)).sum()
             optVal.index = pd.MultiIndex.from_tuples(optVal.index)
 
-            if type(self.operationVariablesOptimum) is not dict:
-                self.operationVariablesOptimum = {}
-            self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+            if type(self._operationVariablesOptimum) is not dict:
+                self._operationVariablesOptimum = {}
+            self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
             props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
             units = [

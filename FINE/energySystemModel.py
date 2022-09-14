@@ -487,7 +487,7 @@ class EnergySystemModel:
         else:
             return getattr(self.getComponent(componentName), attributeName)
 
-    def getOptimizationSummary(self, modelingClass, outputLevel=0):
+    def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
         """
         Function which returns the optimization summary (design variables, aggregated operation variables,
         objective contributions) of a modeling class.
@@ -508,9 +508,9 @@ class EnergySystemModel:
         :rtype: pandas DataFrame
         """
         if outputLevel == 0:
-            return self.componentModelingDict[modelingClass].optSummary
+            return self.componentModelingDict[modelingClass]._optSummary[ip]
         elif outputLevel == 1:
-            return self.componentModelingDict[modelingClass].optSummary.dropna(
+            return self.componentModelingDict[modelingClass]._optSummary[ip].dropna(
                 how="all"
             )
         else:
@@ -518,7 +518,7 @@ class EnergySystemModel:
                 warnings.warn(
                     "Invalid input. An outputLevel parameter of 2 is assumed."
                 )
-            df = self.componentModelingDict[modelingClass].optSummary.dropna(how="all")
+            df = self.componentModelingDict[modelingClass]._optSummary[ip].dropna(how="all")
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
     def aggregateSpatially(
@@ -1852,10 +1852,10 @@ class EnergySystemModel:
 
             # iterate over investment periods, to get yearly results
             for key, mdl in self.componentModelingDict.items():
-                if not isinstance(mdl.capacityVariablesOptimum, dict):
-                    mdl.capacityVariablesOptimum = {}
+                if not isinstance(mdl._capacityVariablesOptimum, dict):
+                    mdl._capacityVariablesOptimum = {}
                 __t = time.time()
-                # if capacityVariablesOptimum is not a dict, convert to dict
+                # if _capacityVariablesOptimum is not a dict, convert to dict
                 # (if single year system is optimized several times)
 
                 mdl.setOptimalValues(self, self.pyM)
@@ -1866,30 +1866,65 @@ class EnergySystemModel:
                 )
                 utils.output(outputString, self.verbose, 0)
 
-                if self.mode == "perfectForesight":
-                    mdl.optSummary = mdl._optSummary
-                # for single year optimization, prepare results data in "old"
-                # format just for one year
-                elif self.mode == "stochastic":
-                    mdl.optSummary = mdl._optSummary[0]
-                else:
-                    mdl.optSummary = mdl._optSummary[0]
-                    if key is "StorageModel" or key is "StorageExtModel":
-                        mdl.stateOfChargeOperationVariablesOptimum = (
-                            mdl.stateOfChargeOperationVariablesOptimum[0]
-                        )
-
-                        mdl.chargeOperationVariablesOptimum = (
-                            mdl.chargeOperationVariablesOptimum[0]
-                        )
-
-                        mdl.dischargeOperationVariablesOptimum = (
-                            mdl.dischargeOperationVariablesOptimum[0]
-                        )
+                # convert optimal values from internal name to external name
+                # e.g. from _capacitiyVariablesOptimum to capacityVariablesOptimmum
+                # For perfectForesight the data stays the same, for a single year optimization
+                # the data is converted from a dict with a single entry to a dataframe
+                # By this, old models will not fail
+                def convertOptimalValues(esM,mdl,key):
+                    if key in mdl.__dict__.keys():
+                        print(key)
+                        if esM.mode == "singleYearOptimization":
+                            setattr(mdl,key.replace("_",""), getattr(mdl,key)[0])
+                        else:
+                            setattr(mdl,key.replace("_", ""), getattr(mdl, key))
                     else:
-                        mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
-                    mdl.capacityVariablesOptimum = mdl.capacityVariablesOptimum[0]
+                        pass
+                optimalValueParameters=[
+                    "_optSummary","_stateOfChargeOperationVSariablesOptimum",
+                    "_chargeOperationVariablesOptimum","_dischargeOperationVariablesOptimum",
+                    "_phaseAngleVariablesOptimum", "_operationVariablesOptimum",
+                    "_discretizationPointVariablesOptimun","_discretizationSegmentConVariablesOptimun",
+                    "_discretizationSegmentBinVariablesOptimun","_capacityVariablesOptimum",
+                    "_isBuiltVariablesOptimum","_commissioningVariablesOptimum",
+                    "_decommissioningVariablesOptimum"]
 
+                for optParam in optimalValueParameters:
+                    convertOptimalValues(self, mdl, optParam)
+                print('test')
+                # if self.mode == "perfectForesight":
+                #     mdl.optSummary = mdl._optSummary
+                # # for single year optimization, prepare results data in "old"
+                # # format just for one year
+                # elif self.mode == "stochastic":
+                #     mdl.optSummary = mdl._optSummary[0]
+                # else:
+                #     mdl.optSummary = mdl._optSummary[0]
+                #     if key == "StorageModel" or key == "StorageExtModel":
+                #         mdl.stateOfChargeOperationVariablesOptimum = (
+                #             mdl.stateOfChargeOperationVariablesOptimum[0]
+                #         )
+                #
+                #         mdl.chargeOperationVariablesOptimum = (
+                #             mdl.chargeOperationVariablesOptimum[0]
+                #         )
+                #
+                #         mdl.dischargeOperationVariablesOptimum = (
+                #             mdl.dischargeOperationVariablesOptimum[0]
+                #         )
+                #     if key == "LOPFModel":
+                #         mdl.phaseAngleVariablesOptimum=mdl._phaseAngleVariablesOptimum[0]
+                #     if key != "StorageModel" and key != "StorageExtModel":
+                #         mdl.operationVariablesOptimum = mdl._operationVariablesOptimum[0]
+                #     if key == "ConversionPartLoadModel":
+                #         mdl.discretizationPointVariablesOptimun= mdl._discretizationPointVariablesOptimun[0]
+                #         mdl.discretizationSegmentConVariablesOptimun= mdl._discretizationSegmentConVariablesOptimun[0]
+                #         mdl.discretizationSegmentBinVariablesOptimun= mdl._discretizationSegmentBinVariablesOptimun[0]
+                #
+                #     mdl.capacityVariablesOptimum = mdl._capacityVariablesOptimum[0]
+                #     mdl.isBuiltVariablesOptimum = mdl._isBuiltVariablesOptimum[0]
+                #     mdl.commissioningVariablesOptimum=mdl._commissioningVariablesOptimum[0]
+                #     mdl.decommissioningVariablesOptimum = mdlde._commissioningVariablesOptimum[0]
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 

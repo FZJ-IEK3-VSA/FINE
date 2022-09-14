@@ -721,12 +721,13 @@ class ComponentModel(metaclass=ABCMeta):
         self.abbrvName = ""
         self.dimension = ""
         self.componentsDict = {}
-        self.capacityVariablesOptimum = {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        self.isBuiltVariablesOptimum = {}
-        self.operationVariablesOptimum = {}
-        self._optSummary = None
+        self._capacityVariablesOptimum = {}
+        #self._operationVariablesOptimum = {}
+        self._commissioningVariablesOptimum = {}
+        self._decommissioningVariablesOptimum = {}
+        self._isBuiltVariablesOptimum = {}
+        #self._operationVariablesOptimum = {}
+        self._optSummary = {}
 
     ####################################################################################################################
     #                           Functions for declaring design and operation variables sets                            #
@@ -3154,7 +3155,7 @@ class ComponentModel(metaclass=ABCMeta):
         capOptVal_ = utils.formatOptimizationOutput(
             values, "designVariables", self.dimension, ip, compDict=compDict
         )
-        self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = capOptVal_
+        self._capacityVariablesOptimum[esM.investmentPeriodList[ip]] = capOptVal_
         # Get and set optimal variable values for commissioning
         commisValues = commisVar.get_values()
         commisOptVal = utils.formatOptimizationOutput(
@@ -3163,7 +3164,7 @@ class ComponentModel(metaclass=ABCMeta):
         commisOptVal_ = utils.formatOptimizationOutput(
             commisValues, "designVariables", self.dimension, ip, compDict=compDict
         )
-        self.commissioningVariablesOptimum[esM.investmentPeriodList[ip]] = commisOptVal_
+        self._commissioningVariablesOptimum[esM.investmentPeriodList[ip]] = commisOptVal_
         # Get and set optimal variable values for decommissioning
         decommisValues = decommisVar.get_values()
         decommisOptVal = utils.formatOptimizationOutput(
@@ -3172,7 +3173,7 @@ class ComponentModel(metaclass=ABCMeta):
         decommisOptVal_ = utils.formatOptimizationOutput(
             decommisValues, "designVariables", self.dimension, ip, compDict=compDict
         )
-        self.decommissioningVariablesOptimum[
+        self._decommissioningVariablesOptimum[
             esM.investmentPeriodList[ip]
         ] = decommisOptVal_
 
@@ -3254,7 +3255,6 @@ class ComponentModel(metaclass=ABCMeta):
                     QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
                     lifetimeAttr="ipTechnicalLifetime",
                     varName="commis",
-                    divisorName="CCF",
                     QPdivisorNames=["QPbound"],
                     getOptValue=True,
                     getOptValueCostType="NPV",
@@ -3271,7 +3271,6 @@ class ComponentModel(metaclass=ABCMeta):
                     QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
                     lifetimeAttr="ipTechnicalLifetime",
                     varName="commis",
-                    divisorName="CCF",
                     QPdivisorNames=["QPbound"],
                     getOptValue=True,
                     getOptValueCostType="TAC",
@@ -3314,7 +3313,7 @@ class ComponentModel(metaclass=ABCMeta):
         binCapOptVal_ = utils.formatOptimizationOutput(
             values, "designVariables", self.dimension, ip=ip, compDict=compDict
         )
-        self.isBuiltVariablesOptimum = binCapOptVal_
+        self._isBuiltVariablesOptimum[esM.investmentPeriodList[ip]] = binCapOptVal_
 
         if binCapOptVal is not None:
             # Calculate the investment costs i (fix value if component is built)
@@ -3475,73 +3474,80 @@ class ComponentModel(metaclass=ABCMeta):
         ] = npv.values
         return optSummary
 
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 
-            * 'capacityVariablesOptimum',
-            * 'isBuiltVariablesOptimum',
-            * 'operationVariablesOptimum',
+            * '_capacityVariablesOptimum',
+            * '_isBuiltVariablesOptimum',
+            * '_operationVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         :type name: string
+
+        :param ip: investment period
+        |br| * the default value is 0
+        :type ip: int
+
+        :returns: a dictionary with the optimal values of the components
+        :rtype: dict
         """
         if name == "capacityVariablesOptimum":
             return {
-                "values": self.capacityVariablesOptimum,
+                "values": self._capacityVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "isBuiltVariablesOptimum":
             return {
-                "values": self.isBuiltVariablesOptimum,
+                "values": self._isBuiltVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "operationVariablesOptimum":
             return {
-                "values": self.operationVariablesOptimum,
+                "values": self._operationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "commissioningVariablesOptimum":
             return {
-                "values": self.commissioningVariablesOptimum,
+                "values": self._commissioningVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "decommissioningVariablesOptimum":
             return {
-                "values": self.decommissioningVariablesOptimum,
+                "values": self._decommissioningVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         else:
             return {
                 "capacityVariablesOptimum": {
-                    "values": self.capacityVariablesOptimum,
+                    "values": self._capacityVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "commissioningVariablesOptimum": {
-                    "values": self.commissioningVariablesOptimum,
+                    "values": self._commissioningVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "decommissioningVariablesOptimum": {
-                    "values": self.decommissioningVariablesOptimum,
+                    "values": self._decommissioningVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "isBuiltVariablesOptimum": {
-                    "values": self.isBuiltVariablesOptimum,
+                    "values": self._isBuiltVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "operationVariablesOptimum": {
-                    "values": self.operationVariablesOptimum,
+                    "values": self._operationVariablesOptimum[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },

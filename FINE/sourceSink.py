@@ -629,16 +629,10 @@ class SourceSinkModel(ComponentModel):
         """
         Constructor for creating a SourceSinkModel class instance.
         """
+        super().__init__()
         self.abbrvName = "srcSnk"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum = {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        self.isBuiltVariablesOptimum = {}
-        self.operationVariablesOptimum = {}
-        self._optSummary = {}
-        self.operationVariablesOptimum = {}
+        self._operationVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -1047,9 +1041,9 @@ class SourceSinkModel(ComponentModel):
                 esM=esM,
             )
             # Quick fix if several runs with one investment period
-            if type(self.operationVariablesOptimum) is not dict:
-                self.operationVariablesOptimum = {}
-            self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+            if type(self._operationVariablesOptimum) is not dict:
+                self._operationVariablesOptimum = {}
+            self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
             props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
             # Unit dict: Specify units for props
@@ -1213,7 +1207,7 @@ class SourceSinkModel(ComponentModel):
                 self._optSummary = {}
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
@@ -1221,13 +1215,17 @@ class SourceSinkModel(ComponentModel):
 
             * 'capacityVariables',
             * 'isBuiltVariables',
-            * 'operationVariablesOptimum',
+            * '_operationVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'
         :type name: string
 
+        :param ip: investment period
+        |br| * the default value is 0
+        :type ip: int
+
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        return super().getOptimalValues(name)
+        return super().getOptimalValues(name, ip=ip)

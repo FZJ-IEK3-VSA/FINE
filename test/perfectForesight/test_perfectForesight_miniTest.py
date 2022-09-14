@@ -263,21 +263,16 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
     # check getOptimalValue function
     assert (
         esM.componentModelingDict["SourceSinkModel"]
-        .getOptimalValues()["commissioningVariablesOptimum"]["values"][2020]
+        .getOptimalValues(ip=2020)["commissioningVariablesOptimum"]["values"]
         .loc["PV", "ForesightLand"]
         == 1.5
     )
     assert (
         esM.componentModelingDict["SourceSinkModel"]
-        .getOptimalValues()["decommissioningVariablesOptimum"]["values"][2020]
+        .getOptimalValues(ip=2020)["decommissioningVariablesOptimum"]["values"]
         .loc["PV", "ForesightLand"]
         == 10
     )
-
-    import pytest
-
-    pytest.set_trace()
-
 
 def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
     esM = perfectForesight_test_esM

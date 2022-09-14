@@ -407,15 +407,11 @@ class ConversionModel(ComponentModel):
 
     def __init__(self):
         """ " Constructor for creating a ConversionModel class instance"""
+        super().__init__()
         self.abbrvName = "conv"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum = {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        self.isBuiltVariablesOptimum = {}
-        self._optSummary = {}
-        self.operationVariablesOptimum = {}
+        self._operationVariablesOptimum = {}
+
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -744,9 +740,9 @@ class ConversionModel(ComponentModel):
                 esM=esM,
             )
             # Quick fix if several runs with one investment period
-            if type(self.operationVariablesOptimum) is not dict:
-                self.operationVariablesOptimum = {}
-            self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+            if type(self._operationVariablesOptimum) is not dict:
+                self._operationVariablesOptimum = {}
+            self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
             props = ["operation", "opexOp"]
             # Unit dict: Specify units for props
@@ -799,7 +795,7 @@ class ConversionModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values / esM.numberOfYears
+                    opSum.values / esM.numberOfYears # TODO from stochastic
                 )
                 optSummary.loc[
                     [
@@ -812,7 +808,7 @@ class ConversionModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    ox.values / esM.numberOfYears
+                    ox.values / esM.numberOfYears # TODO only stochastic
                 )
 
             optSummary = optSummary.append(optSummaryBasic).sort_index()
@@ -832,7 +828,7 @@ class ConversionModel(ComponentModel):
                 self._optSummary = {}
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
@@ -840,13 +836,17 @@ class ConversionModel(ComponentModel):
 
             * 'capacityVariables',
             * 'isBuiltVariables',
-            * 'operationVariablesOptimum',
+            * '_operationVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'
         :type name: string
 
+        :param ip: investment period
+        |br| * the default value is 0
+        :type ip: int
+
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        return super().getOptimalValues(name)
+        return super().getOptimalValues(name, ip=ip)
