@@ -17,6 +17,7 @@ setuptools.setup(
     url="https://github.com/FZJ-IEK3-VSA/FINE",
     include_package_data=True,
     packages=setuptools.find_packages(),
+    python_requires='>=3.10.0, <3.11.0',
     install_requires=required_packages,
     setup_requires=["setuptools-git"],
     classifiers=[

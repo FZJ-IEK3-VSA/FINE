@@ -1,5 +1,6 @@
 import os
 import shutil
+import pytest
 
 import pandas as pd
 import numpy as np
@@ -33,7 +34,8 @@ def test_create_gdf():
     shutil.rmtree(path_to_test_dir)
 
 
-def test_create_geom_xarray(sample_shapefile):
+@pytest.mark.parametrize("add_centroids", [True, False])
+def test_create_geom_xarray(sample_shapefile, add_centroids):
 
     expected_centroids = [Point(2, 2), Point(5.5, 2)]
     expected_centroid_distances = 0.001 * np.array(
@@ -42,14 +44,19 @@ def test_create_geom_xarray(sample_shapefile):
 
     # FUNCTION CALL
     output_xr = manUtils.create_geom_xarray(
-        sample_shapefile, geom_id_col_name="region_ids"
+        sample_shapefile, geom_id_col_name="region_ids", add_centroids=add_centroids
     )
 
     # ASSERTION
-    output_centroids = output_xr["centroids"].values
-    output_centroid_distances = output_xr["centroid_distances"].values
+    if add_centroids:
+        output_centroids = output_xr["centroids"].values
+        output_centroid_distances = output_xr["centroid_distances"].values
 
-    for output, expected in zip(output_centroids, expected_centroids):
-        assert output.coords[:] == expected.coords[:]
+        for output, expected in zip(output_centroids, expected_centroids):
+            assert output.coords[:] == expected.coords[:]
 
-    assert np.array_equal(output_centroid_distances, expected_centroid_distances)
+        assert np.array_equal(output_centroid_distances, expected_centroid_distances)
+
+    else:
+        with pytest.raises(KeyError):
+            output_xr["centroids"]

@@ -53,7 +53,9 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
     return gdf
 
 
-def create_geom_xarray(shapefile, geom_col_name="geometry", geom_id_col_name="index"):
+def create_geom_xarray(
+    shapefile, geom_col_name="geometry", geom_id_col_name="index", add_centroids=True
+):
     """
     Creates an xr.Dataset with geometry info from the `shapefile`.
 
@@ -70,6 +72,11 @@ def create_geom_xarray(shapefile, geom_col_name="geometry", geom_id_col_name="in
         |br| * the default value is 'index'
     :type geom_id_col_name: str
 
+    :param add_centroids: Indicates whether region centroids and centroid distances should be
+        added to the resulting geom xarray
+        |br| * the default value is True
+    :type add_centroids: bool
+
     :returns: xr_ds - The xarray dataset holding 'geometries', 'centroids', 'centroid_distances'
     :rtype: xr.Dataset
     """
@@ -84,36 +91,39 @@ def create_geom_xarray(shapefile, geom_col_name="geometry", geom_id_col_name="in
         dims=["space"],
     )
 
-    # centroids
-    centroids = pd.Series([geom.centroid for geom in geometries_da.values])
-    centroids_da = xr.DataArray(
-        centroids,
-        coords=[geom_ids],
-        dims=["space"],
-    )
+    xr_ds = xr.Dataset({"geometries": geometries_da})
 
-    # centroid distances
-    centroid_dist_da = xr.DataArray(
-        np.zeros((len(geom_ids), len(geom_ids))),
-        coords=[geom_ids, geom_ids],
-        dims=["space", "space_2"],
-    )
+    if add_centroids:
+        # centroids
+        centroids = pd.Series([geom.centroid for geom in geometries_da.values])
+        centroids_da = xr.DataArray(
+            centroids,
+            coords=[geom_ids],
+            dims=["space"],
+        )
 
-    for region_id_1 in centroids_da["space"]:
-        for region_id_2 in centroids_da["space"]:
-            centroid_1 = centroids_da.sel(space=region_id_1).item(0)
-            centroid_2 = centroids_da.sel(space=region_id_2).item(0)
-            centroid_dist_da.loc[dict(space=region_id_1, space_2=region_id_2)] = (
-                centroid_1.distance(centroid_2) / 1e3
-            )  # distances in km
+        # centroid distances
+        centroid_dist_da = xr.DataArray(
+            np.zeros((len(geom_ids), len(geom_ids))),
+            coords=[geom_ids, geom_ids],
+            dims=["space", "space_2"],
+        )
 
-    xr_ds = xr.Dataset(
-        {
-            "geometries": geometries_da,
-            "centroids": centroids_da,
-            "centroid_distances": centroid_dist_da,
-        }
-    )
+        for region_id_1 in centroids_da["space"]:
+            for region_id_2 in centroids_da["space"]:
+                centroid_1 = centroids_da.sel(space=region_id_1).item(0)
+                centroid_2 = centroids_da.sel(space=region_id_2).item(0)
+                centroid_dist_da.loc[dict(space=region_id_1, space_2=region_id_2)] = (
+                    centroid_1.distance(centroid_2) / 1e3
+                )  # distances in km
+
+        xr_ds.update(
+            {
+                "centroids": centroids_da,
+                "centroid_distances": centroid_dist_da,
+            }
+        )
+
     return xr_ds
 
 

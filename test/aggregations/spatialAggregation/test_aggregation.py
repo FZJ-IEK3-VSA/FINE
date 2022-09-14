@@ -81,6 +81,13 @@ def test_aggregate_time_series_mean_and_sum(
             3,
             3,
         ),
+        # all zero values and numpy array with dtype=object, division by zero error
+        (
+            np.array([[0.0, 0.0, 0.0, 0.0] for i in range(2)], dtype=object),
+            np.array([0.0, 0.0, 0.0, 0.0]),
+            0.0,
+            0.0,
+        ),
     ],
 )
 def test_aggregate_time_series_weighted_mean(

@@ -167,7 +167,8 @@ def perform_spatial_aggregation(
             "opexPerChargeOperation": ("mean", None),\n
             "opexPerDischargeOperation": ("mean", None),\n
             "QPcostScale": ("sum", None),\n
-            "technicalLifetime": ("mean", None)\n
+            "technicalLifetime": ("mean", None),\n
+            "balanceLimit": ("sum", None)\n
             }
 
         |br| * the default value is None
@@ -225,7 +226,14 @@ def perform_spatial_aggregation(
     geom_col_name = kwargs.get("geom_col_name", "geometry")
     geom_id_col_name = kwargs.get("geom_id_col_name", "index")
 
-    geom_xr = manUtils.create_geom_xarray(shapefile, geom_col_name, geom_id_col_name)
+    if grouping_mode == "string_based":
+        add_centroids = False
+    else:
+        add_centroids = True
+
+    geom_xr = manUtils.create_geom_xarray(
+        shapefile, geom_col_name, geom_id_col_name, add_centroids
+    )
 
     xr_datasets["Geometry"] = geom_xr
 
@@ -293,6 +301,7 @@ def perform_spatial_aggregation(
         "opexPerDischargeOperation": ("mean", None),
         "QPcostScale": ("sum", None),
         "technicalLifetime": ("mean", None),
+        "balanceLimit": ("sum", None),
     }
 
     aggregation_function_dict = kwargs.get("aggregation_function_dict", None)
