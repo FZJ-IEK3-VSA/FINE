@@ -2107,12 +2107,14 @@ class StorageModel(ComponentModel):
                 # Results in a one dimensional DataFrame
                 stateOfChargeIntra = (
                     pd.DataFrame(stateOfChargeIntra, index=[0])
-                    .T.swaplevel(i=0, j=-2)
+                    .T.loc[:, :, ip, :, :]
+                    .swaplevel(i=0, j=-2)
                     .sort_index()
                 )
                 stateOfChargeInter = (
                     pd.DataFrame(stateOfChargeInter, index=[0])
-                    .T.swaplevel(i=0, j=1)
+                    .T.loc[:, :, ip, :]
+                    .swaplevel(i=0, j=1)
                     .sort_index()
                 )
                 # Unstack time steps (convert to a two dimensional DataFrame with the time indices being the columns)
