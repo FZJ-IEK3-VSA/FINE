@@ -285,7 +285,7 @@ class Transmission(Component):
                     esM, name, opexPerOperation[ip], "2dim", self.locationalEligibility
                 )
             elif isinstance(opexPerOperation, pd.DataFrame):
-                self.opexPerOperation = utils.checkAndSetCostParameter(
+                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
                     esM, name, self.opexPerOperation, "2dim", self.locationalEligibility
                 )
             else:
