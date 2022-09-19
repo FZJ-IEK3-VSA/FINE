@@ -4,14 +4,14 @@ import FINE as fn
 from FINE.IOManagement.standardIO import writeOptimizationOutputToExcel
 
 
-def test_compareResults(minimal_test_esM):
+def test_compareResults_miniSystem(minimal_test_esM):
     cwd = os.getcwd()
     dataPath = os.path.join(cwd, "test", "data")
 
     # create new result excel files
-    pathWithoutSegmentation_output = os.path.join(dataPath, "output_result")
-    pathWithSegmentation_output = os.path.join(dataPath, "output_result_segmentation")
-    saveExcelResults(
+    pathWithoutSegmentation_output = os.path.join(dataPath, "output_result_minisystem")
+    pathWithSegmentation_output = os.path.join(dataPath, "output_result_minisystem_segmentation")
+    saveExcelResultsWithSegmentation(
         minimal_test_esM, pathWithoutSegmentation_output, pathWithSegmentation_output
     )
 
@@ -31,6 +31,34 @@ def test_compareResults(minimal_test_esM):
     compareTwoExcelFiles(pathWithSegmentation_expected, pathWithSegmentation_output)
 
 
+def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
+    cwd = os.getcwd()
+    dataPath = os.path.join(cwd, "test", "data")
+
+    # create new result excel files
+    pathWithoutSegmentation_output = os.path.join(dataPath, "output_result_multinode")
+    pathWithSegmentation_output = os.path.join(dataPath, "output_result_multinode_segmentation")
+    saveExcelResults(
+        multi_node_test_esM_init, pathWithoutSegmentation_output, pathWithSegmentation_output
+    )
+
+    # compare to correct result excel files
+    pathWithoutSegmentation_output = pathWithoutSegmentation_output + ".xlsx"
+    pathWithSegmentation_output = pathWithSegmentation_output + ".xlsx"
+    pathWithoutSegmentation_expected = os.path.join(
+        dataPath, "expected_result_multinode.xlsx"
+    )
+    pathWithSegmentation_expected = os.path.join(
+        dataPath, "expected_result_multinode_segmentation.xlsx"
+    )
+
+    compareTwoExcelFiles(
+        pathWithoutSegmentation_expected, pathWithoutSegmentation_output
+    )
+    compareTwoExcelFiles(pathWithSegmentation_expected, pathWithSegmentation_output)
+
+
+
 def compareTwoExcelFiles(path1, path2):
     xl = pd.ExcelFile(path1)
     # check all sheets
@@ -48,6 +76,30 @@ def compareTwoExcelFiles(path1, path2):
 
 
 def saveExcelResults(
+    multi_node_test_esM_init, savePathWithoutSegmentation
+):
+    # run and save model without segmentation
+    multi_node_test_esM_init.optimize()
+    writeOptimizationOutputToExcel(
+        multi_node_test_esM_init,
+        outputFileName=savePathWithoutSegmentation,
+        optSumOutputLevel={
+            "SourceSinkModel": 0,
+            "ConversionModel": 0,
+            "StorageModel": 0,
+            "TransmissionModel": 0,
+            "LOPFModel":0
+        },
+        optValOutputLevel={
+            "SourceSinkModel": 0,
+            "ConversionModel": 0,
+            "StorageModel": 0,
+            "TransmissionModel": 0,
+            "LOPFModel":0
+        },
+    )
+
+def saveExcelResultsWithSegmentation(
     minimal_test_esM, savePathWithoutSegmentation, savePathWithSegmentation
 ):
     # run and save model without segmentation

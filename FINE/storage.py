@@ -970,7 +970,6 @@ class StorageModel(ComponentModel):
                     chargeOp[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
                     for ip, p, t in pyM.timeSet
                 )
-                / esM.numberOfYears
                 <= capVar[loc, compName, ip]
                 * (
                     compDict[compName].stateOfChargeMax
@@ -1877,10 +1876,6 @@ class StorageModel(ComponentModel):
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
 
-            # Quick fix if several runs with one investment period
-            if type(self._chargeOperationVariablesOptimum) is not dict:
-                self._chargeOperationVariablesOptimum = {}
-
             # * charge variables and contributions
             optVal = utils.formatOptimizationOutput(
                 chargeOp.get_values(),
@@ -1916,7 +1911,7 @@ class StorageModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values / esM.numberOfYears
+                    opSum.values 
                 )
                 optSummary.loc[
                     [
@@ -1933,12 +1928,8 @@ class StorageModel(ComponentModel):
                     [(ix, "opexCharge", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    ox.values / esM.numberOfYears
+                    ox.values 
                 )
-
-            # Quick fix if several runs with one investment period
-            if type(self._dischargeOperationVariablesOptimum) is not dict:
-                self._dischargeOperationVariablesOptimum = {}
 
             # * discharge variables and contributions
             optVal = utils.formatOptimizationOutput(
@@ -1992,7 +1983,7 @@ class StorageModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values / esM.numberOfYears
+                    opSum.values 
                 )
                 optSummary.loc[
                     [
@@ -2012,12 +2003,9 @@ class StorageModel(ComponentModel):
                     ],
                     ox.columns,
                 ] = (
-                    ox.values / esM.numberOfYears
+                    ox.values 
                 )
 
-            # Quick fix if several runs with one investment period
-            if type(self._stateOfChargeOperationVariablesOptimum) is not dict:
-                self._stateOfChargeOperationVariablesOptimum = {}
 
             # * set state of charge variables
             if not pyM.hasTSA:
@@ -2122,9 +2110,6 @@ class StorageModel(ComponentModel):
                 .values
             )
 
-            # Quick fix if several runs with one investment period
-            if type(self._optSummary) is not dict:
-                self._optSummary = {}
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):

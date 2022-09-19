@@ -180,10 +180,9 @@ def fixBinaryVariables(esM):
     :param esM: energy system model to which the component should be added. Used for unit checks.
     :type esM: EnergySystemModel instance from the FINE package
     """
-    raise ValueError("Not working with perfect foresight")
     for mdl in esM.componentModelingDict.keys():
         compValues = esM.componentModelingDict[mdl].getOptimalValues(
-            "_isBuiltVariablesOptimum"
+            name="isBuiltVariablesOptimum", ip=0
         )["values"]
         if compValues is not None:
             for comp in compValues.index.get_level_values(0).unique():

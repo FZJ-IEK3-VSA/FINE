@@ -1873,7 +1873,6 @@ class EnergySystemModel:
                 # By this, old models will not fail
                 def convertOptimalValues(esM,mdl,key):
                     if key in mdl.__dict__.keys():
-                        print(key)
                         if esM.mode == "singleYearOptimization":
                             setattr(mdl,key.replace("_",""), getattr(mdl,key)[0])
                         else:
@@ -1891,7 +1890,6 @@ class EnergySystemModel:
 
                 for optParam in optimalValueParameters:
                     convertOptimalValues(self, mdl, optParam)
-                print('test')
                 # if self.mode == "perfectForesight":
                 #     mdl.optSummary = mdl._optSummary
                 # # for single year optimization, prepare results data in "old"

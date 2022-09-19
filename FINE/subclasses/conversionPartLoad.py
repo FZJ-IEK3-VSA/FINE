@@ -107,6 +107,9 @@ class ConversionPartLoadModel(ConversionModel):
         self.abbrvName = "partLoad"
         self.dimension = "1dim"
         self._operationVariablesOptimum = {}
+        self.discretizationPointVariablesOptimun ={}
+        self.discretizationSegmentConVariablesOptimun={}
+        self.discretizationSegmentBinVariablesOptimun={}
      
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #

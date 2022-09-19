@@ -1040,9 +1040,7 @@ class SourceSinkModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            # Quick fix if several runs with one investment period
-            if type(self._operationVariablesOptimum) is not dict:
-                self._operationVariablesOptimum = {}
+
             self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
             props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
@@ -1096,7 +1094,6 @@ class SourceSinkModel(ComponentModel):
                     * compDict[op.name].processedCommodityRevenue[ip][op.index],
                     axis=1,
                 )
-
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
@@ -1104,7 +1101,7 @@ class SourceSinkModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values / esM.numberOfYears
+                    opSum.values
                 )
                 optSummary.loc[
                     [
@@ -1117,7 +1114,7 @@ class SourceSinkModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    ox.values / esM.numberOfYears
+                    ox.values
                 )
 
                 # get empty datframe for resulting time dependent (TD) cost sum
@@ -1165,21 +1162,21 @@ class SourceSinkModel(ComponentModel):
                             .T.mul(calcRevenueTD.T)
                             .sum(axis=0)
                         )
-
+                   
                 optSummary.loc[
                     [
                         (ix, "commodCosts", "[" + esM.costUnit + "/a]")
                         for ix in ox.index
                     ],
                     ox.columns,
-                ] = (cCostTD.values + cCost.values) / esM.numberOfYears
+                ] = (cCostTD.values + cCost.values)
                 optSummary.loc[
                     [
                         (ix, "commodRevenues", "[" + esM.costUnit + "/a]")
                         for ix in ox.index
                     ],
                     ox.columns,
-                ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
+                ] = (cRevenueTD.values + cRevenue.values) 
 
             # get discounted investment cost as total annual cost (TAC)
             optSummary = optSummary.append(optSummaryBasic).sort_index()
@@ -1202,9 +1199,6 @@ class SourceSinkModel(ComponentModel):
                 .values
             )
 
-            # Quick fix if several runs with one investment period
-            if type(self._optSummary) is not dict:
-                self._optSummary = {}
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):

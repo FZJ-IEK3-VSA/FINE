@@ -739,9 +739,6 @@ class ConversionModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            # Quick fix if several runs with one investment period
-            if type(self._operationVariablesOptimum) is not dict:
-                self._operationVariablesOptimum = {}
             self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
             props = ["operation", "opexOp"]
@@ -795,8 +792,10 @@ class ConversionModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values / esM.numberOfYears # TODO from stochastic
+                    opSum.values
                 )
+                
+                # TODO KANN DAS GELÖSCHT WERDEN?
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")
@@ -808,7 +807,7 @@ class ConversionModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    ox.values / esM.numberOfYears # TODO only stochastic
+                    ox.values 
                 )
 
             optSummary = optSummary.append(optSummaryBasic).sort_index()
@@ -823,9 +822,6 @@ class ConversionModel(ComponentModel):
                 .sum()
                 .values
             )
-            # Quick fix if several runs with one investment period
-            if type(self._optSummary) is not dict:
-                self._optSummary = {}
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):

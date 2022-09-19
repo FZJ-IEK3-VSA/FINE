@@ -898,10 +898,14 @@ class TransmissionModel(ComponentModel):
 
             compDict, abbrvName = self.componentsDict, self.abbrvName
             capVar = getattr(esM.pyM, "cap_" + abbrvName)
+            commisVar=getattr(esM.pyM, "commis_" + abbrvName)
+            decommisVar=getattr(esM.pyM, "decommis_" + abbrvName)
             binVar = getattr(esM.pyM, "designBin_" + abbrvName)
 
             props = [
                 "capacity",
+                "commissioning",
+                "decommissioning",
                 "isBuilt",
                 "capexCap",
                 "capexIfBuilt",
@@ -911,6 +915,8 @@ class TransmissionModel(ComponentModel):
                 "invest",
             ]
             units = [
+                "[-]",
+                "[-]",
                 "[-]",
                 "[-]",
                 "[" + esM.costUnit + "/a]",
@@ -932,7 +938,7 @@ class TransmissionModel(ComponentModel):
                         x[1],
                         "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
                     )
-                    if x[1] == "capacity"
+                    if x[1] in ["capacity","commissioning","decommissioning"] 
                     else x,
                     tuples,
                 )
@@ -949,32 +955,33 @@ class TransmissionModel(ComponentModel):
             optVal = utils.formatOptimizationOutput(
                 values, "designVariables", "1dim", ip
             )
+            # TODO wo ist das ip ?? 
             optVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, compDict=compDict
+                values, "designVariables", self.dimension, ip, compDict=compDict
             )
             self._capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
             # TODO implement code below
-            # # Get and set optimal variable values for commissioning
-            # commisValues = commisVar.get_values()
-            # commisOptVal = utils.formatOptimizationOutput(
-            #     commisValues, "designVariables", "1dim", ip
-            # )
-            # commisOptVal_ = utils.formatOptimizationOutput(
-            #     commisValues, "designVariables", self.dimension, ip, compDict=compDict
-            # )
-            # self._commissioningVariablesOptimum[esM.investmentPeriodList[ip]] = commisOptVal_
-            # # Get and set optimal variable values for decommissioning
-            # decommisValues = decommisVar.get_values()
-            # decommisOptVal = utils.formatOptimizationOutput(
-            #     decommisValues, "designVariables", "1dim", ip
-            # )
-            # decommisOptVal_ = utils.formatOptimizationOutput(
-            #     decommisValues, "designVariables", self.dimension, ip, compDict=compDict
-            # )
-            # self._decommissioningVariablesOptimum[
-            #     esM.investmentPeriodList[ip]
-            # ] = decommisOptVal_
+            # Get and set optimal variable values for commissioning
+            commisValues = commisVar.get_values()
+            commisOptVal = utils.formatOptimizationOutput(
+                commisValues, "designVariables", "1dim", ip
+            )
+            commisOptVal_ = utils.formatOptimizationOutput(
+                commisValues, "designVariables", self.dimension, ip, compDict=compDict
+            )
+            self._commissioningVariablesOptimum[esM.investmentPeriodList[ip]] = commisOptVal_
+            # Get and set optimal variable values for decommissioning
+            decommisValues = decommisVar.get_values()
+            decommisOptVal = utils.formatOptimizationOutput(
+                decommisValues, "designVariables", "1dim", ip
+            )
+            decommisOptVal_ = utils.formatOptimizationOutput(
+                decommisValues, "designVariables", self.dimension, ip, compDict=compDict
+            )
+            self._decommissioningVariablesOptimum[
+                esM.investmentPeriodList[ip]
+            ] = decommisOptVal_
 
             if optVal is not None:
                 # Check if the installed capacities are close to a bigM value for components with design decision variables but
@@ -1054,6 +1061,28 @@ class TransmissionModel(ComponentModel):
                     ],
                     optVal.columns,
                 ] = optVal.values
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "commissioning",
+                            "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
+                        )
+                        for ix in commisOptVal.index
+                    ],
+                    commisOptVal.columns,
+                ] = commisOptVal.values
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "decommissioning",
+                            "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
+                        )
+                        for ix in decommisOptVal.index
+                    ],
+                    decommisOptVal.columns,
+                ] = decommisOptVal.values
                 optSummary.loc[
                     [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index],
                     i.columns,
@@ -1136,11 +1165,18 @@ class TransmissionModel(ComponentModel):
             return optSummary
 
         for ip in esM.investmentPeriods:
-            # Set optimal design dimension variables and get basic optimization summary
-            optSummaryBasic = _setOptimalValues(
-                self, esM, pyM, mapC.keys(), "commodityUnit"
+            #### TEST
+            optSummaryBasic = super().setOptimalValues(
+                esM, pyM, ip, mapC.keys(), "commodityUnit"
             )
-
+            
+            
+            
+            # Set optimal design dimension variables and get basic optimization summary
+            optSummaryBasic_trans = _setOptimalValues(
+                self, esM, pyM, mapC.keys(), "commodityUnit"
+            ) # TODO ASK SHRUTHI
+            
             for compName, comp in compDict.items():
                 for cost in [
                     "invest",
@@ -1171,9 +1207,6 @@ class TransmissionModel(ComponentModel):
                 compDict=compDict,
                 esM=esM,
             )
-            # Quick fix if several runs with one investment period
-            if type(self._operationVariablesOptimum) is not dict:
-                self._operationVariablesOptimum = {}
             self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
             props = ["operation", "opexOp"]
@@ -1234,7 +1267,7 @@ class TransmissionModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values / esM.numberOfYears
+                    opSum.values 
                 )
                 optSummary.loc[
                     [
@@ -1247,7 +1280,7 @@ class TransmissionModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    ox.values / esM.numberOfYears * 0.5
+                    ox.values * 0.5
                 )
 
             optSummary = optSummary.append(optSummaryBasic).sort_index()
@@ -1274,10 +1307,8 @@ class TransmissionModel(ComponentModel):
             names = list(optSummaryBasic.index.names)
             names.append("LocationIn")
             optSummary.index.set_names(names, inplace=True)
-            # Quick fix if several runs with one investment period
-            if type(self._optSummary) is not dict:
-                self._optSummary = {}
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
+
 
     def getOptimalValues(self, name="all", ip=0):
         """
