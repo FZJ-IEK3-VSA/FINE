@@ -439,9 +439,6 @@ def test_stock():
         == esM.pyM.cap_stor.get_values()[("ElectrolyzerLocation", "Pressure tank", 0)]
     )
 
-    import pytest
-
-    pytest.set_trace()
 
     assert (
         esM.getOptimizationSummary("ConversionModel").loc[

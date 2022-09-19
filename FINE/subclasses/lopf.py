@@ -122,14 +122,11 @@ class LOPFModel(TransmissionModel):
     """
 
     def __init__(self):
+        super().__init__()
         self.abbrvName = "lopf"
         self.dimension = "2dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
-        self._optSummary = None
+        self._operationVariablesOptimum={} 
+        self._phaseAngleVariablesOptimum ={} 
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -344,9 +341,9 @@ class LOPFModel(TransmissionModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self.phaseAngleVariablesOptimum = optVal_
+            self._phaseAngleVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
@@ -354,7 +351,7 @@ class LOPFModel(TransmissionModel):
 
             * 'capacityVariables',
             * 'isBuiltVariables',
-            * 'operationVariablesOptimum',
+            * '_operationVariablesOptimum',
             * 'phaseAngleVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
@@ -362,47 +359,47 @@ class LOPFModel(TransmissionModel):
         """
         if name == "capacityVariablesOptimum":
             return {
-                "values": self.capacityVariablesOptimum,
+                "values": self._capacityVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "isBuiltVariablesOptimum":
             return {
-                "values": self.isBuiltVariablesOptimum,
+                "values": self._isBuiltVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "operationVariablesOptimum":
             return {
-                "values": self.operationVariablesOptimum,
+                "values": self._operationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "phaseAngleVariablesOptimum":
             return {
-                "values": self.phaseAngleVariablesOptimum,
+                "values": self._phaseAngleVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": "1dim",
             }
         else:
             return {
                 "capacityVariablesOptimum": {
-                    "values": self.capacityVariablesOptimum,
+                    "values": self._capacityVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "isBuiltVariablesOptimum": {
-                    "values": self.isBuiltVariablesOptimum,
+                    "values": self._isBuiltVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "operationVariablesOptimum": {
-                    "values": self.operationVariablesOptimum,
+                    "values": self._operationVariablesOptimum[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
                 "phaseAngleVariablesOptimum": {
-                    "values": self.phaseAngleVariablesOptimum,
+                    "values": self._phaseAngleVariablesOptimum[ip],
                     "timeDependent": True,
                     "dimension": "1dim",
                 },

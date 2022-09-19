@@ -453,15 +453,12 @@ class TransmissionModel(ComponentModel):
 
     def __init__(self):
         """ " Constructor for creating a TransmissionModel class instance"""
+        super().__init__()
         self.abbrvName = "trans"
         self.dimension = "2dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum = {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        self.isBuiltVariablesOptimum = {}
-        self.operationVariablesOptimum = {}
-        self._optSummary = {}
+        self._operationVariablesOptimum = {}
+        self._isBuiltVariablesOptimum = {}
+
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -955,7 +952,29 @@ class TransmissionModel(ComponentModel):
             optVal_ = utils.formatOptimizationOutput(
                 values, "designVariables", self.dimension, compDict=compDict
             )
-            self.capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
+            self._capacityVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
+
+            # TODO implement code below
+            # # Get and set optimal variable values for commissioning
+            # commisValues = commisVar.get_values()
+            # commisOptVal = utils.formatOptimizationOutput(
+            #     commisValues, "designVariables", "1dim", ip
+            # )
+            # commisOptVal_ = utils.formatOptimizationOutput(
+            #     commisValues, "designVariables", self.dimension, ip, compDict=compDict
+            # )
+            # self._commissioningVariablesOptimum[esM.investmentPeriodList[ip]] = commisOptVal_
+            # # Get and set optimal variable values for decommissioning
+            # decommisValues = decommisVar.get_values()
+            # decommisOptVal = utils.formatOptimizationOutput(
+            #     decommisValues, "designVariables", "1dim", ip
+            # )
+            # decommisOptVal_ = utils.formatOptimizationOutput(
+            #     decommisValues, "designVariables", self.dimension, ip, compDict=compDict
+            # )
+            # self._decommissioningVariablesOptimum[
+            #     esM.investmentPeriodList[ip]
+            # ] = decommisOptVal_
 
             if optVal is not None:
                 # Check if the installed capacities are close to a bigM value for components with design decision variables but
@@ -1056,7 +1075,7 @@ class TransmissionModel(ComponentModel):
             optVal_ = utils.formatOptimizationOutput(
                 values, "designVariables", self.dimension, ip, compDict=compDict
             )
-            self.isBuiltVariablesOptimum = optVal_
+            self._isBuiltVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
             if optVal is not None:
                 # Calculate the investment costs i (fix value if component is built)
@@ -1153,9 +1172,9 @@ class TransmissionModel(ComponentModel):
                 esM=esM,
             )
             # Quick fix if several runs with one investment period
-            if type(self.operationVariablesOptimum) is not dict:
-                self.operationVariablesOptimum = {}
-            self.operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
+            if type(self._operationVariablesOptimum) is not dict:
+                self._operationVariablesOptimum = {}
+            self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
             props = ["operation", "opexOp"]
             # Unit dict: Specify units for props
@@ -1260,15 +1279,15 @@ class TransmissionModel(ComponentModel):
                 self._optSummary = {}
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'operationVariablesOptimum',
+        * '_capacityVariables',
+        * '_isBuiltVariables',
+        * '_operationVariablesOptimum',
         * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'
@@ -1277,4 +1296,4 @@ class TransmissionModel(ComponentModel):
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        return super().getOptimalValues(name)
+        return super().getOptimalValues(name, ip=ip)

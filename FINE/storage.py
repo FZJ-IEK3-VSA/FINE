@@ -561,19 +561,12 @@ class StorageModel(ComponentModel):
 
     def __init__(self):
         """ " Constructor for creating a StorageModel class instance"""
+        super().__init__()
         self.abbrvName = "stor"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum = {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        self.isBuiltVariablesOptimum = {}
-        (
-            self.chargeOperationVariablesOptimum,
-            self.dischargeOperationVariablesOptimum,
-        ) = ({}, {})
-        self.stateOfChargeOperationVariablesOptimum = {}
-        self._optSummary = {}
+        self._chargeOperationVariablesOptimum = {}
+        self._dischargeOperationVariablesOptimum = {}
+        self._stateOfChargeOperationVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -1885,8 +1878,8 @@ class StorageModel(ComponentModel):
             ).sort_index()
 
             # Quick fix if several runs with one investment period
-            if type(self.chargeOperationVariablesOptimum) is not dict:
-                self.chargeOperationVariablesOptimum = {}
+            if type(self._chargeOperationVariablesOptimum) is not dict:
+                self._chargeOperationVariablesOptimum = {}
 
             # * charge variables and contributions
             optVal = utils.formatOptimizationOutput(
@@ -1897,7 +1890,7 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self.chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+            self._chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
             if optVal is not None:
                 idx = pd.IndexSlice
@@ -1944,8 +1937,8 @@ class StorageModel(ComponentModel):
                 )
 
             # Quick fix if several runs with one investment period
-            if type(self.dischargeOperationVariablesOptimum) is not dict:
-                self.dischargeOperationVariablesOptimum = {}
+            if type(self._dischargeOperationVariablesOptimum) is not dict:
+                self._dischargeOperationVariablesOptimum = {}
 
             # * discharge variables and contributions
             optVal = utils.formatOptimizationOutput(
@@ -1956,16 +1949,16 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self.dischargeOperationVariablesOptimum[
+            self._dischargeOperationVariablesOptimum[
                 esM.investmentPeriodList[ip]
             ] = optVal
             # Check if there are time steps, at which a storage component is both charging and discharging
             for compName in opSum.index:
                 simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
-                    tsCharge=self.chargeOperationVariablesOptimum[
+                    tsCharge=self._chargeOperationVariablesOptimum[
                         esM.investmentPeriodList[ip]
                     ].loc[compName],
-                    tsDischarge=self.dischargeOperationVariablesOptimum[
+                    tsDischarge=self._dischargeOperationVariablesOptimum[
                         esM.investmentPeriodList[ip]
                     ].loc[compName],
                 )
@@ -2023,8 +2016,8 @@ class StorageModel(ComponentModel):
                 )
 
             # Quick fix if several runs with one investment period
-            if type(self.stateOfChargeOperationVariablesOptimum) is not dict:
-                self.stateOfChargeOperationVariablesOptimum = {}
+            if type(self._stateOfChargeOperationVariablesOptimum) is not dict:
+                self._stateOfChargeOperationVariablesOptimum = {}
 
             # * set state of charge variables
             if not pyM.hasTSA:
@@ -2039,7 +2032,7 @@ class StorageModel(ComponentModel):
                 # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
                 # other)
                 optVal = optVal.loc[:, : len(optVal.columns) - 2]
-                self.stateOfChargeOperationVariablesOptimum[
+                self._stateOfChargeOperationVariablesOptimum[
                     esM.investmentPeriodList[ip]
                 ] = optVal
                 utils.setOptimalComponentVariables(
@@ -2107,7 +2100,7 @@ class StorageModel(ComponentModel):
                     optVal = pd.concat(data, axis=1, ignore_index=True)
                 else:
                     optVal = None
-                self.stateOfChargeOperationVariablesOptimum[
+                self._stateOfChargeOperationVariablesOptimum[
                     esM.investmentPeriodList[ip]
                 ] = optVal
                 utils.setOptimalComponentVariables(
@@ -2134,7 +2127,7 @@ class StorageModel(ComponentModel):
                 self._optSummary = {}
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
@@ -2148,107 +2141,98 @@ class StorageModel(ComponentModel):
             * 'all' or another input: all variables are returned.
 
             For optimizations with several years also following values should be returned:
-            * 'commissioningVariablesOptimum'
-            * 'decommissioningVariablesOptimum'
+            * '_operationVariablesOptimum'
+            * '_decommissioningVariablesOptimum'
 
         |br| * the default value is 'all'
         :type name: string
+
+        :param ip: investment period
+        |br| * the default value is 0
+        :type ip: int
 
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
         if name == "capacityVariablesOptimum":
             return {
-                "values": self.capacityVariablesOptimum,
+                "values": self._capacityVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "commissioningVariablesOptimum":
-            # TODO improve
-            if name not in self.__dict__.keys():
-                raise ValueError(
-                    "commissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?"
-                )
             return {
-                "values": self.commissioningVariablesOptimum,
+                "values": self._commissioningVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "decommissioningVariablesOptimum":
-            # TODO improve
-            if name not in self.__dict__.keys():
-                raise ValueError(
-                    "decommissioningVariablesOptimum does not exist. Maybe because a singleYearOptimization is run?"
-                )
-            return {
-                "values": self.decommissioningVariablesOptimum,
+             return {
+                "values": self._decommissioningVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "isBuiltVariablesOptimum":
             return {
-                "values": self.isBuiltVariablesOptimum,
+                "values": self._isBuiltVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "chargeOperationVariablesOptimum":
             return {
-                "values": self.chargeOperationVariablesOptimum,
+                "values": self._chargeOperationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "dischargeOperationVariablesOptimum":
             return {
-                "values": self.dischargeOperationVariablesOptimum,
+                "values": self._dischargeOperationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "stateOfChargeOperationVariablesOptimum":
             return {
-                "values": self.stateOfChargeOperationVariablesOptimum,
+                "values": self._stateOfChargeOperationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         else:
-            _variablesOptimum = {}
-            if "commissioningVariablesOptimum" in self.__dict__.keys():
-                _variablesOptimum["commissioningVariablesOptimum"] = {
-                    "values": self.commissioningVariablesOptimum,
+            return {
+                "commissioningVariablesOptimum" : {
+                    "values": self._commissioningVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
-                }
-                _variablesOptimum["decommissioningVariablesOptimum"] = {
-                    "values": self.decommissioningVariablesOptimum,
+                },
+                "decommissioningVariablesOptimum" : {
+                    "values": self._decommissioningVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
-                }
-            _variablesOptimum.update(
-                {
-                    "capacityVariablesOptimum": {
-                        "values": self.capacityVariablesOptimum,
-                        "timeDependent": False,
-                        "dimension": self.dimension,
-                    },
-                    "isBuiltVariablesOptimum": {
-                        "values": self.isBuiltVariablesOptimum,
-                        "timeDependent": False,
-                        "dimension": self.dimension,
-                    },
-                    "chargeOperationVariablesOptimum": {
-                        "values": self.chargeOperationVariablesOptimum,
-                        "timeDependent": True,
-                        "dimension": self.dimension,
-                    },
-                    "dischargeOperationVariablesOptimum": {
-                        "values": self.dischargeOperationVariablesOptimum,
-                        "timeDependent": True,
-                        "dimension": self.dimension,
-                    },
-                    "stateOfChargeOperationVariablesOptimum": {
-                        "values": self.stateOfChargeOperationVariablesOptimum,
-                        "timeDependent": True,
-                        "dimension": self.dimension,
-                    },
-                }
-            )
-            return _variablesOptimum
+                },
+                "capacityVariablesOptimum": {
+                    "values": self._capacityVariablesOptimum[ip],
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                },
+                "isBuiltVariablesOptimum": {
+                    "values": self._isBuiltVariablesOptimum[ip],
+                    "timeDependent": False,
+                    "dimension": self.dimension,
+                },
+                "chargeOperationVariablesOptimum": {
+                    "values": self._chargeOperationVariablesOptimum[ip],
+                    "timeDependent": True,
+                    "dimension": self.dimension,
+                },
+                "dischargeOperationVariablesOptimum": {
+                    "values": self._dischargeOperationVariablesOptimum[ip],
+                    "timeDependent": True,
+                    "dimension": self.dimension,
+                },
+                "stateOfChargeOperationVariablesOptimum": {
+                    "values": self._stateOfChargeOperationVariablesOptimum[ip],
+                    "timeDependent": True,
+                    "dimension": self.dimension,
+                },
+            }
+
+

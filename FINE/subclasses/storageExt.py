@@ -435,18 +435,12 @@ class StorageExtModel(StorageModel):
 
     def __init__(self):
         """Constructor for creating a StorageExtModel class instance"""
+        super().__init__()
         self.abbrvName = "storExt"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.commissioningVariablesOptimum = {}
-        self.decommissioningVariablesOptimum = {}
-        (
-            self.chargeOperationVariablesOptimum,
-            self.dischargeOperationVariablesOptimum,
-        ) = (None, None)
-        self.stateOfChargeOperationVariablesOptimum = None
-        self._optSummary = None
+        self._chargeOperationVariablesOptimum= {}
+        self._dischargeOperationVariablesOptimum= {}
+        self._stateOfChargeOperationVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -1092,7 +1086,7 @@ class StorageExtModel(StorageModel):
         """
         return super().setOptimalValues(esM, pyM)
 
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
@@ -1108,7 +1102,11 @@ class StorageExtModel(StorageModel):
         |br| * the default value is 'all'
         :type name: string
 
+        :param io: investment period
+        |br| * the default value is 0
+        :type ip: int
+
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        return super().getOptimalValues(name)
+        return super().getOptimalValues(name, ip=ip)
