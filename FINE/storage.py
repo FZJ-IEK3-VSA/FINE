@@ -969,7 +969,7 @@ class StorageModel(ComponentModel):
                 sum(
                     chargeOp[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
                     for ip, p, t in pyM.timeSet
-                )
+                ) / esM.numberOfYears
                 <= capVar[loc, compName, ip]
                 * (
                     compDict[compName].stateOfChargeMax
@@ -1911,7 +1911,7 @@ class StorageModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values 
+                    opSum.values / esM.numberOfYears
                 )
                 optSummary.loc[
                     [
@@ -1928,7 +1928,7 @@ class StorageModel(ComponentModel):
                     [(ix, "opexCharge", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    ox.values 
+                    ox.values / esM.numberOfYears
                 )
 
             # * discharge variables and contributions
@@ -1983,7 +1983,7 @@ class StorageModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values 
+                    opSum.values / esM.numberOfYears
                 )
                 optSummary.loc[
                     [
@@ -2003,7 +2003,7 @@ class StorageModel(ComponentModel):
                     ],
                     ox.columns,
                 ] = (
-                    ox.values 
+                    ox.values / esM.numberOfYears
                 )
 
 

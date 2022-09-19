@@ -1267,7 +1267,7 @@ class TransmissionModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values 
+                    opSum.values / esM.numberOfYears
                 )
                 optSummary.loc[
                     [
@@ -1280,7 +1280,7 @@ class TransmissionModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    ox.values * 0.5
+                    ox.values / esM.numberOfYears * 0.5
                 )
 
             optSummary = optSummary.append(optSummaryBasic).sort_index()

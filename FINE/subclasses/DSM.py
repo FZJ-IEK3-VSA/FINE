@@ -553,12 +553,6 @@ class DSMModel(SourceSinkModel):
                     * compDict[op.name].processedCommodityRevenue[ip][op.index],
                     axis=1,
                 )
-                if esM.mode == "stoachastic":
-                    opSumValues=opSum.values / esM.numberOfYears
-                    oxValues=ox.values / esM.numberOfYears
-                else:
-                    opSumValues=opSum.values
-                    oxValues=ox.values
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
@@ -566,13 +560,13 @@ class DSMModel(SourceSinkModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSumValues
+                    opSum.values / esM.numberOfYears
                 )
                 optSummary.loc[
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    oxValues
+                    ox.values / esM.numberOfYears
                 )
 
                 # get empty datframe for resulting time dependent (TD) cost sum
@@ -622,19 +616,13 @@ class DSMModel(SourceSinkModel):
                             .T.mul(calcRevenueTD.T)
                             .sum(axis=0)
                         )
-                if esM.mode == "stochastic":
-                    commodCostValues=(cCostTD.values + cCost.values) / esM.numberOfYears
-                    commodRevenueValues=(cRevenueTD.values + cRevenue.values) / esM.numberOfYears
-                else:
-                    commodCostValues=(cCostTD.values + cCost.values)
-                    commodRevenueValues=(cRevenueTD.values + cRevenue.values)
                 optSummary.loc[
                     [
                         (ix, "commodCosts", "[" + esM.costUnit + "/a]")
                         for ix in ox.index
                     ],
                     ox.columns,
-                ] = commodCostValues
+                ] = (cCostTD.values + cCost.values) / esM.numberOfYears
 
                 optSummary.loc[
                     [
@@ -642,7 +630,7 @@ class DSMModel(SourceSinkModel):
                         for ix in ox.index
                     ],
                     ox.columns,
-                ] = commodRevenueValues
+                ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
 
             # get discounted investment cost as total annual cost (TAC)
             optSummary = optSummary.append(optSummaryBasic).sort_index()

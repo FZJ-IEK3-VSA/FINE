@@ -570,16 +570,13 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError(
                     "The dimension parameter has to be either '1dim' or '2dim' "
                 )
-
-
-    for data in [
-        capacityMin,
-        capacityFix,
-        capacityMax,
-        locationalEligibility,
-        isBuiltFix,
-    ]:
-        checkAndSet(data, comp, esM)
+            return data
+    
+    capacityMin = checkAndSet(capacityMin, comp, esM)
+    capacityMax = checkAndSet(capacityMax, comp, esM)
+    capacityFix = checkAndSet(capacityFix, comp, esM)
+    locationalEligibility= checkAndSet(locationalEligibility, comp, esM)
+    isBuiltFix = checkAndSet(isBuiltFix, comp, esM)
 
     for ip in comp.processedStockYears + esM.investmentPeriods:
         checkAndSet(QPcostScale[ip], comp, esM)

@@ -792,7 +792,7 @@ class ConversionModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values
+                    opSum.values / esM.numberOfYears
                 )
                 
                 # TODO KANN DAS GELÖSCHT WERDEN?
@@ -807,7 +807,7 @@ class ConversionModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    ox.values 
+                    ox.values / esM.numberOfYears
                 )
 
             optSummary = optSummary.append(optSummaryBasic).sort_index()

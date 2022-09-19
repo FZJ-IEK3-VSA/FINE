@@ -1101,7 +1101,7 @@ class SourceSinkModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values
+                    opSum.values  / esM.numberOfYears
                 )
                 optSummary.loc[
                     [
@@ -1114,7 +1114,7 @@ class SourceSinkModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
                     ox.columns,
                 ] = (
-                    ox.values
+                    ox.values / esM.numberOfYears
                 )
 
                 # get empty datframe for resulting time dependent (TD) cost sum
@@ -1169,14 +1169,14 @@ class SourceSinkModel(ComponentModel):
                         for ix in ox.index
                     ],
                     ox.columns,
-                ] = (cCostTD.values + cCost.values)
+                ] = (cCostTD.values + cCost.values) / esM.numberOfYears
                 optSummary.loc[
                     [
                         (ix, "commodRevenues", "[" + esM.costUnit + "/a]")
                         for ix in ox.index
                     ],
                     ox.columns,
-                ] = (cRevenueTD.values + cRevenue.values) 
+                ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
 
             # get discounted investment cost as total annual cost (TAC)
             optSummary = optSummary.append(optSummaryBasic).sort_index()
