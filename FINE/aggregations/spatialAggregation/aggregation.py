@@ -269,6 +269,7 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
         for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():
 
             if mode == "mean":
+                xr_data_array_in = xr_data_array_in.where(xr_data_array_in > 0)
                 xr_data_array_out.loc[
                     dict(space=sup_region_id, space_2=sup_region_id_2)
                 ] = (
@@ -306,7 +307,7 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
                 xr_data_array_out.loc[
                     dict(space=sup_region_id, space_2=sup_region_id_2)
                 ] = 0
-
+    xr_data_array_out = xr_data_array_out.fillna(0)
     return xr_data_array_out
 
 
