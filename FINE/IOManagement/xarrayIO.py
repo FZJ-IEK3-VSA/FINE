@@ -107,23 +107,23 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
             oL_ = oL[name] if type(oL) == dict else oL
-            optSum = esM.getOptimizationSummary(name, outputLevel=oL_)
-            if isinstance(optSum, pd.DataFrame):
-                if esM.numberOfInvestmentPeriods != 1:
-                    raise ValueError()
-                optSum = {}
-                optSum[esM.startYear] = optSum
+            optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
+            # if isinstance(optSum, pd.DataFrame):
+            #     if esM.numberOfInvestmentPeriods != 1:
+            #         raise ValueError()
+            #     optSum = {}
+            #     optSum[esM.startYear] = optSum
             if esM.componentModelingDict[name].dimension == "1dim":
-                for component in optSum[ip].index.get_level_values(0).unique():
+                for component in optSum.index.get_level_values(0).unique():
 
-                    variables = optSum[ip].loc[component].index.get_level_values(0)
-                    units = optSum[ip].loc[component].index.get_level_values(1)
+                    variables = optSum.loc[component].index.get_level_values(0)
+                    units = optSum.loc[component].index.get_level_values(1)
                     variables_unit = dict(zip(variables, units))
 
                     for variable in (
-                        optSum[ip].loc[component].index.get_level_values(0).unique()
+                        optSum.loc[component].index.get_level_values(0).unique()
                     ):
-                        df = optSum[ip].loc[(component, variable)]
+                        df = optSum.loc[(component, variable)]
                         df = df.iloc[-1]
                         df.name = variable
                         df.index.rename("space", inplace=True)
@@ -139,16 +139,16 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
                             combine_attrs="drop_conflicts",
                         )
             elif esM.componentModelingDict[name].dimension == "2dim":
-                for component in optSum[ip].index.get_level_values(0).unique():
+                for component in optSum.index.get_level_values(0).unique():
 
-                    variables = optSum[ip].loc[component].index.get_level_values(0)
-                    units = optSum[ip].loc[component].index.get_level_values(1)
+                    variables = optSum.loc[component].index.get_level_values(0)
+                    units = optSum.loc[component].index.get_level_values(1)
                     variables_unit = dict(zip(variables, units))
 
                     for variable in (
-                        optSum[ip].loc[component].index.get_level_values(0).unique()
+                        optSum.loc[component].index.get_level_values(0).unique()
                     ):
-                        df = optSum[ip].loc[(component, variable)]
+                        df = optSum.loc[(component, variable)]
                         if len(df.index.get_level_values(0).unique()) > 1:
                             idx = df.index.get_level_values(0).unique()[-1]
                             df = df.xs(idx, level=0)
@@ -406,7 +406,31 @@ def writeDatasetsToNetCDF(
                 mode=mode,
             )
             continue
-
+        
+        elif group == "Results":
+            for ip in datasets[group].keys():
+                for model, comps in datasets[group][ip].items():
+                    for component in comps.keys():
+                        if component is not None:
+                            if groupPrefix:
+                                group_path = f"{groupPrefix}/{group}/{ip}/{model}/{component}"
+                            else:
+                                group_path = f"{group}/{ip}/{model}/{component}"
+                            datasets[group][ip][model][component].to_netcdf(
+                                path=f"{outputFilePath}",
+                                # Datasets per component will be reflectes as groups in the NetCDF file.
+                                group=group_path,
+                                # Use mode='a' to append datasets to existing file. Variables will be overwritten.
+                                mode=mode,
+                                # Use zlib variable compression to reduce filesize with little performance loss
+                                # for our use-case. Complevel 9 for best compression.
+                                encoding={
+                                    var: {"zlib": True, "complevel": 9}
+                                    for var in list(
+                                        datasets[group][ip][model][component].data_vars
+                                    )
+                                },
+                            )
         else:
             for model, comps in datasets[group].items():
                 for component in comps.keys():
@@ -509,9 +533,11 @@ def convertDatasetsToEnergySystemModel(datasets):
 
     # Read output
     if "Results" in datasets:
-        for ip in datasets["Results"].items():
-            for model, comps in datasets["Results"][ip].items():
-
+        # get startyear to find model classes
+        startyear=list(datasets["Results"].keys())[0]
+        for model, comps in datasets["Results"][startyear].items():
+            optSum = {}
+            for ip in datasets["Results"].keys():
                 # read opt Summary
                 optSum_df = pd.DataFrame([])
                 for component in datasets["Results"][ip][model]:
@@ -566,8 +592,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                             optSum_df_comp = optSum_df_comp.append(_optSum_df)
 
                     optSum_df = optSum_df.append(optSum_df_comp)
+                optSum[int(ip)] = optSum_df
 
-                setattr(esM.componentModelingDict[model], "_optSummary", optSum_df)
+                setattr(esM.componentModelingDict[model], "_optSummary", optSum)
 
                 # read optimal Values (3 types exist)
                 operationVariablesOptimum_df = pd.DataFrame([])
@@ -591,8 +618,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                             continue
                         opt_variable = variable
                         xr_opt = None
-                        if opt_variable in datasets["Results"][model][component]:
-                            xr_opt = datasets["Results"][model][component][opt_variable]
+                        if opt_variable in datasets["Results"][ip][model][component]:
+                            xr_opt = datasets["Results"][ip][model][component][opt_variable]
                         else:
                             continue
 
@@ -778,10 +805,10 @@ def convertDatasetsToEnergySystemModel(datasets):
                     "stateOfChargeOperationVariablesOptimum",
                     stateOfChargeOperationVariablesOptimum_df,
                 )
-        if len(esM.investmentPeriods) == 1:
-            setattr(esM.componentModelingDict[model], "optSummary", optSum_df[0])
-        else:
-            setattr(esM.componentModelingDict[model], "optSummary", optSum_df)
+            if len(esM.investmentPeriods) == 1:
+                setattr(esM.componentModelingDict[model], "optSummary", optSum[int(startyear)])
+            else:
+                setattr(esM.componentModelingDict[model], "optSummary", optSum)
     return esM
 
 
@@ -844,9 +871,7 @@ def writeEnergySystemModelToNetCDF(
     _t = time.time()
 
     xr_dss_input = convertOptimizationInputToDatasets(esM)
-
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
-
     if esM.objectiveValue != None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(
             esM, optSumOutputLevel, optValOutputLevel
@@ -918,35 +943,61 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
             group_keys = rootgrp.groups
 
     if not groupPrefix:
-        xr_dss = {
-            group_key: {
-                model_key: {
-                    comp_key: xr.load_dataset(
-                        filePath, group=f"{group_key}/{model_key}/{comp_key}"
-                    )
-                    for comp_key in group_keys[group_key][model_key].groups
-                }
-                for model_key in group_keys[group_key].groups
+        xr_dss={}
+        # read input from netcdf
+        xr_dss["Input"] = {
+            model_key: {
+                comp_key: xr.load_dataset(
+                    filePath, group=f"Input/{model_key}/{comp_key}"
+                )
+                for comp_key in group_keys["Input"][model_key].groups
             }
-            for group_key in group_keys
-            if group_key != "Parameters"
+            for model_key in group_keys["Input"].groups
         }
+        # read results from netcdf
+        if "Results" in group_keys:
+            xr_dss["Results"] = {
+                ip_key : {
+                    model_key: {
+                        comp_key: xr.load_dataset(
+                            filePath, group=f"Results/{ip_key}/{model_key}/{comp_key}"
+                        )
+                        for comp_key in group_keys["Results"][ip_key][model_key].groups
+                    }
+                    for model_key in group_keys["Results"][ip_key].groups
+                }    
+                for ip_key in group_keys["Results"].groups
+            }
+        # read parameters from netcdf
         xr_dss["Parameters"] = xr.load_dataset(filePath, group=f"Parameters")
     else:
-        xr_dss = {
-            group_key: {
-                model_key: {
-                    comp_key: xr.load_dataset(
-                        filePath,
-                        group=f"{groupPrefix}/{group_key}/{model_key}/{comp_key}",
-                    )
-                    for comp_key in group_keys[group_key][model_key].groups
-                }
-                for model_key in group_keys[group_key].groups
+        xr_dss={}
+        # read input from netcdf
+        xr_dss["Input"] = {   
+            model_key: {
+                comp_key: xr.load_dataset(
+                    filePath,
+                    group=f"{groupPrefix}/Input/{model_key}/{comp_key}",
+                )
+                for comp_key in group_keys["Input"][model_key].groups
             }
-            for group_key in group_keys
-            if group_key != "Parameters"
+            for model_key in group_keys["Input"].groups
         }
+        # read results from netcdf
+        if "Results" in group_keys:
+            xr_dss["Results"] = {
+                ip_key : {
+                    model_key: {
+                        comp_key: xr.load_dataset(
+                            filePath, group=f"{groupPrefix}/Results/{ip_key}/{model_key}/{comp_key}"
+                        )
+                        for comp_key in group_keys["Results"][ip_key][model_key].groups
+                    }
+                    for model_key in group_keys["Results"][ip_key].groups
+                }    
+                for ip_key in group_keys["Results"].groups
+            }
+        # read parameters from netcdf
         xr_dss["Parameters"] = xr.load_dataset(
             filePath, group=f"{groupPrefix}/Parameters"
         )

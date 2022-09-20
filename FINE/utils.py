@@ -1270,12 +1270,12 @@ def checkAndSetInvestmentPeriodCostParameter(
 
 
 def checkLifetimeInvestmentPeriod(esM, name, lifetime):
-    ip_LifeTime = lifetime / (esM.yearsPerInvestmentPeriod)
-    if any(not x.is_integer() for x in ip_LifeTime.values):
+    ipLifetimeCheck = lifetime % (esM.yearsPerInvestmentPeriod)
+    if any(x != 0 for x in ipLifetimeCheck.values):
         raise ValueError(
             f"The lifetime of '{name}' is not a multiple of the length of investment period"
         )
-    ip_LifeTime = ip_LifeTime.astype(int)
+    ip_LifeTime = (lifetime / esM.yearsPerInvestmentPeriod).astype(int)
     return ip_LifeTime
 
 

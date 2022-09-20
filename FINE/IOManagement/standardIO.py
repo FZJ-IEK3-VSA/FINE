@@ -102,15 +102,15 @@ def writeOptimizationOutputToExcel(
             dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
             dataTI, indexTI = [], []
             for key, d in data.items():
-                if d["values"][ip] is None:
+                if d["values"] is None:
                     continue
                 if d["timeDependent"]:
                     if d["dimension"] == "1dim":
-                        dataTD1dim.append(d["values"][ip]), indexTD1dim.append(key)
+                        dataTD1dim.append(d["values"]), indexTD1dim.append(key)
                     elif d["dimension"] == "2dim":
-                        dataTD2dim.append(d["values"][ip]), indexTD2dim.append(key)
+                        dataTD2dim.append(d["values"]), indexTD2dim.append(key)
                 else:
-                    dataTI.append(d["values"][ip]), indexTI.append(key)
+                    dataTI.append(d["values"]), indexTI.append(key)
             if dataTD1dim:
                 names = ["Variable", "Component", "Location"]
                 dfTD1dim = pd.concat(dataTD1dim, keys=indexTD1dim, names=names)

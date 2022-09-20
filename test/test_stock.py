@@ -237,217 +237,215 @@ def test_stock():
 
     # Check input of optimization
     # electrolyzers
-    assert (
-        esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[-2][
-            "IndustryLocation"
-        ]
-        == 550
-    )
-    assert (
+    
+    np.testing.assert_allclose(esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[-2]["IndustryLocation"], 550, rtol=0.005)
+    
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[-1][
             "IndustryLocation"
         ]
-        == 350
-    )
-    assert (
+        , 350
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electrolyzers", "processedInvestPerCapacity")[0][
             "IndustryLocation"
         ]
-        == 500
-    )
-    assert (
+        , 500
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electrolyzers", "processedOpexPerCapacity")[-2][
             "IndustryLocation"
         ]
-        == 13.75
-    )
-    assert (
+        , 13.75
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electrolyzers", "processedOpexPerCapacity")[-1][
             "IndustryLocation"
         ]
-        == 8.75
-    )
-    assert (
+        , 8.75
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electrolyzers", "processedOpexPerCapacity")[0][
             "IndustryLocation"
         ]
-        == 12.5
-    )
-    assert (
+        , 12.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electrolyzers", "processedStockCommissioning")[-1][
             "IndustryLocation"
         ]
-        == 0
-    )
-    assert (
+        , 0
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electrolyzers", "processedStockCommissioning")[-2][
             "IndustryLocation"
         ]
-        == 2
-    )
-    assert (
+        , 2
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electrolyzers", "processedStockCommissioning")[-2][
             "ElectrolyzerLocation"
         ]
-        == 1
-    )
+        , 1
+    , rtol=0.005)
 
     # storages
-    assert (
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pressure tank", "processedInvestPerCapacity")[0][
             "IndustryLocation"
         ]
-        == 0.5
-    )
-    assert (
+        , 0.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pressure tank", "processedInvestPerCapacity")[-1][
             "IndustryLocation"
         ]
-        == 0.75
-    )
-    assert (
+        , 0.75
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pressure tank", "processedInvestPerCapacity")[-19][
             "IndustryLocation"
         ]
-        == 1.5
-    )
-    assert (
+        , 1.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pressure tank", "processedOpexPerCapacity")[0][
             "IndustryLocation"
         ]
-        == 12.5
-    )
-    assert (
+        , 12.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pressure tank", "processedOpexPerCapacity")[-1][
             "IndustryLocation"
         ]
-        == 8.75
-    )
-    assert (
+        , 8.75
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pressure tank", "processedOpexPerCapacity")[-19][
             "IndustryLocation"
         ]
-        == 13.75
-    )
-    assert (
+        , 13.75
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pressure tank", "processedStockCommissioning")[-19][
             "IndustryLocation"
         ]
-        == 1
-    )
-    assert (
+        , 1
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pressure tank", "processedStockCommissioning")[-5][
             "ElectrolyzerLocation"
         ]
-        == 2
-    )
+        , 2
+    , rtol=0.005)
 
     # pipelines
-    assert (
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pipelines", "processedInvestPerCapacity")[-1][
             "ElectrolyzerLocation_IndustryLocation"
         ]
-        == 0.3 * 0.5
-    )
-    assert (
+        , 0.3 * 0.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pipelines", "processedInvestPerCapacity")[0][
             "ElectrolyzerLocation_IndustryLocation"
         ]
-        == 0.177 * 0.5
-    )
-    assert (
+        , 0.177 * 0.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pipelines", "processedOpexPerCapacity")[0][
             "ElectrolyzerLocation_IndustryLocation"
         ]
-        == 500 * 0.025 * 0.5
-    )
-    assert (
+        , 500 * 0.025 * 0.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pipelines", "processedOpexPerCapacity")[-1][
             "ElectrolyzerLocation_IndustryLocation"
         ]
-        == 350 * 0.025 * 0.5
-    )
-    assert (
+        , 350 * 0.025 * 0.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pipelines", "processedStockCommissioning")[-1][
             "ElectrolyzerLocation_IndustryLocation"
         ]
-        == 1
-    )
-    assert (
+        , 1
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pipelines", "processedStockCommissioning")[-1][
             "IndustryLocation_ElectrolyzerLocation"
         ]
-        == 1
-    )
+        , 1
+    , rtol=0.005)
 
     # special case - not ip depending as only one year in dict # TODO change at some point?
-    assert (
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electricity market", "processedOpexPerCapacity")[
             "IndustryLocation"
         ]
-        == 12.5
-    )
-    assert (
+        , 12.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Electricity market", "processedOpexPerCapacity")[
             "IndustryLocation"
         ]
-        == 12.5
-    )
-    assert (
+        , 12.5
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponentAttribute("Pressure tank", "processedOpexPerChargeOperation")[
             "IndustryLocation"
         ]
-        == 0.002
-    )
+        , 0.002
+    , rtol=0.005)
 
     # check optimization output and pym model -> check commissioning and stock
-    esM.optimize()
+    esM.optimize(solver="glpk")
 
     # pipelines
-    assert (
+    np.testing.assert_allclose(
         esM.pyM.commis_trans.get_values()[
             ("ElectrolyzerLocation_IndustryLocation", "Pipelines", -1)
         ]
-        == 1
-    )
-    assert (
+        , 1
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.pyM.commis_trans.get_values()[
             ("ElectrolyzerLocation_IndustryLocation", "Pipelines", 0)
         ]
-        == 5999.001529680365
-    )
-    assert (
+        , 5999.001529680365
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.pyM.commis_trans.get_values()[
             ("ElectrolyzerLocation_IndustryLocation", "Pipelines", -1)
         ]
         + esM.pyM.commis_trans.get_values()[
             ("ElectrolyzerLocation_IndustryLocation", "Pipelines", 0)
         ]
-    ) == esM.pyM.cap_trans.get_values()[
+        , esM.pyM.cap_trans.get_values()[
         ("ElectrolyzerLocation_IndustryLocation", "Pipelines", 0)
-    ]
+        ]
+    , rtol=0.005)
 
     # storages
-    assert sum(esM.pyM.commis_stor.get_values().values()) == 9
-    assert (
+    assert sum(esM.pyM.commis_stor.get_values().values()) , 9
+    np.testing.assert_allclose(
         sum(esM.pyM.commis_stor.get_values().values())
-        == esM.getComponent("Pressure tank").stockCapacityStartYear.sum()
-    )
-    assert (
+        , esM.getComponent("Pressure tank").stockCapacityStartYear.sum()
+    , rtol=0.005)
+    np.testing.assert_allclose(
         esM.getComponent("Pressure tank").stockCapacityStartYear["ElectrolyzerLocation"]
         + esM.pyM.commis_stor.get_values()[("ElectrolyzerLocation", "Pressure tank", 0)]
-        == esM.pyM.cap_stor.get_values()[("ElectrolyzerLocation", "Pressure tank", 0)]
-    )
+        , esM.pyM.cap_stor.get_values()[("ElectrolyzerLocation", "Pressure tank", 0)]
+    , rtol=0.005)
 
 
-    assert (
+    np.testing.assert_allclose(
         esM.getOptimizationSummary("ConversionModel").loc[
             ("Electrolyzers", "commissioning", "[kW$_{el}$]"), "ElectrolyzerLocation"
         ]
-        == esM.pyM.commis_conv.get_values()[
+        , esM.pyM.commis_conv.get_values()[
             ("ElectrolyzerLocation", "Electrolyzers", 0)
         ]
-    )
+    , rtol=0.005)
 
 
 if __name__ == "__main__":
