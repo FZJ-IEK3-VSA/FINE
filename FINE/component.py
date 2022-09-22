@@ -2718,28 +2718,56 @@ class ComponentModel(metaclass=ABCMeta):
                 )
 
         elif esM.mode == "stochastic":
-            return (
-                sum(
-                    self.getLocEconomicsTI(
-                        pyM,
-                        esM,
-                        factorNames,
-                        varName,
-                        loc,
-                        compName,
-                        ip,
-                        divisorName,
-                        QPfactorNames,
-                        QPdivisorNames,
-                        getOptValue,
+            if getOptValue:
+                cost_results = {}
+                for ip in esM.investmentPeriods:
+                    cost_results[ip] = pd.DataFrame()
+                for loc, compName, ip in var:
+                    if ip not in esM.investmentPeriods:
+                        continue
+                    if varName in ["commis","decommis"]:
+                        # for simplification of the optimization, 
+                        # commissioning and decommissiong are only initizalized
+                        # for ip=0 for the esM.mode "stochastic"
+                        _ip = 0
+                    else:
+                        _ip = ip
+                    cost_results[ip].loc[compName, loc]=\
+                        self.getLocEconomicsTI(
+                            pyM,
+                            esM,
+                            factorNames,
+                            varName,
+                            loc,
+                            compName,
+                            _ip,
+                            divisorName,
+                            QPfactorNames,
+                            QPdivisorNames,
+                            getOptValue,
+                        )
+                return cost_results
+            else:
+                return sum(
+                        self.getLocEconomicsTI(
+                            pyM,
+                            esM,
+                            factorNames,
+                            varName,
+                            loc,
+                            compName,
+                            ip,
+                            divisorName,
+                            QPfactorNames,
+                            QPdivisorNames,
+                            getOptValue,
+                        )
+                        for loc, compName, ip in var
                     )
-                    for loc, compName, ip in var
-                )
-                / esM.numberOfInvestmentPeriods
-            )
+            
 
     def getEconomicsTD(
-        self, pyM, esM, factorNames, varName, dictName, getOptValue=False
+        self, pyM, esM, factorNames, varName, dictName, getOptValue=False, getOptValueCostType="TAC",
     ):
         """
         Set time-dependent equations for the individual components. The equations will be set for all components of a modeling class
@@ -2774,37 +2802,44 @@ class ComponentModel(metaclass=ABCMeta):
 
             |br| * the default value is False.
         :type getoptValue: boolean
+        
+        :param getOptValueCostType: the cost type can either be TAC (total anualized costs) or NPV (net present value)
+            |br| * the default value is None.
+        :type getOptValueCostType: string
         """
         indices = getattr(pyM, dictName + "_" + self.abbrvName)  # .items()
         if self.dimension == "1dim":
-
             def annuityPresentValueFactor(esM, compName, loc):
                 # DE:Rentenbarwertfaktor
                 intrestRate = esM.getComponent(compName).interestRate[loc]
                 return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
                     intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
                 )
-
-            return sum(
-                self.getLocEconomicsTD(
-                    pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
+            if getOptValue:
+                if getOptValueCostType == "TAC":
+                    print()
+                elif getOptValueCostType == "NPV":
+                    print()
+            else:
+                return sum(
+                    self.getLocEconomicsTD(
+                        pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
+                    )
+                    * annuityPresentValueFactor(esM, compName, loc)
+                    * (1 + esM.getComponent(compName).interestRate[loc])
+                    * 1
+                    / (1 + esM.getComponent(compName).interestRate[loc])
+                    ** (ip * esM.yearsPerInvestmentPeriod)
+                    if esM.getComponent(compName).interestRate[loc] != 0
+                    and esM.mode != "stochastic"
+                    else self.getLocEconomicsTD(
+                        pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
+                    )
+                    for ip, subDict in indices.items()
+                    for loc, compNames in subDict.items()
+                    for compName in compNames
                 )
-                * annuityPresentValueFactor(esM, compName, loc)
-                * (1 + esM.getComponent(compName).interestRate[loc])
-                * 1
-                / (1 + esM.getComponent(compName).interestRate[loc])
-                ** (ip * esM.yearsPerInvestmentPeriod)
-                if esM.getComponent(compName).interestRate[loc] != 0
-                and esM.mode != "stochastic"
-                else self.getLocEconomicsTD(
-                    pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
-                )
-                for ip, subDict in indices.items()
-                for loc, compNames in subDict.items()
-                for compName in compNames
-            )
         else:
-
             def annuityPresentValueFactor(esM, compName, loc, loc_):
                 # DE:Rentenbarwertfaktor
                 intrestRate = esM.getComponent(compName).interestRate[loc + "_" + loc_]
@@ -2846,7 +2881,7 @@ class ComponentModel(metaclass=ABCMeta):
             )
 
     def getLocEconomicsTimeSeries(
-        self, pyM, esM, factorName, varName, loc, compName, ip, getOptValue=False
+        self, pyM, esM, factorName, varName, loc, compName, ip, getOptValue=False,getOptValueCostType="TAC",
     ):
         """
         Set time-dependent cost functions for the individual components. The equations will be set for all components
@@ -2888,6 +2923,10 @@ class ComponentModel(metaclass=ABCMeta):
 
             |br| * the default value is False.
         :type getoptValue: boolean
+        
+        :param getOptValueCostType: the cost type can either be TAC (total anualized costs) or NPV (net present value)
+            |br| * the default value is None.
+        :type getOptValueCostType: string
         """
         var = getattr(pyM, varName + "_" + self.abbrvName)
         # create new timeSet for current ip
