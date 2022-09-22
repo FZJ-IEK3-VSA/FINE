@@ -46,7 +46,6 @@ def test_stochstic_wrongInput():
             economicLifetime=1,
         )
 
-
 def test_stochasticTimeSeries():
     
     numberOfTimeSteps = 4
@@ -211,7 +210,7 @@ def test_stochasticTimeSeries():
             hasCapacityVariable=True,
             operationRateMax=PVoperationRateMax,
             capacityMax=4e6,
-            investPerCapacity=2*2190,
+            investPerCapacity=2 * 2190,
             opexPerCapacity=0,
             interestRate=0,
             opexPerOperation=PVopexPerOperation,  # 0.01,
@@ -337,11 +336,7 @@ def test_stochasticTimeSeries():
         .xs("EDemand")
         .values[0]
     ) == [2000, 1000, 1000, 1000]
-    
-    # check tac of pv in different years
-    pv_tac_0=esM.getOptimizationSummary("SourceSinkModel",ip=0).loc["PV","capexCap"]
-    pv_tac_1=esM.getOptimizationSummary("SourceSinkModel",ip=1).loc["PV","capexCap"]
-    assert pv_tac_0 == pv_tac_1
+
 
 def test_stochasticTimeSeries_withTransmission():
     numberOfTimeSteps = 4
@@ -642,8 +637,6 @@ def test_stochasticTimeSeries_withTransmission():
         .xs("EDemand")
         .values[0]
     ) == [2000, 1000, 1000, 1000]
-    
-    print()
 
 if __name__ == "__main__":
     test_stochasticTimeSeries()
