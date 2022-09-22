@@ -51,7 +51,6 @@ def writeOptimizationOutputToExcel(
     outputFileName="scenarioOutput",
     optSumOutputLevel=2,
     optValOutputLevel=1,
-    ip=0,
 ):
     """
     Write optimization output to an Excel file.
@@ -79,11 +78,15 @@ def writeOptimizationOutputToExcel(
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
     """
-    utils.output("\nWriting output to Excel... ", esM.verbose, 0)
-    _t = time.time()
-    writer = pd.ExcelWriter(outputFileName + ".xlsx")
-
-    for ip in esM.investmentPeriods:
+    for ip in esM.investmentPeriodList:
+        if len(esM.investmentPeriodList) > 1:
+            _outputFileName = outputFileName+ f"_{ip}"
+        else:
+            _outputFileName = outputFileName
+        utils.output("\nWriting output to Excel... ", esM.verbose, 0)
+        _t = time.time()
+        writer = pd.ExcelWriter(_outputFileName + ".xlsx")
+        
         for name in esM.componentModelingDict.keys():
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
@@ -144,15 +147,17 @@ def writeOptimizationOutputToExcel(
                         + "_TIoptVar_"
                         + esM.componentModelingDict[name].dimension,
                     )
-
+        # get internal name of investment period
+        _ip = esM.investmentPeriodList.index(ip)
+        # save periods Order to excel output
         periodsOrder = pd.DataFrame(
-            [esM.periodsOrder[ip]], index=["periodsOrder"], columns=esM.periods
+            [esM.periodsOrder[_ip]], index=["periodsOrder"], columns=esM.periods
         )
         periodsOrder.to_excel(writer, "Misc")
         if esM.segmentation:
             ls = []
-            for i in esM.periodsOrder[ip].tolist():
-                ls.append(esM.timeStepsPerSegment[ip][i])
+            for i in esM.periodsOrder[_ip].tolist():
+                ls.append(esM.timeStepsPerSegment[_ip][i])
             segmentDuration = pd.concat(ls, axis=1).rename(
                 columns={"Segment Duration": "timeStepsPerSegment"}
             )

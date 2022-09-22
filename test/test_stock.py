@@ -8,6 +8,48 @@ import pandas as pd
 import FINE as fn
 
 
+def test_Stock_wrongStockYears():
+    numberOfTimeSteps = 4
+    hoursPerTimeStep = 2190
+
+    # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand"},
+        commodities={"electricity"},
+        numberOfTimeSteps=numberOfTimeSteps,
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        hoursPerTimeStep=hoursPerTimeStep,
+        costUnit="1 Euro",
+        startYear=2020,
+        numberOfInvestmentPeriods=6,
+        yearsPerInvestmentPeriod=1,
+        mode="perfectForesight",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+
+
+
+    with pytest.warns(None) as warnings:
+            fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            capacityMax=4e6,
+            investPerCapacity=2 * 2190,
+            opexPerCapacity=0,
+            interestRate=0.02,
+            opexPerOperation=0.01,
+            economicLifetime=5,
+            technicalLifetime=6,
+            stockCommissioning={2013: 2, 2017: 0, 2018: 5},
+        )
+
+    if not any(w for w in warnings if "Stock of component" in str(w)):
+        raise ValueError("Warning for stock with capacity older than technical lifetime is not raised.")
+    
+
 def stock_esM():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190

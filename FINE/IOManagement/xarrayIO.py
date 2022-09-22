@@ -23,7 +23,6 @@ def convertOptimizationInputToDatasets(esM):
 
     # STEP 1. Get the esm and component dicts
     esm_dict, component_dict = dictIO.exportToDict(esM)
-
     # STEP 2. Get the iteration dicts
     ip = esM.investmentPeriods
     (
@@ -93,15 +92,15 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
     """
 
     # Create the netCDF file and the xr.Dataset dict for all ips and components
-    xr_dss = dict.fromkeys(esM.investmentPeriods)
-    for ip in esM.investmentPeriods:
+    xr_dss = dict.fromkeys(esM.investmentPeriodList)
+    for ip in esM.investmentPeriodList:
         xr_dss[ip] = dict.fromkeys(esM.componentModelingDict.keys())
         for model_dict in esM.componentModelingDict.keys():
             xr_dss[ip][model_dict] = {
                 key: xr.Dataset()
                 for key in esM.componentModelingDict[model_dict].componentsDict.keys()
             }
-    for ip in esM.investmentPeriods:
+    for ip in esM.investmentPeriodList:
         # Write output from esM.getOptimizationSummary to datasets
         for name in esM.componentModelingDict.keys():
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
@@ -537,6 +536,14 @@ def convertDatasetsToEnergySystemModel(datasets):
         startyear=list(datasets["Results"].keys())[0]
         for model, comps in datasets["Results"][startyear].items():
             optSum = {}
+            operationVariablesOptimum_dict = {}
+            capacityVariablesOptimum_dict = {}
+            isBuiltVariablesOptimum_dict = {}
+            chargeOperationVariablesOptimum_dict = {}
+            dischargeOperationVariablesOptimum_dict = {}
+            stateOfChargeOperationVariablesOptimum_dict = {}
+        
+            
             for ip in datasets["Results"].keys():
                 # read opt Summary
                 optSum_df = pd.DataFrame([])
@@ -597,12 +604,12 @@ def convertDatasetsToEnergySystemModel(datasets):
                 setattr(esM.componentModelingDict[model], "_optSummary", optSum)
 
                 # read optimal Values (3 types exist)
-                operationVariablesOptimum_df = pd.DataFrame([])
-                capacityVariablesOptimum_df = pd.DataFrame([])
-                isBuiltVariablesOptimum_df = pd.DataFrame([])
-                chargeOperationVariablesOptimum_df = pd.DataFrame([])
-                dischargeOperationVariablesOptimum_df = pd.DataFrame([])
-                stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
+                operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                capacityVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                isBuiltVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                chargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                dischargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                stateOfChargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
 
                 for component in datasets["Results"][ip][model]:
 
@@ -736,79 +743,95 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 )
                             )
 
-                    operationVariablesOptimum_df = operationVariablesOptimum_df.append(
+                    operationVariablesOptimum_dict[int(ip)] = operationVariablesOptimum_dict[int(ip)].append(
                         _operationVariablesOptimum_df
                     )
-                    capacityVariablesOptimum_df = capacityVariablesOptimum_df.append(
+                    capacityVariablesOptimum_dict[int(ip)] = capacityVariablesOptimum_dict[int(ip)].append(
                         _capacityVariablesOptimum_df
                     )
-                    isBuiltVariablesOptimum_df = isBuiltVariablesOptimum_df.append(
+                    isBuiltVariablesOptimum_dict[int(ip)] = isBuiltVariablesOptimum_dict[int(ip)].append(
                         _isBuiltVariablesOptimum_df
                     )
-                    chargeOperationVariablesOptimum_df = (
-                        chargeOperationVariablesOptimum_df.append(
+                    chargeOperationVariablesOptimum_dict[int(ip)] = (
+                        chargeOperationVariablesOptimum_dict[int(ip)].append(
                             _chargeOperationVariablesOptimum_df
                         )
                     )
-                    dischargeOperationVariablesOptimum_df = (
-                        dischargeOperationVariablesOptimum_df.append(
+                    dischargeOperationVariablesOptimum_dict[int(ip)] = (
+                        dischargeOperationVariablesOptimum_dict[int(ip)].append(
                             _dischargeOperationVariablesOptimum_df
                         )
                     )
-                    stateOfChargeOperationVariablesOptimum_df = (
-                        stateOfChargeOperationVariablesOptimum_df.append(
+                    stateOfChargeOperationVariablesOptimum_dict[int(ip)] = (
+                        stateOfChargeOperationVariablesOptimum_dict[int(ip)].append(
                             _stateOfChargeOperationVariablesOptimum_df
                         )
                     )
 
                 # check if empty, if yes convert to None
-                if operationVariablesOptimum_df.empty:
-                    operationVariablesOptimum_df = None
-                if capacityVariablesOptimum_df.empty:
-                    capacityVariablesOptimum_df = None
-                if isBuiltVariablesOptimum_df.empty:
-                    isBuiltVariablesOptimum_df = None
-                if chargeOperationVariablesOptimum_df.empty:
-                    chargeOperationVariablesOptimum_df = None
-                if dischargeOperationVariablesOptimum_df.empty:
-                    dischargeOperationVariablesOptimum_df = None
-                if stateOfChargeOperationVariablesOptimum_df.empty:
-                    stateOfChargeOperationVariablesOptimum_df = None
+                if operationVariablesOptimum_dict[int(ip)].empty:
+                    operationVariablesOptimum_dict[int(ip)] = None
+                if capacityVariablesOptimum_dict[int(ip)].empty:
+                    capacityVariablesOptimum_dict[int(ip)] = None
+                if isBuiltVariablesOptimum_dict[int(ip)].empty:
+                    isBuiltVariablesOptimum_dict[int(ip)] = None
+                if chargeOperationVariablesOptimum_dict[int(ip)].empty:
+                    chargeOperationVariablesOptimum_dict[int(ip)] = None
+                if dischargeOperationVariablesOptimum_dict[int(ip)].empty:
+                    dischargeOperationVariablesOptimum_dict[int(ip)] = None
+                if stateOfChargeOperationVariablesOptimum_dict[int(ip)].empty:
+                    stateOfChargeOperationVariablesOptimum_dict[int(ip)] = None
 
-                setattr(
-                    esM.componentModelingDict[model],
-                    "_operationVariablesOptimum",
-                    operationVariablesOptimum_df,
+            setattr(
+                esM.componentModelingDict[model],
+                "_operationVariablesOptimum",
+                operationVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_capacityVariablesOptimum",
+                capacityVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_isBuiltVariablesOptimum",
+                isBuiltVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_chargeOperationVariablesOptimum",
+                chargeOperationVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_dischargeOperationVariablesOptimum",
+                dischargeOperationVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_stateOfChargeOperationVariablesOptimum",
+                stateOfChargeOperationVariablesOptimum_dict,
                 )
-                setattr(
-                    esM.componentModelingDict[model],
-                    "_capacityVariablesOptimum",
-                    capacityVariablesOptimum_df,
-                )
-                setattr(
-                    esM.componentModelingDict[model],
-                    "_isBuiltVariablesOptimum",
-                    isBuiltVariablesOptimum_df,
-                )
-                setattr(
-                    esM.componentModelingDict[model],
-                    "chargeOperationVariablesOptimum",
-                    chargeOperationVariablesOptimum_df,
-                )
-                setattr(
-                    esM.componentModelingDict[model],
-                    "dischargeOperationVariablesOptimum",
-                    dischargeOperationVariablesOptimum_df,
-                )
-                setattr(
-                    esM.componentModelingDict[model],
-                    "stateOfChargeOperationVariablesOptimum",
-                    stateOfChargeOperationVariablesOptimum_df,
-                )
-            if len(esM.investmentPeriods) == 1:
-                setattr(esM.componentModelingDict[model], "optSummary", optSum[int(startyear)])
-            else:
-                setattr(esM.componentModelingDict[model], "optSummary", optSum)
+            
+            # if only one investment period -> keep optimal values unchanged for end user
+            def setFinalOptimalValues(esM, name):
+                if len(esM.investmentPeriodList) == 1:
+                    data=getattr(esM.componentModelingDict[model],"_"+name)
+                    setattr(esM.componentModelingDict[model], name, data[int(startyear)])
+                else:
+                    data=getattr(esM.componentModelingDict[model],"_"+name)
+                    setattr(esM.componentModelingDict[model], name, data)
+                return esM
+            
+            optimalParameters=[
+                "optSummary","operationVariablesOptimum",
+                "capacityVariablesOptimum","isBuiltVariablesOptimum",
+                "chargeOperationVariablesOptimum",
+                "dischargeOperationVariablesOptimum",
+                "stateOfChargeOperationVariablesOptimum"]
+            for name in optimalParameters:
+                esM=setFinalOptimalValues(esM, name)
+    
     return esM
 
 
@@ -891,13 +914,6 @@ def writeEnergySystemModelToDatasets(esM):
         dataset format
     :rtype: xr.DataSet
     """
-    # TODO implementation required.
-    # currently the saving and reading of esM with netcdf is not
-    # supported for more than one investment period
-    if esM.numberOfInvestmentPeriods > 1:
-        raise NotImplementedError(
-            "Saving esM to netCDF is currently not supported for a esM with more than one investment period."
-        )
     if esM.objectiveValue != None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
         xr_dss_input = convertOptimizationInputToDatasets(esM)

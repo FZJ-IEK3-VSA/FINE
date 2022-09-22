@@ -507,6 +507,12 @@ class EnergySystemModel:
         :returns: the optimization summary of the requested modeling class
         :rtype: pandas DataFrame
         """
+        if ip not in self.investmentPeriodList:
+            raise ValueError(
+                f"No optimization summary exists for passed ip {ip}. "+
+                "Please define a valid investment period  "+
+                f"(from '{self.investmentPeriodList}')")
+        
         if outputLevel == 0:
             return self.componentModelingDict[modelingClass]._optSummary[ip]
         elif outputLevel == 1:
@@ -1890,39 +1896,7 @@ class EnergySystemModel:
 
                 for optParam in optimalValueParameters:
                     convertOptimalValues(self, mdl, optParam)
-                # if self.mode == "perfectForesight":
-                #     mdl.optSummary = mdl._optSummary
-                # # for single year optimization, prepare results data in "old"
-                # # format just for one year
-                # elif self.mode == "stochastic":
-                #     mdl.optSummary = mdl._optSummary[0]
-                # else:
-                #     mdl.optSummary = mdl._optSummary[0]
-                #     if key == "StorageModel" or key == "StorageExtModel":
-                #         mdl.stateOfChargeOperationVariablesOptimum = (
-                #             mdl.stateOfChargeOperationVariablesOptimum[0]
-                #         )
-                #
-                #         mdl.chargeOperationVariablesOptimum = (
-                #             mdl.chargeOperationVariablesOptimum[0]
-                #         )
-                #
-                #         mdl.dischargeOperationVariablesOptimum = (
-                #             mdl.dischargeOperationVariablesOptimum[0]
-                #         )
-                #     if key == "LOPFModel":
-                #         mdl.phaseAngleVariablesOptimum=mdl._phaseAngleVariablesOptimum[0]
-                #     if key != "StorageModel" and key != "StorageExtModel":
-                #         mdl.operationVariablesOptimum = mdl._operationVariablesOptimum[0]
-                #     if key == "ConversionPartLoadModel":
-                #         mdl.discretizationPointVariablesOptimun= mdl._discretizationPointVariablesOptimun[0]
-                #         mdl.discretizationSegmentConVariablesOptimun= mdl._discretizationSegmentConVariablesOptimun[0]
-                #         mdl.discretizationSegmentBinVariablesOptimun= mdl._discretizationSegmentBinVariablesOptimun[0]
-                #
-                #     mdl.capacityVariablesOptimum = mdl._capacityVariablesOptimum[0]
-                #     mdl.isBuiltVariablesOptimum = mdl._isBuiltVariablesOptimum[0]
-                #     mdl.commissioningVariablesOptimum=mdl._commissioningVariablesOptimum[0]
-                #     mdl.decommissioningVariablesOptimum = mdlde._commissioningVariablesOptimum[0]
+          
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 

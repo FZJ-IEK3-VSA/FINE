@@ -1244,6 +1244,12 @@ def checkAndSetPartLoadMin(esM, name, partLoadMin, fullOperationMax, fullOperati
 def checkAndSetInvestmentPeriodCostParameter(
     esM, name, data, dimension, locationalEligibility, years
 ):
+    # currenty no variation in cost parameters allowed for stochastical opt
+    if esM.mode == "stochastic" and isinstance(data, dict):
+        raise ValueError(
+            f"A variation of cost parameters '{data}' is currently not supported for "+
+            "stochastic optimization.")
+    
     # stock years are only considered for parameter for which the
     # first check
     checkInvestmentPeriodParameters(name, data, years)
@@ -2140,13 +2146,13 @@ def checkAndSetStock(component, esM, stockCommissioning):
         yearsWithStockOlderThanTechLifetime = [
             x
             for x in stock_df.index
-            if x < esM.startYear - component.technicalLifetime[loc] - 1
+            if x < esM.startYear - component.technicalLifetime[loc]
         ]
         stockOlderThanTechnicalLifetime = stock_df.loc[
             yearsWithStockOlderThanTechLifetime, loc
         ]
         if len(yearsWithStockOlderThanTechLifetime) > 0:
-            print(
+            warnings.warn(
                 f"Stock of component {component.name} in location "
                 + f"{loc} will not be considered "
                 + f"for years {list(stockOlderThanTechnicalLifetime.index)} as it "

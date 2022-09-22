@@ -217,6 +217,8 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
             # another level further in the component_dict
             if "." in variable_description:
                 [var_name, subvar_name] = variable_description.split(".")
+                if subvar_name.isdigit():
+                    subvar_name = int(subvar_name)
                 data = component_dict[classname][component][var_name][subvar_name]
             else:
                 data = component_dict[classname][component][variable_description]
@@ -658,6 +660,8 @@ def addTimeSeriesVariableToDict(
 
     if "." in variable:
         [var_name, nested_var_name] = variable.split(".")
+        if nested_var_name.isdigit():
+            nested_var_name = int(nested_var_name)
         component_dict[class_name][comp_name][var_name[3:]][
             nested_var_name
         ] = df.sort_index()
@@ -707,6 +711,8 @@ def add2dVariableToDict(
 
         if "." in variable:
             [var_name, nested_var_name] = variable.split(".")
+            if nested_var_name.isdigit():
+                nested_var_name = int(nested_var_name)
             component_dict[class_name][comp_name][var_name[3:]][
                 nested_var_name
             ] = series.sort_index()
@@ -752,6 +758,8 @@ def add1dVariableToDict(
 
     if "." in variable:
         [var_name, nested_var_name] = variable.split(".")
+        if nested_var_name.isdigit():
+            nested_var_name = int(nested_var_name)
         component_dict[class_name][comp_name][var_name[3:]][
             nested_var_name
         ] = series.sort_index()
@@ -796,6 +804,8 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
 
         if "." in variable:
             [var_name, nested_var_name] = variable.split(".")
+            if nested_var_name.isdigit():
+                nested_var_name = int(nested_var_name)
             component_dict[class_name][comp_name][var_name[3:]][
                 nested_var_name
             ] = var_value.item()
