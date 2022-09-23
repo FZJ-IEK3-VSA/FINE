@@ -1059,10 +1059,11 @@ class StorageExtModel(StorageModel):
         """
 
         basicContribution = super().getObjectiveFunctionContribution(esM, pyM)
-        chargeOpContribution = self.getEconomicsTimeSeries(
+        chargeOpContribution = self.getEconomicsOperation(
             pyM,
             esM,
-            "processedOpexPerChargeOpTimeSeries",
+            "TimeSeries",
+            ["processedOpexPerChargeOpTimeSeries"],
             "chargeOp",
             "operationVarDict",
         )

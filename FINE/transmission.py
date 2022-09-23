@@ -830,8 +830,8 @@ class TransmissionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
 
-        opexOp = self.getEconomicsTD(
-            pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDictOut"
+        opexOp = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDictOut"
         )
 
         if esM.mode == "perfectForesight":

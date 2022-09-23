@@ -701,8 +701,8 @@ class ConversionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
 
-        opexOp = self.getEconomicsTD(
-            pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDict"
+        opexOp = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
         )
 
         return super().getObjectiveFunctionContribution(esM, pyM) + opexOp

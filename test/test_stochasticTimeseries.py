@@ -11,40 +11,7 @@
 import FINE as fn
 import numpy as np
 import pandas as pd
-import pytest
 
-def test_stochstic_wrongInput():
-    numberOfTimeSteps = 4
-    hoursPerTimeStep = 2190
-    numberOfInvestmentPeriods = 2  
-    yearsPerInvestmentPeriod = 1
-
-    # Create an energy system model instance
-    esM = fn.EnergySystemModel(
-        locations={"PerfectLand"},
-        commodities={"electricity"},
-        numberOfTimeSteps=numberOfTimeSteps,
-        commodityUnitsDict={"electricity": r"kW$_{el}$"},
-        hoursPerTimeStep=hoursPerTimeStep,
-        costUnit="1 Euro",
-        mode="stochastic",
-        numberOfInvestmentPeriods=numberOfInvestmentPeriods,
-        yearsPerInvestmentPeriod=yearsPerInvestmentPeriod,
-        lengthUnit="km",
-        verboseLogLevel=2,
-    )
-    with pytest.raises(ValueError, match=r".*A variation of cost parameters.*"):
-        fn.Source(
-            esM=esM,
-            name="PV",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            capacityMax=4e6,
-            investPerCapacity={0:2*2190, 1:2* 2190},
-            opexPerCapacity=0,
-            interestRate=0,
-            economicLifetime=1,
-        )
 
 def test_stochasticTimeSeries():
     

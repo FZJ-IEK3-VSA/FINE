@@ -2291,3 +2291,20 @@ def addEmptyRegions(esM, data):
                 data[loc] = 0
 
     return data
+
+
+
+def annuityPresentValueFactor(esM, compName, loc):
+    # DE:Rentenbarwertfaktor
+    intrestRate = esM.getComponent(compName).interestRate[loc]
+    return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
+        intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
+    ) 
+    # TODO oder ** (esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod)  ????
+
+def netPresentValueFactor(esM, ip, compName, loc):
+    return annuityPresentValueFactor(
+        esM, compName, loc)* 1/ (1 + esM.getComponent(compName).interestRate[loc])** (
+            ip * esM.yearsPerInvestmentPeriod)* (
+                1 + esM.getComponent(compName).interestRate[loc]
+    )

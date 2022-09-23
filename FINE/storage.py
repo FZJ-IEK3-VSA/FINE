@@ -1759,16 +1759,18 @@ class StorageModel(ComponentModel):
             lifetimeAttr="ipTechnicalLifetime",
             varName="designBin",
         )
-        opexOp1 = self.getEconomicsTD(
+        opexOp1 = self.getEconomicsOperation(
             pyM,
             esM,
+            "TD",
             ["processedOpexPerChargeOperation"],
             "chargeOp",
             "operationVarDict",
         )
-        opexOp2 = self.getEconomicsTD(
+        opexOp2 = self.getEconomicsOperation(
             pyM,
             esM,
+            "TD",
             ["processedOpexPerDischargeOperation"],
             "dischargeOp",
             "operationVarDict",

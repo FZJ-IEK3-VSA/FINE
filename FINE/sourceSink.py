@@ -981,20 +981,20 @@ class SourceSinkModel(ComponentModel):
             :type pym: pyomo ConcreteModel
         """
 
-        opexOp = self.getEconomicsTD(
-            pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDict"
+        opexOp = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
         )
-        commodCost = self.getEconomicsTD(
-            pyM, esM, ["processedCommodityCost"], "op", "operationVarDict"
+        commodCost = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedCommodityCost"], "op", "operationVarDict"
         )
-        commodRevenue = self.getEconomicsTD(
-            pyM, esM, ["processedCommodityRevenue"], "op", "operationVarDict"
+        commodRevenue = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedCommodityRevenue"], "op", "operationVarDict"
         )
-        commodCostTimeSeries = self.getEconomicsTimeSeries(
-            pyM, esM, "processedCommodityCostTimeSeries", "op", "operationVarDict"
+        commodCostTimeSeries = self.getEconomicsOperation(
+            pyM, esM, "TimeSeries", ["processedCommodityCostTimeSeries"], "op", "operationVarDict"
         )
-        commodRevenueTimeSeries = self.getEconomicsTimeSeries(
-            pyM, esM, "processedCommodityRevenueTimeSeries", "op", "operationVarDict"
+        commodRevenueTimeSeries = self.getEconomicsOperation(
+            pyM, esM, "TimeSeries", ["processedCommodityRevenueTimeSeries"], "op", "operationVarDict"
         )
 
         return (
