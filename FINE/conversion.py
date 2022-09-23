@@ -723,13 +723,13 @@ class ConversionModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
-
-        for ip in esM.investmentPeriods:
-            # Set optimal design dimension variables and get basic optimization summary
-            optSummaryBasic = super().setOptimalValues(
-                esM, pyM, ip, esM.locations, "physicalUnit"
+        
+        # Set optimal design dimension variables and get basic optimization summary
+        optSummaryBasic = super().setOptimalValues(
+                esM, pyM,  esM.locations, "physicalUnit"
             )
-
+        
+        for ip in esM.investmentPeriods:
             # Set optimal operation variables and append optimization summary
             optVal = utils.formatOptimizationOutput(
                 opVar.get_values(),
@@ -810,7 +810,7 @@ class ConversionModel(ComponentModel):
                     ox.values / esM.numberOfYears
                 )
 
-            optSummary = optSummary.append(optSummaryBasic).sort_index()
+            optSummary = optSummary.append(optSummaryBasic[ip]).sort_index()
 
             # Summarize all contributions to the total annual cost
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (

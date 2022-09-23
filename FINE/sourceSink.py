@@ -1022,14 +1022,13 @@ class SourceSinkModel(ComponentModel):
         :param ip: investment period of transformation path analysis.
         :type ip: int
         """
+        # Set optimal design dimension variables and get basic optimization summary
+        optSummaryBasic = super().setOptimalValues(
+            esM, pyM,  esM.locations, "commodityUnit"
+        )
         for ip in esM.investmentPeriods:
             compDict, abbrvName = self.componentsDict, self.abbrvName
             opVar = getattr(pyM, "op_" + abbrvName)
-
-            # Set optimal design dimension variables and get basic optimization summary
-            optSummaryBasic = super().setOptimalValues(
-                esM, pyM, ip, esM.locations, "commodityUnit"
-            )
 
             # Set optimal operation variables and append optimization summary
             optVal = utils.formatOptimizationOutput(
@@ -1179,7 +1178,7 @@ class SourceSinkModel(ComponentModel):
                 ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
 
             # get discounted investment cost as total annual cost (TAC)
-            optSummary = optSummary.append(optSummaryBasic).sort_index()
+            optSummary = optSummary.append(optSummaryBasic[ip]).sort_index()
 
             # add operation specific contributions to the total annual cost (TAC) and substract revenues
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (

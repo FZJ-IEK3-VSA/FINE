@@ -893,13 +893,10 @@ class TransmissionModel(ComponentModel):
             for loc1 in esM.locations
             for loc2 in esM.locations
         }
-
+        # Set optimal design dimension variables and get basic optimization summary
+        optSummaryBasic=super().setOptimalValues(esM, pyM, mapC.keys(), "commodityUnit")
+        
         for ip in esM.investmentPeriods:
-            # Set optimal design dimension variables and get basic optimization summary
-            optSummaryBasic = super().setOptimalValues(
-                esM, pyM, ip, mapC.keys(), "commodityUnit"
-            )
-            
             for compName, comp in compDict.items():
                 for cost in [
                     "invest",
@@ -909,8 +906,8 @@ class TransmissionModel(ComponentModel):
                     "opexIfBuilt",
                     "TAC",
                 ]:
-                    data = optSummaryBasic.loc[compName, cost]
-                    optSummaryBasic.loc[compName, cost] = (data).values
+                    data = optSummaryBasic[ip].loc[compName, cost]
+                    optSummaryBasic[ip].loc[compName, cost] = (data).values
 
             # Set optimal operation variables and append optimization summary
             optVal = utils.formatOptimizationOutput(
@@ -1006,7 +1003,7 @@ class TransmissionModel(ComponentModel):
                     ox.values / esM.numberOfYears * 0.5
                 )
 
-            optSummary = optSummary.append(optSummaryBasic).sort_index()
+            optSummary = optSummary.append(optSummaryBasic[ip]).sort_index()
 
             # Summarize all contributions to the total annual cost
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
@@ -1027,7 +1024,7 @@ class TransmissionModel(ComponentModel):
                 indexNew.append((tup[0], tup[1], tup[2], loc1, loc2))
             optSummary.index = pd.MultiIndex.from_tuples(indexNew)
             optSummary = optSummary.unstack(level=-1)
-            names = list(optSummaryBasic.index.names)
+            names = list(optSummaryBasic[ip].index.names)
             names.append("LocationIn")
             optSummary.index.set_names(names, inplace=True)
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary

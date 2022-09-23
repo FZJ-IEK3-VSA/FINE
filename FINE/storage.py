@@ -1818,13 +1818,12 @@ class StorageModel(ComponentModel):
             getattr(pyM, "dischargeOp_" + abbrvName),
         )
         SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
-
+        
+        # Set optimal design dimension variables and get basic optimization summary
+        optSummaryBasic= super().setOptimalValues(
+            esM, pyM, esM.locations, "commodityUnit", "*h")
+        
         for ip in esM.investmentPeriods:
-            # Set optimal design dimension variables and get basic optimization summary
-            optSummaryBasic = super().setOptimalValues(
-                esM, pyM, ip, esM.locations, "commodityUnit", "*h"
-            )
-
             # Set optimal operation variables and append optimization summary
             props = [
                 "operationCharge",
@@ -2098,7 +2097,7 @@ class StorageModel(ComponentModel):
                 )
 
             # Append optimization summaries
-            optSummary = optSummary.append(optSummaryBasic).sort_index()
+            optSummary = optSummary.append(optSummaryBasic[ip]).sort_index()
 
             # Summarize all contributions to the total annual cost
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (

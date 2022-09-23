@@ -475,12 +475,11 @@ class DSMModel(SourceSinkModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
 
+        # Set optimal design dimension variables and get basic optimization summary
+        optSummaryBasic = super(SourceSinkModel, self).setOptimalValues(
+            esM, pyM, esM.locations, "commodityUnit"
+        )
         for ip in esM.investmentPeriods:
-            # Set optimal design dimension variables and get basic optimization summary
-            optSummaryBasic = super(SourceSinkModel, self).setOptimalValues(
-                esM, pyM, ip, esM.locations, "commodityUnit"
-            )
-
             # Set optimal operation variables and append optimization summary
             chargeOp = getattr(pyM, "chargeOp_storExt")
             optVal = utils.formatOptimizationOutput(
@@ -633,7 +632,7 @@ class DSMModel(SourceSinkModel):
                 ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
 
             # get discounted investment cost as total annual cost (TAC)
-            optSummary = optSummary.append(optSummaryBasic).sort_index()
+            optSummary = optSummary.append(optSummaryBasic[ip]).sort_index()
 
             # add operation specific contributions to the total annual cost (TAC) and substract revenues
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
