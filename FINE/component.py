@@ -2366,91 +2366,6 @@ class ComponentModel(metaclass=ABCMeta):
             and (loc, compName, ip) in capVarSet
         )
 
-    def getLocEconomicsTD(
-        self, pyM, esM, factorNames, varName, loc, compName, ip, getOptValue=False
-    ):
-        """
-        Set time-dependent equation specified for one component in one location or one connection between two locations.
-
-        **Required arguments:**
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-
-        :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param factorNames: Strings of the time-dependent parameters that have to be multiplied within the equation.
-            (e.g. ['opexPerOperation'] to multiply the operation variable with the costs for each operation).
-        :type factorNames: list of strings
-
-        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'op' for operation variable).
-        :type varName: string
-
-        :param loc: String of the location or of the connection between two locations (e.g. for transmission components)
-            for which the equation should be set up.
-        :type loc: string
-
-        :param compName: String of the component name for which the equation should be set up.
-        :type compName: string
-
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
-
-        **Default arguments:**
-
-        :param getOptValue: Boolean that defines the output of the function:
-
-            - True: Return the optimal value.
-            - False: Return the equation.
-
-            |br| * the default value is False.
-        :type getoptValue: boolean
-        """
-        var = getattr(pyM, varName + "_" + self.abbrvName)
-        factors = [
-            getattr(self.componentsDict[compName], factorName)[ip][loc]
-            for factorName in factorNames
-        ]
-        factor = 1.0
-        for factor_ in factors:
-            factor *= factor_
-        # create a timeSet for the current ip
-        timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
-        if esM.mode == "stochastic":
-            if not getOptValue:  # TODO PERFECT FORESIGHT NEW CODE
-                return (
-                    factor
-                    * sum(
-                        var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
-                    )
-                    / esM.numberOfYears
-                )
-            else:
-                return (
-                    factor
-                    * sum(
-                        var[loc, compName, ip, p, t].value
-                        * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
-                    )
-                    / esM.numberOfYears
-                )
-        elif esM.mode == "perfectForesight" or esM.mode == "singleYearOptimization":
-            if not getOptValue:  # TODO PERFECT FORESIGHT NEW CODE
-                return factor * sum(
-                    var[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                    for p, t in timeSet_pt
-                )
-            else:
-                return factor * sum(
-                    var[loc, compName, ip, p, t].value * esM.periodOccurrences[ip][p]
-                    for p, t in timeSet_pt
-                )
-
-        else:
-            raise NotImplementedError()
 
     def getLocEconomicsTI(
         self,
@@ -2628,96 +2543,7 @@ class ComponentModel(metaclass=ABCMeta):
             raise ValueError()
 
         var = getattr(pyM, varName + "_" + self.abbrvName)
-        if esM.mode == "perfectForesight" or esM.mode == "singleYearOptimization":
-
-            def annuityPresentValueFactor(esM, compName, ip, loc):
-                # DE:Rentenbarwertfaktor
-                intrestRate = esM.getComponent(compName).interestRate[loc]
-                return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
-                    intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
-                )
-
-            # Special case for perfect foresight: Components can have different
-            # investPerCapacity in different years. The capex contribution
-            # however only depends on the capex of the commissioning year.
-            # Therefore, we initialize a dataframe with index and columns of the
-            # investement periods. The rows describe the commissioning years,
-            # e.g. a component build in year 2 but with a lifetime of three
-            # years would have entries for df.loc[2,2:5]. Afterwards we
-            # sum the contributions per column, multiply it with the annuity
-            # present value factor to get the npv of the component for
-            # different investPerCapacity and several ip for commissioning
-
-            # initialize dict with (loc,comp) as key and df as values
-            costContribution = {}
-            for loc, compName, commisYear in var:  # TODO improve!
-                if (loc, compName) not in costContribution.keys():
-                    years = []
-                    for _loc, _comp, year in var:
-                        if loc == _loc and compName == _comp:
-                            years.append(year)
-                    costContribution[(loc, compName)] = pd.DataFrame(
-                        0, index=years, columns=esM.investmentPeriods
-                    )
-
-            # fill the dataframes (per location and compName) with the cost
-            # contributions depending on the commissioning year (index) and the
-            # investment period (columns)
-            for loc, compName, commisYear in var:
-                decommisYear = (
-                    commisYear
-                    + getattr(esM.getComponent(compName), lifetimeAttr)[loc]
-                    - 1
-                )
-                costContribution[(loc, compName)].loc[
-                    commisYear, commisYear:decommisYear
-                ] = self.getLocEconomicsTI(
-                    pyM,
-                    esM,
-                    factorNames,
-                    varName,
-                    loc,
-                    compName,
-                    commisYear,
-                    divisorName,
-                    QPfactorNames,
-                    QPdivisorNames,
-                    getOptValue,
-                )
-            if getOptValue:
-                cost_results = {}
-                for ip in esM.investmentPeriods:
-                    cost_results[ip] = pd.DataFrame()
-                for loc, compName, ip in var:
-                    if ip not in esM.investmentPeriods:
-                        continue
-                    if getOptValueCostType == "NPV":
-                        cost_results[ip].loc[compName, loc] = (
-                            costContribution[(loc, compName)][ip].sum()
-                            * annuityPresentValueFactor(esM, compName, ip, loc)
-                            * 1
-                            / (1 + esM.getComponent(compName).interestRate[loc])
-                            ** (ip * esM.yearsPerInvestmentPeriod)
-                            * (1 + esM.getComponent(compName).interestRate[loc])
-                        )
-                    elif getOptValueCostType == "TAC":  # TODO check
-                        cost_results[ip].loc[compName, loc] = costContribution[
-                            (loc, compName)
-                        ][ip].sum()
-                return cost_results
-            else:
-                return sum(
-                    costContribution[(loc, compName)][ip].sum()
-                    * annuityPresentValueFactor(esM, compName, ip, loc)
-                    * 1
-                    / (1 + esM.getComponent(compName).interestRate[loc])
-                    ** (ip * esM.yearsPerInvestmentPeriod)
-                    * (1 + esM.getComponent(compName).interestRate[loc])
-                    for loc, compName, ip in var
-                    if ip in esM.investmentPeriods
-                )
-
-        elif esM.mode == "stochastic":
+        if esM.mode == "stochastic":
             if getOptValue:
                 cost_results = {}
                 for ip in esM.investmentPeriods:
@@ -2764,10 +2590,81 @@ class ComponentModel(metaclass=ABCMeta):
                         )
                         for loc, compName, ip in var
                     )
-            
+        else:
+            # Special case for perfect foresight: Components can have different
+            # investPerCapacity in different years. The capex contribution
+            # however only depends on the capex of the commissioning year.
+            # Therefore, we initialize a dataframe with index and columns of the
+            # investement periods. The rows describe the commissioning years,
+            # e.g. a component build in year 2 but with a lifetime of three
+            # years would have entries for df.loc[2,2:5]. Afterwards we
+            # sum the contributions per column, multiply it with the annuity
+            # present value factor to get the npv of the component for
+            # different investPerCapacity and several ip for commissioning
 
-    def getEconomicsTD(
-        self, pyM, esM, factorNames, varName, dictName, getOptValue=False, getOptValueCostType="TAC",
+
+            # initialize dict with (loc,comp) as key and df as values
+            costContribution = {}
+            locCompNamesCombinations=list(set([(x[0], x[1]) for x in var.get_values()]))
+            for loc,compName in locCompNamesCombinations:
+                # get all years of component with location (also stock years)
+                years = (
+                    esM.getComponentAttribute(compName, 'processedStockYears')
+                    +esM.investmentPeriods
+                )
+                costContribution[(loc, compName)] = pd.DataFrame(
+                    0, index=years, columns=esM.investmentPeriods
+                )
+                
+            # fill the dataframes (per location and compName) with the cost
+            # contributions depending on the commissioning year (index) and the
+            # investment period (columns)
+            for loc, compName, commisYear in var:
+                decommisYear = (
+                    commisYear
+                    + getattr(esM.getComponent(compName), lifetimeAttr)[loc]
+                    - 1
+                )
+                costContribution[(loc, compName)].loc[
+                    commisYear, commisYear:decommisYear
+                ] = self.getLocEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames,
+                    varName,
+                    loc,
+                    compName,
+                    commisYear,
+                    divisorName,
+                    QPfactorNames,
+                    QPdivisorNames,
+                    getOptValue,
+                )
+            
+            # create dictonary with ip as key and const contribution as value
+            if getOptValue:
+                cost_results = {ip:pd.DataFrame() for ip in esM.investmentPeriods}
+                for loc,compName in locCompNamesCombinations:
+                    for ip in esM.investmentPeriods:
+                        cContrSum=costContribution[(loc, compName)][ip].sum()
+                        if getOptValueCostType == "NPV":
+                            cost_results[ip].loc[compName, loc] = (
+                                cContrSum
+                                * utils.netPresentValueFactor(esM, ip, compName, loc)
+                            )
+                        elif getOptValueCostType == "TAC":  
+                            cost_results[ip].loc[compName, loc] = cContrSum
+                return cost_results
+            else:
+                return sum(
+                    costContribution[(loc, compName)][ip].sum()
+                    * utils.netPresentValueFactor(esM, ip, compName, loc)
+                    for loc, compName, ip in var
+                    if ip in esM.investmentPeriods
+                )
+            
+    def getEconomicsOperation(
+        self, pyM, esM, fncType, factorNames, varName, dictName, getOptValue=False, getOptValueCostType="TAC",
     ):
         """
         Set time-dependent equations for the individual components. The equations will be set for all components of a modeling class
@@ -2783,6 +2680,9 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
         :type esM: esM - EnergySystemModel class instance
 
+        :param fncType: Function type, either "TD" or "TimeSeries"
+        :type fncType: string
+        
         :param factorNames: Strings of the time-dependent parameters that have to be multiplied within the equation.
             (e.g. ['opexPerOperation'] to multiply the operation variable with the costs for each operation).
         :type factorNames: list of strings
@@ -2807,81 +2707,108 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is None.
         :type getOptValueCostType: string
         """
-        indices = getattr(pyM, dictName + "_" + self.abbrvName)  # .items()
-        if self.dimension == "1dim":
-            def annuityPresentValueFactor(esM, compName, loc):
-                # DE:Rentenbarwertfaktor
-                intrestRate = esM.getComponent(compName).interestRate[loc]
-                return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
-                    intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
-                )
+        if getOptValueCostType not in ["TAC", "NPV"]:
+            raise ValueError()
+        if fncType not in ["TD","TimeSeries"]:
+            raise ValueError()
+        if fncType=="TimeSeries":
+            if len(factorNames) !=1:
+                raise ValueError()
+            factorName=factorNames[0]
+        
+        var = getattr(pyM, varName + "_" + self.abbrvName)
+        if esM.mode == "stochastic":
             if getOptValue:
-                if getOptValueCostType == "TAC":
-                    print()
-                elif getOptValueCostType == "NPV":
-                    print()
+                cost_results = {}
+                for ip in esM.investmentPeriods:
+                    cost_results[ip] = pd.DataFrame()
+                for loc, compName, ip in var:
+                    if ip not in esM.investmentPeriods:
+                        continue
+                    cost_results[ip].loc[compName, loc]=\
+                            self.getLocEconomicsOperation(
+                                pyM, esM, fncType, factorNames, varName, loc, compName, ip, getOptValue
+                            )                        
+                return cost_results
             else:
                 return sum(
-                    self.getLocEconomicsTD(
-                        pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
+                            self.getLocEconomicsOperation(
+                        pyM, esM, fncType, factorNames, varName, loc, compName, ip, getOptValue
                     )
-                    * annuityPresentValueFactor(esM, compName, loc)
-                    * (1 + esM.getComponent(compName).interestRate[loc])
-                    * 1
-                    / (1 + esM.getComponent(compName).interestRate[loc])
-                    ** (ip * esM.yearsPerInvestmentPeriod)
-                    if esM.getComponent(compName).interestRate[loc] != 0
-                    and esM.mode != "stochastic"
-                    else self.getLocEconomicsTD(
-                        pyM, esM, factorNames, varName, loc, compName, ip, getOptValue
-                    )
-                    for ip, subDict in indices.items()
-                    for loc, compNames in subDict.items()
-                    for compName in compNames
-                )
+                            for loc, compName, ip in var
+                        )
         else:
-            def annuityPresentValueFactor(esM, compName, loc, loc_):
-                # DE:Rentenbarwertfaktor
-                intrestRate = esM.getComponent(compName).interestRate[loc + "_" + loc_]
-                return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
-                    intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
+            # TODO ANPASSEN !!! auf commodity conversions
+            # Special case for perfect foresight: Components can have different
+            # investPerCapacity in different years. The capex contribution
+            # however only depends on the capex of the commissioning year.
+            # Therefore, we initialize a dataframe with index and columns of the
+            # investement periods. The rows describe the commissioning years,
+            # e.g. a component build in year 2 but with a lifetime of three
+            # years would have entries for df.loc[2,2:5]. Afterwards we
+            # sum the contributions per column, multiply it with the annuity
+            # present value factor to get the npv of the component for
+            # different investPerCapacity and several ip for commissioning
+
+
+            # initialize dict with (loc,comp) as key and df as values
+            costContribution = {}
+            locCompNamesCombinations=list(set([(x[0], x[1]) for x in var.get_values()]))
+            for loc,compName in locCompNamesCombinations:
+                # get all years of component with location (also stock years)
+                years = (
+                    esM.getComponentAttribute(compName, 'processedStockYears')
+                    +esM.investmentPeriods
+                )
+                costContribution[(loc, compName)] = pd.DataFrame(
+                    0, index=years, columns=esM.investmentPeriods
+                )
+                
+            # fill the dataframes (per location and compName) with the cost
+            # contributions depending on the commissioning year (index) and the
+            # investment period (columns)
+            
+            locCompIpCombinations=list(set([(x[0],x[1],x[2]) for x in var]))
+            for loc, compName, year in locCompIpCombinations:
+                # TODO rename year -> can be commisyear or ip
+                # TODO for later with commodityConversions 
+                # decommissioning wieder einführen und und cost constribution von 
+                # commisYear, commisYear:decommisYear setzen! 
+                # decommisYear = (
+                #     commisYear
+                #     + getattr(esM.getComponent(compName), lifetimeAttr)[loc]
+                #     - 1
+                # )
+                costContribution[(loc, compName)].loc[
+                        year, year#:decommisYear
+                    ] = self.getLocEconomicsOperation(
+                        pyM, esM, fncType, factorNames, varName, loc, compName, year, getOptValue
+                    )
+
+            # create dictonary with ip as key and const contribution as value
+            if getOptValue:
+                cost_results = {ip:pd.DataFrame() for ip in esM.investmentPeriods}
+                for loc,compName in locCompNamesCombinations:
+                    for ip in esM.investmentPeriods:
+                        cContrSum=costContribution[(loc, compName)][ip].sum()
+                        if getOptValueCostType == "NPV":
+                            cost_results[ip].loc[compName, loc] = (
+                                cContrSum
+                                * utils.netPresentValueFactor(esM, ip, compName, loc)
+                            )
+                        elif getOptValueCostType == "TAC":  
+                            cost_results[ip].loc[compName, loc] = cContrSum
+                return cost_results
+            else:
+                return sum(
+                    costContribution[(loc, compName)][ip].sum()
+                    * utils.netPresentValueFactor(esM, ip, compName, loc)
+                    for loc, compName, ip in locCompIpCombinations
+                    if ip in esM.investmentPeriods
                 )
 
-            return sum(
-                self.getLocEconomicsTD(
-                    pyM,
-                    esM,
-                    factorNames,
-                    varName,
-                    loc + "_" + loc_,
-                    compName,
-                    ip,
-                    getOptValue,
-                )
-                * annuityPresentValueFactor(esM, compName, loc, loc_)
-                * (1 + esM.getComponent(compName).interestRate[loc + "_" + loc_])
-                * 1
-                / (1 + esM.getComponent(compName).interestRate[loc + "_" + loc_])
-                ** (ip * esM.yearsPerInvestmentPeriod)
-                if esM.getComponent(compName).interestRate[loc + "_" + loc_] != 0
-                else self.getLocEconomicsTD(
-                    pyM,
-                    esM,
-                    factorNames,
-                    varName,
-                    loc + "_" + loc_,
-                    compName,
-                    ip,
-                    getOptValue,
-                )
-                for ip, subDict in indices.items()
-                for loc, subDict2 in subDict.items()
-                for loc_, compNames in subDict2.items()
-                for compName in compNames
-            )
-
-    def getLocEconomicsTimeSeries(
-        self, pyM, esM, factorName, varName, loc, compName, ip, getOptValue=False,getOptValueCostType="TAC",
+    def getLocEconomicsOperation(
+        self, pyM, esM, fncType, factorNames, varName, loc, compName, ip, getOptValue=False,
     ):
         """
         Set time-dependent cost functions for the individual components. The equations will be set for all components
@@ -2894,7 +2821,10 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
         :type esM: esM - EnergySystemModel class instance
-
+        
+        :param fncType: Function type,  either "TD" or "TimeSeries
+        :type fncType: string
+        
         :param factorName: String of the time-dependent parameter that have to be multiplied within the equation.
             (e.g. 'commodityCostTimeSeries' to multiply the operation variable with the costs for each operation).
         :type factorNames: string
@@ -2923,174 +2853,74 @@ class ComponentModel(metaclass=ABCMeta):
 
             |br| * the default value is False.
         :type getoptValue: boolean
-        
-        :param getOptValueCostType: the cost type can either be TAC (total anualized costs) or NPV (net present value)
-            |br| * the default value is None.
-        :type getOptValueCostType: string
         """
         var = getattr(pyM, varName + "_" + self.abbrvName)
+        
         # create new timeSet for current ip
         timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
-        if getattr(self.componentsDict[compName], factorName) is not None:
-            factor = getattr(self.componentsDict[compName], factorName)[ip][loc]
-            if esM.mode == "stochastic":
-                if not getOptValue:
-                    return (
-                        sum(
-                            factor[p, t]
-                            * var[loc, compName, ip, p, t]
-                            * esM.periodOccurrences[ip][p]
-                            for p, t in timeSet_pt
-                        )
-                        / esM.numberOfYears
-                    )
-                else:
-                    return (
-                        sum(
-                            factor[p, t]
-                            * var[loc, compName, ip, p, t].value
-                            * esM.periodOccurrences[ip][p]
-                            for p, t in timeSet_pt
-                        )
-                        / esM.numberOfYears
-                    )
-            elif esM.mode == "perfectForesight" or esM.mode == "singleYearOptimization":
-                if not getOptValue:
-                    return sum(
+
+        # get factor
+        if fncType=="TD":
+            factors = [
+                getattr(self.componentsDict[compName], factorName)[ip][loc]
+                for factorName in factorNames
+            ]
+            # TODO not used at any function! always only one function
+            # werden die Kosten auf den Input oder Output bezogen -> müsste nicht
+            # effizienz noch multipliziert werden
+            factorVal = 1.0
+            for factor_ in factors:
+                factorVal *= factor_
+            # write pd series with constant value for factornames
+            mIdx=pd.MultiIndex.from_tuples(timeSet_pt, names=["Period", "TimeStep"])
+            factor= pd.Series(factorVal, index=mIdx)
+        elif fncType=="TimeSeries":
+            # special case ! # TODO comment
+            if getattr(self.componentsDict[compName], factorNames[0]) is None:
+                return 0
+            # TODO what if more than one in list? should this not be same as above? 
+            # multiplication with sevaral
+            factor = getattr(self.componentsDict[compName], factorNames[0])[ip][loc]
+        
+        if esM.mode == "stochastic":
+            if not getOptValue:
+                return (
+                    sum(
                         factor[p, t]
                         * var[loc, compName, ip, p, t]
                         * esM.periodOccurrences[ip][p]
                         for p, t in timeSet_pt
                     )
-                else:
-                    return sum(
+                    / esM.numberOfYears
+                )
+            else:
+                return (
+                    sum(
                         factor[p, t]
                         * var[loc, compName, ip, p, t].value
                         * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
                     )
+                    / esM.numberOfYears
+                )
+        elif esM.mode == "perfectForesight" or esM.mode == "singleYearOptimization":
+            if not getOptValue:
+                return sum(
+                    factor[p, t]
+                    * var[loc, compName, ip, p, t]
+                    * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
+                )
             else:
-                raise NotImplementedError()
+                return sum(
+                    factor[p, t]
+                    * var[loc, compName, ip, p, t].value
+                    * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
+                )
         else:
-            return 0
+            raise NotImplementedError()
 
-    def getEconomicsTimeSeries(
-        self, pyM, esM, factorName, varName, dictName, getOptValue=False
-    ):
-        """
-        Adds time-dependent cost functions for the individual components. The equations will be set for all components
-        of a modeling class and all locations as well as for all considered time steps.
-
-        **Required arguments:**
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-
-        :param esM: EnergySystemModel instance representing the energy system in which the components should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param factorName: String of the time-dependent parameter that have to be multiplied within the equation.
-            (e.g. 'commodityCostTimeSeries' to multiply the operation variable with the costs for each operation).
-        :type factorNames: string
-
-        :param varName: String of the variable that has to be multiplied within the equation (e.g. 'op' for operation variable).
-        :type varName: string
-
-        :param dictName: String of the variable set (e.g. 'operationVarDict')
-        :type dictName: string
-
-        **Default arguments:**
-
-        :param getOptValue: Boolean that defines the output of the function:
-
-            - True: Return the optimal value.
-            - False: Return the equation.
-
-            |br| * the default value is False.
-        :type getoptValue: boolean
-        """
-        indices = getattr(pyM, dictName + "_" + self.abbrvName).items()
-        if self.dimension == "1dim":
-            return sum(
-                self.getLocEconomicsTimeSeries(
-                    pyM, esM, factorName, varName, loc, compName, ip, getOptValue
-                )
-                * (
-                    (
-                        (1 + esM.getComponent(compName).interestRate[loc])
-                        ** (
-                            esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod
-                        )
-                    )
-                    - 1
-                )
-                / (
-                    esM.getComponent(compName).interestRate[loc]
-                    * (1 + esM.getComponent(compName).interestRate[loc])
-                    ** (esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod)
-                )
-                * (1 + esM.getComponent(compName).interestRate[loc])
-                * 1
-                / (1 + esM.getComponent(compName).interestRate[loc])
-                ** (ip * esM.yearsPerInvestmentPeriod)
-                if esM.getComponent(compName).interestRate[loc] != 0
-                and esM.mode != "stochastic"
-                else self.getLocEconomicsTimeSeries(
-                    pyM, esM, factorName, varName, loc, compName, ip, getOptValue
-                )
-                for ip, subdict in indices
-                for loc, compNames in subdict.items()
-                for compName in compNames
-                # for ip in esM.investmentPeriods
-            )
-        else:
-            return sum(
-                self.getLocEconomicsTimeSeries(
-                    pyM,
-                    esM,
-                    factorName,
-                    varName,
-                    loc + "_" + loc_,
-                    compName,
-                    ip,
-                    getOptValue,
-                )
-                * (
-                    (
-                        (1 + esM.getComponent(compName).interestRate[loc])
-                        ** (
-                            esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod
-                        )
-                    )
-                    - 1
-                )
-                / (
-                    esM.getComponent(compName).interestRate[loc]
-                    * (1 + esM.getComponent(compName).interestRate[loc])
-                    ** (esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod)
-                )
-                * (1 + esM.getComponent(compName).interestRate[loc])
-                * 1
-                / (1 + esM.getComponent(compName).interestRate[loc])
-                ** (ip * esM.yearsPerInvestmentPeriod)
-                if esM.getComponent(compName).interestRate[loc] != 0
-                and esM.mode != "stochastic"
-                else self.getLocEconomicsTimeSeries(
-                    pyM,
-                    esM,
-                    factorName,
-                    varName,
-                    loc + "_" + loc_,
-                    compName,
-                    ip,
-                    getOptValue,
-                )
-                for loc, subDict in indices
-                for loc_, compNames in subDict.items()
-                for compName in compNames
-                for ip in esM.investmentPeriods
-            )
-
+  
     def setOptimalValues(self, esM, pyM, ip, indexColumns, plantUnit, unitApp=""):
         """
         Set the optimal values for the considered components and return a summary of them.
@@ -3220,6 +3050,58 @@ class ComponentModel(metaclass=ABCMeta):
             # Check if the installed capacities are close to a bigM val
             # ue for components with design decision variables but
             # ignores cases where bigM was substituted by capacityMax parameter (see bigM constraint)
+
+            # get the results for all components
+            resultsNPV_cx= self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedInvestPerCapacity", "QPcostDev"],
+                    QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+                    lifetimeAttr="ipEconomicLifetime",
+                    varName="commis",
+                    divisorName="CCF",
+                    QPdivisorNames=["QPbound", "CCF"],
+                    getOptValue=True,
+                    getOptValueCostType="NPV",
+                )
+            
+            resultsTAC_cx=self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedInvestPerCapacity", "QPcostDev"],
+                    QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+                    lifetimeAttr="ipEconomicLifetime",
+                    varName="commis",
+                    divisorName="CCF",
+                    QPdivisorNames=["QPbound", "CCF"],
+                    getOptValue=True,
+                    getOptValueCostType="TAC",
+                )
+
+            resultsNPV_ox= self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedOpexPerCapacity", "QPcostDev"],
+                    QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
+                    lifetimeAttr="ipTechnicalLifetime",
+                    varName="commis",
+                    QPdivisorNames=["QPbound"],
+                    getOptValue=True,
+                    getOptValueCostType="NPV",
+                )
+            
+            resultsTAC_ox=self.getEconomicsTI(
+                    pyM,
+                    esM,
+                    factorNames=["processedOpexPerCapacity", "QPcostDev"],
+                    QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
+                    lifetimeAttr="ipTechnicalLifetime",
+                    varName="commis",
+                    QPdivisorNames=["QPbound"],
+                    getOptValue=True,
+                    getOptValueCostType="TAC",
+                )
+
             for compName, comp in compDict.items():
                 if (
                     comp.hasIsBuiltBinaryVariable
@@ -3252,68 +3134,26 @@ class ComponentModel(metaclass=ABCMeta):
 
             # Get NPV contribution for investment
             npv_cx = commisOptVal.apply(
-                lambda commis: self.getEconomicsTI(
-                    pyM,
-                    esM,
-                    factorNames=["processedInvestPerCapacity", "QPcostDev"],
-                    QPfactorNames=["processedQPcostScale", "investPerCapacity"],
-                    lifetimeAttr="ipEconomicLifetime",
-                    varName="commis",
-                    divisorName="CCF",
-                    QPdivisorNames=["QPbound", "CCF"],
-                    getOptValue=True,
-                    getOptValueCostType="NPV",
-                )[ip].loc[commis.name],
+                lambda commis: resultsNPV_cx[ip].loc[commis.name],
                 axis=1,
             )
 
             # Calculate the annualized investment costs cx (CAPEX)
             # Get TAC for investment
             tac_cx = commisOptVal.apply(
-                lambda cap: self.getEconomicsTI(
-                    pyM,
-                    esM,
-                    factorNames=["processedInvestPerCapacity", "QPcostDev"],
-                    QPfactorNames=["processedQPcostScale", "investPerCapacity"],
-                    lifetimeAttr="ipEconomicLifetime",
-                    varName="commis",
-                    divisorName="CCF",
-                    QPdivisorNames=["QPbound", "CCF"],
-                    getOptValue=True,
-                    getOptValueCostType="TAC",
-                )[ip].loc[cap.name],
+                lambda cap: resultsTAC_cx[ip].loc[cap.name],
                 axis=1,
             )
 
             # Get NPV cost contribution for the annualized operational costs ox (OPEX)
             npv_ox = commisOptVal.apply(
-                lambda commis: self.getEconomicsTI(
-                    pyM,
-                    esM,
-                    factorNames=["processedOpexPerCapacity", "QPcostDev"],
-                    QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
-                    lifetimeAttr="ipTechnicalLifetime",
-                    varName="commis",
-                    QPdivisorNames=["QPbound"],
-                    getOptValue=True,
-                    getOptValueCostType="NPV",
-                )[ip].loc[commis.name],
+                lambda commis: resultsNPV_ox[ip].loc[commis.name],
                 axis=1,
             )
 
             # Calculate the annualized operational costs ox (OPEX)
             tac_ox = commisOptVal.apply(
-                lambda commis: self.getEconomicsTI(
-                    pyM,
-                    esM,
-                    factorNames=["processedOpexPerCapacity", "QPcostDev"],
-                    QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
-                    lifetimeAttr="ipTechnicalLifetime",
-                    varName="commis",
-                    QPdivisorNames=["QPbound"],
-                    getOptValue=True,
-                    getOptValueCostType="TAC",
-                )[ip].loc[commis.name],
+                lambda commis: resultsTAC_ox[ip].loc[commis.name],
                 axis=1,
             )
 
