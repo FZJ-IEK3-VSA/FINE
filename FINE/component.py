@@ -1648,31 +1648,27 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
+        abbrvName = self.abbrvName
+        commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
         if esM.mode == "stochastic":
-            abbrvName = self.abbrvName
             capVar = getattr(pyM, "cap_" + abbrvName)
 
             def capacityDevelopmentStochastic(pyM, loc, compName, ip):
                 # all investmentperiods must have the same capacity
-                if ip in esM.investmentPeriods[:-1]:
-                    return capVar[loc, compName, ip + 1] == capVar[loc, compName, ip]
-                else:
-                    return pyomo.Constraint.Skip
+                return capVar[loc, compName, ip + 1] == capVar[loc, compName, ip]
 
             setattr(
                 pyM,
                 "ConstrCapacityDevelopment_" + abbrvName,
                 pyomo.Constraint(
-                    getattr(pyM, "designDimensionVarSet_" + abbrvName),
+                    commisConstrSet,
                     rule=capacityDevelopmentStochastic,
                 ),
             )
         else:
-            abbrvName = self.abbrvName
             capVar = getattr(pyM, "cap_" + abbrvName)
             commisVar = getattr(pyM, "commis_" + abbrvName)
             decommisVar = getattr(pyM, "decommis_" + abbrvName)
-            commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
                 return (
@@ -1710,25 +1706,44 @@ class ComponentModel(metaclass=ABCMeta):
         commisVar = getattr(pyM, "commis_" + abbrvName)
         decommisVar = getattr(pyM, "decommis_" + abbrvName)
         locCompConstrSet = getattr(pyM, "DesignLocationComponentVarSet_" + abbrvName)
+        locCompIpConstrSet=getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
-        def initialYear(pyM, loc, compName):
-            stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
-            return (
-                capVar[loc, compName, 0]
-                == stock_cap
-                + commisVar[loc, compName, 0]
-                - decommisVar[loc, compName, 0]
+        if esM.mode == "stochastic":
+            def initialStochastic(pyM, loc, compName,ip):
+                stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
+                return (
+                    capVar[loc, compName, ip]
+                    == stock_cap
+                    + commisVar[loc, compName, ip]
+                    - decommisVar[loc, compName, 0]
+                ) 
+
+            setattr(
+                pyM,
+                "InitialYear_" + abbrvName,
+                pyomo.Constraint(
+                    locCompIpConstrSet, rule=initialStochastic
+                ),  
+            )
+        else:
+            def initialYear(pyM, loc, compName):
+                stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
+                return (
+                    capVar[loc, compName, 0]
+                    == stock_cap
+                    + commisVar[loc, compName, 0]
+                    - decommisVar[loc, compName, 0]
+                )
+
+            setattr(
+                pyM,
+                "InitialYear_" + abbrvName,
+                pyomo.Constraint(
+                    locCompConstrSet, rule=initialYear
+                ),  
             )
 
-        setattr(
-            pyM,
-            "InitialYear_" + abbrvName,
-            pyomo.Constraint(
-                locCompConstrSet, rule=initialYear
-            ),  # TODO use other set with just comp and location,
-        )
-
-        # TODO move to own function
+        # TODO move to own function - historicalStockConstraint
         commisConstrSet = getattr(pyM, "designCommisVarSet_" + abbrvName)
 
         def stockCommissioning(pyM, loc, compName, ip):
@@ -2640,7 +2655,6 @@ class ComponentModel(metaclass=ABCMeta):
                     QPdivisorNames,
                     getOptValue,
                 )
-            
             # create dictonary with ip as key and const contribution as value
             if getOptValue:
                 cost_results = {ip:pd.DataFrame() for ip in esM.investmentPeriods}
@@ -2717,25 +2731,27 @@ class ComponentModel(metaclass=ABCMeta):
             factorName=factorNames[0]
         
         var = getattr(pyM, varName + "_" + self.abbrvName)
+        locCompIpCombinations=list(set([(x[0],x[1],x[2]) for x in var]))
+        locCompNamesCombinations=list(set([(x[0], x[1]) for x in var.get_values()]))
         if esM.mode == "stochastic":
             if getOptValue:
                 cost_results = {}
                 for ip in esM.investmentPeriods:
                     cost_results[ip] = pd.DataFrame()
-                for loc, compName, ip in var:
+                for loc, compName, ip in locCompIpCombinations:
                     if ip not in esM.investmentPeriods:
                         continue
                     cost_results[ip].loc[compName, loc]=\
                             self.getLocEconomicsOperation(
                                 pyM, esM, fncType, factorNames, varName, loc, compName, ip, getOptValue
-                            )                        
+                            )
                 return cost_results
             else:
                 return sum(
                             self.getLocEconomicsOperation(
                         pyM, esM, fncType, factorNames, varName, loc, compName, ip, getOptValue
                     )
-                            for loc, compName, ip in var
+                            for loc, compName, ip in locCompIpCombinations
                         )
         else:
             # TODO ANPASSEN !!! auf commodity conversions
@@ -2753,7 +2769,6 @@ class ComponentModel(metaclass=ABCMeta):
 
             # initialize dict with (loc,comp) as key and df as values
             costContribution = {}
-            locCompNamesCombinations=list(set([(x[0], x[1]) for x in var.get_values()]))
             for loc,compName in locCompNamesCombinations:
                 # get all years of component with location (also stock years)
                 years = (
@@ -2899,6 +2914,7 @@ class ComponentModel(metaclass=ABCMeta):
                         factor[p, t]
                         * var[loc, compName, ip, p, t].value
                         * esM.periodOccurrences[ip][p]
+                        for p, t in timeSet_pt
                     )
                     / esM.numberOfYears
                 )

@@ -1057,13 +1057,16 @@ class SourceSinkModel(ComponentModel):
            getOptValue=True,getOptValueCostType="NPV",
         )
         resultsNPV_commodRevenue = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedCommodityRevenue"], "op", "operationVarDict",getOptValue=True,getOptValueCostType="NPV",
+            pyM, esM, "TD", ["processedCommodityRevenue"], "op", "operationVarDict",
+            getOptValue=True,getOptValueCostType="NPV",
         )
         resultsNPV_commodCostTimeSeries = self.getEconomicsOperation(
-            pyM, esM, "TimeSeries", ["processedCommodityCostTimeSeries"], "op", "operationVarDict",getOptValue=True,getOptValueCostType="NPV",
+            pyM, esM, "TimeSeries", ["processedCommodityCostTimeSeries"], "op", "operationVarDict",
+            getOptValue=True,getOptValueCostType="NPV",
         )
         resultsNPV_commodRevenueTimeSeries = self.getEconomicsOperation(
-            pyM, esM, "TimeSeries", ["processedCommodityRevenueTimeSeries"], "op", "operationVarDict",getOptValue=True,getOptValueCostType="NPV",
+            pyM, esM, "TimeSeries", ["processedCommodityRevenueTimeSeries"], "op", "operationVarDict",
+            getOptValue=True,getOptValueCostType="NPV",
         )
         
         for ip in esM.investmentPeriods:
