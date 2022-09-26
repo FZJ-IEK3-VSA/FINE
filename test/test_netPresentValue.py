@@ -4,7 +4,7 @@ import pytest
 
 
 def test_Mini_netPresentValue(minimal_test_esM):
-    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value
     npv_sum_optSummary=0
@@ -18,7 +18,7 @@ def test_Mini_netPresentValue(minimal_test_esM):
     ) 
 
 def test_multiNode_netPresentValue(multi_node_test_esM_init):
-    multi_node_test_esM_init.optimize(timeSeriesAggregation=False, solver="gurobi")
+    multi_node_test_esM_init.optimize(timeSeriesAggregation=False, solver="glpk")
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value
     npv_sum_optSummary=0
@@ -34,7 +34,7 @@ def test_multiNode_netPresentValue(multi_node_test_esM_init):
 
 
 def test_DSM_netPresentValue(dsm_test_esM):
-    dsm_test_esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    dsm_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value
     npv_sum_optSummary=0

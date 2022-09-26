@@ -4,7 +4,7 @@ import pytest
 
 
 def test_perfectForesight_netPresentValue(perfectForesight_test_esM):
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 11861.771783274202
     ) 
