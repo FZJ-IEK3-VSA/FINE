@@ -479,6 +479,46 @@ class DSMModel(SourceSinkModel):
         optSummaryBasic = super(SourceSinkModel, self).setOptimalValues(
             esM, pyM, esM.locations, "commodityUnit"
         )
+        
+        # get class related results
+        resultsTAC_opexOp = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict",
+            getOptValue=True,getOptValueCostType="TAC",
+        )
+        resultsTAC_commodCost = self.getEconomicsOperation(
+           pyM, esM, "TD", ["processedCommodityCost"], "op", "operationVarDict",
+           getOptValue=True,getOptValueCostType="TAC",
+        )
+        resultsTAC_commodRevenue = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedCommodityRevenue"], "op", "operationVarDict",
+            getOptValue=True,getOptValueCostType="TAC",
+        )
+        resultsTAC_commodCostTimeSeries = self.getEconomicsOperation(
+            pyM, esM, "TimeSeries", ["processedCommodityCostTimeSeries"], "op", 
+            "operationVarDict",getOptValue=True,getOptValueCostType="TAC",
+        )
+        resultsTAC_commodRevenueTimeSeries = self.getEconomicsOperation(
+            pyM, esM, "TimeSeries", ["processedCommodityRevenueTimeSeries"], "op", 
+            "operationVarDict",getOptValue=True,getOptValueCostType="TAC",
+        )
+        resultsNPV_opexOp = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict",
+            getOptValue=True,getOptValueCostType="NPV",
+        )
+        resultsNPV_commodCost = self.getEconomicsOperation(
+           pyM, esM, "TD", ["processedCommodityCost"], "op", "operationVarDict",
+           getOptValue=True,getOptValueCostType="NPV",
+        )
+        resultsNPV_commodRevenue = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedCommodityRevenue"], "op", "operationVarDict",getOptValue=True,getOptValueCostType="NPV",
+        )
+        resultsNPV_commodCostTimeSeries = self.getEconomicsOperation(
+            pyM, esM, "TimeSeries", ["processedCommodityCostTimeSeries"], "op", "operationVarDict",getOptValue=True,getOptValueCostType="NPV",
+        )
+        resultsNPV_commodRevenueTimeSeries = self.getEconomicsOperation(
+            pyM, esM, "TimeSeries", ["processedCommodityRevenueTimeSeries"], "op", "operationVarDict",getOptValue=True,getOptValueCostType="NPV",
+        )
+        
         for ip in esM.investmentPeriods:
             # Set optimal operation variables and append optimization summary
             chargeOp = getattr(pyM, "chargeOp_storExt")
@@ -503,13 +543,15 @@ class DSMModel(SourceSinkModel):
             optVal = optVal.groupby(lambda x: groupStor(x)).sum()
             optVal.index = pd.MultiIndex.from_tuples(optVal.index)
 
-            if type(self._operationVariablesOptimum) is not dict:
-                self._operationVariablesOptimum = {}
+
             self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
-            props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
+            props = ["operation", "opexOp", "commodCosts", "commodRevenues","NPV_opexOp", "NPV_commodCosts", "NPV_commodRevenues"]
             units = [
                 "[-]",
+                "[" + esM.costUnit + "/a]",
+                "[" + esM.costUnit + "/a]",
+                "[" + esM.costUnit + "/a]",
                 "[" + esM.costUnit + "/a]",
                 "[" + esM.costUnit + "/a]",
                 "[" + esM.costUnit + "/a]",
@@ -535,23 +577,8 @@ class DSMModel(SourceSinkModel):
             ).sort_index()
 
             if optVal is not None:
-
+                # operation
                 opSum = optVal.sum(axis=1).unstack(-1)
-                ox = opSum.apply(
-                    lambda op: op
-                    * compDict[op.name].processedOpexPerOperation[ip][op.index],
-                    axis=1,
-                )
-                cCost = opSum.apply(
-                    lambda op: op
-                    * compDict[op.name].processedCommodityCost[ip][op.index],
-                    axis=1,
-                )
-                cRevenue = opSum.apply(
-                    lambda op: op
-                    * compDict[op.name].processedCommodityRevenue[ip][op.index],
-                    axis=1,
-                )
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
@@ -561,78 +588,70 @@ class DSMModel(SourceSinkModel):
                 ] = (
                     opSum.values / esM.numberOfYears
                 )
+                
+                # costs
+                tac_ox = resultsTAC_opexOp[ip]
+                tac_cCost = resultsTAC_commodCost[ip]
+                tac_cRevenue = resultsTAC_commodRevenue[ip]
+                tac_cCostTimeSeries=resultsTAC_commodCostTimeSeries[ip]
+                tac_cRevenueTimeSeries=resultsTAC_commodRevenueTimeSeries[ip]
+                
+                npv_ox = resultsNPV_opexOp[ip]
+                npv_cCost = resultsNPV_commodCost[ip]
+                npv_cRevenue = resultsNPV_commodRevenue[ip]
+                npv_cCostTimeSeries=resultsNPV_commodCostTimeSeries[ip]
+                npv_cRevenueTimeSeries=resultsNPV_commodRevenueTimeSeries[ip]
+                
                 optSummary.loc[
-                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                    ox.columns,
+                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
+                    tac_ox.columns,
                 ] = (
-                    ox.values / esM.numberOfYears
+                    tac_ox.values / esM.numberOfYears
                 )
-
-                # get empty datframe for resulting time dependent (TD) cost sum
-                cRevenueTD = pd.DataFrame(
-                    0.0, index=list(compDict.keys()), columns=opSum.columns
+                optSummary.loc[
+                    [(ix, "NPV_opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
+                    npv_ox.columns,
+                ] = (
+                    npv_ox.values / esM.numberOfYears
                 )
-                cCostTD = pd.DataFrame(
-                    0.0, index=list(compDict.keys()), columns=opSum.columns
-                )
-
-                for compName in opSum.index:
-                    if not compDict[compName].commodityCostTimeSeries is None:
-                        # in case of time series aggregation rearange clustered cost time series
-                        calcCostTD = utils.buildFullTimeSeries(
-                            compDict[compName]
-                            .commodityCostTimeSeries[ip]
-                            .unstack(level=1)
-                            .stack(level=0),
-                            esM.periodsOrder[ip],
-                            ip,
-                            esM=esM,
-                            divide=False,
-                        )
-                        # multiply with operation values to get the total cost
-                        cCostTD.loc[compName, :] = (
-                            optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
-                        )
-
-                    if (
-                        not compDict[compName].processedCommodityRevenueTimeSeries
-                        is None
-                    ):
-                        # in case of time series aggregation rearange clustered revenue time series
-                        calcRevenueTD = utils.buildFullTimeSeries(
-                            compDict[compName]
-                            .commodityRevenueTimeSeries[ip]
-                            .unstack(level=1)
-                            .stack(level=0),
-                            esM.periodsOrder[ip],
-                            ip,
-                            esM=esM,
-                            divide=False,
-                        )
-                        # multiply with operation values to get the total revenue
-                        cRevenueTD.loc[compName, :] = (
-                            optVal.xs(compName, level=0)
-                            .T.mul(calcRevenueTD.T)
-                            .sum(axis=0)
-                        )
+                tac_commodCosts=tac_cCostTimeSeries+tac_cCost
                 optSummary.loc[
                     [
                         (ix, "commodCosts", "[" + esM.costUnit + "/a]")
-                        for ix in ox.index
+                        for ix in tac_commodCosts.index
                     ],
-                    ox.columns,
-                ] = (cCostTD.values + cCost.values) / esM.numberOfYears
-
+                    tac_commodCosts.columns,
+                ] = tac_commodCosts.values / esM.numberOfYears
+                
+                npv_commodCosts=npv_cCostTimeSeries+npv_cCost
+                optSummary.loc[
+                    [
+                        (ix, "NPV_commodCosts", "[" + esM.costUnit + "/a]")
+                        for ix in npv_commodCosts.index
+                    ],
+                    npv_commodCosts.columns,
+                ] = npv_commodCosts.values / esM.numberOfYears
+                
+                tac_commodRevenue=tac_cRevenueTimeSeries+tac_cRevenue
                 optSummary.loc[
                     [
                         (ix, "commodRevenues", "[" + esM.costUnit + "/a]")
-                        for ix in ox.index
+                        for ix in tac_commodRevenue.index
                     ],
-                    ox.columns,
-                ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
+                    tac_commodRevenue.columns,
+                ] = tac_commodRevenue.values / esM.numberOfYears
+                
+                npv_commodRevenue=npv_cRevenueTimeSeries+npv_cRevenue
+                optSummary.loc[
+                    [
+                        (ix, "NPV_commodRevenues", "[" + esM.costUnit + "/a]")
+                        for ix in npv_commodRevenue.index
+                    ],
+                    npv_commodRevenue.columns,
+                ] = npv_commodRevenue.values / esM.numberOfYears
 
             # get discounted investment cost as total annual cost (TAC)
-            optSummary = optSummary.append(optSummaryBasic[ip]).sort_index()
+            optSummary = optSummary.append(optSummaryBasic[esM.investmentPeriodList[ip]]).sort_index()
 
             # add operation specific contributions to the total annual cost (TAC) and substract revenues
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
@@ -651,8 +670,27 @@ class DSMModel(SourceSinkModel):
                 .sum()
                 .values
             )
-
-            # Quick fix if several runs with one investment period
-            if type(self._optSummary) is not dict:
-                self._optSummary = {}
+            # add operation specific contributions to the net present value 
+            # and substract revenues
+            optSummary.loc[optSummary.index.get_level_values(1) == "NPVcontribution"] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "NPVcontribution")
+                    | (optSummary.index.get_level_values(1) == "NPV_opexOp")
+                    | (optSummary.index.get_level_values(1) == "NPV_commodCosts")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+                - optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "NPV_commodRevenues")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+            )
+            # TODO Decision if NPV contribution shall be given in more detail
+            optSummary=optSummary.drop("NPV_opexOp",level=1)
+            optSummary=optSummary.drop("NPV_commodCosts",level=1)
+            optSummary=optSummary.drop("NPV_commodRevenues",level=1)
+            
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary

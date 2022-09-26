@@ -1724,17 +1724,12 @@ class StorageModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        if esM.mode == "perfectForesight":
-            _varName = "commis"
-        else:
-            _varName = "cap"
-
         capexCap = self.getEconomicsTI(
             pyM,
             esM,
             ["processedInvestPerCapacity"],
             lifetimeAttr="ipEconomicLifetime",
-            varName=_varName,
+            varName="commis",
             divisorName="CCF",
         )
         capexDec = self.getEconomicsTI(
@@ -1750,7 +1745,7 @@ class StorageModel(ComponentModel):
             esM,
             ["processedOpexPerCapacity"],
             lifetimeAttr="ipTechnicalLifetime",
-            varName=_varName,
+            varName="commis",
         )
         opexDec = self.getEconomicsTI(
             pyM,
@@ -1823,6 +1818,48 @@ class StorageModel(ComponentModel):
         optSummaryBasic= super().setOptimalValues(
             esM, pyM, esM.locations, "commodityUnit", "*h")
         
+        # Get class related results
+        resultsTAC_opexOpCharge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerChargeOperation"],
+            "chargeOp",
+            "operationVarDict",
+            getOptValue=True, 
+            getOptValueCostType="TAC"
+        )
+        resultsNPV_opexOpCharge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerChargeOperation"],
+            "chargeOp",
+            "operationVarDict",
+            getOptValue=True, 
+            getOptValueCostType="NPV"
+        )
+        resultsTAC_opexOpDischarge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerDischargeOperation"],
+            "dischargeOp",
+            "operationVarDict",
+            getOptValue=True, 
+            getOptValueCostType="TAC"
+        )
+        resultsNPV_opexOpDischarge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerDischargeOperation"],
+            "dischargeOp",
+            "operationVarDict",
+            getOptValue=True, 
+            getOptValueCostType="NPV"
+        )
+        
         for ip in esM.investmentPeriods:
             # Set optimal operation variables and append optimization summary
             props = [
@@ -1830,6 +1867,8 @@ class StorageModel(ComponentModel):
                 "operationDischarge",
                 "opexCharge",
                 "opexDischarge",
+                "NPV_opexCharge",
+                "NPV_opexDischarge",
             ]
             # Unit dict: Specify units for props
             units = {
@@ -1837,6 +1876,8 @@ class StorageModel(ComponentModel):
                 props[1]: ["[-*h]", "[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
                 props[3]: ["[" + esM.costUnit + "/a]"],
+                props[4]: ["[" + esM.costUnit + "/a]"],
+                props[5]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1853,7 +1894,7 @@ class StorageModel(ComponentModel):
                         x[1],
                         x[2].replace("-", compDict[x[0]].commodityUnit),
                     )
-                    if x[1] == "operationCharge"
+                    if x[1] in ["operationCharge","NPV_operationCharge"]
                     else x,
                     tuples,
                 )
@@ -1865,7 +1906,7 @@ class StorageModel(ComponentModel):
                         x[1],
                         x[2].replace("-", compDict[x[0]].commodityUnit),
                     )
-                    if x[1] == "operationDischarge"
+                    if x[1] in ["operationDischarge","NPV_operationDischarge"]
                     else x,
                     tuples,
                 )
@@ -1878,7 +1919,7 @@ class StorageModel(ComponentModel):
             ).sort_index()
 
             # * charge variables and contributions
-            optVal = utils.formatOptimizationOutput(
+            optVal_charge = utils.formatOptimizationOutput(
                 chargeOp.get_values(),
                 "operationVariables",
                 "1dim",
@@ -1886,21 +1927,17 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
-
-            if optVal is not None:
+            self._chargeOperationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_charge
+    
+            if optVal_charge is not None:
                 idx = pd.IndexSlice
-                optVal = optVal.loc[
+                optVal_charge = optVal_charge.loc[
                     idx[:, :], :
                 ]  # perfect foresight: added ip and deleted again
-                # optVal = optVal.droplevel([1])
-                opSum = optVal.sum(axis=1).unstack(-1)
+                # optVal_charge = optVal_charge.droplevel([1])
+                opSum = optVal_charge.sum(axis=1).unstack(-1)
 
-                ox = opSum.apply(
-                    lambda op: op
-                    * compDict[op.name].processedOpexPerChargeOperation[ip][op.index],
-                    axis=1,
-                )
+                # operation
                 optSummary.loc[
                     [
                         (
@@ -1925,15 +1962,25 @@ class StorageModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = opSum.values
+                
+                # cost
+                tac_oxCharge=resultsTAC_opexOpCharge[ip]
                 optSummary.loc[
-                    [(ix, "opexCharge", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                    ox.columns,
+                    [(ix, "opexCharge", "[" + esM.costUnit + "/a]") for ix in tac_oxCharge.index],
+                    tac_oxCharge.columns,
                 ] = (
-                    ox.values / esM.numberOfYears
+                    tac_oxCharge.values / esM.numberOfYears
+                )
+                npv_oxCharge=resultsNPV_opexOpCharge[ip]
+                optSummary.loc[
+                    [(ix, "NPV_opexCharge", "[" + esM.costUnit + "/a]") for ix in npv_oxCharge.index],
+                    npv_oxCharge.columns,
+                ] = (
+                    npv_oxCharge.values / esM.numberOfYears
                 )
 
             # * discharge variables and contributions
-            optVal = utils.formatOptimizationOutput(
+            optVal_discharge = utils.formatOptimizationOutput(
                 dischargeOp.get_values(),
                 "operationVariables",
                 "1dim",
@@ -1943,7 +1990,7 @@ class StorageModel(ComponentModel):
             )
             self._dischargeOperationVariablesOptimum[
                 esM.investmentPeriodList[ip]
-            ] = optVal
+            ] = optVal_discharge
             # Check if there are time steps, at which a storage component is both charging and discharging
             for compName in opSum.index:
                 simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
@@ -1963,16 +2010,9 @@ class StorageModel(ComponentModel):
                             UserWarning,
                         )
 
-            if optVal is not None:
-                opSum = optVal.sum(axis=1).unstack(-1)
-
-                ox = opSum.apply(
-                    lambda op: op
-                    * compDict[op.name].processedOpexPerDischargeOperation[ip][
-                        op.index
-                    ],
-                    axis=1,
-                )
+            if optVal_discharge is not None:
+                # operation
+                opSum = optVal_discharge.sum(axis=1).unstack(-1)
                 optSummary.loc[
                     [
                         (
@@ -1997,16 +2037,29 @@ class StorageModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = opSum.values
+                
+                # costs
+                tac_oxDischarge=resultsTAC_opexOpDischarge[ip]
                 optSummary.loc[
                     [
                         (ix, "opexDischarge", "[" + esM.costUnit + "/a]")
-                        for ix in ox.index
+                        for ix in tac_oxDischarge.index
                     ],
-                    ox.columns,
+                    tac_oxDischarge.columns,
                 ] = (
-                    ox.values / esM.numberOfYears
+                    tac_oxDischarge.values / esM.numberOfYears
                 )
-
+                npv_oxDischarge=resultsNPV_opexOpDischarge[ip]
+                optSummary.loc[
+                    [
+                        (ix, "NPV_opexDischarge", "[" + esM.costUnit + "/a]")
+                        for ix in npv_oxDischarge.index
+                    ],
+                    npv_oxDischarge.columns,
+                ] = (
+                    npv_oxDischarge.values / esM.numberOfYears
+                )
+        
 
             # * set state of charge variables
             if not pyM.hasTSA:
@@ -2097,7 +2150,7 @@ class StorageModel(ComponentModel):
                 )
 
             # Append optimization summaries
-            optSummary = optSummary.append(optSummaryBasic[ip]).sort_index()
+            optSummary = optSummary.append(optSummaryBasic[esM.investmentPeriodList[ip]]).sort_index()
 
             # Summarize all contributions to the total annual cost
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
@@ -2110,7 +2163,21 @@ class StorageModel(ComponentModel):
                 .sum()
                 .values
             )
-
+            optSummary.loc[optSummary.index.get_level_values(1) == "NPVcontribution"] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "NPVcontribution")
+                    | (optSummary.index.get_level_values(1) == "NPV_opexCharge")
+                    | (optSummary.index.get_level_values(1) == "NPV_opexDischarge")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+            )
+            
+            # TODO Decision if NPV contribution shall be given in more detail
+            optSummary=optSummary.drop("NPV_opexCharge",level=1)
+            optSummary=optSummary.drop("NPV_opexDischarge",level=1)
+            
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):

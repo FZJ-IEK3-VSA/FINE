@@ -729,6 +729,16 @@ class ConversionModel(ComponentModel):
                 esM, pyM,  esM.locations, "physicalUnit"
             )
         
+        # Get class related results
+        resultsTAC_opexOp = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict", 
+            getOptValue=True, getOptValueCostType="TAC"
+        )
+        resultsNPV_opexOp = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict", 
+            getOptValue=True, getOptValueCostType="NPV"
+        )
+        
         for ip in esM.investmentPeriods:
             # Set optimal operation variables and append optimization summary
             optVal = utils.formatOptimizationOutput(
@@ -741,11 +751,12 @@ class ConversionModel(ComponentModel):
             )
             self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
-            props = ["operation", "opexOp"]
+            props = ["operation", "opexOp","NPV_opexOp"]
             # Unit dict: Specify units for props
             units = {
                 props[0]: ["[-*h]", "[-*h/a]"],
                 props[1]: ["[" + esM.costUnit + "/a]"],
+                props[2]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -773,18 +784,15 @@ class ConversionModel(ComponentModel):
             optSummary = pd.DataFrame(
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
-
+            
             if optVal is not None:
                 idx = pd.IndexSlice
                 optVal = optVal.loc[
                     idx[:, :], :
                 ]  # perfect foresight: added ip and deleted again
                 opSum = optVal.sum(axis=1).unstack(-1)
-                ox = opSum.apply(
-                    lambda op: op
-                    * compDict[op.name].processedOpexPerOperation[ip][op.index],
-                    axis=1,
-                )
+                
+                # operation
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].physicalUnit + "*h/a]")
@@ -794,8 +802,6 @@ class ConversionModel(ComponentModel):
                 ] = (
                     opSum.values / esM.numberOfYears
                 )
-                
-                # TODO KANN DAS GELÖSCHT WERDEN?
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")
@@ -803,14 +809,26 @@ class ConversionModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = opSum.values
+                
+
+                # operation cost - TAC
+                tac_ox=resultsTAC_opexOp[ip]
                 optSummary.loc[
-                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                    ox.columns,
+                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
+                    tac_ox.columns,
                 ] = (
-                    ox.values / esM.numberOfYears
+                    tac_ox.values / esM.numberOfYears
+                )
+                # operation cost - NPV contribution
+                npv_ox  = resultsNPV_opexOp[ip]
+                optSummary.loc[
+                    [(ix, "NPV_opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
+                    npv_ox.columns,
+                ] = (
+                    npv_ox.values / esM.numberOfYears
                 )
 
-            optSummary = optSummary.append(optSummaryBasic[ip]).sort_index()
+            optSummary = optSummary.append(optSummaryBasic[esM.investmentPeriodList[ip]]).sort_index()
 
             # Summarize all contributions to the total annual cost
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
@@ -822,6 +840,20 @@ class ConversionModel(ComponentModel):
                 .sum()
                 .values
             )
+            # Update the NPV contribution
+            optSummary.loc[optSummary.index.get_level_values(1) == "NPVcontribution"] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "NPVcontribution")
+                    | (optSummary.index.get_level_values(1) == "NPV_opexOp")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+            )
+            # TODO Decision if NPV contribution shall be given in more detail
+            optSummary=optSummary.drop("NPV_opexOp",level=1)
+            
+            # save the optimization summary
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):

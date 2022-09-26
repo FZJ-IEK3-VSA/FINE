@@ -368,9 +368,6 @@ def esM_init():
     return esM
 
 
-
-
-
 @pytest.fixture(scope="session")
 def test_esM_for_spagat(esM_init):
     """
