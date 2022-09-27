@@ -1244,12 +1244,6 @@ def checkAndSetPartLoadMin(esM, name, partLoadMin, fullOperationMax, fullOperati
 def checkAndSetInvestmentPeriodCostParameter(
     esM, name, data, dimension, locationalEligibility, years
 ):
-    # currenty no variation in cost parameters allowed for stochastical opt
-    if esM.mode == "stochastic" and isinstance(data, dict):
-        raise ValueError(
-            f"A variation of cost parameters '{data}' is currently not supported for "+
-            "stochastic optimization.")
-    
     # stock years are only considered for parameter for which the
     # first check
     checkInvestmentPeriodParameters(name, data, years)
@@ -2297,14 +2291,13 @@ def addEmptyRegions(esM, data):
 def annuityPresentValueFactor(esM, compName, loc):
     # DE:Rentenbarwertfaktor
     intrestRate = esM.getComponent(compName).interestRate[loc]
-    return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
-        intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
-    ) 
-    # TODO oder ** (esM.numberOfInvestmentPeriods * esM.yearsPerInvestmentPeriod)  ????
+    if intrestRate==0:
+        return 1
+    else:
+        return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
+            intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
+        ) 
 
 def netPresentValueFactor(esM, ip, compName, loc):
-    return annuityPresentValueFactor(
-        esM, compName, loc)* 1/ (1 + esM.getComponent(compName).interestRate[loc])** (
-            ip * esM.yearsPerInvestmentPeriod)* (
-                1 + esM.getComponent(compName).interestRate[loc]
+    return annuityPresentValueFactor(esM, compName, loc)* 1/ (1 + esM.getComponent(compName).interestRate[loc])** (ip * esM.yearsPerInvestmentPeriod)* (1 + esM.getComponent(compName).interestRate[loc]
     )
