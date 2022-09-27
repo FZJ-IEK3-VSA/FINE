@@ -692,7 +692,6 @@ class SourceSinkModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(esM, pyM)
 
         # Declare sets for case differentiation of operating modes
         self.declareOperationModeSets(

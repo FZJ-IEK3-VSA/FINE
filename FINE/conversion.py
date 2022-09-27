@@ -486,7 +486,6 @@ class ConversionModel(ComponentModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(esM, pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(

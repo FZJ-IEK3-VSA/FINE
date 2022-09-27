@@ -447,27 +447,6 @@ class ConversionPartLoadModel(ConversionModel):
                 pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint),
             )
 
-    def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
-        """
-        Declare set of locations and components for which partLoadMin is not None.
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSetBin_" + abbrvName)
-
-        def declareOpConstrSetMinPartLoad(pyM):
-            return (
-                (loc, compName, ip)
-                for loc, compName, ip in varSet
-                if getattr(compDict[compName], "partLoadMin") is not None
-            )
-            # TODO MAKE IP DEPENDING!!!
-
-        setattr(
-            pyM,
-            constrSetName + "partLoadMin_" + abbrvName,
-            pyomo.Set(dimen=3, initialize=declareOpConstrSetMinPartLoad),
-        )
-
     def pointSOS2(self, pyM):
         """
         Ensure that only two consecutive point variables are non-zero while all other point variables are fixed to zero.

@@ -598,7 +598,6 @@ class StorageModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(esM, pyM)
 
         if pyM.hasTSA:
             varSet = getattr(pyM, "operationVarSet_" + self.abbrvName)

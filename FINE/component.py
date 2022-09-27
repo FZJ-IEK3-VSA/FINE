@@ -1015,31 +1015,6 @@ class ComponentModel(metaclass=ABCMeta):
                 },
             )
 
-    def declareOperationBinarySet(self, esM, pyM):
-        """
-        Declare operation related sets for binary decicion variables (operation variables) in the pyomo object for a
-        modeling class. This reflects an on/off decision for the regarding component.
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-
-        def declareOperationBinarySet(pyM):
-            return (
-                (loc, compName, ip)
-                for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
-                for ip in esM.investmentPeriods
-                if comp.locationalEligibility[loc] == 1
-            )
-
-        setattr(
-            pyM,
-            "operationVarSetBin_" + abbrvName,
-            pyomo.Set(dimen=3, initialize=declareOperationBinarySet),
-        )
-
     ####################################################################################################################
     #                                   Functions for declaring operation mode sets                                    #
     ####################################################################################################################
@@ -1160,7 +1135,7 @@ class ComponentModel(metaclass=ABCMeta):
         Declare set of locations and components for which partLoadMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSetBin_" + abbrvName)
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         def declareOpConstrSetMinPartLoad(pyM):
             return (
@@ -1168,6 +1143,8 @@ class ComponentModel(metaclass=ABCMeta):
                 for loc, compName, ip in varSet
                 if getattr(compDict[compName], "partLoadMin") is not None
             )
+        # TODO MAKE PARTLOADMIN IP DEPENDING!!!
+        # make constraint possible per ip, weiter unten
 
         setattr(
             pyM,
@@ -1329,24 +1306,6 @@ class ComponentModel(metaclass=ABCMeta):
             ),
         )
 
-    def declareOperationBinary(self, pyM):
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-
-        def declareOperationBinary(pyM):
-            return (
-                (loc, compName, t)
-                for compName, comp in compDict.items()
-                for t in range(pyM.numberOfTimeSteps)
-                for loc in comp.locationalEligibility.index
-                if comp.locationalEligibility[loc] == 1
-            )
-
-        setattr(
-            pyM,
-            "operationBinary" + abbrvName,
-            pyomo.Set(dimen=3, initialize=declareOperationBinary, domain=pyomo.Binary),
-        )
-
     def declareRealNumbersVars(self, pyM):
         """
         Declare variables representing the (continuous) number of installed components [-].
@@ -1439,7 +1398,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyM,
             opVarBinName + "_" + abbrvName,
             pyomo.Var(
-                getattr(pyM, "operationVarSetBin_" + abbrvName),
+                getattr(pyM, "operationVarSet_" + abbrvName),
                 pyM.intraYearTimeSet,
                 domain=pyomo.Binary,
             ),
@@ -2130,9 +2089,6 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetMinPartLoad = getattr(pyM, constrSetName + "partLoadMin_" + abbrvName)
 
         def opMinPartLoad1(pyM, loc, compName, ip, p, t):
-            # To-DO: look into the usage of opVarBin in the testcases
-            # old code:
-            # opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
             bigM = getattr(compDict[compName], "bigM")
             return (
                 opVar[loc, compName, ip, p, t]
@@ -2150,6 +2106,8 @@ class ComponentModel(metaclass=ABCMeta):
         def opMinPartLoad2(pyM, loc, compName, ip, p, t):
             # old code:
             # opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
+            
+            # TODO müsste partLoadMin nicht loc abhängig sein?!
             processedPartLoadMin = getattr(compDict[compName], "processedPartLoadMin")[
                 ip
             ]
@@ -2380,7 +2338,6 @@ class ComponentModel(metaclass=ABCMeta):
             if compDict[compName].sharedPotentialID == key
             and (loc, compName, ip) in capVarSet
         )
-
 
     def getLocEconomicsTI(
         self,
@@ -2935,7 +2892,6 @@ class ComponentModel(metaclass=ABCMeta):
                 )
         else:
             raise NotImplementedError()
-
   
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
         """
@@ -3268,29 +3224,16 @@ class ComponentModel(metaclass=ABCMeta):
                 )
 
                 # Get NPV contribution for investmentIfBuilt
-                npv_cx_bin = commisOptVal.apply(
-                    lambda commis: resultsNPV_cx_bin[ip].loc[commis.name],
-                    axis=1,
-                )
+                npv_cx_bin = resultsNPV_cx_bin[ip]
 
                 # Calculate the annualized investment costs cx (CAPEX)
                 # Get TAC for investmentIfBuilt
-                tac_cx_bin = commisOptVal.apply(
-                    lambda cap: resultsTAC_cx_bin[ip].loc[cap.name],
-                    axis=1,
-                )
+                tac_cx_bin = resultsTAC_cx_bin[ip]
 
-
-                npv_ox_bin = commisOptVal.apply(
-                    lambda commis: resultsNPV_ox_bin[ip].loc[commis.name],
-                    axis=1,
-                )
+                npv_ox_bin = resultsNPV_ox_bin[ip]
                 
                 # Calculate the annualized operational costs if built ox (OPEX)               
-                tac_ox_bin = commisOptVal.apply(
-                    lambda commis: resultTAC_ox_bin[ip].loc[commis.name],
-                    axis=1,
-                )
+                tac_ox_bin = resultTAC_ox_bin[ip]
 
                 # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
                 # (due to isBuilt decisions).

@@ -100,37 +100,12 @@ class ConversionDynamicModel(ConversionModel):
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
 
-    def declareOperationStartStopBinarySet(self, esM, pyM):
-        """
-        Declare operation related sets for binary decicion variables (operation variables) in the pyomo object for a
-        modeling class. This reflects the starting or stopping state of the conversion component.
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-
-        def declareOperationBinarySet(pyM):
-            return (
-                (loc, compName, ip)
-                for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
-                for ip in esM.investmentPeriods
-                if comp.locationalEligibility[loc] == 1
-            )
-
-        setattr(
-            pyM,
-            "operationVarStartStopSetBin_" + abbrvName,
-            pyomo.Set(dimen=3, initialize=declareOperationBinarySet),
-        )
-
     def declareOpConstrSetMinDownTime(self, pyM, constrSetName):
         """
         Declare set of locations and components for which downTimeMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarStartStopSetBin_" + abbrvName)
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         def declareOpConstrSetMinDownTime(pyM):
             return (
@@ -150,7 +125,7 @@ class ConversionDynamicModel(ConversionModel):
         Declare set of locations and components for which upTimeMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarStartStopSetBin_" + abbrvName)
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         def declareOpConstrSetMinUpTime(pyM):
             return (
@@ -218,8 +193,6 @@ class ConversionDynamicModel(ConversionModel):
         """
         super().declareSets(esM, pyM)
 
-        # Declare operation variable sets
-        self.declareOperationStartStopBinarySet(esM, pyM)
 
         # Declare Min down time constraint
         self.declareOpConstrSetMinDownTime(pyM, "opConstrSet")
@@ -242,7 +215,7 @@ class ConversionDynamicModel(ConversionModel):
             pyM,
             "startVariable_" + self.abbrvName,
             pyomo.Var(
-                getattr(pyM, "operationVarStartStopSetBin_" + self.abbrvName),
+                getattr(pyM, "operationVarSet_" + self.abbrvName),
                 pyM.intraYearTimeSet,
                 domain=pyomo.Binary,
             ),
@@ -252,7 +225,7 @@ class ConversionDynamicModel(ConversionModel):
             pyM,
             "stopVariable_" + self.abbrvName,
             pyomo.Var(
-                getattr(pyM, "operationVarStartStopSetBin_" + self.abbrvName),
+                getattr(pyM, "operationVarSet_" + self.abbrvName),
                 pyM.intraYearTimeSet,
                 domain=pyomo.Binary,
             ),

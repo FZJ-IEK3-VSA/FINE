@@ -488,7 +488,7 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(esM, pyM)
+        # self.declareOperationBinarySet(esM, pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
