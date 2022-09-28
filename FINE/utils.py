@@ -1246,7 +1246,10 @@ def checkAndSetInvestmentPeriodCostParameter(
 ):
     # stock years are only considered for parameter for which the
     # first check
-    checkInvestmentPeriodParameters(name, data, years)
+    _years=[int(esM.startYear + ip * esM.yearsPerInvestmentPeriod)  for ip in years]
+    checkInvestmentPeriodParameters(name, data, _years)
+    
+    # set the costs
     parameter = {}
     for ip in years:
         # map of year name (e.g. 2020) to intenral name (e.g. 0)

@@ -12,7 +12,9 @@ import FINE as fn
 import numpy as np
 import pandas as pd
 
+
 def stochasticESM(singleYear=False, sameParameters=False,transmissionCase=False):
+    
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
     
@@ -203,7 +205,7 @@ def stochasticESM(singleYear=False, sameParameters=False,transmissionCase=False)
                 bigM=100,
                 capacityFix=1,
             )
-        )    
+        )
     return esM
 
 

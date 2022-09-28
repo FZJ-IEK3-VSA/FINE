@@ -849,7 +849,7 @@ class TransmissionModel(ComponentModel):
             esM,
             factorNames=["processedInvestIfBuilt"],
             lifetimeAttr="ipEconomicLifetime",
-            varName="designBin",
+            varName="commisBin",
             divisorName="CCF",
         )
         opexCap = self.getEconomicsTI(
@@ -866,7 +866,7 @@ class TransmissionModel(ComponentModel):
             esM,
             factorNames=["processedOpexIfBuilt"],
             lifetimeAttr="ipTechnicalLifetime",
-            varName="designBin",
+            varName="commisBin",
         )
 
         return opexOp + capexCap + capexDec + opexCap + opexDec

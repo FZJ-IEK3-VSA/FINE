@@ -11,7 +11,6 @@ def test_perfectForesight_mini(perfectForesight_test_esM):
         perfectForesight_test_esM.pyM.Obj(), 11861.771783274202
     )
 
-
 def test_perfectForesight_stock(perfectForesight_test_esM):
     esM = perfectForesight_test_esM
     PVoperationRateMax = esM.getComponent("PV").operationRateMax
@@ -228,5 +227,84 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
     print(esM)
 
 
-if __name__ == "__main__":
-    test_perfectForesight_stock(perfectForesight_test_esM())
+def test_perfectForesight_binary():
+  # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=4380,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=3,
+        yearsPerInvestmentPeriod=5,
+        startYear=2020,
+        mode="perfectForesight",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    ) 
+
+    # add a sink
+    demand = {}
+    demand[2020] = pd.DataFrame(columns=["PerfectLand"],data=[4380*1.1,1e3,])
+    demand[2025] = pd.DataFrame(columns=["PerfectLand"],data=[4380*1.9,1e3,])    
+    demand[2030] = demand[2025]
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="EDemand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )   
+    
+    # add PV
+    PVoperationRateMax = pd.DataFrame(columns=["PerfectLand"],data=[1,1])
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=PVoperationRateMax,
+            investPerCapacity=1e3,
+            investIfBuilt=1e3,
+            opexPerCapacity=1,
+            interestRate=0.02,
+            opexPerOperation=0.01,
+            economicLifetime=10,
+            hasIsBuiltBinaryVariable=True,
+            bigM=10,
+            capacityMin=2,
+            stockCommissioning={
+                2015: pd.Series([1], index=["PerfectLand"]),
+            },
+        )
+    )
+    
+    # cheap electricity purchase -> no new PV required
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Electricity purchase",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            commodityCost=0.2,
+        )
+    )
+    
+    esM.optimize(solver="glpk")
+
+    # test commissioning variables
+    assert esM.pyM.commis_srcSnk.get_values()[("PerfectLand","PV",-1)] ==1
+    assert esM.pyM.commis_srcSnk.get_values()[("PerfectLand","PV",0)] ==0
+    assert esM.pyM.commis_srcSnk.get_values()[("PerfectLand","PV",1)] ==2
+    # test binary commissioning variables
+    assert esM.pyM.commisBin_srcSnk.get_values()[("PerfectLand","PV",0)] ==0
+    assert esM.pyM.commisBin_srcSnk.get_values()[("PerfectLand","PV",1)] ==1
+    
+    # check binary costs of stock capacity of component
+    np.testing.assert_almost_equal(esM.getOptimizationSummary("SourceSinkModel",ip=2020).loc["PV","capexIfBuilt","[1 Euro/a]"]["PerfectLand"] , 535.2277429418442)
+    np.testing.assert_almost_equal(esM.getOptimizationSummary("SourceSinkModel",ip=2030).loc["PV","capexIfBuilt","[1 Euro/a]"]["PerfectLand"] , 439.0731689683585)
+    np.testing.assert_almost_equal(esM.getOptimizationSummary("SourceSinkModel",ip=2025).loc["PV","commissioning","[kW$_{el}$]"]["PerfectLand"] , 2)

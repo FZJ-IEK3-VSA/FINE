@@ -1736,7 +1736,7 @@ class StorageModel(ComponentModel):
             esM,
             ["processedInvestIfBuilt"],
             lifetimeAttr="ipEconomicLifetime",
-            varName="designBin",
+            varName="commisBin",
             divisorName="CCF",
         )
         opexCap = self.getEconomicsTI(
@@ -1751,7 +1751,7 @@ class StorageModel(ComponentModel):
             esM,
             ["processedOpexIfBuilt"],
             lifetimeAttr="ipTechnicalLifetime",
-            varName="designBin",
+            varName="commisBin",
         )
         opexOp1 = self.getEconomicsOperation(
             pyM,

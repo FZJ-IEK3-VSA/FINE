@@ -916,7 +916,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for loc, compName, ip in getattr(
-                    pyM, "designDimensionVarSet_" + abbrvName
+                    pyM, "designCommisVarSet_" + abbrvName
                 )
                 if compDict[compName].hasIsBuiltBinaryVariable
             )
@@ -1351,7 +1351,7 @@ class ComponentModel(metaclass=ABCMeta):
         if relaxIsBuiltBinary:
             setattr(
                 pyM,
-                "designBin_" + abbrvName,
+                "commisBin_" + abbrvName,
                 pyomo.Var(
                     getattr(pyM, "designDecisionVarSet_" + abbrvName),
                     domain=pyomo.NonNegativeReals,
@@ -1361,7 +1361,7 @@ class ComponentModel(metaclass=ABCMeta):
         else:
             setattr(
                 pyM,
-                "designBin_" + abbrvName,
+                "commisBin_" + abbrvName,
                 pyomo.Var(
                     getattr(pyM, "designDecisionVarSet_" + abbrvName),
                     domain=pyomo.Binary,
@@ -1484,51 +1484,64 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        capVar, designBinVar = (
-            getattr(pyM, "cap_" + abbrvName),
-            getattr(pyM, "designBin_" + abbrvName),
-        )
-        designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+        commisBinVar = getattr(pyM, "commisBin_" + abbrvName)
+        commisBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
+        
 
         def bigM(pyM, loc, compName, ip):
             comp = compDict[compName]
-            M = comp.capacityMax[loc] if comp.capacityMax is not None else comp.bigM
-            return capVar[loc, compName, ip] <= designBinVar[loc, compName, ip] * M
-
+            if ip not in comp.processedStockYears:
+                # set bigM for investment periods
+                M = comp.capacityMax[loc] if comp.capacityMax is not None else comp.bigM
+                return commisVar[loc, compName, ip] <= commisBinVar[loc, compName, ip] * M
+            else:
+                # set binary variables fix for stock years
+                hasStockCommissioning=self.componentsDict[compName].processedStockCommissioning[ip].loc[loc]>0
+                if hasStockCommissioning:
+                    return commisBinVar[loc, compName, ip] == 1
+                else:
+                    return commisBinVar[loc, compName, ip] == 0
         setattr(
-            pyM, "ConstrBigM_" + abbrvName, pyomo.Constraint(designBinVarSet, rule=bigM)
+            pyM, "ConstrBigM_" + abbrvName, pyomo.Constraint(commisBinVarSet, rule=bigM)
         )
 
     def capacityMinDec(self, pyM):
         """
         Enforce the consideration of minimum capacities for components with design decision variables.
-
+        
+        TODO BESCHREIBEN
+        Minimal capacity which needs to be reached for every investment period with commissioning.
+        As the commisBinVar is coupled with commissioning var, constraint only sets minimal Capacity if component is commissioned.
+        Therefore decommissioning of the component is possible without any constraints.
+        
         .. math::
 
-            \\text{capMin}^{comp}_{loc} \cdot bin^{comp}_{loc} \leq  cap^{comp}_{loc}
+            \\text{capMin}^{comp}_{loc} \cdot bin^{comp}_{loc,ip} \leq  cap^{comp}_{loc,ip}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
-        capVar, designBinVar = (
-            getattr(pyM, "cap_" + abbrvName),
-            getattr(pyM, "designBin_" + abbrvName),
-        )
-        designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
+        capVar=getattr(pyM, "cap_" + abbrvName)
+        commisBinVar = getattr(pyM, "commisBin_" + abbrvName)
+        commisBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
 
         def capacityMinDec(pyM, loc, compName, ip):
-            return (
-                capVar[loc, compName, ip]
-                >= compDict[compName].capacityMin[loc] * designBinVar[loc, compName, ip]
-                if compDict[compName].capacityMin is not None
-                else pyomo.Constraint.Skip
-            )
+            if ip not in compDict[compName].processedStockYears:
+                return (
+                    capVar[loc, compName, ip]
+                    >= compDict[compName].capacityMin[loc] * commisBinVar[loc, compName, ip]
+                    if compDict[compName].capacityMin is not None
+                    else pyomo.Constraint.Skip
+                )
+            else: # constraint not required for stock years
+                return pyomo.Constraint.Skip
 
         setattr(
             pyM,
             "ConstrCapacityMinDec_" + abbrvName,
-            pyomo.Constraint(designBinVarSet, rule=capacityMinDec),
+            pyomo.Constraint(commisBinVarSet, rule=capacityMinDec),
         )
 
     def capacityFix(self, pyM, esM):
@@ -1574,12 +1587,12 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
-        designBinVar = getattr(pyM, "designBin_" + abbrvName)
-        designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
+        commisBinVar = getattr(pyM, "commisBin_" + abbrvName)
+        commisBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
 
         def designBinFix(pyM, loc, compName, ip):
             return (
-                designBinVar[loc, compName, ip] == compDict[compName].isBuiltFix[loc]
+                commisBinVar[loc, compName, ip] == compDict[compName].isBuiltFix[loc]
                 if compDict[compName].isBuiltFix is not None
                 else pyomo.Constraint.Skip
             )
@@ -1587,7 +1600,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             "ConstrDesignBinFix_" + abbrvName,
-            pyomo.Constraint(designBinVarSet, rule=designBinFix),
+            pyomo.Constraint(commisBinVarSet, rule=designBinFix),
         )
 
     ####################################################################################################################
@@ -2302,7 +2315,7 @@ class ComponentModel(metaclass=ABCMeta):
             esM,
             factorNames=["processedInvestIfBuilt"],
             lifetimeAttr="ipEconomicLifetime",
-            varName="designBin",
+            varName="commisBin",
             divisorName="CCF",
         )
         opexCap = self.getEconomicsTI(
@@ -2319,7 +2332,7 @@ class ComponentModel(metaclass=ABCMeta):
             esM,
             factorNames=["processedOpexIfBuilt"],
             lifetimeAttr="ipTechnicalLifetime",
-            varName="designBin",
+            varName="commisBin",
         )
 
         return capexCap + capexDec + opexCap + opexDec
@@ -2404,7 +2417,7 @@ class ComponentModel(metaclass=ABCMeta):
         # negative ip (historical data) older than technical lifetime
         if ip < -self.componentsDict[compName].ipTechnicalLifetime[loc]:
             return 0
-        # years where component could have commissioning as it is within the technicla lifetime, but does not have commissioning
+        # years where component could have commissioning as it is within the technichal lifetime, but does not have commissioning
         elif (
             ip < 0 and self.componentsDict[compName].processedStockCommissioning is None
         ):
@@ -2512,7 +2525,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type getOptValueCostType: string
         """
         if getOptValueCostType not in ["TAC", "NPV"]:
-            raise ValueError()
+            raise ValueError("The cost types must be 'TAC' or 'NPV'.")
 
         var = getattr(pyM, varName + "_" + self.abbrvName)
         if esM.mode == "stochastic":
@@ -2523,13 +2536,6 @@ class ComponentModel(metaclass=ABCMeta):
                 for loc, compName, ip in var:
                     if ip not in esM.investmentPeriods:
                         continue
-                    if varName in ["commis","decommis"]:
-                        # for simplification of the optimization, 
-                        # commissioning and decommissiong are only initizalized
-                        # for ip=0 for the esM.mode "stochastic"
-                        _ip = 0
-                    else:
-                        _ip = ip
                     cost_results[ip].loc[compName, loc]=\
                         self.getLocEconomicsTI(
                             pyM,
@@ -2587,7 +2593,7 @@ class ComponentModel(metaclass=ABCMeta):
                 costContribution[(loc, compName)] = pd.DataFrame(
                     0, index=years, columns=esM.investmentPeriods
                 )
-                
+
             # fill the dataframes (per location and compName) with the cost
             # contributions depending on the commissioning year (index) and the
             # investment period (columns)
@@ -2633,7 +2639,7 @@ class ComponentModel(metaclass=ABCMeta):
                     for loc, compName, ip in var
                     if ip in esM.investmentPeriods
                 )
-            
+
     def getEconomicsOperation(
         self, pyM, esM, fncType, factorNames, varName, dictName, getOptValue=False, getOptValueCostType="TAC",
     ):
@@ -2892,7 +2898,7 @@ class ComponentModel(metaclass=ABCMeta):
                 )
         else:
             raise NotImplementedError()
-  
+
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
         """
         Set the optimal values for the considered components and return a summary of them.
@@ -2934,7 +2940,7 @@ class ComponentModel(metaclass=ABCMeta):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(esM.pyM, "cap_" + abbrvName)
-        binVar = getattr(esM.pyM, "designBin_" + abbrvName)
+        binVar = getattr(esM.pyM, "commisBin_" + abbrvName)
         commisVar = getattr(esM.pyM, "commis_" + abbrvName)
         decommisVar = getattr(esM.pyM, "decommis_" + abbrvName)
 
@@ -3043,7 +3049,7 @@ class ComponentModel(metaclass=ABCMeta):
                 esM,
                 factorNames=["processedInvestIfBuilt"],
                 lifetimeAttr="ipEconomicLifetime",
-                varName="designBin",  # TODO exchange for bin commis var
+                varName="commisBin",  
                 divisorName="CCF",
                 getOptValue=True,
                 getOptValueCostType="NPV",
@@ -3056,7 +3062,7 @@ class ComponentModel(metaclass=ABCMeta):
                 esM,
                 factorNames=["processedInvestIfBuilt"],
                 lifetimeAttr="ipEconomicLifetime",
-                varName="designBin",  # TODO exchange for bin commis var
+                varName="commisBin",  
                 divisorName="CCF",
                 getOptValue=True,
                 getOptValueCostType="NPV",
@@ -3068,7 +3074,7 @@ class ComponentModel(metaclass=ABCMeta):
                 esM,
                 factorNames=["processedOpexIfBuilt"],
                 lifetimeAttr="ipTechnicalLifetime",
-                varName="designBin",  # TODO exchange for bin commis var
+                varName="commisBin",  
                 getOptValue=True,
                 getOptValueCostType="NPV",
             )
@@ -3079,7 +3085,7 @@ class ComponentModel(metaclass=ABCMeta):
             esM,
             factorNames=["processedOpexIfBuilt"],
             lifetimeAttr="ipTechnicalLifetime",
-            varName="designBin",  # TODO exchange for bin commis var
+            varName="commisBin", 
             getOptValue=True,
             getOptValueCostType="TAC",
         )
@@ -3156,29 +3162,17 @@ class ComponentModel(metaclass=ABCMeta):
                 )
 
                 # Get NPV contribution for investment
-                npv_cx = commisOptVal.apply(
-                    lambda commis: resultsNPV_cx[ip].loc[commis.name],
-                    axis=1,
-                )
+                npv_cx = resultsNPV_cx[ip]
 
                 # Calculate the annualized investment costs cx (CAPEX)
                 # Get TAC for investment
-                tac_cx = commisOptVal.apply(
-                    lambda cap: resultsTAC_cx[ip].loc[cap.name],
-                    axis=1,
-                )
+                tac_cx = resultsTAC_cx[ip]
 
                 # Get NPV cost contribution for the annualized operational costs ox (OPEX)
-                npv_ox = commisOptVal.apply(
-                    lambda commis: resultsNPV_ox[ip].loc[commis.name],
-                    axis=1,
-                )
+                npv_ox = resultsNPV_ox[ip]
 
                 # Calculate the annualized operational costs ox (OPEX)
-                tac_ox = commisOptVal.apply(
-                    lambda commis: resultsTAC_ox[ip].loc[commis.name],
-                    axis=1,
-                )
+                tac_ox = resultsTAC_ox[ip]
 
                 # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
                 # (due to capacity expansion).
@@ -3242,8 +3236,8 @@ class ComponentModel(metaclass=ABCMeta):
                     binCapOptVal.columns,
                 ] = binCapOptVal.values  # TODO exchange for bin commis var
                 optSummary_ip.loc[
-                    [(ix, "invest", "[" + esM.costUnit + "]") for ix in tac_cx_bin.index],
-                    tac_cx_bin.columns,
+                    [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index],
+                    i.columns,
                 ] += i_bin.values
                 optSummary_ip.loc[
                     [
@@ -3306,8 +3300,6 @@ class ComponentModel(metaclass=ABCMeta):
                 .values
             )
 
-            # TODO NPV contribution berechnen.
-            # opex per operation rein? @max fragen
             npv = pd.DataFrame()
             if capOptVal is not None:
                 npv = npv.add(npv_cx, fill_value=0)
