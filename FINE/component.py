@@ -160,7 +160,7 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
-        :param partLoadMin: if specified, indicates minimal part load of component.
+        :param partLoadMin: if specified, indicates minimal part load of component. # TODO PRO INVESTMENT PERIOD UND NICHT PRO COMMISSIONING YEAR
         :type partLoadMin:
             * None or
             * Float value in range ]0;1]
@@ -407,9 +407,6 @@ class Component(metaclass=ABCMeta):
         self.bigM = bigM
 
         self.partLoadMin = partLoadMin
-        self.partLoadMin = utils.setPartLoadMin(
-            esM, partLoadMin
-        )  # TODO make processedPartLoadMin
 
         # Set economic data
         elig = locationalEligibility
@@ -1141,10 +1138,11 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
-                if getattr(compDict[compName], "partLoadMin") is not None
+                if getattr(compDict[compName], "processedPartLoadMin") is not None
             )
         # TODO MAKE PARTLOADMIN IP DEPENDING!!!
         # make constraint possible per ip, weiter unten
+        # TODO what if only one year is None?
 
         setattr(
             pyM,
@@ -2544,7 +2542,7 @@ class ComponentModel(metaclass=ABCMeta):
                             varName,
                             loc,
                             compName,
-                            _ip,
+                            ip,
                             divisorName,
                             QPfactorNames,
                             QPdivisorNames,
@@ -2888,14 +2886,14 @@ class ComponentModel(metaclass=ABCMeta):
                     * var[loc, compName, ip, p, t]
                     * esM.periodOccurrences[ip][p]
                     for p, t in timeSet_pt
-                )
+                ) / esM.numberOfYears 
             else:
                 return sum(
                     factor[p, t]
                     * var[loc, compName, ip, p, t].value
                     * esM.periodOccurrences[ip][p]
                     for p, t in timeSet_pt
-                )
+                ) / esM.numberOfYears 
         else:
             raise NotImplementedError()
 

@@ -199,9 +199,8 @@ class Conversion(Component):
         self.processedCommodityConversionFactors = {}
 
         # partLoadMin
-        self.partLoadMin = partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
-            esM, name, partLoadMin, self.fullOperationRateMax, self.fullOperationRateFix
+            esM, name, self.partLoadMin, self.fullOperationRateMax, self.fullOperationRateFix, self.bigM, self.hasCapacityVariable
         )
 
         ########################
@@ -816,7 +815,7 @@ class ConversionModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
                     tac_ox.columns,
                 ] = (
-                    tac_ox.values / esM.numberOfYears
+                    tac_ox.values 
                 )
                 # operation cost - NPV contribution
                 npv_ox  = resultsNPV_opexOp[ip]
@@ -824,7 +823,7 @@ class ConversionModel(ComponentModel):
                     [(ix, "NPV_opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
                     npv_ox.columns,
                 ] = (
-                    npv_ox.values / esM.numberOfYears
+                    npv_ox.values 
                 )
 
             optSummary = optSummary.append(optSummaryBasic[esM.investmentPeriodList[ip]]).sort_index()

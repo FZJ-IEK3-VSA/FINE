@@ -606,13 +606,13 @@ class DSMModel(SourceSinkModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
                     tac_ox.columns,
                 ] = (
-                    tac_ox.values / esM.numberOfYears
+                    tac_ox.values
                 )
                 optSummary.loc[
                     [(ix, "NPV_opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
                     npv_ox.columns,
                 ] = (
-                    npv_ox.values / esM.numberOfYears
+                    npv_ox.values
                 )
                 tac_commodCosts=tac_cCostTimeSeries+tac_cCost
                 optSummary.loc[
@@ -621,7 +621,7 @@ class DSMModel(SourceSinkModel):
                         for ix in tac_commodCosts.index
                     ],
                     tac_commodCosts.columns,
-                ] = tac_commodCosts.values / esM.numberOfYears
+                ] = tac_commodCosts.values
                 
                 npv_commodCosts=npv_cCostTimeSeries+npv_cCost
                 optSummary.loc[
@@ -630,7 +630,7 @@ class DSMModel(SourceSinkModel):
                         for ix in npv_commodCosts.index
                     ],
                     npv_commodCosts.columns,
-                ] = npv_commodCosts.values / esM.numberOfYears
+                ] = npv_commodCosts.values
                 
                 tac_commodRevenue=tac_cRevenueTimeSeries+tac_cRevenue
                 optSummary.loc[
@@ -639,7 +639,7 @@ class DSMModel(SourceSinkModel):
                         for ix in tac_commodRevenue.index
                     ],
                     tac_commodRevenue.columns,
-                ] = tac_commodRevenue.values / esM.numberOfYears
+                ] = tac_commodRevenue.values
                 
                 npv_commodRevenue=npv_cRevenueTimeSeries+npv_cRevenue
                 optSummary.loc[
@@ -648,7 +648,7 @@ class DSMModel(SourceSinkModel):
                         for ix in npv_commodRevenue.index
                     ],
                     npv_commodRevenue.columns,
-                ] = npv_commodRevenue.values / esM.numberOfYears
+                ] = npv_commodRevenue.values
 
             # get discounted investment cost as total annual cost (TAC)
             optSummary = optSummary.append(optSummaryBasic[esM.investmentPeriodList[ip]]).sort_index()

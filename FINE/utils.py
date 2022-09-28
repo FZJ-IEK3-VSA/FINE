@@ -1,3 +1,4 @@
+from tkinter import E
 import warnings
 
 import pandas as pd
@@ -695,39 +696,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                     "QPcostScale is given but lower or upper capacity bounds are not specified."
                 )
 
-        # partLoadMin
-        if partLoadMin[ip] is not None:
-            # Check if values are floats and the intervall ]0,1].
-            if type(partLoadMin[ip]) != float:
-                raise TypeError(
-                    "partLoadMin for "
-                    + name
-                    + " needs to be a float in the intervall ]0,1]."
-                )
-            if partLoadMin[ip] <= 0:
-                raise ValueError(
-                    "partLoadMin for "
-                    + name
-                    + " needs to be a float in the intervall ]0,1]."
-                )
-            if partLoadMin[ip] > 1:
-                raise ValueError(
-                    "partLoadMin for "
-                    + name
-                    + " needs to be a float in the intervall ]0,1]."
-                )
-            if bigM is None:
-                raise ValueError(
-                    "bigM needs to be defined for component "
-                    + name
-                    + " if partLoadMin is not None."
-                )
-            if not hasCapacityVariable:
-                raise ValueError(
-                    "hasCapacityVariable needs to be True for component "
-                    + name
-                    + " if partLoadMin is not None."
-                )
+
     for ip in esM.investmentPeriods + comp.processedStockYears:
         # QPcostScale
         comp.processedQPcostScale[ip] = castToSeries(comp.processedQPcostScale[ip], esM)
@@ -1202,8 +1171,56 @@ def setPartLoadMin(esM, partLoadMin):
     return partLoadMin_ip
 
 
-def checkAndSetPartLoadMin(esM, name, partLoadMin, fullOperationMax, fullOperationFix):
-    checkInvestmentPeriodParameters(name, partLoadMin, esM.investmentPeriodList)
+def checkAndSetPartLoadMin(esM, name, partLoadMin, fullOperationMax, fullOperationFix,bigM,hasCapacityVariable):
+    # checking function
+    def checkPartLoadMin (partLoadMin,bigM,hasCapacityVariable):
+        # Check if values are floats and the intervall ]0,1].
+        if type(partLoadMin) != float:
+            raise TypeError(
+                "partLoadMin for "
+                + name
+                + " needs to be a float in the intervall ]0,1]."
+            )
+        if partLoadMin <= 0:
+            raise ValueError(
+                "partLoadMin for "
+                + name
+                + " needs to be a float in the intervall ]0,1]."
+            )
+        if partLoadMin > 1:
+            raise ValueError(
+                "partLoadMin for "
+                + name
+                + " needs to be a float in the intervall ]0,1]."
+            )
+        if bigM is None:
+            raise ValueError(
+                "bigM needs to be defined for component "
+                + name
+                + " if partLoadMin is not None."
+            )
+        if not hasCapacityVariable:
+            raise ValueError(
+                "hasCapacityVariable needs to be True for component "
+                + name
+                + " if partLoadMin is not None."
+                        )    
+
+    # check the raw partloadmin
+    if partLoadMin is not None:
+        checkInvestmentPeriodParameters(name, partLoadMin, esM.investmentPeriodList)
+        if isinstance(partLoadMin,dict):
+            for ip in esM.investmentPeriodList:
+                if partLoadMin[ip] is not None:
+                    checkPartLoadMin(partLoadMin[ip], bigM,hasCapacityVariable)
+        elif isinstance(partLoadMin,int) or isinstance(partLoadMin,float):
+            checkPartLoadMin(partLoadMin, bigM, hasCapacityVariable)
+        
+        else:
+            raise TypeError("Wrong datatype for partLoadMin. "+
+                            "Either a dict, int or float is accepted.")
+               
+    # set part load min per investment period
     partLoadMin_ip = setPartLoadMin(esM, partLoadMin)
 
     if not any(value for value in partLoadMin_ip.values()):

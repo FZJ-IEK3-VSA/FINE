@@ -335,11 +335,9 @@ class Transmission(Component):
         self.processedOperationRateFix = {}
 
         # partLoadMin
-        self.partLoadMin = partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
-            esM, name, partLoadMin, self.fullOperationRateMax, self.fullOperationRateFix
+            esM, name, partLoadMin, self.fullOperationRateMax, self.fullOperationRateFix, self.bigM, self.hasCapacityVariable
         )
-        self.processedPartLoadMin = {}
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
@@ -355,8 +353,6 @@ class Transmission(Component):
             for value in self.fullOperationRateMax.values()
         ):
             self.fullOperationRateMax = None
-        if not any(value for value in self.processedPartLoadMin.values()):
-            self.processedPartLoadMin = None
 
     def addToEnergySystemModel(self, esM):
         """
@@ -992,7 +988,7 @@ class TransmissionModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
                     tac_ox.columns,
                 ] = (
-                    tac_ox.values / esM.numberOfYears * 0.5
+                    tac_ox.values * 0.5
                 )
                 
                 npv_ox=resultsNPV_opexOp[ip]
@@ -1000,7 +996,7 @@ class TransmissionModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
                     npv_ox.columns,
                 ] = (
-                    npv_ox.values / esM.numberOfYears * 0.5
+                    npv_ox.values * 0.5
                 )
                 
                 # TODO what is this? is there any test for it?

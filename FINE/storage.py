@@ -362,9 +362,8 @@ class Storage(Component):
         self.aggregatedDischargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
 
         # partLoadMin
-        self.partLoadMin = partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
-            esM, name, partLoadMin, self.fullChargeOpRateMax, self.fullChargeOpRateFix
+            esM, name, partLoadMin, self.fullChargeOpRateMax, self.fullChargeOpRateFix, self.bigM, self.hasCapacityVariable
         )
 
         utils.isPositiveNumber(dischargeTsaWeight)
@@ -1968,14 +1967,14 @@ class StorageModel(ComponentModel):
                     [(ix, "opexCharge", "[" + esM.costUnit + "/a]") for ix in tac_oxCharge.index],
                     tac_oxCharge.columns,
                 ] = (
-                    tac_oxCharge.values / esM.numberOfYears
+                    tac_oxCharge.values
                 )
                 npv_oxCharge=resultsNPV_opexOpCharge[ip]
                 optSummary.loc[
                     [(ix, "NPV_opexCharge", "[" + esM.costUnit + "/a]") for ix in npv_oxCharge.index],
                     npv_oxCharge.columns,
                 ] = (
-                    npv_oxCharge.values / esM.numberOfYears
+                    npv_oxCharge.values
                 )
 
             # * discharge variables and contributions
@@ -2023,7 +2022,7 @@ class StorageModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = (
-                    opSum.values / esM.numberOfYears
+                    opSum.values
                 )
                 optSummary.loc[
                     [
@@ -2046,7 +2045,7 @@ class StorageModel(ComponentModel):
                     ],
                     tac_oxDischarge.columns,
                 ] = (
-                    tac_oxDischarge.values / esM.numberOfYears
+                    tac_oxDischarge.values
                 )
                 npv_oxDischarge=resultsNPV_opexOpDischarge[ip]
                 optSummary.loc[
@@ -2056,7 +2055,7 @@ class StorageModel(ComponentModel):
                     ],
                     npv_oxDischarge.columns,
                 ] = (
-                    npv_oxDischarge.values / esM.numberOfYears
+                    npv_oxDischarge.values
                 )
         
 
