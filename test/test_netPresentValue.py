@@ -53,4 +53,3 @@ def test_DSM_netPresentValue(dsm_test_esM):
     np.testing.assert_almost_equal(
         esM_with.pyM.Obj(), npv_sum_optSummary
     ) 
-    # TODO geht das überhaupt mit bigM? 

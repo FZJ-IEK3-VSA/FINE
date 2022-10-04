@@ -438,8 +438,8 @@ class StorageExtModel(StorageModel):
         super().__init__()
         self.abbrvName = "storExt"
         self.dimension = "1dim"
-        self._chargeOperationVariablesOptimum= {}
-        self._dischargeOperationVariablesOptimum= {}
+        self._chargeOperationVariablesOptimum = {}
+        self._dischargeOperationVariablesOptimum = {}
         self._stateOfChargeOperationVariablesOptimum = {}
 
     ####################################################################################################################
@@ -1086,10 +1086,10 @@ class StorageExtModel(StorageModel):
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        
+
         # Set optimal design dimension variables and get basic optimization summary
         super().setOptimalValues(esM, pyM)
-        
+
         # Get class related results
         resultsTAC_chargeOpContribution = self.getEconomicsOperation(
             pyM,
@@ -1097,9 +1097,9 @@ class StorageExtModel(StorageModel):
             "TimeSeries",
             ["processedOpexPerChargeOpTimeSeries"],
             "chargeOp",
-            "operationVarDict", 
+            "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC"
+            getOptValueCostType="TAC",
         )
         resultsNPV_chargeOpContribution = self.getEconomicsOperation(
             pyM,
@@ -1107,20 +1107,19 @@ class StorageExtModel(StorageModel):
             "TimeSeries",
             ["processedOpexPerChargeOpTimeSeries"],
             "chargeOp",
-            "operationVarDict", 
+            "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV"
+            getOptValueCostType="NPV",
         )
-        
-        
+
         for ip in esM.investmentPeriods:
-           
+
             # add index to dataframe
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
                 (compName, prop, "[" + esM.costUnit + "/a]")
                 for compName in compDict.keys()
-                for prop in ["opexOp_storageExt","NPV_opexOp_storageExt"]
+                for prop in ["opexOp_storageExt", "NPV_opexOp_storageExt"]
             ]
             mIndex = pd.MultiIndex.from_tuples(
                 tuples, names=["Component", "Property", "Unit"]
@@ -1131,23 +1130,27 @@ class StorageExtModel(StorageModel):
 
             # operation cost - TAC
             # TODO should this be added to opexOp?
-            tac_ox=resultsTAC_chargeOpContribution[ip]
+            tac_ox = resultsTAC_chargeOpContribution[ip]
             optSummary.loc[
-                [(ix, "opexOp_storageExt", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
+                [
+                    (ix, "opexOp_storageExt", "[" + esM.costUnit + "/a]")
+                    for ix in tac_ox.index
+                ],
                 tac_ox.columns,
-            ] = (
-                tac_ox.values 
-            )
+            ] = tac_ox.values
             # operation costs - NPV contribution
-            npv_ox  = resultsNPV_chargeOpContribution[ip]
+            npv_ox = resultsNPV_chargeOpContribution[ip]
             optSummary.loc[
-                [(ix, "NPV_opexOp_storageExt", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
+                [
+                    (ix, "NPV_opexOp_storageExt", "[" + esM.costUnit + "/a]")
+                    for ix in npv_ox.index
+                ],
                 npv_ox.columns,
-            ] = (
-                npv_ox.values 
-            )
+            ] = npv_ox.values
 
-            optSummary = optSummary.append(self._optSummary[esM.investmentPeriodList[ip]]).sort_index()
+            optSummary = optSummary.append(
+                self._optSummary[esM.investmentPeriodList[ip]]
+            ).sort_index()
 
             # Summarize all contributions to the total annual cost
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
@@ -1161,7 +1164,9 @@ class StorageExtModel(StorageModel):
             )
 
             # Update the NPV contribution
-            optSummary.loc[optSummary.index.get_level_values(1) == "NPVcontribution"] = (
+            optSummary.loc[
+                optSummary.index.get_level_values(1) == "NPVcontribution"
+            ] = (
                 optSummary.loc[
                     (optSummary.index.get_level_values(1) == "NPVcontribution")
                     | (optSummary.index.get_level_values(1) == "NPV_opexOp_storageExt")
@@ -1172,9 +1177,8 @@ class StorageExtModel(StorageModel):
             )
 
             # TODO Decision if NPV contribution shall be given in more detail
-            optSummary=optSummary.drop("NPV_opexOp_storageExt",level=1)
-            self._optSummary[ip] =optSummary
-
+            optSummary = optSummary.drop("NPV_opexOp_storageExt", level=1)
+            self._optSummary[ip] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):
         """

@@ -125,8 +125,8 @@ class LOPFModel(TransmissionModel):
         super().__init__()
         self.abbrvName = "lopf"
         self.dimension = "2dim"
-        self._operationVariablesOptimum={} 
-        self._phaseAngleVariablesOptimum ={} 
+        self._operationVariablesOptimum = {}
+        self._phaseAngleVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #

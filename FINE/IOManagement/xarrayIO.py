@@ -405,14 +405,16 @@ def writeDatasetsToNetCDF(
                 mode=mode,
             )
             continue
-        
+
         elif group == "Results":
             for ip in datasets[group].keys():
                 for model, comps in datasets[group][ip].items():
                     for component in comps.keys():
                         if component is not None:
                             if groupPrefix:
-                                group_path = f"{groupPrefix}/{group}/{ip}/{model}/{component}"
+                                group_path = (
+                                    f"{groupPrefix}/{group}/{ip}/{model}/{component}"
+                                )
                             else:
                                 group_path = f"{group}/{ip}/{model}/{component}"
                             datasets[group][ip][model][component].to_netcdf(
@@ -533,7 +535,7 @@ def convertDatasetsToEnergySystemModel(datasets):
     # Read output
     if "Results" in datasets:
         # get startyear to find model classes
-        startyear=list(datasets["Results"].keys())[0]
+        startyear = list(datasets["Results"].keys())[0]
         for model, comps in datasets["Results"][startyear].items():
             optSum = {}
             operationVariablesOptimum_dict = {}
@@ -542,8 +544,7 @@ def convertDatasetsToEnergySystemModel(datasets):
             chargeOperationVariablesOptimum_dict = {}
             dischargeOperationVariablesOptimum_dict = {}
             stateOfChargeOperationVariablesOptimum_dict = {}
-        
-            
+
             for ip in datasets["Results"].keys():
                 # read opt Summary
                 optSum_df = pd.DataFrame([])
@@ -626,7 +627,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                         opt_variable = variable
                         xr_opt = None
                         if opt_variable in datasets["Results"][ip][model][component]:
-                            xr_opt = datasets["Results"][ip][model][component][opt_variable]
+                            xr_opt = datasets["Results"][ip][model][component][
+                                opt_variable
+                            ]
                         else:
                             continue
 
@@ -743,29 +746,35 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 )
                             )
 
-                    operationVariablesOptimum_dict[int(ip)] = operationVariablesOptimum_dict[int(ip)].append(
+                    operationVariablesOptimum_dict[
+                        int(ip)
+                    ] = operationVariablesOptimum_dict[int(ip)].append(
                         _operationVariablesOptimum_df
                     )
-                    capacityVariablesOptimum_dict[int(ip)] = capacityVariablesOptimum_dict[int(ip)].append(
+                    capacityVariablesOptimum_dict[
+                        int(ip)
+                    ] = capacityVariablesOptimum_dict[int(ip)].append(
                         _capacityVariablesOptimum_df
                     )
-                    isBuiltVariablesOptimum_dict[int(ip)] = isBuiltVariablesOptimum_dict[int(ip)].append(
+                    isBuiltVariablesOptimum_dict[
+                        int(ip)
+                    ] = isBuiltVariablesOptimum_dict[int(ip)].append(
                         _isBuiltVariablesOptimum_df
                     )
-                    chargeOperationVariablesOptimum_dict[int(ip)] = (
-                        chargeOperationVariablesOptimum_dict[int(ip)].append(
-                            _chargeOperationVariablesOptimum_df
-                        )
+                    chargeOperationVariablesOptimum_dict[
+                        int(ip)
+                    ] = chargeOperationVariablesOptimum_dict[int(ip)].append(
+                        _chargeOperationVariablesOptimum_df
                     )
-                    dischargeOperationVariablesOptimum_dict[int(ip)] = (
-                        dischargeOperationVariablesOptimum_dict[int(ip)].append(
-                            _dischargeOperationVariablesOptimum_df
-                        )
+                    dischargeOperationVariablesOptimum_dict[
+                        int(ip)
+                    ] = dischargeOperationVariablesOptimum_dict[int(ip)].append(
+                        _dischargeOperationVariablesOptimum_df
                     )
-                    stateOfChargeOperationVariablesOptimum_dict[int(ip)] = (
-                        stateOfChargeOperationVariablesOptimum_dict[int(ip)].append(
-                            _stateOfChargeOperationVariablesOptimum_df
-                        )
+                    stateOfChargeOperationVariablesOptimum_dict[
+                        int(ip)
+                    ] = stateOfChargeOperationVariablesOptimum_dict[int(ip)].append(
+                        _stateOfChargeOperationVariablesOptimum_df
                     )
 
                 # check if empty, if yes convert to None
@@ -811,27 +820,32 @@ def convertDatasetsToEnergySystemModel(datasets):
                 esM.componentModelingDict[model],
                 "_stateOfChargeOperationVariablesOptimum",
                 stateOfChargeOperationVariablesOptimum_dict,
-                )
-            
+            )
+
             # if only one investment period -> keep optimal values unchanged for end user
             def setFinalOptimalValues(esM, name):
                 if len(esM.investmentPeriodList) == 1:
-                    data=getattr(esM.componentModelingDict[model],"_"+name)
-                    setattr(esM.componentModelingDict[model], name, data[int(startyear)])
+                    data = getattr(esM.componentModelingDict[model], "_" + name)
+                    setattr(
+                        esM.componentModelingDict[model], name, data[int(startyear)]
+                    )
                 else:
-                    data=getattr(esM.componentModelingDict[model],"_"+name)
+                    data = getattr(esM.componentModelingDict[model], "_" + name)
                     setattr(esM.componentModelingDict[model], name, data)
                 return esM
-            
-            optimalParameters=[
-                "optSummary","operationVariablesOptimum",
-                "capacityVariablesOptimum","isBuiltVariablesOptimum",
+
+            optimalParameters = [
+                "optSummary",
+                "operationVariablesOptimum",
+                "capacityVariablesOptimum",
+                "isBuiltVariablesOptimum",
                 "chargeOperationVariablesOptimum",
                 "dischargeOperationVariablesOptimum",
-                "stateOfChargeOperationVariablesOptimum"]
+                "stateOfChargeOperationVariablesOptimum",
+            ]
             for name in optimalParameters:
-                esM=setFinalOptimalValues(esM, name)
-    
+                esM = setFinalOptimalValues(esM, name)
+
     return esM
 
 
@@ -959,7 +973,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
             group_keys = rootgrp.groups
 
     if not groupPrefix:
-        xr_dss={}
+        xr_dss = {}
         # read input from netcdf
         xr_dss["Input"] = {
             model_key: {
@@ -973,7 +987,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
         # read results from netcdf
         if "Results" in group_keys:
             xr_dss["Results"] = {
-                ip_key : {
+                ip_key: {
                     model_key: {
                         comp_key: xr.load_dataset(
                             filePath, group=f"Results/{ip_key}/{model_key}/{comp_key}"
@@ -981,15 +995,15 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
                         for comp_key in group_keys["Results"][ip_key][model_key].groups
                     }
                     for model_key in group_keys["Results"][ip_key].groups
-                }    
+                }
                 for ip_key in group_keys["Results"].groups
             }
         # read parameters from netcdf
         xr_dss["Parameters"] = xr.load_dataset(filePath, group=f"Parameters")
     else:
-        xr_dss={}
+        xr_dss = {}
         # read input from netcdf
-        xr_dss["Input"] = {   
+        xr_dss["Input"] = {
             model_key: {
                 comp_key: xr.load_dataset(
                     filePath,
@@ -1002,15 +1016,16 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
         # read results from netcdf
         if "Results" in group_keys:
             xr_dss["Results"] = {
-                ip_key : {
+                ip_key: {
                     model_key: {
                         comp_key: xr.load_dataset(
-                            filePath, group=f"{groupPrefix}/Results/{ip_key}/{model_key}/{comp_key}"
+                            filePath,
+                            group=f"{groupPrefix}/Results/{ip_key}/{model_key}/{comp_key}",
                         )
                         for comp_key in group_keys["Results"][ip_key][model_key].groups
                     }
                     for model_key in group_keys["Results"][ip_key].groups
-                }    
+                }
                 for ip_key in group_keys["Results"].groups
             }
         # read parameters from netcdf

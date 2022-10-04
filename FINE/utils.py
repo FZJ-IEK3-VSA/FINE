@@ -562,7 +562,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             if comp.dimension == "1dim":
                 if not isinstance(data, pd.Series):
                     raise TypeError("Input data has to be a pandas Series")
-                data = checkRegionalIndex(esM, data,comp.locationalEligibility)
+                data = checkRegionalIndex(esM, data, comp.locationalEligibility)
             elif comp.dimension == "2dim":
                 if not isinstance(data, pd.Series):
                     raise TypeError("Input data has to be a pandas DataFrame")
@@ -572,11 +572,11 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                     "The dimension parameter has to be either '1dim' or '2dim' "
                 )
             return data
-    
+
     capacityMin = checkAndSet(capacityMin, comp, esM)
     capacityMax = checkAndSet(capacityMax, comp, esM)
     capacityFix = checkAndSet(capacityFix, comp, esM)
-    locationalEligibility= checkAndSet(locationalEligibility, comp, esM)
+    locationalEligibility = checkAndSet(locationalEligibility, comp, esM)
     isBuiltFix = checkAndSet(isBuiltFix, comp, esM)
 
     for ip in comp.processedStockYears + esM.investmentPeriods:
@@ -695,7 +695,6 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError(
                     "QPcostScale is given but lower or upper capacity bounds are not specified."
                 )
-
 
     for ip in esM.investmentPeriods + comp.processedStockYears:
         # QPcostScale
@@ -1171,9 +1170,17 @@ def setPartLoadMin(esM, partLoadMin):
     return partLoadMin_ip
 
 
-def checkAndSetPartLoadMin(esM, name, partLoadMin, fullOperationMax, fullOperationFix,bigM,hasCapacityVariable):
+def checkAndSetPartLoadMin(
+    esM,
+    name,
+    partLoadMin,
+    fullOperationMax,
+    fullOperationFix,
+    bigM,
+    hasCapacityVariable,
+):
     # checking function
-    def checkPartLoadMin (partLoadMin,bigM,hasCapacityVariable):
+    def checkPartLoadMin(partLoadMin, bigM, hasCapacityVariable):
         # Check if values are floats and the intervall ]0,1].
         if type(partLoadMin) != float:
             raise TypeError(
@@ -1204,22 +1211,24 @@ def checkAndSetPartLoadMin(esM, name, partLoadMin, fullOperationMax, fullOperati
                 "hasCapacityVariable needs to be True for component "
                 + name
                 + " if partLoadMin is not None."
-                        )    
+            )
 
     # check the raw partloadmin
     if partLoadMin is not None:
         checkInvestmentPeriodParameters(name, partLoadMin, esM.investmentPeriodList)
-        if isinstance(partLoadMin,dict):
+        if isinstance(partLoadMin, dict):
             for ip in esM.investmentPeriodList:
                 if partLoadMin[ip] is not None:
-                    checkPartLoadMin(partLoadMin[ip], bigM,hasCapacityVariable)
-        elif isinstance(partLoadMin,int) or isinstance(partLoadMin,float):
+                    checkPartLoadMin(partLoadMin[ip], bigM, hasCapacityVariable)
+        elif isinstance(partLoadMin, int) or isinstance(partLoadMin, float):
             checkPartLoadMin(partLoadMin, bigM, hasCapacityVariable)
-        
+
         else:
-            raise TypeError("Wrong datatype for partLoadMin. "+
-                            "Either a dict, int or float is accepted.")
-               
+            raise TypeError(
+                "Wrong datatype for partLoadMin. "
+                + "Either a dict, int or float is accepted."
+            )
+
     # set part load min per investment period
     partLoadMin_ip = setPartLoadMin(esM, partLoadMin)
 
@@ -1263,9 +1272,9 @@ def checkAndSetInvestmentPeriodCostParameter(
 ):
     # stock years are only considered for parameter for which the
     # first check
-    _years=[int(esM.startYear + ip * esM.yearsPerInvestmentPeriod)  for ip in years]
+    _years = [int(esM.startYear + ip * esM.yearsPerInvestmentPeriod) for ip in years]
     checkInvestmentPeriodParameters(name, data, _years)
-    
+
     # set the costs
     parameter = {}
     for ip in years:
@@ -1614,7 +1623,7 @@ def formatOptimizationOutput(
         df = df.reset_index(level=2, drop=True)
         # Unstack the regions (convert to a two dimensional DataFrame with the region indices being the columns)
         # and fill NaN values (i.e. when a component variable was not initiated for that region)
-        
+
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level
         df.columns = df.columns.droplevel()
@@ -2307,17 +2316,22 @@ def addEmptyRegions(esM, data):
     return data
 
 
-
 def annuityPresentValueFactor(esM, compName, loc):
     # DE:Rentenbarwertfaktor
     intrestRate = esM.getComponent(compName).interestRate[loc]
-    if intrestRate==0:
+    if intrestRate == 0:
         return 1
     else:
         return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
             intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
-        ) 
+        )
+
 
 def netPresentValueFactor(esM, ip, compName, loc):
-    return annuityPresentValueFactor(esM, compName, loc)* 1/ (1 + esM.getComponent(compName).interestRate[loc])** (ip * esM.yearsPerInvestmentPeriod)* (1 + esM.getComponent(compName).interestRate[loc]
+    return (
+        annuityPresentValueFactor(esM, compName, loc)
+        * 1
+        / (1 + esM.getComponent(compName).interestRate[loc])
+        ** (ip * esM.yearsPerInvestmentPeriod)
+        * (1 + esM.getComponent(compName).interestRate[loc])
     )

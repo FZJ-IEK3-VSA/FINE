@@ -200,7 +200,13 @@ class Conversion(Component):
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
-            esM, name, self.partLoadMin, self.fullOperationRateMax, self.fullOperationRateFix, self.bigM, self.hasCapacityVariable
+            esM,
+            name,
+            self.partLoadMin,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+            self.bigM,
+            self.hasCapacityVariable,
         )
 
         ########################
@@ -410,7 +416,6 @@ class ConversionModel(ComponentModel):
         self.abbrvName = "conv"
         self.dimension = "1dim"
         self._operationVariablesOptimum = {}
-
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -721,22 +726,34 @@ class ConversionModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
-        
+
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(
-                esM, pyM,  esM.locations, "physicalUnit"
-            )
-        
+            esM, pyM, esM.locations, "physicalUnit"
+        )
+
         # Get class related results
         resultsTAC_opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict", 
-            getOptValue=True, getOptValueCostType="TAC"
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
         )
         resultsNPV_opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict", 
-            getOptValue=True, getOptValueCostType="NPV"
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
         )
-        
+
         for ip in esM.investmentPeriods:
             # Set optimal operation variables and append optimization summary
             optVal = utils.formatOptimizationOutput(
@@ -749,7 +766,7 @@ class ConversionModel(ComponentModel):
             )
             self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
 
-            props = ["operation", "opexOp","NPV_opexOp"]
+            props = ["operation", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
             units = {
                 props[0]: ["[-*h]", "[-*h/a]"],
@@ -782,14 +799,14 @@ class ConversionModel(ComponentModel):
             optSummary = pd.DataFrame(
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
-            
+
             if optVal is not None:
                 idx = pd.IndexSlice
                 optVal = optVal.loc[
                     idx[:, :], :
                 ]  # perfect foresight: added ip and deleted again
                 opSum = optVal.sum(axis=1).unstack(-1)
-                
+
                 # operation
                 optSummary.loc[
                     [
@@ -807,26 +824,26 @@ class ConversionModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = opSum.values
-                
 
                 # operation cost - TAC
-                tac_ox=resultsTAC_opexOp[ip]
+                tac_ox = resultsTAC_opexOp[ip]
                 optSummary.loc[
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
                     tac_ox.columns,
-                ] = (
-                    tac_ox.values 
-                )
+                ] = tac_ox.values
                 # operation cost - NPV contribution
-                npv_ox  = resultsNPV_opexOp[ip]
+                npv_ox = resultsNPV_opexOp[ip]
                 optSummary.loc[
-                    [(ix, "NPV_opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
+                    [
+                        (ix, "NPV_opexOp", "[" + esM.costUnit + "/a]")
+                        for ix in npv_ox.index
+                    ],
                     npv_ox.columns,
-                ] = (
-                    npv_ox.values 
-                )
+                ] = npv_ox.values
 
-            optSummary = optSummary.append(optSummaryBasic[esM.investmentPeriodList[ip]]).sort_index()
+            optSummary = optSummary.append(
+                optSummaryBasic[esM.investmentPeriodList[ip]]
+            ).sort_index()
 
             # Summarize all contributions to the total annual cost
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
@@ -839,7 +856,9 @@ class ConversionModel(ComponentModel):
                 .values
             )
             # Update the NPV contribution
-            optSummary.loc[optSummary.index.get_level_values(1) == "NPVcontribution"] = (
+            optSummary.loc[
+                optSummary.index.get_level_values(1) == "NPVcontribution"
+            ] = (
                 optSummary.loc[
                     (optSummary.index.get_level_values(1) == "NPVcontribution")
                     | (optSummary.index.get_level_values(1) == "NPV_opexOp")
@@ -849,8 +868,8 @@ class ConversionModel(ComponentModel):
                 .values
             )
             # TODO Decision if NPV contribution shall be given in more detail
-            optSummary=optSummary.drop("NPV_opexOp",level=1)
-            
+            optSummary = optSummary.drop("NPV_opexOp", level=1)
+
             # save the optimization summary
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
 

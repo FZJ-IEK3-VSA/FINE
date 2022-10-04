@@ -336,7 +336,13 @@ class Transmission(Component):
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
-            esM, name, partLoadMin, self.fullOperationRateMax, self.fullOperationRateFix, self.bigM, self.hasCapacityVariable
+            esM,
+            name,
+            partLoadMin,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+            self.bigM,
+            self.hasCapacityVariable,
         )
 
         utils.isPositiveNumber(tsaWeight)
@@ -454,7 +460,6 @@ class TransmissionModel(ComponentModel):
         self.dimension = "2dim"
         self._operationVariablesOptimum = {}
         self._isBuiltVariablesOptimum = {}
-
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -885,16 +890,30 @@ class TransmissionModel(ComponentModel):
             for loc2 in esM.locations
         }
         # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic=super().setOptimalValues(esM, pyM, mapC.keys(), "commodityUnit")
-    
+        optSummaryBasic = super().setOptimalValues(
+            esM, pyM, mapC.keys(), "commodityUnit"
+        )
+
         # Get class related results
         resultsTAC_opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict", 
-            getOptValue=True, getOptValueCostType="TAC"
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
         )
         resultsNPV_opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict", 
-            getOptValue=True, getOptValueCostType="NPV"
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
         )
         for ip in esM.investmentPeriods:
             for compName, comp in compDict.items():
@@ -906,8 +925,12 @@ class TransmissionModel(ComponentModel):
                     "opexIfBuilt",
                     "TAC",
                 ]:
-                    data = optSummaryBasic[esM.investmentPeriodList[ip]].loc[compName, cost]
-                    optSummaryBasic[esM.investmentPeriodList[ip]].loc[compName, cost] = (data).values
+                    data = optSummaryBasic[esM.investmentPeriodList[ip]].loc[
+                        compName, cost
+                    ]
+                    optSummaryBasic[esM.investmentPeriodList[ip]].loc[
+                        compName, cost
+                    ] = (data).values
 
             # Set optimal operation variables and append optimization summary
             optVal = utils.formatOptimizationOutput(
@@ -929,12 +952,12 @@ class TransmissionModel(ComponentModel):
             )
             self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
 
-            props = ["operation", "opexOp","NPV_opexOp"]
+            props = ["operation", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
             units = {
                 props[0]: ["[-*h]", "[-*h/a]"],
                 props[1]: ["[" + esM.costUnit + "/a]"],
-                props[2]: ["[" + esM.costUnit + "/a]"], 
+                props[2]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -965,7 +988,7 @@ class TransmissionModel(ComponentModel):
 
             if optVal is not None:
                 opSum = optVal.sum(axis=1).unstack(-1)
-                
+
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
@@ -982,23 +1005,23 @@ class TransmissionModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = opSum.values
-                
-                tac_ox=resultsTAC_opexOp[ip]
+
+                tac_ox = resultsTAC_opexOp[ip]
                 optSummary.loc[
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
                     tac_ox.columns,
                 ] = (
                     tac_ox.values * 0.5
                 )
-                
-                npv_ox=resultsNPV_opexOp[ip]
+
+                npv_ox = resultsNPV_opexOp[ip]
                 optSummary.loc[
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
                     npv_ox.columns,
                 ] = (
                     npv_ox.values * 0.5
                 )
-                
+
                 # TODO what is this? is there any test for it?
                 # New index for opex is required as indexing with list with missing labels is deprecated
                 # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-with-list-with-missing-labels-is-deprecated
@@ -1023,7 +1046,9 @@ class TransmissionModel(ComponentModel):
                 #     ox.values / esM.numberOfYears * 0.5
                 # )
 
-            optSummary = optSummary.append(optSummaryBasic[esM.investmentPeriodList[ip]]).sort_index()
+            optSummary = optSummary.append(
+                optSummaryBasic[esM.investmentPeriodList[ip]]
+            ).sort_index()
 
             # Summarize all contributions to the total annual cost
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
@@ -1035,9 +1060,11 @@ class TransmissionModel(ComponentModel):
                 .sum()
                 .values
             )
-            
+
             # Update the NPV contribution
-            optSummary.loc[optSummary.index.get_level_values(1) == "NPVcontribution"] = (
+            optSummary.loc[
+                optSummary.index.get_level_values(1) == "NPVcontribution"
+            ] = (
                 optSummary.loc[
                     (optSummary.index.get_level_values(1) == "NPVcontribution")
                     | (optSummary.index.get_level_values(1) == "NPV_opexOp")
@@ -1047,8 +1074,8 @@ class TransmissionModel(ComponentModel):
                 .values
             )
             # TODO Decision of NPV contribution shall be given in more detail
-            optSummary=optSummary.drop("NPV_opexOp",level=1)
-            
+            optSummary = optSummary.drop("NPV_opexOp", level=1)
+
             # Split connection indices to two location indices
             optSummary = optSummary.stack()
             indexNew = []
@@ -1061,7 +1088,6 @@ class TransmissionModel(ComponentModel):
             names.append("LocationIn")
             optSummary.index.set_names(names, inplace=True)
             self._optSummary[esM.investmentPeriodList[ip]] = optSummary
-
 
     def getOptimalValues(self, name="all", ip=0):
         """

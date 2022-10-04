@@ -107,10 +107,10 @@ class ConversionPartLoadModel(ConversionModel):
         self.abbrvName = "partLoad"
         self.dimension = "1dim"
         self._operationVariablesOptimum = {}
-        self.discretizationPointVariablesOptimun ={}
-        self.discretizationSegmentConVariablesOptimun={}
-        self.discretizationSegmentBinVariablesOptimun={}
-     
+        self.discretizationPointVariablesOptimun = {}
+        self.discretizationSegmentConVariablesOptimun = {}
+        self.discretizationSegmentBinVariablesOptimun = {}
+
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
@@ -661,15 +661,15 @@ class ConversionPartLoadModel(ConversionModel):
                 esM=esM,
             )
 
-            self.discretizationPointVariablesOptimun[esM.investmentPeriodList[ip]] = (
-                discretizationPointVariablesOptVal_
-            )
-            self.discretizationSegmentConVariablesOptimun[esM.investmentPeriodList[ip]] = (
-                discretizationSegmentConVariablesOptVal_
-            )
-            self.discretizationSegmentBinVariablesOptimun[esM.investmentPeriodList[ip]] = (
-                discretizationSegmentBinVariablesOptVal_
-            )
+            self.discretizationPointVariablesOptimun[
+                esM.investmentPeriodList[ip]
+            ] = discretizationPointVariablesOptVal_
+            self.discretizationSegmentConVariablesOptimun[
+                esM.investmentPeriodList[ip]
+            ] = discretizationSegmentConVariablesOptVal_
+            self.discretizationSegmentBinVariablesOptimun[
+                esM.investmentPeriodList[ip]
+            ] = discretizationSegmentBinVariablesOptVal_
 
     def getOptimalValues(self, name="all", ip=0):
         """

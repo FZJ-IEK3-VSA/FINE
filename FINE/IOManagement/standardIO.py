@@ -80,13 +80,13 @@ def writeOptimizationOutputToExcel(
     """
     for ip in esM.investmentPeriodList:
         if len(esM.investmentPeriodList) > 1:
-            _outputFileName = outputFileName+ f"_{ip}"
+            _outputFileName = outputFileName + f"_{ip}"
         else:
             _outputFileName = outputFileName
         utils.output("\nWriting output to Excel... ", esM.verbose, 0)
         _t = time.time()
         writer = pd.ExcelWriter(_outputFileName + ".xlsx")
-        
+
         for name in esM.componentModelingDict.keys():
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
@@ -96,7 +96,9 @@ def writeOptimizationOutputToExcel(
             if not optSum.empty:
                 optSum.to_excel(
                     writer,
-                    name[:-5] + "OptSummary_" + esM.componentModelingDict[name].dimension,
+                    name[:-5]
+                    + "OptSummary_"
+                    + esM.componentModelingDict[name].dimension,
                 )
 
             data = esM.componentModelingDict[name].getOptimalValues(ip=ip)

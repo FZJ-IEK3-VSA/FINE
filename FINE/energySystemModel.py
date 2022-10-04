@@ -509,22 +509,29 @@ class EnergySystemModel:
         """
         if ip not in self.investmentPeriodList:
             raise ValueError(
-                f"No optimization summary exists for passed ip {ip}. "+
-                "Please define a valid investment period  "+
-                f"(from '{self.investmentPeriodList}')")
-        
+                f"No optimization summary exists for passed ip {ip}. "
+                + "Please define a valid investment period  "
+                + f"(from '{self.investmentPeriodList}')"
+            )
+
         if outputLevel == 0:
             return self.componentModelingDict[modelingClass]._optSummary[ip]
         elif outputLevel == 1:
-            return self.componentModelingDict[modelingClass]._optSummary[ip].dropna(
-                how="all"
+            return (
+                self.componentModelingDict[modelingClass]
+                ._optSummary[ip]
+                .dropna(how="all")
             )
         else:
             if outputLevel != 2 and self.verbose < 2:
                 warnings.warn(
                     "Invalid input. An outputLevel parameter of 2 is assumed."
                 )
-            df = self.componentModelingDict[modelingClass]._optSummary[ip].dropna(how="all")
+            df = (
+                self.componentModelingDict[modelingClass]
+                ._optSummary[ip]
+                .dropna(how="all")
+            )
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
     def aggregateSpatially(
@@ -533,7 +540,7 @@ class EnergySystemModel:
         grouping_mode="parameter_based",
         n_groups=3,
         aggregatedResultsPath=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Spatially clusters the data of all components considered in the Energy System Model (esM) instance
@@ -694,7 +701,7 @@ class EnergySystemModel:
             grouping_mode,
             n_groups,
             aggregatedResultsPath,
-            **kwargs
+            **kwargs,
         )
 
         # STEP 3. Obtain aggregated esM
@@ -719,7 +726,7 @@ class EnergySystemModel:
         clusterMethod="hierarchical",
         sortValues=True,
         storeTSAinstance=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
@@ -880,7 +887,7 @@ class EnergySystemModel:
                     clusterMethod=clusterMethod,
                     sortValues=sortValues,
                     weightDict=weightDict,
-                    **kwargs
+                    **kwargs,
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as segment number per typical period.
@@ -900,7 +907,7 @@ class EnergySystemModel:
                     clusterMethod=clusterMethod,
                     sortValues=sortValues,
                     weightDict=weightDict,
-                    **kwargs
+                    **kwargs,
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as time step number per typical period.
@@ -1877,26 +1884,34 @@ class EnergySystemModel:
                 # For perfectForesight the data stays the same, for a single year optimization
                 # the data is converted from a dict with a single entry to a dataframe
                 # By this, old models will not fail
-                def convertOptimalValues(esM,mdl,key):
+                def convertOptimalValues(esM, mdl, key):
                     if key in mdl.__dict__.keys():
                         if esM.mode == "singleYearOptimization":
-                            setattr(mdl,key.replace("_",""), getattr(mdl,key)[0])
+                            setattr(mdl, key.replace("_", ""), getattr(mdl, key)[0])
                         else:
-                            setattr(mdl,key.replace("_", ""), getattr(mdl, key))
+                            setattr(mdl, key.replace("_", ""), getattr(mdl, key))
                     else:
                         pass
-                optimalValueParameters=[
-                    "_optSummary","_stateOfChargeOperationVSariablesOptimum",
-                    "_chargeOperationVariablesOptimum","_dischargeOperationVariablesOptimum",
-                    "_phaseAngleVariablesOptimum", "_operationVariablesOptimum",
-                    "_discretizationPointVariablesOptimun","_discretizationSegmentConVariablesOptimun",
-                    "_discretizationSegmentBinVariablesOptimun","_capacityVariablesOptimum",
-                    "_isBuiltVariablesOptimum","_commissioningVariablesOptimum",
-                    "_decommissioningVariablesOptimum"]
+
+                optimalValueParameters = [
+                    "_optSummary",
+                    "_stateOfChargeOperationVSariablesOptimum",
+                    "_chargeOperationVariablesOptimum",
+                    "_dischargeOperationVariablesOptimum",
+                    "_phaseAngleVariablesOptimum",
+                    "_operationVariablesOptimum",
+                    "_discretizationPointVariablesOptimun",
+                    "_discretizationSegmentConVariablesOptimun",
+                    "_discretizationSegmentBinVariablesOptimun",
+                    "_capacityVariablesOptimum",
+                    "_isBuiltVariablesOptimum",
+                    "_commissioningVariablesOptimum",
+                    "_decommissioningVariablesOptimum",
+                ]
 
                 for optParam in optimalValueParameters:
                     convertOptimalValues(self, mdl, optParam)
-          
+
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 

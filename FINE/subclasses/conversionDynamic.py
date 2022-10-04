@@ -193,7 +193,6 @@ class ConversionDynamicModel(ConversionModel):
         """
         super().declareSets(esM, pyM)
 
-
         # Declare Min down time constraint
         self.declareOpConstrSetMinDownTime(pyM, "opConstrSet")
         self.declareOpConstrSetMinUpTime(pyM, "opConstrSet")
