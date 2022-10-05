@@ -83,14 +83,6 @@ class ConversionPartLoad(Conversion):
             self.discretizedPartLoad = commodityConversionFactorsPartLoad[0]
             self.nSegments = commodityConversionFactorsPartLoad[1]
 
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a ConversionPartLoad component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
 
 
 class ConversionPartLoadModel(ConversionModel):

@@ -439,15 +439,6 @@ class Storage(Component):
         ):
             self.fullDischargeOpRateMax = None
 
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a storage component to the given energy system model.
-
-        :param esM: energy system model to which the storage component should be added.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
-
     def setTimeSeriesData(self, hasTSA):
         """
         Function for setting the maximum operation rate and fixed operation rate for charging and discharging
@@ -593,13 +584,13 @@ class StorageModel(ComponentModel):
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM, esM)
-        self.declareDiscreteDesignVarSet(pyM, esM)
-        self.declareDesignDecisionVarSet(pyM, esM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         # Declare design pathway sets
         self.declarePathwaySets(pyM, esM)
-        self.declareLocationComponentSet(pyM, esM)
+        self.declareLocationComponentSet(pyM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
@@ -695,7 +686,7 @@ class StorageModel(ComponentModel):
         """
 
         # Capacity variables [commodityUnit*hour]
-        self.declareCapacityVars(pyM, esM)
+        self.declareCapacityVars(pyM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -1477,7 +1468,7 @@ class StorageModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM, esM)
+        self.capToNbReal(pyM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -1495,7 +1486,8 @@ class StorageModel(ComponentModel):
         # Set capacity development constraints over investment periods
         self.designDevelopmentConstraint(pyM, esM)
         self.decommissioningConstraint(pyM, esM)
-        self.initialYearConstraint(pyM, esM)
+        self.stockCapacityConstraint(pyM, esM)
+        self.stockCommissioningConstaint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
@@ -1729,7 +1721,7 @@ class StorageModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        capexCap = self.getEconomicsTI(
+        capexCap = self.getEconomicsDesign(
             pyM,
             esM,
             ["processedInvestPerCapacity"],
@@ -1737,7 +1729,7 @@ class StorageModel(ComponentModel):
             varName="commis",
             divisorName="CCF",
         )
-        capexDec = self.getEconomicsTI(
+        capexDec = self.getEconomicsDesign(
             pyM,
             esM,
             ["processedInvestIfBuilt"],
@@ -1745,14 +1737,14 @@ class StorageModel(ComponentModel):
             varName="commisBin",
             divisorName="CCF",
         )
-        opexCap = self.getEconomicsTI(
+        opexCap = self.getEconomicsDesign(
             pyM,
             esM,
             ["processedOpexPerCapacity"],
             lifetimeAttr="ipTechnicalLifetime",
             varName="commis",
         )
-        opexDec = self.getEconomicsTI(
+        opexDec = self.getEconomicsDesign(
             pyM,
             esM,
             ["processedOpexIfBuilt"],

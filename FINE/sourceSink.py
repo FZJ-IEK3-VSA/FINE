@@ -327,16 +327,16 @@ class Source(Component):
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
             esM, name, operationRateMax, locationalEligibility
         )
-        self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
-        self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
+        self.aggregatedOperationRateMax = {}
+        self.processedOperationRateMax = {}
 
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
             esM, name, operationRateFix, locationalEligibility
         )
-        self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
-        self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
+        self.aggregatedOperationRateFix = {}
+        self.processedOperationRateFix = {}
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
@@ -394,15 +394,6 @@ class Source(Component):
             self.hasCapacityVariable,
             operationTimeSeries,
         )
-
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a source component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -516,7 +507,7 @@ class Source(Component):
     def initializeProcessedDataSets(self, investmentperiods):
         """
         Initialize dicts (keys are investment periods, values are None)
-        for processed data sets.
+        for processed data sets. # TODO WAS ZUR HÖLLE
 
         :param investmentperiods: investmentperiods of transformation path analysis.
         :type investmentperiods: list
@@ -686,13 +677,13 @@ class SourceSinkModel(ComponentModel):
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM, esM)
-        self.declareDiscreteDesignVarSet(pyM, esM)
-        self.declareDesignDecisionVarSet(pyM, esM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         # Declare design pathway sets
         self.declarePathwaySets(pyM, esM)
-        self.declareLocationComponentSet(pyM, esM)
+        self.declareLocationComponentSet(pyM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
@@ -727,7 +718,7 @@ class SourceSinkModel(ComponentModel):
         """
 
         # Capacity variables [commodityUnit]
-        self.declareCapacityVars(pyM, esM)
+        self.declareCapacityVars(pyM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -803,7 +794,7 @@ class SourceSinkModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM, esM)
+        self.capToNbReal(pyM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -825,7 +816,8 @@ class SourceSinkModel(ComponentModel):
         # Set capacity development constraints over investment periods
         self.designDevelopmentConstraint(pyM, esM)
         self.decommissioningConstraint(pyM, esM)
-        self.initialYearConstraint(pyM, esM)
+        self.stockCapacityConstraint(pyM, esM)
+        self.stockCommissioningConstaint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #

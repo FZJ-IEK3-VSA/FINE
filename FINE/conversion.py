@@ -66,6 +66,9 @@ class Conversion(Component):
             given as a float (constant), pandas.Series or pandas.DataFrame (time-variable). A negative value
             indicates that the commodity is consumed. A positive value indicates that the commodity is produced.
             Check unit consistency when specifying this parameter!
+            
+            The conversion factors are currently constant over the transformation pathway!
+            
             Examples:
 
             * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
@@ -89,26 +92,30 @@ class Conversion(Component):
         :type linkedConversionCapacityID: string
 
         :param operationRateMax: if specified, indicates a maximum operation rate for each location and each time
-            step by a positive float. If hasCapacityVariable is set to True, the values are given relative
-            to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
-            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
-            of the physicalUnit of the plant for each time step.
+            step, if required also for each investment period, by a positive float. If hasCapacityVariable is set 
+            to True, the values are given relative to the installed capacities (i.e. a value of 1 indicates a 
+            utilization of 100% of the capacity). If hasCapacityVariable is set to False, the values are given as 
+            absolute values in form of the physicalUnit of the plant for each time step.
             |br| * the default value is None
-        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict with entries of
-            None or Pandas DataFrame with positive (>=0) per investement period. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+        :type operationRateMax:
+            * None 
+            * pandas DataFrame with positive (>=0). The row indices have
+              to match the in the energy system model specified time steps. The column indices have to match the
+              in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param operationRateFix: if specified, indicates a fixed operation rate for each location and each time
-            step by a positive float. If hasCapacityVariable is set to True, the values are given relative
-            to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
-            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
-            of the physicalUnit of the plant for each time step.
+            step, if required also for each investment period, by a positive float. If hasCapacityVariable is set 
+            to True, the values are given relative to the installed capacities (i.e. a value of 1 indicates a 
+            utilization of 100% of the capacity). If hasCapacityVariable is set to False, the values are given as 
+            absolute values in form of the physicalUnit of the plant for each time step.
             |br| * the default value is None
-        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict with entries of
-            None or Pandas DataFrame with positive (>=0) per investement period. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+        :type operationRateFix: 
+            * None 
+            * Pandas DataFrame with positive (>=0). The row indices have 
+              to match the in the energy system model specified time steps. The column indices have to match the
+              in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param tsaWeight: weight with which the time series of the component should be considered when applying
             time series aggregation.
@@ -122,9 +129,10 @@ class Conversion(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerOperation: positive (>=0) float or Pandas Series with positive (>=0) values or dict with
-            entries per investemenr periods of positive (>=0) float or Pandas Series with positive (>=0).
-            The indices of the series have to equal the in the energy system model specified locations.
+        :type opexPerOperation: 
+            * Pandas Series with positive (>=0) entries. The indices of the series have to equal the in the energy 
+              system model specified locations. 
+            * a dictionary with investment periods as keys and one of the two options above as values.
         """
         Component.__init__(
             self,
@@ -181,22 +189,16 @@ class Conversion(Component):
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
             esM, name, operationRateMax, locationalEligibility
         )
-        self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
-        self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
+        self.aggregatedOperationRateMax = {}
+        self.processedOperationRateMax = {}
 
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
             esM, name, operationRateFix, locationalEligibility
         )
-        self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
-        self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
-
-        # commodity conversions
-        self.commodityConversionFactors = commodityConversionFactors
-        self.fullCommodityConversionFactors = {}
-        self.aggregatedCommodityConversionFactors = {}
-        self.processedCommodityConversionFactors = {}
+        self.aggregatedOperationRateFix = {}
+        self.processedOperationRateFix = {}
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
@@ -209,70 +211,38 @@ class Conversion(Component):
             self.hasCapacityVariable,
         )
 
-        ########################
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip = esM.investmentPeriodList.index(_ip)
-            # 1. dict aus Jahren -> verschiedene commoditiyconversion für jahr
-            if all(
-                item in esM.investmentPeriods
-                for item in commodityConversionFactors.keys()
-            ):
-                _commodityConversionFactors = commodityConversionFactors[_ip]
-            else:
-                _commodityConversionFactors = commodityConversionFactors
+        # commodity conversions
+        # TODO The dependency of commodity conversion factors from 
+        # commissioning year is currently not supported and will be implemented
+        # in the next merge request.
+        if any(
+            isinstance(commodityConversionFactors[x], dict) for x in commodityConversionFactors.keys()
+        ):
+            raise NotImplementedError(
+                "A variation of commodity conversion factors over investment periods is currently not supported.")
+        self.commodityConversionFactors = commodityConversionFactors
+        self.fullCommodityConversionFactors, self.processedCommodityConversionFactors = utils.checkAndSetCommodityConversionFactor(self,esM)
+        self.aggregatedCommodityConversionFactors = dict.fromkeys(esM.investmentPeriods, {})
 
-            utils.checkCommodities(esM, set(_commodityConversionFactors.keys()))
-            utils.checkCommodityUnits(esM, physicalUnit)
-            if linkedConversionCapacityID is not None:
-                utils.isString(linkedConversionCapacityID)
-            self.fullCommodityConversionFactors[ip] = {}
-            self.aggregatedCommodityConversionFactors[ip] = {}
-            self.processedCommodityConversionFactors[ip] = {}
 
-            for commod in _commodityConversionFactors.keys():
-                if not isinstance(_commodityConversionFactors[commod], (int, float)):
-                    self.fullCommodityConversionFactors[ip][
-                        commod
-                    ] = utils.checkAndSetTimeSeriesConversionFactors(
-                        esM,
-                        _commodityConversionFactors[commod],
-                        self.locationalEligibility,
-                    )
-                    self.aggregatedCommodityConversionFactors[ip][commod] = None
-                elif isinstance(self.commodityConversionFactors[commod], (int, float)):
-                    self.processedCommodityConversionFactors[ip][
-                        commod
-                    ] = _commodityConversionFactors[commod]
-                else:
-                    raise ValueError
-
+        utils.isPositiveNumber(tsaWeight)
+        self.tsaWeight = tsaWeight
+        utils.checkCommodityUnits(esM, physicalUnit)
+        if linkedConversionCapacityID is not None:
+            utils.isString(linkedConversionCapacityID)
         self.physicalUnit = physicalUnit
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
 
-        utils.isPositiveNumber(tsaWeight)
-        self.tsaWeight = tsaWeight
-
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullOperationRateFix.values()
-        ):
-            self.fullOperationRateFix = None
-
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullOperationRateMax.values()
-        ):
-            self.fullOperationRateMax = None
-
-        operationTimeSeries = {}
+        # set parameter to None if all years have None values
+        self.fullOperationRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateFix)
+        self.fullOperationRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateMax)
+        
+        
         if self.fullOperationRateFix is not None:
-            for ip in esM.investmentPeriods:
-                operationTimeSeries[ip] = self.fullOperationRateFix[ip]
+            operationTimeSeries=self.fullOperationRateFix
         elif self.fullOperationRateMax is not None:
-            for ip in esM.investmentPeriods:
-                operationTimeSeries[ip] = self.fullOperationRateMax[ip]
+            operationTimeSeries=self.fullOperationRateMax
         else:
             operationTimeSeries = None
 
@@ -286,15 +256,7 @@ class Conversion(Component):
             operationTimeSeries,
         )
 
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a conversion component to the given energy system model
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
-
+    
     def setTimeSeriesData(self, hasTSA):
         """
         Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
@@ -303,12 +265,15 @@ class Conversion(Component):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
+        # processedOperationMax
         self.processedOperationRateMax = (
             self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
         )
+        # processedOperationFix
         self.processedOperationRateFix = (
             self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
         )
+        # processedCommodityConversions
         for ip in self.fullCommodityConversionFactors.keys():
             if self.fullCommodityConversionFactors[ip] != {}:
                 for commod in self.fullCommodityConversionFactors[ip]:
@@ -317,6 +282,7 @@ class Conversion(Component):
                         if hasTSA
                         else self.fullCommodityConversionFactors[ip][commod]
                     )
+        
 
     def getDataForTimeSeriesAggregation(self, ip):
         """Function for getting the required data if a time series aggregation is requested.
@@ -393,7 +359,7 @@ class Conversion(Component):
     def initializeProcessedDataSets(self, investmentperiods):
         """
         Initialize dicts (keys are investment periods, values are None)
-        for processed data sets.
+        for processed data sets. # TODO was ist das?
 
         :param investmentperiods: investmentperiods of transformation path analysis.
         :type investmentperiods: list
@@ -480,13 +446,13 @@ class ConversionModel(ComponentModel):
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM, esM)
-        self.declareDiscreteDesignVarSet(pyM, esM)
-        self.declareDesignDecisionVarSet(pyM, esM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         # Declare design pathway sets
         self.declarePathwaySets(pyM, esM)
-        self.declareLocationComponentSet(pyM, esM)
+        self.declareLocationComponentSet(pyM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
@@ -521,7 +487,7 @@ class ConversionModel(ComponentModel):
         """
 
         # Capacity variables [physicalUnit]
-        self.declareCapacityVars(pyM, esM)
+        self.declareCapacityVars(pyM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -578,7 +544,7 @@ class ConversionModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM, esM)
+        self.capToNbReal(pyM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -602,7 +568,8 @@ class ConversionModel(ComponentModel):
         # Set capacity development constraints over investment periods
         self.designDevelopmentConstraint(pyM, esM)
         self.decommissioningConstraint(pyM, esM)
-        self.initialYearConstraint(pyM, esM)
+        self.stockCapacityConstraint(pyM, esM)
+        self.stockCommissioningConstaint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
@@ -881,7 +848,7 @@ class ConversionModel(ComponentModel):
 
             * 'capacityVariables',
             * 'isBuiltVariables',
-            * '_operationVariablesOptimum',
+            * 'operationVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'

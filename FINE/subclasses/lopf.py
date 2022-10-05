@@ -102,15 +102,6 @@ class LinearOptimalPowerFlow(Transmission):
         except:
             self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a LinearOptimalPowerFlow component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
-
 
 class LOPFModel(TransmissionModel):
 
@@ -170,13 +161,13 @@ class LOPFModel(TransmissionModel):
         # # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM, esM)
-        self.declareDiscreteDesignVarSet(pyM, esM)
-        self.declareDesignDecisionVarSet(pyM, esM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         # Declare design pathway sets
         self.declarePathwaySets(pyM, esM)
-        self.declareLocationComponentSet(pyM, esM)
+        self.declareLocationComponentSet(pyM)
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
@@ -220,7 +211,7 @@ class LOPFModel(TransmissionModel):
         """
 
         # Capacity and commissioning variables in [commodityUnit]
-        self.declareCapacityVars(pyM, esM)
+        self.declareCapacityVars(pyM)
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)

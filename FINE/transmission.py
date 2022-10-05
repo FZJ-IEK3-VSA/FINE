@@ -360,15 +360,6 @@ class Transmission(Component):
         ):
             self.fullOperationRateMax = None
 
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a transmission component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
-
     def setTimeSeriesData(self, hasTSA):
         """
         Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
@@ -479,13 +470,13 @@ class TransmissionModel(ComponentModel):
         # # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
-        self.declareContinuousDesignVarSet(pyM, esM)
-        self.declareDiscreteDesignVarSet(pyM, esM)
-        self.declareDesignDecisionVarSet(pyM, esM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
 
         # Declare design pathway sets
         self.declarePathwaySets(pyM, esM)
-        self.declareLocationComponentSet(pyM, esM)
+        self.declareLocationComponentSet(pyM)
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
@@ -512,7 +503,7 @@ class TransmissionModel(ComponentModel):
         """
 
         # Capacity variables [commodityUnit]
-        self.declareCapacityVars(pyM, esM)
+        self.declareCapacityVars(pyM)
         # (Continuous) numbers of installed components [-]
         self.declareRealNumbersVars(pyM)
         # (Discrete/integer) numbers of installed components [-]
@@ -632,7 +623,7 @@ class TransmissionModel(ComponentModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM, esM)
+        self.capToNbReal(pyM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -652,7 +643,8 @@ class TransmissionModel(ComponentModel):
         # Set capacity development constraints over investment periods
         self.designDevelopmentConstraint(pyM, esM)
         self.decommissioningConstraint(pyM, esM)
-        self.initialYearConstraint(pyM, esM)
+        self.stockCapacityConstraint(pyM, esM)
+        self.stockCommissioningConstaint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
@@ -835,7 +827,7 @@ class TransmissionModel(ComponentModel):
             pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDictOut"
         )
 
-        capexCap = self.getEconomicsTI(
+        capexCap = self.getEconomicsDesign(
             pyM,
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
@@ -845,7 +837,7 @@ class TransmissionModel(ComponentModel):
             divisorName="CCF",
             QPdivisorNames=["QPbound", "CCF"],
         )
-        capexDec = self.getEconomicsTI(
+        capexDec = self.getEconomicsDesign(
             pyM,
             esM,
             factorNames=["processedInvestIfBuilt"],
@@ -853,7 +845,7 @@ class TransmissionModel(ComponentModel):
             varName="commisBin",
             divisorName="CCF",
         )
-        opexCap = self.getEconomicsTI(
+        opexCap = self.getEconomicsDesign(
             pyM,
             esM,
             factorNames=["processedOpexPerCapacity", "QPcostDev"],
@@ -862,7 +854,7 @@ class TransmissionModel(ComponentModel):
             varName="commis",
             QPdivisorNames=["QPbound"],
         )
-        opexDec = self.getEconomicsTI(
+        opexDec = self.getEconomicsDesign(
             pyM,
             esM,
             factorNames=["processedOpexIfBuilt"],

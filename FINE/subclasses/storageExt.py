@@ -264,14 +264,6 @@ class StorageExtBETA(Storage):
         ):
             self.fullOpexPerChargeOpTimeSeries = None
 
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a StorageExt component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -790,7 +782,7 @@ class StorageExtModel(StorageModel):
         ################################################################################################################
 
         # Determine the components' capacities from the number of installed units
-        self.capToNbReal(pyM, esM)
+        self.capToNbReal(pyM)
         # Determine the components' capacities from the number of installed units
         self.capToNbInt(pyM)
         # Enforce the consideration of the binary design variables of a component
@@ -808,7 +800,8 @@ class StorageExtModel(StorageModel):
         # Set capacity development constraints over investment periods
         self.designDevelopmentConstraint(pyM, esM)
         self.decommissioningConstraint(pyM, esM)
-        self.initialYearConstraint(pyM, esM)
+        self.stockCapacityConstraint(pyM, esM)
+        self.stockCommissioningConstaint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
