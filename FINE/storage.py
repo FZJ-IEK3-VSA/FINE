@@ -125,28 +125,32 @@ class Storage(Component):
         :type doPreciseTsaModeling: boolean
 
         :param chargeOpRateMax: if specified, indicates a maximum charging rate for each location and each time
-            step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+            step, if required also for each investment period, by a positive float. If hasCapacityVariable is set to True, the values are given relative
             to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
             during one time step.
             |br| * the default value is None
-        :type chargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict of
-            None or Pandas DataFrame with positive (>=0) values per investement period.. The row indices have
+        :type chargeOpRateMax: 
+            * None 
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param chargeOpRateFix: if specified, indicates a fixed charging rate for each location and each time
-            step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+            step, if required also for each investment period, by a positive float. If hasCapacityVariable is set to True, the values are given relative
             to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
             during one time step.
             |br| * the default value is None
-        :type chargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict of
-            None or Pandas DataFrame with positive (>=0) values per investement period. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to match the
+        :type chargeOpRateFix: 
+            * None 
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param chargeTsaWeight: weight with which the chargeOpRate (max/fix) time series of the
             component should be considered when applying time series aggregation.
@@ -154,26 +158,32 @@ class Storage(Component):
         :type chargeTsaWeight: positive (>= 0) float
 
         :param dischargeOpRateMax: if specified, indicates a maximum discharging rate for each location and each
-            time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+            time step, if required also for each investment period, by a positive float. If hasCapacityVariable is set to True, the values are given relative
             to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit, referring to the discharged commodity (after multiplying the discharging
             efficiency) during one time step.
             |br| * the default value is None
-        :type dischargeOpRateMax: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
+        :type dischargeOpRateMax: 
+            * None 
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param dischargeOpRateFix: if specified, indicates a fixed discharging rate for each location and each
-            time step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+            time step, if required also for each investment period, by a positive float. If hasCapacityVariable is set to True, the values are given relative
             to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit, referring to the charged commodity (after multiplying the discharging
             efficiency) during one time step.
             |br| * the default value is None
-        :type dischargeOpRateFix: None or Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to match the
+        :type dischargeOpRateFix:   
+            * None 
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
+            to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param dischargeTsaWeight: weight with which the dischargeOpRate (max/fix) time series of the
             component should be considered when applying time series aggregation.
@@ -190,7 +200,7 @@ class Storage(Component):
             The cost which is directly proportional to the charge operation of the
             component is obtained by multiplying the opexPerChargeOperation parameter with the annual sum of the
             operational time series of the components. The opexPerChargeOperation can either be given as a float
-            or a Pandas Series with location specific values.
+            or a Pandas Series with location specific values or a dictionary per investment period with one of the two previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
@@ -202,13 +212,14 @@ class Storage(Component):
             The cost which is directly proportional to the discharge operation
             of the component is obtained by multiplying the opexPerDischargeOperation parameter with the annual sum
             of the operational time series of the components. The opexPerDischargeOperation can either be given as
-            a float or a Pandas Series with location specific values.
+            a float or a Pandas Series with location specific values or a dictionary per investment period with one of the two previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerDischargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values or dict of
-            positive (>=0) float or Pandas Series with positive (>=0) values per investement period.
-            The indices of the series have to equal the in the energy system model specified locations.
+        :type opexPerDischargeOperation: 
+            * positive (>=0) float 
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param socOffsetDown: determines whether the state of charge at the end of a period p has
             to be equal to the one at the beginning of a period p+1 (socOffsetDown=-1) or if
@@ -264,16 +275,12 @@ class Storage(Component):
         )
         # TODO unit and type checks
         self.chargeRate, self.dischargeRate = chargeRate, dischargeRate
-        self.chargeEfficiency, self.dischargeEfficiency = (
-            chargeEfficiency,
-            dischargeEfficiency,
-        )
+        self.chargeEfficiency=chargeEfficiency
+        self.dischargeEfficiency = dischargeEfficiency
         self.selfDischarge = selfDischarge
         self.cyclicLifetime = cyclicLifetime
-        self.stateOfChargeMin, self.stateOfChargeMax = (
-            stateOfChargeMin,
-            stateOfChargeMax,
-        )
+        self.stateOfChargeMin = stateOfChargeMin
+        self.stateOfChargeMax = stateOfChargeMax
         self.isPeriodicalStorage = isPeriodicalStorage
         self.doPreciseTsaModeling = doPreciseTsaModeling
         self.socOffsetUp = socOffsetUp
@@ -309,31 +316,6 @@ class Storage(Component):
         # chargeOpRateFix and chargeOpRateMax
         self.chargeOpRateMax = chargeOpRateMax
         self.chargeOpRateFix = chargeOpRateFix
-        # last check here -> move to utils?
-        for _ip in esM.investmentPeriodList:
-            # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip = esM.investmentPeriodList.index(_ip)
-            _chargeOpRateMax = (
-                chargeOpRateMax[_ip]
-                if isinstance(chargeOpRateMax, dict)
-                else chargeOpRateMax
-            )
-            _chargeOpRateFix = (
-                chargeOpRateFix[_ip]
-                if isinstance(chargeOpRateFix, dict)
-                else chargeOpRateFix
-            )
-
-            if _chargeOpRateMax is not None and _chargeOpRateFix is not None:
-                if isinstance(chargeOpRateMax, dict):
-                    chargeOpRateMax[ip] = None
-                else:
-                    chargeOpRateMax = None
-                if esM.verbose < 2:
-                    warnings.warn(
-                        "If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n"
-                        + "The chargeOpRateMax time series was set to None."
-                    )
 
         # chargeOpRateMax
         self.fullChargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
@@ -361,6 +343,16 @@ class Storage(Component):
         )
         self.aggregatedDischargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
 
+        # check for chargeOpRateMax and chargeOpRateFix
+        for ip in esM.investmentPeriods:
+            if self.fullChargeOpRateMax[ip] is not None and self.fullChargeOpRateFix[ip] is not None:
+                self.fullChargeOpRateMax[ip] = None
+                if esM.verbose < 2:
+                    warnings.warn(
+                        "If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n"
+                        + "The chargeOpRateMax time series was set to None."
+                    )
+        
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
             esM,
@@ -415,29 +407,12 @@ class Storage(Component):
             timeSeriesData,
         )
 
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullChargeOpRateFix.values()
-        ):
-            self.fullChargeOpRateFix = None
-
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullChargeOpRateMax.values()
-        ):
-            self.fullChargeOpRateMax = None
-
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullDischargeOpRateFix.values()
-        ):
-            self.fullDischargeOpRateFix = None
-
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullDischargeOpRateMax.values()
-        ):
-            self.fullDischargeOpRateMax = None
+        # set parameter to None if all years have None values
+        self.fullChargeOpRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullChargeOpRateFix)
+        self.fullChargeOpRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullChargeOpRateMax)
+        self.fullDischargeOpRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullDischargeOpRateFix)
+        self.fullDischargeOpRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullDischargeOpRateMax)
+        
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -526,25 +501,11 @@ class Storage(Component):
             "processedDischargeOpRateFix",
             "processedDischargeOpRateMax",
         ]:
-            if getattr(self, parameter) is not None:
-                if all(
-                    type(value) != pd.core.frame.DataFrame
-                    for value in getattr(self, parameter).values()
-                ):
-                    setattr(self, parameter, None)
-
-    def initializeProcessedDataSets(self, investmentperiods):
-        """
-        Initialize dicts (keys are investment periods, values are None)
-        for processed data sets.
-
-        :param investmentperiods: investmentperiods of transformation path analysis.
-        :type investmentperiods: list
-        """
-        self.processedChargeOpRateMax = dict.fromkeys(investmentperiods)
-        self.processedChargeOpRateFix = dict.fromkeys(investmentperiods)
-        self.processedDischargeOpRateMax = dict.fromkeys(investmentperiods)
-        self.processedDischargeOpRateFix = dict.fromkeys(investmentperiods)
+            setattr(
+                self,
+                parameter,
+                utils.setParamToNoneIfNoneForAllYears(getattr(self,parameter)
+            ))
 
 
 class StorageModel(ComponentModel):
@@ -870,12 +831,12 @@ class StorageModel(ComponentModel):
         with full temporal resolution
 
         .. math::
-            SoC^{comp}_{loc,0,0} = SoC^{comp}_{loc,0,t^{total}}
+            SoC^{comp}_{loc,ip,0,0} = SoC^{comp}_{loc,ip,0,t^{total}}
 
         with time series aggregation:
 
         .. math::
-            SoC^{inter}_{loc,0} = SoC^{inter}_{loc,p^{total}}
+            SoC^{inter}_{loc,ip,0} = SoC^{inter}_{loc,ip,p^{total}}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -941,7 +902,7 @@ class StorageModel(ComponentModel):
             :nowrap:
 
             \\begin{eqnarray*}
-            & & op^{comp,charge}_{loc,annual} \\leq \\left( \\text{SoC}^{max} - \\text{SoC}^{min} \\right) \\cdot cap^{comp}_{loc} \\cdot \\frac{t^{ \\text{comp,cyclic lifetime}}}{\\tau^{ \\text{comp,economic lifetime}}_{loc}} \\\\
+            & & op^{comp,charge}_{loc,annual} \\leq \\left( \\text{SoC}^{max} - \\text{SoC}^{min} \\right) \\cdot cap^{comp}_{loc,ip} \\cdot \\frac{t^{ \\text{comp,cyclic lifetime}}}{\\tau^{ \\text{comp,economic lifetime}}_{loc}} \\\\
             \\text{with} \\\\
             & & op^{comp,charge}_{loc,annual} = \\sum_{(ip,p,t) \\in \\mathcal{P} \\times \\mathcal{T}} op^{comp,charge}_{loc,ip,p,t} \\cdot freq(p) / \\tau^{years}
             \\end{eqnarray*}
@@ -1069,7 +1030,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            SoC^{comp}_{loc,p,0} = 0
+            SoC^{comp}_{loc,ip,p,0} = 0
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1097,7 +1058,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            SoC^{comp,inter}_{p} = SoC^{comp,inter}_{p+1}
+            SoC^{comp,inter}_{ip,p} = SoC^{comp,inter}_{ip,p+1}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1130,7 +1091,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            SoC^{comp,min} \cdot cap^{comp}_{loc} \leq SoC^{comp}_{loc,0,t}
+            SoC^{comp,min} \cdot cap^{comp}_{loc,ip} \leq SoC^{comp}_{loc,ip,0,t}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1163,11 +1124,11 @@ class StorageModel(ComponentModel):
             :nowrap:
 
             \\begin{eqnarray*}
-            & & \\underline{SoC}^{comp,sup}_{loc,ip,p,t} \\geq \\text{SoC}^{min} \\cdot cap^{comp}_{loc} \\\\  
-            & & \overline{SoC}^{comp,sup}_{loc,ip,p,t} \\leq \\text{SoC}^{max} \\cdot cap^{comp}_{loc} \\\\
+            & & \\underline{SoC}^{comp,sup}_{loc,ip,p,t} \\geq \\text{SoC}^{min} \\cdot cap^{comp}_{loc,ip} \\\\  
+            & & \overline{SoC}^{comp,sup}_{loc,ip,p,t} \\leq \\text{SoC}^{max} \\cdot cap^{comp}_{loc,ip} \\\\
             \\text{with } \\\\ 
             & & \\underline{SoC}^{comp,sup}_{loc,ip,p,t} = SoC^{inter}_{loc,ip,p} \\cdot (1 - \\eta^{\\text{self-discharge}})^{\\frac{t^{\\text{per period}} \\cdot \\tau^{hours}}{h}}+ SoC^{min}_{loc,ip,map(p)} \\\\
-            & &\\overline{SoC}^{comp,sup}_{locip,,p,t} = SoC^{inter}_{loc,ip,p} + SoC^{max}_{loc,ip,map(p)}
+            & &\\overline{SoC}^{comp,sup}_{loc,ip,p,t} = SoC^{inter}_{loc,ip,p} + SoC^{max}_{loc,ip,map(p)}
             \\end{eqnarray*}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -1268,7 +1229,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            SoC^{comp}_{loc,0,t} \\leq \\text{SoC}^{comp,max} \\cdot cap^{comp}_{loc}
+            SoC^{comp}_{loc,ip,0,t} \\leq \\text{SoC}^{comp,max} \\cdot cap^{comp}_{loc,ip}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1304,7 +1265,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            SoC^{inter}_{loc,ip,p} \cdot (1 - \eta^{\\text{self-discharge}})^{\\frac{t \cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,ip,map(p),t} \leq \\text{SoC}^{max} \cdot cap^{comp}_{loc}
+            SoC^{inter}_{loc,ip,p} \cdot (1 - \eta^{\\text{self-discharge}})^{\\frac{t \cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,ip,map(p),t} \leq \\text{SoC}^{max} \cdot cap^{comp}_{loc,ip}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1369,7 +1330,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            \\text{SoC}^{min} \cdot cap^{comp}_{loc} \leq SoC^{inter}_{loc,ip,p} \cdot (1 - \eta^{\\text{self-discharge}})^{\\frac{t \cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,ip,map(p),t}
+            \\text{SoC}^{min} \cdot cap^{comp}_{loc,ip} \leq SoC^{inter}_{loc,ip,p} \cdot (1 - \eta^{\\text{self-discharge}})^{\\frac{t \cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,ip,map(p),t}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1663,11 +1624,6 @@ class StorageModel(ComponentModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """
-        Get contributions to shared location potential.
-        """
-        return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
@@ -1694,7 +1650,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            \\text{C}^{comp,comm}_{loc,p,t} = op^{comp,discharge}_{loc,p,t} - op^{comp,charge}_{loc,p,t}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = op^{comp,discharge}_{loc,ip,p,t} - op^{comp,charge}_{loc,ip,p,t}
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName

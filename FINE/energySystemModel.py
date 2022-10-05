@@ -999,7 +999,6 @@ class EnergySystemModel:
         pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
             for comp in mdl.componentsDict.values():
-                comp.initializeProcessedDataSets(self.investmentPeriods)
                 comp.setTimeSeriesData(pyM.hasTSA)
                 comp.checkProcessedDataSets()
 

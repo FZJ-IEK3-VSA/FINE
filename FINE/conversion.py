@@ -211,7 +211,7 @@ class Conversion(Component):
             self.hasCapacityVariable,
         )
 
-        # commodity conversions
+        # commodity conversions factors
         # TODO The dependency of commodity conversion factors from 
         # commissioning year is currently not supported and will be implemented
         # in the next merge request.
@@ -223,7 +223,6 @@ class Conversion(Component):
         self.commodityConversionFactors = commodityConversionFactors
         self.fullCommodityConversionFactors, self.processedCommodityConversionFactors = utils.checkAndSetCommodityConversionFactor(self,esM)
         self.aggregatedCommodityConversionFactors = dict.fromkeys(esM.investmentPeriods, {})
-
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
@@ -237,8 +236,7 @@ class Conversion(Component):
         # set parameter to None if all years have None values
         self.fullOperationRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateFix)
         self.fullOperationRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateMax)
-        
-        
+
         if self.fullOperationRateFix is not None:
             operationTimeSeries=self.fullOperationRateFix
         elif self.fullOperationRateMax is not None:
@@ -256,7 +254,7 @@ class Conversion(Component):
             operationTimeSeries,
         )
 
-    
+
     def setTimeSeriesData(self, hasTSA):
         """
         Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
@@ -349,23 +347,11 @@ class Conversion(Component):
         the parameter itself is set to None.
         """
         for parameter in ["processedOperationRateFix", "processedOperationRateMax"]:
-            if getattr(self, parameter) is not None:
-                if all(
-                    type(value) != pd.core.frame.DataFrame
-                    for value in getattr(self, parameter).values()
-                ):
-                    setattr(self, parameter, None)
-
-    def initializeProcessedDataSets(self, investmentperiods):
-        """
-        Initialize dicts (keys are investment periods, values are None)
-        for processed data sets. # TODO was ist das?
-
-        :param investmentperiods: investmentperiods of transformation path analysis.
-        :type investmentperiods: list
-        """
-        self.processedOperationRateMax = dict.fromkeys(investmentperiods)
-        self.processedOperationRateFix = dict.fromkeys(investmentperiods)
+            setattr(
+                self,
+                parameter,
+                utils.setParamToNoneIfNoneForAllYears(getattr(self,parameter)
+            ))
 
 
 class ConversionModel(ComponentModel):
@@ -597,9 +583,6 @@ class ConversionModel(ComponentModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """Get contributions to shared location potential."""
-        return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
@@ -633,7 +616,7 @@ class ConversionModel(ComponentModel):
 
         .. math::
 
-            \\text{C}^{comp,comm}_{loc,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,p,t}^{comp,op}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,ip,p,t}^{comp,op}
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName

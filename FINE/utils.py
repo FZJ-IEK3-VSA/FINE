@@ -2338,6 +2338,7 @@ def netPresentValueFactor(esM, ip, compName, loc):
         * (1 + esM.getComponent(compName).interestRate[loc])
     )
 
+
 def checkAndSetCommodityConversionFactor(comp,esM):
     """Set up the full commodity conversion factor per ip.
     # TODO later also per commissioning year
@@ -2398,7 +2399,10 @@ def checkAndSetCommodityConversionFactor(comp,esM):
                     f"Data type '{type(commodityConversionFactors[commod])}' not accepted.")
     return fullCommodityConversionFactor, processedCommodityConversionFactor
 
+
 def setParamToNoneIfNoneForAllYears(parameter):
+    if parameter is None:
+        return parameter
     if all(value is None for value in parameter.values()
     ):
         return None

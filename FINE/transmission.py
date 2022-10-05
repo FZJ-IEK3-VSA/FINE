@@ -79,34 +79,38 @@ class Transmission(Component):
             column indices of the DataFrame have to equal the in the energy system model specified locations.
 
         :param operationRateMax: if specified, indicates a maximum operation rate for all possible connections
-            (both directions) of the transmission component at each time step by a positive float. If
+            (both directions) of the transmission component at each time step, if required also for each investment period, by a positive float. If
             hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.
             a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
-        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
-            DataFrame with positive (>= 0) entries per investment period. The row indices have
+        :type operationRateMax: 
+            * None 
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
             location indicates where the commodity is going too. If a flow is specified from location i to
             location j, it also has to be specified from j to i.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param operationRateFix: if specified, indicates a fixed operation rate for all possible connections
-            (both directions) of the transmission component at each time step by a positive float. If
+            (both directions) of the transmission component at each time step, if required also for each investment period, by a positive float. If
             hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.
             a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
-        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
-            DataFrame with positive (>= 0) entries per investment period.. The row indices have
+        :type operationRateFix: 
+            * None 
+            * Pandas DataFrame with positive (>= 0). The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
             one location indicates where the commodity is going too. If a flow is specified from location i to
             location j, it also has to be specified from j to i.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param tsaWeight: weight with which the time series of the component should be considered when applying
             time series aggregation.
@@ -116,15 +120,16 @@ class Transmission(Component):
         :param opexPerOperation: describes the cost for one unit of the operation.
             The cost which is directly proportional to the operation of the component is obtained by multiplying
             the opexPerOperation parameter with the annual sum of the operational time series of the components.
-            The opexPerOperation can either be given as a float or a Pandas DataFrame with location specific values.
+            The opexPerOperation can either be given as a float or a Pandas DataFrame with location specific values or a dictionary per investment period with one of the previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro). The value has to match the unit costUnit/operationUnit
             (e.g. Euro/kWh, Dollar/kWh).
             |br| * the default value is 0
-        :type opexPerOperation: positive (>=0) float or Pandas DataFrame with positive (>=0) values or dict of
-            positive (>=0) float or Pandas DataFrame with positive (>=0) values per investment period.
-            The row and column indices of the DataFrame have to equal the in the energy system model
+        :type opexPerOperation: 
+            * positive (>=0) float 
+            * Pandas DataFrame with positive (>=0).The row and column indices of the DataFrame have to equal the in the energy system model
             specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
             Should be specified if the respective component of the TransmissionModel is supposed to be included in
@@ -172,7 +177,7 @@ class Transmission(Component):
                     self._mapC.update({loc1 + "_" + loc2: (loc1, loc2)})
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + "_" + loc2})
                     self._mapI.update({loc1 + "_" + loc2: loc2 + "_" + loc1})
-
+        # capacity parameter
         self.capacityMax = utils.preprocess2dimData(
             capacityMax, self._mapC, locationalEligibility=self.locationalEligibility
         )
@@ -182,6 +187,7 @@ class Transmission(Component):
         self.capacityMin = utils.preprocess2dimData(
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
+        # stockCommissioning
         if stockCommissioning is None:
             self.stockCommissioning = stockCommissioning
         elif isinstance(stockCommissioning, dict):
@@ -192,7 +198,7 @@ class Transmission(Component):
                     locationalEligibility=locationalEligibility,
                 )
         else:
-            raise ValueError()
+            raise ValueError("stockCommissioning must be None or a dict.")
 
         self.isBuiltFix = utils.preprocess2dimData(
             isBuiltFix, self._mapC, locationalEligibility=self.locationalEligibility
@@ -324,7 +330,7 @@ class Transmission(Component):
             esM, name, operationRateMax, self.locationalEligibility
         )
         self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
-        self.processedOperationRateMax = {}
+        self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
 
         # operationRateFix
         self.operationRateFix = operationRateFix
@@ -332,7 +338,7 @@ class Transmission(Component):
             esM, name, operationRateFix, self.locationalEligibility
         )
         self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
-        self.processedOperationRateFix = {}
+        self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
@@ -348,18 +354,10 @@ class Transmission(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # New code for perfect foresight
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullOperationRateFix.values()
-        ):
-            self.fullOperationRateFix = None
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullOperationRateMax.values()
-        ):
-            self.fullOperationRateMax = None
-
+        # set parameter to None if all years have None values
+        self.fullOperationRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateFix)
+        self.fullOperationRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateMax)
+        
     def setTimeSeriesData(self, hasTSA):
         """
         Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
@@ -417,23 +415,11 @@ class Transmission(Component):
         the parameter itself is set to None.
         """
         for parameter in ["processedOperationRateFix", "processedOperationRateMax"]:
-            if getattr(self, parameter) is not None:
-                if all(
-                    type(value) != pd.core.frame.DataFrame
-                    for value in getattr(self, parameter).values()
-                ):
-                    setattr(self, parameter, None)
-
-    def initializeProcessedDataSets(self, investmentperiods):
-        """
-        Initialize dicts (keys are investment periods, values are None)
-        for processed data sets.
-
-        :param investmentperiods: investmentperiods of transformation path analysis.
-        :type investmentperiods: list
-        """
-        self.processedOperationRateMax = dict.fromkeys(investmentperiods)
-        self.processedOperationRateFix = dict.fromkeys(investmentperiods)
+            setattr(
+                self,
+                parameter,
+                utils.setParamToNoneIfNoneForAllYears(getattr(self,parameter)
+            ))
 
 
 class TransmissionModel(ComponentModel):
@@ -480,7 +466,6 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-        # self.declareOperationBinarySet(esM, pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
@@ -672,9 +657,6 @@ class TransmissionModel(ComponentModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """Get contributions to shared location potential."""
-        return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
@@ -1013,30 +995,6 @@ class TransmissionModel(ComponentModel):
                 ] = (
                     npv_ox.values * 0.5
                 )
-
-                # TODO what is this? is there any test for it?
-                # New index for opex is required as indexing with list with missing labels is deprecated
-                # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-with-list-with-missing-labels-is-deprecated
-                # newIndex = opSum.columns.tolist()
-                # for name in compDict.keys():
-                #     compDict[name].processedOpexPerOperation[ip] = (
-                #         compDict[name]
-                #         .processedOpexPerOperation[ip]
-                #         .reindex(newIndex, fill_value=0.0)
-                #     )
-
-                # ox = opSum.apply(
-                #     lambda op: op
-                #     * compDict[op.name].processedOpexPerOperation[ip][op.index],
-                #     axis=1,
-                # )
-
-                # optSummary.loc[
-                #     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                #     ox.columns,
-                # ] = (
-                #     ox.values / esM.numberOfYears * 0.5
-                # )
 
             optSummary = optSummary.append(
                 optSummaryBasic[esM.investmentPeriodList[ip]]

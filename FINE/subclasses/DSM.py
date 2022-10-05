@@ -77,11 +77,13 @@ class DemandSideManagementBETA(Sink):
             If hasCapacityVariable is set to True, the values are given relative
             to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
-            of the commodityUnit for each time step.
-        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
-            DataFrame with positive (>= 0) entries per investment period. The row indices have
+            of the commodityUnit for each time step, if required also for each investment period.
+        :type operationRateFix: 
+            * None 
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         **Default arguments:**
 
@@ -130,7 +132,6 @@ class DemandSideManagementBETA(Sink):
         self.tFwd = tFwd
         self.tDelta = tFwd + tBwd + 1
 
-        #############
         _operationRateFix = {}
         self.shiftUpMax = {}
         self.shiftDownMax = {}
