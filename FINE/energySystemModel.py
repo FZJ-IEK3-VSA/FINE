@@ -128,12 +128,15 @@ class EnergySystemModel:
             |br| * the default value is 1
         : type investmentPeriodInterval: strictly positive integer
 
-        :param startYear: year name of first investment period, e.g. for a transformation
+        :param startYear: year name of first investment period, e.g. for a transformation 
             pathway from 2020 to 2030 with the years 2020, 2025, 2030, the startYear is 2020
             |br| * the default value is None
         : type startYear: integer
 
-        :param stochasticModel: # TODO
+        :param stochasticModel: defines whether a model is stochastic or not. 
+            For stochastic model optimization (e.g. with various weather years) set this value to True.
+            For stochastic optimization the components capacity design is the same for all investment 
+            periods in order to achieve a more robust system design.# TODO
             |br| * the default value is False
         : type mode: bool
 
@@ -480,7 +483,9 @@ class EnergySystemModel:
         :returns: the attribute specified by the attributeName of the component with the name componentName
         :rtype: depends on the specified attribute
         """
-        # TODO writer nicer,special case so old models will still run: get parameter values out of parameter dict for ip
+        # if there is only data for one investment period, the function 
+        # directely returns the value instead of {0:value}. This allows old 
+        # models to run without modification
         if isinstance(
             getattr(self.getComponent(componentName), attributeName), dict
         ) and list(getattr(self.getComponent(componentName), attributeName).keys()) == [
@@ -1455,13 +1460,13 @@ class EnergySystemModel:
 
         .. math::
             z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum} 
-            \\left( TAC_{loc}^{comp,cap}  +  TAC_{loc}^{comp,bin} + TAC_{loc}^{comp,op} \\right)
+            \\left( NPV_{loc}^{comp,cap}  +  NPV_{loc}^{comp,bin} + NPV_{loc}^{comp,op} \\right)
 
         Objective Function detailed:
 
         .. math::
             :nowrap:
-            # TODO
+            # TODO Change function
             \\begin{eqnarray*}
             z^* = \\min & & \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}
             \\left[ \\text{F}^{comp,cap}_{loc} \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc}}{\\text{CCF}^{comp}_{loc}} \\right.

@@ -307,32 +307,6 @@ class Source(Component):
         self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
-        # operationRateMax and Fix test -> TODO mode
-        for ip in esM.investmentPeriodList:
-            #  ugly test to check that for every ip there is either
-            # operationRateMax or operationRateFix
-            _operationRateMax = (
-                operationRateMax[ip]
-                if isinstance(operationRateMax, dict)
-                else operationRateMax
-            )
-            _operationRateFix = (
-                operationRateFix[ip]
-                if isinstance(operationRateFix, dict)
-                else operationRateFix
-            )
-
-            if _operationRateMax is not None and _operationRateFix is not None:
-                if isinstance(operationRateMax, dict):
-                    operationRateMax[ip] = None
-                else:
-                    operationRateMax = None
-                if esM.verbose < 2:
-                    warnings.warn(
-                        "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
-                        + "The operationRateMax time series was set to None."
-                    )
-
         # operationRateMax
         self.operationRateMax = operationRateMax
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
@@ -1315,7 +1289,7 @@ class SourceSinkModel(ComponentModel):
                 .values
             )
 
-            # TODO Decision if NPV contribution shall be given in more detail
+            # Delete details of NPV contributions
             optSummary = optSummary.drop("NPV_opexOp", level=1)
             optSummary = optSummary.drop("NPV_commodCosts", level=1)
             optSummary = optSummary.drop("NPV_commodRevenues", level=1)

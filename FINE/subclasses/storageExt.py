@@ -1145,7 +1145,7 @@ class StorageExtModel(StorageModel):
                 .values
             )
 
-            # TODO Decision if NPV contribution shall be given in more detail
+            # # Delete details of NPV contributions
             optSummary = optSummary.drop("NPV_opexOp_storageExt", level=1)
             self._optSummary[ip] = optSummary
 

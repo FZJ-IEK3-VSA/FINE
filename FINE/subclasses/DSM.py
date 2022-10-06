@@ -761,7 +761,7 @@ class DSMModel(SourceSinkModel):
                 .sum()
                 .values
             )
-            # TODO Decision if NPV contribution shall be given in more detail
+            # # Delete details of NPV contributions
             optSummary = optSummary.drop("NPV_opexOp", level=1)
             optSummary = optSummary.drop("NPV_commodCosts", level=1)
             optSummary = optSummary.drop("NPV_commodRevenues", level=1)

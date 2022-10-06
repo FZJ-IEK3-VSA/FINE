@@ -2140,7 +2140,7 @@ class StorageModel(ComponentModel):
                 .values
             )
 
-            # TODO Decision if NPV contribution shall be given in more detail
+            # # Delete details of NPV contributions
             optSummary = optSummary.drop("NPV_opexCharge", level=1)
             optSummary = optSummary.drop("NPV_opexDischarge", level=1)
 

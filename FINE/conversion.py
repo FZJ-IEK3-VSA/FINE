@@ -825,7 +825,7 @@ class ConversionModel(ComponentModel):
                 .sum()
                 .values
             )
-            # TODO Decision if NPV contribution shall be given in more detail
+            # # Delete details of NPV contributions
             optSummary = optSummary.drop("NPV_opexOp", level=1)
 
             # save the optimization summary
