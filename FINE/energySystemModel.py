@@ -117,16 +117,19 @@ class EnergySystemModel:
         :type hoursPerTimeStep: strictly positive float
 
         :param numberOfInvestmentPeriods: number of investment periods of transformation
-            path analysis
+            path analysis, e.g. for a transformation pathway from 2020 to 2030 
+            with the years 2020, 2025, 2030, the numberOfInvestmentPeriods is 3
             |br| * the default value is 1
         : type numberOfInvestmentPeriods: strictly positive integer
 
         :param yearsPerInvestmentPeriod: years per investment period of transformation
-            path analysis
+            path analysis, e.g. for a transformation pathway from 2020 to 2030 
+            with the years 2020, 2025, 2030, the yearsPerInvestmentPeriod is 5
             |br| * the default value is 1
         : type yearsPerInvestmentPeriod: strictly positive integer
 
-        :param startYear: year name of first investment period, e.g. 2020
+        :param startYear: year name of first investment period, e.g. for a transformation pathway from 2020 to 2030 
+            with the years 2020, 2025, 2030, the startYear is 2020
             |br| * the default value is None
         : type startYear: integer
 
@@ -1400,7 +1403,7 @@ class EnergySystemModel:
 
         .. math::
 
-            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,p,t} = 0
+            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,ip,p,t} = 0
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -1458,7 +1461,7 @@ class EnergySystemModel:
 
         .. math::
             :nowrap:
-
+            # TODO
             \\begin{eqnarray*}
             z^* = \\min & & \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}
             \\left[ \\text{F}^{comp,cap}_{loc} \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc}}{\\text{CCF}^{comp}_{loc}} \\right.

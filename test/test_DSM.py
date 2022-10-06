@@ -177,4 +177,3 @@ def test_DSM(dsm_test_esM):
     pd.testing.assert_series_equal(
         esM_load_with_DSM.loc[("flexible demand", "location")], load_with_dsm
     )
-
