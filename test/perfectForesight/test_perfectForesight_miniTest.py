@@ -225,8 +225,7 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
             operationRateFix=demand,
         )
     )
-    esM.optimize(timeSeriesAggregation=False, solver="gurobi")
-    print(esM)
+    esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
 
 def test_perfectForesight_binary():

@@ -9,7 +9,7 @@ from FINE.IOManagement.standardIO import writeOptimizationOutputToExcel
 
 def test_perfectForesight_excel(perfectForesight_test_esM):
     # optimize perfect foresight model
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
     # create empty directory to save results
     cwd = os.getcwd()
