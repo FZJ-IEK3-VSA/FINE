@@ -8,7 +8,7 @@ def test_Mini_netPresentValue(minimal_test_esM):
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value
     npv_sum_optSummary = 0
-    for ip in minimal_test_esM.investmentPeriodList:
+    for ip in minimal_test_esM.investmentPeriodNames:
         for mdl in minimal_test_esM.componentModelingDict.keys():
             optSum = minimal_test_esM.getOptimizationSummary(mdl, ip=ip)
             npv_sum_optSummary += optSum.loc[:, "NPVcontribution", :].sum().sum()
@@ -43,7 +43,7 @@ def test_DSM_netPresentValue(dsm_test_esM):
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value
     npv_sum_optSummary = 0
-    for ip in esM_with.investmentPeriodList:
+    for ip in esM_with.investmentPeriodNames:
         for mdl in esM_with.componentModelingDict.keys():
             optSum = esM_with.getOptimizationSummary(mdl, ip=ip)
             npv_sum_optSummary += optSum.loc[:, "NPVcontribution", :].sum().sum()

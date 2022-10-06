@@ -96,8 +96,8 @@ class StorageExtBETA(Storage):
         )
         self.aggregatedOpexPerChargeOpTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
-        # for _ip in esM.investmentPeriodList:
-        #     ip = esM.investmentPeriodList.index(_ip)
+        # for _ip in esM.investmentPeriodNames:
+        #     ip = esM.investmentPeriodNames.index(_ip)
         # # fullStateOfChargeOpRateMax
         # if (
         #     isinstance(stateOfChargeOpRateMax, pd.DataFrame)
@@ -166,7 +166,7 @@ class StorageExtBETA(Storage):
                     warnings.warn(
                         "If stateOfChargeOpRateFix is specified, the stateOfChargeOpRateMax parameter is not +"
                         "required.\nThe stateOfChargeOpRateMax time series for investment period "
-                        + f"{esM.investmentPeriodList[ip]} was set to None."
+                        + f"{esM.investmentPeriodNames[ip]} was set to None."
                     )
             if (
                 self.fullStateOfChargeOpRateMax[ip] is not None
@@ -1118,7 +1118,7 @@ class StorageExtModel(StorageModel):
             ] = npv_ox.values
 
             optSummary = optSummary.append(
-                self._optSummary[esM.investmentPeriodList[ip]]
+                self._optSummary[esM.investmentPeriodNames[ip]]
             ).sort_index()
 
             # Summarize all contributions to the total annual cost

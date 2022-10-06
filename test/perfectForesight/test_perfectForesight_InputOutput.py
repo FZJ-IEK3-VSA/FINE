@@ -39,7 +39,7 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
     )
 
     # check results and excel output
-    for ip in perfectForesight_test_esM.investmentPeriodList:
+    for ip in perfectForesight_test_esM.investmentPeriodNames:
         filePath = files + f"_{ip}.xlsx"
 
         # check if all files are in folder

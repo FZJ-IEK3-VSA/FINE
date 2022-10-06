@@ -260,21 +260,6 @@ class EnergySystemModel:
         self.numberOfTimeSteps = numberOfTimeSteps
         self.numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
 
-        ######################################################################
-        # Perfect Foresight related
-        # TODO comments
-        finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval - 1
-        self.investmentPeriodList = list(
-            range(startYear, finalyear + 1, investmentPeriodInterval)
-        )
-
-        self.investmentPeriodInterval = investmentPeriodInterval
-        self.startYear = startYear
-        self.investmentPeriods = list(range(numberOfInvestmentPeriods))
-        self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
-
-        self.stochasticModel = stochasticModel
-
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
         # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents
         # the periods considered when modeling the energy system. Only one period exists when considering the full
@@ -304,6 +289,24 @@ class EnergySystemModel:
             None,
         )
         self.timeUnit = "h"
+
+        ################################################################################################################
+        #                                Stochastic/Pathway parameters                                                 #
+        ################################################################################################################
+        self.stochasticModel = stochasticModel
+        ######################################################################
+        self.startYear = startYear
+        self.investmentPeriodInterval = investmentPeriodInterval
+        self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
+        
+        # set up the modelling years by the start year, interval and number of investment periods
+        finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval - 1
+        # clear names, e.g.  [2020, 2025,...]
+        self.investmentPeriodNames = list(
+            range(startYear, finalyear + 1, investmentPeriodInterval)
+        )
+        # interntal names, e.g.  [0,1,...]
+        self.investmentPeriods = list(range(numberOfInvestmentPeriods))
 
         ################################################################################################################
         #                                        Commodity specific parameters                                         #
@@ -515,11 +518,11 @@ class EnergySystemModel:
         :returns: the optimization summary of the requested modeling class
         :rtype: pandas DataFrame
         """
-        if ip not in self.investmentPeriodList:
+        if ip not in self.investmentPeriodNames:
             raise ValueError(
                 f"No optimization summary exists for passed ip {ip}. "
                 + "Please define a valid investment period  "
-                + f"(from '{self.investmentPeriodList}')"
+                + f"(from '{self.investmentPeriodNames}')"
             )
 
         if outputLevel == 0:

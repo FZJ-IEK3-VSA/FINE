@@ -176,7 +176,7 @@ class Conversion(Component):
             esM.investmentPeriods,
         )
 
-        # operationRateMax and operationRateFix -> TODO move theck
+        # check for operationRateMax and operationRateFix 
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
             if esM.verbose < 2:
@@ -722,7 +722,7 @@ class ConversionModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
 
             props = ["operation", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
@@ -800,7 +800,7 @@ class ConversionModel(ComponentModel):
                 ] = npv_ox.values
 
             optSummary = optSummary.append(
-                optSummaryBasic[esM.investmentPeriodList[ip]]
+                optSummaryBasic[esM.investmentPeriodNames[ip]]
             ).sort_index()
 
             # Summarize all contributions to the total annual cost
@@ -829,7 +829,7 @@ class ConversionModel(ComponentModel):
             optSummary = optSummary.drop("NPV_opexOp", level=1)
 
             # save the optimization summary
-            self._optSummary[esM.investmentPeriodList[ip]] = optSummary
+            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):
         """

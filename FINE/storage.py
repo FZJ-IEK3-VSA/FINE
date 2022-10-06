@@ -1891,7 +1891,7 @@ class StorageModel(ComponentModel):
                 esM=esM,
             )
             self._chargeOperationVariablesOptimum[
-                esM.investmentPeriodList[ip]
+                esM.investmentPeriodNames[ip]
             ] = optVal_charge
 
             if optVal_charge is not None:
@@ -1956,16 +1956,16 @@ class StorageModel(ComponentModel):
                 esM=esM,
             )
             self._dischargeOperationVariablesOptimum[
-                esM.investmentPeriodList[ip]
+                esM.investmentPeriodNames[ip]
             ] = optVal_discharge
             # Check if there are time steps, at which a storage component is both charging and discharging
             for compName in opSum.index:
                 simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
                     tsCharge=self._chargeOperationVariablesOptimum[
-                        esM.investmentPeriodList[ip]
+                        esM.investmentPeriodNames[ip]
                     ].loc[compName],
                     tsDischarge=self._dischargeOperationVariablesOptimum[
-                        esM.investmentPeriodList[ip]
+                        esM.investmentPeriodNames[ip]
                     ].loc[compName],
                 )
                 if simultaneousChargeDischarge:
@@ -2035,7 +2035,7 @@ class StorageModel(ComponentModel):
                 # other)
                 optVal = optVal.loc[:, : len(optVal.columns) - 2]
                 self._stateOfChargeOperationVariablesOptimum[
-                    esM.investmentPeriodList[ip]
+                    esM.investmentPeriodNames[ip]
                 ] = optVal
                 utils.setOptimalComponentVariables(
                     optVal, "_stateOfChargeVariablesOptimum", compDict
@@ -2105,7 +2105,7 @@ class StorageModel(ComponentModel):
                 else:
                     optVal = None
                 self._stateOfChargeOperationVariablesOptimum[
-                    esM.investmentPeriodList[ip]
+                    esM.investmentPeriodNames[ip]
                 ] = optVal
                 utils.setOptimalComponentVariables(
                     optVal, "_stateOfChargeVariablesOptimum", compDict
@@ -2113,7 +2113,7 @@ class StorageModel(ComponentModel):
 
             # Append optimization summaries
             optSummary = optSummary.append(
-                optSummaryBasic[esM.investmentPeriodList[ip]]
+                optSummaryBasic[esM.investmentPeriodNames[ip]]
             ).sort_index()
 
             # Summarize all contributions to the total annual cost
@@ -2144,7 +2144,7 @@ class StorageModel(ComponentModel):
             optSummary = optSummary.drop("NPV_opexCharge", level=1)
             optSummary = optSummary.drop("NPV_opexDischarge", level=1)
 
-            self._optSummary[esM.investmentPeriodList[ip]] = optSummary
+            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):
         """

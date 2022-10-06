@@ -3194,7 +3194,7 @@ class ComponentModel(metaclass=ABCMeta):
             capOptVal_ = utils.formatOptimizationOutput(
                 values, "designVariables", self.dimension, ip, compDict=compDict
             )
-            self._capacityVariablesOptimum[esM.investmentPeriodList[ip]] = capOptVal_
+            self._capacityVariablesOptimum[esM.investmentPeriodNames[ip]] = capOptVal_
             # Get and set optimal variable values for commissioning
             commisValues = commisVar.get_values()
             commisOptVal = utils.formatOptimizationOutput(
@@ -3204,7 +3204,7 @@ class ComponentModel(metaclass=ABCMeta):
                 commisValues, "designVariables", self.dimension, ip, compDict=compDict
             )
             self._commissioningVariablesOptimum[
-                esM.investmentPeriodList[ip]
+                esM.investmentPeriodNames[ip]
             ] = commisOptVal_
             # Get and set optimal variable values for decommissioning
             decommisValues = decommisVar.get_values()
@@ -3215,7 +3215,7 @@ class ComponentModel(metaclass=ABCMeta):
                 decommisValues, "designVariables", self.dimension, ip, compDict=compDict
             )
             self._decommissioningVariablesOptimum[
-                esM.investmentPeriodList[ip]
+                esM.investmentPeriodNames[ip]
             ] = decommisOptVal_
 
             if capOptVal is not None:
@@ -3307,7 +3307,7 @@ class ComponentModel(metaclass=ABCMeta):
             binCapOptVal_ = utils.formatOptimizationOutput(
                 values, "designVariables", self.dimension, ip=ip, compDict=compDict
             )
-            self._isBuiltVariablesOptimum[esM.investmentPeriodList[ip]] = binCapOptVal_
+            self._isBuiltVariablesOptimum[esM.investmentPeriodNames[ip]] = binCapOptVal_
 
             if binCapOptVal is not None:
                 # Calculate the investment costs i (fix value if component is built)
@@ -3421,7 +3421,7 @@ class ComponentModel(metaclass=ABCMeta):
                 ],
                 npv.columns,
             ] = npv.values
-            optSummary[esM.investmentPeriodList[ip]] = optSummary_ip
+            optSummary[esM.investmentPeriodNames[ip]] = optSummary_ip
 
         return optSummary
 

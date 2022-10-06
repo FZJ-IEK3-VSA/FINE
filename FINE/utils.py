@@ -900,11 +900,11 @@ def setLocationalEligibility(
 def checkAndSetInvestmentPeriodTimeSeries(
     esM, name, data, locationalEligibility, dimension="1dim"
 ):
-    checkInvestmentPeriodParameters(name, data, esM.investmentPeriodList)
+    checkInvestmentPeriodParameters(name, data, esM.investmentPeriodNames)
     parameter = {}
-    for _ip in esM.investmentPeriodList:
+    for _ip in esM.investmentPeriodNames:
         # map name of investment period (e.g. 2020) to index (e.g. 0)
-        ip = esM.investmentPeriodList.index(_ip)
+        ip = esM.investmentPeriodNames.index(_ip)
         if (
             isinstance(data, pd.DataFrame)
             or data is None
@@ -1154,9 +1154,9 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
 
 def setPartLoadMin(esM, partLoadMin):
     partLoadMin_ip = {}
-    for _ip in esM.investmentPeriodList:
+    for _ip in esM.investmentPeriodNames:
         # map name of investment period (e.g. 2020) to index (e.g. 0)
-        ip = esM.investmentPeriodList.index(_ip)
+        ip = esM.investmentPeriodNames.index(_ip)
         if isinstance(partLoadMin, float) or partLoadMin is None:
             partLoadMin_ip[ip] = partLoadMin
         elif isinstance(partLoadMin, dict):
@@ -1209,9 +1209,9 @@ def checkAndSetPartLoadMin(
 
     # check the raw partloadmin
     if partLoadMin is not None:
-        checkInvestmentPeriodParameters(name, partLoadMin, esM.investmentPeriodList)
+        checkInvestmentPeriodParameters(name, partLoadMin, esM.investmentPeriodNames)
         if isinstance(partLoadMin, dict):
-            for ip in esM.investmentPeriodList:
+            for ip in esM.investmentPeriodNames:
                 if partLoadMin[ip] is not None:
                     checkPartLoadMin(partLoadMin[ip], bigM, hasCapacityVariable)
         elif isinstance(partLoadMin, int) or isinstance(partLoadMin, float):
@@ -1229,9 +1229,9 @@ def checkAndSetPartLoadMin(
     if not any(value for value in partLoadMin_ip.values()):
         partLoadMin_ip = None
     if partLoadMin_ip is not None:
-        for _ip in esM.investmentPeriodList:
+        for _ip in esM.investmentPeriodNames:
             # map name of investment period (e.g. 2020) to index (e.g. 0)
-            ip = esM.investmentPeriodList.index(_ip)
+            ip = esM.investmentPeriodNames.index(_ip)
             if fullOperationMax[ip] is not None:
                 if (
                     (

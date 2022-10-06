@@ -78,8 +78,8 @@ def writeOptimizationOutputToExcel(
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
     """
-    for ip in esM.investmentPeriodList:
-        if len(esM.investmentPeriodList) > 1:
+    for ip in esM.investmentPeriodNames:
+        if len(esM.investmentPeriodNames) > 1:
             _outputFileName = outputFileName + f"_{ip}"
         else:
             _outputFileName = outputFileName
@@ -150,7 +150,7 @@ def writeOptimizationOutputToExcel(
                         + esM.componentModelingDict[name].dimension,
                     )
         # get internal name of investment period
-        _ip = esM.investmentPeriodList.index(ip)
+        _ip = esM.investmentPeriodNames.index(ip)
         # save periods Order to excel output
         periodsOrder = pd.DataFrame(
             [esM.periodsOrder[_ip]], index=["periodsOrder"], columns=esM.periods

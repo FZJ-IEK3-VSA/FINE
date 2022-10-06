@@ -902,10 +902,10 @@ class TransmissionModel(ComponentModel):
                     "opexIfBuilt",
                     "TAC",
                 ]:
-                    data = optSummaryBasic[esM.investmentPeriodList[ip]].loc[
+                    data = optSummaryBasic[esM.investmentPeriodNames[ip]].loc[
                         compName, cost
                     ]
-                    optSummaryBasic[esM.investmentPeriodList[ip]].loc[
+                    optSummaryBasic[esM.investmentPeriodNames[ip]].loc[
                         compName, cost
                     ] = (data).values
 
@@ -927,7 +927,7 @@ class TransmissionModel(ComponentModel):
                 compDict=compDict,
                 esM=esM,
             )
-            self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
+            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
 
             props = ["operation", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
@@ -1000,7 +1000,7 @@ class TransmissionModel(ComponentModel):
                 )
 
             optSummary = optSummary.append(
-                optSummaryBasic[esM.investmentPeriodList[ip]]
+                optSummaryBasic[esM.investmentPeriodNames[ip]]
             ).sort_index()
 
             # Summarize all contributions to the total annual cost
@@ -1026,7 +1026,7 @@ class TransmissionModel(ComponentModel):
                 .sum()
                 .values
             )
-            # TODO Decision of NPV contribution shall be given in more detail
+            # Delete details of NPV contribution
             optSummary = optSummary.drop("NPV_opexOp", level=1)
 
             # Split connection indices to two location indices
@@ -1037,10 +1037,10 @@ class TransmissionModel(ComponentModel):
                 indexNew.append((tup[0], tup[1], tup[2], loc1, loc2))
             optSummary.index = pd.MultiIndex.from_tuples(indexNew)
             optSummary = optSummary.unstack(level=-1)
-            names = list(optSummaryBasic[esM.investmentPeriodList[ip]].index.names)
+            names = list(optSummaryBasic[esM.investmentPeriodNames[ip]].index.names)
             names.append("LocationIn")
             optSummary.index.set_names(names, inplace=True)
-            self._optSummary[esM.investmentPeriodList[ip]] = optSummary
+            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):
         """

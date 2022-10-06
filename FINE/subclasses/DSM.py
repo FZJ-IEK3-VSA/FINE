@@ -136,8 +136,8 @@ class DemandSideManagementBETA(Sink):
         self.shiftUpMax = {}
         self.shiftDownMax = {}
 
-        for _ip in esM.investmentPeriodList:
-            ip = esM.investmentPeriodList.index(_ip)
+        for _ip in esM.investmentPeriodNames:
+            ip = esM.investmentPeriodNames.index(_ip)
 
             if isinstance(operationRateFix, pd.DataFrame) or isinstance(
                 operationRateFix, pd.Series
@@ -193,8 +193,8 @@ class DemandSideManagementBETA(Sink):
             chargeOpRateMax = {}
             opexPerChargeOpTimeSeries = {}
 
-            for _ip in esM.investmentPeriodList:
-                ip = esM.investmentPeriodList.index(_ip)
+            for _ip in esM.investmentPeriodNames:
+                ip = esM.investmentPeriodNames.index(_ip)
                 SOCmax[ip] = _operationRateFix[ip].copy()
                 SOCmax[ip][SOCmax[ip] > 0] = 0
 
@@ -606,7 +606,7 @@ class DSMModel(SourceSinkModel):
             optVal = optVal.groupby(lambda x: groupStor(x)).sum()
             optVal.index = pd.MultiIndex.from_tuples(optVal.index)
 
-            self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
 
             props = [
                 "operation",
@@ -721,7 +721,7 @@ class DSMModel(SourceSinkModel):
 
             # get discounted investment cost as total annual cost (TAC)
             optSummary = optSummary.append(
-                optSummaryBasic[esM.investmentPeriodList[ip]]
+                optSummaryBasic[esM.investmentPeriodNames[ip]]
             ).sort_index()
 
             # add operation specific contributions to the total annual cost (TAC) and substract revenues
@@ -766,4 +766,4 @@ class DSMModel(SourceSinkModel):
             optSummary = optSummary.drop("NPV_commodCosts", level=1)
             optSummary = optSummary.drop("NPV_commodRevenues", level=1)
 
-            self._optSummary[esM.investmentPeriodList[ip]] = optSummary
+            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary

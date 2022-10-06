@@ -649,13 +649,13 @@ class ConversionPartLoadModel(ConversionModel):
             )
 
             self.discretizationPointVariablesOptimun[
-                esM.investmentPeriodList[ip]
+                esM.investmentPeriodNames[ip]
             ] = discretizationPointVariablesOptVal_
             self.discretizationSegmentConVariablesOptimun[
-                esM.investmentPeriodList[ip]
+                esM.investmentPeriodNames[ip]
             ] = discretizationSegmentConVariablesOptVal_
             self.discretizationSegmentBinVariablesOptimun[
-                esM.investmentPeriodList[ip]
+                esM.investmentPeriodNames[ip]
             ] = discretizationSegmentBinVariablesOptVal_
 
     def getOptimalValues(self, name="all", ip=0):

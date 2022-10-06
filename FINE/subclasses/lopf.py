@@ -331,7 +331,7 @@ class LOPFModel(TransmissionModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._phaseAngleVariablesOptimum[esM.investmentPeriodList[ip]] = optVal_
+            self._phaseAngleVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
 
     def getOptimalValues(self, name="all", ip=0):
         """

@@ -334,7 +334,7 @@ class Source(Component):
                     warnings.warn(
                         "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
                         + "The operationRateMax time series of investment period "
-                        + f"'{esM.investmentPeriodList[ip]}' was set to None."
+                        + f"'{esM.investmentPeriodNames[ip]}' was set to None."
                     )
 
         # partLoadMin
@@ -1117,7 +1117,7 @@ class SourceSinkModel(ComponentModel):
                 esM=esM,
             )
 
-            self._operationVariablesOptimum[esM.investmentPeriodList[ip]] = optVal
+            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
 
             props = [
                 "operation",
@@ -1249,7 +1249,7 @@ class SourceSinkModel(ComponentModel):
 
             # get discounted investment cost as total annual cost (TAC)
             optSummary = optSummary.append(
-                optSummaryBasic[esM.investmentPeriodList[ip]]
+                optSummaryBasic[esM.investmentPeriodNames[ip]]
             ).sort_index()
 
             # add operation specific contributions to the total annual cost (TAC) and substract revenues
@@ -1294,7 +1294,7 @@ class SourceSinkModel(ComponentModel):
             optSummary = optSummary.drop("NPV_commodCosts", level=1)
             optSummary = optSummary.drop("NPV_commodRevenues", level=1)
 
-            self._optSummary[esM.investmentPeriodList[ip]] = optSummary
+            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):
         """

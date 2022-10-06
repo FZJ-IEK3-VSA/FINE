@@ -92,15 +92,15 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
     """
 
     # Create the netCDF file and the xr.Dataset dict for all ips and components
-    xr_dss = dict.fromkeys(esM.investmentPeriodList)
-    for ip in esM.investmentPeriodList:
+    xr_dss = dict.fromkeys(esM.investmentPeriodNames)
+    for ip in esM.investmentPeriodNames:
         xr_dss[ip] = dict.fromkeys(esM.componentModelingDict.keys())
         for model_dict in esM.componentModelingDict.keys():
             xr_dss[ip][model_dict] = {
                 key: xr.Dataset()
                 for key in esM.componentModelingDict[model_dict].componentsDict.keys()
             }
-    for ip in esM.investmentPeriodList:
+    for ip in esM.investmentPeriodNames:
         # Write output from esM.getOptimizationSummary to datasets
         for name in esM.componentModelingDict.keys():
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
@@ -824,7 +824,7 @@ def convertDatasetsToEnergySystemModel(datasets):
 
             # if only one investment period -> keep optimal values unchanged for end user
             def setFinalOptimalValues(esM, name):
-                if len(esM.investmentPeriodList) == 1:
+                if len(esM.investmentPeriodNames) == 1:
                     data = getattr(esM.componentModelingDict[model], "_" + name)
                     setattr(
                         esM.componentModelingDict[model], name, data[int(startyear)]
