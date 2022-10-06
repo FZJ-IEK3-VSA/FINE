@@ -2336,8 +2336,8 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     # TODO later also per commissioning year
     """
     # Basic checks
-    if not isinstance(comp.commodityConversionFactors, (dict, pd.Series)):
-        raise ValueError("commodityConversionFactor must be a dict or a pandas.series")
+    if not isinstance(comp.commodityConversionFactors, dict):
+        raise ValueError("commodityConversionFactor must be a dict")
     if isinstance(comp.commodityConversionFactors, pd.Series):
         # TODO not necessary if commodityConversionFactors are just dicts as in doc of init
         commodityConversionFactors = comp.commodityConversionFactors.to_dict()
