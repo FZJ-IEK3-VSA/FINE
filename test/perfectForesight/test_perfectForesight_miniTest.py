@@ -238,9 +238,8 @@ def test_perfectForesight_binary():
         hoursPerTimeStep=4380,
         costUnit="1 Euro",
         numberOfInvestmentPeriods=3,
-        yearsPerInvestmentPeriod=5,
+        investmentPeriodInterval=5,
         startYear=2020,
-        mode="perfectForesight",
         lengthUnit="km",
         verboseLogLevel=2,
     )

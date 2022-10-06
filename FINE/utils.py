@@ -67,9 +67,9 @@ def checkEnergySystemModelInput(
     numberOfTimeSteps,
     hoursPerTimeStep,
     numberOfInvestmentPeriods,
-    yearsPerInvestmentPeriod,
+    investmentPeriodInterval,
     startyear,
-    mode,
+    stochasticModel,
     costUnit,
     lengthUnit,
     balanceLimit,
@@ -96,21 +96,11 @@ def checkEnergySystemModelInput(
         raise TypeError("Startyear must be an integer")
 
     isStrictlyPositiveInt(numberOfInvestmentPeriods)
-    isStrictlyPositiveNumber(yearsPerInvestmentPeriod)
+    isStrictlyPositiveNumber(investmentPeriodInterval)
 
-    if mode not in ["singleYearOptimization", "stochastic", "perfectForesight"]:
-        raise ValueError(
-            "Parameter 'mode' must be 'singleYearOptimization', 'stochastic' or 'perfectForesight'."
-        )
-    if mode in ["stochastic", "perfectForesight"] and numberOfInvestmentPeriods == 1:
+    if stochasticModel and numberOfInvestmentPeriods == 1:
         raise ValueError(
             "A stochastic optimization needs more than one numberOfInvestementPeriod"
-        )
-    if mode is "singleYearOptimization" and (
-        numberOfInvestmentPeriods != 1 and numberOfInvestmentPeriods != None
-    ):
-        raise ValueError(
-            "A single year optimization can only have numberOfInvestmentPeriods=None or numberOfInvestmentPeriods=1."
         )
 
     # The costUnit and lengthUnit input parameter have to be strings
@@ -489,12 +479,14 @@ def checkAndSetTransmissionLosses(losses, distances, locationalEligibility):
     return losses
 
 
-def getCapitalChargeFactor(interestRate, economicLifetime):
+def getCapitalChargeFactor(interestRate, economicLifetime, investmentPeriods):
     """Compute and return capital charge factor (inverse of annuity factor)."""
-    CCF = 1 / interestRate - 1 / (
-        pow(1 + interestRate, economicLifetime) * interestRate
-    )
-    CCF = CCF.fillna(economicLifetime)
+    CCF = {}
+    for ip in investmentPeriods:
+        CCF[ip] = 1 / interestRate - 1 / (
+            pow(1 + interestRate, economicLifetime) * interestRate
+        )
+        CCF[ip] = CCF[ip].fillna(economicLifetime)
     return CCF
 
 
@@ -1274,15 +1266,15 @@ def checkAndSetInvestmentPeriodCostParameter(
 ):
     # stock years are only considered for parameter for which the
     # first check
-    _years = [int(esM.startYear + ip * esM.yearsPerInvestmentPeriod) for ip in years]
+    _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
     checkInvestmentPeriodParameters(name, data, _years)
 
     # set the costs
     parameter = {}
     for ip in years:
         # map of year name (e.g. 2020) to intenral name (e.g. 0)
-        # ip=int((_ip-esM.startYear)/esM.yearsPerInvestmentPeriod)
-        _ip = int(esM.startYear + ip * esM.yearsPerInvestmentPeriod)
+        # ip=int((_ip-esM.startYear)/esM.investmentPeriodInterval)
+        _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
         if (
             isinstance(data, int)
             or isinstance(data, float)
@@ -1301,12 +1293,12 @@ def checkAndSetInvestmentPeriodCostParameter(
 
 
 def checkLifetimeInvestmentPeriod(esM, name, lifetime):
-    ipLifetimeCheck = lifetime % (esM.yearsPerInvestmentPeriod)
+    ipLifetimeCheck = lifetime % (esM.investmentPeriodInterval)
     if any(x != 0 for x in ipLifetimeCheck.values):
         raise ValueError(
             f"The lifetime of '{name}' is not a multiple of the length of investment period"
         )
-    ip_LifeTime = (lifetime / esM.yearsPerInvestmentPeriod).astype(int)
+    ip_LifeTime = (lifetime / esM.investmentPeriodInterval).astype(int)
     return ip_LifeTime
 
 
@@ -1721,8 +1713,8 @@ def preprocess2dimInvestmentPeriodData(
     parameter = {}
     for ip in years:
         # map of year name (e.g. 2020) to intenral name (e.g. 0)
-        # ip=int((_ip-esM.startYear)/esM.yearsPerInvestmentPeriod)
-        _ip = int(esM.startYear + ip * esM.yearsPerInvestmentPeriod)
+        # ip=int((_ip-esM.startYear)/esM.investmentPeriodInterval)
+        _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
 
         if (
             isinstance(data, int)
@@ -2056,7 +2048,7 @@ def checkAndSetTimeHorizon(
 
 
 def checkStockYears(
-    stockCommissioning, startYear, yearsPerInvestmentPeriod, ipTechnicalLifetime
+    stockCommissioning, startYear, investmentPeriodInterval, ipTechnicalLifetime
 ):
     if stockCommissioning is None:
         return [], []
@@ -2069,7 +2061,7 @@ def checkStockYears(
             raise ValueError("Years of stockCommissioning must be int")
         if year >= startYear:
             raise ValueError("Stock years must be smaller than the start year")
-        if (year - startYear) % yearsPerInvestmentPeriod != 0:
+        if (year - startYear) % investmentPeriodInterval != 0:
             raise ValueError(
                 f"stockCommissioning was initialized for {year} "
                 + "but can only be initialized for "
@@ -2077,7 +2069,7 @@ def checkStockYears(
             )
     stockYears = [x for x in stockCommissioning.keys()]
     processedStockYears = [
-        int((x - startYear) / yearsPerInvestmentPeriod)
+        int((x - startYear) / investmentPeriodInterval)
         for x in stockCommissioning.keys()
     ]
     processedStockYears = [
@@ -2104,7 +2096,7 @@ def checkAndSetStock(component, esM, stockCommissioning):
     for year, yearly_stock in stockCommissioning.items():
         if not isinstance(year, int):
             raise ValueError("Years of stockCommissioning must be int")
-        if (year - esM.startYear) % esM.yearsPerInvestmentPeriod != 0:
+        if (year - esM.startYear) % esM.investmentPeriodInterval != 0:
             raise ValueError(
                 f"stockCommissioning was initialized for {year} "
                 + "but can only be initialized for "
@@ -2188,7 +2180,7 @@ def checkAndSetStock(component, esM, stockCommissioning):
 
     # convert original years to ip named years (e.g. -1,-2,-3)
     stock_df.index = [
-        int((x - esM.startYear) / esM.yearsPerInvestmentPeriod) for x in stock_df.index
+        int((x - esM.startYear) / esM.investmentPeriodInterval) for x in stock_df.index
     ]
 
     # fill missing year for timeframe of entire technical lifetime
@@ -2324,8 +2316,8 @@ def annuityPresentValueFactor(esM, compName, loc):
     if intrestRate == 0:
         return 1
     else:
-        return (((1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)) - 1) / (
-            intrestRate * (1 + intrestRate) ** (esM.yearsPerInvestmentPeriod)
+        return (((1 + intrestRate) ** (esM.investmentPeriodInterval)) - 1) / (
+            intrestRate * (1 + intrestRate) ** (esM.investmentPeriodInterval)
         )
 
 
@@ -2334,7 +2326,7 @@ def netPresentValueFactor(esM, ip, compName, loc):
         annuityPresentValueFactor(esM, compName, loc)
         * 1
         / (1 + esM.getComponent(compName).interestRate[loc])
-        ** (ip * esM.yearsPerInvestmentPeriod)
+        ** (ip * esM.investmentPeriodInterval)
         * (1 + esM.getComponent(compName).interestRate[loc])
     )
 

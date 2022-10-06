@@ -2227,9 +2227,8 @@ def perfectForesight_test_esM(scope="session"):
         hoursPerTimeStep=4380,
         costUnit="1 Euro",
         numberOfInvestmentPeriods=5,
-        yearsPerInvestmentPeriod=5,
+        investmentPeriodInterval=5,
         startYear=2020,
-        mode="perfectForesight",
         lengthUnit="km",
         verboseLogLevel=2,
     )

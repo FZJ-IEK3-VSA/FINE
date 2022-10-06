@@ -22,8 +22,7 @@ def test_Stock_wrongStockYears():
         costUnit="1 Euro",
         startYear=2020,
         numberOfInvestmentPeriods=6,
-        yearsPerInvestmentPeriod=1,
-        mode="perfectForesight",
+        investmentPeriodInterval=1,
         lengthUnit="km",
         verboseLogLevel=2,
     )

@@ -10,12 +10,12 @@ def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False
 
     if singleYear is True:
         numberOfInvestmentPeriods = 1
-        mode = "singleYearOptimization"
-        yearsPerInvestmentPeriod = 1
+        stochasticModel = False
+        investmentPeriodInterval = 1
     else:
         numberOfInvestmentPeriods = 2
-        mode = "stochastic"
-        yearsPerInvestmentPeriod = 1
+        stochasticModel = True
+        investmentPeriodInterval = 1
 
     if transmissionCase:
         locations = {"PerfectLand", "PerfectLand2"}
@@ -32,9 +32,9 @@ def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False
         commodityUnitsDict={"electricity": r"kW$_{el}$"},
         hoursPerTimeStep=hoursPerTimeStep,
         costUnit="1 Euro",
-        mode=mode,
+        stochasticModel=stochasticModel,
         numberOfInvestmentPeriods=numberOfInvestmentPeriods,
-        yearsPerInvestmentPeriod=yearsPerInvestmentPeriod,
+        investmentPeriodInterval=investmentPeriodInterval,
         lengthUnit="km",
         verboseLogLevel=2,
     )

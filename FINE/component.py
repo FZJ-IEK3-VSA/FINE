@@ -464,7 +464,7 @@ class Component(metaclass=ABCMeta):
         self.stockYears, self.processedStockYears = utils.checkStockYears(
             stockCommissioning,
             esM.startYear,
-            esM.yearsPerInvestmentPeriod,
+            esM.investmentPeriodInterval,
             self.ipTechnicalLifetime,
         )
         # invest per capacity
@@ -525,7 +525,9 @@ class Component(metaclass=ABCMeta):
         )
 
         self.CCF = utils.getCapitalChargeFactor(
-            self.interestRate, self.economicLifetime
+            self.interestRate,
+            self.economicLifetime,
+            self.processedStockYears + esM.investmentPeriods,
         )
 
         # Set location-specific design parameters
@@ -1665,7 +1667,7 @@ class ComponentModel(metaclass=ABCMeta):
         """
         abbrvName = self.abbrvName
         commisConstrSet = getattr(pyM, "designDevelopmentVarSet_" + abbrvName)
-        if esM.mode == "stochastic":
+        if esM.stochasticModel:
             capVar = getattr(pyM, "cap_" + abbrvName)
 
             def capacityDevelopmentStochastic(pyM, loc, compName, ip):
@@ -1731,7 +1733,7 @@ class ComponentModel(metaclass=ABCMeta):
         locCompConstrSet = getattr(pyM, "DesignLocationComponentVarSet_" + abbrvName)
         locCompIpConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
-        if esM.mode == "stochastic":
+        if esM.stochasticModel:
 
             def initialStochastic(pyM, loc, compName, ip):
                 stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
@@ -2358,7 +2360,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyM,
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+            QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
             lifetimeAttr="ipEconomicLifetime",
             varName="commis",
             divisorName="CCF",
@@ -2465,7 +2467,7 @@ class ComponentModel(metaclass=ABCMeta):
             raise ValueError("The cost types must be 'TAC' or 'NPV'.")
 
         var = getattr(pyM, varName + "_" + self.abbrvName)
-        if esM.mode == "stochastic":
+        if esM.stochasticModel:
             if getOptValue:
                 cost_results = {}
                 for ip in esM.investmentPeriods:
@@ -2660,7 +2662,7 @@ class ComponentModel(metaclass=ABCMeta):
             for factorName in factorNames
         ]
         divisor = (
-            getattr(self.componentsDict[compName], divisorName)[loc]
+            getattr(self.componentsDict[compName], divisorName)[ip][loc]
             if not divisorName == ""
             else 1
         )
@@ -2757,7 +2759,7 @@ class ComponentModel(metaclass=ABCMeta):
         locCompIpCombinations = list(set([(x[0], x[1], x[2]) for x in var]))
         locCompNamesCombinations = list(set([(x[0], x[1]) for x in var.get_values()]))
 
-        if esM.mode == "stochastic":
+        if esM.stochasticModel:
             if getOptValue:
                 cost_results = {}
                 for ip in esM.investmentPeriods:
@@ -2945,7 +2947,7 @@ class ComponentModel(metaclass=ABCMeta):
             # TODO see issue in if statement above
             factor = getattr(self.componentsDict[compName], factorNames[0])[ip][loc]
 
-        if esM.mode == "stochastic":
+        if esM.stochasticModel:
             if not getOptValue:
                 return (
                     sum(
@@ -2966,7 +2968,7 @@ class ComponentModel(metaclass=ABCMeta):
                     )
                     / esM.numberOfYears
                 )
-        elif esM.mode == "perfectForesight" or esM.mode == "singleYearOptimization":
+        else:
             if not getOptValue:
                 return (
                     sum(
@@ -3085,7 +3087,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyM,
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+            QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
             lifetimeAttr="ipEconomicLifetime",
             varName="commis",
             divisorName="CCF",
@@ -3098,7 +3100,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyM,
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "investPerCapacity"],
+            QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
             lifetimeAttr="ipEconomicLifetime",
             varName="commis",
             divisorName="CCF",

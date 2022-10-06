@@ -21,7 +21,7 @@ warnings.filterwarnings("always", category=UserWarning)
 
 class EnergySystemModel:
     """
-    EnergySystemModel class
+    EnergySystemModel class # TODO
 
     The functionality provided by the EnergySystemModel class is fourfold:
 
@@ -73,8 +73,8 @@ class EnergySystemModel:
         hoursPerTimeStep=1,
         startYear=0,
         numberOfInvestmentPeriods=1,
-        yearsPerInvestmentPeriod=1,
-        mode="singleYearOptimization",
+        investmentPeriodInterval=1,
+        stochasticModel=False,
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
@@ -122,20 +122,20 @@ class EnergySystemModel:
             |br| * the default value is 1
         : type numberOfInvestmentPeriods: strictly positive integer
 
-        :param yearsPerInvestmentPeriod: years per investment period of transformation
+        :param investmentPeriodInterval: interval between the investment of transformation
             path analysis, e.g. for a transformation pathway from 2020 to 2030
-            with the years 2020, 2025, 2030, the yearsPerInvestmentPeriod is 5
+            with the years 2020, 2025, 2030, the investmentPeriodInterval is 5
             |br| * the default value is 1
-        : type yearsPerInvestmentPeriod: strictly positive integer
+        : type investmentPeriodInterval: strictly positive integer
 
-        :param startYear: year name of first investment period, e.g. for a transformation pathway from 2020 to 2030
-            with the years 2020, 2025, 2030, the startYear is 2020
+        :param startYear: year name of first investment period, e.g. for a transformation
+            pathway from 2020 to 2030 with the years 2020, 2025, 2030, the startYear is 2020
             |br| * the default value is None
         : type startYear: integer
 
-        :param mode: linking method for several investment periods
-            |br| * the default value is None
-        : type mode: str or None
+        :param stochasticModel: # TODO
+            |br| * the default value is False
+        : type mode: bool
 
         :param costUnit: cost unit of all cost related values in the energy system. This argument sets the unit of
             all cost parameters which are given as an input to the EnergySystemModel instance (e.g. for the
@@ -217,9 +217,9 @@ class EnergySystemModel:
             numberOfTimeSteps,
             hoursPerTimeStep,
             numberOfInvestmentPeriods,
-            yearsPerInvestmentPeriod,
+            investmentPeriodInterval,
             startYear,
-            mode,
+            stochasticModel,
             costUnit,
             lengthUnit,
             balanceLimit,
@@ -260,17 +260,17 @@ class EnergySystemModel:
         ######################################################################
         # Perfect Foresight related
         # TODO comments
-        finalyear = startYear + numberOfInvestmentPeriods * yearsPerInvestmentPeriod - 1
+        finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval - 1
         self.investmentPeriodList = list(
-            range(startYear, finalyear + 1, yearsPerInvestmentPeriod)
+            range(startYear, finalyear + 1, investmentPeriodInterval)
         )
 
-        self.yearsPerInvestmentPeriod = yearsPerInvestmentPeriod
+        self.investmentPeriodInterval = investmentPeriodInterval
         self.startYear = startYear
         self.investmentPeriods = list(range(numberOfInvestmentPeriods))
         self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
 
-        self.mode = mode
+        self.stochasticModel = stochasticModel
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
         # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents
@@ -1888,7 +1888,7 @@ class EnergySystemModel:
                 # By this, old models will not fail
                 def convertOptimalValues(esM, mdl, key):
                     if key in mdl.__dict__.keys():
-                        if esM.mode == "singleYearOptimization":
+                        if len(esM.investmentPeriods) == 1:
                             setattr(mdl, key.replace("_", ""), getattr(mdl, key)[0])
                         else:
                             setattr(mdl, key.replace("_", ""), getattr(mdl, key))
