@@ -705,7 +705,6 @@ def checkInvestmentPeriodParameters(name, param, years):
             raise ValueError(
                 f"'{name}' has different ip-names ('{param.keys()}')"
                 + f" than the investment periods of the esM ('{years}')",
-                "TODO: implement correct year naming",
             )
 
         for key, value in param.items():
@@ -724,12 +723,14 @@ def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPer
     ):
         if len(commodityConversion.keys()) != len(investmentPeriods):
             raise ValueError(
-                f"CommodtityConversion is initialized as dict but does not contain values for each investment-period"
+                "CommodtityConversion is initialized as dict but does not "+
+                "contain values for each investment-period"
             )
         if sorted(commodityConversion.keys()) != sorted(investmentPeriods):
             raise ValueError(
-                f"CommodtityConversion has different ip-names ('{commodityConversion.keys()}') than the investment periods of the esM ('{investmentPeriods}')",
-                "TODO: implement correct year naming",
+                f"CommodtityConversion has different ip-names "
+                + f"('{commodityConversion.keys()}') than the investment "
+                + f"periods of the esM ('{investmentPeriods}')",
             )
 
 
@@ -1265,7 +1266,7 @@ def checkAndSetInvestmentPeriodCostParameter(
     esM, name, data, dimension, locationalEligibility, years
 ):
     # stock years are only considered for parameter for which the
-    # first check
+    # years contain investment periods and stock years
     _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
     checkInvestmentPeriodParameters(name, data, _years)
 
@@ -2335,18 +2336,13 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     """Set up the full commodity conversion factor per ip.
     # TODO later also per commissioning year
     """
-    # Basic checks
+    # Check for type
     if not isinstance(comp.commodityConversionFactors, dict):
         raise ValueError("commodityConversionFactor must be a dict")
-    if isinstance(comp.commodityConversionFactors, pd.Series):
-        # TODO not necessary if commodityConversionFactors are just dicts as in doc of init
-        commodityConversionFactors = comp.commodityConversionFactors.to_dict()
-    else:
-        commodityConversionFactors = comp.commodityConversionFactors
 
     # 1. check if the commodity conversion variates per investment period
     isYearDependent = False
-    if any(isinstance(x, dict) for x in commodityConversionFactors.values()):
+    if any(isinstance(x, dict) for x in comp.commodityConversionFactors.values()):
         # -> indictates ip dependency, then data required for all years
         if not all(isinstance(x, dict) for x in comp.commodityConversion.values()):
             raise ValueError(
@@ -2361,14 +2357,13 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     # 2. Check and set up commodity conversion factors
     fullCommodityConversionFactor = {}
     processedCommodityConversionFactor = {}
-    checkCommodities(esM, set(commodityConversionFactors.keys()))
+    checkCommodities(esM, set(comp.commodityConversionFactors.keys()))
 
     for ip in esM.investmentPeriods:
         if isYearDependent:  # TODO implement ip and decommis depedency
-            _commodityConversionFactors = commodityConversionFactors
-            # TODO check if its not a dict in a dict but
+            _commodityConversionFactors = comp.commodityConversionFactors
         else:
-            _commodityConversionFactors = commodityConversionFactors
+            _commodityConversionFactors = comp.commodityConversionFactors
 
         fullCommodityConversionFactor[ip] = {}
         processedCommodityConversionFactor[ip] = {}
@@ -2383,7 +2378,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                     _commodityConversionFactors[commod],
                     comp.locationalEligibility,
                 )
-            elif isinstance(commodityConversionFactors[commod], (int, float)):
+            elif isinstance(comp.commodityConversionFactors[commod], (int, float)):
                 # fix values do not need a time-series aggregation and are written
                 # directly to processedCommodityConversion
                 processedCommodityConversionFactor[ip][
@@ -2391,7 +2386,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 ] = _commodityConversionFactors[commod]
             else:
                 raise ValueError(
-                    f"Data type '{type(commodityConversionFactors[commod])}' not accepted."
+                    f"Data type '{type(comp.commodityConversionFactors[commod])}' not accepted."
                 )
     return fullCommodityConversionFactor, processedCommodityConversionFactor
 

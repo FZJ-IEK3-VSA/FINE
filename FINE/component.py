@@ -2174,10 +2174,6 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
         def opMinPartLoad2(pyM, loc, compName, ip, p, t):
-            # old code:
-            # opVarBin = getattr(pyM, opVarBinName + '_' + abbrvName)[ip]
-
-            # TODO müsste partLoadMin nicht loc abhängig sein?!
             processedPartLoadMin = getattr(compDict[compName], "processedPartLoadMin")[
                 ip
             ]
@@ -2931,7 +2927,8 @@ class ComponentModel(metaclass=ABCMeta):
                 getattr(self.componentsDict[compName], factorName)[ip][loc]
                 for factorName in factorNames
             ]
-            # TODO in no function, there is more than one factor, therefore the use case of the following calculation is questioned
+            # TODO in no function, there is more than one factor, therefore the 
+            # use case of the following calculation is questioned
             # are the costs per operation calculated correctly for conversions?
             # Shouldnt there be a multiplication with the efficiency?
             factorVal = 1.0
@@ -2944,7 +2941,6 @@ class ComponentModel(metaclass=ABCMeta):
             # if there is not time series, there is not cost contribution
             if getattr(self.componentsDict[compName], factorNames[0]) is None:
                 return 0
-            # TODO see issue in if statement above
             factor = getattr(self.componentsDict[compName], factorNames[0])[ip][loc]
 
         if esM.stochasticModel:
@@ -3333,7 +3329,7 @@ class ComponentModel(metaclass=ABCMeta):
                 optSummary_ip.loc[
                     [(ix, "isBuilt", "[-]") for ix in binCapOptVal.index],
                     binCapOptVal.columns,
-                ] = binCapOptVal.values  # TODO exchange for bin commis var
+                ] = binCapOptVal.values 
                 optSummary_ip.loc[
                     [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index],
                     i.columns,
