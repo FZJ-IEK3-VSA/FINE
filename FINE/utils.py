@@ -723,8 +723,8 @@ def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPer
     ):
         if len(commodityConversion.keys()) != len(investmentPeriods):
             raise ValueError(
-                "CommodtityConversion is initialized as dict but does not "+
-                "contain values for each investment-period"
+                "CommodtityConversion is initialized as dict but does not "
+                + "contain values for each investment-period"
             )
         if sorted(commodityConversion.keys()) != sorted(investmentPeriods):
             raise ValueError(

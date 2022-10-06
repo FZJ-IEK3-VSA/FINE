@@ -21,7 +21,7 @@ warnings.filterwarnings("always", category=UserWarning)
 
 class EnergySystemModel:
     """
-    EnergySystemModel class 
+    EnergySystemModel class
 
     The functionality provided by the EnergySystemModel class is fourfold:
 
@@ -38,8 +38,8 @@ class EnergySystemModel:
 
     * the modeled spatial representation of the energy system (**locations, lengthUnit**)
     * the modeled temporal representation of the energy system (**totalTimeSteps, hoursPerTimeStep,
-      startYear, numberOfInvementPeriods, investmentPeriodInterval, periods, periodsOrder, 
-      periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps, isTimeSeriesDataClustered, 
+      startYear, numberOfInvementPeriods, investmentPeriodInterval, periods, periodsOrder,
+      periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps, isTimeSeriesDataClustered,
       typicalPeriods, tsaInstance, timeUnit**)
     * the considered commodities in the energy system (**commodities, commodityUnitsDict**)
     * the considered components in the energy system (**componentNames, componentModelingDict, costUnit**)
@@ -129,14 +129,14 @@ class EnergySystemModel:
             |br| * the default value is 1
         :type investmentPeriodInterval: strictly positive integer
 
-        :param startYear: year name of first investment period, e.g. for a transformation 
+        :param startYear: year name of first investment period, e.g. for a transformation
             pathway from 2020 to 2030 with the years 2020, 2025, 2030, the startYear is 2020
             |br| * the default value is None
         :type startYear: integer
 
-        :param stochasticModel: defines whether a model is stochastic or not. 
+        :param stochasticModel: defines whether a model is stochastic or not.
             For stochastic model optimization (e.g. with various weather years) set this value to True.
-            For stochastic optimization the components capacity design is the same for all investment 
+            For stochastic optimization the components capacity design is the same for all investment
             periods in order to achieve a more robust system design.
             |br| * the default value is False
         :type mode: bool
@@ -285,7 +285,10 @@ class EnergySystemModel:
         # in the tsaInstance parameter (default None).
         # The time unit refers to time measure referred throughout the model. Currently, it has to be an hour 'h'.
         self.isTimeSeriesDataClustered, self.typicalPeriods, self.tsaInstance = (
-            False, None, None, )
+            False,
+            None,
+            None,
+        )
         self.timeUnit = "h"
 
         ################################################################################################################
@@ -488,12 +491,10 @@ class EnergySystemModel:
         # directely returns the value instead of {0:value}. This allows old
         # models to run without modification
         if isinstance(
-            getattr(
-                self.getComponent(componentName),
-                attributeName),
-            dict) and list(
-            getattr(self.getComponent(componentName),
-                    attributeName).keys()) == [0]:
+            getattr(self.getComponent(componentName), attributeName), dict
+        ) and list(getattr(self.getComponent(componentName), attributeName).keys()) == [
+            0
+        ]:
             return getattr(self.getComponent(componentName), attributeName)[0]
         else:
             return getattr(self.getComponent(componentName), attributeName)
@@ -716,8 +717,7 @@ class EnergySystemModel:
         )
 
         # STEP 3. Obtain aggregated esM
-        aggregated_esM = xrIO.convertDatasetsToEnergySystemModel(
-            aggregated_xr_dataset)
+        aggregated_esM = xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
         return aggregated_esM
 
@@ -725,7 +725,8 @@ class EnergySystemModel:
         warnings.warn(
             "EnergySystemModel.cluster() is deprecated and will be removed in a future release. \
             use EnergySystemModel.aggregateTemporally() instead.",
-            DeprecationWarning,)
+            DeprecationWarning,
+        )
         self.aggregateTemporally(*args, **kwargs)
 
     def aggregateTemporally(
@@ -809,18 +810,18 @@ class EnergySystemModel:
 
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(
-            numberOfTypicalPeriods, numberOfTimeStepsPerPeriod,
-            len(self.totalTimeSteps))
+            numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps)
+        )
         if segmentation:
             if numberOfSegmentsPerPeriod > numberOfTimeStepsPerPeriod:
                 if self.verbose < 2:
                     warnings.warn(
                         "The chosen number of segments per period exceeds the number of time steps per"
                         "period. The number of segments per period is set to the number of time steps per "
-                        "period.")
+                        "period."
+                    )
                 numberOfSegmentsPerPeriod = numberOfTimeStepsPerPeriod
-        hoursPerPeriod = int(
-            numberOfTimeStepsPerPeriod * self.hoursPerTimeStep)
+        hoursPerPeriod = int(numberOfTimeStepsPerPeriod * self.hoursPerTimeStep)
 
         timeStart = time.time()
         if segmentation:
@@ -871,8 +872,9 @@ class EnergySystemModel:
                         compWeightDict,
                     ) = comp.getDataForTimeSeriesAggregation(ip)
                     if compTimeSeriesData is not None:
-                        timeSeriesData.append(
-                            compTimeSeriesData), weightDict.update(compWeightDict)
+                        timeSeriesData.append(compTimeSeriesData), weightDict.update(
+                            compWeightDict
+                        )
             timeSeriesData = pd.concat(timeSeriesData, axis=1)
             # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
             timeSeriesData.index = pd.date_range(
@@ -943,8 +945,7 @@ class EnergySystemModel:
                     self.hoursPerTimeStep * self.timeStepsPerSegment[ip]
                 )  # ip-dependent
                 # Define start time hour of each segment in each typical period
-                segmentStartTime = self.hoursPerSegment[ip].groupby(
-                    level=0).cumsum()
+                segmentStartTime = self.hoursPerSegment[ip].groupby(level=0).cumsum()
                 segmentStartTime.index = segmentStartTime.index.set_levels(
                     segmentStartTime.index.levels[1] + 1, level=1
                 )
@@ -952,14 +953,13 @@ class EnergySystemModel:
                 segmentStartTime = segmentStartTime.reindex(
                     pd.MultiIndex.from_product([lvl0, [0, *lvl1]])
                 )
-                segmentStartTime[segmentStartTime.index.get_level_values(
-                    1) == 0] = 0
+                segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
                 self.segmentStartTime[ip] = segmentStartTime  # ip-dependent
 
             self.periodsOrder[ip] = clusterClass.clusterOrder
             self.periodOccurrences[ip] = [
-                (self.periodsOrder[ip] == tp).sum() for tp in
-                self.typicalPeriods]
+                (self.periodsOrder[ip] == tp).sum() for tp in self.typicalPeriods
+            ]
 
         self.periods = list(
             range(int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)))
@@ -976,7 +976,8 @@ class EnergySystemModel:
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
         utils.output(
-            "\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", self.verbose, 0)
+            "\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", self.verbose, 0
+        )
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """
@@ -1160,10 +1161,8 @@ class EnergySystemModel:
 
         # Initialize sets
         pyM.timeSet = pyomo.Set(dimen=3, initialize=initTimeSet)
-        pyM.interTimeStepsSet = pyomo.Set(
-            dimen=2, initialize=initInterTimeStepsSet)
-        pyM.intraYearTimeSet = pyomo.Set(
-            dimen=2, initialize=initIntraYearTimeSet)
+        pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
+        pyM.intraYearTimeSet = pyomo.Set(dimen=2, initialize=initIntraYearTimeSet)
         pyM.investSet = pyomo.Set(dimen=1, initialize=initInvestSet)
         pyM.investPeriodInterPeriodSet = pyomo.Set(
             dimen=1, initialize=initInvestPeriodInterPeriodSet
@@ -1308,8 +1307,7 @@ class EnergySystemModel:
         :type pyM: pyomo ConcreteModel
 
         """
-        utils.output("Declaring shared potential constraint...",
-                     self.verbose, 0)
+        utils.output("Declaring shared potential constraint...", self.verbose, 0)
 
         # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
         # potential)
@@ -1354,15 +1352,19 @@ class EnergySystemModel:
         :type pyM: pyomo ConcreteModel
         """
         utils.output(
-            "Declaring linked component quantity constraint...", self.verbose,
-            0)
+            "Declaring linked component quantity constraint...", self.verbose, 0
+        )
 
         compDict = {}
         for mdl in self.componentModelingDict.values():
             for compName, comp in mdl.componentsDict.items():
                 if comp.linkedQuantityID is not None:
-                    [compDict.setdefault((comp.linkedQuantityID, loc), []).append(
-                        compName) for loc in comp.locationalEligibility.index]
+                    [
+                        compDict.setdefault((comp.linkedQuantityID, loc), []).append(
+                            compName
+                        )
+                        for loc in comp.locationalEligibility.index
+                    ]
         pyM.linkedQuantityDict = compDict
 
         def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2, ip):
@@ -1451,8 +1453,8 @@ class EnergySystemModel:
             )
 
         pyM.commodityBalanceConstraint = pyomo.Constraint(
-            pyM.locationCommoditySet, pyM.timeSet,
-            rule=commodityBalanceConstraint)
+            pyM.locationCommoditySet, pyM.timeSet, rule=commodityBalanceConstraint
+        )
 
     def declareObjective(self, pyM):
         """
@@ -1461,51 +1463,51 @@ class EnergySystemModel:
         components.
 
         .. math::
-            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum} 
+            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}
             \\left( NPV_{loc}^{comp,cap}  +  NPV_{loc}^{comp,bin} + NPV_{loc}^{comp,op} \\right)
 
         Objective Function detailed:
 
         .. math::
-            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}  \\ \\underset{ip \\in \\mathcal{IP}}{\\sum}  \\text{design}^{comp}_{loc,ip} + \\text{design}^{comp}_{bin, \\ loc,ip} + \\text{op}^{comp}_{loc,ip} 
-            
+            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}  \\ \\underset{ip \\in \\mathcal{IP}}{\\sum}  \\text{design}^{comp}_{loc,ip} + \\text{design}^{comp}_{bin, \\ loc,ip} + \\text{op}^{comp}_{loc,ip}
+
         Contribution of design variable to the objective function
-        
+
         .. math::
-                design^{comp}_{loc,ip} = 
+                design^{comp}_{loc,ip} =
                 \\sum\\limits_{year=ip-\\text{ipTechLifetime}}^{ip}
                 \\text{F}^{comp,bin}_{loc,year}
-                \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc,year}}{\\text{CCF}^{comp}_{loc,year}} 
-                + \\text{opexPerCap}^{comp}_{loc,year} \\right) \\cdot \\text{commis}^{comp}_{loc,year} 
+                \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc,year}}{\\text{CCF}^{comp}_{loc,year}}
+                + \\text{opexPerCap}^{comp}_{loc,year} \\right) \\cdot \\text{commis}^{comp}_{loc,year}
                 \\cdot  \\text{APVF}^{comp}_{loc} \\cdot \\text{discFactor}^{comp}_{loc,ip}
-                    
+
         Contribution of binary design variables to the objective function
-        
+
         .. math::
                 design^{comp}_{bin\\ loc,ip} =
                 \\sum\\limits_{year=ip-ipTechLifetime}^{ip}
-                \\text{F}^{comp,bin}_{loc,year} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc,year}}	{CCF^{comp}_{loc,year}} 
-                + \\text{opexIfBuilt}^{comp}_{loc,year} \\right)  \\cdot  bin^{comp}_{loc,year} 
+                \\text{F}^{comp,bin}_{loc,year} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc,year}}	{CCF^{comp}_{loc,year}}
+                + \\text{opexIfBuilt}^{comp}_{loc,year} \\right)  \\cdot  bin^{comp}_{loc,year}
                 \\cdot  \\text{APVF}^{comp}_{loc} \\cdot \\text{discFactor}^{comp}_{loc,ip}
 
         Contribution of operation variables to the objective function
-        
+
         .. math::
-                op^{comp}_{loc,ip} = 
-                \\underset{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}}{\\sum} \\ \\underset{\\text{opType} \\in \\mathcal{O}^{comp}}{\\sum} 
-                \\text{factorPerOp}^{comp,opType}_{loc,ip} \\cdot op^{comp,opType}_{loc,ip,p,t} \\cdot  \\frac{\\text{freq(p)}}{\\tau^{years}} 
+                op^{comp}_{loc,ip} =
+                \\underset{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}}{\\sum} \\ \\underset{\\text{opType} \\in \\mathcal{O}^{comp}}{\\sum}
+                \\text{factorPerOp}^{comp,opType}_{loc,ip} \\cdot op^{comp,opType}_{loc,ip,p,t} \\cdot  \\frac{\\text{freq(p)}}{\\tau^{years}}
                 \\cdot  \\text{APVF}^{comp}_{loc} \\cdot \\text{discFactor}^{comp}_{loc,ip}
-            
+
         With the annuity present value factor (Rentenbarwertfaktor):
-        
+
         .. math::
             APVF^{comp}_{loc} = \\frac{(1 + intrestRate^{comp}_{loc})^{interval} - 1}{intrestRate^{comp}_{loc} \\cdot (1 + intrestRate^{comp}_{loc})^{interval}} \\ if intrestRate^{comp}_{loc} != 0 \\  else \\  1
-        
+
         and the discount factor.
-        
+
         .. math::
             discFactor^{comp}_{loc,ip} = \\frac{1+intrestRate^{comp}_{loc}}{(1+intrestRate^{comp}_{loc})^{ip \\cdot interval}}
-        
+
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
@@ -1523,8 +1525,8 @@ class EnergySystemModel:
         pyM.Obj = pyomo.Objective(rule=objective)
 
     def declareOptimizationProblem(
-            self, timeSeriesAggregation=False, segmentation=False,
-            relaxIsBuiltBinary=False):
+        self, timeSeriesAggregation=False, segmentation=False, relaxIsBuiltBinary=False
+    ):
         """
         Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
         instance is built and filled with
@@ -1590,16 +1592,16 @@ class EnergySystemModel:
             utils.output(
                 "Declaring sets, variables and constraints for " + key, self.verbose, 0
             )
-            utils.output("\tdeclaring sets... ", self.verbose,
-                         0), mdl.declareSets(self, pyM)
+            utils.output("\tdeclaring sets... ", self.verbose, 0), mdl.declareSets(
+                self, pyM
+            )
             utils.output(
                 "\tdeclaring variables... ", self.verbose, 0
             ), mdl.declareVariables(self, pyM, relaxIsBuiltBinary)
             utils.output(
                 "\tdeclaring constraints... ", self.verbose, 0
             ), mdl.declareComponentConstraints(self, pyM)
-            utils.output(
-                "\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+            utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################
         #                              Declare cross-componential sets and constraints                                 #
@@ -1608,26 +1610,22 @@ class EnergySystemModel:
         # Declare constraints for enforcing shared capacities
         _t = time.time()
         self.declareSharedPotentialConstraints(pyM)
-        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n",
-                     self.verbose, 0)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Declare constraints for linked quantities
         _t = time.time()
         self.declareComponentLinkedQuantityConstraints(pyM)
-        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n",
-                     self.verbose, 0)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
         _t = time.time()
         self.declareCommodityBalanceConstraints(pyM)
-        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n",
-                     self.verbose, 0)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Declare constraint for balanceLimit
         _t = time.time()
         self.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
-        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n",
-                     self.verbose, 0)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################
         #                                         Declare objective function                                           #
@@ -1636,8 +1634,7 @@ class EnergySystemModel:
         # Declare objective function by obtaining the contributions to the objective function from all modeling classes
         _t = time.time()
         self.declareObjective(pyM)
-        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n",
-                     self.verbose, 0)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs["buildtime"] = time.time() - timeStart
@@ -1743,7 +1740,8 @@ class EnergySystemModel:
             if self.pyM is None:
                 raise TypeError(
                     "The optimization problem is not declared yet. Set the argument declaresOptimization"
-                    " problem to True or call the declareOptimizationProblem function first.")
+                    " problem to True or call the declareOptimizationProblem function first."
+                )
 
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -1801,7 +1799,8 @@ class EnergySystemModel:
             raise TypeError(
                 "At least one solver must be installed."
                 " Have a look at the FINE documentation to see how to install possible solvers."
-                " https://vsa-fine.readthedocs.io/en/latest/")
+                " https://vsa-fine.readthedocs.io/en/latest/"
+            )
 
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #
@@ -1829,8 +1828,7 @@ class EnergySystemModel:
                 + " "
                 + optimizationSpecs
             )
-            solver_info = optimizer.solve(
-                self.pyM, warmstart=warmstart, tee=True)
+            solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
         elif solver == "glpk":
             optimizer.set_options(optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, tee=True)
@@ -1899,10 +1897,8 @@ class EnergySystemModel:
                 == opt.TerminationCondition.optimal
                 and self.verbose < 2
             ):
-                warnings.warn(
-                    "Output is generated for a non-optimal solution.")
-            utils.output("\nProcessing optimization output...",
-                         self.verbose, 0)
+                warnings.warn("Output is generated for a non-optimal solution.")
+            utils.output("\nProcessing optimization output...", self.verbose, 0)
             # Declare component specific sets, variables and constraints
             w = str(len(max(self.componentModelingDict.keys())) + 6)
 
@@ -1931,12 +1927,12 @@ class EnergySystemModel:
                     if key in mdl.__dict__.keys():
                         if len(esM.investmentPeriods) == 1:
                             setattr(
-                                mdl, key.replace("_", ""),
-                                getattr(mdl, key)[esM.investmentPeriodNames[0]])
+                                mdl,
+                                key.replace("_", ""),
+                                getattr(mdl, key)[esM.investmentPeriodNames[0]],
+                            )
                         else:
-                            setattr(
-                                mdl, key.replace("_", ""),
-                                getattr(mdl, key))
+                            setattr(mdl, key.replace("_", ""), getattr(mdl, key))
                     else:
                         pass
 
@@ -1962,8 +1958,7 @@ class EnergySystemModel:
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 
-        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n",
-                     self.verbose, 0)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Store the runtime of the optimize function call in the EnergySystemModel instance
         self.solverSpecs["runtime"] = (

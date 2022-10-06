@@ -2927,7 +2927,7 @@ class ComponentModel(metaclass=ABCMeta):
                 getattr(self.componentsDict[compName], factorName)[ip][loc]
                 for factorName in factorNames
             ]
-            # TODO in no function, there is more than one factor, therefore the 
+            # TODO in no function, there is more than one factor, therefore the
             # use case of the following calculation is questioned
             # are the costs per operation calculated correctly for conversions?
             # Shouldnt there be a multiplication with the efficiency?
@@ -3329,7 +3329,7 @@ class ComponentModel(metaclass=ABCMeta):
                 optSummary_ip.loc[
                     [(ix, "isBuilt", "[-]") for ix in binCapOptVal.index],
                     binCapOptVal.columns,
-                ] = binCapOptVal.values 
+                ] = binCapOptVal.values
                 optSummary_ip.loc[
                     [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index],
                     i.columns,

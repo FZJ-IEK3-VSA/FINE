@@ -176,7 +176,7 @@ class Conversion(Component):
             esM.investmentPeriods,
         )
 
-        # check for operationRateMax and operationRateFix 
+        # check for operationRateMax and operationRateFix
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
             if esM.verbose < 2:
