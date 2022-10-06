@@ -131,8 +131,8 @@ class Storage(Component):
             of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
             during one time step.
             |br| * the default value is None
-        :type chargeOpRateMax: 
-            * None 
+        :type chargeOpRateMax:
+            * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
@@ -145,8 +145,8 @@ class Storage(Component):
             of the commodityUnit, referring to the charged commodity (before multiplying the charging efficiency)
             during one time step.
             |br| * the default value is None
-        :type chargeOpRateFix: 
-            * None 
+        :type chargeOpRateFix:
+            * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
@@ -164,8 +164,8 @@ class Storage(Component):
             of the commodityUnit, referring to the discharged commodity (after multiplying the discharging
             efficiency) during one time step.
             |br| * the default value is None
-        :type dischargeOpRateMax: 
-            * None 
+        :type dischargeOpRateMax:
+            * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
@@ -178,8 +178,8 @@ class Storage(Component):
             of the commodityUnit, referring to the charged commodity (after multiplying the discharging
             efficiency) during one time step.
             |br| * the default value is None
-        :type dischargeOpRateFix:   
-            * None 
+        :type dischargeOpRateFix:
+            * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
@@ -216,8 +216,8 @@ class Storage(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerDischargeOperation: 
-            * positive (>=0) float 
+        :type opexPerDischargeOperation:
+            * positive (>=0) float
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
@@ -275,7 +275,7 @@ class Storage(Component):
         )
         # TODO unit and type checks
         self.chargeRate, self.dischargeRate = chargeRate, dischargeRate
-        self.chargeEfficiency=chargeEfficiency
+        self.chargeEfficiency = chargeEfficiency
         self.dischargeEfficiency = dischargeEfficiency
         self.selfDischarge = selfDischarge
         self.cyclicLifetime = cyclicLifetime
@@ -345,14 +345,17 @@ class Storage(Component):
 
         # check for chargeOpRateMax and chargeOpRateFix
         for ip in esM.investmentPeriods:
-            if self.fullChargeOpRateMax[ip] is not None and self.fullChargeOpRateFix[ip] is not None:
+            if (
+                self.fullChargeOpRateMax[ip] is not None
+                and self.fullChargeOpRateFix[ip] is not None
+            ):
                 self.fullChargeOpRateMax[ip] = None
                 if esM.verbose < 2:
                     warnings.warn(
                         "If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n"
                         + "The chargeOpRateMax time series was set to None."
                     )
-        
+
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
             esM,
@@ -408,11 +411,18 @@ class Storage(Component):
         )
 
         # set parameter to None if all years have None values
-        self.fullChargeOpRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullChargeOpRateFix)
-        self.fullChargeOpRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullChargeOpRateMax)
-        self.fullDischargeOpRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullDischargeOpRateFix)
-        self.fullDischargeOpRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullDischargeOpRateMax)
-        
+        self.fullChargeOpRateFix = utils.setParamToNoneIfNoneForAllYears(
+            self.fullChargeOpRateFix
+        )
+        self.fullChargeOpRateMax = utils.setParamToNoneIfNoneForAllYears(
+            self.fullChargeOpRateMax
+        )
+        self.fullDischargeOpRateFix = utils.setParamToNoneIfNoneForAllYears(
+            self.fullDischargeOpRateFix
+        )
+        self.fullDischargeOpRateMax = utils.setParamToNoneIfNoneForAllYears(
+            self.fullDischargeOpRateMax
+        )
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -504,8 +514,8 @@ class Storage(Component):
             setattr(
                 self,
                 parameter,
-                utils.setParamToNoneIfNoneForAllYears(getattr(self,parameter)
-            ))
+                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
+            )
 
 
 class StorageModel(ComponentModel):
@@ -1623,7 +1633,6 @@ class StorageModel(ComponentModel):
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
-
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """

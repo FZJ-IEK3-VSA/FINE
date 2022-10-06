@@ -78,8 +78,8 @@ class DemandSideManagementBETA(Sink):
             to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit for each time step, if required also for each investment period.
-        :type operationRateFix: 
-            * None 
+        :type operationRateFix:
+            * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.

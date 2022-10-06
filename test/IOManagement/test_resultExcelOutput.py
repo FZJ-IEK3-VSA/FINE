@@ -139,7 +139,7 @@ def saveExcelResultsWithSegmentation(
     minimal_test_esM, savePathWithoutSegmentation, savePathWithSegmentation
 ):
     # run and save model without segmentation
-    minimal_test_esM.optimize()
+    minimal_test_esM.optimize(solver="glpk")
     writeOptimizationOutputToExcel(
         minimal_test_esM,
         outputFileName=savePathWithoutSegmentation,

@@ -6,7 +6,7 @@ import math
 
 
 def test_perfectForesight_mini(perfectForesight_test_esM):
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 11861.771783274202
     )
@@ -36,7 +36,7 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
     # CHECKS
     # check the objective value

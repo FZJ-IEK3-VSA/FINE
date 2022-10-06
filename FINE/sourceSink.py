@@ -76,19 +76,19 @@ class Source(Component):
 
         **Default arguments:**
 
-        :param operationRateMax: if specified, indicates a maximum operation rate for each location and each time, if required also for each investment period, if 
+        :param operationRateMax: if specified, indicates a maximum operation rate for each location and each time, if required also for each investment period, if
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
             to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit for each time step.
             |br| * the default value is None
-        :type operationRateMax: 
-            * None 
+        :type operationRateMax:
+            * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
             * a dictionary with investment periods as keys and one of the two options above as values
-            
+
 
         :param operationRateFix: if specified, indicates a fixed operation rate for each location and each time, if required also for each investment period,
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
@@ -96,8 +96,8 @@ class Source(Component):
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit for each time step.
             |br| * the default value is None
-        :type operationRateFix: 
-            * None 
+        :type operationRateFix:
+            * None
             * Pandas DataFrame with positive (>=0) per investement period. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
@@ -118,7 +118,7 @@ class Source(Component):
             each time step, if required also for each investment period, by a positive float. The values are given as specific values relative to the
             commodityUnit for each time step.
             |br| * the default value is None
-        :type commodityRevenueTimeSeries: 
+        :type commodityRevenueTimeSeries:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices
             have to match the in the energy system model specified time steps. The column indices have to equal
@@ -163,8 +163,8 @@ class Source(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerOperation: 
-            * positive (>=0) float 
+        :type opexPerOperation:
+            * positive (>=0) float
             Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
@@ -182,8 +182,8 @@ class Source(Component):
               certain cost.
 
             |br| * the default value is 0
-        :type commodityCost: 
-            * positive (>=0) float 
+        :type commodityCost:
+            * positive (>=0) float
             * Pandas Series with positive (>=0).The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
@@ -199,8 +199,8 @@ class Source(Component):
             * Modeling a PV electricity feed-in tariff for a household
 
             |br| * the default value is 0
-        :type commodityRevenue: 
-            * positive (>=0) float 
+        :type commodityRevenue:
+            * positive (>=0) float
             * Pandas Series with positive (>=0). The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
@@ -351,7 +351,10 @@ class Source(Component):
 
         # check for operationRateMax and operationRateFix
         for ip in esM.investmentPeriods:
-            if self.fullOperationRateFix[ip] is not None and self.fullOperationRateMax[ip] is not None: 
+            if (
+                self.fullOperationRateFix[ip] is not None
+                and self.fullOperationRateMax[ip] is not None
+            ):
                 self.fullOperationRateMax[ip] = None
                 if esM.verbose < 2:
                     warnings.warn(
@@ -359,7 +362,7 @@ class Source(Component):
                         + "The operationRateMax time series of investment period "
                         + f"'{esM.investmentPeriodList[ip]}' was set to None."
                     )
-        
+
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
             esM,
@@ -375,16 +378,23 @@ class Source(Component):
         self.tsaWeight = tsaWeight
 
         # set parameter to None if all years have None values
-        self.fullOperationRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateFix)
-        self.fullOperationRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateMax)
-        self.fullCommodityCostTimeSeries=utils.setParamToNoneIfNoneForAllYears(self.fullCommodityCostTimeSeries)
-        self.fullCommodityRevenueTimeSeries=utils.setParamToNoneIfNoneForAllYears(self.fullCommodityRevenueTimeSeries)
-        
-     
+        self.fullOperationRateFix = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateFix
+        )
+        self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateMax
+        )
+        self.fullCommodityCostTimeSeries = utils.setParamToNoneIfNoneForAllYears(
+            self.fullCommodityCostTimeSeries
+        )
+        self.fullCommodityRevenueTimeSeries = utils.setParamToNoneIfNoneForAllYears(
+            self.fullCommodityRevenueTimeSeries
+        )
+
         if self.fullOperationRateFix is not None:
-            operationTimeSeries=self.fullOperationRateFix
+            operationTimeSeries = self.fullOperationRateFix
         elif self.fullOperationRateMax is not None:
-            operationTimeSeries=self.fullOperationRateMax
+            operationTimeSeries = self.fullOperationRateMax
         else:
             operationTimeSeries = None
 
@@ -503,10 +513,8 @@ class Source(Component):
             setattr(
                 self,
                 parameter,
-                utils.setParamToNoneIfNoneForAllYears(getattr(self,parameter)
-            ))
-
-
+                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
+            )
 
 
 class Sink(Source):
@@ -838,7 +846,6 @@ class SourceSinkModel(ComponentModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
- 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
         Check if operation variables exist in the modeling class at a location which are connected to a commodity.

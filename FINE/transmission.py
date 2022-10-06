@@ -85,8 +85,8 @@ class Transmission(Component):
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
-        :type operationRateMax: 
-            * None 
+        :type operationRateMax:
+            * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
@@ -102,8 +102,8 @@ class Transmission(Component):
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
-        :type operationRateFix: 
-            * None 
+        :type operationRateFix:
+            * None
             * Pandas DataFrame with positive (>= 0). The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
@@ -125,8 +125,8 @@ class Transmission(Component):
             system model (e.g. Euro, Dollar, 1e6 Euro). The value has to match the unit costUnit/operationUnit
             (e.g. Euro/kWh, Dollar/kWh).
             |br| * the default value is 0
-        :type opexPerOperation: 
-            * positive (>=0) float 
+        :type opexPerOperation:
+            * positive (>=0) float
             * Pandas DataFrame with positive (>=0).The row and column indices of the DataFrame have to equal the in the energy system model
             specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
@@ -355,9 +355,13 @@ class Transmission(Component):
         self.tsaWeight = tsaWeight
 
         # set parameter to None if all years have None values
-        self.fullOperationRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateFix)
-        self.fullOperationRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullOperationRateMax)
-        
+        self.fullOperationRateFix = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateFix
+        )
+        self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateMax
+        )
+
     def setTimeSeriesData(self, hasTSA):
         """
         Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
@@ -418,8 +422,8 @@ class Transmission(Component):
             setattr(
                 self,
                 parameter,
-                utils.setParamToNoneIfNoneForAllYears(getattr(self,parameter)
-            ))
+                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
+            )
 
 
 class TransmissionModel(ComponentModel):
@@ -656,7 +660,6 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
-
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """

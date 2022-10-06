@@ -93,7 +93,8 @@ def optimizeSimpleMyopic(
         nothing is returned.
     :rtype: dict of all optimized instances of the EnergySystemModel class or None.
     """
-
+    if esM.numberOfInvestmentPeriods != 1:
+        raise ValueError("Myopic requires single year optimizations.")
     nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(
         startYear, endYear, nbOfSteps, nbOfRepresentedYears
     )

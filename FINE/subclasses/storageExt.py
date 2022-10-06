@@ -23,7 +23,7 @@ class StorageExtBETA(Storage):
         opexPerChargeOpTimeSeries=None,
         stateOfChargeTsaWeight=1,
         opexChargeOpTsaWeight=1,
-        **kwargs
+        **kwargs,
     ):
         """
         Constructor for creating an StorageExt class instance.
@@ -40,8 +40,8 @@ class StorageExtBETA(Storage):
             values in form of the commodityUnit, referring to the commodity stored in the component at the
             beginning of one time step.
             |br| * the default value is None
-        :type stateOfChargeOpRateMax: 
-            * None 
+        :type stateOfChargeOpRateMax:
+            * None
             * Pandas DataFrame with positive (>= 0) entries . The row indices have
             to match the in the energy system model  specified time steps. The column indices have to match the
             in the energy system model specified locations.
@@ -54,8 +54,8 @@ class StorageExtBETA(Storage):
             values in form of the commodityUnit, referring to the commodity stored in the component at the
             beginning of one time step.
             |br| * the default value is None
-        :type stateOfChargeOpRateFix: 
-            * None 
+        :type stateOfChargeOpRateFix:
+            * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices have to match the
             in the energy system model specified locations.
@@ -72,93 +72,105 @@ class StorageExtBETA(Storage):
 
         # Set location-specific operation parameters (charging rate, discharging rate, state of charge rate)
         # and time series aggregation weighting factor
-        
+
         # stateOfChargeOpRateFix
         self.stateOfChargeOpRateFix = stateOfChargeOpRateFix
-        self.fullStateOfChargeOpRateFix=utils.checkAndSetInvestmentPeriodTimeSeries( esM, name, stateOfChargeOpRateFix, self.locationalEligibility)
-        self.aggregatedStateOfChargeOpRateFix= dict.fromkeys(esM.investmentPeriods)
-                
+        self.fullStateOfChargeOpRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, stateOfChargeOpRateFix, self.locationalEligibility
+        )
+        self.aggregatedStateOfChargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
+
         # stateOfChargeOpRateMax
         self.stateOfChargeOpRateMax = stateOfChargeOpRateMax
-        self.fullStateOfChargeOpRateMax=utils.checkAndSetInvestmentPeriodTimeSeries( esM, name, stateOfChargeOpRateMax, self.locationalEligibility)
+        self.fullStateOfChargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, stateOfChargeOpRateMax, self.locationalEligibility
+        )
         self.aggregatedStateOfChargeOpRateMax = dict.fromkeys(esM.investmentPeriods)
 
         # opexPerChargeOpTimeSeries
         self.opexPerChargeOpTimeSeries = opexPerChargeOpTimeSeries
-        self.fullOpexPerChargeOpTimeSeries=utils.checkAndSetInvestmentPeriodTimeSeries(esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility) 
-        self.aggregatedOpexPerChargeOpTimeSeries = dict.fromkeys(esM.investmentPeriods)    
-        
+        self.fullOpexPerChargeOpTimeSeries = (
+            utils.checkAndSetInvestmentPeriodTimeSeries(
+                esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility
+            )
+        )
+        self.aggregatedOpexPerChargeOpTimeSeries = dict.fromkeys(esM.investmentPeriods)
+
         # for _ip in esM.investmentPeriodList:
         #     ip = esM.investmentPeriodList.index(_ip)
-            # # fullStateOfChargeOpRateMax
-            # if (
-            #     isinstance(stateOfChargeOpRateMax, pd.DataFrame)
-            #     or isinstance(stateOfChargeOpRateMax, pd.Series)
-            #     or stateOfChargeOpRateMax is None
-            # ):
-            #     self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-            #         esM, name, stateOfChargeOpRateMax, self.locationalEligibility
-            #     )
-            # elif isinstance(stateOfChargeOpRateMax, dict):
-            #     self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-            #         esM, name, stateOfChargeOpRateMax[_ip], self.locationalEligibility
-            #     )
-            # else:
-            #     raise TypeError(
-            #         "stateOfChargeOpRateMax should be a pandas dataframe or a dictionary."
-            #     )
+        # # fullStateOfChargeOpRateMax
+        # if (
+        #     isinstance(stateOfChargeOpRateMax, pd.DataFrame)
+        #     or isinstance(stateOfChargeOpRateMax, pd.Series)
+        #     or stateOfChargeOpRateMax is None
+        # ):
+        #     self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
+        #         esM, name, stateOfChargeOpRateMax, self.locationalEligibility
+        #     )
+        # elif isinstance(stateOfChargeOpRateMax, dict):
+        #     self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
+        #         esM, name, stateOfChargeOpRateMax[_ip], self.locationalEligibility
+        #     )
+        # else:
+        #     raise TypeError(
+        #         "stateOfChargeOpRateMax should be a pandas dataframe or a dictionary."
+        #     )
 
-            # fullStateOfChargeOpRateFix
-            # if (
-            #     isinstance(stateOfChargeOpRateFix, pd.DataFrame)
-            #     or isinstance(stateOfChargeOpRateFix, pd.Series)
-            #     or stateOfChargeOpRateFix is None
-            # ):
-            #     self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-            #         esM, name, stateOfChargeOpRateFix, self.locationalEligibility
-            #     )
-            # elif isinstance(stateOfChargeOpRateFix, dict):
-            #     self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-            #         esM, name, stateOfChargeOpRateFix[_ip], self.locationalEligibility
-            #     )
-            # else:
-            #     raise TypeError(
-            #         "stateOfChargeOpRateFix should be a pandas dataframe or a dictionary."
-            #     )
+        # fullStateOfChargeOpRateFix
+        # if (
+        #     isinstance(stateOfChargeOpRateFix, pd.DataFrame)
+        #     or isinstance(stateOfChargeOpRateFix, pd.Series)
+        #     or stateOfChargeOpRateFix is None
+        # ):
+        #     self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
+        #         esM, name, stateOfChargeOpRateFix, self.locationalEligibility
+        #     )
+        # elif isinstance(stateOfChargeOpRateFix, dict):
+        #     self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
+        #         esM, name, stateOfChargeOpRateFix[_ip], self.locationalEligibility
+        #     )
+        # else:
+        #     raise TypeError(
+        #         "stateOfChargeOpRateFix should be a pandas dataframe or a dictionary."
+        #     )
 
-            # # fullOpexPerChargeOpTimeSeries
-            # if (
-            #     isinstance(opexPerChargeOpTimeSeries, pd.DataFrame)
-            #     or isinstance(opexPerChargeOpTimeSeries, pd.Series)
-            #     or opexPerChargeOpTimeSeries is None
-            # ):
-            #     self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
-            #         esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility
-            #     )
-            # elif isinstance(opexPerChargeOpTimeSeries, dict):
-            #     self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
-            #         esM,
-            #         name,
-            #         opexPerChargeOpTimeSeries[_ip],
-            #         self.locationalEligibility,
-            #     )
-            # else:
-            #     raise TypeError(
-            #         "opexPerChargeOpTimeSeries should be a pandas dataframe or a dictionary."
-            #     )
-     
+        # # fullOpexPerChargeOpTimeSeries
+        # if (
+        #     isinstance(opexPerChargeOpTimeSeries, pd.DataFrame)
+        #     or isinstance(opexPerChargeOpTimeSeries, pd.Series)
+        #     or opexPerChargeOpTimeSeries is None
+        # ):
+        #     self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
+        #         esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility
+        #     )
+        # elif isinstance(opexPerChargeOpTimeSeries, dict):
+        #     self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
+        #         esM,
+        #         name,
+        #         opexPerChargeOpTimeSeries[_ip],
+        #         self.locationalEligibility,
+        #     )
+        # else:
+        #     raise TypeError(
+        #         "opexPerChargeOpTimeSeries should be a pandas dataframe or a dictionary."
+        #     )
+
         for ip in esM.investmentPeriods:
             # The i-th state of charge (SOC) refers to the SOC before the i-th time step
-            if self.fullStateOfChargeOpRateMax[ip] is not None and self.fullStateOfChargeOpRateFix[ip] is not None:
+            if (
+                self.fullStateOfChargeOpRateMax[ip] is not None
+                and self.fullStateOfChargeOpRateFix[ip] is not None
+            ):
                 self.fullStateOfChargeOpRateMax[ip] = None
                 if esM.verbose < 2:
                     warnings.warn(
                         "If stateOfChargeOpRateFix is specified, the stateOfChargeOpRateMax parameter is not +"
-                        "required.\nThe stateOfChargeOpRateMax time series for investment period "+
-                        f"{esM.investmentPeriodList[ip]} was set to None."
+                        "required.\nThe stateOfChargeOpRateMax time series for investment period "
+                        + f"{esM.investmentPeriodList[ip]} was set to None."
                     )
             if (
-                self.fullStateOfChargeOpRateMax[ip] is not None or self.fullStateOfChargeOpRateFix[ip] is not None
+                self.fullStateOfChargeOpRateMax[ip] is not None
+                or self.fullStateOfChargeOpRateFix[ip] is not None
             ) and not self.doPreciseTsaModeling:
                 self.doPreciseTsaModeling = True
                 if esM.verbose < 2:
@@ -174,7 +186,10 @@ class StorageExtBETA(Storage):
                         + "Setting the stateOfChargeOpRateMax parameter might lead to unwanted modeling behavior\n"
                         + "and should be handled with caution."
                     )
-            if self.fullStateOfChargeOpRateFix[ip] is not None and not self.isPeriodicalStorage:
+            if (
+                self.fullStateOfChargeOpRateFix[ip] is not None
+                and not self.isPeriodicalStorage
+            ):
                 self.isPeriodicalStorage = True
                 if esM.verbose < 2:
                     warnings.warn(
@@ -182,7 +197,7 @@ class StorageExtBETA(Storage):
                         + "If the stateOfChargeOpRateFix parameter is specified, the storage\n"
                         + "is set to isPeriodicalStorage)."
                     )
-            
+
         utils.isPositiveNumber(stateOfChargeTsaWeight), utils.isPositiveNumber(
             opexChargeOpTsaWeight
         )
@@ -239,10 +254,15 @@ class StorageExtBETA(Storage):
         )
 
         # set parameter to None if all years have None values
-        self.fullStateOfChargeOpRateMax=utils.setParamToNoneIfNoneForAllYears(self.fullStateOfChargeOpRateMax)
-        self.fullStateOfChargeOpRateFix=utils.setParamToNoneIfNoneForAllYears(self.fullStateOfChargeOpRateFix)
-        self.fullOpexPerChargeOpTimeSeries=utils.setParamToNoneIfNoneForAllYears(self.fullOpexPerChargeOpTimeSeries)
-
+        self.fullStateOfChargeOpRateMax = utils.setParamToNoneIfNoneForAllYears(
+            self.fullStateOfChargeOpRateMax
+        )
+        self.fullStateOfChargeOpRateFix = utils.setParamToNoneIfNoneForAllYears(
+            self.fullStateOfChargeOpRateFix
+        )
+        self.fullOpexPerChargeOpTimeSeries = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOpexPerChargeOpTimeSeries
+        )
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -375,8 +395,8 @@ class StorageExtBETA(Storage):
             setattr(
                 self,
                 parameter,
-                utils.setParamToNoneIfNoneForAllYears(getattr(self,parameter)
-            ))
+                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
+            )
 
 
 class StorageExtModel(StorageModel):
@@ -976,7 +996,6 @@ class StorageExtModel(StorageModel):
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
-
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """

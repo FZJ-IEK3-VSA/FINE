@@ -84,7 +84,6 @@ class ConversionPartLoad(Conversion):
             self.nSegments = commodityConversionFactorsPartLoad[1]
 
 
-
 class ConversionPartLoadModel(ConversionModel):
 
     """
@@ -551,7 +550,6 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
-
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
