@@ -117,18 +117,18 @@ class EnergySystemModel:
         :type hoursPerTimeStep: strictly positive float
 
         :param numberOfInvestmentPeriods: number of investment periods of transformation
-            path analysis, e.g. for a transformation pathway from 2020 to 2030 
+            path analysis, e.g. for a transformation pathway from 2020 to 2030
             with the years 2020, 2025, 2030, the numberOfInvestmentPeriods is 3
             |br| * the default value is 1
         : type numberOfInvestmentPeriods: strictly positive integer
 
         :param yearsPerInvestmentPeriod: years per investment period of transformation
-            path analysis, e.g. for a transformation pathway from 2020 to 2030 
+            path analysis, e.g. for a transformation pathway from 2020 to 2030
             with the years 2020, 2025, 2030, the yearsPerInvestmentPeriod is 5
             |br| * the default value is 1
         : type yearsPerInvestmentPeriod: strictly positive integer
 
-        :param startYear: year name of first investment period, e.g. for a transformation pathway from 2020 to 2030 
+        :param startYear: year name of first investment period, e.g. for a transformation pathway from 2020 to 2030
             with the years 2020, 2025, 2030, the startYear is 2020
             |br| * the default value is None
         : type startYear: integer
