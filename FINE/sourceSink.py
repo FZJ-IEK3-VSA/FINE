@@ -729,14 +729,14 @@ class SourceSinkModel(ComponentModel):
         opVar = getattr(pyM, "op_" + abbrvName)
         limitDict = getattr(pyM, "yearlyCommodityLimitationDict_" + abbrvName)
 
-        def yearlyLimitationConstraint(pyM, key):
+        def yearlyLimitationConstraint(pyM, key, ip):
             sumEx = -sum(
                 opVar[loc, compName, ip, p, t]
                 * compDict[compName].sign
                 * esM.periodOccurrences[ip][p]
                 / esM.numberOfYears
-                for loc, compName, ip, p, t in opVar
-                if compName in limitDict[key][1]
+                for loc, compName, _ip, p, t in opVar
+                if (_ip==ip and compName in limitDict[key][1])
             )
             sign = (
                 limitDict[key][0] / abs(limitDict[key][0])
@@ -744,11 +744,11 @@ class SourceSinkModel(ComponentModel):
                 else 1
             )
             return sign * sumEx <= sign * limitDict[key][0]
-
+        
         setattr(
             pyM,
             "ConstrYearlyLimitation_" + abbrvName,
-            pyomo.Constraint(limitDict.keys(), rule=yearlyLimitationConstraint),
+            pyomo.Constraint(limitDict.keys(), esM.investmentPeriods, rule=yearlyLimitationConstraint),
         )
 
     def declareComponentConstraints(self, esM, pyM):
@@ -841,7 +841,7 @@ class SourceSinkModel(ComponentModel):
         )
 
     def getBalanceLimitContribution(
-        self, esM, pyM, ID, timeSeriesAggregation, loc=None
+        self, esM, pyM, ID, ip, timeSeriesAggregation, loc=None
     ):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
@@ -855,7 +855,10 @@ class SourceSinkModel(ComponentModel):
 
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
-
+        
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
+        
         :param ID: ID of the regarded balanceLimitConstraint
         :param ID: string
 
@@ -877,14 +880,12 @@ class SourceSinkModel(ComponentModel):
         limitDict = getattr(pyM, "balanceLimitDict")
 
         if timeSeriesAggregation:
-            investmentPeriods = esM.investmentPeriods
             periods = esM.typicalPeriods
             if esM.segmentation:
                 timeSteps = esM.segmentsPerPeriod
             else:
                 timeSteps = esM.timeStepsPerPeriod
         else:
-            investmentPeriods = esM.investmentPeriods
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
         # Check if locational input is not set in esM, if so additionally loop over all locations
@@ -895,7 +896,6 @@ class SourceSinkModel(ComponentModel):
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
                 if compName in limitDict[ID]
-                for ip in investmentPeriods
                 for p in periods
                 for t in timeSteps
                 for loc in esM.locations
@@ -908,7 +908,6 @@ class SourceSinkModel(ComponentModel):
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
                 if compName in limitDict[(ID, loc)]
-                for ip in investmentPeriods
                 for p in periods
                 for t in timeSteps
             )

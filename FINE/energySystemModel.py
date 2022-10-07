@@ -1207,7 +1207,7 @@ class EnergySystemModel:
                             ]
             setattr(pyM, "balanceLimitDict", balanceLimitDict)
 
-            def balanceLimitConstraint(pyM, ID, loc):
+            def balanceLimitConstraint(pyM, ID, loc, ip):
                 # Check whether we want to consider an upper or lower bound.
                 if not self.lowerBound:
                     return (
@@ -1216,6 +1216,7 @@ class EnergySystemModel:
                                 esM=self,
                                 pyM=pyM,
                                 ID=ID,
+                                ip=ip,
                                 timeSeriesAggregation=timeSeriesAggregation,
                                 loc=loc,
                             )
@@ -1234,6 +1235,7 @@ class EnergySystemModel:
                                 esM=self,
                                 pyM=pyM,
                                 ID=ID,
+                                ip=ip,
                                 timeSeriesAggregation=timeSeriesAggregation,
                                 loc=loc,
                             )
@@ -1257,7 +1259,7 @@ class EnergySystemModel:
                             ).append(compName)
             setattr(pyM, "balanceLimitDict", balanceLimitDict)
 
-            def balanceLimitConstraint(pyM, ID):
+            def balanceLimitConstraint(pyM, ID, ip):
                 # Check wether we want to consider an upper or lower bound
                 if not self.lowerBound:
                     return (
@@ -1266,6 +1268,7 @@ class EnergySystemModel:
                                 esM=self,
                                 pyM=pyM,
                                 ID=ID,
+                                ip=ip,
                                 timeSeriesAggregation=timeSeriesAggregation,
                             )
                             for mdl_type, mdl in self.componentModelingDict.items()
@@ -1280,6 +1283,7 @@ class EnergySystemModel:
                                 esM=self,
                                 pyM=pyM,
                                 ID=ID,
+                                ip=ip,
                                 timeSeriesAggregation=timeSeriesAggregation,
                             )
                             for mdl_type, mdl in self.componentModelingDict.items()
@@ -1289,7 +1293,7 @@ class EnergySystemModel:
                     )
 
         pyM.balanceLimitConstraint = pyomo.Constraint(
-            pyM.balanceLimitDict.keys(), rule=balanceLimitConstraint
+            pyM.balanceLimitDict.keys(), self.investmentPeriods, rule=balanceLimitConstraint
         )
 
     def declareSharedPotentialConstraints(self, pyM):

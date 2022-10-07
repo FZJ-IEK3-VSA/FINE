@@ -2214,7 +2214,7 @@ class ComponentModel(metaclass=ABCMeta):
             full_load_hours = (
                 sum(
                     opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                    for ip, p, t in pyM.timeSet
+                    for p, t in pyM.intraYearTimeSet
                 )
                 / esM.numberOfYears
             )
@@ -2253,7 +2253,7 @@ class ComponentModel(metaclass=ABCMeta):
             full_load_hours = (
                 sum(
                     opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                    for ip, p, t in pyM.timeSet
+                    for p, t in pyM.intraYearTimeSet
                 )
                 / esM.numberOfYears
             )

@@ -723,7 +723,7 @@ class TransmissionModel(ComponentModel):
             if commod in compDict[compName].commodity
         )
 
-    def getBalanceLimitContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
+    def getBalanceLimitContribution(self, esM, pyM, ID, ip, loc, timeSeriesAggregation):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
         Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
@@ -738,7 +738,10 @@ class TransmissionModel(ComponentModel):
 
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
-
+        
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
+        
         :param ID: ID of the regarded balanceLimitConstraint
         :param ID: string
 
@@ -760,7 +763,6 @@ class TransmissionModel(ComponentModel):
         opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
         limitDict = getattr(pyM, "balanceLimitDict")
         if timeSeriesAggregation:
-            investmentPeriods = esM.investmentPeriods
             periods = esM.typicalPeriods
             if esM.segmentation:
                 timeSteps = esM.segmentsPerPeriod
@@ -768,7 +770,6 @@ class TransmissionModel(ComponentModel):
                 timeSteps = esM.timeStepsPerPeriod
 
         else:
-            investmentPeriods = esM.investmentPeriods
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
         aut = sum(
@@ -779,19 +780,16 @@ class TransmissionModel(ComponentModel):
                 * compDict[compName].distances[loc_ + "_" + loc]
             )
             * esM.periodOccurrences[ip][p]
-            for ip, subdict in opVarDictIn.items()
-            for loc_ in subdict[loc].keys()
-            for compName in subdict[loc][loc_]
+            for loc_ in opVarDictIn[ip][loc].keys()
+            for compName in opVarDictIn[ip][loc][loc_]
             if compName in limitDict[(ID, loc)]
             for p in periods
             for t in timeSteps
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-            for ip, subdict in opVarDictOut.items()
-            for loc_ in subdict[loc].keys()
-            for compName in subdict[loc][loc_]
+            for loc_ in opVarDictOut[ip][loc].keys()
+            for compName in opVarDictOut[ip][loc][loc_]
             if compName in limitDict[(ID, loc)]
-            for ip in investmentPeriods
             for p in periods
             for t in timeSteps
         )
