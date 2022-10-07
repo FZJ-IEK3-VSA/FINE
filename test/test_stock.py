@@ -447,8 +447,8 @@ def test_stock():
     )
 
     # special case for single year optimization
-    # if parameter exists for only one investment period, values instead of 
-    # dict with values per investment period is returned.- not ip depending as only one year in dict 
+    # if parameter exists for only one investment period, values instead of
+    # dict with values per investment period is returned.- not ip depending as only one year in dict
     np.testing.assert_allclose(
         esM.getComponentAttribute("Electricity market", "processedOpexPerCapacity")[
             "IndustryLocation"

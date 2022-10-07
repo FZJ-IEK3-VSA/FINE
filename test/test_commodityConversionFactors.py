@@ -59,7 +59,9 @@ def test_conversion_factors_as_series():
 
     esM = create_core_esm()
 
-    with pytest.raises(ValueError, match=r".*commodityConversionFactor must be a dict.*"):
+    with pytest.raises(
+        ValueError, match=r".*commodityConversionFactor must be a dict.*"
+    ):
         esM.add(
             fn.Conversion(
                 esM=esM,

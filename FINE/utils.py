@@ -587,7 +587,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         capacityMin is not None or capacityMax is not None or capacityFix is not None
     ) and not hasCapacityVariable:
         raise ValueError(
-            "Capacity bounds are given but hasDesignDimensionVar was set to False."
+            "Capacity bounds are given but hasCapacityVariable was set to False."
         )
 
     if isBuiltFix is not None and not hasIsBuiltBinaryVariable:

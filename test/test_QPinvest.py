@@ -88,9 +88,7 @@ def test_QPinvest():
     )
 
     # Industry site
-    demand = pd.Series(
-        [10000.0, 10000.0, 10000.0, 10000.0],
-        index=[0, 1, 2, 3])
+    demand = pd.Series([10000.0, 10000.0, 10000.0, 10000.0], index=[0, 1, 2, 3])
     esM.add(
         fn.Sink(
             esM=esM,
