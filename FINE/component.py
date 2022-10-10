@@ -1490,7 +1490,7 @@ class ComponentModel(metaclass=ABCMeta):
         def capToNbInt(pyM, loc, compName, ip):
             return (
                 capVar[loc, compName, ip]
-                == nbIntVar[loc, compName] * compDict[compName].capacityPerPlantUnit
+                == nbIntVar[loc, compName, ip] * compDict[compName].capacityPerPlantUnit
             )
 
         setattr(
@@ -3331,8 +3331,8 @@ class ComponentModel(metaclass=ABCMeta):
                     binCapOptVal.columns,
                 ] = binCapOptVal.values
                 optSummary_ip.loc[
-                    [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index],
-                    i.columns,
+                    [(ix, "invest", "[" + esM.costUnit + "]") for ix in i_bin.index],
+                    i_bin.columns,
                 ] += i_bin.values
                 optSummary_ip.loc[
                     [

@@ -1735,13 +1735,14 @@ class StorageModel(ComponentModel):
 
         offsetUp = getattr(pyM, "stateOfChargeOffsetUp_" + abbrvName)
         offsetDown = getattr(pyM, "stateOfChargeOffsetDown_" + abbrvName)
+
         offsetUpOp = sum(
-            offsetUp[loc, compName, period] * compDict[compName].socOffsetUp
-            for loc, compName, period in offsetUp
+            offsetUp[loc, compName, ip, period] * compDict[compName].socOffsetUp
+            for loc, compName, ip, period in offsetUp
         )
         offsetDownOp = sum(
-            offsetDown[loc, compName, period] * compDict[compName].socOffsetDown
-            for loc, compName, period in offsetDown
+            offsetDown[loc, compName, ip, period] * compDict[compName].socOffsetDown
+            for loc, compName, ip, period in offsetDown
         )
 
         return (

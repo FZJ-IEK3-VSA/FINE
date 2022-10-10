@@ -1928,10 +1928,10 @@ class EnergySystemModel:
                 # e.g. from _capacitiyVariablesOptimum to capacityVariablesOptimmum
                 # For perfectForesight the data stays the same, for a single year optimization
                 # the data is converted from a dict with a single entry to a dataframe
-                # By this, old models will not fail
+                # By this, old models will not fail.
                 def convertOptimalValues(esM, mdl, key):
                     if key in mdl.__dict__.keys():
-                        if len(esM.investmentPeriods) == 1:
+                        if esM.numberOfInvestmentPeriods == 1:
                             setattr(
                                 mdl,
                                 key.replace("_", ""),

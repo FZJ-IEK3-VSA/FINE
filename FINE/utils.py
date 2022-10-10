@@ -919,7 +919,7 @@ def checkAndSetInvestmentPeriodTimeSeries(
                 esM, name, data[_ip], locationalEligibility, dimension
             )
         else:
-            raise TypeError(f"{name}should be a pandas dataframe or a dictionary.")
+            raise TypeError(f"Parameter of {name} should be a pandas dataframe or a dictionary.")
     return parameter
 
 
@@ -1110,7 +1110,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
         raise ValueError("The dimension parameter has to be either '1dim' or '2dim' ")
 
     if dimension == "1dim":
-        if isinstance(data, int) or isinstance(data, float):
+        if isinstance(data, int)  or isinstance(data, float):
             if data < 0:
                 raise ValueError(
                     "Value error in "
@@ -1289,7 +1289,7 @@ def checkAndSetInvestmentPeriodCostParameter(
                 esM, name, data[_ip], dimension, locationalEligibility
             )
         else:
-            raise TypeError(f"{name} should be a pandas series or a dictionary.")
+            raise TypeError(f"Parameter of {name} should be a pandas series or a dictionary.")
     return parameter
 
 
@@ -1297,7 +1297,7 @@ def checkLifetimeInvestmentPeriod(esM, name, lifetime):
     ipLifetimeCheck = lifetime % (esM.investmentPeriodInterval)
     if any(x != 0 for x in ipLifetimeCheck.values):
         raise ValueError(
-            f"The lifetime of '{name}' is not a multiple of the length of investment period"
+            f"The lifetime ({lifetime}) of '{name}' is not a multiple of the length of investment period"
         )
     ip_LifeTime = (lifetime / esM.investmentPeriodInterval).astype(int)
     return ip_LifeTime
@@ -1732,7 +1732,7 @@ def preprocess2dimInvestmentPeriodData(
                 data[ip], mapC, locationalEligibility, discard
             )
         else:
-            raise TypeError(f"{name} should be a pandas dataframe or a dictionary.")
+            raise TypeError(f"Parameter of {name} should be a pandas dataframe or a dictionary.")
 
     return parameter
 
