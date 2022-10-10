@@ -736,7 +736,7 @@ class SourceSinkModel(ComponentModel):
                 * esM.periodOccurrences[ip][p]
                 / esM.numberOfYears
                 for loc, compName, _ip, p, t in opVar
-                if (_ip==ip and compName in limitDict[key][1])
+                if (_ip == ip and compName in limitDict[key][1])
             )
             sign = (
                 limitDict[key][0] / abs(limitDict[key][0])
@@ -744,11 +744,13 @@ class SourceSinkModel(ComponentModel):
                 else 1
             )
             return sign * sumEx <= sign * limitDict[key][0]
-        
+
         setattr(
             pyM,
             "ConstrYearlyLimitation_" + abbrvName,
-            pyomo.Constraint(limitDict.keys(), esM.investmentPeriods, rule=yearlyLimitationConstraint),
+            pyomo.Constraint(
+                limitDict.keys(), esM.investmentPeriods, rule=yearlyLimitationConstraint
+            ),
         )
 
     def declareComponentConstraints(self, esM, pyM):
@@ -855,10 +857,10 @@ class SourceSinkModel(ComponentModel):
 
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
-        
+
         :param ip: investment period of transformation path analysis.
         :type ip: int
-        
+
         :param ID: ID of the regarded balanceLimitConstraint
         :param ID: string
 

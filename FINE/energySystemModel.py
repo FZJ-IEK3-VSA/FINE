@@ -1293,7 +1293,9 @@ class EnergySystemModel:
                     )
 
         pyM.balanceLimitConstraint = pyomo.Constraint(
-            pyM.balanceLimitDict.keys(), self.investmentPeriods, rule=balanceLimitConstraint
+            pyM.balanceLimitDict.keys(),
+            self.investmentPeriods,
+            rule=balanceLimitConstraint,
         )
 
     def declareSharedPotentialConstraints(self, pyM):

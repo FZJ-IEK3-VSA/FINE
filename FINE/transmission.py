@@ -738,10 +738,10 @@ class TransmissionModel(ComponentModel):
 
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
-        
+
         :param ip: investment period of transformation path analysis.
         :type ip: int
-        
+
         :param ID: ID of the regarded balanceLimitConstraint
         :param ID: string
 
