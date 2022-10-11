@@ -179,13 +179,16 @@ class EnergySystemModel:
         :type verboseLogLevel: integer (0, 1 or 2)
 
         :param balanceLimit: defines the balanceLimit constraint (various different balanceLimitIDs possible)
-            for specific regions or the whole model. The balancelimitID can be assigned to various components
-            of e.g. SourceSinkModel or TransmissionModel to limit the balance of production, consumption and im/export.
+            for specific regions or the whole model. Furthermore the balanceLimit can be specified per investment period.
+            The balancelimitID can be assigned to various components of e.g. SourceSinkModel or 
+            TransmissionModel to limit the balance of production, consumption and im/export.
             If the balanceLimit is passed as pd.Series it will apply to the overall model, if it is passed
             as pd.Dataframe each column will apply to one region of the multi-node model. In the latter case,
             the number and names of the columns should match the regions/region names in the model.
             Each row contains an individual balanceLimitID as index and the corresponding values for the model
-            (pd.Series) or regions (pd.Dataframe). Values are always given in the unit of the esM commodities unit.\n
+            (pd.Series) or regions (pd.Dataframe). If the balanceLimit is passed 
+            as a dict with either the described pd.DataFrames or pd.Series as values it is considered per investment period.
+            Values are always given in the unit of the esM commodities unit.\n
             Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
 
             .. note::
@@ -193,7 +196,10 @@ class EnergySystemModel:
                 defined as negative.
 
             |br| * the default value is None
-        :type balanceLimit: pd.DataFrame or pd.Series
+        :type balanceLimit: 
+            * pd.DataFrame 
+            * pd.Series
+            * dictionary with investment periods years as keys, and one of the two above mentioned as values
 
         :param lowerBound: defines whether a lowerBound or an upperBound is considered in the balanceLimitConstraint.
             By default an upperBound is considered. However, multiple cases can be considered:\n
@@ -226,7 +232,6 @@ class EnergySystemModel:
             stochasticModel,
             costUnit,
             lengthUnit,
-            balanceLimit,
         )
 
         ################################################################################################################
@@ -237,12 +242,11 @@ class EnergySystemModel:
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
-        # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
+        
         self.locations, self.lengthUnit = locations, lengthUnit
         self._locationsOrdered = sorted(locations)
 
         self.numberOfTimeSteps = numberOfTimeSteps
-        self.balanceLimit = balanceLimit
         self.lowerBound = lowerBound
 
         ################################################################################################################
@@ -320,7 +324,14 @@ class EnergySystemModel:
         # unit (string) which can be used by results output functions.
         self.commodities = commodities
         self.commodityUnitsDict = commodityUnitsDict
-
+        
+        # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
+        self.balanceLimit = balanceLimit
+        self.processedBalanceLimit=utils.checkAndSetBalanceLimit(self,balanceLimit,locations)
+        self.processedBalanceLimit=utils.setParamToNoneIfNoneForAllYears(
+            self.processedBalanceLimit
+        )
+        
         ################################################################################################################
         #                                        Component specific parameters                                         #
         ################################################################################################################
@@ -1194,109 +1205,111 @@ class EnergySystemModel:
         balanceLimitDict = {}
         # 2 differentiations (or 4 cases). 1st: Locational or not; 2nd: lowerBound or not (lower bound)
         # DataFrame with locational input. Otherwise error is thrown in input check.
-        if type(self.balanceLimit) == pd.DataFrame:
-            for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
-                    for compName, comp in mdl.componentsDict.items():
-                        if comp.balanceLimitID is not None:
-                            [
+        for ip in self.investmentPeriods:
+            if self.processedBalanceLimit is None:
+                break # only do the setup if there is a balance limit
+            if type(self.processedBalanceLimit[ip]) == pd.DataFrame:
+                for mdl_type, mdl in self.componentModelingDict.items():
+                    if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
+                        for compName, comp in mdl.componentsDict.items():
+                            if comp.balanceLimitID is not None:
+                                [
+                                    balanceLimitDict.setdefault(
+                                        (comp.balanceLimitID, loc), []
+                                    ).append(compName)
+                                    for loc in self.locations
+                                ]
+                setattr(pyM, "balanceLimitDict", balanceLimitDict)
+
+                def balanceLimitConstraint(pyM, ID, loc):
+                    # Check whether we want to consider an upper or lower bound.
+                    if not self.lowerBound:
+                        return (
+                            sum(
+                                mdl.getBalanceLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    ID=ID,
+                                    ip=ip,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                    loc=loc,
+                                )
+                                for mdl_type, mdl in self.componentModelingDict.items()
+                                if (
+                                    mdl_type == "SourceSinkModel"
+                                    or mdl_type == "TransmissionModel"
+                                )
+                            )
+                            <= self.processedBalanceLimit[ip].loc[ID, loc]
+                        )
+                    else:
+                        return (
+                            sum(
+                                mdl.getBalanceLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    ID=ID,
+                                    ip=ip,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                    loc=loc,
+                                )
+                                for mdl_type, mdl in self.componentModelingDict.items()
+                                if (
+                                    mdl_type == "SourceSinkModel"
+                                    or mdl_type == "TransmissionModel"
+                                )
+                            )
+                            >= self.processedBalanceLimit[ip].loc[ID, loc]
+                        )
+
+            # Series as input. Whole model is considered.
+            else:
+                for mdl_type, mdl in self.componentModelingDict.items():
+                    if mdl_type == "SourceSinkModel":
+                        for compName, comp in mdl.componentsDict.items():
+                            if comp.balanceLimitID is not None:
                                 balanceLimitDict.setdefault(
-                                    (comp.balanceLimitID, loc), []
+                                    (comp.balanceLimitID), []
                                 ).append(compName)
-                                for loc in self.locations
-                            ]
-            setattr(pyM, "balanceLimitDict", balanceLimitDict)
+                setattr(pyM, "balanceLimitDict", balanceLimitDict)
 
-            def balanceLimitConstraint(pyM, ID, loc, ip):
-                # Check whether we want to consider an upper or lower bound.
-                if not self.lowerBound:
-                    return (
-                        sum(
-                            mdl.getBalanceLimitContribution(
-                                esM=self,
-                                pyM=pyM,
-                                ID=ID,
-                                ip=ip,
-                                timeSeriesAggregation=timeSeriesAggregation,
-                                loc=loc,
+                def balanceLimitConstraint(pyM, ID):
+                    # Check wether we want to consider an upper or lower bound
+                    if not self.lowerBound:
+                        return (
+                            sum(
+                                mdl.getBalanceLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    ID=ID,
+                                    ip=ip,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                )
+                                for mdl_type, mdl in self.componentModelingDict.items()
+                                if (mdl_type == "SourceSinkModel")
                             )
-                            for mdl_type, mdl in self.componentModelingDict.items()
-                            if (
-                                mdl_type == "SourceSinkModel"
-                                or mdl_type == "TransmissionModel"
-                            )
+                            <= self.processedBalanceLimit[ip].loc[ID]
                         )
-                        <= self.balanceLimit.loc[ID, loc]
-                    )
-                else:
-                    return (
-                        sum(
-                            mdl.getBalanceLimitContribution(
-                                esM=self,
-                                pyM=pyM,
-                                ID=ID,
-                                ip=ip,
-                                timeSeriesAggregation=timeSeriesAggregation,
-                                loc=loc,
+                    else:
+                        return (
+                            sum(
+                                mdl.getBalanceLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    ID=ID,
+                                    ip=ip,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                )
+                                for mdl_type, mdl in self.componentModelingDict.items()
+                                if (mdl_type == "SourceSinkModel")
                             )
-                            for mdl_type, mdl in self.componentModelingDict.items()
-                            if (
-                                mdl_type == "SourceSinkModel"
-                                or mdl_type == "TransmissionModel"
-                            )
+                            >= self.processedBalanceLimit[ip].loc[ID]
                         )
-                        >= self.balanceLimit.loc[ID, loc]
-                    )
 
-        # Series as input. Whole model is considered.
-        else:
-            for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type == "SourceSinkModel":
-                    for compName, comp in mdl.componentsDict.items():
-                        if comp.balanceLimitID is not None:
-                            balanceLimitDict.setdefault(
-                                (comp.balanceLimitID), []
-                            ).append(compName)
-            setattr(pyM, "balanceLimitDict", balanceLimitDict)
-
-            def balanceLimitConstraint(pyM, ID, ip):
-                # Check wether we want to consider an upper or lower bound
-                if not self.lowerBound:
-                    return (
-                        sum(
-                            mdl.getBalanceLimitContribution(
-                                esM=self,
-                                pyM=pyM,
-                                ID=ID,
-                                ip=ip,
-                                timeSeriesAggregation=timeSeriesAggregation,
-                            )
-                            for mdl_type, mdl in self.componentModelingDict.items()
-                            if (mdl_type == "SourceSinkModel")
-                        )
-                        <= self.balanceLimit.loc[ID]
-                    )
-                else:
-                    return (
-                        sum(
-                            mdl.getBalanceLimitContribution(
-                                esM=self,
-                                pyM=pyM,
-                                ID=ID,
-                                ip=ip,
-                                timeSeriesAggregation=timeSeriesAggregation,
-                            )
-                            for mdl_type, mdl in self.componentModelingDict.items()
-                            if (mdl_type == "SourceSinkModel")
-                        )
-                        >= self.balanceLimit.loc[ID]
-                    )
-
-        pyM.balanceLimitConstraint = pyomo.Constraint(
-            pyM.balanceLimitDict.keys(),
-            self.investmentPeriods,
-            rule=balanceLimitConstraint,
-        )
+            pyM.balanceLimitConstraint = pyomo.Constraint(
+                pyM.balanceLimitDict.keys(),
+                rule=balanceLimitConstraint,
+            )
 
     def declareSharedPotentialConstraints(self, pyM):
         """

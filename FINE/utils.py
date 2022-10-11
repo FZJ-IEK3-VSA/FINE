@@ -72,7 +72,6 @@ def checkEnergySystemModelInput(
     stochasticModel,
     costUnit,
     lengthUnit,
-    balanceLimit,
 ):
     """Check input arguments of an EnergySystemModel instance for value/type correctness."""
 
@@ -106,27 +105,7 @@ def checkEnergySystemModelInput(
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
 
-    # balanceLimit has to be DataFrame with locations as columns or Series, if valid for whole model
-    if balanceLimit is not None:
-        if (
-            not type(balanceLimit) == pd.DataFrame
-            and not type(balanceLimit) == pd.Series
-        ):
-            raise TypeError(
-                "The balanceLimit input argument has to be a pandas.DataFrame or a pd.Series."
-            )
-        if (
-            type(balanceLimit) == pd.DataFrame
-            and set(balanceLimit.columns) != locations
-        ):
-            raise ValueError(
-                "Location indices in the balanceLimit do not match the input locations.\n"
-                + "balanceLimit columns: "
-                + str(set(balanceLimit.columns))
-                + "\n"
-                + "Input regions: "
-                + str(locations)
-            )
+
 
 
 def checkTimeUnit(timeUnit):
@@ -1366,84 +1345,199 @@ def checkAndSetTimeSeriesConversionFactors(
     else:
         return None
 
+def checkAndSetYearlyLimit(esM, yearlyLimit):
+    checkInvestmentPeriodParameters("yearlyLimit", yearlyLimit, esM.investmentPeriodNames)
+    processedYearlyLimit={}
+    for ip in esM.investmentPeriods:
+        _ip = esM.investmentPeriodNames[ip]
+        if yearlyLimit is None:
+            processedYearlyLimit[ip] = None
+        else:
+            if isinstance(yearlyLimit, dict):
+                _data = yearlyLimit[_ip]
+            else:
+                _data = yearlyLimit
+            if isinstance(_data, int) or isinstance(_data, float):
+                if _data < 0:
+                    raise ValueError(
+                        "Value error in detected.\n "+
+                        "Yearly Limit limitations have to be positive."
+                    )
+                processedYearlyLimit[ip]=_data
+            else:
+                raise ValueError(
+                    "Value error in detected.\n "+
+                    "Yearly Limit limitations have to be positive float.")
+    return processedYearlyLimit
 
+def checkAndSetBalanceLimit(esM, balanceLimit,locations):
+    # balanceLimit has to be DataFrame with locations as columns or Series, if valid for whole model
+    
+    checkInvestmentPeriodParameters("balanceLimit", balanceLimit, esM.investmentPeriodNames)
+    processedBalanceLimit = {}
+    
+    for ip in esM.investmentPeriods:
+        _ip = esM.investmentPeriodNames[ip]
+
+        if isinstance(balanceLimit, dict):
+            _balanceLimit = balanceLimit[_ip]
+        else:
+            _balanceLimit = balanceLimit
+        
+        if _balanceLimit is not None:
+            if (
+                not type(_balanceLimit) == pd.DataFrame
+                and not type(_balanceLimit) == pd.Series
+            ):
+                raise TypeError(
+                    "The balanceLimit input argument has to be a pandas.DataFrame or a pd.Series."
+                )
+            if (
+                type(_balanceLimit) == pd.DataFrame
+                and set(_balanceLimit.columns) != locations
+            ):
+                raise ValueError(
+                    "Location indices in the balanceLimit do not match the input locations.\n"
+                    + "balanceLimit columns: "
+                    + str(set(_balanceLimit.columns))
+                    + "\n"
+                    + "Input regions: "
+                    + str(locations)
+                )
+            processedBalanceLimit[ip] = _balanceLimit
+        else:
+            processedBalanceLimit[ip] = None
+    return processedBalanceLimit
+            
 def checkAndSetFullLoadHoursParameter(
     esM, name, data, dimension, locationalEligibility
 ):
-    if data is None:
-        return None
-    else:
-        if dimension == "1dim":
-            if not (
-                isinstance(data, int)
-                or isinstance(data, float)
-                or isinstance(data, pd.Series)
-            ):
-                raise TypeError(
-                    "Type error in "
-                    + name
-                    + " detected.\n"
-                    + "Full load hours limitations have to be a number or a pandas Series."
-                )
-        elif dimension == "2dim":
-            if not (
-                isinstance(data, int)
-                or isinstance(data, float)
-                or isinstance(data, pd.Series)
-            ):
-                raise TypeError(
-                    "Type error in "
-                    + name
-                    + " detected.\n"
-                    + "Full load hours limitations have to be a number or a pandas Series."
-                )
+    checkInvestmentPeriodParameters(name, data, esM.investmentPeriodNames)
+    parameter = {}
+    for ip in esM.investmentPeriods:
+        _ip = esM.investmentPeriodNames[ip]
+        if data is None:
+            parameter[ip] = None
         else:
-            raise ValueError(
-                "The dimension parameter has to be either '1dim' or '2dim' "
-            )
-
-        if dimension == "1dim":
-            if isinstance(data, int) or isinstance(data, float):
-                if data < 0:
+            if isinstance(data, dict):
+                _data = data[_ip]
+            else:
+                _data = data
+            
+            if isinstance(_data, int) or isinstance(_data, float):
+                if _data < 0:
                     raise ValueError(
                         "Value error in "
                         + name
                         + " detected.\n Full load hours limitations have to be positive."
                     )
-                return pd.Series(
-                    [float(data) for loc in esM.locations], index=esM.locations
-                )
-            data = checkRegionalIndex(esM, data, locationalEligibility)
-        else:
-            if isinstance(data, int) or isinstance(data, float):
-                if data < 0:
+                if dimension == "1dim":
+                    parameter[ip]=pd.Series(
+                        [float(_data) for loc in esM.locations], index=esM.locations
+                        )
+                elif dimension == "2dim":
+                    parameter[ip]=pd.Series(
+                        [float(_data) for loc in locationalEligibility.index],
+                        index=locationalEligibility.index,
+                        )
+            elif isinstance(_data, pd.Series):
+                _data = checkConnectionIndex(_data, locationalEligibility)
+                _data = _data.astype(float)
+                if _data.isnull().any():
                     raise ValueError(
                         "Value error in "
                         + name
-                        + " detected.\n Full load hours limitations have to be positive."
+                        + " detected.\n"
+                        + "An economic parameter contains values which are not numbers."
                     )
-                return pd.Series(
-                    [float(data) for loc in locationalEligibility.index],
-                    index=locationalEligibility.index,
-                )
-            data = checkConnectionIndex(data, locationalEligibility)
+                if (_data < 0).any():
+                    raise ValueError(
+                        "Value error in "
+                        + name
+                        + " detected.\n"
+                        + "All entries in economic parameter series have to be positive."
+                    )
+                parameter[ip]=_data
+    return parameter
+            
+        
+        
+        
+    # if data is None:
+    #     return None
+    # else:
+    #     if dimension == "1dim":
+    #         if not (
+    #             isinstance(data, int)
+    #             or isinstance(data, float)
+    #             or isinstance(data, pd.Series)
+    #         ):
+    #             raise TypeError(
+    #                 "Type error in "
+    #                 + name
+    #                 + " detected.\n"
+    #                 + "Full load hours limitations have to be a number or a pandas Series."
+    #             )
+    #     elif dimension == "2dim":
+    #         if not (
+    #             isinstance(data, int)
+    #             or isinstance(data, float)
+    #             or isinstance(data, pd.Series)
+    #         ):
+    #             raise TypeError(
+    #                 "Type error in "
+    #                 + name
+    #                 + " detected.\n"
+    #                 + "Full load hours limitations have to be a number or a pandas Series."
+    #             )
+    #     else:
+    #         raise ValueError(
+    #             "The dimension parameter has to be either '1dim' or '2dim' "
+    #         )
 
-        _data = data.astype(float)
-        if _data.isnull().any():
-            raise ValueError(
-                "Value error in "
-                + name
-                + " detected.\n"
-                + "An economic parameter contains values which are not numbers."
-            )
-        if (_data < 0).any():
-            raise ValueError(
-                "Value error in "
-                + name
-                + " detected.\n"
-                + "All entries in economic parameter series have to be positive."
-            )
-        return _data
+    #     if dimension == "1dim":
+    #         if isinstance(data, int) or isinstance(data, float):
+    #             if data < 0:
+    #                 raise ValueError(
+    #                     "Value error in "
+    #                     + name
+    #                     + " detected.\n Full load hours limitations have to be positive."
+    #                 )
+    #             return pd.Series(
+    #                 [float(data) for loc in esM.locations], index=esM.locations
+    #             )
+    #         data = checkRegionalIndex(esM, data, locationalEligibility)
+    #     else:
+    #         if isinstance(data, int) or isinstance(data, float):
+    #             if data < 0:
+    #                 raise ValueError(
+    #                     "Value error in "
+    #                     + name
+    #                     + " detected.\n Full load hours limitations have to be positive."
+    #                 )
+    #             return pd.Series(
+    #                 [float(data) for loc in locationalEligibility.index],
+    #                 index=locationalEligibility.index,
+    #             )
+    #         data = checkConnectionIndex(data, locationalEligibility)
+
+    #     _data = data.astype(float)
+    #     if _data.isnull().any():
+    #         raise ValueError(
+    #             "Value error in "
+    #             + name
+    #             + " detected.\n"
+    #             + "An economic parameter contains values which are not numbers."
+    #         )
+    #     if (_data < 0).any():
+    #         raise ValueError(
+    #             "Value error in "
+    #             + name
+    #             + " detected.\n"
+    #             + "All entries in economic parameter series have to be positive."
+    #         )
+    #     return _data
+
 
 
 def checkClusteringInput(
@@ -2277,6 +2371,13 @@ def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
             ],
             "yearlyLimit",
             CO2Reference * (1 - CO2ReductionTargets[step] / 100),
+        )
+        setattr(
+            esM.componentModelingDict["SourceSinkModel"].componentsDict[
+                "CO2 to environment"
+            ],
+            "processedYearlyLimit",
+            {esM.startYear: CO2Reference * (1 - CO2ReductionTargets[step] / 100)},
         )
 
 

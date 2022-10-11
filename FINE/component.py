@@ -378,7 +378,6 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations.
 
         :param yearlyFullLoadHoursMin: if specified, indicates the minimun yearly full load hours.
-            The min yearly full load hours are currently constant over the pathway of investment periods.
             |br| * the default value is None
         :type yearlyFullLoadHoursMin:
 
@@ -387,9 +386,9 @@ class Component(metaclass=ABCMeta):
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim).
+            * Dict with years as keys and one of the two options above as values.
 
         :param yearlyFullLoadHoursMax: if specified, indicates the maximum yearly full load hours.
-            The max yearly full load hours are currently constant over the pathway of investment periods.
             |br| * the default value is None
         :type yearlyFullLoadHoursMax:
 
@@ -398,7 +397,8 @@ class Component(metaclass=ABCMeta):
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim).
-
+            * Dict with years as keys and one of the two options above as values.
+              
         :param stockCommissioning: if specified, indictates historical commissioned capacities.
         The parameter describes, how much capacity was commissioned per location in which past
         investment period. The past investment period is not part of the optimized investment periods.
@@ -537,12 +537,23 @@ class Component(metaclass=ABCMeta):
         self.capacityMax = utils.castToSeries(capacityMax, esM)
         self.capacityFix = utils.castToSeries(capacityFix, esM)
         self.linkedQuantityID = linkedQuantityID
-        self.yearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(
+
+        # Set yearly fullload hour parameters
+        self.yearlyFullLoadHoursMin=yearlyFullLoadHoursMin
+        self.yearlyFullLoadHoursMax=yearlyFullLoadHoursMax
+        self.processedYearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(
             esM, name, yearlyFullLoadHoursMin, dimension, elig
         )
-        self.yearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(
+        self.processedYearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(
             esM, name, yearlyFullLoadHoursMax, dimension, elig
         )
+        self.processedYearlyFullLoadHoursMin = utils.setParamToNoneIfNoneForAllYears(
+            self.processedYearlyFullLoadHoursMin
+        )
+        self.processedYearlyFullLoadHoursMax = utils.setParamToNoneIfNoneForAllYears(
+            self.processedYearlyFullLoadHoursMax
+        )
+
         self.isBuiltFix = isBuiltFix
 
         utils.checkLocationSpecficDesignInputParams(self, esM)
@@ -1223,7 +1234,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
-                if compDict[compName].yearlyFullLoadHoursMin is not None
+                if compDict[compName].processedYearlyFullLoadHoursMin is not None
             )
 
         setattr(
@@ -1243,7 +1254,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
-                if compDict[compName].yearlyFullLoadHoursMax is not None
+                if compDict[compName].processedYearlyFullLoadHoursMax is not None
             )
 
         setattr(
@@ -2221,7 +2232,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 full_load_hours
                 >= capVar[loc, compName, ip]
-                * compDict[compName].yearlyFullLoadHoursMin[loc]
+                * compDict[compName].processedYearlyFullLoadHoursMin[ip][loc]
             )
 
         setattr(
@@ -2260,7 +2271,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 full_load_hours
                 <= capVar[loc, compName, ip]
-                * compDict[compName].yearlyFullLoadHoursMax[loc]
+                * compDict[compName].processedYearlyFullLoadHoursMax[ip][loc]
             )
 
         setattr(

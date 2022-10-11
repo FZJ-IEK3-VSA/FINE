@@ -140,7 +140,8 @@ class Source(Component):
         :param yearlyLimit: if specified, indicates a yearly import/export commodity limit per investment period for all components with
             the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is
             limited. If negative, the commodity flow entering the energySystemModel is limited. If a
-            yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well.
+            yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well. The yearlyLimit can also be specified for
+            every investment period year individually. 
             Examples:
 
             * CO2 can be emitted in power plants by burning natural gas or coal. The CO2 which goes into
@@ -154,7 +155,9 @@ class Source(Component):
               "chemicalComponentLimitID" and a yearlyLimit of -XY.
 
             |br| * the default value is None
-        :type yearlyLimit: float
+        :type yearlyLimit: 
+            * float
+            * a dictionary with investment periods as keys and float as values
 
         :param opexPerOperation: describes the cost for one unit of the operation. The cost which is directly
             proportional to the operation of the component is obtained by multiplying the opexPerOperation parameter
@@ -250,11 +253,15 @@ class Source(Component):
             esM.commodityUnitsDict[commodity],
         )
         # TODO check value and type correctness
-        self.commodityLimitID, self.yearlyLimit = commodityLimitID, yearlyLimit
+        self.commodityLimitID = commodityLimitID 
         self.balanceLimitID = balanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
-
+        
+        # yearlyLimit
+        self.yearlyLimit = yearlyLimit
+        self.processedYearlyLimit=utils.checkAndSetYearlyLimit(esM, yearlyLimit)
+        
         # opexPerOperation
         self.opexPerOperation = opexPerOperation
         self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
@@ -363,6 +370,9 @@ class Source(Component):
         )
         self.fullCommodityRevenueTimeSeries = utils.setParamToNoneIfNoneForAllYears(
             self.fullCommodityRevenueTimeSeries
+        )
+        self.processedYearlyLimit=utils.setParamToNoneIfNoneForAllYears(
+            self.processedYearlyLimit
         )
 
         if self.fullOperationRateFix is not None:
@@ -606,7 +616,7 @@ class SourceSinkModel(ComponentModel):
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
 
-    def declareYearlyCommodityLimitationDict(self, pyM):
+    def declareYearlyCommodityLimitationDict(self, pyM, esM):
         """
         Declare source/sink components with linked commodity limits and check if the linked components have the same
         yearly upper limit.
@@ -616,19 +626,20 @@ class SourceSinkModel(ComponentModel):
         """
 
         yearlyCommodityLimitationDict = {}
-        for compName, comp in self.componentsDict.items():
-            if comp.commodityLimitID is not None:
-                ID, limit = comp.commodityLimitID, comp.yearlyLimit
-                if (
-                    ID in yearlyCommodityLimitationDict
-                    and limit != yearlyCommodityLimitationDict[ID][0]
-                ):
-                    raise ValueError(
-                        "yearlyLimitationIDs with different upper limits detected."
+        for ip in esM.investmentPeriods:
+            for compName, comp in self.componentsDict.items():
+                if comp.commodityLimitID is not None:
+                    ID, limit = comp.commodityLimitID, comp.processedYearlyLimit[ip]
+                    if (
+                        any(ID == tup[0] for tup in yearlyCommodityLimitationDict.keys())
+                        and limit != yearlyCommodityLimitationDict[(ID,ip)][0]   
+                    ):
+                        raise ValueError(
+                            "yearlyLimitationIDs with different upper limits detected."
+                        )
+                    yearlyCommodityLimitationDict.setdefault((ID,ip), (limit, []))[1].append(
+                        compName
                     )
-                yearlyCommodityLimitationDict.setdefault(ID, (limit, []))[1].append(
-                    compName
-                )
         setattr(
             pyM,
             "yearlyCommodityLimitationDict_" + self.abbrvName,
@@ -667,7 +678,7 @@ class SourceSinkModel(ComponentModel):
         )
 
         # Declare commodity limitation dictionary
-        self.declareYearlyCommodityLimitationDict(pyM)
+        self.declareYearlyCommodityLimitationDict(pyM, esM)
 
         # Declare minimum yearly full load hour set
         self.declareYearlyFullLoadHoursMinSet(pyM)
@@ -728,7 +739,7 @@ class SourceSinkModel(ComponentModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
         limitDict = getattr(pyM, "yearlyCommodityLimitationDict_" + abbrvName)
-
+        
         def yearlyLimitationConstraint(pyM, key, ip):
             sumEx = -sum(
                 opVar[loc, compName, ip, p, t]
@@ -736,20 +747,20 @@ class SourceSinkModel(ComponentModel):
                 * esM.periodOccurrences[ip][p]
                 / esM.numberOfYears
                 for loc, compName, _ip, p, t in opVar
-                if (_ip == ip and compName in limitDict[key][1])
+                if (_ip == ip and compName in limitDict[(key, ip)][1])
             )
             sign = (
-                limitDict[key][0] / abs(limitDict[key][0])
-                if limitDict[key][0] != 0
+                limitDict[(key, ip)][0] / abs(limitDict[(key, ip)][0])
+                if limitDict[(key, ip)][0] != 0
                 else 1
             )
-            return sign * sumEx <= sign * limitDict[key][0]
+            return sign * sumEx <= sign * limitDict[(key, ip)][0]
 
         setattr(
             pyM,
             "ConstrYearlyLimitation_" + abbrvName,
             pyomo.Constraint(
-                limitDict.keys(), esM.investmentPeriods, rule=yearlyLimitationConstraint
+                limitDict.keys(), rule=yearlyLimitationConstraint
             ),
         )
 
