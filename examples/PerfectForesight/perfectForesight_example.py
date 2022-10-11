@@ -25,15 +25,11 @@
 import FINE as fn
 from getData import getData
 
-# import pandas as pd
 import os
 
 cwd = os.getcwd()
 data = getData()
 
-# %matplotlib inline
-# %load_ext autoreload
-# %autoreload 2
 
 # %% [markdown]
 # # 2. Create an energy system model instance
@@ -49,8 +45,10 @@ commodities = {"electricity", "hydrogen"}
 numberOfTimeSteps = 8760
 hoursPerTimeStep = 1
 
-# %% 
-# # 3. Transformation Pathway Analyses can be run by setting a number of investment periods
+# %% [markdown]
+# # 2.1 define Transformation Pathway parameters 
+#
+# Transformation Pathway Analyses can be run by setting a number of investment periods
 # larger than 1, which is the default value and results in a single year optimization.
 
 numberOfInvestmentPeriods=3
@@ -82,20 +80,40 @@ esM = fn.EnergySystemModel(
 # %% [markdown]
 # ### Wind onshore
 
-# %%
-
+# %% [markdown]
 # change weather conditions for the different investment periods
 operationRateMax={}
 operationRateMax[2020]=1.2*data["Wind (onshore), operationRateMax"]
 operationRateMax[2025]=0.7*data["Wind (onshore), operationRateMax"]
 operationRateMax[2030]=1*data["Wind (onshore), operationRateMax"]
 
-# existing stock wind turbines
+# %% [markdown]
+# define existing stock for wind onshore turbines
 stockWindCommissioning={
-    2015:0.1,
-    2010:0.2
+    2010:5,
+    2015:10,
 }
 
+# %% [markdown]
+# define invest and opex per capacity for wind onshore turbines
+investPerCapacityWind={
+    2010:1.5, 
+    2015:1.25, 
+    2020:1.1, 
+    2025:1, 
+    2030:0.95
+    }
+
+opexPerCapacityWind={
+    2010:1.5*0.02, 
+    2015:1.25*0.02, 
+    2020:1.1*0.02, 
+    2025:1*0.02, 
+    2030:0.95*0.02
+    }
+
+# %% [markdown]
+# add wind onshore source to esM
 esM.add(
     fn.Source(
         esM=esM,
@@ -104,10 +122,11 @@ esM.add(
         hasCapacityVariable=True,
         operationRateMax=data["Wind (onshore), operationRateMax"],
         capacityMax=data["Wind (onshore), capacityMax"],
-        investPerCapacity={2020:1.1,2025:1,2030:0.95},
-        opexPerCapacity={2020:1.1*0.02, 2025:1*0.02, 2030:0.95*0.02},
+        investPerCapacity=investPerCapacityWind,
+        opexPerCapacity=opexPerCapacityWind,
         interestRate=0.08,
         economicLifetime=20,
+        stockCommissioning=stockWindCommissioning,
     )
 )
 
@@ -141,7 +160,8 @@ esM.add(
 # %% [markdown]
 # ### Electrolyzers
 
-# %%
+# %% [markdown]
+# add component with constant invest and opex per capacity
 esM.add(
     fn.Conversion(
         esM=esM,
@@ -226,7 +246,7 @@ esM.add(
 # %% [markdown]
 # ### Electricity demand
 
-# %%
+# %% [markdown]
 
 # vary the demand with the years - increasing demand by 30% per year
 electricityDemand={}
@@ -299,16 +319,20 @@ for year in [2020,2025,2030]:
 # %% [markdown]
 # Plot operation time series (either one or two dimensional) for different years
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Electricity demand operation for Investment Period 2020
 fig, ax = fn.plotOperation(esM, "Electricity demand", "GermanyRegion", ip=2020)
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Electricity demand operation for Investment Period 2030
 fig, ax = fn.plotOperation(esM, "Electricity demand", "GermanyRegion", ip=2030)
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Operation color map for Electricity demand in Investment Period 2020
 fig, ax = fn.plotOperationColorMap(esM, "Electricity demand", "GermanyRegion",ip=2020)
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Operation color map for Electricity demand in Investment Period 2030
 fig, ax = fn.plotOperationColorMap(esM, "Electricity demand", "GermanyRegion",ip=2030)
 
 # %% [markdown]
@@ -321,10 +345,12 @@ for year in [2020,2025,2030]:
     print(f"\n Results of ConversionMpdel for year {year}")
     esM.getOptimizationSummary("ConversionModel", outputLevel=2, ip=year)
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Operation color map for New CCGT plants (hydrogen) in Investment Period 2020
 fig, ax = fn.plotOperationColorMap(esM, "New CCGT plants (hydrogen)", "GermanyRegion", ip=2020)
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Operation color map for New CCGT plants (hydrogen) in Investment Period 2030
 fig, ax = fn.plotOperationColorMap(esM, "New CCGT plants (hydrogen)", "GermanyRegion", ip=2030)
 
 # %% [markdown]
@@ -337,7 +363,8 @@ for year in [2020,2025,2030]:
     print(f"\n Results of StorageModel for year {year}")
     print(esM.getOptimizationSummary("StorageModel", outputLevel=2, ip=year))
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Operation color map for Li-ion batteries in Investment Period 2020
 fig, ax = fn.plotOperationColorMap(
     esM,
     "Li-ion batteries",
@@ -346,7 +373,8 @@ fig, ax = fn.plotOperationColorMap(
     ip=2020
 )
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Operation color map for Li-ion batteries in Investment Period 2025
 fig, ax = fn.plotOperationColorMap(
     esM,
     "Li-ion batteries",
@@ -355,7 +383,8 @@ fig, ax = fn.plotOperationColorMap(
     ip=2025
 )
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Operation color map for Li-ion batteries in Investment Period 2030
 fig, ax = fn.plotOperationColorMap(
     esM,
     "Li-ion batteries",
@@ -364,7 +393,8 @@ fig, ax = fn.plotOperationColorMap(
     ip=2030
 )
 
-# %% tags=["nbval-check-output"]
+# %% [markdown]
+# Operation color map for Salt caverns (hydrogen) in Investment Period 2020
 fig, ax = fn.plotOperationColorMap(
     esM,
     "Salt caverns (hydrogen)",
@@ -373,6 +403,8 @@ fig, ax = fn.plotOperationColorMap(
     ip=2020
 )
 
+# %% [markdown]
+# Operation color map for Salt caverns (hydrogen) in Investment Period 2025
 fig, ax = fn.plotOperationColorMap(
     esM,
     "Salt caverns (hydrogen)",
@@ -381,6 +413,8 @@ fig, ax = fn.plotOperationColorMap(
     ip=2025
 )
 
+# %% [markdown]
+# Operation color map for Salt caverns (hydrogen) in Investment Period 2030
 fig, ax = fn.plotOperationColorMap(
     esM,
     "Salt caverns (hydrogen)",
