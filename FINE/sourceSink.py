@@ -631,11 +631,13 @@ class SourceSinkModel(ComponentModel):
                 if comp.commodityLimitID is not None:
                     ID, limit = comp.commodityLimitID, comp.processedYearlyLimit[ip]
                     if (
-                        any(
-                            ID == tup[0] for tup in yearlyCommodityLimitationDict.keys()
-                        )
-                        and limit != yearlyCommodityLimitationDict[(ID, ip)][0]
-                    ):
+                        ID,
+                        ip,
+                    ) in yearlyCommodityLimitationDict.keys() and limit != yearlyCommodityLimitationDict[
+                        (ID, ip)
+                    ][
+                        0
+                    ]:
                         raise ValueError(
                             "yearlyLimitationIDs with different upper limits detected."
                         )
