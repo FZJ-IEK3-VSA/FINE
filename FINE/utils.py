@@ -106,8 +106,6 @@ def checkEnergySystemModelInput(
     isString(costUnit), isString(lengthUnit)
 
 
-
-
 def checkTimeUnit(timeUnit):
     """
     Check if the timeUnit input argument is equal to 'h'.
@@ -898,7 +896,9 @@ def checkAndSetInvestmentPeriodTimeSeries(
                 esM, name, data[_ip], locationalEligibility, dimension
             )
         else:
-            raise TypeError(f"Parameter of {name} should be a pandas dataframe or a dictionary.")
+            raise TypeError(
+                f"Parameter of {name} should be a pandas dataframe or a dictionary."
+            )
     return parameter
 
 
@@ -1089,7 +1089,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
         raise ValueError("The dimension parameter has to be either '1dim' or '2dim' ")
 
     if dimension == "1dim":
-        if isinstance(data, int)  or isinstance(data, float):
+        if isinstance(data, int) or isinstance(data, float):
             if data < 0:
                 raise ValueError(
                     "Value error in "
@@ -1268,7 +1268,9 @@ def checkAndSetInvestmentPeriodCostParameter(
                 esM, name, data[_ip], dimension, locationalEligibility
             )
         else:
-            raise TypeError(f"Parameter of {name} should be a pandas series or a dictionary.")
+            raise TypeError(
+                f"Parameter of {name} should be a pandas series or a dictionary."
+            )
     return parameter
 
 
@@ -1345,9 +1347,12 @@ def checkAndSetTimeSeriesConversionFactors(
     else:
         return None
 
+
 def checkAndSetYearlyLimit(esM, yearlyLimit):
-    checkInvestmentPeriodParameters("yearlyLimit", yearlyLimit, esM.investmentPeriodNames)
-    processedYearlyLimit={}
+    checkInvestmentPeriodParameters(
+        "yearlyLimit", yearlyLimit, esM.investmentPeriodNames
+    )
+    processedYearlyLimit = {}
     for ip in esM.investmentPeriods:
         _ip = esM.investmentPeriodNames[ip]
         if yearlyLimit is None:
@@ -1360,22 +1365,26 @@ def checkAndSetYearlyLimit(esM, yearlyLimit):
             if isinstance(_data, int) or isinstance(_data, float):
                 if _data < 0:
                     raise ValueError(
-                        "Value error in detected.\n "+
-                        "Yearly Limit limitations have to be positive."
+                        "Value error in detected.\n "
+                        + "Yearly Limit limitations have to be positive."
                     )
-                processedYearlyLimit[ip]=_data
+                processedYearlyLimit[ip] = _data
             else:
                 raise ValueError(
-                    "Value error in detected.\n "+
-                    "Yearly Limit limitations have to be positive float.")
+                    "Value error in detected.\n "
+                    + "Yearly Limit limitations have to be positive float."
+                )
     return processedYearlyLimit
 
-def checkAndSetBalanceLimit(esM, balanceLimit,locations):
+
+def checkAndSetBalanceLimit(esM, balanceLimit, locations):
     # balanceLimit has to be DataFrame with locations as columns or Series, if valid for whole model
-    
-    checkInvestmentPeriodParameters("balanceLimit", balanceLimit, esM.investmentPeriodNames)
+
+    checkInvestmentPeriodParameters(
+        "balanceLimit", balanceLimit, esM.investmentPeriodNames
+    )
     processedBalanceLimit = {}
-    
+
     for ip in esM.investmentPeriods:
         _ip = esM.investmentPeriodNames[ip]
 
@@ -1383,7 +1392,7 @@ def checkAndSetBalanceLimit(esM, balanceLimit,locations):
             _balanceLimit = balanceLimit[_ip]
         else:
             _balanceLimit = balanceLimit
-        
+
         if _balanceLimit is not None:
             if (
                 not type(_balanceLimit) == pd.DataFrame
@@ -1408,7 +1417,8 @@ def checkAndSetBalanceLimit(esM, balanceLimit,locations):
         else:
             processedBalanceLimit[ip] = None
     return processedBalanceLimit
-            
+
+
 def checkAndSetFullLoadHoursParameter(
     esM, name, data, dimension, locationalEligibility
 ):
@@ -1423,7 +1433,7 @@ def checkAndSetFullLoadHoursParameter(
                 _data = data[_ip]
             else:
                 _data = data
-            
+
             if isinstance(_data, int) or isinstance(_data, float):
                 if _data < 0:
                     raise ValueError(
@@ -1432,14 +1442,14 @@ def checkAndSetFullLoadHoursParameter(
                         + " detected.\n Full load hours limitations have to be positive."
                     )
                 if dimension == "1dim":
-                    parameter[ip]=pd.Series(
+                    parameter[ip] = pd.Series(
                         [float(_data) for loc in esM.locations], index=esM.locations
-                        )
+                    )
                 elif dimension == "2dim":
-                    parameter[ip]=pd.Series(
+                    parameter[ip] = pd.Series(
                         [float(_data) for loc in locationalEligibility.index],
                         index=locationalEligibility.index,
-                        )
+                    )
             elif isinstance(_data, pd.Series):
                 _data = checkConnectionIndex(_data, locationalEligibility)
                 _data = _data.astype(float)
@@ -1457,12 +1467,9 @@ def checkAndSetFullLoadHoursParameter(
                         + " detected.\n"
                         + "All entries in economic parameter series have to be positive."
                     )
-                parameter[ip]=_data
+                parameter[ip] = _data
     return parameter
-            
-        
-        
-        
+
     # if data is None:
     #     return None
     # else:
@@ -1537,7 +1544,6 @@ def checkAndSetFullLoadHoursParameter(
     #             + "All entries in economic parameter series have to be positive."
     #         )
     #     return _data
-
 
 
 def checkClusteringInput(
@@ -1826,7 +1832,9 @@ def preprocess2dimInvestmentPeriodData(
                 data[ip], mapC, locationalEligibility, discard
             )
         else:
-            raise TypeError(f"Parameter of {name} should be a pandas dataframe or a dictionary.")
+            raise TypeError(
+                f"Parameter of {name} should be a pandas dataframe or a dictionary."
+            )
 
     return parameter
 

@@ -398,7 +398,7 @@ class Component(metaclass=ABCMeta):
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim).
             * Dict with years as keys and one of the two options above as values.
-              
+
         :param stockCommissioning: if specified, indictates historical commissioned capacities.
         The parameter describes, how much capacity was commissioned per location in which past
         investment period. The past investment period is not part of the optimized investment periods.
@@ -539,8 +539,8 @@ class Component(metaclass=ABCMeta):
         self.linkedQuantityID = linkedQuantityID
 
         # Set yearly fullload hour parameters
-        self.yearlyFullLoadHoursMin=yearlyFullLoadHoursMin
-        self.yearlyFullLoadHoursMax=yearlyFullLoadHoursMax
+        self.yearlyFullLoadHoursMin = yearlyFullLoadHoursMin
+        self.yearlyFullLoadHoursMax = yearlyFullLoadHoursMax
         self.processedYearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(
             esM, name, yearlyFullLoadHoursMin, dimension, elig
         )

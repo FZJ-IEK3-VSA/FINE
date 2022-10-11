@@ -43,11 +43,13 @@ def test_fullloadhours_max(minimal_test_esM):
     market = esM.getComponent("Electricity market")
 
     # set fullloadhour limit
-    electrolyzer.yearlyFullLoadHoursMax=pd.Series(100.0, index=esM.locations)
-    electrolyzer.processedYearlyFullLoadHoursMax = {0:pd.Series(100.0, index=esM.locations)}
+    electrolyzer.yearlyFullLoadHoursMax = pd.Series(100.0, index=esM.locations)
+    electrolyzer.processedYearlyFullLoadHoursMax = {
+        0: pd.Series(100.0, index=esM.locations)
+    }
     market.hasCapacityVariable = True
-    market.yearlyFullLoadHoursMax =pd.Series(3000.0, index=esM.locations)
-    market.processedYearlyFullLoadHoursMax = {0:pd.Series(3000.0, index=esM.locations)}
+    market.yearlyFullLoadHoursMax = pd.Series(3000.0, index=esM.locations)
+    market.processedYearlyFullLoadHoursMax = {0: pd.Series(3000.0, index=esM.locations)}
 
     # optimize
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
@@ -100,7 +102,9 @@ def test_fullloadhours_min(minimal_test_esM):
 
     # set fullloadhour limit
     electrolyzer.yearlyFullLoadHoursMin = pd.Series(5000.0, index=esM.locations)
-    electrolyzer.processedYearlyFullLoadHoursMin = {0: pd.Series(5000.0, index=esM.locations)}
+    electrolyzer.processedYearlyFullLoadHoursMin = {
+        0: pd.Series(5000.0, index=esM.locations)
+    }
     market.hasCapacityVariable = True
     market.yearlyFullLoadHoursMin = pd.Series(3000.0, index=esM.locations)
     market.processedYearlyFullLoadHoursMin = {0: pd.Series(3000.0, index=esM.locations)}
