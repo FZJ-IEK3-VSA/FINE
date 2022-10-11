@@ -720,14 +720,9 @@ def plotOperationColorMap(
         isStorage = True
         unit = unit + "*h"
 
-    _data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
+    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
         variableName, ip=ip
     )
-
-    if esM.numberOfInvestmentPeriods == 1:
-        data = _data
-    else:
-        data = _data[ip]
 
     if locTrans is None:
         timeSeries = data["values"].loc[(compName, loc)].values
