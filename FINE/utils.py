@@ -484,11 +484,11 @@ def getQPbound(investmentPeriods, QPcostScale, capacityMax, capacityMin):
         QPbound[ip] = pd.Series([np.inf] * len(index), index)
 
         if capacityMin is not None and capacityMax is not None:
-            minS = pd.Series(capacityMin.isna(), index)
-            maxS = pd.Series(capacityMax.isna(), index)
+            minS = pd.Series(capacityMin[ip].isna(), index)
+            maxS = pd.Series(capacityMax[ip].isna(), index)
             for x in index:
                 if not minS.loc[x] and not maxS.loc[x]:
-                    QPbound[ip].loc[x] = capacityMax.loc[x] - capacityMin.loc[x]
+                    QPbound[ip].loc[x] = capacityMax[ip].loc[x] - capacityMin[ip].loc[x]
     return QPbound
 
 
@@ -668,6 +668,39 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         if (QPcostScale[ip] < 0).any() or (QPcostScale[ip] > 1).any():
             raise ValueError('QPcostScale must ba a number between "0" and "1".')
 
+
+def checkAndSetCapacityBounds(esM, name, capacityMin, capacityMax, capacityFix):
+    checkInvestmentPeriodParameters(name, capacityMin, esM.investmentPeriods)
+    checkInvestmentPeriodParameters(name, capacityMax, esM.investmentPeriods)
+    checkInvestmentPeriodParameters(name, capacityFix, esM.investmentPeriods)
+    
+    def _checkAndSet(param):
+        if isinstance(param,None):
+            return None
+        elif isinstance(param,dict):
+            if all(x is None for x in param.values()):
+                return None
+            processedParam # TODO
+        elif isinstance(param, pd.DataFrame) or isinstance(param, pd.Series):
+            processedParam={}
+            for ip in esM.investmentPeriods:
+                processedParam=castToSeries(param, esM)
+        elif isinstance(param,int) or isinstance(param,float):
+            processedParam={}
+            for ip in esM.investmentPeriods:
+                processedParam=castToSeries(param, esM)
+        return processedParam
+    
+    # set up parameter as dict with investment periods as keys and 
+    # dataframe with locations as values
+    procCapMin=_checkAndSet(capacityMin)
+    procCapMax=_checkAndSet(capacityMax)
+    procCapFix=_checkAndSet(capacityFix)
+    
+    # TODO implement tests! 
+    # check ob irgendwo None drin ist
+        
+    return procCapMin,procCapMax,procCapFix
 
 def checkInvestmentPeriodParameters(name, param, years):
     if isinstance(param, dict):

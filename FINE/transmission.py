@@ -139,12 +139,15 @@ class Transmission(Component):
         :type balanceLimitID: string
         """
         # TODO add unit checks
+        self.capacityMax=capacityMax
+        self.capacityMin=capacityMin
+        self.capacityFix=capacityFix
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
-        self.capacityMax = utils.preprocess2dimData(
+        preprocessedCapacityMax = utils.preprocess2dimData(
             capacityMax, locationalEligibility=locationalEligibility
         )
-        self.capacityFix = utils.preprocess2dimData(
+        preprocessedCapacityFix = utils.preprocess2dimData(
             capacityFix, locationalEligibility=locationalEligibility
         )
         self.isBuiltFix = utils.preprocess2dimData(
@@ -158,8 +161,8 @@ class Transmission(Component):
         self.locationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
-            self.capacityMax,
-            self.capacityFix,
+            preprocessedCapacityMax,
+            preprocessedCapacityFix,
             self.isBuiltFix,
             hasCapacityVariable,
             operationTimeSeries,
@@ -178,13 +181,13 @@ class Transmission(Component):
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + "_" + loc2})
                     self._mapI.update({loc1 + "_" + loc2: loc2 + "_" + loc1})
         # capacity parameter
-        self.capacityMax = utils.preprocess2dimData(
+        preprocessedCapacityMax = utils.preprocess2dimData(
             capacityMax, self._mapC, locationalEligibility=self.locationalEligibility
         )
-        self.capacityFix = utils.preprocess2dimData(
+        preprocessedCapacityFix = utils.preprocess2dimData(
             capacityFix, self._mapC, locationalEligibility=self.locationalEligibility
         )
-        self.capacityMin = utils.preprocess2dimData(
+        preprocessedCapacityMin = utils.preprocess2dimData(
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
         # stockCommissioning
@@ -220,12 +223,12 @@ class Transmission(Component):
             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
             bigM=bigM,
             locationalEligibility=self.locationalEligibility,
-            capacityMin=self.capacityMin,
-            capacityMax=self.capacityMax,
+            capacityMin=preprocessedCapacityMin,
+            capacityMax=preprocessedCapacityMax,
             partLoadMin=partLoadMin,
             sharedPotentialID=sharedPotentialID,
             linkedQuantityID=linkedQuantityID,
-            capacityFix=self.capacityFix,
+            capacityFix=preprocessedCapacityFix,
             isBuiltFix=self.isBuiltFix,
             investPerCapacity=0,
             investIfBuilt=0,

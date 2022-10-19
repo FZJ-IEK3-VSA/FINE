@@ -536,9 +536,10 @@ class Component(metaclass=ABCMeta):
         self.capacityMin=capacityMin
         self.capacityMax=capacityMax
         self.capacityFix=capacityFix
-        self.processedCapacityMin = utils.castToSeries(capacityMin, esM)
-        self.processedCapacityMax = utils.castToSeries(capacityMax, esM)
-        self.processedCapacityFix = utils.castToSeries(capacityFix, esM)
+        (self.processedCapacityMin, self.processedCapacityMax, self.processedCapacityFix)=utils.checkAndSetCapacityBounds(esM, capacityMin,capacityMax,capacityFix)
+        # self.processedCapacityMin = utils.castToSeries(capacityMin, esM)
+        # self.processedCapacityMax = utils.castToSeries(capacityMax, esM)
+        # self.processedCapacityFix = utils.castToSeries(capacityFix, esM)
         self.linkedQuantityID = linkedQuantityID
 
         # Set yearly fullload hour parameters
@@ -1290,10 +1291,10 @@ class ComponentModel(metaclass=ABCMeta):
             """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
             return (
-                comp.processedCapacityMin[loc]
+                comp.processedCapacityMin[ip][loc]
                 if (comp.processedCapacityMin is not None and not comp.hasIsBuiltBinaryVariable)
                 else 0,
-                comp.processedCapacityMax[loc] if comp.processedCapacityMax is not None else None,
+                comp.processedCapacityMax[ip][loc] if comp.processedCapacityMax is not None else None,
             )
 
         setattr(
@@ -1533,7 +1534,7 @@ class ComponentModel(metaclass=ABCMeta):
             comp = compDict[compName]
             if ip not in comp.processedStockYears:
                 # set bigM for investment periods
-                M = comp.processedCapacityMax[loc] if comp.processedCapacityMax is not None else comp.bigM
+                M = comp.processedCapacityMax[ip][loc] if comp.processedCapacityMax is not None else comp.bigM
                 return (
                     commisVar[loc, compName, ip] <= commisBinVar[loc, compName, ip] * M
                 )
@@ -1578,7 +1579,7 @@ class ComponentModel(metaclass=ABCMeta):
             if ip not in compDict[compName].processedStockYears:
                 return (
                     capVar[loc, compName, ip]
-                    >= compDict[compName].processedCapacityMin[loc]
+                    >= compDict[compName].processedCapacityMin[ip][loc]
                     * commisBinVar[loc, compName, ip]
                     if compDict[compName].processedCapacityMin is not None
                     else pyomo.Constraint.Skip
@@ -1612,7 +1613,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         def capacityFix(pyM, loc, compName, ip):
             return (
-                capVar[loc, compName, ip] == compDict[compName].processedCapacityFix[loc]
+                capVar[loc, compName, ip] == compDict[compName].processedCapacityFix[ip][loc]
                 if compDict[compName].processedCapacityFix is not None
                 else pyomo.Constraint.Skip
             )
@@ -2409,7 +2410,7 @@ class ComponentModel(metaclass=ABCMeta):
         capVar = getattr(pyM, "cap_" + abbrvName)
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
         return sum(
-            capVar[loc, compName, ip] / compDict[compName].processedCapacityMax[loc]
+            capVar[loc, compName, ip] / compDict[compName].processedCapacityMax[ip][loc]
             for ip in pyM.investSet
             for compName in compDict
             if compDict[compName].sharedPotentialID == key
