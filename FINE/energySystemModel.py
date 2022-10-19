@@ -1341,7 +1341,7 @@ class EnergySystemModel:
                             (comp.sharedPotentialID, loc), []
                         ).append(compName)
                         for loc in comp.locationalEligibility.index
-                        if comp.capacityMax[loc] != 0
+                        if comp.processedCapacityMax[loc] != 0
                     ]
         pyM.sharedPotentialDict = potentialDict
 

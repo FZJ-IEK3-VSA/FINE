@@ -502,17 +502,17 @@ def getQPcostDev(investmentPeriods, QPcostScale):
 def checkLocationSpecficDesignInputParams(comp, esM):
 
     if len(esM.locations) == 1:
-        comp.capacityMin = castToSeries(comp.capacityMin, esM)
-        comp.capacityFix = castToSeries(comp.capacityFix, esM)
-        comp.capacityMax = castToSeries(comp.capacityMax, esM)
+        comp.processedCapacityMin = castToSeries(comp.processedCapacityMin, esM)
+        comp.processedCapacityFix = castToSeries(comp.processedCapacityFix, esM)
+        comp.processedCapacityMax = castToSeries(comp.processedCapacityMax, esM)
         comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
         comp.QPcostScale = castToSeries(comp.QPcostScale, esM)
 
     capacityMin, capacityFix, capacityMax, QPcostScale = (
-        comp.capacityMin,
-        comp.capacityFix,
-        comp.capacityMax,
+        comp.processedCapacityMin,
+        comp.processedCapacityFix,
+        comp.processedCapacityMax,
         comp.processedQPcostScale,
     )
     locationalEligibility, isBuiltFix = comp.locationalEligibility, comp.isBuiltFix
@@ -521,9 +521,6 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         comp.hasIsBuiltBinaryVariable,
     )
     sharedPotentialID = comp.sharedPotentialID
-    partLoadMin = comp.partLoadMin
-    name = comp.name
-    bigM = comp.bigM
     hasCapacityVariable = comp.hasCapacityVariable
 
     def checkAndSet(data, comp, esM):
@@ -2255,17 +2252,17 @@ def checkAndSetStock(component, esM, stockCommissioning):
             installed_sum -= stockCommissioning[
                 esM.startYear - component.technicalLifetime[loc]
             ][loc]
-        if component.capacityMax is not None:
-            if installed_sum > component.capacityMax[loc]:
+        if component.processedCapacityMax is not None:
+            if installed_sum > component.processedCapacityMax[loc]:
                 raise ValueError(
                     f"The stock of {installed_sum} for '{component.name}' in region '{loc}' "
-                    + f"exceeds its capacityMax of '{component.capacityMax}'"
+                    + f"exceeds its capacityMax of '{component.processedCapacityMax}'"
                 )
-        if component.capacityFix is not None:
-            if installed_sum > component.capacityFix[loc]:
+        if component.processedCapacityFix is not None:
+            if installed_sum > component.processedCapacityFix[loc]:
                 raise ValueError(
                     f"The stock of '{component.name}' in region '{loc}' "
-                    + f"exceeds its capacityFix of '{component.capacityFix}'"
+                    + f"exceeds its capacityFix of '{component.processedCapacityFix}'"
                 )
 
     # set into correct format, add 0'values and transform ip into [-1,-2,-3,...]

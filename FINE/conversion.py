@@ -258,8 +258,8 @@ class Conversion(Component):
         self.locationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
-            self.capacityMax,
-            self.capacityFix,
+            self.processedCapacityMax,
+            self.processedCapacityFix,
             self.isBuiltFix,
             self.hasCapacityVariable,
             operationTimeSeries,
