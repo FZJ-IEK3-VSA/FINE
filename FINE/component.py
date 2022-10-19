@@ -1828,7 +1828,7 @@ class ComponentModel(metaclass=ABCMeta):
         decommisVar = getattr(pyM, "decommis_" + abbrvName)
         decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
-        def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
+        def capacityDecommissioning(pyM, loc, compName, ip):
             tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
             comm_date = ip - tech_lifetime
             # only set constraint if decomm_date is within investment periods
@@ -1855,7 +1855,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyM,
             "DecommConstrCapacityDevelopment_" + abbrvName,
             pyomo.Constraint(
-                decommisConstrSet, rule=capacityDevelopmentPerfectForesight
+                decommisConstrSet, rule=capacityDecommissioning
             ),
         )
 
