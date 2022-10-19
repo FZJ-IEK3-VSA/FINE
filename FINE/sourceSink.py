@@ -141,7 +141,7 @@ class Source(Component):
             the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is
             limited. If negative, the commodity flow entering the energySystemModel is limited. If a
             yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well. The yearlyLimit can also be specified for
-            every investment period year individually. 
+            every investment period year individually.
             Examples:
 
             * CO2 can be emitted in power plants by burning natural gas or coal. The CO2 which goes into
@@ -155,7 +155,7 @@ class Source(Component):
               "chemicalComponentLimitID" and a yearlyLimit of -XY.
 
             |br| * the default value is None
-        :type yearlyLimit: 
+        :type yearlyLimit:
             * float
             * a dictionary with investment periods as keys and float as values
 
@@ -253,15 +253,15 @@ class Source(Component):
             esM.commodityUnitsDict[commodity],
         )
         # TODO check value and type correctness
-        self.commodityLimitID = commodityLimitID 
+        self.commodityLimitID = commodityLimitID
         self.balanceLimitID = balanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
-        
+
         # yearlyLimit
         self.yearlyLimit = yearlyLimit
-        self.processedYearlyLimit=utils.checkAndSetYearlyLimit(esM, yearlyLimit)
-        
+        self.processedYearlyLimit = utils.checkAndSetYearlyLimit(esM, yearlyLimit)
+
         # opexPerOperation
         self.opexPerOperation = opexPerOperation
         self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
@@ -371,7 +371,7 @@ class Source(Component):
         self.fullCommodityRevenueTimeSeries = utils.setParamToNoneIfNoneForAllYears(
             self.fullCommodityRevenueTimeSeries
         )
-        self.processedYearlyLimit=utils.setParamToNoneIfNoneForAllYears(
+        self.processedYearlyLimit = utils.setParamToNoneIfNoneForAllYears(
             self.processedYearlyLimit
         )
 
@@ -631,15 +631,19 @@ class SourceSinkModel(ComponentModel):
                 if comp.commodityLimitID is not None:
                     ID, limit = comp.commodityLimitID, comp.processedYearlyLimit[ip]
                     if (
-                        any(ID == tup[0] for tup in yearlyCommodityLimitationDict.keys())
-                        and limit != yearlyCommodityLimitationDict[(ID,ip)][0]   
-                    ):
+                        ID,
+                        ip,
+                    ) in yearlyCommodityLimitationDict.keys() and limit != yearlyCommodityLimitationDict[
+                        (ID, ip)
+                    ][
+                        0
+                    ]:
                         raise ValueError(
                             "yearlyLimitationIDs with different upper limits detected."
                         )
-                    yearlyCommodityLimitationDict.setdefault((ID,ip), (limit, []))[1].append(
-                        compName
-                    )
+                    yearlyCommodityLimitationDict.setdefault((ID, ip), (limit, []))[
+                        1
+                    ].append(compName)
         setattr(
             pyM,
             "yearlyCommodityLimitationDict_" + self.abbrvName,
@@ -739,7 +743,7 @@ class SourceSinkModel(ComponentModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
         limitDict = getattr(pyM, "yearlyCommodityLimitationDict_" + abbrvName)
-        
+
         def yearlyLimitationConstraint(pyM, key, ip):
             sumEx = -sum(
                 opVar[loc, compName, ip, p, t]
@@ -759,9 +763,7 @@ class SourceSinkModel(ComponentModel):
         setattr(
             pyM,
             "ConstrYearlyLimitation_" + abbrvName,
-            pyomo.Constraint(
-                limitDict.keys(), rule=yearlyLimitationConstraint
-            ),
+            pyomo.Constraint(limitDict.keys(), rule=yearlyLimitationConstraint),
         )
 
     def declareComponentConstraints(self, esM, pyM):
