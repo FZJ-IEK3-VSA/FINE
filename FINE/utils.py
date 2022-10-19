@@ -2246,10 +2246,15 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 pass
             else:
                 installed_sum += stockCommissioning[year][loc]
-        # reduce the installed_sum by the decommissioning, which will occur in 
+        # reduce the installed_sum by the decommissioning, which will occur in
         # the first year
-        if esM.startYear - component.technicalLifetime[loc] in stockCommissioning.keys():
-            installed_sum -= stockCommissioning[esM.startYear - component.technicalLifetime[loc]][loc]
+        if (
+            esM.startYear - component.technicalLifetime[loc]
+            in stockCommissioning.keys()
+        ):
+            installed_sum -= stockCommissioning[
+                esM.startYear - component.technicalLifetime[loc]
+            ][loc]
         if component.capacityMax is not None:
             if installed_sum > component.capacityMax[loc]:
                 raise ValueError(

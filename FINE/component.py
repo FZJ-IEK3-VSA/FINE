@@ -1854,9 +1854,7 @@ class ComponentModel(metaclass=ABCMeta):
         setattr(
             pyM,
             "DecommConstrCapacityDevelopment_" + abbrvName,
-            pyomo.Constraint(
-                decommisConstrSet, rule=capacityDecommissioning
-            ),
+            pyomo.Constraint(decommisConstrSet, rule=capacityDecommissioning),
         )
 
     ####################################################################################################################
