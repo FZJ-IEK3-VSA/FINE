@@ -96,65 +96,6 @@ class StorageExtBETA(Storage):
         )
         self.aggregatedOpexPerChargeOpTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
-        # for _ip in esM.investmentPeriodNames:
-        #     ip = esM.investmentPeriodNames.index(_ip)
-        # # fullStateOfChargeOpRateMax
-        # if (
-        #     isinstance(stateOfChargeOpRateMax, pd.DataFrame)
-        #     or isinstance(stateOfChargeOpRateMax, pd.Series)
-        #     or stateOfChargeOpRateMax is None
-        # ):
-        #     self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-        #         esM, name, stateOfChargeOpRateMax, self.locationalEligibility
-        #     )
-        # elif isinstance(stateOfChargeOpRateMax, dict):
-        #     self.fullStateOfChargeOpRateMax[ip] = utils.checkAndSetTimeSeries(
-        #         esM, name, stateOfChargeOpRateMax[_ip], self.locationalEligibility
-        #     )
-        # else:
-        #     raise TypeError(
-        #         "stateOfChargeOpRateMax should be a pandas dataframe or a dictionary."
-        #     )
-
-        # fullStateOfChargeOpRateFix
-        # if (
-        #     isinstance(stateOfChargeOpRateFix, pd.DataFrame)
-        #     or isinstance(stateOfChargeOpRateFix, pd.Series)
-        #     or stateOfChargeOpRateFix is None
-        # ):
-        #     self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-        #         esM, name, stateOfChargeOpRateFix, self.locationalEligibility
-        #     )
-        # elif isinstance(stateOfChargeOpRateFix, dict):
-        #     self.fullStateOfChargeOpRateFix[ip] = utils.checkAndSetTimeSeries(
-        #         esM, name, stateOfChargeOpRateFix[_ip], self.locationalEligibility
-        #     )
-        # else:
-        #     raise TypeError(
-        #         "stateOfChargeOpRateFix should be a pandas dataframe or a dictionary."
-        #     )
-
-        # # fullOpexPerChargeOpTimeSeries
-        # if (
-        #     isinstance(opexPerChargeOpTimeSeries, pd.DataFrame)
-        #     or isinstance(opexPerChargeOpTimeSeries, pd.Series)
-        #     or opexPerChargeOpTimeSeries is None
-        # ):
-        #     self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
-        #         esM, name, opexPerChargeOpTimeSeries, self.locationalEligibility
-        #     )
-        # elif isinstance(opexPerChargeOpTimeSeries, dict):
-        #     self.fullOpexPerChargeOpTimeSeries[ip] = utils.checkAndSetTimeSeries(
-        #         esM,
-        #         name,
-        #         opexPerChargeOpTimeSeries[_ip],
-        #         self.locationalEligibility,
-        #     )
-        # else:
-        #     raise TypeError(
-        #         "opexPerChargeOpTimeSeries should be a pandas dataframe or a dictionary."
-        #     )
-
         for ip in esM.investmentPeriods:
             # The i-th state of charge (SOC) refers to the SOC before the i-th time step
             if (
