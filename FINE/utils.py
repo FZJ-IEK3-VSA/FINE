@@ -1470,6 +1470,7 @@ def checkAndSetFullLoadHoursParameter(
                 parameter[ip] = _data
     return parameter
 
+
 def checkClusteringInput(
     numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps
 ):
