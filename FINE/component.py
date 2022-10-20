@@ -794,27 +794,12 @@ class ComponentModel(metaclass=ABCMeta):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        # get oldestStockYear to know what set is to be init
-        oldestStockYear = 0
-        for compName, comp in compDict.items():
-            if comp.processedStockCommissioning is None:
-                pass
-            else:
-                for year in sorted(comp.processedStockCommissioning.keys()):
-                    if any(x != 0 for x in comp.processedStockCommissioning[year]):
-                        oldestStockYear = min(oldestStockYear, year)
-                        break
-        if oldestStockYear == 0:
-            stockInvestmentPeriods = []
-        else:
-            stockInvestmentPeriods = list(range(oldestStockYear, 0, 1))
-
         def declareCommisVarSet(pyM):
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
                 for loc in comp.locationalEligibility.index
-                for ip in stockInvestmentPeriods + esM.investmentPeriods
+                for ip in comp.processedStockYears + esM.investmentPeriods
                 if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
             )
 
