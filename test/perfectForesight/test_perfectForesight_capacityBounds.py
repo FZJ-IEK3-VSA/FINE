@@ -157,7 +157,7 @@ def test_capacityBounds():
                 economicLifetime=30,
             )
         )
-        
+
     # error for wrong ip input - missing of year 4
     with pytest.raises(
         ValueError, match=r".*but the expected years are.*"
@@ -178,7 +178,7 @@ def test_capacityBounds():
                 economicLifetime=30,
             )
         )
-        
+
     # error for capacityMax and capaityFix
     with pytest.raises(
         ValueError, match=r".*capacityFix values > capacityMax values detected.*"
@@ -229,7 +229,6 @@ def test_capacityBounds():
         )
     )
 
-
     # error for a decreasing capacityFix which cannot be fulfilled by the technicalLifetime
     with pytest.raises(
         ValueError, match=r".*Decreasing capacity fix set.*"
@@ -250,9 +249,6 @@ def test_capacityBounds():
             )
         )
 
-
-
-     
     # implement error for mismatch for decommissioning of stock with capacityfix
     with pytest.raises(
         ValueError, match=r".*exceeds its capacityFix of.*"
@@ -278,4 +274,3 @@ def test_capacityBounds():
                 economicLifetime=30,
             )
         )
-    

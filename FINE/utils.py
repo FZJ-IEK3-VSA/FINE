@@ -745,6 +745,7 @@ def checkCapacityDevelopmentWithStock(investmentPeriods, capacityMax, capacityFi
         for ip,stockCommis in stockCommissioning.items():
             for loc in stockCommis.index:
                 yearRange=list(range(ip,ip+technicalLifetime[loc]))
+                yearRange=[x for x in yearRange if x<=max(investmentPeriods)]
                 stockCapacity.loc[yearRange,loc]+=stockCommis[loc]
         # check that the capacity max is not lower as the resulting 
         # stock capacity
