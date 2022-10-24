@@ -536,7 +536,7 @@ class Component(metaclass=ABCMeta):
         self.capacityMin=capacityMin
         self.capacityMax=capacityMax
         self.capacityFix=capacityFix
-        (self.processedCapacityMin, self.processedCapacityMax, self.processedCapacityFix)=utils.checkAndSetCapacityBounds(esM, capacityMin,capacityMax,capacityFix)
+        (self.processedCapacityMin, self.processedCapacityMax, self.processedCapacityFix)=utils.checkAndSetCapacityBounds(esM, name, capacityMin,capacityMax,capacityFix)
         # self.processedCapacityMin = utils.castToSeries(capacityMin, esM)
         # self.processedCapacityMax = utils.castToSeries(capacityMax, esM)
         # self.processedCapacityFix = utils.castToSeries(capacityFix, esM)
@@ -557,6 +557,7 @@ class Component(metaclass=ABCMeta):
         self.processedYearlyFullLoadHoursMax = utils.setParamToNoneIfNoneForAllYears(
             self.processedYearlyFullLoadHoursMax
         )
+                
 
         self.isBuiltFix = isBuiltFix
 
@@ -572,6 +573,17 @@ class Component(metaclass=ABCMeta):
         self.QPcostDev = utils.getQPcostDev(
             self.processedStockYears + esM.investmentPeriods, self.processedQPcostScale
         )
+        
+        self.processedCapacityFix = utils.setParamToNoneIfNoneForAllYears(
+            self.processedCapacityFix
+        )
+        self.processedCapacityMin = utils.setParamToNoneIfNoneForAllYears(
+            self.processedCapacityMin
+        )
+        self.processedCapacityMax = utils.setParamToNoneIfNoneForAllYears(
+            self.processedCapacityMax
+        )
+
         # stock commissioning
         self.stockCommissioning = stockCommissioning
         self.processedStockCommissioning = utils.checkAndSetStock(

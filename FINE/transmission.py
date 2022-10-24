@@ -144,11 +144,17 @@ class Transmission(Component):
         self.capacityFix=capacityFix
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
-        preprocessedCapacityMax = utils.preprocess2dimData(
-            capacityMax, locationalEligibility=locationalEligibility
+        preprocessedCapacityMax = utils.preprocess2dimInvestmentPeriodData(
+            esM,
+            "capacityMax",
+            capacityMax,
+            esM.investmentPeriods,
         )
-        preprocessedCapacityFix = utils.preprocess2dimData(
-            capacityFix, locationalEligibility=locationalEligibility
+        preprocessedCapacityFix = utils.preprocess2dimInvestmentPeriodData(
+            esM,
+            "capacityFix",
+            capacityFix,
+            esM.investmentPeriods,
         )
         self.isBuiltFix = utils.preprocess2dimData(
             isBuiltFix, locationalEligibility=locationalEligibility
@@ -180,6 +186,7 @@ class Transmission(Component):
                     self._mapC.update({loc1 + "_" + loc2: (loc1, loc2)})
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + "_" + loc2})
                     self._mapI.update({loc1 + "_" + loc2: loc2 + "_" + loc1})
+        
         # capacity parameter
         preprocessedCapacityMax = utils.preprocess2dimData(
             capacityMax, self._mapC, locationalEligibility=self.locationalEligibility
