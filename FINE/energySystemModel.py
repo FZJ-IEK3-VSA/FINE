@@ -1333,26 +1333,27 @@ class EnergySystemModel:
         # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
         # potential)
         potentialDict = {}
-        for mdl in self.componentModelingDict.values():
-            for compName, comp in mdl.componentsDict.items():
-                if comp.sharedPotentialID is not None:
-                    [
-                        potentialDict.setdefault(
-                            (comp.sharedPotentialID, loc), []
-                        ).append(compName)
-                        for loc in comp.locationalEligibility.index
-                        if comp.capacityMax[loc] != 0
-                    ]
+        for ip in self.investmentPeriods:
+            for mdl in self.componentModelingDict.values():
+                for compName, comp in mdl.componentsDict.items():
+                    if comp.sharedPotentialID is not None:
+                        [
+                            potentialDict.setdefault(
+                                (comp.sharedPotentialID, loc, ip), []
+                            ).append(compName)
+                            for loc in comp.locationalEligibility.index
+                            if comp.capacityMax[loc] != 0
+                        ]
         pyM.sharedPotentialDict = potentialDict
 
         # Define and initialize constraints for each instance and location where components have to share an available
         # potential. Sum up the relative contributions to the shared potential and ensure that the total share is
         # <= 100%. For this, get the contributions to the shared potential for the corresponding ID and
         # location from each modeling class.
-        def sharedPotentialConstraint(pyM, ID, loc):
+        def sharedPotentialConstraint(pyM, ID, loc, ip):
             return (
                 sum(
-                    mdl.getSharedPotentialContribution(pyM, ID, loc)
+                    mdl.getSharedPotentialContribution(pyM, ID, loc, ip)
                     for mdl in self.componentModelingDict.values()
                 )
                 <= 1

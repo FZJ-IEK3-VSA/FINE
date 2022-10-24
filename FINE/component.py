@@ -2383,7 +2383,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         return capexCap + capexDec + opexCap + opexDec
 
-    def getSharedPotentialContribution(self, pyM, key, loc):
+    def getSharedPotentialContribution(self, pyM, key, loc, ip):
         """
         Get the share which the components of the modeling class have on a shared maximum potential at a location.
         """
@@ -2392,7 +2392,6 @@ class ComponentModel(metaclass=ABCMeta):
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
         return sum(
             capVar[loc, compName, ip] / compDict[compName].capacityMax[loc]
-            for ip in pyM.investSet
             for compName in compDict
             if compDict[compName].sharedPotentialID == key
             and (loc, compName, ip) in capVarSet
