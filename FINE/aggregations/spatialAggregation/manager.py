@@ -150,7 +150,7 @@ def perform_spatial_aggregation(
             {\n
             "processedOperationRateMax": ("weighted mean", "capacityMax"),\n
             "processedOperationRateFix": ("sum", None),\n
-            "locationalEligibility": ("bool", None),\n
+            "processedLocationalEligibility": ("bool", None),\n
             "capacityMax": ("sum", None),\n
             "processedInvestPerCapacity": ("mean", None),\n
             "processedInvestIfBuilt": ("bool", None),\n
@@ -283,7 +283,7 @@ def perform_spatial_aggregation(
     aggregation_function_dict_default = {
         "processedOperationRateMax": ("weighted mean", "capacityMax"),
         "processedOperationRateFix": ("sum", None),
-        "locationalEligibility": ("bool", None),
+        "processedLocationalEligibility": ("bool", None),
         "capacityMax": ("sum", None),
         "processedInvestPerCapacity": ("mean", None),
         "processedInvestIfBuilt": ("bool", None),

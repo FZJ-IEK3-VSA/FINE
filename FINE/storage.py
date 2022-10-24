@@ -400,7 +400,7 @@ class Storage(Component):
                     ]
                 )
 
-        self.locationalEligibility = utils.setLocationalEligibility(
+        self.processedLocationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
             self.processedCapacityMax,
@@ -1649,7 +1649,7 @@ class StorageModel(ComponentModel):
         """
         return any(
             [
-                comp.commodity == commod and comp.locationalEligibility[loc] == 1
+                comp.commodity == commod and comp.processedLocationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
             ]
         )

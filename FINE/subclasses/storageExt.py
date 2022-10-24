@@ -209,41 +209,34 @@ class StorageExtBETA(Storage):
         # Set locational eligibility
         timeSeriesData = {}
         for ip in esM.investmentPeriods:
-            tsNb = 0
+            _timeSeriesData=[]
             for data in [
-                self.chargeOpRateMax,
-                self.chargeOpRateFix,
-                self.dischargeOpRateMax,
-                self.dischargeOpRateFix,
-                self.stateOfChargeOpRateMax,
-                self.stateOfChargeOpRateFix,
+                self.fullChargeOpRateMax,
+                self.fullChargeOpRateFix,
+                self.fullDischargeOpRateMax,
+                self.fullDischargeOpRateFix,
+                self.fullStateOfChargeOpRateMax,
+                self.fullStateOfChargeOpRateFix,
             ]:
                 if data is None:
-                    tsNb += 0
-                elif isinstance(data, dict):  # and all None!
-                    tsNb += 0
+                    pass
+                elif isinstance(data,dict) and all(x is None for x in data.values()):
+                    pass
                 else:
-                    tsNb += 1
+                    _timeSeriesData.append(data)
+            if len(_timeSeriesData)>0:
+                timeSeriesData[ip] = sum([data[ip] for data in _timeSeriesData])
+        
+        if not timeSeriesData: # empty dict, not depending on time-series
+            timeSeriesData=None
+        if timeSeriesData is not None:
+            if any(x is None for x in timeSeriesData.values()):
+                raise ValueError(
+                    "Only some years are time-series depending, "+
+                    "while others are not. Please implement it consitent over "+
+                    "the transformation pathway")
 
-            if tsNb > 0:
-                _sum = 0
-                for data in [
-                    self.chargeOpRateMax,
-                    self.chargeOpRateFix,
-                    self.dischargeOpRateMax,
-                    self.dischargeOpRateFix,
-                    self.stateOfChargeOpRateMax,
-                    self.stateOfChargeOpRateFix,
-                ]:
-                    if data is None:
-                        tsNb += 0
-                    elif isinstance(data, dict):  # and all None!
-                        tsNb += _sum[ip]
-                    else:
-                        tsNb += _sum
-                timeSeriesData[ip] = _sum
-
-        self.locationalEligibility = utils.setLocationalEligibility(
+        self.processedLocationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
             self.processedCapacityMax,

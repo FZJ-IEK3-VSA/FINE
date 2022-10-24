@@ -161,9 +161,25 @@ class Transmission(Component):
         )
 
         # Set locational eligibility
-        operationTimeSeries = (
-            operationRateFix if operationRateFix is not None else operationRateMax
-        )
+        if operationRateFix is None:
+            operationTimeSeries=operationRateMax
+        elif not isinstance(operationRateFix,dict):
+            operationTimeSeries=operationRateFix
+        elif isinstance(operationRateFix,dict) and any(x is not None for x in operationRateFix.values()):
+            if not all(x is not None for x in operationRateFix.values()):
+                raise ValueError()
+            operationTimeSeries=operationRateFix
+        else: 
+            operationTimeSeries=operationRateMax
+        # operationTimeSeries = (
+        #     operationRateFix if operationRateFix is not None else operationRateMax
+        # )
+        
+        if not isinstance(operationTimeSeries,dict):
+            operationTimeSeries=dict.fromkeys(esM.investmentPeriods,operationTimeSeries)
+        if all(x is None for x in operationTimeSeries.values()):
+            operationTimeSeries=None
+        
         self.locationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
@@ -371,6 +387,9 @@ class Transmission(Component):
         self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
             self.fullOperationRateMax
         )
+        
+        # set processed location eligiblity # TODO implement check and set
+        self.processedLocationalEligibility=self.locationalEligibility
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -690,8 +709,8 @@ class TransmissionModel(ComponentModel):
             [
                 comp.commodity == commod
                 and (
-                    loc + "_" + loc_ in comp.locationalEligibility.index
-                    or loc_ + "_" + loc in comp.locationalEligibility.index
+                    loc + "_" + loc_ in comp.processedLocationalEligibility.index
+                    or loc_ + "_" + loc in comp.processedLocationalEligibility.index
                 )
                 for comp in self.componentsDict.values()
                 for loc_ in esM.locations

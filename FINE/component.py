@@ -141,11 +141,14 @@ class Component(metaclass=ABCMeta):
         :type capacityMin:
 
             * None or
+            * float or
+            * int or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
-              to equal the in the energy system model specified locations.
+              to equal the in the energy system model specified locations. or
+            * Dict with investment periods as keys and one of the options above as values.
 
         :param capacityMax: if specified, indicates the maximum capacities. The type of this parameter depends on the
             dimension of the component: If dimension=1dim, it has to be a Pandas Series. If dimension=2dim, it has to
@@ -154,11 +157,14 @@ class Component(metaclass=ABCMeta):
         :type capacityMax:
 
             * None or
+            * float or
+            * int or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
-              to equal the in the energy system model specified locations.
+              to equal the in the energy system model specified locations. or
+            * Dict with investment periods as keys and one of the options above as values.
 
         :param partLoadMin: if specified, indicates minimal part load of component. # TODO PRO INVESTMENT PERIOD UND NICHT PRO COMMISSIONING YEAR
         :type partLoadMin:
@@ -187,11 +193,14 @@ class Component(metaclass=ABCMeta):
         :type capacityFix:
 
             * None or
+            * float or
+            * int or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
-              to equal the in the energy system model specified locations.
+              to equal the in the energy system model specified locations. or
+            * Dict with investment periods as keys and one of the options above as values.
 
         :param isBuiltFix: if specified, indicates fixed decisions in which or between which locations the component is
             built (i.e. sets the isBuilt binary variables). The type of this parameter
@@ -443,16 +452,14 @@ class Component(metaclass=ABCMeta):
         self.partLoadMin = partLoadMin
 
         # Set economic data
-        elig = locationalEligibility
-
         self.economicLifetime = utils.checkAndSetCostParameter(
-            esM, name, economicLifetime, dimension, elig
+            esM, name, economicLifetime, dimension, locationalEligibility
         )
         technicalLifetime = utils.checkTechnicalLifetime(
             esM, technicalLifetime, economicLifetime
         )
         self.technicalLifetime = utils.checkAndSetCostParameter(
-            esM, name, technicalLifetime, dimension, elig
+            esM, name, technicalLifetime, dimension, locationalEligibility
         )
         self.ipTechnicalLifetime = utils.checkLifetimeInvestmentPeriod(
             esM, name, self.technicalLifetime
@@ -475,7 +482,7 @@ class Component(metaclass=ABCMeta):
                 name,
                 investPerCapacity,
                 dimension,
-                elig,
+                locationalEligibility,
                 self.processedStockYears + esM.investmentPeriods,
             )
         )
@@ -486,7 +493,7 @@ class Component(metaclass=ABCMeta):
             name,
             investIfBuilt,
             dimension,
-            elig,
+            locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
         # opex per capacity
@@ -496,7 +503,7 @@ class Component(metaclass=ABCMeta):
             name,
             opexPerCapacity,
             dimension,
-            elig,
+            locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
         # opex if built
@@ -506,7 +513,7 @@ class Component(metaclass=ABCMeta):
             name,
             opexIfBuilt,
             dimension,
-            elig,
+            locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
         # QP costscale
@@ -516,12 +523,12 @@ class Component(metaclass=ABCMeta):
             name,
             QPcostScale,
             dimension,
-            elig,
+            locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
         # interest rate
         self.interestRate = utils.checkAndSetCostParameter(
-            esM, name, interestRate, dimension, elig
+            esM, name, interestRate, dimension, locationalEligibility
         )
 
         self.CCF = utils.getCapitalChargeFactor(
@@ -537,19 +544,16 @@ class Component(metaclass=ABCMeta):
         self.capacityMax=capacityMax
         self.capacityFix=capacityFix
         (self.processedCapacityMin, self.processedCapacityMax, self.processedCapacityFix)=utils.checkAndSetCapacityBounds(esM, name, capacityMin,capacityMax,capacityFix)
-        # self.processedCapacityMin = utils.castToSeries(capacityMin, esM)
-        # self.processedCapacityMax = utils.castToSeries(capacityMax, esM)
-        # self.processedCapacityFix = utils.castToSeries(capacityFix, esM)
         self.linkedQuantityID = linkedQuantityID
 
         # Set yearly fullload hour parameters
         self.yearlyFullLoadHoursMin = yearlyFullLoadHoursMin
         self.yearlyFullLoadHoursMax = yearlyFullLoadHoursMax
         self.processedYearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(
-            esM, name, yearlyFullLoadHoursMin, dimension, elig
+            esM, name, yearlyFullLoadHoursMin, dimension, locationalEligibility
         )
         self.processedYearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(
-            esM, name, yearlyFullLoadHoursMax, dimension, elig
+            esM, name, yearlyFullLoadHoursMax, dimension, locationalEligibility
         )
         self.processedYearlyFullLoadHoursMin = utils.setParamToNoneIfNoneForAllYears(
             self.processedYearlyFullLoadHoursMin
@@ -558,7 +562,6 @@ class Component(metaclass=ABCMeta):
             self.processedYearlyFullLoadHoursMax
         )
                 
-
         self.isBuiltFix = isBuiltFix
 
         utils.checkLocationSpecficDesignInputParams(self, esM)
@@ -592,6 +595,15 @@ class Component(metaclass=ABCMeta):
         self.stockCapacityStartYear = utils.setStockCapacityStartYear(
             self, esM, dimension
         )
+        
+        # check the capacity development with stock for mismatchs
+        utils.checkCapacityDevelopmentWithStock(
+            esM.investmentPeriods,
+            self.processedCapacityMax,
+            self.processedCapacityFix,
+            self.processedStockCommissioning,
+            self.ipTechnicalLifetime)
+
 
     def addToEnergySystemModel(self, esM):
         """
@@ -829,9 +841,9 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
+                for loc in comp.processedLocationalEligibility.index
                 for ip in stockInvestmentPeriods + esM.investmentPeriods
-                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                if comp.processedLocationalEligibility[loc] == 1 and comp.hasCapacityVariable
             )
 
         setattr(
@@ -857,9 +869,9 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
+                for loc in comp.processedLocationalEligibility.index
                 for ip in esM.investmentPeriods
-                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                if comp.processedLocationalEligibility[loc] == 1 and comp.hasCapacityVariable
             )
 
         setattr(
@@ -881,8 +893,8 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
-                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                for loc in comp.processedLocationalEligibility.index
+                if comp.processedLocationalEligibility[loc] == 1 and comp.hasCapacityVariable
             )
 
         setattr(
@@ -907,9 +919,9 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
+                for loc in comp.processedLocationalEligibility.index
                 for ip in esM.investmentPeriods[:-1]
-                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                if comp.processedLocationalEligibility[loc] == 1 and comp.hasCapacityVariable
             )
 
         setattr(
@@ -1011,9 +1023,9 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
+                for loc in comp.processedLocationalEligibility.index
                 for ip in esM.investmentPeriods
-                if comp.locationalEligibility[loc] == 1
+                if comp.processedLocationalEligibility[loc] == 1
             )
 
         setattr(
@@ -2414,7 +2426,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         return capexCap + capexDec + opexCap + opexDec
 
-    def getSharedPotentialContribution(self, pyM, key, loc):
+    def getSharedPotentialContribution(self, pyM, key, loc, ip):
         """
         Get the share which the components of the modeling class have on a shared maximum potential at a location.
         """
@@ -2423,7 +2435,6 @@ class ComponentModel(metaclass=ABCMeta):
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
         return sum(
             capVar[loc, compName, ip] / compDict[compName].processedCapacityMax[ip][loc]
-            for ip in pyM.investSet
             for compName in compDict
             if compDict[compName].sharedPotentialID == key
             and (loc, compName, ip) in capVarSet

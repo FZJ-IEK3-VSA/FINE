@@ -375,6 +375,7 @@ class Source(Component):
             self.processedYearlyLimit
         )
 
+        # check and set locational eligibility
         if self.fullOperationRateFix is not None:
             operationTimeSeries = self.fullOperationRateFix
         elif self.fullOperationRateMax is not None:
@@ -382,7 +383,7 @@ class Source(Component):
         else:
             operationTimeSeries = None
 
-        self.locationalEligibility = utils.setLocationalEligibility(
+        self.processedLocationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
             self.processedCapacityMax,
@@ -850,7 +851,7 @@ class SourceSinkModel(ComponentModel):
         """
         return any(
             [
-                comp.commodity == commod and comp.locationalEligibility[loc] == 1
+                comp.commodity == commod and comp.processedLocationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
             ]
         )

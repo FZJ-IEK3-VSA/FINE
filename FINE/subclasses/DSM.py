@@ -258,10 +258,10 @@ class DemandSideManagementBETA(Sink):
 
                 opexPerChargeOpTimeSeries[ip] = pd.DataFrame(
                     [
-                        [opexShift for loc in self.locationalEligibility]
+                        [opexShift for loc in self.processedLocationalEligibility]
                         for t in esM.totalTimeSteps
                     ],
-                    columns=self.locationalEligibility.index,
+                    columns=self.processedLocationalEligibility.index,
                 )
                 opexPerChargeOpTimeSeries[ip][
                     (opexPerChargeOpTimeSeries[ip].index - i) % self.tDelta == tBwd + 1
@@ -269,10 +269,10 @@ class DemandSideManagementBETA(Sink):
 
             opexPerChargeOpTimeSeries = pd.DataFrame(
                 [
-                    [opexShift for loc in self.locationalEligibility]
+                    [opexShift for loc in self.processedLocationalEligibility]
                     for t in esM.totalTimeSteps
                 ],
-                columns=self.locationalEligibility.index,
+                columns=self.processedLocationalEligibility.index,
             )
             opexPerChargeOpTimeSeries[
                 (opexPerChargeOpTimeSeries.index - i) % self.tDelta == tBwd + 1

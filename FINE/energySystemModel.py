@@ -676,7 +676,7 @@ class EnergySystemModel:
 
             | {"operationRateMax": ("weighted mean", "capacityMax"),
             | "operationRateFix": ("sum", None),
-            | "locationalEligibility": ("bool", None),
+            | "processedLocationalEligibility": ("bool", None),
             | "capacityMax": ("sum", None),
             | "investPerCapacity": ("mean", None),
             | "investIfBuilt": ("bool", None),
@@ -1333,15 +1333,16 @@ class EnergySystemModel:
         # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
         # potential)
         potentialDict = {}
-        for mdl in self.componentModelingDict.values():
-            for compName, comp in mdl.componentsDict.items():
-                if comp.sharedPotentialID is not None:
-                    [
-                        potentialDict.setdefault(
-                            (comp.sharedPotentialID, loc), []
-                        ).append(compName)
-                        for loc in comp.locationalEligibility.index
-                        if comp.processedCapacityMax[loc] != 0
+        for ip in self.investmentPeriods:
+            for mdl in self.componentModelingDict.values():
+                for compName, comp in mdl.componentsDict.items():
+                    if comp.sharedPotentialID is not None:
+                        [
+                            potentialDict.setdefault(
+                                (comp.sharedPotentialID, loc, ip), []
+                            ).append(compName)
+                            for loc in comp.processedLocationalEligibility.index
+                            if comp.processedCapacityMax[ip][loc] != 0
                     ]
         pyM.sharedPotentialDict = potentialDict
 
@@ -1349,10 +1350,10 @@ class EnergySystemModel:
         # potential. Sum up the relative contributions to the shared potential and ensure that the total share is
         # <= 100%. For this, get the contributions to the shared potential for the corresponding ID and
         # location from each modeling class.
-        def sharedPotentialConstraint(pyM, ID, loc):
+        def sharedPotentialConstraint(pyM, ID, loc, ip):
             return (
                 sum(
-                    mdl.getSharedPotentialContribution(pyM, ID, loc)
+                    mdl.getSharedPotentialContribution(pyM, ID, loc, ip)
                     for mdl in self.componentModelingDict.values()
                 )
                 <= 1
@@ -1384,7 +1385,7 @@ class EnergySystemModel:
                         compDict.setdefault((comp.linkedQuantityID, loc), []).append(
                             compName
                         )
-                        for loc in comp.locationalEligibility.index
+                        for loc in comp.processedLocationalEligibility.index
                     ]
         pyM.linkedQuantityDict = compDict
 

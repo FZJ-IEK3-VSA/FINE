@@ -255,7 +255,7 @@ class Conversion(Component):
         else:
             operationTimeSeries = None
 
-        self.locationalEligibility = utils.setLocationalEligibility(
+        self.processedLocationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
             self.processedCapacityMax,
@@ -409,13 +409,13 @@ class ConversionModel(ComponentModel):
                     [
                         (loc, values[i].name, values[i + 1].name)
                         for i in range(len(values) - 1)
-                        for loc, v in values[i].locationalEligibility.items()
+                        for loc, v in values[i].processedLocationalEligibility.items()
                         if v == 1
                     ]
                 )
         for comps in linkedComponentsList:
-            index1 = compDict[comps[1]].locationalEligibility.index
-            index2 = compDict[comps[2]].locationalEligibility.index
+            index1 = compDict[comps[1]].processedLocationalEligibility.index
+            index2 = compDict[comps[2]].processedLocationalEligibility.index
             if not index1.equals(index2):
                 raise ValueError(
                     "Conversion components ",
@@ -613,7 +613,7 @@ class ConversionModel(ComponentModel):
                         comp.processedCommodityConversionFactors[ip][commod] is not None
                     )
                 )
-                and comp.locationalEligibility[loc] == 1
+                and comp.processedLocationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
                 for ip in esM.investmentPeriods
             ]
