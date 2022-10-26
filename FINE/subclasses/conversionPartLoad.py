@@ -239,7 +239,7 @@ class ConversionPartLoadModel(ConversionModel):
             ),
         )
 
-    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
         """
         Declare design and operation variables.
 
@@ -248,8 +248,17 @@ class ConversionPartLoadModel(ConversionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
+
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
+            bound of the problem.
+            |br| * the default value is False
+        :type declaresOptimizationProblem: boolean
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
         """
-        super().declareVariables(esM, pyM, relaxIsBuiltBinary)
+        super().declareVariables(esM, pyM, relaxIsBuiltBinary, relevanceThreshold)
 
         # Operation of component [commodityUnit]
         self.declareDiscretizationPointVariables(pyM)

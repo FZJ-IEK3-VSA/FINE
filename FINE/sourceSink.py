@@ -567,11 +567,13 @@ class Source(Component):
         self.processedOperationRateFix = (
             self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
         )
+
         self.processedCommodityCostTimeSeries = (
             self.aggregatedCommodityCostTimeSeries
             if hasTSA
             else self.fullCommodityCostTimeSeries
         )
+
         self.processedCommodityRevenueTimeSeries = (
             self.aggregatedCommodityRevenueTimeSeries
             if hasTSA
@@ -860,7 +862,7 @@ class SourceSinkModel(ComponentModel):
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
-    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
         """
         Declare design and operation variables.
 
@@ -869,6 +871,15 @@ class SourceSinkModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
+            bound of the problem.
+            |br| * the default value is False
+        :type declaresOptimizationProblem: boolean
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
         """
 
         # Capacity variables [commodityUnit]
@@ -880,7 +891,7 @@ class SourceSinkModel(ComponentModel):
         # Binary variables [-] indicating if a component is considered at a location or not
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [commodityUnit*hour]
-        self.declareOperationVars(pyM, "op")
+        self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
 
@@ -952,10 +963,6 @@ class SourceSinkModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
-        # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM)
-        # Set, if applicable, the binary design variables of a component
-        self.designBinFix(pyM)
         # Set yearly full load hours minimum limit
         self.yearlyFullLoadHoursMin(pyM, esM)
         # Set yearly full load hours maximum limit
@@ -974,10 +981,6 @@ class SourceSinkModel(ComponentModel):
         # Operation [commodityUnit*h] limited by the installed capacity [commodityUnit] multiplied by operation time
         # series [-] and the hours per time step [h])
         self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
-        # Operation [commodityUnit*h] equal to the operation time series [commodityUnit*h]
-        self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
-        # Operation [commodityUnit*h] limited by the operation time series [commodityUnit*h]
-        self.operationMode5(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"

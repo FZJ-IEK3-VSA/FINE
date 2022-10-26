@@ -1464,7 +1464,11 @@ class EnergySystemModel:
         pyM.Obj = pyomo.Objective(rule=objective)
 
     def declareOptimizationProblem(
-        self, timeSeriesAggregation=False, segmentation=False, relaxIsBuiltBinary=False
+        self,
+        timeSeriesAggregation=False,
+        segmentation=False,
+        relaxIsBuiltBinary=False,
+        relevanceThreshold=None,
     ):
         """
         Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
@@ -1498,6 +1502,10 @@ class EnergySystemModel:
             bound of the problem.
             |br| * the default value is False
         :type declaresOptimizationProblem: boolean
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
         """
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -1536,7 +1544,7 @@ class EnergySystemModel:
             )
             utils.output(
                 "\tdeclaring variables... ", self.verbose, 0
-            ), mdl.declareVariables(self, pyM, relaxIsBuiltBinary)
+            ), mdl.declareVariables(self, pyM, relaxIsBuiltBinary, relevanceThreshold)
             utils.output(
                 "\tdeclaring constraints... ", self.verbose, 0
             ), mdl.declareComponentConstraints(self, pyM)
@@ -1589,6 +1597,7 @@ class EnergySystemModel:
         timeLimit=None,
         optimizationSpecs="",
         warmstart=False,
+        relevanceThreshold=None,
     ):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
@@ -1664,6 +1673,10 @@ class EnergySystemModel:
             (not always supported by the solvers).
             |br| * the default value is False
         :type warmstart: boolean
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
         """
 
         if not timeSeriesAggregation:
@@ -1674,6 +1687,7 @@ class EnergySystemModel:
                 timeSeriesAggregation=timeSeriesAggregation,
                 segmentation=self.segmentation,
                 relaxIsBuiltBinary=relaxIsBuiltBinary,
+                relevanceThreshold=relevanceThreshold,
             )
         else:
             if self.pyM is None:
