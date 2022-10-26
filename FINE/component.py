@@ -1056,6 +1056,11 @@ class ComponentModel(metaclass=ABCMeta):
 
             \\text{capMin}^{comp}_{loc} \leq cap^{comp}_{loc} \leq \\text{capMax}^{comp}_{loc}
 
+        If a capacityFix parameter is given, the bounds are set to enforce
+
+        .. math::
+            \\text{cap}^{comp}_{loc} = \\text{capFix}^{comp}_{loc}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
@@ -1064,12 +1069,25 @@ class ComponentModel(metaclass=ABCMeta):
         def capBounds(pyM, loc, compName):
             """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
-            return (
-                comp.capacityMin[loc]
-                if (comp.capacityMin is not None and not comp.hasIsBuiltBinaryVariable)
-                else 0,
-                comp.capacityMax[loc] if comp.capacityMax is not None else None,
-            )
+            if comp.capacityFix is not None:
+                # in utils.py there are checks to ensure that capacityFix is between min and max
+                return (comp.capacityFix[loc], comp.capacityFix[loc])
+            else:
+                # the upper bound is only set if the parameter is given and no binary design variable exists
+                # In the case of the binary design variable, the bigM-constraint will suffice as upper bound.
+                if (comp.capacityMin is not None) and (
+                    not comp.hasIsBuiltBinaryVariable
+                ):
+                    capLowerBound = comp.capacityMin[loc]
+                else:
+                    capLowerBound = 0
+
+                if comp.capacityMax is not None:
+                    capUpperBound = comp.capacityMax[loc]
+                else:
+                    capUpperBound = None
+
+                return (capLowerBound, capUpperBound)
 
         setattr(
             pyM,
@@ -1137,17 +1155,55 @@ class ComponentModel(metaclass=ABCMeta):
         """
         Declare binary variables [-] indicating if a component is considered at a location or not [-].
 
+        If a isBuiltFix parameter is given, the bounds are set to enforce
+
+        .. math::
+            bin^{comp}_{loc} = \\text{binFix}^{comp}_{loc}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        abbrvName = self.abbrvName
+        abbrvName, compDict = self.abbrvName, self.componentsDict
+
+        def binDomain(pyM, loc, compName):
+            """
+            returns minimal necessary domain for the binary variable depending on the given conditions,
+            e.g., if values are already fixed, or binary variables should be relaxed
+            """
+            if relaxIsBuiltBinary:
+                # If binary variables are relaxed, value can take all non negative reals (between 0 and 1)
+                return pyomo.NonNegativeReals
+
+            if (compDict[compName].isBuiltFix is not None) or (
+                compDict[compName].capacityFix is not None
+            ):
+                # If isBuiltFix or capacityFix is given, binary variable is already fixed.
+                return pyomo.NonNegativeReals
+            else:
+                return pyomo.Binary
+
+        def binBounds(pyM, loc, compName):
+            """returns bounds with minimal necessary freedom for the binary variables (e.g. (0,0) or (1,1))"""
+            if compDict[compName].isBuiltFix is not None:
+                # If isBuiltFix is given, binary variable is set to isBuiltFix
+                return (
+                    compDict[compName].isBuiltFix[loc],
+                    compDict[compName].isBuiltFix[loc],
+                )
+            elif compDict[compName].capacityFix is not None:
+                # If capacityFix is given, binary variable is set to 1
+                return (1, 1) if compDict[compName].capacityFix[loc] > 0 else (0, 0)
+            else:
+                # Binary Variable between 0 and 1
+                return (0, 1)
+
         if relaxIsBuiltBinary:
             setattr(
                 pyM,
                 "designBin_" + abbrvName,
                 pyomo.Var(
                     getattr(pyM, "designDecisionVarSet_" + abbrvName),
-                    domain=pyomo.NonNegativeReals,
+                    domain=binDomain,
                     bounds=(0, 1),
                 ),
             )
@@ -1157,18 +1213,104 @@ class ComponentModel(metaclass=ABCMeta):
                 "designBin_" + abbrvName,
                 pyomo.Var(
                     getattr(pyM, "designDecisionVarSet_" + abbrvName),
-                    domain=pyomo.Binary,
+                    domain=binDomain,
+                    bounds=binBounds,
                 ),
             )
 
-    def declareOperationVars(self, pyM, opVarName):
+    def declareOperationVars(
+        self,
+        pyM,
+        esM,
+        opVarName,
+        opRateFixName="processedOperationRateFix",
+        opRateMaxName="processedOperationRateMax",
+        relevanceThreshold=None,
+    ):
         """
         Declare operation variables.
 
+        The following operation modes are directly handled during variable creation as bounds instead of constraints.
+
+        operation mode 4: If operationRateFix is given, the variables are fixed with operationRateFix, i.e. the operation [commodityUnit*h] is equal to a time series.
+
+        .. math::
+            op^{comp,opType}_{loc,p,t} = \\text{opRateFix}^{comp,opType}_{loc,p,t}
+
+        operation mode 5: If operationRateMax is given, the variables are bounded by operationRateMax, i.e. the operation [commodityUnit*h] is limited by a time series.
+
+        .. math::
+            op^{comp,opType}_{loc,p,t} \leq \\text{opRateMax}^{comp,opType}_{loc,p,t}
+
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
         """
-        abbrvName = self.abbrvName
+        abbrvName, compDict = self.abbrvName, self.componentsDict
+
+        def opBounds(pyM, loc, compName, ip, p, t):
+            if not getattr(compDict[compName], "hasCapacityVariable"):
+                if not pyM.hasSegmentation:
+                    if getattr(compDict[compName], opRateMaxName) is not None:
+                        rate = getattr(compDict[compName], opRateMaxName)[ip]
+                        if rate is not None:
+                            if relevanceThreshold is not None:
+                                validThreshold = 0 < relevanceThreshold
+                                if validThreshold and (
+                                    rate[loc][p, t] < relevanceThreshold
+                                ):
+                                    return (0, 0)
+                            return (0, rate[loc][p, t])
+                    elif getattr(compDict[compName], opRateFixName) is not None:
+                        rate = getattr(compDict[compName], opRateFixName)[ip]
+                        if rate is not None:
+                            if relevanceThreshold is not None:
+                                validThreshold = 0 < relevanceThreshold
+                                if validThreshold and (
+                                    rate[loc][p, t] < relevanceThreshold
+                                ):
+                                    return (0, 0)
+                            return (rate[loc][p, t], rate[loc][p, t])
+                    else:
+                        return (0, None)
+                else:
+                    if getattr(compDict[compName], opRateMaxName) is not None:
+                        rate = getattr(compDict[compName], opRateMaxName)[ip]
+                        if rate is not None:
+                            if relevanceThreshold is not None:
+                                validThreshold = 0 < relevanceThreshold
+                                if validThreshold and (
+                                    rate[loc][p, t] < relevanceThreshold
+                                ):
+                                    return (0, 0)
+                            return (
+                                0,
+                                rate[loc][p, t]
+                                * esM.timeStepsPerSegment[ip].to_dict()[p, t],
+                            )
+                    elif getattr(compDict[compName], opRateFixName) is not None:
+                        rate = getattr(compDict[compName], opRateFixName)[ip]
+                        if rate is not None:
+                            if relevanceThreshold is not None:
+                                validThreshold = 0 < relevanceThreshold
+                                if validThreshold and (
+                                    rate[loc][p, t] < relevanceThreshold
+                                ):
+                                    return (0, 0)
+                            return (
+                                rate[loc][p, t]
+                                * esM.timeStepsPerSegment[ip].to_dict()[p, t],
+                                rate[loc][p, t]
+                                * esM.timeStepsPerSegment[ip].to_dict()[p, t],
+                            )
+                    else:
+                        return (0, None)
+            else:
+                return (0, None)
+
         setattr(
             pyM,
             opVarName + "_" + abbrvName,
@@ -1176,6 +1318,7 @@ class ComponentModel(metaclass=ABCMeta):
                 getattr(pyM, "operationVarSet_" + abbrvName),
                 pyM.timeSet,
                 domain=pyomo.NonNegativeReals,
+                bounds=opBounds,
             ),
         )
 
@@ -1318,62 +1461,6 @@ class ComponentModel(metaclass=ABCMeta):
             pyM,
             "ConstrCapacityMinDec_" + abbrvName,
             pyomo.Constraint(designBinVarSet, rule=capacityMinDec),
-        )
-
-    def capacityFix(self, pyM):
-        """
-        Set, if applicable, the installed capacities of a component.
-
-        .. math::
-
-            cap^{comp}_{(loc_1,loc_2)} = \\text{capFix}^{comp}_{(loc_1,loc_2)}
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
-        capVar = getattr(pyM, "cap_" + abbrvName)
-        capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
-
-        def capacityFix(pyM, loc, compName):
-            return (
-                capVar[loc, compName] == compDict[compName].capacityFix[loc]
-                if compDict[compName].capacityFix is not None
-                else pyomo.Constraint.Skip
-            )
-
-        setattr(
-            pyM,
-            "ConstrCapacityFix_" + abbrvName,
-            pyomo.Constraint(capVarSet, rule=capacityFix),
-        )
-
-    def designBinFix(self, pyM):
-        """
-        Set, if applicable, the installed capacities of a component.
-
-        .. math::
-
-            bin^{comp}_{(loc_1,loc_2)} = \\text{binFix}^{comp}_{(loc_1,loc_2)}
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
-        designBinVar = getattr(pyM, "designBin_" + abbrvName)
-        designBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
-
-        def designBinFix(pyM, loc, compName):
-            return (
-                designBinVar[loc, compName] == compDict[compName].isBuiltFix[loc]
-                if compDict[compName].isBuiltFix is not None
-                else pyomo.Constraint.Skip
-            )
-
-        setattr(
-            pyM,
-            "ConstrDesignBinFix_" + abbrvName,
-            pyomo.Constraint(designBinVarSet, rule=designBinFix),
         )
 
     ####################################################################################################################
@@ -1521,6 +1608,7 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         opRateName="processedOperationRateMax",
         isStateOfCharge=False,
+        relevanceThreshold=None,
     ):
         """
         Define operation mode 3. The operation [commodityUnit*h] is limited by an installed capacity multiplied
@@ -1530,6 +1618,10 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
             op^{comp,opType}_{loc,ip,p,t} = \\tau^{hours} \cdot \\text{opRateFix}^{comp,opType}_{loc,ip,p,t} \cdot cap^{comp}_{loc}
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
 
         """
         # operationRate is the same for all ip
@@ -1545,6 +1637,11 @@ class ComponentModel(metaclass=ABCMeta):
 
             def op3(pyM, loc, compName, ip, p, t):
                 rate = getattr(compDict[compName], opRateName)[ip]
+                if relevanceThreshold is not None:
+                    validTreshold = 0 < relevanceThreshold
+                    if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                        # operationRate is lower than threshold --> set to 0
+                        return opVar[loc, compName, ip, p, t] == 0
                 return (
                     opVar[loc, compName, ip, p, t]
                     <= capVar[loc, compName] * rate[loc][p, t] * factor
@@ -1564,6 +1661,11 @@ class ComponentModel(metaclass=ABCMeta):
                     else esM.hoursPerSegment[ip].to_dict()
                 )
                 rate = getattr(compDict[compName], opRateName)[ip]
+                if relevanceThreshold is not None:
+                    validTreshold = 0 < relevanceThreshold
+                    if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                        # operationRate is lower than threshold --> set to 0
+                        return opVar[loc, compName, ip, p, t] == 0
                 return (
                     opVar[loc, compName, ip, p, t]
                     <= capVar[loc, compName] * rate[loc][p, t] * factor[p, t]
@@ -1573,102 +1675,6 @@ class ComponentModel(metaclass=ABCMeta):
                 pyM,
                 constrName + "3_" + abbrvName,
                 pyomo.Constraint(constrSet3, pyM.timeSet, rule=op3),
-            )
-
-    def operationMode4(
-        self,
-        pyM,
-        esM,
-        constrName,
-        constrSetName,
-        opVarName,
-        opRateName="processedOperationRateFix",
-    ):
-        """
-        Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
-
-        .. math::
-            op^{comp,opType}_{loc,ip,p,t} = \\text{opRateFix}^{comp,opType}_{loc,ip,p,t}
-
-        """
-        # operationRate is the same for all ip
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, opVarName + "_" + abbrvName)
-        constrSet4 = getattr(pyM, constrSetName + "4_" + abbrvName)
-
-        if not pyM.hasSegmentation:
-
-            def op4(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return (
-                    opVar[loc, compName, ip, p, t] == rate[loc][p, t]
-                )  # rate independent from ip
-
-            setattr(
-                pyM,
-                constrName + "4_" + abbrvName,
-                pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4),
-            )
-        else:
-
-            def op4(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    == rate[loc][p, t] * esM.timeStepsPerSegment[ip].to_dict()[p, t]
-                )  # rate independent from ip
-
-            setattr(
-                pyM,
-                constrName + "4_" + abbrvName,
-                pyomo.Constraint(constrSet4, pyM.timeSet, rule=op4),
-            )
-
-    def operationMode5(
-        self,
-        pyM,
-        esM,
-        constrName,
-        constrSetName,
-        opVarName,
-        opRateName="processedOperationRateMax",
-    ):
-        """
-        Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
-
-        .. math::
-            op^{comp,opType}_{loc,ip,p,t} \leq \\text{opRateMax}^{comp,opType}_{loc,ip,p,t}
-
-        """
-        # operationRate is the same for all ip
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, opVarName + "_" + abbrvName)
-        constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)
-
-        if not pyM.hasSegmentation:
-
-            def op5(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] <= rate[loc][p, t]
-
-            setattr(
-                pyM,
-                constrName + "5_" + abbrvName,
-                pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5),
-            )
-        else:
-
-            def op5(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= rate[loc][p, t] * esM.timeStepsPerSegment[ip].to_dict()[p, t]
-                )  # rate independent from ip
-
-            setattr(
-                pyM,
-                constrName + "5_" + abbrvName,
-                pyomo.Constraint(constrSet5, pyM.timeSet, rule=op5),
             )
 
     def additionalMinPartLoad(
@@ -1820,7 +1826,7 @@ class ComponentModel(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def declareVariables(self, esM, pyM):
+    def declareVariables(self, esM, pyM, relevanceThreshold):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
         Declare variables of components in the componentModel class.
@@ -1830,6 +1836,10 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
         """
         raise NotImplementedError
 
