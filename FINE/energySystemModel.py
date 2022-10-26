@@ -680,13 +680,15 @@ class EnergySystemModel:
 
     def aggregateTemporally(
         self,
-        numberOfTypicalPeriods=7,
+        numberOfTypicalPeriods=40,
         numberOfTimeStepsPerPeriod=24,
-        segmentation=False,
-        numberOfSegmentsPerPeriod=24,
+        segmentation=True,
+        numberOfSegmentsPerPeriod=12,
         clusterMethod="hierarchical",
-        sortValues=True,
+        representationMethod="durationRepresentation",
+        sortValues=False,
         storeTSAinstance=False,
+        rescaleClusterPeriods=False,
         **kwargs
     ):
         """
@@ -702,7 +704,7 @@ class EnergySystemModel:
         .. note::
             The segmentation option can be freely combined with all subclasses. However, an irregular time step length
             is not meaningful for the minimumDownTime and minimumUpTime in the conversionDynamic module, because the time
-            would be different for each segment. The same holds true for the DSM module.
+            would be different for each segment.
 
         **Default arguments:**
 
@@ -737,6 +739,24 @@ class EnergySystemModel:
 
             |br| * the default value is 'hierarchical'
         :type clusterMethod: string
+
+        :param representationMethod: Chosen representation. If specified, the clusters are represented in the chosen
+            way. Otherwise, each clusterMethod has its own commonly used default representation method.
+
+            .. note::
+                Please refer to the tsam package documentation of the parameter representationMethod for more information.
+
+            |br| * the default Value is "durationRepresentation"
+        :type representationMethod: string
+
+        :param rescaleClusterPeriods: states if the cluster periods shall get rescaled such that their
+            weighted mean value fits the mean value of the original time series
+
+            .. note::
+                Please refer to the tsam package documentation of the parameter rescaleClusterPeriods for more information.
+
+            |br| * the default value is False
+        :type rescaleClusterPeriods: boolean
 
         :param sortValues: states if the algorithm in the tsam package should use
 
@@ -848,6 +868,8 @@ class EnergySystemModel:
                     clusterMethod=clusterMethod,
                     sortValues=sortValues,
                     weightDict=weightDict,
+                    rescaleClusterPeriods=rescaleClusterPeriods,
+                    representationMethod=representationMethod,
                     **kwargs
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
@@ -868,6 +890,8 @@ class EnergySystemModel:
                     clusterMethod=clusterMethod,
                     sortValues=sortValues,
                     weightDict=weightDict,
+                    rescaleClusterPeriods=rescaleClusterPeriods,
+                    representationMethod=representationMethod,
                     **kwargs
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the

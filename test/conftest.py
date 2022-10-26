@@ -802,12 +802,6 @@ def multi_node_test_esM_init(esM_init):
         )
     )
 
-    # 8. Optimize energy system model
-
-    # esM.cluster(numberOfTypicalPeriods=3)
-
-    # esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
-
     return esM
 
 
@@ -1349,7 +1343,13 @@ def multi_node_test_esM_optimized(esM_init):
 
     # 8. Optimize energy system model
 
-    esM.aggregateTemporally(numberOfTypicalPeriods=3)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
 
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
@@ -1819,12 +1819,6 @@ def multi_node_test_esM_init(scope="session"):
             yearlyLimit=366 * (1 - CO2_reductionTarget),
         )
     )
-
-    # 8. Optimize energy system model
-
-    # esM.aggregateTemporally(numberOfTypicalPeriods=3)
-
-    # esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
 
     return esM
 
@@ -2298,7 +2292,13 @@ def multi_node_test_esM_optimized(scope="session"):
 
     # 8. Optimize energy system model
 
-    esM.aggregateTemporally(numberOfTypicalPeriods=3)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
 
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
