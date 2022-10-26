@@ -208,6 +208,12 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
         )
     )
 
-    esM.cluster(numberOfTypicalPeriods=3)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
 
     esM.optimize(timeSeriesAggregation=True, solver="glpk")

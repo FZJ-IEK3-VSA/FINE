@@ -124,9 +124,12 @@ def optimizeTSAmultiStage(
     esM.aggregateTemporally(
         numberOfTypicalPeriods=numberOfTypicalPeriods,
         numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+        segmentation=False,
         clusterMethod=clusterMethod,
         solver=solver,
         sortValues=True,
+        rescaleClusterPeriods=True,
+        representationMethod=None,
     )
 
     esM.optimize(

@@ -226,7 +226,13 @@ def test_watersupply():
     )
 
     # # Optimize the system
-    esM.aggregateTemporally(numberOfTypicalPeriods=7)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=7,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     # # Selected results output

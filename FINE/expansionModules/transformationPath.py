@@ -13,6 +13,7 @@ def optimizeSimpleMyopic(
     timeSeriesAggregation=True,
     numberOfTypicalPeriods=7,
     numberOfTimeStepsPerPeriod=24,
+    clusterMethod="hierarchical",
     logFileName="",
     threads=3,
     solver="gurobi",
@@ -69,6 +70,15 @@ def optimizeSimpleMyopic(
         |br| * the default value is 24
     :type numberOfTimeStepsPerPeriod: strictly positive integer
 
+    :param clusterMethod: states the method which is used in the tsam package for clustering the time series
+        data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
+
+        .. note::
+            Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+
+        |br| * the default value is 'hierarchical'
+    :type clusterMethod: string
+
     :param CO2Reference: gives the reference value of the CO2 emission to which the reduction should be applied to.
         The default value refers to the emissions of 1990 within the electricity sector (366kt CO2_eq)
         |br| * the default value is 366
@@ -115,6 +125,12 @@ def optimizeSimpleMyopic(
             esM.aggregateTemporally(
                 numberOfTypicalPeriods=numberOfTypicalPeriods,
                 numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+                segmentation=False,
+                clusterMethod=clusterMethod,
+                solver=solver,
+                sortValues=True,
+                rescaleClusterPeriods=True,
+                representationMethod=None,
             )
 
         esM.optimize(

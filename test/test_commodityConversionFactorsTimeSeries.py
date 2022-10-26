@@ -115,7 +115,14 @@ def test_variable_conversion_simple_with_tsa():
     esM = create_simple_esm()
 
     # Temporal clustering
-    esM.aggregateTemporally(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=2,
+        numberOfTimeStepsPerPeriod=1,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
     # Optimization
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
@@ -278,7 +285,15 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
         )
     )
 
-    esM.aggregateTemporally(numberOfTypicalPeriods=3, numberOfTimeStepsPerPeriod=1)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        numberOfTimeStepsPerPeriod=1,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
+
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     # Get optimal electrolyzer operations
