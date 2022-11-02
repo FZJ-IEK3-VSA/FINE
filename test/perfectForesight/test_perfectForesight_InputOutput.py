@@ -78,7 +78,7 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
 
 def test_perfectForesight_netcdf(perfectForesight_test_esM):  
 
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     expected_obj = perfectForesight_test_esM.pyM.Obj()
 
     # DICT-IO
@@ -86,7 +86,7 @@ def test_perfectForesight_netcdf(perfectForesight_test_esM):
     esm_dict, comp_dict = fn.dictIO.exportToDict(perfectForesight_test_esM)
     output_esM_dict = fn.dictIO.importFromDict(esm_dict, comp_dict)
     # run with the reloaded esM
-    output_esM_dict.optimize(timeSeriesAggregation=False, solver="gurobi")
+    output_esM_dict.optimize(timeSeriesAggregation=False, solver="glpk")
     output_obj_dict = output_esM_dict.pyM.Obj()
     # test if objective values are the same
     np.testing.assert_almost_equal(
@@ -117,7 +117,7 @@ def test_perfectForesight_netcdf(perfectForesight_test_esM):
 
 
     # 2.check result for reloaded esM from netcdf
-    output_esM_xarray.optimize(timeSeriesAggregation=False, solver="gurobi")
+    output_esM_xarray.optimize(timeSeriesAggregation=False, solver="glpk")
     output_obj_xarray = output_esM_xarray.pyM.Obj()
     # test if objective values are the same
     np.testing.assert_almost_equal(
