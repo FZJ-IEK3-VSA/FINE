@@ -753,7 +753,7 @@ class EnergySystemModel:
         sortValues=False,
         storeTSAinstance=False,
         rescaleClusterPeriods=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
@@ -934,7 +934,7 @@ class EnergySystemModel:
                     weightDict=weightDict,
                     rescaleClusterPeriods=rescaleClusterPeriods,
                     representationMethod=representationMethod,
-                    **kwargs
+                    **kwargs,
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as segment number per typical period.
@@ -956,7 +956,7 @@ class EnergySystemModel:
                     weightDict=weightDict,
                     rescaleClusterPeriods=rescaleClusterPeriods,
                     representationMethod=representationMethod,
-                    **kwargs
+                    **kwargs,
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as time step number per typical period.
