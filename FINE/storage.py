@@ -645,7 +645,7 @@ class StorageModel(ComponentModel):
     #                                                Declare variables                                                 #
     ####################################################################################################################
 
-    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
         """
         Declare design and operation variables.
 
@@ -654,6 +654,15 @@ class StorageModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
+            bound of the problem.
+            |br| * the default value is False
+        :type declaresOptimizationProblem: boolean
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
         """
 
         # Capacity variables [commodityUnit*hour]
@@ -665,9 +674,23 @@ class StorageModel(ComponentModel):
         # Binary variables [-] indicating if a component is considered at a location or not
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Energy amount injected into a storage (before injection efficiency losses) between two time steps
-        self.declareOperationVars(pyM, "chargeOp")
+        self.declareOperationVars(
+            pyM,
+            esM,
+            "chargeOp",
+            "processedChargeOpRateFix",
+            "processedChargeOpRateMax",
+            relevanceThreshold=relevanceThreshold,
+        )
         # Energy amount delivered from a storage (after delivery efficiency losses) between two time steps
-        self.declareOperationVars(pyM, "dischargeOp")
+        self.declareOperationVars(
+            pyM,
+            esM,
+            "dischargeOp",
+            "processedDischargeOpRateFix",
+            "processedDischargeOpRateMax",
+            relevanceThreshold=relevanceThreshold,
+        )
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "chargeOp_bin")
         self.declareOperationBinaryVars(pyM, "dischargeOp_bin")
@@ -709,6 +732,15 @@ class StorageModel(ComponentModel):
                 ),
             )
         else:
+
+            def SOCBounds(pyM, loc, compName, ip, p, t):
+                # Replaces the intraSOCstart constraint:
+                # Declare the constraint that the (virtual) state of charge at the beginning of a typical period is zero.
+                if t == 0:
+                    return (0, 0)
+                else:
+                    return (None, None)
+
             # (Virtual) energy amount stored during a period (the i-th state of charge refers to the state of charge at
             # the beginning of the i-th time step, the last index is the state of charge after the last time step)
             setattr(
@@ -718,6 +750,7 @@ class StorageModel(ComponentModel):
                     getattr(pyM, "operationVarSet_" + self.abbrvName),
                     pyM.interTimeStepsSet,
                     domain=pyomo.Reals,
+                    bounds=SOCBounds,
                 ),
             )
             # (Virtual) minimum amount of energy stored within a period
@@ -1459,7 +1492,6 @@ class StorageModel(ComponentModel):
         self.decommissioningConstraint(pyM, esM)
         self.stockCapacityConstraint(pyM, esM)
         self.stockCommissioningConstaint(pyM, esM)
-
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################
@@ -1494,24 +1526,7 @@ class StorageModel(ComponentModel):
             "chargeOp",
             "processedChargeOpRateMax",
         )
-        # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
-        self.operationMode4(
-            pyM,
-            esM,
-            "ConstrCharge",
-            "chargeOpConstrSet",
-            "chargeOp",
-            "processedChargeOpRateFix",
-        )
-        # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
-        self.operationMode5(
-            pyM,
-            esM,
-            "ConstrCharge",
-            "chargeOpConstrSet",
-            "chargeOp",
-            "processedChargeOpRateMax",
-        )
+
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM,
@@ -1555,24 +1570,6 @@ class StorageModel(ComponentModel):
             "dischargeOp",
             "processedDischargeOpRateMax",
         )
-        # Operation [commodityUnit*h] is equal to the operation time series [commodityUnit*h]
-        self.operationMode4(
-            pyM,
-            esM,
-            "ConstrDischarge",
-            "dischargeOpConstrSet",
-            "dischargeOp",
-            "processedDischargeOpRateFix",
-        )
-        # Operation [commodityUnit*h] is limited by the operation time series [commodityUnit*h]
-        self.operationMode5(
-            pyM,
-            esM,
-            "ConstrDischarge",
-            "dischargeOpConstrSet",
-            "dischargeOp",
-            "processedDischargeOpRateMax",
-        )
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM,
@@ -1596,8 +1593,6 @@ class StorageModel(ComponentModel):
             # (minus its self discharge) plus the change in the state of charge which happened during the typical
             # period which was assigned to that period
             self.connectInterPeriodSOC(pyM, esM)
-            # The (virtual) state of charge at the beginning of a typical period is zero
-            self.intraSOCstart(pyM, esM)
             # If periodic storage is selected, the states of charge between periods have the same value
             self.equalInterSOC(pyM, esM)
 

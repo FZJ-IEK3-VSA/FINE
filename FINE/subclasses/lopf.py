@@ -189,6 +189,19 @@ class LOPFModel(TransmissionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
+        compDict = self.componentsDict
+
+        def phaseAngleBounds(pyM, compName, loc, ip, p, t):
+            if compName in compDict.keys():
+                # reference phase angle is set to zero for all time steps (bounded by (0,0))
+                node0 = sorted(compDict[compName]._mapL)[0]
+                if loc == node0:
+                    return (0, 0)
+                else:
+                    return (None, None)
+            else:
+                return (None, None)
+
         setattr(
             pyM,
             "phaseAngle_" + self.abbrvName,
@@ -196,10 +209,11 @@ class LOPFModel(TransmissionModel):
                 getattr(pyM, "phaseAngleVarSet_" + self.abbrvName),
                 pyM.timeSet,
                 domain=pyomo.Reals,
+                bounds=phaseAngleBounds,
             ),
         )
 
-    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
         """
         Declare design and operation variables.
 
@@ -208,24 +222,20 @@ class LOPFModel(TransmissionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
+
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
+            bound of the problem.
+            |br| * the default value is False
+        :type declaresOptimizationProblem: boolean
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
         """
 
-        # Capacity and commissioning variables in [commodityUnit]
-        self.declareCapacityVars(pyM)
-        # Capacity development variables [physicalUnit]
-        self.declareCommissioningVars(pyM, esM)
-        self.declareDecommissioningVars(pyM, esM)
-        # (Continuous) numbers of installed components [-]
-        self.declareRealNumbersVars(pyM)
-        # (Discrete/integer) numbers of installed components [-]
-        self.declareIntNumbersVars(pyM)
-        # Binary variables [-] indicating if a component is considered at a location or not [-]
-        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
-        # Flow over the edges of the components [commodityUnit]
-        self.declareOperationVars(pyM, "op")
-        # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "op_bin")
-        # Operation of component [commodityUnit]
+        # Call the declareVariables function of transmission model class
+        super().declareVariables(esM, pyM, relaxIsBuiltBinary, relevanceThreshold)
+
         self.declarePhaseAngleVariables(pyM)
 
     ####################################################################################################################
@@ -266,6 +276,7 @@ class LOPFModel(TransmissionModel):
         )
 
     def basePhaseAngle(self, pyM):
+        # TODO Check if this function is still required due to new added bounds
         """
         Declare the constraint that the reference phase angle is set to zero for all time steps.
 

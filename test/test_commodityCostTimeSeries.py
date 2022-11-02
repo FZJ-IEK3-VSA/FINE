@@ -103,7 +103,14 @@ def test_miniSystem():
         summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc2"], 2920
     )
 
-    esM.aggregateTemporally(numberOfTypicalPeriods=5, numberOfTimeStepsPerPeriod=1)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=5,
+        numberOfTimeStepsPerPeriod=1,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
 
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 

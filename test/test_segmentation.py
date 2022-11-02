@@ -23,6 +23,7 @@ def test_segmentation(minimal_test_esM):
         clusterMethod="hierarchical",
         sortValues=False,
         rescaleClusterPeriods=False,
+        representationMethod=None,
     )
     esM2.optimize(timeSeriesAggregation=True, solver="glpk")
     # It is now checked that both models, i.e. the one without aggregation at all and the one without aggregation, but
@@ -43,6 +44,7 @@ def test_segmentation(minimal_test_esM):
         clusterMethod="hierarchical",
         sortValues=False,
         rescaleClusterPeriods=False,
+        representationMethod=None,
     )
     esM3.optimize(timeSeriesAggregation=True, solver="glpk")
     # Then, the model is optimized again with two 4380-hourly periods that are segmented to one segment per period, i.e.
@@ -57,6 +59,7 @@ def test_segmentation(minimal_test_esM):
         clusterMethod="hierarchical",
         sortValues=False,
         rescaleClusterPeriods=False,
+        representationMethod=None,
     )
     esM4.optimize(timeSeriesAggregation=True, solver="glpk")
     # Here, it is checked that the results of the third and the fourth model run are identical because no storage is
