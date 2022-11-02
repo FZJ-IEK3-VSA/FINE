@@ -76,7 +76,7 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
     shutil.rmtree(resultPath)
 
 
-def test_perfectForesight_netcdf(perfectForesight_test_esM):  
+def test_perfectForesight_netcdf(perfectForesight_test_esM):
 
     perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     expected_obj = perfectForesight_test_esM.pyM.Obj()
@@ -100,21 +100,27 @@ def test_perfectForesight_netcdf(perfectForesight_test_esM):
     # 1. test if results are saved correctly
     for ip in perfectForesight_test_esM.investmentPeriodNames:
         for mdl in perfectForesight_test_esM.componentModelingDict.keys():
-            expected_OptSum=perfectForesight_test_esM.getOptimizationSummary(mdl,ip=ip)
-            output_OptSum=output_esM_xarray.getOptimizationSummary(mdl,ip=ip)
+            expected_OptSum = perfectForesight_test_esM.getOptimizationSummary(
+                mdl, ip=ip
+            )
+            output_OptSum = output_esM_xarray.getOptimizationSummary(mdl, ip=ip)
 
             # see test/IOManagement/test_xarrayio.py: "Only total operation is
             # saved in netCDF not the yearly value so we drop the
             # opreation value. This needs to be fixed in future."
-            drop_rows_condition = [x for x in expected_OptSum.index if x[1]=="operation" and 'h/a' in x[2]]
+            drop_rows_condition = [
+                x
+                for x in expected_OptSum.index
+                if x[1] == "operation" and "h/a" in x[2]
+            ]
             expected_OptSum = expected_OptSum.drop(drop_rows_condition)
 
             expected_OptSum = expected_OptSum.astype(float).round(2).sort_index()
             output_OptSum = output_OptSum.astype(float).round(2).sort_index()
 
             from pandas.testing import assert_frame_equal
-            assert_frame_equal(expected_OptSum,output_OptSum, check_dtype=False)
 
+            assert_frame_equal(expected_OptSum, output_OptSum, check_dtype=False)
 
     # 2.check result for reloaded esM from netcdf
     output_esM_xarray.optimize(timeSeriesAggregation=False, solver="glpk")

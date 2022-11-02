@@ -117,10 +117,11 @@ def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
     # run and save model without segmentation
     multi_node_test_esM_init.aggregateTemporally(
         numberOfTypicalPeriods=3,
-        segmentation=False,       
+        segmentation=False,
         sortValues=True,
         representationMethod=None,
-        rescaleClusterPeriods=True)
+        rescaleClusterPeriods=True,
+    )
     multi_node_test_esM_init.optimize(timeSeriesAggregation=True, solver="glpk")
     writeOptimizationOutputToExcel(
         multi_node_test_esM_init,
