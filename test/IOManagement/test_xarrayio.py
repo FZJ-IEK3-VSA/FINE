@@ -4,6 +4,7 @@ from pandas import DataFrame, Series, MultiIndex, Index
 from pandas.testing import assert_frame_equal, assert_series_equal
 import FINE.IOManagement.xarrayIO as xrIO
 from FINE.IOManagement.dictIO import exportToDict
+import FINE as fn
 
 
 def compare_values(value_1, value_2):
@@ -168,3 +169,33 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM):
     compare_esm_outputs(esm_original, esm_from_netcdf)
 
     Path("test_esM.nc").unlink()
+
+
+def test_capacityFix_subset(multi_node_test_esM_init):
+    """
+    Optimize esM, set optimal capacity values for every component as capacity Fix.
+    Then, save the esM to netCDF and read out the same netCDF to esM.
+    Assert that capacityFix values do not have to be provided for every location when saving to NetCDF.
+    Assert that capacityFix index can be a subset of locationalEligibility when reading in NetCDF.
+    """
+    esM = multi_node_test_esM_init
+
+    esM.componentModelingDict["ConversionModel"].componentsDict[
+        "New CCGT plants (biogas)"
+    ].locationalEligibility = Series(1, index=esM.locations)
+
+    # set capacity Fix for the biogas conversion component to 0 for all locations
+    esM.componentModelingDict["ConversionModel"].componentsDict[
+        "New CCGT plants (biogas)"
+    ].capacityFix = Series(0, index=esM.locations)
+
+    # alter the capacityFix value for cluster_1 to 3
+    esM.componentModelingDict["ConversionModel"].componentsDict[
+        "New CCGT plants (biogas)"
+    ].capacityFix["cluster_1"] = 3
+
+    fileName = "test_cdf_error.nc"
+    xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=fileName)
+    esM_reload = xrIO.readNetCDFtoEnergySystemModel(filePath=fileName)
+
+    Path("test_cdf_error.nc").unlink()

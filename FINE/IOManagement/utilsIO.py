@@ -346,7 +346,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 # data is appended to space_dict, else time_dict
                 if is_depending_on_ip is True:
                     for _ip, ip_data in data.items():
-                        if locations == sorted(ip_data.index.values):
+                        if set(ip_data.index.values).issubset(set(locations)):
                             space_dict[df_description] = ip_data.rename_axis("space")
                         else:
                             time_dict[df_description] = ip_data.rename_axis("time")
@@ -363,7 +363,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                             ].reorder_levels(["ip", "time", "space"])
 
                 else:
-                    if locations == sorted(data.index.values):
+                    if set(data.index.values).issubset(set(locations)):
                         space_dict[df_description] = data.rename_axis("space")
                     else:
                         time_dict[df_description] = data.rename_axis("time")
