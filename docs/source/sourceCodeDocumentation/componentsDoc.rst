@@ -41,5 +41,3 @@ LinearOptimalPowerFlow + LOPFModel class inherit from the Transmission and Trans
    components/subclasses/conversionPartLoadClassDoc
    components/subclasses/conversionDynamicClassDoc
    components/subclasses/lopfClassDoc
-   components/subclasses/DSMClassDoc
-   components/subclasses/storageExtClassDoc
