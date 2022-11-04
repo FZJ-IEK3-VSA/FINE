@@ -139,9 +139,9 @@ class Transmission(Component):
         :type balanceLimitID: string
         """
         # TODO add unit checks
-        self.capacityMax=capacityMax
-        self.capacityMin=capacityMin
-        self.capacityFix=capacityFix
+        self.capacityMax = capacityMax
+        self.capacityMin = capacityMin
+        self.capacityFix = capacityFix
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
         preprocessedCapacityMax = utils.preprocess2dimInvestmentPeriodData(
@@ -162,24 +162,28 @@ class Transmission(Component):
 
         # Set locational eligibility
         if operationRateFix is None:
-            operationTimeSeries=operationRateMax
-        elif not isinstance(operationRateFix,dict):
-            operationTimeSeries=operationRateFix
-        elif isinstance(operationRateFix,dict) and any(x is not None for x in operationRateFix.values()):
+            operationTimeSeries = operationRateMax
+        elif not isinstance(operationRateFix, dict):
+            operationTimeSeries = operationRateFix
+        elif isinstance(operationRateFix, dict) and any(
+            x is not None for x in operationRateFix.values()
+        ):
             if not all(x is not None for x in operationRateFix.values()):
                 raise ValueError()
-            operationTimeSeries=operationRateFix
-        else: 
-            operationTimeSeries=operationRateMax
+            operationTimeSeries = operationRateFix
+        else:
+            operationTimeSeries = operationRateMax
         # operationTimeSeries = (
         #     operationRateFix if operationRateFix is not None else operationRateMax
         # )
-        
-        if not isinstance(operationTimeSeries,dict):
-            operationTimeSeries=dict.fromkeys(esM.investmentPeriods,operationTimeSeries)
+
+        if not isinstance(operationTimeSeries, dict):
+            operationTimeSeries = dict.fromkeys(
+                esM.investmentPeriods, operationTimeSeries
+            )
         if all(x is None for x in operationTimeSeries.values()):
-            operationTimeSeries=None
-        
+            operationTimeSeries = None
+
         self.locationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
@@ -202,7 +206,7 @@ class Transmission(Component):
                     self._mapC.update({loc1 + "_" + loc2: (loc1, loc2)})
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + "_" + loc2})
                     self._mapI.update({loc1 + "_" + loc2: loc2 + "_" + loc1})
-        
+
         # capacity parameter
         preprocessedCapacityMax = utils.preprocess2dimData(
             capacityMax, self._mapC, locationalEligibility=self.locationalEligibility
@@ -387,9 +391,9 @@ class Transmission(Component):
         self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
             self.fullOperationRateMax
         )
-        
+
         # set processed location eligiblity # TODO implement check and set
-        self.processedLocationalEligibility=self.locationalEligibility
+        self.processedLocationalEligibility = self.locationalEligibility
 
     def setTimeSeriesData(self, hasTSA):
         """

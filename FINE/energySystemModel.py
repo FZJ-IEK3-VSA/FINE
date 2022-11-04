@@ -1367,7 +1367,7 @@ class EnergySystemModel:
                             ).append(compName)
                             for loc in comp.processedLocationalEligibility.index
                             if comp.processedCapacityMax[ip][loc] != 0
-                    ]
+                        ]
         pyM.sharedPotentialDict = potentialDict
 
         # Define and initialize constraints for each instance and location where components have to share an available

@@ -1644,7 +1644,8 @@ class StorageModel(ComponentModel):
         """
         return any(
             [
-                comp.commodity == commod and comp.processedLocationalEligibility[loc] == 1
+                comp.commodity == commod
+                and comp.processedLocationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
             ]
         )

@@ -482,13 +482,15 @@ def getQPbound(investmentPeriods, QPcostScale, capacityMax, capacityMin):
     for ip in investmentPeriods:
         index = QPcostScale[ip].index
         QPbound[ip] = pd.Series([np.inf] * len(index), index)
-        if ip>=0: # QP only relevant for future years
+        if ip >= 0:  # QP only relevant for future years
             if capacityMin[ip] is not None and capacityMax[ip] is not None:
                 minS = pd.Series(capacityMin[ip].isna(), index)
                 maxS = pd.Series(capacityMax[ip].isna(), index)
                 for x in index:
                     if not minS.loc[x] and not maxS.loc[x]:
-                        QPbound[ip].loc[x] = capacityMax[ip].loc[x] - capacityMin[ip].loc[x]
+                        QPbound[ip].loc[x] = (
+                            capacityMax[ip].loc[x] - capacityMin[ip].loc[x]
+                        )
     return QPbound
 
 
@@ -535,7 +537,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
 
     locationalEligibility = checkAndSet(locationalEligibility, comp, esM)
     isBuiltFix = checkAndSet(isBuiltFix, comp, esM)
-    
+
     for ip in comp.processedStockYears + esM.investmentPeriods:
         checkAndSet(QPcostScale[ip], comp, esM)
 
@@ -551,7 +553,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         raise ValueError(
             "A capacityMax parameter is required if a sharedPotentialID is considered."
         )
-        
+
     if locationalEligibility is not None:
         if isBuiltFix is not None:
             if (isBuiltFix != locationalEligibility).any():
@@ -563,14 +565,16 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         capacityMin[ip] = checkAndSet(capacityMin[ip], comp, esM)
         capacityMax[ip] = checkAndSet(capacityMax[ip], comp, esM)
         capacityFix[ip] = checkAndSet(capacityFix[ip], comp, esM)
-        
+
         if (
-            capacityMin[ip] is not None or capacityMax[ip] is not None or capacityFix[ip] is not None
-            ) and not hasCapacityVariable:
+            capacityMin[ip] is not None
+            or capacityMax[ip] is not None
+            or capacityFix[ip] is not None
+        ) and not hasCapacityVariable:
             raise ValueError(
                 "Capacity bounds are given but hasCapacityVariable was set to False."
             )
-        
+
         if locationalEligibility is not None:
             # Check if values are either one or zero
             if ((locationalEligibility != 0) & (locationalEligibility != 1)).any():
@@ -599,7 +603,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                     raise ValueError(
                         "The locationalEligibility and capacityMin parameters indicate different eligibilities."
                     )
-    
+
         if isBuiltFix is not None:
             # Check if values are either one or zero
             if ((isBuiltFix != 0) & (isBuiltFix != 1)).any():
@@ -626,8 +630,8 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 if (data > isBuiltFix).any():
                     raise ValueError(
                         "The isBuiltFix and capacityMin parameters indicate different design decisions."
-                )
-    
+                    )
+
         if capacityMax[ip] is None or capacityMin[ip] is None:
             if (QPcostScale[ip] > 0).any():
                 raise ValueError(
@@ -645,73 +649,101 @@ def checkAndSetCapacityBounds(esM, name, capacityMin, capacityMax, capacityFix):
     checkInvestmentPeriodParameters(name, capacityMin, esM.investmentPeriodNames)
     checkInvestmentPeriodParameters(name, capacityMax, esM.investmentPeriodNames)
     checkInvestmentPeriodParameters(name, capacityFix, esM.investmentPeriodNames)
-    
-    def _checkAndSet(name, param):       
-        if isinstance(param,dict):
+
+    def _checkAndSet(name, param):
+        if isinstance(param, dict):
             if all(x is None for x in param.values()):
                 return None
             if any(x is None for x in param.values()):
-                raise ValueError(f"{name} cannot switch between None and values for different investment periods.")
+                raise ValueError(
+                    f"{name} cannot switch between None and values for different investment periods."
+                )
 
-        processedParam={}
+        processedParam = {}
         for ip in esM.investmentPeriods:
             if param is None:
-                processedParam[ip]=None
+                processedParam[ip] = None
             if isinstance(param, dict):
-                processedParam[ip] = castToSeries(param[esM.investmentPeriodNames[ip]], esM) 
+                processedParam[ip] = castToSeries(
+                    param[esM.investmentPeriodNames[ip]], esM
+                )
             elif isinstance(param, pd.DataFrame) or isinstance(param, pd.Series):
                 processedParam[ip] = castToSeries(param, esM)
-            elif isinstance(param,int) or isinstance(param,float):
+            elif isinstance(param, int) or isinstance(param, float):
                 processedParam[ip] = castToSeries(param, esM)
         return processedParam
 
-    # set up parameter as dict with investment periods as keys and 
+    # set up parameter as dict with investment periods as keys and
     # dataframe with locations as values
-    processedCapacityMin=_checkAndSet(name, capacityMin)
-    processedCapacityMax=_checkAndSet(name, capacityMax)
-    processedCapacityFix=_checkAndSet(name, capacityFix)
-   
+    processedCapacityMin = _checkAndSet(name, capacityMin)
+    processedCapacityMax = _checkAndSet(name, capacityMax)
+    processedCapacityFix = _checkAndSet(name, capacityFix)
+
     for ip in esM.investmentPeriods:
-        if processedCapacityMin[ip] is not None and (processedCapacityMin[ip] < 0).any():
+        if (
+            processedCapacityMin[ip] is not None
+            and (processedCapacityMin[ip] < 0).any()
+        ):
             raise ValueError("capacityMin values smaller than 0 were detected.")
 
-        if processedCapacityFix[ip] is not None and (processedCapacityFix[ip] < 0).any():
+        if (
+            processedCapacityFix[ip] is not None
+            and (processedCapacityFix[ip] < 0).any()
+        ):
             raise ValueError("capacityFix values smaller than 0 were detected.")
 
-        if processedCapacityMax[ip] is not None and (processedCapacityMax[ip] < 0).any():
+        if (
+            processedCapacityMax[ip] is not None
+            and (processedCapacityMax[ip] < 0).any()
+        ):
             raise ValueError("capacityMax values smaller than 0 were detected.")
-        
-        if processedCapacityMin[ip] is not None and processedCapacityMax[ip] is not None:
+
+        if (
+            processedCapacityMin[ip] is not None
+            and processedCapacityMax[ip] is not None
+        ):
             # Test that capacityMin and capacityMax has the same index for comparing.
             # If capacityMin is missing for some locations, it´s set to 0.
-            if set(processedCapacityMin[ip].index).issubset(processedCapacityMax[ip].index):
-                processedCapacityMin[ip] = processedCapacityMin[ip].reindex(processedCapacityMax[ip].index).fillna(0)
+            if set(processedCapacityMin[ip].index).issubset(
+                processedCapacityMax[ip].index
+            ):
+                processedCapacityMin[ip] = (
+                    processedCapacityMin[ip]
+                    .reindex(processedCapacityMax[ip].index)
+                    .fillna(0)
+                )
             if (processedCapacityMin[ip] > processedCapacityMax[ip]).any():
                 raise ValueError("capacityMin values > capacityMax values detected.")
 
-        if processedCapacityFix[ip] is not None and processedCapacityMax[ip] is not None:
+        if (
+            processedCapacityFix[ip] is not None
+            and processedCapacityMax[ip] is not None
+        ):
             if (processedCapacityFix[ip] > processedCapacityMax[ip]).any():
                 raise ValueError("capacityFix values > capacityMax values detected.")
 
-        if processedCapacityFix[ip] is not None and processedCapacityMin[ip] is not None:
+        if (
+            processedCapacityFix[ip] is not None
+            and processedCapacityMin[ip] is not None
+        ):
             if (processedCapacityFix[ip] < processedCapacityMin[ip]).any():
-                raise ValueError("capacityFix values < capacityMax values detected.")        
-    
+                raise ValueError("capacityFix values < capacityMax values detected.")
 
     # check if there is a mix of None and specified boundaries in one of the capacityBounds
     def checkForConsistency(name, capacityBound):
-        if isinstance(capacityBound,dict):
+        if isinstance(capacityBound, dict):
             if any(x is not None for x in capacityBound.values()):
                 if not all(x is not None for x in capacityBound.values()):
                     raise ValueError(
-                        "A mix between None and specified values is not allowed "+
-                        f"between investment periods for {name}.")
-    
-    checkForConsistency("capacityMax",capacityMax)
-    checkForConsistency("capacityMin",capacityMin)
-    checkForConsistency("capacityFix",capacityFix)
-        
-    return processedCapacityMin,processedCapacityMax,processedCapacityFix
+                        "A mix between None and specified values is not allowed "
+                        + f"between investment periods for {name}."
+                    )
+
+    checkForConsistency("capacityMax", capacityMax)
+    checkForConsistency("capacityMin", capacityMin)
+    checkForConsistency("capacityFix", capacityFix)
+
+    return processedCapacityMin, processedCapacityMax, processedCapacityFix
 
 
 def checkInvestmentPeriodParameters(name, param, years):
@@ -732,72 +764,86 @@ def checkInvestmentPeriodParameters(name, param, years):
                     f"Currently a dict containing None values cannot be passed for '{name}'"
                 )
 
-def checkCapacityDevelopmentWithStock(investmentPeriods, capacityMax, capacityFix,stockCommissioning,technicalLifetime):
-    if stockCommissioning is None: 
+
+def checkCapacityDevelopmentWithStock(
+    investmentPeriods, capacityMax, capacityFix, stockCommissioning, technicalLifetime
+):
+    if stockCommissioning is None:
         pass
-    else: 
+    else:
         # if there is a stock, consider it for the capacity development
         # create a dataframe with columns for location, index for the years and
         # stock capacities as values
-        locations=stockCommissioning[-1].index
-        years=[x for x in stockCommissioning.keys()]+investmentPeriods
-        stockCapacity=pd.DataFrame(index=years,columns=locations).sort_index().fillna(0)
-        for ip,stockCommis in stockCommissioning.items():
+        locations = stockCommissioning[-1].index
+        years = [x for x in stockCommissioning.keys()] + investmentPeriods
+        stockCapacity = (
+            pd.DataFrame(index=years, columns=locations).sort_index().fillna(0)
+        )
+        for ip, stockCommis in stockCommissioning.items():
             for loc in stockCommis.index:
-                yearRange=list(range(ip,ip+technicalLifetime[loc]))
-                yearRange=[x for x in yearRange if x<=max(investmentPeriods)]
-                stockCapacity.loc[yearRange,loc]+=stockCommis[loc]
-        # check that the capacity max is not lower as the resulting 
+                yearRange = list(range(ip, ip + technicalLifetime[loc]))
+                yearRange = [x for x in yearRange if x <= max(investmentPeriods)]
+                stockCapacity.loc[yearRange, loc] += stockCommis[loc]
+        # check that the capacity max is not lower as the resulting
         # stock capacity
         for loc in stockCapacity.columns:
             for year in investmentPeriods:
                 if capacityMax is not None:
-                    if stockCapacity.loc[year,loc]>capacityMax[year][loc]:
+                    if stockCapacity.loc[year, loc] > capacityMax[year][loc]:
                         raise ValueError(
-                            "Mismatch between stock capacity (by its "+
-                            "commissioning and the technical lifetime) and "+
-                            "capacityMax")
+                            "Mismatch between stock capacity (by its "
+                            + "commissioning and the technical lifetime) and "
+                            + "capacityMax"
+                        )
                 if capacityFix is not None:
-                    if stockCapacity.loc[year,loc]>capacityFix[year][loc]:
+                    if stockCapacity.loc[year, loc] > capacityFix[year][loc]:
                         raise ValueError(
-                            "Mismatch between stock capacity (by its "+
-                            "commissioning and the technical lifetime) and "+
-                            "capacityFix")
-    
+                            "Mismatch between stock capacity (by its "
+                            + "commissioning and the technical lifetime) and "
+                            + "capacityFix"
+                        )
+
     if capacityFix is not None:
         if all(x is None for x in capacityFix.values()):
             return
         # get future capacity by capacityFix
-        futureCapacityDevelopment=pd.DataFrame(index=investmentPeriods)
+        futureCapacityDevelopment = pd.DataFrame(index=investmentPeriods)
         for ip in investmentPeriods:
             for loc in capacityFix[ip].index:
-                futureCapacityDevelopment.loc[ip,loc]=capacityFix[ip][loc]
-                
+                futureCapacityDevelopment.loc[ip, loc] = capacityFix[ip][loc]
+
         # create the total capacit development, if stock with past years of stock
         if stockCommissioning is None:
             capacityDevelopment = futureCapacityDevelopment
         else:
-            pastYears=[x for x in stockCapacity.index if x<0]
-            capacityDevelopment=pd.concat([stockCapacity.loc[pastYears], futureCapacityDevelopment])
-        capacityDevelopment=capacityDevelopment.reindex(range(-technicalLifetime.max()-1, max(investmentPeriods)+1)).fillna(0)
-        
+            pastYears = [x for x in stockCapacity.index if x < 0]
+            capacityDevelopment = pd.concat(
+                [stockCapacity.loc[pastYears], futureCapacityDevelopment]
+            )
+        capacityDevelopment = capacityDevelopment.reindex(
+            range(-technicalLifetime.max() - 1, max(investmentPeriods) + 1)
+        ).fillna(0)
+
         # check that decreasing capacity matches the commissioning
-        issueLocations=[]
+        issueLocations = []
         for loc in capacityDevelopment.columns:
             capacityDevelopmentDiff = capacityDevelopment[loc].diff().fillna(0)
             for year in investmentPeriods:
-                if capacityDevelopmentDiff[year]<0:
-                    # capacity reduction cannot exceed commissioning one 
+                if capacityDevelopmentDiff[year] < 0:
+                    # capacity reduction cannot exceed commissioning one
                     # technical lifetime ago
-                    if (-capacityDevelopmentDiff[year])>capacityDevelopmentDiff[year-technicalLifetime[loc]]:
+                    if (-capacityDevelopmentDiff[year]) > capacityDevelopmentDiff[
+                        year - technicalLifetime[loc]
+                    ]:
                         issueLocations.append(loc)
-        issueLocations=list(set(issueLocations))
+        issueLocations = list(set(issueLocations))
 
-        if len(issueLocations)>0:
+        if len(issueLocations) > 0:
             raise ValueError(
-                f"Decreasing capacity fix set for regions {issueLocations} do" +
-                " not match with the decommissioning with its "+
-                "technical lifetime.")
+                f"Decreasing capacity fix set for regions {issueLocations} do"
+                + " not match with the decommissioning with its "
+                + "technical lifetime."
+            )
 
 
 def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPeriods):
@@ -918,25 +964,36 @@ def setLocationalEligibility(
     dimension="1dim",
 ):
     if locationalEligibility is not None:
-        # TODO implement checks for the locationalEligiblity, especially for transmission components        
+        # TODO implement checks for the locationalEligiblity, especially for transmission components
         return locationalEligibility
-    else: # if locationalEligibility is not None
+    else:  # if locationalEligibility is not None
         # If the location eligibility is None set it based on other information available
         # if not hasCapacityVariable and all(not isinstance(value,type(None)) for value in operationTimeSeries.values()):
         def defineLocDependencyCapacityBounds(name, capacityBound):
             if capacityBound is None:
                 return False
-            anyLocIndependent=any(x is None or isinstance(x,(int,float)) for x in capacityBound.values())     
-            anyLocDependent=any(x is not None and not isinstance(x,(int,float)) for x in capacityBound.values()) 
+            anyLocIndependent = any(
+                x is None or isinstance(x, (int, float)) for x in capacityBound.values()
+            )
+            anyLocDependent = any(
+                x is not None and not isinstance(x, (int, float))
+                for x in capacityBound.values()
+            )
             if anyLocDependent and anyLocIndependent:
-                raise ValueError(f"Please implement {name} either as location dependent or indendent consistent over entire pathway.")
+                raise ValueError(
+                    f"Please implement {name} either as location dependent or indendent consistent over entire pathway."
+                )
             if anyLocDependent:
                 return True
             else:
                 return False
-            
-        isCapacityMaxLocDepending=defineLocDependencyCapacityBounds("capacityMax", capacityMax)
-        isCapacityFixLocDepending=defineLocDependencyCapacityBounds("capacityFix", capacityFix)
+
+        isCapacityMaxLocDepending = defineLocDependencyCapacityBounds(
+            "capacityMax", capacityMax
+        )
+        isCapacityFixLocDepending = defineLocDependencyCapacityBounds(
+            "capacityFix", capacityFix
+        )
 
         if not hasCapacityVariable and operationTimeSeries is not None:
             if dimension == "1dim":
@@ -962,9 +1019,8 @@ def setLocationalEligibility(
                     "The dimension parameter has to be either '1dim' or '2dim' "
                 )
         elif (
-            ( not isCapacityMaxLocDepending) 
-            and 
-            (not isCapacityFixLocDepending)
+            (not isCapacityMaxLocDepending)
+            and (not isCapacityFixLocDepending)
             and (isBuiltFix is None or isinstance(isBuiltFix, int))
         ):
             # If no information is given, or all information is given as float or integer, all values are set to 1
@@ -989,29 +1045,29 @@ def setLocationalEligibility(
         else:
             # If the fixCapacity is not empty, the eligibility is set based on the fixed capacity
             # either use capacityFix or capacityMax
-            if isinstance(capacityFix,dict):
+            if isinstance(capacityFix, dict):
                 if all(x is None for x in capacityFix.values()):
-                    data=capacityMax
+                    data = capacityMax
                 else:
-                    data=capacityFix
-            elif capacityFix is None: 
-                data=capacityMax
+                    data = capacityFix
+            elif capacityFix is None:
+                data = capacityMax
             else:
                 raise NotImplementedError()
 
             # First setup series with only 0
             if dimension == "1dim":
-                regions=esM.locations
+                regions = esM.locations
             else:
-                firstYear= sorted(data.keys())[0]
+                firstYear = sorted(data.keys())[0]
                 regions = data[firstYear].index
-            _data=pd.Series(index=sorted(regions), data=0)
+            _data = pd.Series(index=sorted(regions), data=0)
 
             # set location eligibility to 1 if capacity bound exists
             for ip in esM.investmentPeriods:
-                loc_idx=data[ip][data[ip]>0].index
+                loc_idx = data[ip][data[ip] > 0].index
                 _data[loc_idx] = 1
-            
+
             return _data
 
 
@@ -1902,6 +1958,7 @@ def preprocess2dimInvestmentPeriodData(
 
     return parameter
 
+
 def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
     """
     Change format of 2-dimensional data (for transmission components).
@@ -2257,10 +2314,12 @@ def checkAndSetStock(component, esM, stockCommissioning):
     if component.dimension == "1dim":
         regions = esM.locations
     if component.dimension == "2dim":
-        regions=[loc1 + "_" + loc2
-                    for loc1 in esM.locations
-                    for loc2 in esM.locations
-                    if loc1 != loc2]
+        regions = [
+            loc1 + "_" + loc2
+            for loc1 in esM.locations
+            for loc2 in esM.locations
+            if loc1 != loc2
+        ]
     # check data for stockCommissioning
     for year, yearly_stock in stockCommissioning.items():
         if not isinstance(year, int):
@@ -2374,10 +2433,12 @@ def setStockCapacityStartYear(component, esM, dimension):
     if dimension == "1dim":
         regions = esM.locations
     elif dimension == "2dim":
-        regions=[loc1 + "_" + loc2
-                    for loc1 in esM.locations
-                    for loc2 in esM.locations
-                    if loc1 != loc2]
+        regions = [
+            loc1 + "_" + loc2
+            for loc1 in esM.locations
+            for loc2 in esM.locations
+            if loc1 != loc2
+        ]
     if component.processedStockCommissioning is None:
         return pd.Series(index=regions, data=0)
     else:

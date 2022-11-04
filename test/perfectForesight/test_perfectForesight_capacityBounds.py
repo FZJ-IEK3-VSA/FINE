@@ -7,6 +7,7 @@ import pytest
 
 import FINE as fn
 
+
 def test_capacityBounds():
     esM = fn.EnergySystemModel(
         locations={"ElectrolyzerLocation", "IndustryLocation"},
@@ -26,16 +27,13 @@ def test_capacityBounds():
         balanceLimit=None,
         lowerBound=False,
     )
-    locations=["ElectrolyzerLocation", "IndustryLocation"]
-       
+    locations = ["ElectrolyzerLocation", "IndustryLocation"]
+
     # 1. Test without ip-dependency
     # 1.1 Test without ip-dependency for 1 dim components
-    capMaxSeries=pd.Series(index=locations, data=5)
-    capMinSeries=pd.Series(index=locations, data=1)
-    capacityTypes=[
-        (5,1),
-        (capMaxSeries,capMinSeries)
-    ]
+    capMaxSeries = pd.Series(index=locations, data=5)
+    capMinSeries = pd.Series(index=locations, data=1)
+    capacityTypes = [(5, 1), (capMaxSeries, capMinSeries)]
     for (capacityMax, capacityMin) in capacityTypes:
         esM.add(
             fn.Storage(
@@ -54,24 +52,27 @@ def test_capacityBounds():
             )
         )
         # capacityFix
-        assert esM.getComponent("PressureTank").capacityFix==None
+        assert esM.getComponent("PressureTank").capacityFix == None
         assert esM.getComponent("PressureTank").processedCapacityFix is None
         # capacity max and min
-        assert isinstance(esM.getComponent("PressureTank").processedCapacityMax,dict)
-        assert isinstance(esM.getComponent("PressureTank").processedCapacityMax,dict)
+        assert isinstance(esM.getComponent("PressureTank").processedCapacityMax, dict)
+        assert isinstance(esM.getComponent("PressureTank").processedCapacityMax, dict)
         for ip in esM.investmentPeriods:
-            assert (esM.getComponent("PressureTank").processedCapacityMax[ip] == capMaxSeries).all()
-            assert (esM.getComponent("PressureTank").processedCapacityMin[ip] == capMinSeries).all()
-            
-    # 1.2 Test without ip-dependency for 2 dim components  
-    capMaxDataFrame=pd.DataFrame(index=locations, columns=locations)
-    capMaxDataFrame.loc["ElectrolyzerLocation", "IndustryLocation"]=5
-    capMaxDataFrame.loc["IndustryLocation","ElectrolyzerLocation"]=5
-    capMinDataFrame=pd.DataFrame(index=locations, columns=locations, data=0)
-    capacityTypes=[
-        (5,1),
-        (capMaxDataFrame, capMinDataFrame)
-    ]
+            assert (
+                esM.getComponent("PressureTank").processedCapacityMax[ip]
+                == capMaxSeries
+            ).all()
+            assert (
+                esM.getComponent("PressureTank").processedCapacityMin[ip]
+                == capMinSeries
+            ).all()
+
+    # 1.2 Test without ip-dependency for 2 dim components
+    capMaxDataFrame = pd.DataFrame(index=locations, columns=locations)
+    capMaxDataFrame.loc["ElectrolyzerLocation", "IndustryLocation"] = 5
+    capMaxDataFrame.loc["IndustryLocation", "ElectrolyzerLocation"] = 5
+    capMinDataFrame = pd.DataFrame(index=locations, columns=locations, data=0)
+    capacityTypes = [(5, 1), (capMaxDataFrame, capMinDataFrame)]
     for (capacityMax, capacityMin) in capacityTypes:
         esM.add(
             fn.Transmission(
@@ -89,15 +90,36 @@ def test_capacityBounds():
         assert isinstance(esM.getComponent("Pipelines").processedCapacityMin, dict)
         assert isinstance(esM.getComponent("Pipelines").processedCapacityMax, dict)
         assert esM.getComponent("Pipelines").processedCapacityFix is None
-        assert list(esM.getComponent("Pipelines").locationalEligibility.index)==['ElectrolyzerLocation_IndustryLocation', 'IndustryLocation_ElectrolyzerLocation']        
+        assert list(esM.getComponent("Pipelines").locationalEligibility.index) == [
+            "ElectrolyzerLocation_IndustryLocation",
+            "IndustryLocation_ElectrolyzerLocation",
+        ]
         for ip in esM.investmentPeriods:
-            assert esM.getComponent("Pipelines").processedCapacityMin[ip]["ElectrolyzerLocation_IndustryLocation"]==0
-            assert esM.getComponent("Pipelines").processedCapacityMin[ip]["IndustryLocation_ElectrolyzerLocation"]==0
-            assert esM.getComponent("Pipelines").processedCapacityMax[ip]["ElectrolyzerLocation_IndustryLocation"]==5
-            assert esM.getComponent("Pipelines").processedCapacityMax[ip]["IndustryLocation_ElectrolyzerLocation"]==5
-        
-        
-    
+            assert (
+                esM.getComponent("Pipelines").processedCapacityMin[ip][
+                    "ElectrolyzerLocation_IndustryLocation"
+                ]
+                == 0
+            )
+            assert (
+                esM.getComponent("Pipelines").processedCapacityMin[ip][
+                    "IndustryLocation_ElectrolyzerLocation"
+                ]
+                == 0
+            )
+            assert (
+                esM.getComponent("Pipelines").processedCapacityMax[ip][
+                    "ElectrolyzerLocation_IndustryLocation"
+                ]
+                == 5
+            )
+            assert (
+                esM.getComponent("Pipelines").processedCapacityMax[ip][
+                    "IndustryLocation_ElectrolyzerLocation"
+                ]
+                == 5
+            )
+
     # 2. Test with ip-dependency - dict format
     # 2.1 Test with ip-dependency for 1 dim components
     # test for dict format - no failure
@@ -108,8 +130,8 @@ def test_capacityBounds():
             commodity="hydrogen",
             hasCapacityVariable=True,
             capacityVariableDomain="continuous",
-            capacityMax={2020:5 ,2025:4 ,2030:3.5 ,2035:3 ,2040:2},
-            capacityMin={2020:1 ,2025:1 ,2030:0.5 ,2035:0 ,2040:0},
+            capacityMax={2020: 5, 2025: 4, 2030: 3.5, 2035: 3, 2040: 2},
+            capacityMin={2020: 1, 2025: 1, 2030: 0.5, 2035: 0, 2040: 0},
             capacityFix=None,
             stateOfChargeMin=0.33,
             investPerCapacity=0.5,  # eur/kWh
@@ -117,11 +139,9 @@ def test_capacityBounds():
             economicLifetime=30,
         )
     )
-    
+
     # error for None value
-    with pytest.raises(
-        ValueError, match=r".*a dict containing None values.*"
-    ):
+    with pytest.raises(ValueError, match=r".*a dict containing None values.*"):
         esM.add(
             fn.Storage(
                 esM=esM,
@@ -129,14 +149,14 @@ def test_capacityBounds():
                 commodity="hydrogen",
                 hasCapacityVariable=True,
                 capacityVariableDomain="continuous",
-                capacityMax={2020:5 ,2025:4 ,2030:None ,2035:3 ,2040:0},
+                capacityMax={2020: 5, 2025: 4, 2030: None, 2035: 3, 2040: 0},
                 stateOfChargeMin=0.33,
                 investPerCapacity=0.5,  # eur/kWh
                 interestRate=0.08,
                 economicLifetime=30,
             )
         )
-    
+
     # error for capacityMax<capacityMin - in year 4
     with pytest.raises(
         ValueError, match=r".*capacityMin values > capacityMax values detected.*"
@@ -148,8 +168,8 @@ def test_capacityBounds():
                 commodity="hydrogen",
                 hasCapacityVariable=True,
                 capacityVariableDomain="continuous",
-                capacityMax={2020:5 ,2025:4 ,2030:3.5 ,2035:3 ,2040:0},
-                capacityMin={2020:1 ,2025:1 ,2030:0.5 ,2035:0 ,2040:2},
+                capacityMax={2020: 5, 2025: 4, 2030: 3.5, 2035: 3, 2040: 0},
+                capacityMin={2020: 1, 2025: 1, 2030: 0.5, 2035: 0, 2040: 2},
                 capacityFix=None,
                 stateOfChargeMin=0.33,
                 investPerCapacity=0.5,  # eur/kWh
@@ -159,9 +179,7 @@ def test_capacityBounds():
         )
 
     # error for wrong ip input - missing of year 4
-    with pytest.raises(
-        ValueError, match=r".*but the expected years are.*"
-    ):
+    with pytest.raises(ValueError, match=r".*but the expected years are.*"):
         esM.add(
             fn.Storage(
                 esM=esM,
@@ -169,8 +187,8 @@ def test_capacityBounds():
                 commodity="hydrogen",
                 hasCapacityVariable=True,
                 capacityVariableDomain="continuous",
-                capacityMax={2020:5 ,2025:4 ,2030:3.5 ,2035:3},
-                capacityMin={2020:1 ,2025:1 ,2030:0.5 ,2035:0},
+                capacityMax={2020: 5, 2025: 4, 2030: 3.5, 2035: 3},
+                capacityMin={2020: 1, 2025: 1, 2030: 0.5, 2035: 0},
                 capacityFix=None,
                 stateOfChargeMin=0.33,
                 investPerCapacity=0.5,  # eur/kWh
@@ -190,8 +208,8 @@ def test_capacityBounds():
                 commodity="hydrogen",
                 hasCapacityVariable=True,
                 capacityVariableDomain="continuous",
-                capacityFix={2020:5 ,2025:4 ,2030:3.5 ,2035:3, 2040:3},
-                capacityMax={2020:1 ,2025:1 ,2030:0.5 ,2035:0, 2040:0},
+                capacityFix={2020: 5, 2025: 4, 2030: 3.5, 2035: 3, 2040: 3},
+                capacityMax={2020: 1, 2025: 1, 2030: 0.5, 2035: 0, 2040: 0},
                 capacityMin=None,
                 stateOfChargeMin=0.33,
                 investPerCapacity=0.5,  # eur/kWh
@@ -201,18 +219,20 @@ def test_capacityBounds():
         )
 
     # Not error if capacity Fix is set but it matches the stock decommissioning
-    stockCommissioning={
-        1990:pd.Series(index=locations,data=[0,1]), 
-        1995:pd.Series(index=locations,data=[0,2]),
-        2000:pd.Series(index=locations,data=[0,3]),
-        2005:pd.Series(index=locations,data=[0,4]),
-        2010:pd.Series(index=locations,data=[0,5])}
-    capacityFix={
-        2020:pd.Series(index=locations,data=[0,14]), 
-        2025:pd.Series(index=locations,data=[0,12]),
-        2030:pd.Series(index=locations,data=[0,9]),
-        2035:pd.Series(index=locations,data=[0,5]),
-        2040:pd.Series(index=locations,data=[0,0])}
+    stockCommissioning = {
+        1990: pd.Series(index=locations, data=[0, 1]),
+        1995: pd.Series(index=locations, data=[0, 2]),
+        2000: pd.Series(index=locations, data=[0, 3]),
+        2005: pd.Series(index=locations, data=[0, 4]),
+        2010: pd.Series(index=locations, data=[0, 5]),
+    }
+    capacityFix = {
+        2020: pd.Series(index=locations, data=[0, 14]),
+        2025: pd.Series(index=locations, data=[0, 12]),
+        2030: pd.Series(index=locations, data=[0, 9]),
+        2035: pd.Series(index=locations, data=[0, 5]),
+        2040: pd.Series(index=locations, data=[0, 0]),
+    }
     esM.add(
         fn.Storage(
             esM=esM,
@@ -230,9 +250,7 @@ def test_capacityBounds():
     )
 
     # error for a decreasing capacityFix which cannot be fulfilled by the technicalLifetime
-    with pytest.raises(
-        ValueError, match=r".*Decreasing capacity fix set.*"
-    ):
+    with pytest.raises(ValueError, match=r".*Decreasing capacity fix set.*"):
 
         esM.add(
             fn.Storage(
@@ -241,7 +259,7 @@ def test_capacityBounds():
                 commodity="hydrogen",
                 hasCapacityVariable=True,
                 capacityVariableDomain="continuous",
-                capacityFix={2020:5, 2025:2, 2030:1, 2035:0, 2040:0},
+                capacityFix={2020: 5, 2025: 2, 2030: 1, 2035: 0, 2040: 0},
                 stateOfChargeMin=0.33,
                 investPerCapacity=0.5,  # eur/kWh
                 interestRate=0.08,
@@ -250,15 +268,14 @@ def test_capacityBounds():
         )
 
     # implement error for mismatch for decommissioning of stock with capacityfix
-    with pytest.raises(
-        ValueError, match=r".*exceeds its capacityFix of.*"
-    ):
-        stockCommissioning={
-            1990:pd.Series(index=locations,data=[0,1]), 
-            1995:pd.Series(index=locations,data=[0,2]),
-            2000:pd.Series(index=locations,data=[0,3]),
-            2005:pd.Series(index=locations,data=[0,4]),
-            2010:pd.Series(index=locations,data=[0,5])}
+    with pytest.raises(ValueError, match=r".*exceeds its capacityFix of.*"):
+        stockCommissioning = {
+            1990: pd.Series(index=locations, data=[0, 1]),
+            1995: pd.Series(index=locations, data=[0, 2]),
+            2000: pd.Series(index=locations, data=[0, 3]),
+            2005: pd.Series(index=locations, data=[0, 4]),
+            2010: pd.Series(index=locations, data=[0, 5]),
+        }
         esM.add(
             fn.Storage(
                 esM=esM,
@@ -267,7 +284,7 @@ def test_capacityBounds():
                 hasCapacityVariable=True,
                 capacityVariableDomain="continuous",
                 stockCommissioning=stockCommissioning,
-                capacityFix={2020:10, 2025:12, 2030:9, 2035:5, 2040:0},
+                capacityFix={2020: 10, 2025: 12, 2030: 9, 2035: 5, 2040: 0},
                 stateOfChargeMin=0.33,
                 investPerCapacity=0.5,  # eur/kWh
                 interestRate=0.08,

@@ -215,7 +215,9 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                     if getattr(stockComp, "capacityFix") is None:
                         if isinstance(compValues.loc[comp], pd.DataFrame):
                             stockComp.processedCapacityFix = {}
-                            stockComp.processedCapacityFix[0] = utils.preprocess2dimData(
+                            stockComp.processedCapacityFix[
+                                0
+                            ] = utils.preprocess2dimData(
                                 compValues.loc[comp].fillna(value=-1), discard=False
                             )
                         else:
