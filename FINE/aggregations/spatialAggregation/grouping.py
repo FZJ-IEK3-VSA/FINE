@@ -73,7 +73,7 @@ def perform_string_based_grouping(regions, separator=None, position=None):
 
 
 @timer
-def perform_distance_based_grouping(geom_xr, n_groups=3):
+def perform_distance_based_grouping(geom_xr, skip_regions=None, n_groups=3):
     """
     Groups regions based on the regions' centroid distances,
     using sklearn's hierarchical clustering.
@@ -96,12 +96,30 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
     :rtype: Dict[int, Dict[str, List[str]]]
     """
 
+    if skip_regions is not None:
+        
+        assert isinstance(skip_regions, list), "A list containing the region ID's to be skipped should be provided."
+        
+        # get all regions
+        regions_list = geom_xr["space"].values
+        
+        # remove regions that should be skipped
+        regions_list = np.array(list(set(regions_list) - set(skip_regions)), dtype='<U6')
+        
+        # reduce ds 
+        geom_xr = geom_xr.sel(space=regions_list)
+        skipped_dict = {reg: [reg] for reg in skip_regions}
+    
+    else:
+        # get all regions
+        regions_list = geom_xr["space"].values
+        skipped_dict = {} 
+        
     centroids = geom_xr["centroids"].values
 
     centroids_x_y_points = (
         np.asarray([[point.x, point.y] for point in centroids]) / 1000
     )  # km
-    regions_list = geom_xr["space"].values
 
     # STEP 1. Compute hierarchical clustering
     model = skc.AgglomerativeClustering(n_clusters=n_groups).fit(centroids_x_y_points)
@@ -113,6 +131,8 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
         sub_regions_list = list(regions_list[model.labels_ == label])
         sup_region_id = "_".join(sub_regions_list)
         aggregation_dict[sup_region_id] = sub_regions_list.copy()
+        
+    aggregation_dict.update(skipped_dict)
 
     return aggregation_dict
 
