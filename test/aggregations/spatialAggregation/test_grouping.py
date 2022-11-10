@@ -76,6 +76,35 @@ def test_perform_distance_based_grouping():
         "04_reg_05_reg": ["04_reg", "05_reg"],
     }
 
+def test_perform_distance_based_grouping_skipped_regions():
+    # TEST DATA
+    space_list = ["01_reg", "02_reg", "03_reg", "04_reg", "05_reg"]
+
+    sample_data, sample_labels = make_blobs(
+        n_samples=5, centers=3, n_features=2, random_state=0
+    )
+
+    test_centroids = [np.nan for i in range(5)]
+    for i, data_point in enumerate(sample_data):
+        test_centroids[i] = Point(data_point)
+
+    centroid_da = xr.DataArray(
+        pd.Series(test_centroids).values, coords=[space_list], dims=["space"]
+    )
+
+    test_geom_xr = xr.Dataset({"centroids": centroid_da})
+
+    # FUNCTION CALL
+    output_dict = grouping.perform_distance_based_grouping(test_geom_xr, skip_regions=["02_reg", "03_reg"])
+
+    # ASSERTION
+    assert output_dict == {
+        '05_reg': ['05_reg'],
+        '01_reg': ['01_reg'],
+        '04_reg': ['04_reg'],
+        '02_reg': ['02_reg'],
+        '03_reg': ['03_reg']
+    }
 
 @pytest.mark.parametrize("aggregation_method", ["kmedoids_contiguity", "hierarchical"])
 @pytest.mark.parametrize(
