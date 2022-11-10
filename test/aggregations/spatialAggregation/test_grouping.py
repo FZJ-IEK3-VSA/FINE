@@ -47,8 +47,28 @@ def test_perform_string_based_grouping(
     assert sorted(clustered_regions_dict.keys()) == sorted(expected_keys)
     assert list(clustered_regions_dict.values())[0] == expected_value
 
-
-def test_perform_distance_based_grouping():
+@pytest.mark.parametrize("skip_regions, expected_ouput", 
+        [
+            (   
+                None, 
+                {
+                    "01_reg": ["01_reg"],  ## Based on sample_labels ([2, 0, 0, 1, 1])
+                    "02_reg_03_reg": ["02_reg", "03_reg"],
+                    "04_reg_05_reg": ["04_reg", "05_reg"],
+                }
+            ), 
+            
+            (   
+                ["02_reg"],
+                {
+                    '05_reg_04_reg': ['05_reg', '04_reg'],
+                    '01_reg': ['01_reg'],
+                    '03_reg': ['03_reg'],
+                    '02_reg': ['02_reg']
+                })
+        ]
+)        
+def test_perform_distance_based_grouping(skip_regions, expected_ouput):
     # TEST DATA
     space_list = ["01_reg", "02_reg", "03_reg", "04_reg", "05_reg"]
 
@@ -67,45 +87,11 @@ def test_perform_distance_based_grouping():
     test_geom_xr = xr.Dataset({"centroids": centroid_da})
 
     # FUNCTION CALL
-    output_dict = grouping.perform_distance_based_grouping(test_geom_xr)
+    output_dict = grouping.perform_distance_based_grouping(test_geom_xr, skip_regions)
 
     # ASSERTION
-    assert output_dict == {
-        "01_reg": ["01_reg"],  ## Based on sample_labels ([2, 0, 0, 1, 1])
-        "02_reg_03_reg": ["02_reg", "03_reg"],
-        "04_reg_05_reg": ["04_reg", "05_reg"],
-    }
-
-def test_perform_distance_based_grouping_skipped_regions():
-    # TEST DATA
-    space_list = ["01_reg", "02_reg", "03_reg", "04_reg", "05_reg"]
-
-    sample_data, sample_labels = make_blobs(
-        n_samples=5, centers=3, n_features=2, random_state=0
-    )
-
-    test_centroids = [np.nan for i in range(5)]
-    for i, data_point in enumerate(sample_data):
-        test_centroids[i] = Point(data_point)
-
-    centroid_da = xr.DataArray(
-        pd.Series(test_centroids).values, coords=[space_list], dims=["space"]
-    )
-
-    test_geom_xr = xr.Dataset({"centroids": centroid_da})
-
-    # FUNCTION CALL
-    output_dict = grouping.perform_distance_based_grouping(test_geom_xr, skip_regions=["02_reg", "03_reg"])
-
-    # ASSERTION
-    assert output_dict == {
-        '05_reg': ['05_reg'],
-        '01_reg': ['01_reg'],
-        '04_reg': ['04_reg'],
-        '02_reg': ['02_reg'],
-        '03_reg': ['03_reg']
-    }
-
+    assert output_dict == expected_ouput
+    
 @pytest.mark.parametrize("aggregation_method", ["kmedoids_contiguity", "hierarchical"])
 @pytest.mark.parametrize(
     "weights, expected_region_groups",
