@@ -1268,7 +1268,7 @@ class ComponentModel(metaclass=ABCMeta):
         def capBounds(pyM, loc, compName, ip):
             """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
-            if comp.capacityFix is not None and loc in comp.capacityFix.index:
+            if comp.processedCapacityFix is not None and loc in comp.processedCapacityFix[ip].index:
                 # in utils.py there are checks to ensure that capacityFix is between min and max
                 return (
                     comp.processedCapacityFix[ip][loc],
