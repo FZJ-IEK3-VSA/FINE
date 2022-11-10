@@ -505,14 +505,11 @@ class EnergySystemModel:
         # if there is only data for one investment period, the function
         # directely returns the value instead of {0:value}. This allows old
         # models to run without modification
-        if isinstance(
-            getattr(self.getComponent(componentName), attributeName), dict
-        ) and list(getattr(self.getComponent(componentName), attributeName).keys()) == [
-            0
-        ]:
-            return getattr(self.getComponent(componentName), attributeName)[0]
+        attr = getattr(self.getComponent(componentName), attributeName)
+        if isinstance(attr, dict) and list(attr.keys()) == [0]:
+            return attr[0]
         else:
-            return getattr(self.getComponent(componentName), attributeName)
+            return attr
 
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
         """
