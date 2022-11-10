@@ -229,6 +229,7 @@ def aggregate_values_spatially(
                     'Please select one of the modes "mean", "bool" or "sum"'
                 )
 
+    xr_data_array_out = xr_data_array_out.fillna(0)
     return xr_data_array_out
 
 
@@ -314,6 +315,7 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
                 xr_data_array_out.loc[
                     dict(space=sup_region_id, space_2=sup_region_id_2)
                 ] = 0
+
     xr_data_array_out = xr_data_array_out.fillna(0)
     return xr_data_array_out
 
@@ -503,19 +505,22 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 )
 
                 # only aggregate data corresponding to regions that are locationally eligible
-                if varname[:3] == "2d_":
-                    locational_eligibility = comp_ds[f"2d_locationalEligibility"]
-                else:
-                    locational_eligibility = comp_ds[f"1d_locationalEligibility"]
+                var_dim = varname[:3]
+                if var_dim != "0d_":
+                    if var_dim == "2d_":
+                        locational_eligibility = comp_ds[f"2d_locationalEligibility"]
+                    else:
+                        locational_eligibility = comp_ds[f"1d_locationalEligibility"]
 
-                da = da.where(locational_eligibility != 0)
-                if aggregation_weight is not None:
-                    aggregation_weight = aggregation_weight.where(
-                        locational_eligibility != 0
-                    )
+                    da = da.where(locational_eligibility != 0)
+
+                    if aggregation_weight is not None:
+                        aggregation_weight = aggregation_weight.where(
+                            locational_eligibility != 0
+                        )
 
                 ## Time series
-                if varname[:3] == "ts_":
+                if var_dim == "ts_":
                     da = aggregate_time_series_spatially(
                         da,
                         sub_to_sup_region_id_dict,
@@ -524,7 +529,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                     )
 
                 ## 1d variables
-                elif varname[:3] == "1d_":
+                elif var_dim == "1d_":
                     da = aggregate_values_spatially(
                         da,
                         sub_to_sup_region_id_dict,
@@ -532,7 +537,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                     )
 
                 ## 2d variables
-                elif varname[:3] == "2d_":
+                elif var_dim == "2d_":
                     da = aggregate_connections(
                         da,
                         sub_to_sup_region_id_dict,
