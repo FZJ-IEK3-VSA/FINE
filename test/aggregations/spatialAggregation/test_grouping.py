@@ -87,7 +87,8 @@ def test_perform_distance_based_grouping(skip_regions, expected_ouput):
     test_geom_xr = xr.Dataset({"centroids": centroid_da})
 
     # FUNCTION CALL
-    output_dict = grouping.perform_distance_based_grouping(test_geom_xr, skip_regions)
+    output_dict = grouping.perform_distance_based_grouping(geom_xr=test_geom_xr, 
+                                                           skip_regions=skip_regions)
 
     # ASSERTION
     assert output_dict == expected_ouput
