@@ -135,10 +135,10 @@ class EnergySystemModel:
         :type startYear: integer
 
         :param stochasticModel: defines whether to set up a stochastic optimization.
-            The goal of the stochastic optimization is to find a more robust energy system by considering different 
-            requirements to find a single energy system design (e.g. various weather years or demand forecasts). These requirements 
-            are represented in different investment periods of the model. In contrast to the classical perfect foresight 
-            optimization the investment periods do not represent steps of a tranformation pathway but possible boundary 
+            The goal of the stochastic optimization is to find a more robust energy system by considering different
+            requirements to find a single energy system design (e.g. various weather years or demand forecasts). These requirements
+            are represented in different investment periods of the model. In contrast to the classical perfect foresight
+            optimization the investment periods do not represent steps of a tranformation pathway but possible boundary
             conditions for the energy system, which need to be considered for the system design and operation
             |br| * the default value is False
         :type mode: bool
