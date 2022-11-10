@@ -199,7 +199,7 @@ def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_es
 
     Path("test_esM_pf.nc").unlink()
 
-    
+
 def test_capacityFix_subset(multi_node_test_esM_init):
     """
     Optimize esM, set optimal capacity values for every component as capacity Fix.
