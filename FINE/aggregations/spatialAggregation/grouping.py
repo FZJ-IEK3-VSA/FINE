@@ -73,7 +73,7 @@ def perform_string_based_grouping(regions, separator=None, position=None):
 
 
 @timer
-def perform_distance_based_grouping(geom_xr, skip_regions=None, n_groups=3):
+def perform_distance_based_grouping(geom_xr, n_groups=3, skip_regions=None):
     """
     Groups regions based on the regions' centroid distances,
     using sklearn's hierarchical clustering.
