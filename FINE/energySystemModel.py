@@ -131,13 +131,15 @@ class EnergySystemModel:
 
         :param startYear: year name of first investment period, e.g. for a transformation
             pathway from 2020 to 2030 with the years 2020, 2025, 2030, the startYear is 2020
-            |br| * the default value is None
+            |br| * the default value is 0
         :type startYear: integer
 
-        :param stochasticModel: defines whether a model is stochastic or not.
-            For stochastic model optimization (e.g. with various weather years) set this value to True.
-            For stochastic optimization the components capacity design is the same for all investment
-            periods in order to achieve a more robust system design.
+        :param stochasticModel: defines whether to set up a stochastic optimization.
+            The goal of the stochastic optimization is to find a more robust energy system by considering different
+            requirements to find a single energy system design (e.g. various weather years or demand forecasts). These requirements
+            are represented in different investment periods of the model. In contrast to the classical perfect foresight
+            optimization the investment periods do not represent steps of a tranformation pathway but possible boundary
+            conditions for the energy system, which need to be considered for the system design and operation
             |br| * the default value is False
         :type mode: bool
 
@@ -305,12 +307,12 @@ class EnergySystemModel:
         self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
 
         # set up the modelling years by the start year, interval and number of investment periods
-        finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval - 1
+        finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval
         # clear names, e.g.  [2020, 2025,...]
         self.investmentPeriodNames = list(
-            range(startYear, finalyear + 1, investmentPeriodInterval)
+            range(startYear, finalyear, investmentPeriodInterval)
         )
-        # interntal names, e.g.  [0,1,...]
+        # internal names, e.g.  [0,1,...]
         self.investmentPeriods = list(range(numberOfInvestmentPeriods))
 
         ################################################################################################################
@@ -503,14 +505,11 @@ class EnergySystemModel:
         # if there is only data for one investment period, the function
         # directely returns the value instead of {0:value}. This allows old
         # models to run without modification
-        if isinstance(
-            getattr(self.getComponent(componentName), attributeName), dict
-        ) and list(getattr(self.getComponent(componentName), attributeName).keys()) == [
-            0
-        ]:
-            return getattr(self.getComponent(componentName), attributeName)[0]
+        attr = getattr(self.getComponent(componentName), attributeName)
+        if isinstance(attr, dict) and list(attr.keys()) == [0]:
+            return attr[0]
         else:
-            return getattr(self.getComponent(componentName), attributeName)
+            return attr
 
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
         """
@@ -1505,7 +1504,7 @@ class EnergySystemModel:
     def declareObjective(self, pyM):
         """
         Declare the objective function by obtaining the contributions to the objective function from all modeling
-        classes. Currently, the only objective function which can be selected is the sum of the total annual cost of all
+        classes. Currently, the only objective function which can be selected is the sum of the net present value of all
         components.
 
         .. math::
@@ -1547,12 +1546,12 @@ class EnergySystemModel:
         With the annuity present value factor (Rentenbarwertfaktor):
 
         .. math::
-            APVF^{comp}_{loc} = \\frac{(1 + intrestRate^{comp}_{loc})^{interval} - 1}{intrestRate^{comp}_{loc} \\cdot (1 + intrestRate^{comp}_{loc})^{interval}} \\ if intrestRate^{comp}_{loc} != 0 \\  else \\  1
+            APVF^{comp}_{loc} = \\frac{(1 + interestRate^{comp}_{loc})^{interval} - 1}{interestRate^{comp}_{loc} \\cdot (1 + interestRate^{comp}_{loc})^{interval}} \\ if interestRate^{comp}_{loc} != 0 \\  else \\  1
 
         and the discount factor.
 
         .. math::
-            discFactor^{comp}_{loc,ip} = \\frac{1+intrestRate^{comp}_{loc}}{(1+intrestRate^{comp}_{loc})^{ip \\cdot interval}}
+            discFactor^{comp}_{loc,ip} = \\frac{1+interestRate^{comp}_{loc}}{(1+interestRate^{comp}_{loc})^{ip \\cdot interval}}
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.

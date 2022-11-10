@@ -555,6 +555,34 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         )
 
     if locationalEligibility is not None:
+        # Check if values are either one or zero
+        if ((locationalEligibility != 0) & (locationalEligibility != 1)).any():
+            raise ValueError(
+                "The locationalEligibility entries have to be either 0 or 1."
+            )
+        # Check if given capacities indicate the same eligibility
+        if capacityFix is not None:
+            data = capacityFix.copy()
+            if not set(data.index.values).issubset(
+                set(locationalEligibility.index.values)
+            ):
+                raise ValueError(
+                    "CapacityFix values are provided for non-eligible locations."
+                )
+        if capacityMax is not None:
+            data = capacityMax.copy()
+            data[data > 0] = 1
+            if (data != locationalEligibility).any():
+                raise ValueError(
+                    "The locationalEligibility and capacityMax parameters indicate different eligibilities."
+                )
+        if capacityMin is not None:
+            data = capacityMin.copy()
+            data[data > 0] = 1
+            if (data > locationalEligibility).any():
+                raise ValueError(
+                    "The locationalEligibility and capacityMin parameters indicate different eligibilities."
+                )
         if isBuiltFix is not None:
             if (isBuiltFix != locationalEligibility).any():
                 raise ValueError(

@@ -1159,50 +1159,6 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet3),
         )
 
-    def declareOpConstrSet4(self, pyM, constrSetName, rateFix):
-        """
-        Declare set of locations and components for which hasCapacityVariable is set to False and a fixed
-        operation rate is given.
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
-
-        def declareOpConstrSet4(pyM):
-            return (
-                (loc, compName, ip)
-                for loc, compName, ip in varSet
-                if not compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateFix) is not None
-            )
-
-        setattr(
-            pyM,
-            constrSetName + "4_" + abbrvName,
-            pyomo.Set(dimen=3, initialize=declareOpConstrSet4),
-        )
-
-    def declareOpConstrSet5(self, pyM, constrSetName, rateMax):
-        """
-        Declare set of locations and components for which hasCapacityVariable is set to False and a maximum
-        operation rate is given.
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
-
-        def declareOpConstrSet5(pyM):
-            return (
-                (loc, compName, ip)
-                for loc, compName, ip in varSet
-                if not compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateMax) is not None
-            )
-
-        setattr(
-            pyM,
-            constrSetName + "5_" + abbrvName,
-            pyomo.Set(dimen=3, initialize=declareOpConstrSet5),
-        )
-
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
         """
         Declare set of locations and components for which partLoadMin is not None.
@@ -1242,8 +1198,6 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet1(pyM, constrSetName, rateMax, rateFix)
         self.declareOpConstrSet2(pyM, constrSetName, rateFix)
         self.declareOpConstrSet3(pyM, constrSetName, rateMax)
-        self.declareOpConstrSet4(pyM, constrSetName, rateFix)
-        self.declareOpConstrSet5(pyM, constrSetName, rateMax)
         self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
 
     def declareYearlyFullLoadHoursMinSet(self, pyM):
@@ -1314,7 +1268,7 @@ class ComponentModel(metaclass=ABCMeta):
         def capBounds(pyM, loc, compName, ip):
             """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
-            if comp.capacityFix is not None:
+            if comp.capacityFix is not None and loc in comp.capacityFix.index:
                 # in utils.py there are checks to ensure that capacityFix is between min and max
                 return (
                     comp.processedCapacityFix[ip][loc],
@@ -1461,7 +1415,10 @@ class ComponentModel(metaclass=ABCMeta):
                     compDict[compName].isBuiltFix[loc],
                     compDict[compName].isBuiltFix[loc],
                 )
-            elif compDict[compName].capacityFix is not None:
+            elif (
+                compDict[compName].capacityFix is not None
+                and loc in compDict[compName].capacityFix.index
+            ):
                 # If capacityFix is given, binary variable is set to 1
                 return (1, 1) if compDict[compName].capacityFix[loc] > 0 else (0, 0)
             else:
@@ -2243,101 +2200,6 @@ class ComponentModel(metaclass=ABCMeta):
                 pyM,
                 constrName + "3_" + abbrvName,
                 pyomo.Constraint(constrSet3, pyM.intraYearTimeSet, rule=op3),
-            )
-
-    def operationMode4(
-        self,
-        pyM,
-        esM,
-        constrName,
-        constrSetName,
-        opVarName,
-        opRateName="processedOperationRateFix",
-    ):
-        """
-        Define operation mode 4. The operation [commodityUnit*h] is equal to a time series in.
-
-        .. math::
-            op^{comp,opType}_{loc,ip,p,t} = \\text{opRateFix}^{comp,opType}_{loc,ip,p,t}
-
-        """
-        # operationRate is the same for all ip
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, opVarName + "_" + abbrvName)
-        constrSet4 = getattr(pyM, constrSetName + "4_" + abbrvName)
-        if not pyM.hasSegmentation:
-
-            def op4(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return (
-                    opVar[loc, compName, ip, p, t] == rate[loc][p, t]
-                )  # rate independent from ip
-
-            setattr(
-                pyM,
-                constrName + "4_" + abbrvName,
-                pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
-            )
-        else:
-
-            def op4(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    == rate[loc][p, t] * esM.timeStepsPerSegment[ip].to_dict()[p, t]
-                )  # rate independent from ip
-
-            setattr(
-                pyM,
-                constrName + "4_" + abbrvName,
-                pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
-            )
-
-    def operationMode5(
-        self,
-        pyM,
-        esM,
-        constrName,
-        constrSetName,
-        opVarName,
-        opRateName="processedOperationRateMax",
-    ):
-        """
-        Define operation mode 4. The operation  [commodityUnit*h] is limited by a time series.
-
-        .. math::
-            op^{comp,opType}_{loc,ip,p,t} \leq \\text{opRateMax}^{comp,opType}_{loc,ip,p,t}
-
-        """
-        # operationRate is the same for all ip
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, opVarName + "_" + abbrvName)
-        constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)
-
-        if not pyM.hasSegmentation:
-
-            def op5(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return opVar[loc, compName, ip, p, t] <= rate[loc][p, t]
-
-            setattr(
-                pyM,
-                constrName + "5_" + abbrvName,
-                pyomo.Constraint(constrSet5, pyM.intraYearTimeSet, rule=op5),
-            )
-        else:
-
-            def op5(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= rate[loc][p, t] * esM.timeStepsPerSegment[ip].to_dict()[p, t]
-                )  # rate independent from ip
-
-            setattr(
-                pyM,
-                constrName + "5_" + abbrvName,
-                pyomo.Constraint(constrSet5, pyM.intraYearTimeSet, rule=op5),
             )
 
     def additionalMinPartLoad(
