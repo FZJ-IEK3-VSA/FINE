@@ -91,6 +91,20 @@ def perform_distance_based_grouping(
         |br| * the default value is 3
     :type n_groups: strictly positive int
 
+    :param skip_regions: The region id's to be skipped while aggregating regions
+        |br| * the default value is None
+    :type skip_regions: List
+
+        * Ex.: ['02_reg']
+               ['02_reg', '03_reg]
+
+    :param enforced_groups: The groups that should be enforced when aggregating regions.
+    |br| * the default value is None
+    :type enforced_groups: Dict
+
+        * Ex.: {'es': ['01_es', '02_es', '03_es']
+                'de': ['01_de', '02_de', '03_de', '04_de']}
+
     :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
 
         * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},\n
@@ -108,7 +122,7 @@ def perform_distance_based_grouping(
 
     else:
 
-        overall_aggregation_dict = {}
+        aggregation_dict = {}
         for key, group in enforced_groups.items():
             print("Grouping: ", key)
             output = _perform_distance_based_grouping(
@@ -117,9 +131,9 @@ def perform_distance_based_grouping(
                 enforced_group=group,
                 n_groups=n_groups,
             )
-            overall_aggregation_dict.update(output)
+            aggregation_dict.update(output)
 
-        return overall_aggregation_dict
+        return aggregation_dict
 
 
 # %%
@@ -138,6 +152,20 @@ def _perform_distance_based_grouping(
     :param n_groups: The number of region groups to be formed from the original region set
         |br| * the default value is 3
     :type n_groups: strictly positive int
+
+    :param skip_regions: The region id's to be skipped while aggregating regions
+        |br| * the default value is None
+    :type skip_regions: List
+
+        * Ex.: ['02_reg']
+               ['02_reg', '03_reg]
+
+    :param enforced_groups: The groups that should be enforced when aggregating regions.
+    |br| * the default value is None
+    :type enforced_groups: Dict
+
+        * Ex.: {'es': ['01_es', '02_es', '03_es']
+                'de': ['01_de', '02_de', '03_de', '04_de']}
 
     :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
 
