@@ -1,4 +1,4 @@
-#%% 
+#%%
 import os
 import pytest
 
@@ -48,28 +48,29 @@ def test_perform_string_based_grouping(
     assert sorted(clustered_regions_dict.keys()) == sorted(expected_keys)
     assert list(clustered_regions_dict.values())[0] == expected_value
 
-@pytest.mark.parametrize("skip_regions, expected_ouput", 
-        [
-            (   
-                None, 
-                {
-                    "01_reg": ["01_reg"],  ## Based on sample_labels ([2, 0, 0, 1, 1])
-                    "02_reg_03_reg": ["02_reg", "03_reg"],
-                    "04_reg_05_reg": ["04_reg", "05_reg"],
-                }
-            ), 
-            
-            (   
-                ["02_reg"],
-                {
-                    '05_reg_04_reg': ['05_reg', '04_reg'],
-                    '01_reg': ['01_reg'],
-                    '03_reg': ['03_reg'],
-                    '02_reg': ['02_reg']
-                }
-            )
-        ]
-)        
+
+@pytest.mark.parametrize(
+    "skip_regions, expected_ouput",
+    [
+        (
+            None,
+            {
+                "01_reg": ["01_reg"],  ## Based on sample_labels ([2, 0, 0, 1, 1])
+                "02_reg_03_reg": ["02_reg", "03_reg"],
+                "04_reg_05_reg": ["04_reg", "05_reg"],
+            },
+        ),
+        (
+            ["02_reg"],
+            {
+                "05_reg_04_reg": ["05_reg", "04_reg"],
+                "01_reg": ["01_reg"],
+                "03_reg": ["03_reg"],
+                "02_reg": ["02_reg"],
+            },
+        ),
+    ],
+)
 # TODO: add tests for enforced groups
 def test_perform_distance_based_grouping(skip_regions, expected_ouput):
     # TEST DATA
@@ -90,12 +91,14 @@ def test_perform_distance_based_grouping(skip_regions, expected_ouput):
     test_geom_xr = xr.Dataset({"centroids": centroid_da})
 
     # FUNCTION CALL
-    output_dict = grouping.perform_distance_based_grouping(geom_xr=test_geom_xr, 
-                                                           skip_regions=skip_regions)
+    output_dict = grouping.perform_distance_based_grouping(
+        geom_xr=test_geom_xr, skip_regions=skip_regions
+    )
 
     # ASSERTION
     assert output_dict == expected_ouput
-    
+
+
 @pytest.mark.parametrize("aggregation_method", ["kmedoids_contiguity", "hierarchical"])
 @pytest.mark.parametrize(
     "weights, expected_region_groups",
