@@ -1,3 +1,4 @@
+#%% 
 import os
 import pytest
 
@@ -10,7 +11,7 @@ from shapely.geometry import Point
 
 from FINE.aggregations.spatialAggregation import grouping
 
-
+#%%
 @pytest.mark.parametrize(
     "string_list, expected_keys, expected_value, separator, position",
     [
@@ -65,9 +66,11 @@ def test_perform_string_based_grouping(
                     '01_reg': ['01_reg'],
                     '03_reg': ['03_reg'],
                     '02_reg': ['02_reg']
-                })
+                }
+            )
         ]
 )        
+# TODO: add tests for enforced groups
 def test_perform_distance_based_grouping(skip_regions, expected_ouput):
     # TEST DATA
     space_list = ["01_reg", "02_reg", "03_reg", "04_reg", "05_reg"]
