@@ -59,7 +59,10 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
 
 
 def aggregate_time_series_spatially(
-    xr_data_array_in, sub_to_sup_region_id_dict, mode="mean", xr_weight_array=None
+    xr_data_array_in,
+    sub_to_sup_region_id_dict,
+    mode="mean",
+    xr_weight_array=None,
 ):
     """
     For each region group, aggregates the given time series variable.
@@ -111,33 +114,41 @@ def aggregate_time_series_spatially(
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
-        if mode == "mean":
-            xr_data_array_out.loc[dict(space=sup_region_id)] = (
-                xr_data_array_in.sel(space=sub_region_id_list).mean(dim="space").values
-            )
+
+        sub_region_da = xr_data_array_in.sel(space=sub_region_id_list)
+        # drop regions that contains only NAs. These correspond to locationally ineligible regions
+        sub_region_da = sub_region_da.dropna(dim="space", how="all")
 
         if mode == "weighted mean":
             # xr_data_array_in dytpe is set as float, this to avoid the division by zero error when dytpe=object
-            xr_data_array_in = xr_data_array_in.astype(dtype=float)
-            weighted_xr_data_array_in = xr_data_array_in * xr_weight_array
+            sub_region_da = sub_region_da.astype(dtype=float)
+
+            # get weights
+            sub_region_weight_da = xr_weight_array.sel(space=sub_region_id_list)
+            ## drop regions that contains only NAs. These correspond to locationally ineligible regions
+            sub_region_weight_da = sub_region_weight_da.dropna(dim="space", how="all")
+
+            weighted_sub_region_da = sub_region_da * sub_region_weight_da
 
             xr_data_array_out.loc[
                 dict(space=sup_region_id)
-            ] = weighted_xr_data_array_in.sel(space=sub_region_id_list).sum(
-                dim="space", skipna=False
-            ) / xr_weight_array.sel(
-                space=sub_region_id_list
-            ).sum(
-                dim="space", skipna=False
+            ] = weighted_sub_region_da.sum(dim="space") / sub_region_weight_da.sum(
+                dim="space"
             )
 
-        if mode == "sum":
-            xr_data_array_out.loc[dict(space=sup_region_id)] = (
-                xr_data_array_in.sel(space=sub_region_id_list)
-                .sum(
-                    dim="space", skipna=False
-                )  # INFO: if skipna=Flase not specified, sum of nas results in 0.
-                .values
+        elif mode == "mean":
+            xr_data_array_out.loc[dict(space=sup_region_id)] = sub_region_da.mean(
+                dim="space"
+            ).values
+
+        elif mode == "sum":
+            xr_data_array_out.loc[dict(space=sup_region_id)] = sub_region_da.sum(
+                dim="space"
+            ).values
+
+        else:
+            logger_representation.error(
+                'Please select one of the modes "weighted mean", "mean", or "sum"'
             )
 
     # NOTE: If theres a 0 in weight (ex: capacity being 0),
@@ -195,14 +206,15 @@ def aggregate_values_spatially(
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
+
+        sub_region_da = xr_data_array_in.sel(space=sub_region_id_list)
+
         if mode == "mean":
-            xr_data_array_out.loc[dict(space=sup_region_id)] = (
-                xr_data_array_in.sel(space=sub_region_id_list).mean(dim="space").values
-            )
+            xr_data_array_out.loc[dict(space=sup_region_id)] = sub_region_da.mean(
+                dim="space"
+            ).values
         else:
-            _sum_xr = xr_data_array_in.sel(space=sub_region_id_list).sum(
-                dim="space", skipna=False
-            )
+            _sum_xr = sub_region_da.sum(dim="space")
 
             if mode == "sum":
                 xr_data_array_out.loc[dict(space=sup_region_id)] = _sum_xr
@@ -217,6 +229,7 @@ def aggregate_values_spatially(
                     'Please select one of the modes "mean", "bool" or "sum"'
                 )
 
+    xr_data_array_out = xr_data_array_out.fillna(0)
     return xr_data_array_out
 
 
@@ -268,21 +281,17 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
         for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():
 
+            sub_region_da = xr_data_array_in.sel(
+                space=sub_region_id_list, space_2=sub_region_id_list_2
+            )
+
             if mode == "mean":
                 xr_data_array_out.loc[
                     dict(space=sup_region_id, space_2=sup_region_id_2)
-                ] = (
-                    xr_data_array_in.sel(
-                        space=sub_region_id_list, space_2=sub_region_id_list_2
-                    )
-                    .mean(dim=["space", "space_2"])
-                    .values
-                )
+                ] = sub_region_da.mean(dim=["space", "space_2"]).values
 
             else:
-                _sum_xr = xr_data_array_in.sel(
-                    space=sub_region_id_list, space_2=sub_region_id_list_2
-                ).sum(dim=["space", "space_2"], skipna=False)
+                _sum_xr = sub_region_da.sum(dim=["space", "space_2"])
 
                 if mode == "sum":
                     xr_data_array_out.loc[
@@ -307,6 +316,7 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
                     dict(space=sup_region_id, space_2=sup_region_id_2)
                 ] = 0
 
+    xr_data_array_out = xr_data_array_out.fillna(0)
     return xr_data_array_out
 
 
@@ -494,8 +504,23 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                     varname, comp, comp_ds
                 )
 
+                # only aggregate data corresponding to regions that are locationally eligible
+                var_dim = varname[:3]
+                if var_dim != "0d_":
+                    if var_dim == "2d_":
+                        locational_eligibility = comp_ds[f"2d_locationalEligibility"]
+                    else:
+                        locational_eligibility = comp_ds[f"1d_locationalEligibility"]
+
+                    da = da.where(locational_eligibility != 0)
+
+                    if aggregation_weight is not None:
+                        aggregation_weight = aggregation_weight.where(
+                            locational_eligibility != 0
+                        )
+
                 ## Time series
-                if varname[:3] == "ts_":
+                if var_dim == "ts_":
                     da = aggregate_time_series_spatially(
                         da,
                         sub_to_sup_region_id_dict,
@@ -504,7 +529,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                     )
 
                 ## 1d variables
-                elif varname[:3] == "1d_":
+                elif var_dim == "1d_":
                     da = aggregate_values_spatially(
                         da,
                         sub_to_sup_region_id_dict,
@@ -512,7 +537,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                     )
 
                 ## 2d variables
-                elif varname[:3] == "2d_":
+                elif var_dim == "2d_":
                     da = aggregate_connections(
                         da,
                         sub_to_sup_region_id_dict,
