@@ -43,6 +43,7 @@ class LinearOptimalPowerFlow(Transmission):
         interestRate=0.08,
         economicLifetime=10,
         technicalLifetime=None,
+        stockCommissioning=None,
     ):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.
@@ -87,6 +88,7 @@ class LinearOptimalPowerFlow(Transmission):
             interestRate=interestRate,
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
+            stockCommissioning=stockCommissioning,
         )
 
         self.modelingClass = LOPFModel
@@ -100,15 +102,6 @@ class LinearOptimalPowerFlow(Transmission):
         except:
             self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a LinearOptimalPowerFlow component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
-
 
 class LOPFModel(TransmissionModel):
 
@@ -120,12 +113,11 @@ class LOPFModel(TransmissionModel):
     """
 
     def __init__(self):
+        super().__init__()
         self.abbrvName = "lopf"
         self.dimension = "2dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum, self.phaseAngleVariablesOptimum = None, None
-        self.optSummary = None
+        self._operationVariablesOptimum = {}
+        self._phaseAngleVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -167,15 +159,19 @@ class LOPFModel(TransmissionModel):
         """
 
         # # Declare design variable sets
-        self.declareDesignVarSet(pyM)
+        self.declareDesignVarSet(pyM, esM)
+        self.declareCommissioningVarSet(pyM, esM)
         self.declareContinuousDesignVarSet(pyM)
         self.declareDiscreteDesignVarSet(pyM)
         self.declareDesignDecisionVarSet(pyM)
 
+        # Declare design pathway sets
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM)
+
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
-        self.declareOperationBinarySet(pyM)
 
         # Declare operation variable set
         self.declareOperationModeSets(
@@ -276,7 +272,7 @@ class LOPFModel(TransmissionModel):
         setattr(
             pyM,
             "ConstrpowerFlowDC_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.timeSet, rule=powerFlowDC),
+            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=powerFlowDC),
         )
 
     def basePhaseAngle(self, pyM):
@@ -323,7 +319,7 @@ class LOPFModel(TransmissionModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -332,27 +328,23 @@ class LOPFModel(TransmissionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
-
-        :param ip: investment period
-        :type ip: int
         """
+        super().setOptimalValues(esM, pyM)
+        for ip in esM.investmentPeriods:
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
 
-        super().setOptimalValues(esM, pyM, ip)
+            optVal_ = utils.formatOptimizationOutput(
+                phaseAngleVar.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            self._phaseAngleVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
 
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
-
-        optVal_ = utils.formatOptimizationOutput(
-            phaseAngleVar.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        self.phaseAngleVariablesOptimum = optVal_
-
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
@@ -360,7 +352,7 @@ class LOPFModel(TransmissionModel):
 
             * 'capacityVariables',
             * 'isBuiltVariables',
-            * 'operationVariablesOptimum',
+            * '_operationVariablesOptimum',
             * 'phaseAngleVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
@@ -368,47 +360,47 @@ class LOPFModel(TransmissionModel):
         """
         if name == "capacityVariablesOptimum":
             return {
-                "values": self.capacityVariablesOptimum,
+                "values": self._capacityVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "isBuiltVariablesOptimum":
             return {
-                "values": self.isBuiltVariablesOptimum,
+                "values": self._isBuiltVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "operationVariablesOptimum":
             return {
-                "values": self.operationVariablesOptimum,
+                "values": self._operationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "phaseAngleVariablesOptimum":
             return {
-                "values": self.phaseAngleVariablesOptimum,
+                "values": self._phaseAngleVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": "1dim",
             }
         else:
             return {
                 "capacityVariablesOptimum": {
-                    "values": self.capacityVariablesOptimum,
+                    "values": self._capacityVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "isBuiltVariablesOptimum": {
-                    "values": self.isBuiltVariablesOptimum,
+                    "values": self._isBuiltVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "operationVariablesOptimum": {
-                    "values": self.operationVariablesOptimum,
+                    "values": self._operationVariablesOptimum[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
                 "phaseAngleVariablesOptimum": {
-                    "values": self.phaseAngleVariablesOptimum,
+                    "values": self._phaseAngleVariablesOptimum[ip],
                     "timeDependent": True,
                     "dimension": "1dim",
                 },

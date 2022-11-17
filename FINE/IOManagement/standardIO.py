@@ -51,7 +51,6 @@ def writeOptimizationOutputToExcel(
     outputFileName="scenarioOutput",
     optSumOutputLevel=2,
     optValOutputLevel=1,
-    ip=0,
 ):
     """
     Write optimization output to an Excel file.
@@ -79,86 +78,96 @@ def writeOptimizationOutputToExcel(
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
     """
-    utils.output("\nWriting output to Excel... ", esM.verbose, 0)
-    _t = time.time()
-    writer = pd.ExcelWriter(outputFileName + ".xlsx")
+    for ip in esM.investmentPeriodNames:
+        if len(esM.investmentPeriodNames) > 1:
+            _outputFileName = outputFileName + f"_{ip}"
+        else:
+            _outputFileName = outputFileName
+        utils.output("\nWriting output to Excel... ", esM.verbose, 0)
+        _t = time.time()
+        writer = pd.ExcelWriter(_outputFileName + ".xlsx")
 
-    for name in esM.componentModelingDict.keys():
-        utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
-        oL = optSumOutputLevel
-        oL_ = oL[name] if type(oL) == dict else oL
-        optSum = esM.getOptimizationSummary(name, outputLevel=oL_)
-        if not optSum.empty:
-            optSum.to_excel(
-                writer,
-                name[:-5] + "OptSummary_" + esM.componentModelingDict[name].dimension,
-            )
+        for name in esM.componentModelingDict.keys():
+            utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
+            oL = optSumOutputLevel
+            oL_ = oL[name] if type(oL) == dict else oL
 
-        data = esM.componentModelingDict[name].getOptimalValues()
-        oL = optValOutputLevel
-        oL_ = oL[name] if type(oL) == dict else oL
-        dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
-        dataTI, indexTI = [], []
-        for key, d in data.items():
-            if d["values"] is None:
-                continue
-            if d["timeDependent"]:
-                if d["dimension"] == "1dim":
-                    dataTD1dim.append(d["values"]), indexTD1dim.append(key)
-                elif d["dimension"] == "2dim":
-                    dataTD2dim.append(d["values"]), indexTD2dim.append(key)
-            else:
-                dataTI.append(d["values"]), indexTI.append(key)
-        if dataTD1dim:
-            names = ["Variable", "Component", "Location"]
-            dfTD1dim = pd.concat(dataTD1dim, keys=indexTD1dim, names=names)
-            if oL_ == 1:
-                dfTD1dim = dfTD1dim.loc[
-                    ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
-                ]
-            if not dfTD1dim.empty:
-                dfTD1dim.to_excel(writer, name[:-5] + "_TDoptVar_1dim")
-        if dataTD2dim:
-            names = ["Variable", "Component", "LocationIn", "LocationOut"]
-            dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
-            if oL_ == 1:
-                dfTD2dim = dfTD2dim.loc[
-                    ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
-                ]
-            if not dfTD2dim.empty:
-                dfTD2dim.to_excel(writer, name[:-5] + "_TDoptVar_2dim")
-        if dataTI:
-            if esM.componentModelingDict[name].dimension == "1dim":
-                names = ["Variable type", "Component"]
-            elif esM.componentModelingDict[name].dimension == "2dim":
-                names = ["Variable type", "Component", "Location"]
-            dfTI = pd.concat(dataTI, keys=indexTI, names=names)
-            if oL_ == 1:
-                dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
-            if not dfTI.empty:
-                dfTI.to_excel(
+            optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
+            if not optSum.empty:
+                optSum.to_excel(
                     writer,
                     name[:-5]
-                    + "_TIoptVar_"
+                    + "OptSummary_"
                     + esM.componentModelingDict[name].dimension,
                 )
 
-    periodsOrder = pd.DataFrame(
-        [esM.periodsOrder[ip]], index=["periodsOrder"], columns=esM.periods
-    )
-    periodsOrder.to_excel(writer, "Misc")
-    if esM.segmentation:
-        ls = []
-        for i in esM.periodsOrder[ip].tolist():
-            ls.append(esM.timeStepsPerSegment[ip][i])
-        segmentDuration = pd.concat(ls, axis=1).rename(
-            columns={"Segment Duration": "timeStepsPerSegment"}
+            data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
+            oL = optValOutputLevel
+            oL_ = oL[name] if type(oL) == dict else oL
+            dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
+            dataTI, indexTI = [], []
+            for key, d in data.items():
+                if d["values"] is None:
+                    continue
+                if d["timeDependent"]:
+                    if d["dimension"] == "1dim":
+                        dataTD1dim.append(d["values"]), indexTD1dim.append(key)
+                    elif d["dimension"] == "2dim":
+                        dataTD2dim.append(d["values"]), indexTD2dim.append(key)
+                else:
+                    dataTI.append(d["values"]), indexTI.append(key)
+            if dataTD1dim:
+                names = ["Variable", "Component", "Location"]
+                dfTD1dim = pd.concat(dataTD1dim, keys=indexTD1dim, names=names)
+                if oL_ == 1:
+                    dfTD1dim = dfTD1dim.loc[
+                        ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
+                    ]
+                if not dfTD1dim.empty:
+                    dfTD1dim.to_excel(writer, name[:-5] + "_TDoptVar_1dim")
+            if dataTD2dim:
+                names = ["Variable", "Component", "LocationIn", "LocationOut"]
+                dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
+                if oL_ == 1:
+                    dfTD2dim = dfTD2dim.loc[
+                        ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
+                    ]
+                if not dfTD2dim.empty:
+                    dfTD2dim.to_excel(writer, name[:-5] + "_TDoptVar_2dim")
+            if dataTI:
+                if esM.componentModelingDict[name].dimension == "1dim":
+                    names = ["Variable type", "Component"]
+                elif esM.componentModelingDict[name].dimension == "2dim":
+                    names = ["Variable type", "Component", "Location"]
+                dfTI = pd.concat(dataTI, keys=indexTI, names=names)
+                if oL_ == 1:
+                    dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
+                if not dfTI.empty:
+                    dfTI.to_excel(
+                        writer,
+                        name[:-5]
+                        + "_TIoptVar_"
+                        + esM.componentModelingDict[name].dimension,
+                    )
+        # get internal name of investment period
+        _ip = esM.investmentPeriodNames.index(ip)
+        # save periods Order to excel output
+        periodsOrder = pd.DataFrame(
+            [esM.periodsOrder[_ip]], index=["periodsOrder"], columns=esM.periods
         )
-        segmentDuration.index.name = "segmentNumber"
-        segmentDuration.to_excel(writer, "Misc", startrow=3)
-    utils.output("\tSaving file...", esM.verbose, 0)
-    writer.save()
-    utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
+        periodsOrder.to_excel(writer, "Misc")
+        if esM.segmentation:
+            ls = []
+            for i in esM.periodsOrder[_ip].tolist():
+                ls.append(esM.timeStepsPerSegment[_ip][i])
+            segmentDuration = pd.concat(ls, axis=1).rename(
+                columns={"Segment Duration": "timeStepsPerSegment"}
+            )
+            segmentDuration.index.name = "segmentNumber"
+            segmentDuration.to_excel(writer, "Misc", startrow=3)
+        utils.output("\tSaving file...", esM.verbose, 0)
+        writer.save()
+        utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
 
 def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpyxl"):
@@ -439,6 +448,7 @@ def plotOperation(
     esM,
     compName,
     loc,
+    ip=0,
     locTrans=None,
     tMin=0,
     tMax=-1,
@@ -469,6 +479,10 @@ def plotOperation(
 
     **Default arguments:**
 
+    :param ip: investment period
+        |br| * the default value is 0
+    :type ip: int
+
     :param locTrans: second location, required when Transmission components are plotted
         |br| * the default value is None
     :type locTrans: string
@@ -483,7 +497,7 @@ def plotOperation(
 
     :param variableName: name of the operation time series. Checkout the component model class to see which options
         are available.
-        |br| * the default value is 'operationVariablesOptimum'
+        |br| * the default value is '_operationVariablesOptimum'
     :type variableName: string
 
     :param xlabel: x-label of the plot
@@ -519,7 +533,7 @@ def plotOperation(
     :type dpi: scalar > 0
     """
     data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
-        variableName
+        variableName, ip=ip
     )
     if data is None:
         return
@@ -610,7 +624,7 @@ def plotOperationColorMap(
 
     :param variableName: name of the operation time series. Checkout the component model class to see which options
         are available.
-        |br| * the default value is 'operationVariablesOptimum'
+        |br| * the default value is '_operationVariablesOptimum'
     :type variableName: string
 
     :param cmap: heat map (color map) (see matplotlib options)
@@ -706,14 +720,9 @@ def plotOperationColorMap(
         isStorage = True
         unit = unit + "*h"
 
-    _data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
-        variableName
+    data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
+        variableName, ip=ip
     )
-
-    if esM.numberOfInvestmentPeriods == 1:
-        data = _data
-    else:
-        data = _data[ip]
 
     if locTrans is None:
         timeSeries = data["values"].loc[(compName, loc)].values
@@ -905,6 +914,7 @@ def plotTransmission(
     transmissionShapeFileName,
     loc0,
     loc1,
+    ip=0,
     crs="epsg:3035",
     variableName="capacityVariablesOptimum",
     color="k",
@@ -941,14 +951,17 @@ def plotTransmission(
     :type loc1: string
 
     **Default arguments:**
+    :param ip: investment periods
+        |br| * the default value is 0
+    :type ip: int
 
     :param crs: coordinate reference system
         |br| * the default value is 'epsg:3035'
     :type crs: string
 
-    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation
-        ('operationVariablesOptimum').
-        |br| * the default value is 'capacityVariablesOptimum'
+    :param variableName: parameter for plotting installed capacity ('_capacityVariablesOptimum') or operation
+        ('_operationVariablesOptimum').
+        |br| * the default value is '_capacityVariablesOptimum'
     :type variableName: string
 
     :param color: color of the transmission line
@@ -996,7 +1009,7 @@ def plotTransmission(
     :type dpi: scalar > 0
     """
     data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
-        variableName
+        variableName, ip=ip
     )
     unit = esM.getComponentAttribute(compName, "commodityUnit")
     if data is None:
@@ -1061,6 +1074,7 @@ def plotLocationalColorMap(
     compName,
     locationsShapeFileName,
     indexColumn,
+    ip=0,
     perArea=True,
     areaFactor=1e3,
     crs="epsg:3035",
@@ -1096,6 +1110,10 @@ def plotLocationalColorMap(
 
     **Default arguments:**
 
+    :param ip: investment period
+        |br| * the default value is 0
+    :type ip: int
+
     :param perArea: indicates if the capacity should be given per area
         |br| * the default value is False
     :type perArea: boolean
@@ -1108,9 +1126,9 @@ def plotLocationalColorMap(
         |br| * the default value is 'epsg:3035'
     :type crs: string
 
-    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation
-        ('operationVariablesOptimum'). In case of plotting the operation, set the parameter doSum to True.
-        |br| * the default value is 'capacityVariablesOptimum'
+    :param variableName: parameter for plotting installed capacity ('_capacityVariablesOptimum') or operation
+        ('_operationVariablesOptimum'). In case of plotting the operation, set the parameter doSum to True.
+        |br| * the default value is '_capacityVariablesOptimum'
     :type variableName: string
 
     :param doSum: indicates if the variable has to be summarized for the location (e.g. for operation
@@ -1155,7 +1173,7 @@ def plotLocationalColorMap(
     :type dpi: scalar > 0
     """
     data = esM.componentModelingDict[esM.componentNames[compName]].getOptimalValues(
-        variableName
+        variableName, ip=ip
     )
     data = data["values"].loc[(compName)]
 

@@ -103,7 +103,11 @@ def optimizeSimpleMyopic(
         nothing is returned.
     :rtype: dict of all optimized instances of the EnergySystemModel class or None.
     """
-
+    if esM.numberOfInvestmentPeriods != 1:
+        raise ValueError(
+            "Myopic is based on single year optimizations. "
+            + "numberOfInvestmentPeriods must be 1"
+        )
     nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(
         startYear, endYear, nbOfSteps, nbOfRepresentedYears
     )
@@ -184,7 +188,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
     """
     for mdl in esM.componentModelingDict.keys():
         compValues = esM.componentModelingDict[mdl].getOptimalValues(
-            "capacityVariablesOptimum"
+            "capacityVariablesOptimum", ip=0
         )["values"]
         if compValues is not None:
             for comp in compValues.index.get_level_values(0).unique():

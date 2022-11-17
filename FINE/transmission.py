@@ -1,3 +1,4 @@
+from typing import Type
 from FINE.component import Component, ComponentModel
 from FINE import utils
 import warnings
@@ -43,6 +44,7 @@ class Transmission(Component):
         economicLifetime=10,
         technicalLifetime=None,
         balanceLimitID=None,
+        stockCommissioning=None,
     ):
         """
         Constructor for creating an Transmission class instance.
@@ -77,34 +79,38 @@ class Transmission(Component):
             column indices of the DataFrame have to equal the in the energy system model specified locations.
 
         :param operationRateMax: if specified, indicates a maximum operation rate for all possible connections
-            (both directions) of the transmission component at each time step by a positive float. If
+            (both directions) of the transmission component at each time step, if required also for each investment period, by a positive float. If
             hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.
             a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
-        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
-            DataFrame with positive (>= 0) entries per investment period. The row indices have
+        :type operationRateMax:
+            * None
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
             location indicates where the commodity is going too. If a flow is specified from location i to
             location j, it also has to be specified from j to i.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param operationRateFix: if specified, indicates a fixed operation rate for all possible connections
-            (both directions) of the transmission component at each time step by a positive float. If
+            (both directions) of the transmission component at each time step, if required also for each investment period, by a positive float. If
             hasCapacityVariable is set to True, the values are given relative to the installed capacities (i.e.
             a value of 1 indicates a utilization of 100% of the capacity). If hasCapacityVariable
             is set to False, the values are given as absolute values in form of the commodityUnit,
             referring to the transmitted commodity (before considering losses) during one time step.
             |br| * the default value is None
-        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict of None or Pandas
-            DataFrame with positive (>= 0) entries per investment period.. The row indices have
+        :type operationRateFix:
+            * None
+            * Pandas DataFrame with positive (>= 0). The row indices have
             to match the in the energy system model specified time steps. The column indices are combinations
             of locations (as defined in the energy system model), separated by a underscore (e.g.
             "location1_location2"). The first location indicates where the commodity is coming from. The second
             one location indicates where the commodity is going too. If a flow is specified from location i to
             location j, it also has to be specified from j to i.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param tsaWeight: weight with which the time series of the component should be considered when applying
             time series aggregation.
@@ -114,15 +120,16 @@ class Transmission(Component):
         :param opexPerOperation: describes the cost for one unit of the operation.
             The cost which is directly proportional to the operation of the component is obtained by multiplying
             the opexPerOperation parameter with the annual sum of the operational time series of the components.
-            The opexPerOperation can either be given as a float or a Pandas DataFrame with location specific values.
+            The opexPerOperation can either be given as a float or a Pandas DataFrame with location specific values or a dictionary per investment period with one of the previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro). The value has to match the unit costUnit/operationUnit
             (e.g. Euro/kWh, Dollar/kWh).
             |br| * the default value is 0
-        :type opexPerOperation: positive (>=0) float or Pandas DataFrame with positive (>=0) values or dict of
-            positive (>=0) float or Pandas DataFrame with positive (>=0) values per investment period.
-            The row and column indices of the DataFrame have to equal the in the energy system model
+        :type opexPerOperation:
+            * positive (>=0) float
+            * Pandas DataFrame with positive (>=0).The row and column indices of the DataFrame have to equal the in the energy system model
             specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
             Should be specified if the respective component of the TransmissionModel is supposed to be included in
@@ -170,7 +177,7 @@ class Transmission(Component):
                     self._mapC.update({loc1 + "_" + loc2: (loc1, loc2)})
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + "_" + loc2})
                     self._mapI.update({loc1 + "_" + loc2: loc2 + "_" + loc1})
-
+        # capacity parameter
         self.capacityMax = utils.preprocess2dimData(
             capacityMax, self._mapC, locationalEligibility=self.locationalEligibility
         )
@@ -180,13 +187,23 @@ class Transmission(Component):
         self.capacityMin = utils.preprocess2dimData(
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
-        self.investPerCapacity = utils.preprocess2dimData(investPerCapacity, self._mapC)
-        self.investIfBuilt = utils.preprocess2dimData(investIfBuilt, self._mapC)
+        # stockCommissioning
+        if stockCommissioning is None:
+            self.stockCommissioning = stockCommissioning
+        elif isinstance(stockCommissioning, dict):
+            self.stockCommissioning = {}
+            for potential_ip in stockCommissioning.keys():
+                self.stockCommissioning[potential_ip] = utils.preprocess2dimData(
+                    stockCommissioning[potential_ip],
+                    locationalEligibility=locationalEligibility,
+                )
+        else:
+            raise ValueError("stockCommissioning must be None or a dict.")
+
         self.isBuiltFix = utils.preprocess2dimData(
             isBuiltFix, self._mapC, locationalEligibility=self.locationalEligibility
         )
-        self.opexPerCapacity = utils.preprocess2dimData(opexPerCapacity, self._mapC)
-        self.opexIfBuilt = utils.preprocess2dimData(opexIfBuilt, self._mapC)
+
         self.interestRate = utils.preprocess2dimData(interestRate, self._mapC)
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
@@ -210,16 +227,16 @@ class Transmission(Component):
             linkedQuantityID=linkedQuantityID,
             capacityFix=self.capacityFix,
             isBuiltFix=self.isBuiltFix,
-            investPerCapacity=self.investPerCapacity,
-            investIfBuilt=self.investIfBuilt,
-            opexPerCapacity=self.opexPerCapacity,
-            opexIfBuilt=self.opexIfBuilt,
+            investPerCapacity=0,
+            investIfBuilt=0,
+            opexPerCapacity=0,
+            opexIfBuilt=0,
             interestRate=self.interestRate,
             QPcostScale=QPcostScale,
             economicLifetime=self.economicLifetime,
             technicalLifetime=self.technicalLifetime,
+            stockCommissioning=self.stockCommissioning,
         )
-
         # Set general component data
         utils.checkCommodities(esM, {commodity})
         self.commodity, self.commodityUnit = (
@@ -238,164 +255,112 @@ class Transmission(Component):
         )
         self.modelingClass = TransmissionModel
 
+        # these are initialized with 0 in the component.__init__ and overwritten here,
+        # due to its different structure otherwise the tests fail in the component
+        self.investPerCapacity = investPerCapacity
+        _processedInvestPerCapacity = utils.preprocess2dimInvestmentPeriodData(
+            esM,
+            "investPerCapacity",
+            investPerCapacity,
+            self.processedStockYears + esM.investmentPeriods,
+            self._mapC,
+        )
+
+        self.investIfBuilt = investIfBuilt
+        _processedInvestIfBuilt = utils.preprocess2dimInvestmentPeriodData(
+            esM,
+            "investIfBuilt",
+            investIfBuilt,
+            self.processedStockYears + esM.investmentPeriods,
+            self._mapC,
+        )
+
+        self.opexPerCapacity = opexPerCapacity
+        _processedOpexPerCapacity = utils.preprocess2dimInvestmentPeriodData(
+            esM,
+            "opexPerCapacity",
+            opexPerCapacity,
+            self.processedStockYears + esM.investmentPeriods,
+            self._mapC,
+        )
+
+        self.opexIfBuilt = opexIfBuilt
+        _processedOpexIfBuilt = utils.preprocess2dimInvestmentPeriodData(
+            esM,
+            "opexIfBuilt",
+            opexIfBuilt,
+            self.processedStockYears + esM.investmentPeriods,
+            self._mapC,
+        )
+
         # Set distance related costs data
-        self.processedInvestPerCapacity = self.investPerCapacity * self.distances * 0.5
-        self.processedInvestIfBuilt = self.investIfBuilt * self.distances * 0.5
-        self.processedOpexPerCapacity = self.opexPerCapacity * self.distances * 0.5
-        self.processedOpexIfBuilt = self.opexIfBuilt * self.distances * 0.5
-
-        # Set additional economic data
-
-        ## New code for perfect foresight!
-        # create emtpy dicts
-        self.opexPerOperation = opexPerOperation
-        self.processedOpexPerOperation = {}
-        self.operationRateMax = operationRateMax
-        self.fullOperationRateMax = {}
-        self.aggregatedOperationRateMax = {}
-        self.processedOperationRateMax = {}
-
-        self.operationRateFix = operationRateFix
-        self.fullOperationRateFix = {}
-        self.aggregatedOperationRateFix = {}
-        self.processedOperationRateFix = {}
-        self.partLoadMin = partLoadMin
-        self.processedPartLoadMin = {}
-
-        for param in [operationRateMax, operationRateFix, partLoadMin]:
-            utils.checkParamInput(param)
-
-        # iterate over all ips
-        for ip in esM.investmentPeriods:
-            self.opexPerOperation = utils.preprocess2dimData(
-                opexPerOperation, self._mapC
+        self.processedInvestPerCapacity = {}
+        self.processedInvestIfBuilt = {}
+        self.processedOpexPerCapacity = {}
+        self.processedOpexIfBuilt = {}
+        for year in self.processedStockYears + esM.investmentPeriods:
+            self.processedInvestPerCapacity[year] = (
+                _processedInvestPerCapacity[year] * self.distances * 0.5
+            )
+            self.processedInvestIfBuilt[year] = (
+                _processedInvestIfBuilt[year] * self.distances * 0.5
+            )
+            self.processedOpexPerCapacity[year] = (
+                _processedOpexPerCapacity[year] * self.distances * 0.5
+            )
+            self.processedOpexIfBuilt[year] = (
+                _processedOpexIfBuilt[year] * self.distances * 0.5
             )
 
-            # opexPerOperation
-            if (
-                isinstance(opexPerOperation, int)
-                or isinstance(opexPerOperation, float)
-                or isinstance(opexPerOperation, pd.Series)
-            ):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation, "2dim", self.locationalEligibility
-                )
-            elif isinstance(opexPerOperation, dict):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation[ip], "2dim", self.locationalEligibility
-                )
-            elif isinstance(opexPerOperation, pd.DataFrame):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, self.opexPerOperation, "2dim", self.locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "opexPerOperation should be an int, float, pandas series, pandas dataframe or a dictionary."
-                )
+        # Set additional economic data
+        # opexPerOperation
+        self.opexPerOperation = utils.preprocess2dimData(opexPerOperation, self._mapC)
+        self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM,
+            name,
+            self.opexPerOperation,
+            "2dim",
+            self.locationalEligibility,
+            esM.investmentPeriods,
+        )
 
-            # Operation Rate Max
-            if (
-                isinstance(operationRateMax, pd.DataFrame)
-                or isinstance(operationRateMax, pd.Series)
-                or operationRateMax is None
-            ):
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax, self.locationalEligibility
-                )
-            elif isinstance(operationRateMax, dict):
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax[ip], self.locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "OperationRateMax should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedOperationRateMax[ip] = None
+        # operationRateMax
+        self.operationRateMax = operationRateMax
+        self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, operationRateMax, self.locationalEligibility
+        )
+        self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
+        self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
 
-            # Operation Rate Fix
-            if (
-                isinstance(operationRateFix, pd.DataFrame)
-                or isinstance(operationRateFix, pd.Series)
-                or operationRateFix is None
-            ):
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix, self.locationalEligibility
-                )
-            elif isinstance(operationRateFix, dict):
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix[ip], self.locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "OperationRateFix should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedOperationRateFix[ip] = None
+        # operationRateFix
+        self.operationRateFix = operationRateFix
+        self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, operationRateFix, self.locationalEligibility
+        )
+        self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
+        self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
 
-            # part load
-            if isinstance(partLoadMin, float) or partLoadMin is None:
-                self.processedPartLoadMin[ip] = partLoadMin
-            elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[ip]
-            if self.processedPartLoadMin is not None:
-                if self.processedPartLoadMin[ip] is not None:
-                    if self.fullOperationRateMax[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateMax[ip] > 0)
-                                & (
-                                    self.fullOperationRateMax[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
-                    if self.fullOperationRateFix[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateFix[ip] > 0)
-                                & (
-                                    self.fullOperationRateFix[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
+        # partLoadMin
+        self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
+            esM,
+            name,
+            partLoadMin,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+            self.bigM,
+            self.hasCapacityVariable,
+        )
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # New code for perfect foresight
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullOperationRateFix.values()
-        ):
-            self.fullOperationRateFix = None
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullOperationRateMax.values()
-        ):
-            self.fullOperationRateMax = None
-        if not any(value for value in self.processedPartLoadMin.values()):
-            self.processedPartLoadMin = None
-
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a transmission component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
+        # set parameter to None if all years have None values
+        self.fullOperationRateFix = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateFix
+        )
+        self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateMax
+        )
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -454,23 +419,11 @@ class Transmission(Component):
         the parameter itself is set to None.
         """
         for parameter in ["processedOperationRateFix", "processedOperationRateMax"]:
-            if getattr(self, parameter) is not None:
-                if all(
-                    type(value) != pd.core.frame.DataFrame
-                    for value in getattr(self, parameter).values()
-                ):
-                    setattr(self, parameter, None)
-
-    def initializeProcessedDataSets(self, investmentperiods):
-        """
-        Initialize dicts (keys are investment periods, values are None)
-        for processed data sets.
-
-        :param investmentperiods: investmentperiods of transformation path analysis.
-        :type investmentperiods: list
-        """
-        self.processedOperationRateMax = dict.fromkeys(investmentperiods)
-        self.processedOperationRateFix = dict.fromkeys(investmentperiods)
+            setattr(
+                self,
+                parameter,
+                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
+            )
 
 
 class TransmissionModel(ComponentModel):
@@ -483,12 +436,11 @@ class TransmissionModel(ComponentModel):
 
     def __init__(self):
         """ " Constructor for creating a TransmissionModel class instance"""
+        super().__init__()
         self.abbrvName = "trans"
         self.dimension = "2dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = {}, {}
-        self.operationVariablesOptimum = {}
-        self.optSummary = {}
+        self._operationVariablesOptimum = {}
+        self._isBuiltVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -506,14 +458,18 @@ class TransmissionModel(ComponentModel):
         """
 
         # # Declare design variable sets
-        self.declareDesignVarSet(pyM)
+        self.declareDesignVarSet(pyM, esM)
+        self.declareCommissioningVarSet(pyM, esM)
         self.declareContinuousDesignVarSet(pyM)
         self.declareDiscreteDesignVarSet(pyM)
         self.declareDesignDecisionVarSet(pyM)
 
+        # Declare design pathway sets
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM)
+
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
@@ -556,6 +512,9 @@ class TransmissionModel(ComponentModel):
         self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
+        # Capacity development variables [physicalUnit]
+        self.declareCommissioningVars(pyM, esM)
+        self.declareDecommissioningVars(pyM, esM)
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -579,9 +538,10 @@ class TransmissionModel(ComponentModel):
             getattr(pyM, "designDimensionVarSet_" + abbrvName),
         )
 
-        def symmetricalCapacity(pyM, loc, compName):
+        def symmetricalCapacity(pyM, loc, compName, ip):
             return (
-                capVar[loc, compName] == capVar[compDict[compName]._mapI[loc], compName]
+                capVar[loc, compName, ip]
+                == capVar[compDict[compName]._mapI[loc], compName, ip]
             )
 
         setattr(
@@ -621,13 +581,13 @@ class TransmissionModel(ComponentModel):
                 return (
                     opVar[loc, compName, ip, p, t]
                     + opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
-                    <= capVar[loc, compName] * esM.hoursPerTimeStep
+                    <= capVar[loc, compName, ip] * esM.hoursPerTimeStep
                 )
 
             setattr(
                 pyM,
                 constrName + "_" + abbrvName,
-                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+                pyomo.Constraint(constrSet1, pyM.intraYearTimeSet, rule=op1),
             )
         else:
 
@@ -635,13 +595,14 @@ class TransmissionModel(ComponentModel):
                 return (
                     opVar[loc, compName, ip, p, t]
                     + opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
-                    <= capVar[loc, compName] * esM.hoursPerSegment[ip].to_dict()[p, t]
+                    <= capVar[loc, compName, ip]
+                    * esM.hoursPerSegment[ip].to_dict()[p, t]
                 )
 
             setattr(
                 pyM,
                 constrName + "_" + abbrvName,
-                pyomo.Constraint(constrSet1, pyM.timeSet, rule=op1),
+                pyomo.Constraint(constrSet1, pyM.intraYearTimeSet, rule=op1),
             )
 
     def declareComponentConstraints(self, esM, pyM):
@@ -667,8 +628,21 @@ class TransmissionModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
+        # Set, if applicable, the installed capacities of a component
+        self.capacityFix(pyM, esM)
+        # Set, if applicable, the binary design variables of a component
+        self.designBinFix(pyM)
         # Enforce the equality of the capacities cap_loc1_loc2 and cap_loc2_loc1
         self.symmetricalCapacity(pyM)
+
+        ################################################################################################################
+        #                                    Declare pathway constraints                                               #
+        ################################################################################################################
+        # Set capacity development constraints over investment periods
+        self.designDevelopmentConstraint(pyM, esM)
+        self.decommissioningConstraint(pyM, esM)
+        self.stockCapacityConstraint(pyM, esM)
+        self.stockCommissioningConstaint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
@@ -691,10 +665,6 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
-
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """Get contributions to shared location potential."""
-        return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
@@ -748,17 +718,17 @@ class TransmissionModel(ComponentModel):
                 - compDict[compName].losses[loc_ + "_" + loc]
                 * compDict[compName].distances[loc_ + "_" + loc]
             )
-            for loc_ in opVarDictIn[loc].keys()
-            for compName in opVarDictIn[loc][loc_]
+            for loc_ in opVarDictIn[ip][loc].keys()
+            for compName in opVarDictIn[ip][loc][loc_]
             if commod in compDict[compName].commodity
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t]
-            for loc_ in opVarDictOut[loc].keys()
-            for compName in opVarDictOut[loc][loc_]
+            for loc_ in opVarDictOut[ip][loc].keys()
+            for compName in opVarDictOut[ip][loc][loc_]
             if commod in compDict[compName].commodity
         )
 
-    def getBalanceLimitContribution(self, esM, pyM, ID, loc, timeSeriesAggregation):
+    def getBalanceLimitContribution(self, esM, pyM, ID, ip, loc, timeSeriesAggregation):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
         Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
@@ -773,6 +743,9 @@ class TransmissionModel(ComponentModel):
 
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
 
         :param ID: ID of the regarded balanceLimitConstraint
         :param ID: string
@@ -795,7 +768,6 @@ class TransmissionModel(ComponentModel):
         opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
         limitDict = getattr(pyM, "balanceLimitDict")
         if timeSeriesAggregation:
-            investmentPeriods = esM.investmentPeriods
             periods = esM.typicalPeriods
             if esM.segmentation:
                 timeSteps = esM.segmentsPerPeriod
@@ -803,7 +775,6 @@ class TransmissionModel(ComponentModel):
                 timeSteps = esM.timeStepsPerPeriod
 
         else:
-            investmentPeriods = esM.investmentPeriods
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
         aut = sum(
@@ -814,18 +785,16 @@ class TransmissionModel(ComponentModel):
                 * compDict[compName].distances[loc_ + "_" + loc]
             )
             * esM.periodOccurrences[ip][p]
-            for loc_ in opVarDictIn[loc].keys()
-            for compName in opVarDictIn[loc][loc_]
+            for loc_ in opVarDictIn[ip][loc].keys()
+            for compName in opVarDictIn[ip][loc][loc_]
             if compName in limitDict[(ID, loc)]
-            for ip in investmentPeriods
             for p in periods
             for t in timeSteps
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-            for loc_ in opVarDictOut[loc].keys()
-            for compName in opVarDictOut[loc][loc_]
+            for loc_ in opVarDictOut[ip][loc].keys()
+            for compName in opVarDictOut[ip][loc][loc_]
             if compName in limitDict[(ID, loc)]
-            for ip in investmentPeriods
             for p in periods
             for t in timeSteps
         )
@@ -842,33 +811,48 @@ class TransmissionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
 
-        opexOp = self.getEconomicsTD(
-            pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDictOut"
+        opexOp = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDictOut"
         )
 
-        capexCap = self.getEconomicsTI(
+        capexCap = self.getEconomicsDesign(
             pyM,
+            esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            QPfactorNames=["QPcostScale", "processedInvestPerCapacity"],
-            varName="cap",
+            QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
+            lifetimeAttr="ipEconomicLifetime",
+            varName="commis",
             divisorName="CCF",
             QPdivisorNames=["QPbound", "CCF"],
         )
-        capexDec = self.getEconomicsTI(
-            pyM, ["processedInvestIfBuilt"], "designBin", "CCF"
-        )
-        opexCap = self.getEconomicsTI(
+        capexDec = self.getEconomicsDesign(
             pyM,
+            esM,
+            factorNames=["processedInvestIfBuilt"],
+            lifetimeAttr="ipEconomicLifetime",
+            varName="commisBin",
+            divisorName="CCF",
+        )
+        opexCap = self.getEconomicsDesign(
+            pyM,
+            esM,
             factorNames=["processedOpexPerCapacity", "QPcostDev"],
-            QPfactorNames=["QPcostScale", "processedOpexPerCapacity"],
-            varName="cap",
+            QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
+            lifetimeAttr="ipTechnicalLifetime",
+            varName="commis",
             QPdivisorNames=["QPbound"],
         )
-        opexDec = self.getEconomicsTI(pyM, ["processedOpexIfBuilt"], "designBin")
+        opexDec = self.getEconomicsDesign(
+            pyM,
+            esM,
+            factorNames=["processedOpexIfBuilt"],
+            lifetimeAttr="ipTechnicalLifetime",
+            varName="commisBin",
+        )
 
         return opexOp + capexCap + capexDec + opexCap + opexDec
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -877,9 +861,6 @@ class TransmissionModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
@@ -888,46 +869,92 @@ class TransmissionModel(ComponentModel):
             for loc1 in esM.locations
             for loc2 in esM.locations
         }
+        # Set optimal design dimension variables and get basic optimization summary
+        optSummaryBasic = super().setOptimalValues(
+            esM, pyM, mapC.keys(), "commodityUnit"
+        )
 
-        def _setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
+        # Get class related results
+        resultsTAC_opexOp = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
+        )
+        resultsNPV_opexOp = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
+        )
+        for ip in esM.investmentPeriods:
+            for compName, comp in compDict.items():
+                for cost in [
+                    "invest",
+                    "capexCap",
+                    "capexIfBuilt",
+                    "opexCap",
+                    "opexIfBuilt",
+                    "TAC",
+                ]:
+                    data = optSummaryBasic[esM.investmentPeriodNames[ip]].loc[
+                        compName, cost
+                    ]
+                    optSummaryBasic[esM.investmentPeriodNames[ip]].loc[
+                        compName, cost
+                    ] = (data).values
 
-            compDict, abbrvName = self.componentsDict, self.abbrvName
-            capVar = getattr(esM.pyM, "cap_" + abbrvName)
-            binVar = getattr(esM.pyM, "designBin_" + abbrvName)
+            # Set optimal operation variables and append optimization summary
+            optVal = utils.formatOptimizationOutput(
+                opVar.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            optVal_ = utils.formatOptimizationOutput(
+                opVar.get_values(),
+                "operationVariables",
+                "2dim",
+                ip,
+                esM.periodsOrder[ip],
+                compDict=compDict,
+                esM=esM,
+            )
+            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
 
-            props = [
-                "capacity",
-                "isBuilt",
-                "capexCap",
-                "capexIfBuilt",
-                "opexCap",
-                "opexIfBuilt",
-                "TAC",
-                "invest",
-            ]
-            units = [
-                "[-]",
-                "[-]",
-                "[" + esM.costUnit + "/a]",
-                "[" + esM.costUnit + "/a]",
-                "[" + esM.costUnit + "/a]",
-                "[" + esM.costUnit + "/a]",
-                "[" + esM.costUnit + "/a]",
-                "[" + esM.costUnit + "]",
-            ]
+            props = ["operation", "opexOp", "NPV_opexOp"]
+            # Unit dict: Specify units for props
+            units = {
+                props[0]: ["[-*h]", "[-*h/a]"],
+                props[1]: ["[" + esM.costUnit + "/a]"],
+                props[2]: ["[" + esM.costUnit + "/a]"],
+            }
+            # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
                 (compName, prop, unit)
                 for compName in compDict.keys()
-                for prop, unit in zip(props, units)
+                for prop in props
+                for unit in units[prop]
             ]
+            # Replace placeholder with correct unit of component
             tuples = list(
                 map(
                     lambda x: (
                         x[0],
                         x[1],
-                        "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
+                        x[2].replace("-", compDict[x[0]].commodityUnit),
                     )
-                    if x[1] == "capacity"
+                    if x[1] == "operation"
                     else x,
                     tuples,
                 )
@@ -936,317 +963,97 @@ class TransmissionModel(ComponentModel):
                 tuples, names=["Component", "Property", "Unit"]
             )
             optSummary = pd.DataFrame(
-                index=mIndex, columns=sorted(indexColumns)
+                index=mIndex, columns=sorted(mapC.keys())
             ).sort_index()
 
-            # Get and set optimal variable values for expanded capacities
-            values = capVar.get_values()
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-            optVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, compDict=compDict
-            )
-            self.capacityVariablesOptimum = optVal_
-
             if optVal is not None:
-                # Check if the installed capacities are close to a bigM value for components with design decision variables but
-                # ignores cases where bigM was substituted by capacityMax parameter (see bigM constraint)
-                for compName, comp in compDict.items():
-                    if (
-                        comp.hasIsBuiltBinaryVariable
-                        and (comp.capacityMax is None)
-                        and optVal.loc[compName].max() >= comp.bigM * 0.9
-                        and esM.verbose < 2
-                    ):  # and comp.capacityMax is None
-                        warnings.warn(
-                            "the capacity of component "
-                            + compName
-                            + " is in one or more locations close "
-                            + "or equal to the chosen Big M. Consider rerunning the simulation with a higher"
-                            + " Big M."
-                        )
+                opSum = optVal.sum(axis=1).unstack(-1)
 
-                # Calculate the investment costs i (proportional to capacity expansion)
-                i = optVal.apply(
-                    lambda cap: cap
-                    * compDict[cap.name].processedInvestPerCapacity
-                    * compDict[cap.name].QPcostDev
-                    + (
-                        compDict[cap.name].processedInvestPerCapacity
-                        * compDict[cap.name].QPcostScale
-                        / (compDict[cap.name].QPbound)
-                        * cap
-                        * cap
-                    ),
-                    axis=1,
-                )
-                # Calculate the annualized investment costs cx (CAPEX)
-                cx = optVal.apply(
-                    lambda cap: (
-                        cap
-                        * compDict[cap.name].processedInvestPerCapacity
-                        * compDict[cap.name].QPcostDev
-                        / compDict[cap.name].CCF
-                    )
-                    + (
-                        compDict[cap.name].processedInvestPerCapacity
-                        / compDict[cap.name].CCF
-                        * compDict[cap.name].QPcostScale
-                        / (compDict[cap.name].QPbound)
-                        * cap
-                        * cap
-                    ),
-                    axis=1,
-                )
-                # Calculate the annualized operational costs ox (OPEX)
-                ox = optVal.apply(
-                    lambda cap: cap
-                    * compDict[cap.name].processedOpexPerCapacity
-                    * compDict[cap.name].QPcostDev
-                    + (
-                        compDict[cap.name].processedOpexPerCapacity
-                        * compDict[cap.name].QPcostScale
-                        / (compDict[cap.name].QPbound)
-                        * cap
-                        * cap
-                    ),
-                    axis=1,
-                )
-
-                # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
-                # (due to capacity expansion).
                 optSummary.loc[
                     [
-                        (
-                            ix,
-                            "capacity",
-                            "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
-                        )
-                        for ix in optVal.index
+                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
+                        for ix in opSum.index
                     ],
-                    optVal.columns,
-                ] = optVal.values
-                optSummary.loc[
-                    [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index],
-                    i.columns,
-                ] = i.values
-                optSummary.loc[
-                    [(ix, "capexCap", "[" + esM.costUnit + "/a]") for ix in cx.index],
-                    cx.columns,
-                ] = cx.values
-                optSummary.loc[
-                    [(ix, "opexCap", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                    ox.columns,
-                ] = ox.values
-
-            # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
-            values = binVar.get_values()
-            optVal = utils.formatOptimizationOutput(values, "designVariables", "1dim")
-            optVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, compDict=compDict
-            )
-            self.isBuiltVariablesOptimum = optVal_
-
-            if optVal is not None:
-                # Calculate the investment costs i (fix value if component is built)
-                i = optVal.apply(
-                    lambda dec: dec * compDict[dec.name].processedInvestIfBuilt, axis=1
+                    opSum.columns,
+                ] = (
+                    opSum.values / esM.numberOfYears
                 )
-                # Calculate the annualized investment costs cx (fix value if component is built)
-                cx = optVal.apply(
-                    lambda dec: dec
-                    * compDict[dec.name].processedInvestIfBuilt
-                    / compDict[dec.name].CCF,
-                    axis=1,
-                )
-                # Calculate the annualized operational costs ox (fix value if component is built)
-                ox = optVal.apply(
-                    lambda dec: dec * compDict[dec.name].processedOpexIfBuilt, axis=1
-                )
-
-                # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
-                # (due to isBuilt decisions).
-                optSummary.loc[
-                    [(ix, "isBuilt", "[-]") for ix in optVal.index], optVal.columns
-                ] = optVal.values
-                optSummary.loc[
-                    [(ix, "invest", "[" + esM.costUnit + "]") for ix in cx.index],
-                    cx.columns,
-                ] += i.values
                 optSummary.loc[
                     [
-                        (ix, "capexIfBuilt", "[" + esM.costUnit + "/a]")
-                        for ix in cx.index
+                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
+                        for ix in opSum.index
                     ],
-                    cx.columns,
-                ] = cx.values
-                optSummary.loc[
-                    [
-                        (ix, "opexIfBuilt", "[" + esM.costUnit + "/a]")
-                        for ix in ox.index
-                    ],
-                    ox.columns,
-                ] = ox.values
+                    opSum.columns,
+                ] = opSum.values
 
-            # Summarize all annualized contributions to the total annual cost
+                tac_ox = resultsTAC_opexOp[ip]
+                optSummary.loc[
+                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
+                    tac_ox.columns,
+                ] = (
+                    tac_ox.values * 0.5
+                )
+
+                npv_ox = resultsNPV_opexOp[ip]
+                optSummary.loc[
+                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
+                    npv_ox.columns,
+                ] = (
+                    npv_ox.values * 0.5
+                )
+
+            optSummary = optSummary.append(
+                optSummaryBasic[esM.investmentPeriodNames[ip]]
+            ).sort_index()
+
+            # Summarize all contributions to the total annual cost
             optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
                 optSummary.loc[
-                    (optSummary.index.get_level_values(1) == "capexCap")
-                    | (optSummary.index.get_level_values(1) == "opexCap")
-                    | (optSummary.index.get_level_values(1) == "capexIfBuilt")
-                    | (optSummary.index.get_level_values(1) == "opexIfBuilt")
+                    (optSummary.index.get_level_values(1) == "TAC")
+                    | (optSummary.index.get_level_values(1) == "opexOp")
                 ]
                 .groupby(level=0)
                 .sum()
                 .values
             )
 
-            return optSummary
-
-        # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = _setOptimalValues(
-            self, esM, pyM, mapC.keys(), "commodityUnit"
-        )
-
-        for compName, comp in compDict.items():
-            for cost in [
-                "invest",
-                "capexCap",
-                "capexIfBuilt",
-                "opexCap",
-                "opexIfBuilt",
-                "TAC",
-            ]:
-                data = optSummaryBasic.loc[compName, cost]
-                optSummaryBasic.loc[compName, cost] = (data).values
-
-        # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(
-            opVar.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        optVal_ = utils.formatOptimizationOutput(
-            opVar.get_values(),
-            "operationVariables",
-            "2dim",
-            ip,
-            esM.periodsOrder[ip],
-            compDict=compDict,
-            esM=esM,
-        )
-        # Quick fix if several runs with one investment period
-        if type(self.operationVariablesOptimum) is not dict:
-            self.operationVariablesOptimum = {}
-        self.operationVariablesOptimum[ip] = optVal_
-
-        props = ["operation", "opexOp"]
-        # Unit dict: Specify units for props
-        units = {props[0]: ["[-*h]", "[-*h/a]"], props[1]: ["[" + esM.costUnit + "/a]"]}
-        # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
-        tuples = [
-            (compName, prop, unit)
-            for compName in compDict.keys()
-            for prop in props
-            for unit in units[prop]
-        ]
-        # Replace placeholder with correct unit of component
-        tuples = list(
-            map(
-                lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
-                if x[1] == "operation"
-                else x,
-                tuples,
-            )
-        )
-        mIndex = pd.MultiIndex.from_tuples(
-            tuples, names=["Component", "Property", "Unit"]
-        )
-        optSummary = pd.DataFrame(
-            index=mIndex, columns=sorted(mapC.keys())
-        ).sort_index()
-
-        if optVal is not None:
-            opSum = optVal.sum(axis=1).unstack(-1)
-
-            # New index for opex is required as indexing with list with missing labels is deprecated
-            # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-with-list-with-missing-labels-is-deprecated
-            newIndex = opSum.columns.tolist()
-            for name in compDict.keys():
-                compDict[name].processedOpexPerOperation[ip] = (
-                    compDict[name]
-                    .processedOpexPerOperation[ip]
-                    .reindex(newIndex, fill_value=0.0)
-                )
-
-            ox = opSum.apply(
-                lambda op: op
-                * compDict[op.name].processedOpexPerOperation[ip][op.index],
-                axis=1,
-            )
+            # Update the NPV contribution
             optSummary.loc[
-                [
-                    (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
-                    for ix in opSum.index
-                ],
-                opSum.columns,
+                optSummary.index.get_level_values(1) == "NPVcontribution"
             ] = (
-                opSum.values / esM.numberOfYears
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "NPVcontribution")
+                    | (optSummary.index.get_level_values(1) == "NPV_opexOp")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
             )
-            optSummary.loc[
-                [
-                    (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
-                    for ix in opSum.index
-                ],
-                opSum.columns,
-            ] = opSum.values
-            optSummary.loc[
-                [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                ox.columns,
-            ] = (
-                ox.values / esM.numberOfYears * 0.5
-            )
+            # Delete details of NPV contribution
+            optSummary = optSummary.drop("NPV_opexOp", level=1)
 
-        optSummary = optSummary.append(optSummaryBasic).sort_index()
+            # Split connection indices to two location indices
+            optSummary = optSummary.stack()
+            indexNew = []
+            for tup in optSummary.index.tolist():
+                loc1, loc2 = mapC[tup[3]]
+                indexNew.append((tup[0], tup[1], tup[2], loc1, loc2))
+            optSummary.index = pd.MultiIndex.from_tuples(indexNew)
+            optSummary = optSummary.unstack(level=-1)
+            names = list(optSummaryBasic[esM.investmentPeriodNames[ip]].index.names)
+            names.append("LocationIn")
+            optSummary.index.set_names(names, inplace=True)
+            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
-        # Summarize all contributions to the total annual cost
-        optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
-            optSummary.loc[
-                (optSummary.index.get_level_values(1) == "TAC")
-                | (optSummary.index.get_level_values(1) == "opexOp")
-            ]
-            .groupby(level=0)
-            .sum()
-            .values
-        )
-
-        # Split connection indices to two location indices
-        optSummary = optSummary.stack()
-        indexNew = []
-        for tup in optSummary.index.tolist():
-            loc1, loc2 = mapC[tup[3]]
-            indexNew.append((tup[0], tup[1], tup[2], loc1, loc2))
-        optSummary.index = pd.MultiIndex.from_tuples(indexNew)
-        optSummary = optSummary.unstack(level=-1)
-        names = list(optSummaryBasic.index.names)
-        names.append("LocationIn")
-        optSummary.index.set_names(names, inplace=True)
-        # Quick fix if several runs with one investment period
-        if type(self.optSummary) is not dict:
-            self.optSummary = {}
-        self.optSummary[ip] = optSummary
-
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 
-        * 'capacityVariables',
-        * 'isBuiltVariables',
-        * 'operationVariablesOptimum',
+        * '_capacityVariables',
+        * '_isBuiltVariables',
+        * '_operationVariablesOptimum',
         * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'
@@ -1255,4 +1062,4 @@ class TransmissionModel(ComponentModel):
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        return super().getOptimalValues(name)
+        return super().getOptimalValues(name, ip=ip)

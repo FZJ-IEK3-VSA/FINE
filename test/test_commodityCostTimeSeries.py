@@ -90,10 +90,18 @@ def test_miniSystem():
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
-    assert summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc1"] == -730
-    assert summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc2"] == -2920
-    assert summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc1"] == 730
-    assert summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc2"] == 2920
+    np.testing.assert_almost_equal(
+        summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc1"], -730
+    )
+    np.testing.assert_almost_equal(
+        summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc2"], -2920
+    )
+    np.testing.assert_almost_equal(
+        summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc1"], 730
+    )
+    np.testing.assert_almost_equal(
+        summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc2"], 2920
+    )
 
     esM.aggregateTemporally(
         numberOfTypicalPeriods=5,
@@ -107,7 +115,15 @@ def test_miniSystem():
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
-    assert summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc1"] == -730
-    assert summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc2"] == -2920
-    assert summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc1"] == 730
-    assert summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc2"] == 2920
+    np.testing.assert_almost_equal(
+        summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc1"], -730
+    )
+    np.testing.assert_almost_equal(
+        summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc2"], -2920
+    )
+    np.testing.assert_almost_equal(
+        summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc1"], 730
+    )
+    np.testing.assert_almost_equal(
+        summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc2"], 2920
+    )

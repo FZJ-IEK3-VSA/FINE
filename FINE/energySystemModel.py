@@ -1,5 +1,6 @@
 import time
 import warnings
+import numpy as np
 
 import pandas as pd
 import pyomo.environ as pyomo
@@ -37,8 +38,9 @@ class EnergySystemModel:
 
     * the modeled spatial representation of the energy system (**locations, lengthUnit**)
     * the modeled temporal representation of the energy system (**totalTimeSteps, hoursPerTimeStep,
-      years, periods, periodsOrder, periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps,
-      isTimeSeriesDataClustered, typicalPeriods, tsaInstance, timeUnit**)
+      startYear, numberOfInvementPeriods, investmentPeriodInterval, periods, periodsOrder,
+      periodsOccurrences, timeStepsPerPeriod, interPeriodTimeSteps, isTimeSeriesDataClustered,
+      typicalPeriods, tsaInstance, timeUnit**)
     * the considered commodities in the energy system (**commodities, commodityUnitsDict**)
     * the considered components in the energy system (**componentNames, componentModelingDict, costUnit**)
     * optimization related parameters (**pyM, solverSpecs**)
@@ -70,8 +72,10 @@ class EnergySystemModel:
         commodityUnitsDict,
         numberOfTimeSteps=8760,
         hoursPerTimeStep=1,
+        startYear=0,
         numberOfInvestmentPeriods=1,
-        yearsPerInvestmentPeriod=1,
+        investmentPeriodInterval=1,
+        stochasticModel=False,
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
@@ -114,14 +118,30 @@ class EnergySystemModel:
         :type hoursPerTimeStep: strictly positive float
 
         :param numberOfInvestmentPeriods: number of investment periods of transformation
-            path analysis
+            path analysis, e.g. for a transformation pathway from 2020 to 2030
+            with the years 2020, 2025, 2030, the numberOfInvestmentPeriods is 3
             |br| * the default value is 1
-        : type numberOfInvestmentPeriods: strictly positive integer
+        :type numberOfInvestmentPeriods: strictly positive integer
 
-        :param yearsPerInvestmentPeriod: years per investment period of transformation
-            path analysis
+        :param investmentPeriodInterval: interval between the investment of transformation
+            path analysis, e.g. for a transformation pathway from 2020 to 2030
+            with the years 2020, 2025, 2030, the investmentPeriodInterval is 5
             |br| * the default value is 1
-        : type yearsPerInvestmentPeriod: strictly positive integer
+        :type investmentPeriodInterval: strictly positive integer
+
+        :param startYear: year name of first investment period, e.g. for a transformation
+            pathway from 2020 to 2030 with the years 2020, 2025, 2030, the startYear is 2020
+            |br| * the default value is 0
+        :type startYear: integer
+
+        :param stochasticModel: defines whether to set up a stochastic optimization.
+            The goal of the stochastic optimization is to find a more robust energy system by considering different
+            requirements to find a single energy system design (e.g. various weather years or demand forecasts). These requirements
+            are represented in different investment periods of the model. In contrast to the classical perfect foresight
+            optimization the investment periods do not represent steps of a tranformation pathway but possible boundary
+            conditions for the energy system, which need to be considered for the system design and operation
+            |br| * the default value is False
+        :type mode: bool
 
         :param costUnit: cost unit of all cost related values in the energy system. This argument sets the unit of
             all cost parameters which are given as an input to the EnergySystemModel instance (e.g. for the
@@ -161,13 +181,16 @@ class EnergySystemModel:
         :type verboseLogLevel: integer (0, 1 or 2)
 
         :param balanceLimit: defines the balanceLimit constraint (various different balanceLimitIDs possible)
-            for specific regions or the whole model. The balancelimitID can be assigned to various components
-            of e.g. SourceSinkModel or TransmissionModel to limit the balance of production, consumption and im/export.
+            for specific regions or the whole model. Furthermore the balanceLimit can be specified per investment period.
+            The balancelimitID can be assigned to various components of e.g. SourceSinkModel or
+            TransmissionModel to limit the balance of production, consumption and im/export.
             If the balanceLimit is passed as pd.Series it will apply to the overall model, if it is passed
             as pd.Dataframe each column will apply to one region of the multi-node model. In the latter case,
             the number and names of the columns should match the regions/region names in the model.
             Each row contains an individual balanceLimitID as index and the corresponding values for the model
-            (pd.Series) or regions (pd.Dataframe). Values are always given in the unit of the esM commodities unit.\n
+            (pd.Series) or regions (pd.Dataframe). If the balanceLimit is passed
+            as a dict with either the described pd.DataFrames or pd.Series as values it is considered per investment period.
+            Values are always given in the unit of the esM commodities unit.\n
             Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
 
             .. note::
@@ -175,7 +198,10 @@ class EnergySystemModel:
                 defined as negative.
 
             |br| * the default value is None
-        :type balanceLimit: pd.DataFrame or pd.Series
+        :type balanceLimit:
+            * pd.DataFrame
+            * pd.Series
+            * dictionary with investment periods years as keys, and one of the two above mentioned as values
 
         :param lowerBound: defines whether a lowerBound or an upperBound is considered in the balanceLimitConstraint.
             By default an upperBound is considered. However, multiple cases can be considered:\n
@@ -201,12 +227,13 @@ class EnergySystemModel:
             commodities,
             commodityUnitsDict,
             numberOfTimeSteps,
-            numberOfInvestmentPeriods,
-            yearsPerInvestmentPeriod,
             hoursPerTimeStep,
+            numberOfInvestmentPeriods,
+            investmentPeriodInterval,
+            startYear,
+            stochasticModel,
             costUnit,
             lengthUnit,
-            balanceLimit,
         )
 
         ################################################################################################################
@@ -217,12 +244,11 @@ class EnergySystemModel:
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
-        # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
+
         self.locations, self.lengthUnit = locations, lengthUnit
         self._locationsOrdered = sorted(locations)
 
         self.numberOfTimeSteps = numberOfTimeSteps
-        self.balanceLimit = balanceLimit
         self.lowerBound = lowerBound
 
         ################################################################################################################
@@ -240,9 +266,6 @@ class EnergySystemModel:
         )
         self.numberOfTimeSteps = numberOfTimeSteps
         self.numberOfYears = numberOfTimeSteps * hoursPerTimeStep / 8760.0
-        self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
-        self.investmentPeriods = list(range(numberOfInvestmentPeriods))
-        self.yearsPerInvestmentPeriod = yearsPerInvestmentPeriod
 
         # The periods parameter (list, [0] when considering a full temporal resolution, range of [0, ...,
         # totalNumberOfTimeSteps/numberOfTimeStepsPerPeriod] when applying time series aggregation) represents
@@ -275,6 +298,24 @@ class EnergySystemModel:
         self.timeUnit = "h"
 
         ################################################################################################################
+        #                                Stochastic/Pathway parameters                                                 #
+        ################################################################################################################
+        self.stochasticModel = stochasticModel
+        ######################################################################
+        self.startYear = startYear
+        self.investmentPeriodInterval = investmentPeriodInterval
+        self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
+
+        # set up the modelling years by the start year, interval and number of investment periods
+        finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval
+        # clear names, e.g.  [2020, 2025,...]
+        self.investmentPeriodNames = list(
+            range(startYear, finalyear, investmentPeriodInterval)
+        )
+        # internal names, e.g.  [0,1,...]
+        self.investmentPeriods = list(range(numberOfInvestmentPeriods))
+
+        ################################################################################################################
         #                                        Commodity specific parameters                                         #
         ################################################################################################################
 
@@ -285,6 +326,15 @@ class EnergySystemModel:
         # unit (string) which can be used by results output functions.
         self.commodities = commodities
         self.commodityUnitsDict = commodityUnitsDict
+
+        # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
+        self.balanceLimit = balanceLimit
+        self.processedBalanceLimit = utils.checkAndSetBalanceLimit(
+            self, balanceLimit, locations
+        )
+        self.processedBalanceLimit = utils.setParamToNoneIfNoneForAllYears(
+            self.processedBalanceLimit
+        )
 
         ################################################################################################################
         #                                        Component specific parameters                                         #
@@ -452,16 +502,16 @@ class EnergySystemModel:
         :returns: the attribute specified by the attributeName of the component with the name componentName
         :rtype: depends on the specified attribute
         """
-        if (
-            isinstance(getattr(self.getComponent(componentName), attributeName), dict)
-            and list(getattr(self.getComponent(componentName), attributeName).keys())
-            == self.investmentPeriods
-        ):
-            return getattr(self.getComponent(componentName), attributeName)[0]
+        # if there is only data for one investment period, the function
+        # directely returns the value instead of {0:value}. This allows old
+        # models to run without modification
+        attr = getattr(self.getComponent(componentName), attributeName)
+        if isinstance(attr, dict) and list(attr.keys()) == [0]:
+            return attr[0]
         else:
-            return getattr(self.getComponent(componentName), attributeName)
+            return attr
 
-    def getOptimizationSummary(self, modelingClass, outputLevel=0):
+    def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
         """
         Function which returns the optimization summary (design variables, aggregated operation variables,
         objective contributions) of a modeling class.
@@ -481,18 +531,31 @@ class EnergySystemModel:
         :returns: the optimization summary of the requested modeling class
         :rtype: pandas DataFrame
         """
+        if ip not in self.investmentPeriodNames:
+            raise ValueError(
+                f"No optimization summary exists for passed ip {ip}. "
+                + "Please define a valid investment period  "
+                + f"(from '{self.investmentPeriodNames}')"
+            )
+
         if outputLevel == 0:
-            return self.componentModelingDict[modelingClass].optSummary
+            return self.componentModelingDict[modelingClass]._optSummary[ip]
         elif outputLevel == 1:
-            return self.componentModelingDict[modelingClass].optSummary.dropna(
-                how="all"
+            return (
+                self.componentModelingDict[modelingClass]
+                ._optSummary[ip]
+                .dropna(how="all")
             )
         else:
             if outputLevel != 2 and self.verbose < 2:
                 warnings.warn(
                     "Invalid input. An outputLevel parameter of 2 is assumed."
                 )
-            df = self.componentModelingDict[modelingClass].optSummary.dropna(how="all")
+            df = (
+                self.componentModelingDict[modelingClass]
+                ._optSummary[ip]
+                .dropna(how="all")
+            )
             return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
     def aggregateSpatially(
@@ -501,7 +564,7 @@ class EnergySystemModel:
         grouping_mode="parameter_based",
         n_groups=3,
         aggregatedResultsPath=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Spatially clusters the data of all components considered in the Energy System Model (esM) instance
@@ -662,7 +725,7 @@ class EnergySystemModel:
             grouping_mode,
             n_groups,
             aggregatedResultsPath,
-            **kwargs
+            **kwargs,
         )
 
         # STEP 3. Obtain aggregated esM
@@ -689,7 +752,7 @@ class EnergySystemModel:
         sortValues=False,
         storeTSAinstance=False,
         rescaleClusterPeriods=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
@@ -870,7 +933,7 @@ class EnergySystemModel:
                     weightDict=weightDict,
                     rescaleClusterPeriods=rescaleClusterPeriods,
                     representationMethod=representationMethod,
-                    **kwargs
+                    **kwargs,
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as segment number per typical period.
@@ -892,7 +955,7 @@ class EnergySystemModel:
                     weightDict=weightDict,
                     rescaleClusterPeriods=rescaleClusterPeriods,
                     representationMethod=representationMethod,
-                    **kwargs
+                    **kwargs,
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as time step number per typical period.
@@ -984,7 +1047,6 @@ class EnergySystemModel:
         pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
             for comp in mdl.componentsDict.values():
-                comp.initializeProcessedDataSets(self.investmentPeriods)
                 comp.setTimeSeriesData(pyM.hasTSA)
                 comp.checkProcessedDataSets()
 
@@ -1006,7 +1068,6 @@ class EnergySystemModel:
             self.periods = [0]
             self.periodsOrder = {}
             self.periodOccurrences = {}
-
             # fill dictionaries with zeros or ones, if no TSA
             for ip in self.investmentPeriods:
                 self.periodsOrder[ip] = [0]
@@ -1023,19 +1084,17 @@ class EnergySystemModel:
 
             def initInterTimeStepsSet(pyM):
                 return (
-                    (ip, p, t)
-                    for ip in self.investmentPeriods
+                    (p, t)
                     for p in self.periods
                     for t in range(len(self.timeStepsPerPeriod) + 1)
                 )
 
-            def initInvestSet(pyM):
-                return (ip for ip in self.investmentPeriods)
+            def initIntraYearTimeSet(pyM):
+                return ((p, t) for p in self.periods for t in self.timeStepsPerPeriod)
 
             def initInvestPeriodInterPeriodSet(pyM):
                 return (
-                    (ip, t_inter)
-                    for ip in self.investmentPeriods
+                    (t_inter)
                     for t_inter in range(
                         int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1
                     )
@@ -1066,19 +1125,21 @@ class EnergySystemModel:
 
                 def initInterTimeStepsSet(pyM):
                     return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
+                        (p, t)
                         for p in self.typicalPeriods
                         for t in range(len(self.timeStepsPerPeriod) + 1)
                     )
 
-                def initInvestSet(pyM):
-                    return (ip for ip in self.investmentPeriods)
+                def initIntraYearTimeSet(pyM):
+                    return (
+                        (p, t)
+                        for p in self.typicalPeriods
+                        for t in self.timeStepsPerPeriod
+                    )
 
                 def initInvestPeriodInterPeriodSet(pyM):
                     return (
-                        (ip, t_inter)
-                        for ip in self.investmentPeriods
+                        (t_inter)
                         for t_inter in range(
                             int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
                             + 1
@@ -1110,31 +1171,37 @@ class EnergySystemModel:
 
                 def initInterTimeStepsSet(pyM):
                     return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
+                        (p, t)
                         for p in self.typicalPeriods
                         for t in range(len(self.segmentsPerPeriod) + 1)
                     )
 
-                def initInvestSet(pyM):
-                    return (ip for ip in self.investmentPeriods)
+                def initIntraYearTimeSet(pyM):
+                    return (
+                        (p, t)
+                        for p in self.typicalPeriods
+                        for t in self.segmentsPerPeriod
+                    )
 
                 def initInvestPeriodInterPeriodSet(pyM):
                     return (
-                        (ip, t_inter)
-                        for ip in self.investmentPeriods
+                        (t_inter)
                         for t_inter in range(
                             int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
                             + 1
                         )
                     )
 
+        def initInvestSet(pyM):
+            return (ip for ip in self.investmentPeriods)
+
         # Initialize sets
         pyM.timeSet = pyomo.Set(dimen=3, initialize=initTimeSet)
-        pyM.interTimeStepsSet = pyomo.Set(dimen=3, initialize=initInterTimeStepsSet)
+        pyM.interTimeStepsSet = pyomo.Set(dimen=2, initialize=initInterTimeStepsSet)
+        pyM.intraYearTimeSet = pyomo.Set(dimen=2, initialize=initIntraYearTimeSet)
         pyM.investSet = pyomo.Set(dimen=1, initialize=initInvestSet)
         pyM.investPeriodInterPeriodSet = pyomo.Set(
-            dimen=2, initialize=initInvestPeriodInterPeriodSet
+            dimen=1, initialize=initInvestPeriodInterPeriodSet
         )
 
     def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
@@ -1163,103 +1230,111 @@ class EnergySystemModel:
         balanceLimitDict = {}
         # 2 differentiations (or 4 cases). 1st: Locational or not; 2nd: lowerBound or not (lower bound)
         # DataFrame with locational input. Otherwise error is thrown in input check.
-        if type(self.balanceLimit) == pd.DataFrame:
-            for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
-                    for compName, comp in mdl.componentsDict.items():
-                        if comp.balanceLimitID is not None:
-                            [
+        for ip in self.investmentPeriods:
+            if self.processedBalanceLimit is None:
+                break  # only do the setup if there is a balance limit
+            if type(self.processedBalanceLimit[ip]) == pd.DataFrame:
+                for mdl_type, mdl in self.componentModelingDict.items():
+                    if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
+                        for compName, comp in mdl.componentsDict.items():
+                            if comp.balanceLimitID is not None:
+                                [
+                                    balanceLimitDict.setdefault(
+                                        (comp.balanceLimitID, loc), []
+                                    ).append(compName)
+                                    for loc in self.locations
+                                ]
+                setattr(pyM, "balanceLimitDict", balanceLimitDict)
+
+                def balanceLimitConstraint(pyM, ID, loc):
+                    # Check whether we want to consider an upper or lower bound.
+                    if not self.lowerBound:
+                        return (
+                            sum(
+                                mdl.getBalanceLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    ID=ID,
+                                    ip=ip,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                    loc=loc,
+                                )
+                                for mdl_type, mdl in self.componentModelingDict.items()
+                                if (
+                                    mdl_type == "SourceSinkModel"
+                                    or mdl_type == "TransmissionModel"
+                                )
+                            )
+                            <= self.processedBalanceLimit[ip].loc[ID, loc]
+                        )
+                    else:
+                        return (
+                            sum(
+                                mdl.getBalanceLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    ID=ID,
+                                    ip=ip,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                    loc=loc,
+                                )
+                                for mdl_type, mdl in self.componentModelingDict.items()
+                                if (
+                                    mdl_type == "SourceSinkModel"
+                                    or mdl_type == "TransmissionModel"
+                                )
+                            )
+                            >= self.processedBalanceLimit[ip].loc[ID, loc]
+                        )
+
+            # Series as input. Whole model is considered.
+            else:
+                for mdl_type, mdl in self.componentModelingDict.items():
+                    if mdl_type == "SourceSinkModel":
+                        for compName, comp in mdl.componentsDict.items():
+                            if comp.balanceLimitID is not None:
                                 balanceLimitDict.setdefault(
-                                    (comp.balanceLimitID, loc), []
+                                    (comp.balanceLimitID), []
                                 ).append(compName)
-                                for loc in self.locations
-                            ]
-            setattr(pyM, "balanceLimitDict", balanceLimitDict)
+                setattr(pyM, "balanceLimitDict", balanceLimitDict)
 
-            def balanceLimitConstraint(pyM, ID, loc):
-                # Check whether we want to consider an upper or lower bound.
-                if not self.lowerBound:
-                    return (
-                        sum(
-                            mdl.getBalanceLimitContribution(
-                                esM=self,
-                                pyM=pyM,
-                                ID=ID,
-                                timeSeriesAggregation=timeSeriesAggregation,
-                                loc=loc,
+                def balanceLimitConstraint(pyM, ID):
+                    # Check wether we want to consider an upper or lower bound
+                    if not self.lowerBound:
+                        return (
+                            sum(
+                                mdl.getBalanceLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    ID=ID,
+                                    ip=ip,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                )
+                                for mdl_type, mdl in self.componentModelingDict.items()
+                                if (mdl_type == "SourceSinkModel")
                             )
-                            for mdl_type, mdl in self.componentModelingDict.items()
-                            if (
-                                mdl_type == "SourceSinkModel"
-                                or mdl_type == "TransmissionModel"
-                            )
+                            <= self.processedBalanceLimit[ip].loc[ID]
                         )
-                        <= self.balanceLimit.loc[ID, loc]
-                    )
-                else:
-                    return (
-                        sum(
-                            mdl.getBalanceLimitContribution(
-                                esM=self,
-                                pyM=pyM,
-                                ID=ID,
-                                timeSeriesAggregation=timeSeriesAggregation,
-                                loc=loc,
+                    else:
+                        return (
+                            sum(
+                                mdl.getBalanceLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    ID=ID,
+                                    ip=ip,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                )
+                                for mdl_type, mdl in self.componentModelingDict.items()
+                                if (mdl_type == "SourceSinkModel")
                             )
-                            for mdl_type, mdl in self.componentModelingDict.items()
-                            if (
-                                mdl_type == "SourceSinkModel"
-                                or mdl_type == "TransmissionModel"
-                            )
+                            >= self.processedBalanceLimit[ip].loc[ID]
                         )
-                        >= self.balanceLimit.loc[ID, loc]
-                    )
 
-        # Series as input. Whole model is considered.
-        else:
-            for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type == "SourceSinkModel":
-                    for compName, comp in mdl.componentsDict.items():
-                        if comp.balanceLimitID is not None:
-                            balanceLimitDict.setdefault(
-                                (comp.balanceLimitID), []
-                            ).append(compName)
-            setattr(pyM, "balanceLimitDict", balanceLimitDict)
-
-            def balanceLimitConstraint(pyM, ID):
-                # Check wether we want to consider an upper or lower bound
-                if not self.lowerBound:
-                    return (
-                        sum(
-                            mdl.getBalanceLimitContribution(
-                                esM=self,
-                                pyM=pyM,
-                                ID=ID,
-                                timeSeriesAggregation=timeSeriesAggregation,
-                            )
-                            for mdl_type, mdl in self.componentModelingDict.items()
-                            if (mdl_type == "SourceSinkModel")
-                        )
-                        <= self.balanceLimit.loc[ID]
-                    )
-                else:
-                    return (
-                        sum(
-                            mdl.getBalanceLimitContribution(
-                                esM=self,
-                                pyM=pyM,
-                                ID=ID,
-                                timeSeriesAggregation=timeSeriesAggregation,
-                            )
-                            for mdl_type, mdl in self.componentModelingDict.items()
-                            if (mdl_type == "SourceSinkModel")
-                        )
-                        >= self.balanceLimit.loc[ID]
-                    )
-
-        pyM.balanceLimitConstraint = pyomo.Constraint(
-            pyM.balanceLimitDict.keys(), rule=balanceLimitConstraint
-        )
+            pyM.balanceLimitConstraint = pyomo.Constraint(
+                pyM.balanceLimitDict.keys(),
+                rule=balanceLimitConstraint,
+            )
 
     def declareSharedPotentialConstraints(self, pyM):
         """
@@ -1281,26 +1356,27 @@ class EnergySystemModel:
         # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
         # potential)
         potentialDict = {}
-        for mdl in self.componentModelingDict.values():
-            for compName, comp in mdl.componentsDict.items():
-                if comp.sharedPotentialID is not None:
-                    [
-                        potentialDict.setdefault(
-                            (comp.sharedPotentialID, loc), []
-                        ).append(compName)
-                        for loc in comp.locationalEligibility.index
-                        if comp.capacityMax[loc] != 0
-                    ]
+        for ip in self.investmentPeriods:
+            for mdl in self.componentModelingDict.values():
+                for compName, comp in mdl.componentsDict.items():
+                    if comp.sharedPotentialID is not None:
+                        [
+                            potentialDict.setdefault(
+                                (comp.sharedPotentialID, loc, ip), []
+                            ).append(compName)
+                            for loc in comp.locationalEligibility.index
+                            if comp.capacityMax[loc] != 0
+                        ]
         pyM.sharedPotentialDict = potentialDict
 
         # Define and initialize constraints for each instance and location where components have to share an available
         # potential. Sum up the relative contributions to the shared potential and ensure that the total share is
         # <= 100%. For this, get the contributions to the shared potential for the corresponding ID and
         # location from each modeling class.
-        def sharedPotentialConstraint(pyM, ID, loc):
+        def sharedPotentialConstraint(pyM, ID, loc, ip):
             return (
                 sum(
-                    mdl.getSharedPotentialContribution(pyM, ID, loc)
+                    mdl.getSharedPotentialContribution(pyM, ID, loc, ip)
                     for mdl in self.componentModelingDict.values()
                 )
                 <= 1
@@ -1336,7 +1412,7 @@ class EnergySystemModel:
                     ]
         pyM.linkedQuantityDict = compDict
 
-        def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2):
+        def linkedQuantityConstraint(pyM, ID, loc, compName1, compName2, ip):
             abbrvName1 = self.componentModelingDict[
                 self.componentNames[compName1]
             ].abbrvName
@@ -1356,13 +1432,13 @@ class EnergySystemModel:
                 .capacityPerPlantUnit
             )
             return (
-                capVar1[loc, compName1] / capPPU1 == capVar2[loc, compName2] / capPPU2
+                capVar1[loc, compName1, ip] / capPPU1
+                == capVar2[loc, compName2, ip] / capPPU2
             )
 
         for (i, j) in pyM.linkedQuantityDict.keys():
             linkedQuantityList = []
             linkedQuantityList.append((i, j))
-
             setattr(
                 pyM,
                 "ConstraintLinkedQuantity_" + str(i) + "_" + str(j),
@@ -1370,6 +1446,7 @@ class EnergySystemModel:
                     linkedQuantityList,
                     pyM.linkedQuantityDict[i, j],
                     pyM.linkedQuantityDict[i, j],
+                    pyM.investSet,
                     rule=linkedQuantityConstraint,
                 ),
             )
@@ -1380,7 +1457,7 @@ class EnergySystemModel:
 
         .. math::
 
-            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,p,t} = 0
+            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,ip,p,t} = 0
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -1427,26 +1504,54 @@ class EnergySystemModel:
     def declareObjective(self, pyM):
         """
         Declare the objective function by obtaining the contributions to the objective function from all modeling
-        classes. Currently, the only objective function which can be selected is the sum of the total annual cost of all
+        classes. Currently, the only objective function which can be selected is the sum of the net present value of all
         components.
 
         .. math::
-            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum} 
-            \\left( TAC_{loc}^{comp,cap}  +  TAC_{loc}^{comp,bin} + TAC_{loc}^{comp,op} \\right)
+            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum} \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}
+            \\left( NPV_{loc}^{comp,cap}  +  NPV_{loc}^{comp,bin} + NPV_{loc}^{comp,op} \\right)
 
         Objective Function detailed:
 
         .. math::
-            :nowrap:
+            z^* = \\min \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}  \\ \\underset{ip \\in \\mathcal{IP}}{\\sum}  \\text{design}^{comp}_{loc,ip} + \\text{design}^{comp}_{bin, \\ loc,ip} + \\text{op}^{comp}_{loc,ip}
 
-            \\begin{eqnarray*}
-            z^* = \\min & & \\underset{comp \\in \\mathcal{C}}{\\sum}  \\ \\underset{loc \\in \\mathcal{L}^{comp}}{\\sum}
-            \\left[ \\text{F}^{comp,cap}_{loc} \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc}}{\\text{CCF}^{comp}_{loc}} \\right.
-            + \\text{opexPerCap}^{comp}_{loc} \\right) \\cdot cap^{comp}_{loc} \\\\
-            & & + \\ \\text{F}^{comp,bin}_{loc} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc}}	{CCF^{comp}_{loc}} 
-            + \\text{opexIfBuilt}^{comp}_{loc} \\right)  \\cdot  bin^{comp}_{loc} \\\\
-            & & \\left. + \\left( \\underset{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}}{\\sum} \\ \\underset{\\text{opType} \\in \\mathcal{O}^{comp}}{\\sum} \\text{factorPerOp}^{comp,opType}_{loc} \\cdot op^{comp,opType}_{loc,p,t} \\cdot  \\frac{\\text{freq(p)}}{\\tau^{years}} \\right) \\right]
-            \\end{eqnarray*}
+        Contribution of design variable to the objective function
+
+        .. math::
+                design^{comp}_{loc,ip} =
+                \\sum\\limits_{year=ip-\\text{ipTechLifetime}}^{ip}
+                \\text{F}^{comp,bin}_{loc,year}
+                \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc,year}}{\\text{CCF}^{comp}_{loc,year}}
+                + \\text{opexPerCap}^{comp}_{loc,year} \\right) \\cdot \\text{commis}^{comp}_{loc,year}
+                \\cdot  \\text{APVF}^{comp}_{loc} \\cdot \\text{discFactor}^{comp}_{loc,ip}
+
+        Contribution of binary design variables to the objective function
+
+        .. math::
+                design^{comp}_{bin\\ loc,ip} =
+                \\sum\\limits_{year=ip-ipTechLifetime}^{ip}
+                \\text{F}^{comp,bin}_{loc,year} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc,year}}	{CCF^{comp}_{loc,year}}
+                + \\text{opexIfBuilt}^{comp}_{loc,year} \\right)  \\cdot  bin^{comp}_{loc,year}
+                \\cdot  \\text{APVF}^{comp}_{loc} \\cdot \\text{discFactor}^{comp}_{loc,ip}
+
+        Contribution of operation variables to the objective function
+
+        .. math::
+                op^{comp}_{loc,ip} =
+                \\underset{(p,t) \\in \\mathcal{P} \\times \\mathcal{T}}{\\sum} \\ \\underset{\\text{opType} \\in \\mathcal{O}^{comp}}{\\sum}
+                \\text{factorPerOp}^{comp,opType}_{loc,ip} \\cdot op^{comp,opType}_{loc,ip,p,t} \\cdot  \\frac{\\text{freq(p)}}{\\tau^{years}}
+                \\cdot  \\text{APVF}^{comp}_{loc} \\cdot \\text{discFactor}^{comp}_{loc,ip}
+
+        With the annuity present value factor (Rentenbarwertfaktor):
+
+        .. math::
+            APVF^{comp}_{loc} = \\frac{(1 + interestRate^{comp}_{loc})^{interval} - 1}{interestRate^{comp}_{loc} \\cdot (1 + interestRate^{comp}_{loc})^{interval}} \\ if interestRate^{comp}_{loc} != 0 \\  else \\  1
+
+        and the discount factor.
+
+        .. math::
+            discFactor^{comp}_{loc,ip} = \\frac{1+interestRate^{comp}_{loc}}{(1+interestRate^{comp}_{loc})^{ip \\cdot interval}}
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -1455,11 +1560,12 @@ class EnergySystemModel:
         utils.output("Declaring objective function...", self.verbose, 0)
 
         def objective(pyM):
-            TAC = sum(
+            NPV = sum(
                 mdl.getObjectiveFunctionContribution(self, pyM)
                 for mdl in self.componentModelingDict.values()
             )
-            return TAC
+
+            return NPV
 
         pyM.Obj = pyomo.Objective(rule=objective)
 
@@ -1857,34 +1963,56 @@ class EnergySystemModel:
 
             # iterate over investment periods, to get yearly results
             for key, mdl in self.componentModelingDict.items():
-                for ip in self.investmentPeriods:
-                    __t = time.time()
-                    mdl.setOptimalValues(self, self.pyM, ip)
-                    outputString = (
-                        ("for {:" + w + "}").format(key + " ...")
-                        + "(%.4f" % (time.time() - __t)
-                        + "sec)"
-                    )
-                    utils.output(outputString, self.verbose, 0)
+                if not isinstance(mdl._capacityVariablesOptimum, dict):
+                    mdl._capacityVariablesOptimum = {}
+                __t = time.time()
+                # if _capacityVariablesOptimum is not a dict, convert to dict
+                # (if single year system is optimized several times)
 
-                # for single year optimization, prepare results data in "old"
-                # format just for one year
-                if self.numberOfInvestmentPeriods == 1:
-                    mdl.optSummary = mdl.optSummary[0]
-                    if key is "StorageModel" or key is "StorageExtModel":
-                        mdl.stateOfChargeOperationVariablesOptimum = (
-                            mdl.stateOfChargeOperationVariablesOptimum[0]
-                        )
+                mdl.setOptimalValues(self, self.pyM)
+                outputString = (
+                    ("for {:" + w + "}").format(key + " ...")
+                    + "(%.4f" % (time.time() - __t)
+                    + "sec)"
+                )
+                utils.output(outputString, self.verbose, 0)
 
-                        mdl.chargeOperationVariablesOptimum = (
-                            mdl.chargeOperationVariablesOptimum[0]
-                        )
-
-                        mdl.dischargeOperationVariablesOptimum = (
-                            mdl.dischargeOperationVariablesOptimum[0]
-                        )
+                # convert optimal values from internal name to external name
+                # e.g. from _capacitiyVariablesOptimum to capacityVariablesOptimmum
+                # For perfectForesight the data stays the same, for a single year optimization
+                # the data is converted from a dict with a single entry to a dataframe
+                # By this, old models will not fail.
+                def convertOptimalValues(esM, mdl, key):
+                    if key in mdl.__dict__.keys():
+                        if esM.numberOfInvestmentPeriods == 1:
+                            setattr(
+                                mdl,
+                                key.replace("_", ""),
+                                getattr(mdl, key)[esM.investmentPeriodNames[0]],
+                            )
+                        else:
+                            setattr(mdl, key.replace("_", ""), getattr(mdl, key))
                     else:
-                        mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
+                        pass
+
+                optimalValueParameters = [
+                    "_optSummary",
+                    "_stateOfChargeOperationVSariablesOptimum",
+                    "_chargeOperationVariablesOptimum",
+                    "_dischargeOperationVariablesOptimum",
+                    "_phaseAngleVariablesOptimum",
+                    "_operationVariablesOptimum",
+                    "_discretizationPointVariablesOptimun",
+                    "_discretizationSegmentConVariablesOptimun",
+                    "_discretizationSegmentBinVariablesOptimun",
+                    "_capacityVariablesOptimum",
+                    "_isBuiltVariablesOptimum",
+                    "_commissioningVariablesOptimum",
+                    "_decommissioningVariablesOptimum",
+                ]
+
+                for optParam in optimalValueParameters:
+                    convertOptimalValues(self, mdl, optParam)
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
