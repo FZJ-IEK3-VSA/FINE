@@ -122,6 +122,20 @@ def perform_spatial_aggregation(
         |br| * the default value is 'kmedoids_contiguity'
     :type aggregation_method: str, one of {'kmedoids_contiguity', 'hierarchical'}
 
+    :param skip_regions: The region IDs to be skipped while aggregating regions
+
+        .. note:: currently only implemented for `grouping_mode` 'distance_based'
+
+        |br| * the default value is None
+    :type skip_regions: List[str]
+
+    :param enforced_groups: The groups that should be enforced when aggregating regions.
+
+        .. note:: currently only implemented for `grouping_mode` 'distance_based'
+
+        |br| * the default value is None
+    :type enforced_groups: Dict[str, List[str]]
+
     :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'.
         The optimization solver to be chosen.
         |br| * the default value is 'gurobi'
@@ -253,9 +267,14 @@ def perform_spatial_aggregation(
 
     elif grouping_mode == "distance_based":
 
+        skip_regions = kwargs.get("skip_regions", None)
+        enforced_groups = kwargs.get("enforced_groups", None)
+
         logger_spagat.info(f"Performing distance-based grouping on the regions")
 
-        aggregation_dict = grouping.perform_distance_based_grouping(geom_xr, n_groups)
+        aggregation_dict = grouping.perform_distance_based_grouping(
+            geom_xr, n_groups, skip_regions, enforced_groups
+        )
 
     elif grouping_mode == "parameter_based":
 

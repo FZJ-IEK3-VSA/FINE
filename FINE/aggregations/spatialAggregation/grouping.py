@@ -1,4 +1,3 @@
-# %%
 """
 Grouping algorithms determine how to reduce the number of input regions to 
 fewer regions while minimizing information loss.
@@ -13,7 +12,7 @@ from FINE.IOManagement.standardIO import timer
 
 logger_grouping = logging.getLogger("spatial_grouping")
 
-# %%
+
 def perform_string_based_grouping(regions, separator=None, position=None):
     """
     Groups regions based on their names/ids.
@@ -73,7 +72,6 @@ def perform_string_based_grouping(regions, separator=None, position=None):
     return sub_to_sup_region_id_dict
 
 
-# %%
 @timer
 def perform_distance_based_grouping(
     geom_xr, n_groups=3, skip_regions=None, enforced_groups=None
@@ -114,6 +112,39 @@ def perform_distance_based_grouping(
     :rtype: Dict[int, Dict[str, List[str]]]
     """
 
+    def _perform_distance_based_grouping(
+        geom_xr, n_groups=3, skip_regions=None, enforced_group=None
+    ):
+
+        regions_list, skipped_dict = gprUtils.get_region_list(
+            geom_xr, skip_regions, enforced_group
+        )
+
+        # reduce ds
+        geom_xr = geom_xr.sel(space=regions_list)
+        centroids = geom_xr["centroids"].values
+
+        centroids_x_y_points = (
+            np.asarray([[point.x, point.y] for point in centroids]) / 1000
+        )  # km
+
+        # STEP 1. Compute hierarchical clustering
+        model = skc.AgglomerativeClustering(n_clusters=n_groups).fit(
+            centroids_x_y_points
+        )
+
+        # STEP 2. Create a regions dictionary for the aggregated regions
+        aggregation_dict = {}
+        for label in range(n_groups):
+            # Group the regions of this regions label
+            sub_regions_list = sorted(regions_list[model.labels_ == label])
+            sup_region_id = "_".join(sub_regions_list)
+            aggregation_dict[sup_region_id] = sub_regions_list.copy()
+
+        aggregation_dict.update(skipped_dict)
+
+        return aggregation_dict
+
     if enforced_groups is None:
         aggregation_dict = _perform_distance_based_grouping(
             geom_xr=geom_xr, skip_regions=skip_regions, n_groups=n_groups
@@ -136,136 +167,8 @@ def perform_distance_based_grouping(
         return aggregation_dict
 
 
-# %%
-def _perform_distance_based_grouping(
-    geom_xr, n_groups=3, skip_regions=None, enforced_group=None
-):
-    """
-    Groups regions based on the regions' centroid distances,
-    using sklearn's hierarchical clustering.
-
-    :param geom_xr: The xarray dataset holding the geom info
-    :type geom_xr: xr.Dataset
-
-    **Default arguments:**
-
-    :param n_groups: The number of region groups to be formed from the original region set
-        |br| * the default value is 3
-    :type n_groups: strictly positive int
-
-    :param skip_regions: The region id's to be skipped while aggregating regions
-        |br| * the default value is None
-    :type skip_regions: List
-
-        * Ex.: ['02_reg']
-               ['02_reg', '03_reg]
-
-    :param enforced_groups: The groups that should be enforced when aggregating regions.
-    |br| * the default value is None
-    :type enforced_groups: Dict
-
-        * Ex.: {'es': ['01_es', '02_es', '03_es']
-                'de': ['01_de', '02_de', '03_de', '04_de']}
-
-    :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
-
-        * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},\n
-            2: {'01_reg_02_reg': ['01_reg', '02_reg'], '03_reg': ['03_reg']},\n
-            1: {'01_reg_02_reg_03_reg': ['01_reg','02_reg','03_reg']}}
-
-    :rtype: Dict[int, Dict[str, List[str]]]
-    """
-
-    regions_list, skipped_dict = _get_region_list(geom_xr, skip_regions, enforced_group)
-
-    # reduce ds
-    geom_xr = geom_xr.sel(space=regions_list)
-    centroids = geom_xr["centroids"].values
-
-    centroids_x_y_points = (
-        np.asarray([[point.x, point.y] for point in centroids]) / 1000
-    )  # km
-
-    # STEP 1. Compute hierarchical clustering
-    model = skc.AgglomerativeClustering(n_clusters=n_groups).fit(centroids_x_y_points)
-
-    # STEP 2. Create a regions dictionary for the aggregated regions
-    aggregation_dict = {}
-    for label in range(n_groups):
-        # Group the regions of this regions label
-        sub_regions_list = list(regions_list[model.labels_ == label])
-        sup_region_id = "_".join(sub_regions_list)
-        aggregation_dict[sup_region_id] = sub_regions_list.copy()
-
-    aggregation_dict.update(skipped_dict)
-
-    return aggregation_dict
-
-
-# %%
-def _get_region_list(geom_xr, skip_regions, enforced_group):
-
-    if (skip_regions is not None) & (enforced_group is None):
-
-        assert isinstance(
-            skip_regions, list
-        ), "A list containing the region ID's to be skipped should be provided."
-
-        # get all regions
-        regions_list = geom_xr["space"].values
-
-        # remove regions that should be skipped
-        regions_list = np.array(
-            list(set(regions_list) - set(skip_regions)), dtype="<U6"
-        )
-
-        # create skipped dict
-        skipped_dict = {reg: [reg] for reg in skip_regions}
-
-    elif (skip_regions is None) & (enforced_group is not None):
-
-        assert isinstance(
-            enforced_group, list
-        ), "A dictionary containing the super-regions as keys and sub-regions values should be provided."
-
-        # get all regions
-        regions_list, enforced_group = list(
-            map(set, [geom_xr["space"].values, enforced_group])
-        )
-        regions_list = regions_list.intersection(enforced_group)
-        regions_list = np.array(list(regions_list), dtype="<U6")
-
-        # create skipped dict
-        skipped_dict = {}
-
-    elif (skip_regions is not None) & (enforced_group is not None):
-
-        assert isinstance(
-            skip_regions, list
-        ), "A list containing the region ID's to be skipped should be provided."
-        assert isinstance(
-            enforced_group, list
-        ), "A dictionary containing the super-regions as keys and sub-regions values should be provided."
-
-        # get all regions
-        regions_list, skip_regions, enforced_group = list(
-            map(set, [geom_xr["space"].values, skip_regions, enforced_group])
-        )
-        regions_list = regions_list.intersection(enforced_group) - skip_regions
-        regions_list = np.array(list(regions_list), dtype="<U6")
-
-        # create skipped dict
-        skipped_dict = {reg: [reg] for reg in skip_regions}
-
-    else:
-        # get all regions
-        regions_list = geom_xr["space"].values
-        skipped_dict = {}
-
-    return regions_list, skipped_dict
-
-
-# %%
+# TODO: If there is a demand for it, implement skip_regions, and enforce_group
+# (just like in perform_distance_based_grouping) here as well
 @timer
 def perform_parameter_based_grouping(
     xarray_datasets,

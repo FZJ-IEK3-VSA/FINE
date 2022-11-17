@@ -1,5 +1,3 @@
-#%%
-import os
 import pytest
 
 import numpy as np
@@ -11,7 +9,7 @@ from shapely.geometry import Point
 
 from FINE.aggregations.spatialAggregation import grouping
 
-#%%
+
 @pytest.mark.parametrize(
     "string_list, expected_keys, expected_value, separator, position",
     [
@@ -50,9 +48,11 @@ def test_perform_string_based_grouping(
 
 
 @pytest.mark.parametrize(
-    "skip_regions, expected_ouput",
+    "n_groups, skip_regions, enforced_groups, expected_ouput",
     [
         (
+            3,
+            None,
             None,
             {
                 "01_reg": ["01_reg"],  ## Based on sample_labels ([2, 0, 0, 1, 1])
@@ -61,18 +61,50 @@ def test_perform_string_based_grouping(
             },
         ),
         (
+            3,
             ["02_reg"],
+            None,
             {
-                "05_reg_04_reg": ["05_reg", "04_reg"],
                 "01_reg": ["01_reg"],
                 "03_reg": ["03_reg"],
                 "02_reg": ["02_reg"],
+                "04_reg_05_reg": ["04_reg", "05_reg"],
+            },
+        ),
+        (
+            2,
+            None,
+            {
+                "01_reg_02_reg": ["01_reg", "02_reg"],
+                "03_reg_04_reg_05_reg": ["03_reg", "04_reg", "05_reg"],
+            },
+            {
+                "01_reg": ["01_reg"],
+                "02_reg": ["02_reg"],
+                "03_reg": ["03_reg"],
+                "04_reg_05_reg": ["04_reg", "05_reg"],
+            },
+        ),
+        (
+            2,
+            ["04_reg"],
+            {
+                "01_reg_02_reg": ["01_reg", "02_reg"],
+                "03_reg_05_reg": ["03_reg", "05_reg"],
+            },
+            {
+                "01_reg": ["01_reg"],
+                "02_reg": ["02_reg"],
+                "03_reg": ["03_reg"],
+                "04_reg": ["04_reg"],
+                "05_reg": ["05_reg"],
             },
         ),
     ],
 )
-# TODO: add tests for enforced groups
-def test_perform_distance_based_grouping(skip_regions, expected_ouput):
+def test_perform_distance_based_grouping(
+    n_groups, skip_regions, enforced_groups, expected_ouput
+):
     # TEST DATA
     space_list = ["01_reg", "02_reg", "03_reg", "04_reg", "05_reg"]
 
@@ -92,7 +124,10 @@ def test_perform_distance_based_grouping(skip_regions, expected_ouput):
 
     # FUNCTION CALL
     output_dict = grouping.perform_distance_based_grouping(
-        geom_xr=test_geom_xr, skip_regions=skip_regions
+        geom_xr=test_geom_xr,
+        n_groups=n_groups,
+        skip_regions=skip_regions,
+        enforced_groups=enforced_groups,
     )
 
     # ASSERTION
