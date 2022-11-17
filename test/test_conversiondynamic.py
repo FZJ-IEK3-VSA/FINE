@@ -65,7 +65,7 @@ def test_ConversionDynamicNeedsHigherOperationRate():
                 0.0,
             ],
         ],
-        index=locations,
+        index=list(locations),
         columns=range(0, numberOfTimeSteps),
     ).T
 
@@ -114,7 +114,7 @@ def test_ConversionDynamicHasHigherOperationRate():
                 0.0,
             ],
         ],
-        index=locations,
+        index=list(locations),
         columns=range(0, numberOfTimeSteps),
     ).T
 
