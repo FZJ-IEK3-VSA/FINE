@@ -375,7 +375,6 @@ class Source(Component):
             self.processedYearlyLimit
         )
 
-        # check and set locational eligibility
         if self.fullOperationRateFix is not None:
             operationTimeSeries = self.fullOperationRateFix
         elif self.fullOperationRateMax is not None:

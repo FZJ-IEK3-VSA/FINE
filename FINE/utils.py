@@ -517,6 +517,9 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     hasCapacityVariable = comp.hasCapacityVariable
     hasIsBuiltBinaryVariable = comp.hasIsBuiltBinaryVariable
     sharedPotentialID = comp.sharedPotentialID
+    partLoadMin = comp.partLoadMin
+    name = comp.name
+    bigM = comp.bigM
     hasCapacityVariable = comp.hasCapacityVariable
 
     def checkAndSet(data, comp, esM):
@@ -643,6 +646,12 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                     )
 
         if capacityMax[ip] is None or capacityMin[ip] is None:
+            if (QPcostScale[ip] > 0).any():
+                raise ValueError(
+                    "QPcostScale is given but lower or upper capacity bounds are not specified."
+                )
+    for ip in esM.investmentPeriods:
+        if capacityMax is None or capacityMin is None:
             if (QPcostScale[ip] > 0).any():
                 raise ValueError(
                     "QPcostScale is given but lower or upper capacity bounds are not specified."
@@ -1079,6 +1088,33 @@ def setLocationalEligibility(
                 _data[loc_idx] = 1
 
             return _data
+
+
+def checkAndSetInvestmentPeriodTimeSeries(
+    esM, name, data, locationalEligibility, dimension="1dim"
+):
+    checkInvestmentPeriodParameters(name, data, esM.investmentPeriodNames)
+    parameter = {}
+    for _ip in esM.investmentPeriodNames:
+        # map name of investment period (e.g. 2020) to index (e.g. 0)
+        ip = esM.investmentPeriodNames.index(_ip)
+        if (
+            isinstance(data, pd.DataFrame)
+            or data is None
+            or isinstance(data, pd.Series)
+        ):
+            parameter[ip] = checkAndSetTimeSeries(
+                esM, name, data, locationalEligibility, dimension
+            )
+        elif isinstance(data, dict):
+            parameter[ip] = checkAndSetTimeSeries(
+                esM, name, data[_ip], locationalEligibility, dimension
+            )
+        else:
+            raise TypeError(
+                f"Parameter of {name} should be a pandas dataframe or a dictionary."
+            )
+    return parameter
 
 
 def checkAndSetInvestmentPeriodTimeSeries(
