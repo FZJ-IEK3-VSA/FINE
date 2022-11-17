@@ -1572,7 +1572,6 @@ class EnergySystemModel:
     def declareOptimizationProblem(
         self,
         timeSeriesAggregation=False,
-        segmentation=False,
         relaxIsBuiltBinary=False,
         relevanceThreshold=None,
     ):
@@ -1595,15 +1594,6 @@ class EnergySystemModel:
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
 
-        :param segmentation: states if the optimization of the energy system model based on clustered time series data
-            should be done with
-
-            (a) aggregated typical periods with the original time step length (False) or
-            (b) aggregated typical periods with further segmented time steps (True).
-
-            |br| * the default value is False
-        :type segmentation: boolean
-
         :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
             bound of the problem.
             |br| * the default value is False
@@ -1620,6 +1610,12 @@ class EnergySystemModel:
         utils.checkDeclareOptimizationProblemInput(
             timeSeriesAggregation, self.isTimeSeriesDataClustered
         )
+
+        # Set segmentation value if time series aggregation is True
+        if timeSeriesAggregation:
+            segmentation = self.segmentation
+        else:
+            segmentation = False
 
         ################################################################################################################
         #                           Initialize mathematical model (ConcreteModel) instance                             #
@@ -1791,7 +1787,6 @@ class EnergySystemModel:
         if declaresOptimizationProblem:
             self.declareOptimizationProblem(
                 timeSeriesAggregation=timeSeriesAggregation,
-                segmentation=self.segmentation,
                 relaxIsBuiltBinary=relaxIsBuiltBinary,
                 relevanceThreshold=relevanceThreshold,
             )
