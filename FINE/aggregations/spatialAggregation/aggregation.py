@@ -508,9 +508,11 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 var_dim = varname[:3]
                 if var_dim != "0d_":
                     if var_dim == "2d_":
-                        locational_eligibility = comp_ds[f"2d_locationalEligibility"]
+                        locational_eligibility = comp_ds[f"2d_processedLocationalEligibility"]
                     else:
-                        locational_eligibility = comp_ds[f"1d_locationalEligibility"]
+                        import pytest
+                        pytest.set_trace()
+                        locational_eligibility = comp_ds[f"1d_processedLocationalEligibility"]
 
                     da = da.where(locational_eligibility != 0)
 
