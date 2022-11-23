@@ -720,12 +720,12 @@ class TransmissionModel(ComponentModel):
             )
             for loc_ in opVarDictIn[ip][loc].keys()
             for compName in opVarDictIn[ip][loc][loc_]
-            if commod in compDict[compName].commodity
+            if commod == compDict[compName].commodity
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t]
             for loc_ in opVarDictOut[ip][loc].keys()
             for compName in opVarDictOut[ip][loc][loc_]
-            if commod in compDict[compName].commodity
+            if commod == compDict[compName].commodity
         )
 
     def getBalanceLimitContribution(self, esM, pyM, ID, ip, loc, timeSeriesAggregation):

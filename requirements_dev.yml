@@ -29,14 +29,14 @@ dependencies:
 - seaborn
 - conda-forge::rasterio
 - conda-forge::netcdf4
+- conda-forge::tsam
+- wquantiles
+- cython
 - pytest
 - pytest-cov
 - pylint
 - conda-forge::nbval
 - conda-forge::black=21.9b0 
 
-
 - pip:
-    - tsam
-    - wquantiles
     - -e .
