@@ -3,7 +3,7 @@ name: FINE
 dependencies:
 - python
 - conda-forge::libiconv
-- conda-forge::gdal=2.4.1
+- conda-forge::gdal>2.2.0,<3.0.0
 - conda-forge::geopandas
 - conda-forge::jupyter
 - conda-forge::notebook
@@ -13,7 +13,7 @@ dependencies:
 - glpk
 - openpyxl
 - matplotlib
-- xlrd==1.2.0
+- xlrd
 - pyomo
 - numpy
 - pandas
@@ -28,9 +28,9 @@ dependencies:
 - seaborn
 - conda-forge::rasterio
 - conda-forge::netcdf4
+- conda-forge::tsam
+- wquantiles
+- cython
 
 - pip:
-    - tsam
-    - wquantiles
     - .
-
