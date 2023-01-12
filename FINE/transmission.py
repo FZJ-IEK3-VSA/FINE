@@ -144,13 +144,13 @@ class Transmission(Component):
         self.capacityFix = capacityFix
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
-        preprocessedCapacityMax = utils.preprocess2dimInvestmentPeriodData(
+        preprocessedCapacityMax = utils.process2dimCapacityData(
             esM,
             "capacityMax",
             capacityMax,
             esM.investmentPeriods,
         )
-        preprocessedCapacityFix = utils.preprocess2dimInvestmentPeriodData(
+        preprocessedCapacityFix = utils.process2dimCapacityData(
             esM,
             "capacityFix",
             capacityFix,
@@ -288,39 +288,35 @@ class Transmission(Component):
         # these are initialized with 0 in the component.__init__ and overwritten here,
         # due to its different structure otherwise the tests fail in the component
         self.investPerCapacity = investPerCapacity
-        _processedInvestPerCapacity = utils.preprocess2dimInvestmentPeriodData(
+        self.preprocessedInvestPerCapacity = utils.preprocess2dimInvestmentPeriodData(
             esM,
             "investPerCapacity",
             investPerCapacity,
             self.processedStockYears + esM.investmentPeriods,
-            self._mapC,
         )
 
         self.investIfBuilt = investIfBuilt
-        _processedInvestIfBuilt = utils.preprocess2dimInvestmentPeriodData(
+        self.preprocessedInvestIfBuilt = utils.preprocess2dimInvestmentPeriodData(
             esM,
             "investIfBuilt",
             investIfBuilt,
             self.processedStockYears + esM.investmentPeriods,
-            self._mapC,
         )
 
         self.opexPerCapacity = opexPerCapacity
-        _processedOpexPerCapacity = utils.preprocess2dimInvestmentPeriodData(
+        self.preprocessedOpexPerCapacity = utils.preprocess2dimInvestmentPeriodData(
             esM,
             "opexPerCapacity",
             opexPerCapacity,
             self.processedStockYears + esM.investmentPeriods,
-            self._mapC,
         )
 
         self.opexIfBuilt = opexIfBuilt
-        _processedOpexIfBuilt = utils.preprocess2dimInvestmentPeriodData(
+        self.preprocessedOpexIfBuilt = utils.preprocess2dimInvestmentPeriodData(
             esM,
             "opexIfBuilt",
             opexIfBuilt,
             self.processedStockYears + esM.investmentPeriods,
-            self._mapC,
         )
 
         # Set distance related costs data
@@ -330,16 +326,20 @@ class Transmission(Component):
         self.processedOpexIfBuilt = {}
         for year in self.processedStockYears + esM.investmentPeriods:
             self.processedInvestPerCapacity[year] = (
-                _processedInvestPerCapacity[year] * self.distances * 0.5
+                utils.preprocess2dimData(self.preprocessedInvestPerCapacity[year], self._mapC, 
+                self.locationalEligibility)* self.distances * 0.5
             )
             self.processedInvestIfBuilt[year] = (
-                _processedInvestIfBuilt[year] * self.distances * 0.5
+                utils.preprocess2dimData(self.preprocessedInvestIfBuilt[year], self._mapC, 
+                self.locationalEligibility)* self.distances * 0.5
             )
             self.processedOpexPerCapacity[year] = (
-                _processedOpexPerCapacity[year] * self.distances * 0.5
+                utils.preprocess2dimData(self.preprocessedOpexPerCapacity[year], self._mapC, 
+                self.locationalEligibility)* self.distances * 0.5
             )
             self.processedOpexIfBuilt[year] = (
-                _processedOpexIfBuilt[year] * self.distances * 0.5
+                utils.preprocess2dimData(self.preprocessedOpexIfBuilt[year], self._mapC, 
+                self.locationalEligibility)* self.distances * 0.5
             )
 
         # Set additional economic data

@@ -1975,8 +1975,15 @@ def setOptimalComponentVariables(optVal, varType, compDict):
                 setattr(comp, varType, None)
 
 
+def process2dimCapacityData(esM, name, data, years):
+    data = preprocess2dimInvestmentPeriodData(esM, name, data, years)
+    for year in years:
+        data[year] = preprocess2dimData(data[year])
+
+    return data 
+
 def preprocess2dimInvestmentPeriodData(
-    esM, name, data, years, mapC=None, locationalEligibility=None, discard=True
+    esM, name, data, years, locationalEligibility=None
 ):
     parameter = {}
     for ip in years:
@@ -1990,13 +1997,9 @@ def preprocess2dimInvestmentPeriodData(
             or isinstance(data, pd.Series)
             or data is None
         ):
-            parameter[ip] = preprocess2dimData(
-                data, mapC, locationalEligibility, discard
-            )
+            parameter[ip] = data
         elif isinstance(data, dict):
-            parameter[ip] = preprocess2dimData(
-                data[ip], mapC, locationalEligibility, discard
-            )
+            parameter[ip] = data[_ip]
         else:
             raise TypeError(
                 f"Parameter of {name} should be a pandas dataframe or a dictionary."
