@@ -51,6 +51,7 @@ def writeOptimizationOutputToExcel(
     outputFileName="scenarioOutput",
     optSumOutputLevel=2,
     optValOutputLevel=1,
+    investmentPeriod=None
 ):
     """
     Write optimization output to an Excel file.
@@ -77,8 +78,19 @@ def writeOptimizationOutputToExcel(
 
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
+
+    :param investmentPeriod: option to define an investment period for the export. If not investment period is set
+        all investement periods of the esM will be exported
+        |br| * the default value is None
+    :type investmentPeriod: int or None  
     """
-    for ip in esM.investmentPeriodNames:
+
+    if investmentPeriod is None:
+        investmentPeriodNamesExport = esM.investmentPeriodNames
+    else:
+        investmentPeriodNamesExport = investmentPeriod
+        
+    for ip in investmentPeriodNamesExport:
         if len(esM.investmentPeriodNames) > 1:
             _outputFileName = outputFileName + f"_{ip}"
         else:
