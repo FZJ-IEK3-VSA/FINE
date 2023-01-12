@@ -185,7 +185,7 @@ def fixBinaryVariables(esM):
     """
     for mdl in esM.componentModelingDict.keys():
         compValues = esM.componentModelingDict[mdl].getOptimalValues(
-            "isBuiltVariablesOptimum"
+            name="isBuiltVariablesOptimum", ip=0
         )["values"]
         if compValues is not None:
             for comp in compValues.index.get_level_values(0).unique():

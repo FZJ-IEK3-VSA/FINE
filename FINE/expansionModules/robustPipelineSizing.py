@@ -140,13 +140,15 @@ def getInjectionWithdrawalRates(
     """
     # TODO check type and value correctness
 
+    # TODO does this work wit
+    raise ValueError("Not working with perfect foresight")
     # Get the original optimal operation variables
     if operationVariablesOptimumData is not None:
         op = operationVariablesOptimumData
     else:
         op = (
             esM.componentModelingDict[esM.componentNames[componentName]]
-            .getOptimalValues("operationVariablesOptimum")["values"]
+            .getOptimalValues("_operationVariablesOptimum")["values"]
             .loc[componentName]
         )
 

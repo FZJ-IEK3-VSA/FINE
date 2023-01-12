@@ -49,6 +49,7 @@ class Source(Component):
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
         balanceLimitID=None,
+        stockCommissioning=None,
     ):
 
         """
@@ -75,45 +76,54 @@ class Source(Component):
 
         **Default arguments:**
 
-        :param operationRateMax: if specified, indicates a maximum operation rate for each location and each time
+        :param operationRateMax: if specified, indicates a maximum operation rate for each location and each time, if required also for each investment period, if
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
             to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit for each time step.
             |br| * the default value is None
-        :type operationRateMax: None or Pandas DataFrame with positive (>= 0) entries or dict with entries of
-            None or Pandas DataFrame with positive (>=0) per investement period. The row indices have
+        :type operationRateMax:
+            * None
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
+            * a dictionary with investment periods as keys and one of the two options above as values
 
-        :param operationRateFix: if specified, indicates a fixed operation rate for each location and each time
+
+        :param operationRateFix: if specified, indicates a fixed operation rate for each location and each time, if required also for each investment period,
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
             to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
             capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
             of the commodityUnit for each time step.
             |br| * the default value is None
-        :type operationRateFix: None or Pandas DataFrame with positive (>= 0) entries or dict with entries of
-            None or Pandas DataFrame with positive (>=0) per investement period. The row indices have
+        :type operationRateFix:
+            * None
+            * Pandas DataFrame with positive (>=0) per investement period. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
+            * a dictionary with investment periods as keys and one of the two options above as values
 
         :param commodityCostTimeSeries: if specified, indicates commodity cost rates for each location and each
-            time step by a positive float. The values are given as specific values relative to the commodityUnit
+            time step, if required also for each investment period, by a positive float. The values are given as specific values relative to the commodityUnit
             for each time step.
             |br| * the default value is None
-        :type commodityCostTimeSeries: None or Pandas DataFrame with positive (>= 0) entries or dict of None or
-            Pandas DataFrame with positive (>= 0) entries per investment period. The row indices have
+        :type commodityCostTimeSeries:
+            * None
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
+            * a dictionary with investment periods as keys and one of the two options above as values
 
         :param commodityRevenueTimeSeries:  if specified, indicates commodity revenue rate for each location and
-            each time step by a positive float. The values are given as specific values relative to the
+            each time step, if required also for each investment period, by a positive float. The values are given as specific values relative to the
             commodityUnit for each time step.
             |br| * the default value is None
-        :type commodityRevenueTimeSeries: None or Pandas DataFrame with positive (>= 0) entries or dict of None or
-            Pandas DataFrame with positive (>= 0) entries per investment period. The row indices
+        :type commodityRevenueTimeSeries:
+            * None
+            * Pandas DataFrame with positive (>= 0) entries. The row indices
             have to match the in the energy system model specified time steps. The column indices have to equal
             the in the energy system model specified locations. The data in ineligible locations are set to zero.
+            * a dictionary with investment periods as keys and one of the two options above as values
 
         :param tsaWeight: weight with which the time series of the component should be considered when applying
             time series aggregation.
@@ -127,10 +137,11 @@ class Source(Component):
             |br| * the default value is None
         :type commodityLimitID: string
 
-        :param yearlyLimit: if specified, indicates a yearly import/export commodity limit for all components with
+        :param yearlyLimit: if specified, indicates a yearly import/export commodity limit per investment period for all components with
             the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is
             limited. If negative, the commodity flow entering the energySystemModel is limited. If a
-            yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well.
+            yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well. The yearlyLimit can also be specified for
+            every investment period year individually.
             Examples:
 
             * CO2 can be emitted in power plants by burning natural gas or coal. The CO2 which goes into
@@ -144,24 +155,28 @@ class Source(Component):
               "chemicalComponentLimitID" and a yearlyLimit of -XY.
 
             |br| * the default value is None
-        :type yearlyLimit: float
+        :type yearlyLimit:
+            * float
+            * a dictionary with investment periods as keys and float as values
 
         :param opexPerOperation: describes the cost for one unit of the operation. The cost which is directly
             proportional to the operation of the component is obtained by multiplying the opexPerOperation parameter
             with the annual sum of the operational time series of the components.
-            The opexPerOperation can either be given as a float or a Pandas Series with location specific values.
+            The opexPerOperation can either be given as a float or a Pandas Series with location specific values or a dictionary per investment period with one of the previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
-        :type opexPerOperation: positive (>=0) float or Pandas Series with positive (>=0) values or dict
-            with entries of positive (>=0) float or Pandas Series with positive (>=0) per investement period.
+        :type opexPerOperation:
+            * positive (>=0) float
+            Pandas Series with positive (>=0) values.
             The indices of the series have to equal the in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param commodityCost: describes the cost value of one operation´s unit of the component.
             The cost which is directly proportional to the operation of the component
             is obtained by multiplying the commodityCost parameter with the annual sum of the
             time series of the components. The commodityCost can either be given as a
-            float or a Pandas Series with location specific values.
+            float or a Pandas Series with location specific values or a dictionary per investment period with one of the two previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             Example:
@@ -170,15 +185,16 @@ class Source(Component):
               certain cost.
 
             |br| * the default value is 0
-        :type commodityCost: positive (>=0) float or Pandas Series with positive (>=0) values  or dict
-            with entries of positive (>=0) float or Pandas Series with positive (>=0) per investement period.
-            The indices of the series have to equal the in the energy system model specified locations.
+        :type commodityCost:
+            * positive (>=0) float
+            * Pandas Series with positive (>=0).The indices of the series have to equal the in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param commodityRevenue: describes the revenue of one operation´s unit of the component.
             The revenue which is directly proportional to the operation of the component
             is obtained by multiplying the commodityRevenue parameter with the annual sum of the
             time series of the components. The commodityRevenue can either be given as a
-            float or a Pandas Series with location specific values.
+            float or a Pandas Series with location specific values or a dictionary per investment period with one of the two previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
             Example:
@@ -186,9 +202,10 @@ class Source(Component):
             * Modeling a PV electricity feed-in tariff for a household
 
             |br| * the default value is 0
-        :type commodityRevenue: positive (>=0) float or Pandas Series with positive (>=0) values or dict
-            with entries of positive (>=0) float or Pandas Series with positive (>=0) per investement period.
-            The indices of the series have to equal the in the energy system model specified locations.
+        :type commodityRevenue:
+            * positive (>=0) float
+            * Pandas Series with positive (>=0). The indices of the series have to equal the in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
             Should be specified if the respective component of the SourceSinkModel is supposed to be included in
@@ -223,9 +240,10 @@ class Source(Component):
             QPcostScale=QPcostScale,
             interestRate=interestRate,
             economicLifetime=economicLifetime,
-            technicalLifetime=None,
+            technicalLifetime=technicalLifetime,
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
+            stockCommissioning=stockCommissioning,
         )
 
         # Set general source/sink data: ID and yearly limit
@@ -235,301 +253,132 @@ class Source(Component):
             esM.commodityUnitsDict[commodity],
         )
         # TODO check value and type correctness
-        self.commodityLimitID, self.yearlyLimit = commodityLimitID, yearlyLimit
+        self.commodityLimitID = commodityLimitID
         self.balanceLimitID = balanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
-        # check if parameter has None values, if it is a dict
-        for param in [
-            operationRateMax,
-            operationRateFix,
-            partLoadMin,
-            commodityCostTimeSeries,
-            commodityRevenueTimeSeries,
-        ]:
-            utils.checkParamInput(param)
+        # yearlyLimit
+        self.yearlyLimit = yearlyLimit
+        self.processedYearlyLimit = utils.checkAndSetYearlyLimit(esM, yearlyLimit)
 
+        # opexPerOperation
         self.opexPerOperation = opexPerOperation
+        self.processedOpexPerOperation = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM,
+            name,
+            opexPerOperation,
+            "1dim",
+            locationalEligibility,
+            esM.investmentPeriods,
+        )
+
+        # commodityCost
         self.commodityCost = commodityCost
+        self.processedCommodityCost = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM,
+            name,
+            commodityCost,
+            "1dim",
+            locationalEligibility,
+            esM.investmentPeriods,
+        )
+
+        # commodtyRevenue
         self.commodityRevenue = commodityRevenue
-        self.processedOpexPerOperation = {}
-        self.processedCommodityCost = {}
-        self.processedCommodityRevenue = {}
+        self.processedCommodityRevenue = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM,
+            name,
+            commodityRevenue,
+            "1dim",
+            locationalEligibility,
+            esM.investmentPeriods,
+        )
 
+        # commodityCostTimeSeries
         self.commodityCostTimeSeries = commodityCostTimeSeries
-        self.fullCommodityCostTimeSeries = {}
-        self.aggregatedCommodityCostTimeSeries = {}
-        self.processedCommodityCostTimeSeries = {}
+        self.fullCommodityCostTimeSeries = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, commodityCostTimeSeries, locationalEligibility
+        )
+        self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
+        self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
+        # commodityRevenueTimeSeries
         self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
         self.fullCommodityRevenueTimeSeries = {}
-        self.aggregatedCommodityRevenueTimeSeries = {}
-        self.processedCommodityRevenueTimeSeries = {}
+        self.fullCommodityRevenueTimeSeries = (
+            utils.checkAndSetInvestmentPeriodTimeSeries(
+                esM, name, commodityRevenueTimeSeries, locationalEligibility
+            )
+        )
+        self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
+        self.processedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
-        # iterate over all ips
-        for ip in esM.investmentPeriods:
-
-            # opexPerOperation
-            if (
-                isinstance(opexPerOperation, int)
-                or isinstance(opexPerOperation, float)
-                or isinstance(opexPerOperation, pd.Series)
-            ):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation, "1dim", locationalEligibility
-                )
-            elif isinstance(opexPerOperation, dict):
-                self.processedOpexPerOperation[ip] = utils.checkAndSetCostParameter(
-                    esM, name, opexPerOperation[ip], "1dim", locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "opexPerOperation should be a pandas series or a dictionary."
-                )
-
-            # Commodity Cost
-            if (
-                isinstance(commodityCost, int)
-                or isinstance(commodityCost, float)
-                or isinstance(commodityCost, pd.Series)
-            ):
-                self.processedCommodityCost[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityCost, "1dim", locationalEligibility
-                )
-            elif isinstance(commodityCost, dict):  # commodityCost is dict
-                self.processedCommodityCost[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityCost[ip], "1dim", locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "commodityCost should be a pandas series or a dictionary."
-                )
-
-            # Commodity Revenue
-            if (
-                isinstance(commodityRevenue, int)
-                or isinstance(commodityRevenue, float)
-                or isinstance(commodityRevenue, pd.Series)
-            ):
-                self.processedCommodityRevenue[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityRevenue, "1dim", locationalEligibility
-                )
-            elif isinstance(commodityRevenue, dict):
-                self.processedCommodityRevenue[ip] = utils.checkAndSetCostParameter(
-                    esM, name, commodityRevenue[ip], "1dim", locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "commodityRevenue should be a pandas series or a dictionary."
-                )
-
-            # Commodity Cost Time Series
-            if (
-                isinstance(commodityCostTimeSeries, pd.DataFrame)
-                or commodityCostTimeSeries is None
-                or isinstance(commodityCostTimeSeries, pd.Series)
-            ):
-                self.fullCommodityCostTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityCostTimeSeries, locationalEligibility
-                )
-            elif isinstance(commodityCostTimeSeries, dict):
-                self.fullCommodityCostTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityCostTimeSeries[ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "commodityCostTimeSeries should be a pandas dataframe or a dictionary."
-                )
-
-            (
-                self.aggregatedCommodityCostTimeSeries[ip],
-                self.processedCommodityCostTimeSeries[ip],
-            ) = (None, None)
-
-            # commodityRevenueTimeSeries
-            if (
-                isinstance(commodityRevenueTimeSeries, pd.DataFrame)
-                or commodityRevenueTimeSeries is None
-                or isinstance(commodityRevenueTimeSeries, pd.Series)
-            ):
-                self.fullCommodityRevenueTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityRevenueTimeSeries, locationalEligibility
-                )
-            elif isinstance(commodityRevenueTimeSeries, dict):
-                self.fullCommodityRevenueTimeSeries[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, commodityRevenueTimeSeries[ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "commodityRevenueTimeSeries should be a pandas dataframe or a dictionary."
-                )
-
-            (
-                self.aggregatedCommodityRevenueTimeSeries[ip],
-                self.processedCommodityRevenueTimeSeries[ip],
-            ) = (None, None)
-
+        # operationRateMax
         self.operationRateMax = operationRateMax
-        self.fullOperationRateMax = {}
+        self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, operationRateMax, locationalEligibility
+        )
         self.aggregatedOperationRateMax = {}
         self.processedOperationRateMax = {}
 
+        # operationRateFix
         self.operationRateFix = operationRateFix
-        self.fullOperationRateFix = {}
+        self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, operationRateFix, locationalEligibility
+        )
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
 
-        # iterate over all ips
+        # check for operationRateMax and operationRateFix
         for ip in esM.investmentPeriods:
-            #  ugly test to check that for every ip there is either
-            # operationRateMax or operationRateFix
-            _operationRateMax = (
-                operationRateMax[ip]
-                if isinstance(operationRateMax, dict)
-                else operationRateMax
-            )
-            _operationRateFix = (
-                operationRateFix[ip]
-                if isinstance(operationRateFix, dict)
-                else operationRateFix
-            )
-
-            if _operationRateMax is not None and _operationRateFix is not None:
-                if isinstance(operationRateMax, dict):
-                    operationRateMax[ip] = None
-                else:
-                    operationRateMax = None
+            if (
+                self.fullOperationRateFix[ip] is not None
+                and self.fullOperationRateMax[ip] is not None
+            ):
+                self.fullOperationRateMax[ip] = None
                 if esM.verbose < 2:
                     warnings.warn(
                         "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
-                        + "The operationRateMax time series was set to None."
+                        + "The operationRateMax time series of investment period "
+                        + f"'{esM.investmentPeriodNames[ip]}' was set to None."
                     )
 
-            # Operation Rate Max
-            if (
-                isinstance(operationRateMax, pd.DataFrame)
-                or operationRateMax is None
-                or isinstance(operationRateMax, pd.Series)
-            ):
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax, locationalEligibility
-                )
-            elif isinstance(operationRateMax, dict):  # operationRate is dict
-                self.fullOperationRateMax[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateMax[ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "OperationRateMax should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedOperationRateMax[ip], self.processedOperationRateMax[ip] = (
-                None,
-                None,
-            )
-
-            # Operation Rate Fix
-            if (
-                isinstance(operationRateFix, pd.DataFrame)
-                or operationRateFix is None
-                or isinstance(operationRateFix, pd.Series)
-            ):
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix, locationalEligibility
-                )
-            elif isinstance(operationRateFix, dict):  # operationRate is dict
-                self.fullOperationRateFix[ip] = utils.checkAndSetTimeSeries(
-                    esM, name, operationRateFix[ip], locationalEligibility
-                )
-            else:
-                raise TypeError(
-                    "OperationRateFix should be a pandas dataframe or a dictionary."
-                )
-            self.aggregatedOperationRateFix[ip], self.processedOperationRateFix[ip] = (
-                None,
-                None,
-            )
-
-        # Part Load Min
-        self.partLoadMin = partLoadMin
-        self.processedPartLoadMin = {}
-        for ip in esM.investmentPeriods:
-            if isinstance(partLoadMin, float) or partLoadMin is None:
-                self.processedPartLoadMin[ip] = partLoadMin
-            elif isinstance(partLoadMin, dict):
-                self.processedPartLoadMin[ip] = partLoadMin[ip]
-
-        if not any(value for value in self.processedPartLoadMin.values()):
-            self.processedPartLoadMin = None
-
-        if self.processedPartLoadMin is not None:
-            for ip in esM.investmentPeriods:
-                if self.processedPartLoadMin[ip] is not None:
-                    if self.fullOperationRateMax[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateMax[ip] > 0)
-                                & (
-                                    self.fullOperationRateMax[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"operationRateMax" needs to be higher than "partLoadMin" or 0 for component '
-                                + name
-                            )
-                    if self.fullOperationRateFix[ip] is not None:
-                        if (
-                            (
-                                (self.fullOperationRateFix[ip] > 0)
-                                & (
-                                    self.fullOperationRateFix[ip]
-                                    < self.processedPartLoadMin[ip]
-                                )
-                            )
-                            .any()
-                            .any()
-                        ):
-                            raise ValueError(
-                                '"fullOperationRateFix" needs to be higher'
-                                + ' than "partLoadMin" or 0 for component '
-                                + name
-                            )
+        # partLoadMin
+        self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
+            esM,
+            name,
+            partLoadMin,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+            self.bigM,
+            self.hasCapacityVariable,
+        )
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullOperationRateFix.values()
-        ):
-            self.fullOperationRateFix = None
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullOperationRateMax.values()
-        ):
-            self.fullOperationRateMax = None
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullCommodityCostTimeSeries.values()
-        ):
-            self.fullCommodityCostTimeSeries = None
-        if all(
-            type(value) != pd.core.frame.DataFrame
-            for value in self.fullCommodityRevenueTimeSeries.values()
-        ):
-            self.fullCommodityRevenueTimeSeries = None
+        # set parameter to None if all years have None values
+        self.fullOperationRateFix = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateFix
+        )
+        self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateMax
+        )
+        self.fullCommodityCostTimeSeries = utils.setParamToNoneIfNoneForAllYears(
+            self.fullCommodityCostTimeSeries
+        )
+        self.fullCommodityRevenueTimeSeries = utils.setParamToNoneIfNoneForAllYears(
+            self.fullCommodityRevenueTimeSeries
+        )
+        self.processedYearlyLimit = utils.setParamToNoneIfNoneForAllYears(
+            self.processedYearlyLimit
+        )
 
-        operationTimeSeries = {}
         if self.fullOperationRateFix is not None:
-            for ip in esM.investmentPeriods:
-                operationTimeSeries[ip] = self.fullOperationRateFix[ip]
+            operationTimeSeries = self.fullOperationRateFix
         elif self.fullOperationRateMax is not None:
-            for ip in esM.investmentPeriods:
-                operationTimeSeries[ip] = self.fullOperationRateMax[ip]
+            operationTimeSeries = self.fullOperationRateMax
         else:
             operationTimeSeries = None
 
@@ -542,15 +391,6 @@ class Source(Component):
             self.hasCapacityVariable,
             operationTimeSeries,
         )
-
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a source component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -656,25 +496,11 @@ class Source(Component):
             "processedCommodityCostTimeSeries",
             "processedCommodityRevenueTimeSeries",
         ]:
-            if getattr(self, parameter) is not None:
-                if all(
-                    type(value) != pd.core.frame.DataFrame
-                    for value in getattr(self, parameter).values()
-                ):
-                    setattr(self, parameter, None)
-
-    def initializeProcessedDataSets(self, investmentperiods):
-        """
-        Initialize dicts (keys are investment periods, values are None)
-        for processed data sets.
-
-        :param investmentperiods: investmentperiods of transformation path analysis.
-        :type investmentperiods: list
-        """
-        self.processedOperationRateFix = dict.fromkeys(investmentperiods)
-        self.processedOperationRateMax = dict.fromkeys(investmentperiods)
-        self.processedCommodityCostTimeSeries = dict.fromkeys(investmentperiods)
-        self.processedCommodityRevenueTimeSeries = dict.fromkeys(investmentperiods)
+            setattr(
+                self,
+                parameter,
+                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
+            )
 
 
 class Sink(Source):
@@ -719,6 +545,7 @@ class Sink(Source):
         economicLifetime=10,
         technicalLifetime=None,
         balanceLimitID=None,
+        stockCommissioning=None,
     ):
         """
         Constructor for creating an Sink class instance.
@@ -764,6 +591,7 @@ class Sink(Source):
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
             balanceLimitID=balanceLimitID,
+            stockCommissioning=stockCommissioning,
         )
 
         self.sign = -1
@@ -781,19 +609,16 @@ class SourceSinkModel(ComponentModel):
         """
         Constructor for creating a SourceSinkModel class instance.
         """
+        super().__init__()
         self.abbrvName = "srcSnk"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum = None
-        self.optSummary = {}
-        self.operationVariablesOptimum = {}
+        self._operationVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
 
-    def declareYearlyCommodityLimitationDict(self, pyM):
+    def declareYearlyCommodityLimitationDict(self, pyM, esM):
         """
         Declare source/sink components with linked commodity limits and check if the linked components have the same
         yearly upper limit.
@@ -803,19 +628,24 @@ class SourceSinkModel(ComponentModel):
         """
 
         yearlyCommodityLimitationDict = {}
-        for compName, comp in self.componentsDict.items():
-            if comp.commodityLimitID is not None:
-                ID, limit = comp.commodityLimitID, comp.yearlyLimit
-                if (
-                    ID in yearlyCommodityLimitationDict
-                    and limit != yearlyCommodityLimitationDict[ID][0]
-                ):
-                    raise ValueError(
-                        "yearlyLimitationIDs with different upper limits detected."
-                    )
-                yearlyCommodityLimitationDict.setdefault(ID, (limit, []))[1].append(
-                    compName
-                )
+        for ip in esM.investmentPeriods:
+            for compName, comp in self.componentsDict.items():
+                if comp.commodityLimitID is not None:
+                    ID, limit = comp.commodityLimitID, comp.processedYearlyLimit[ip]
+                    if (
+                        ID,
+                        ip,
+                    ) in yearlyCommodityLimitationDict.keys() and limit != yearlyCommodityLimitationDict[
+                        (ID, ip)
+                    ][
+                        0
+                    ]:
+                        raise ValueError(
+                            "yearlyLimitationIDs with different upper limits detected."
+                        )
+                    yearlyCommodityLimitationDict.setdefault((ID, ip), (limit, []))[
+                        1
+                    ].append(compName)
         setattr(
             pyM,
             "yearlyCommodityLimitationDict_" + self.abbrvName,
@@ -835,14 +665,18 @@ class SourceSinkModel(ComponentModel):
         """
 
         # Declare design variable sets
-        self.declareDesignVarSet(pyM)
+        self.declareDesignVarSet(pyM, esM)
+        self.declareCommissioningVarSet(pyM, esM)
         self.declareContinuousDesignVarSet(pyM)
         self.declareDiscreteDesignVarSet(pyM)
         self.declareDesignDecisionVarSet(pyM)
 
+        # Declare design pathway sets
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM)
+
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-        self.declareOperationBinarySet(pyM)
 
         # Declare sets for case differentiation of operating modes
         self.declareOperationModeSets(
@@ -850,7 +684,7 @@ class SourceSinkModel(ComponentModel):
         )
 
         # Declare commodity limitation dictionary
-        self.declareYearlyCommodityLimitationDict(pyM)
+        self.declareYearlyCommodityLimitationDict(pyM, esM)
 
         # Declare minimum yearly full load hour set
         self.declareYearlyFullLoadHoursMinSet(pyM)
@@ -894,6 +728,9 @@ class SourceSinkModel(ComponentModel):
         self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
+        # Capacity development variables [physicalUnit]
+        self.declareCommissioningVars(pyM, esM)
+        self.declareDecommissioningVars(pyM, esM)
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -918,21 +755,21 @@ class SourceSinkModel(ComponentModel):
         opVar = getattr(pyM, "op_" + abbrvName)
         limitDict = getattr(pyM, "yearlyCommodityLimitationDict_" + abbrvName)
 
-        def yearlyLimitationConstraint(pyM, key):
+        def yearlyLimitationConstraint(pyM, key, ip):
             sumEx = -sum(
                 opVar[loc, compName, ip, p, t]
                 * compDict[compName].sign
                 * esM.periodOccurrences[ip][p]
                 / esM.numberOfYears
-                for loc, compName, ip, p, t in opVar
-                if compName in limitDict[key][1]
+                for loc, compName, _ip, p, t in opVar
+                if (_ip == ip and compName in limitDict[(key, ip)][1])
             )
             sign = (
-                limitDict[key][0] / abs(limitDict[key][0])
-                if limitDict[key][0] != 0
+                limitDict[(key, ip)][0] / abs(limitDict[(key, ip)][0])
+                if limitDict[(key, ip)][0] != 0
                 else 1
             )
-            return sign * sumEx <= sign * limitDict[key][0]
+            return sign * sumEx <= sign * limitDict[(key, ip)][0]
 
         setattr(
             pyM,
@@ -963,10 +800,23 @@ class SourceSinkModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
+        # Set, if applicable, the installed capacities of a component
+        self.capacityFix(pyM, esM)
+        # Set, if applicable, the binary design variables of a component
+        self.designBinFix(pyM)
         # Set yearly full load hours minimum limit
         self.yearlyFullLoadHoursMin(pyM, esM)
         # Set yearly full load hours maximum limit
         self.yearlyFullLoadHoursMax(pyM, esM)
+
+        ################################################################################################################
+        #                                    Declare pathway constraints                                               #
+        ################################################################################################################
+        # Set capacity development constraints over investment periods
+        self.designDevelopmentConstraint(pyM, esM)
+        self.decommissioningConstraint(pyM, esM)
+        self.stockCapacityConstraint(pyM, esM)
+        self.stockCommissioningConstaint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
@@ -992,10 +842,6 @@ class SourceSinkModel(ComponentModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """Get contributions to shared location potential."""
-        return super().getSharedPotentialContribution(pyM, key, loc)
-
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
         Check if operation variables exist in the modeling class at a location which are connected to a commodity.
@@ -1017,7 +863,7 @@ class SourceSinkModel(ComponentModel):
         )
 
     def getBalanceLimitContribution(
-        self, esM, pyM, ID, timeSeriesAggregation, loc=None
+        self, esM, pyM, ID, ip, timeSeriesAggregation, loc=None
     ):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
@@ -1031,6 +877,9 @@ class SourceSinkModel(ComponentModel):
 
         :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pym: pyomo ConcreteModel
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
 
         :param ID: ID of the regarded balanceLimitConstraint
         :param ID: string
@@ -1053,14 +902,12 @@ class SourceSinkModel(ComponentModel):
         limitDict = getattr(pyM, "balanceLimitDict")
 
         if timeSeriesAggregation:
-            investmentPeriods = esM.investmentPeriods
             periods = esM.typicalPeriods
             if esM.segmentation:
                 timeSteps = esM.segmentsPerPeriod
             else:
                 timeSteps = esM.timeStepsPerPeriod
         else:
-            investmentPeriods = esM.investmentPeriods
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
         # Check if locational input is not set in esM, if so additionally loop over all locations
@@ -1071,7 +918,6 @@ class SourceSinkModel(ComponentModel):
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
                 if compName in limitDict[ID]
-                for ip in investmentPeriods
                 for p in periods
                 for t in timeSteps
                 for loc in esM.locations
@@ -1084,7 +930,6 @@ class SourceSinkModel(ComponentModel):
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
                 if compName in limitDict[(ID, loc)]
-                for ip in investmentPeriods
                 for p in periods
                 for t in timeSteps
             )
@@ -1099,6 +944,7 @@ class SourceSinkModel(ComponentModel):
         .. math::
             \\text{C}^{comp,comm}_{loc,ip,p,t} = op_{loc,ip,p,t}^{comp,op} \\text{Source}
         """
+
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = (
             getattr(pyM, "op_" + abbrvName),
@@ -1106,7 +952,7 @@ class SourceSinkModel(ComponentModel):
         )
         return sum(
             opVar[loc, compName, ip, p, t] * compDict[compName].sign
-            for compName in opVarDict[loc]
+            for compName in opVarDict[ip][loc]
             if compDict[compName].commodity == commod
         )
 
@@ -1120,20 +966,30 @@ class SourceSinkModel(ComponentModel):
             :type pym: pyomo ConcreteModel
         """
 
-        opexOp = self.getEconomicsTD(
-            pyM, esM, ["processedOpexPerOperation"], "op", "operationVarDict"
+        opexOp = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
         )
-        commodCost = self.getEconomicsTD(
-            pyM, esM, ["processedCommodityCost"], "op", "operationVarDict"
+        commodCost = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedCommodityCost"], "op", "operationVarDict"
         )
-        commodRevenue = self.getEconomicsTD(
-            pyM, esM, ["processedCommodityRevenue"], "op", "operationVarDict"
+        commodRevenue = self.getEconomicsOperation(
+            pyM, esM, "TD", ["processedCommodityRevenue"], "op", "operationVarDict"
         )
-        commodCostTimeSeries = self.getEconomicsTimeSeries(
-            pyM, esM, "processedCommodityCostTimeSeries", "op", "operationVarDict"
+        commodCostTimeSeries = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TimeSeries",
+            ["processedCommodityCostTimeSeries"],
+            "op",
+            "operationVarDict",
         )
-        commodRevenueTimeSeries = self.getEconomicsTimeSeries(
-            pyM, esM, "processedCommodityRevenueTimeSeries", "op", "operationVarDict"
+        commodRevenueTimeSeries = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TimeSeries",
+            ["processedCommodityRevenueTimeSeries"],
+            "op",
+            "operationVarDict",
         )
 
         return (
@@ -1148,7 +1004,7 @@ class SourceSinkModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -1161,173 +1017,307 @@ class SourceSinkModel(ComponentModel):
         :param ip: investment period of transformation path analysis.
         :type ip: int
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
-
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(
             esM, pyM, esM.locations, "commodityUnit"
         )
 
-        # Set optimal operation variables and append optimization summary
-        optVal = utils.formatOptimizationOutput(
-            opVar.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
+        # get class related results
+        resultsTAC_opexOp = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
         )
-        # Quick fix if several runs with one investment period
-        if type(self.operationVariablesOptimum) is not dict:
-            self.operationVariablesOptimum = {}
-        self.operationVariablesOptimum[ip] = optVal
-
-        props = ["operation", "opexOp", "commodCosts", "commodRevenues"]
-        # Unit dict: Specify units for props
-        units = {
-            props[0]: ["[-*h]", "[-*h/a]"],
-            props[1]: ["[" + esM.costUnit + "/a]"],
-            props[2]: ["[" + esM.costUnit + "/a]"],
-            props[3]: ["[" + esM.costUnit + "/a]"],
-        }
-        # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
-        tuples = [
-            (compName, prop, unit)
-            for compName in compDict.keys()
-            for prop in props
-            for unit in units[prop]
-        ]
-        # Replace placeholder with correct unit of component
-        tuples = list(
-            map(
-                lambda x: (x[0], x[1], x[2].replace("-", compDict[x[0]].commodityUnit))
-                if x[1] == "operation"
-                else x,
-                tuples,
-            )
+        resultsTAC_commodCost = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedCommodityCost"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
         )
-        mIndex = pd.MultiIndex.from_tuples(
-            tuples, names=["Component", "Property", "Unit"]
+        resultsTAC_commodRevenue = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedCommodityRevenue"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
         )
-        optSummary = pd.DataFrame(
-            index=mIndex, columns=sorted(esM.locations)
-        ).sort_index()
-        if optVal is not None:
-            opSum = optVal.sum(axis=1).unstack(-1)
-            ox = opSum.apply(
-                lambda op: op
-                * compDict[op.name].processedOpexPerOperation[ip][op.index],
-                axis=1,
+        resultsTAC_commodCostTimeSeries = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TimeSeries",
+            ["processedCommodityCostTimeSeries"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
+        )
+        resultsTAC_commodRevenueTimeSeries = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TimeSeries",
+            ["processedCommodityRevenueTimeSeries"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
+        )
+        resultsNPV_opexOp = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
+        )
+        resultsNPV_commodCost = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedCommodityCost"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
+        )
+        resultsNPV_commodRevenue = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedCommodityRevenue"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
+        )
+        resultsNPV_commodCostTimeSeries = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TimeSeries",
+            ["processedCommodityCostTimeSeries"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
+        )
+        resultsNPV_commodRevenueTimeSeries = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TimeSeries",
+            ["processedCommodityRevenueTimeSeries"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
+        )
+
+        for ip in esM.investmentPeriods:
+            compDict, abbrvName = self.componentsDict, self.abbrvName
+            opVar = getattr(pyM, "op_" + abbrvName)
+
+            # Set optimal operation variables and append optimization summary
+            optVal = utils.formatOptimizationOutput(
+                opVar.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
             )
-            cCost = opSum.apply(
-                lambda op: op * compDict[op.name].processedCommodityCost[ip][op.index],
-                axis=1,
-            )
-            cRevenue = opSum.apply(
-                lambda op: op
-                * compDict[op.name].processedCommodityRevenue[ip][op.index],
-                axis=1,
-            )
 
-            optSummary.loc[
-                [
-                    (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
-                    for ix in opSum.index
-                ],
-                opSum.columns,
-            ] = (
-                opSum.values / esM.numberOfYears
-            )
-            optSummary.loc[
-                [
-                    (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
-                    for ix in opSum.index
-                ],
-                opSum.columns,
-            ] = opSum.values
-            optSummary.loc[
-                [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                ox.columns,
-            ] = (
-                ox.values / esM.numberOfYears
-            )
+            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
 
-            # get empty datframe for resulting time dependent (TD) cost sum
-            # bugfix for wrong allocation of costs in optSummary
-            cRevenueTD = pd.DataFrame(0.0, index=opSum.index, columns=opSum.columns)
-            cCostTD = pd.DataFrame(0.0, index=opSum.index, columns=opSum.columns)
-
-            for compName in opSum.index:
-                if not compDict[compName].processedCommodityCostTimeSeries is None:
-                    # in case of time series aggregation rearange clustered cost time series
-                    calcCostTD = utils.buildFullTimeSeries(
-                        compDict[compName]
-                        .processedCommodityCostTimeSeries[ip]
-                        .unstack(level=1)
-                        .stack(level=0),
-                        esM.periodsOrder[ip],
-                        ip,
-                        esM=esM,
-                        divide=False,
-                    )
-                    # multiply with operation values to get the total cost
-
-                    cCostTD.loc[compName, :] = (
-                        optVal.xs(compName, level=0).T.mul(calcCostTD.T).sum(axis=0)
-                    )
-
-                if not compDict[compName].processedCommodityRevenueTimeSeries is None:
-                    # in case of time series aggregation rearange clustered revenue time series
-                    calcRevenueTD = utils.buildFullTimeSeries(
-                        compDict[compName]
-                        .processedCommodityRevenueTimeSeries[ip]
-                        .unstack(level=1)
-                        .stack(level=0),
-                        esM.periodsOrder[ip],
-                        ip,
-                        esM=esM,
-                        divide=False,
-                    )
-                    # multiply with operation values to get the total revenue
-                    cRevenueTD.loc[compName, :] = (
-                        optVal.xs(compName, level=0).T.mul(calcRevenueTD.T).sum(axis=0)
-                    )
-
-            optSummary.loc[
-                [(ix, "commodCosts", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                ox.columns,
-            ] = (cCostTD.values + cCost.values) / esM.numberOfYears
-            optSummary.loc[
-                [(ix, "commodRevenues", "[" + esM.costUnit + "/a]") for ix in ox.index],
-                ox.columns,
-            ] = (cRevenueTD.values + cRevenue.values) / esM.numberOfYears
-
-        # get discounted investment cost as total annual cost (TAC)
-        optSummary = optSummary.append(optSummaryBasic).sort_index()
-
-        # add operation specific contributions to the total annual cost (TAC) and substract revenues
-        optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
-            optSummary.loc[
-                (optSummary.index.get_level_values(1) == "TAC")
-                | (optSummary.index.get_level_values(1) == "opexOp")
-                | (optSummary.index.get_level_values(1) == "commodCosts")
+            props = [
+                "operation",
+                "opexOp",
+                "commodCosts",
+                "commodRevenues",
+                "NPV_opexOp",
+                "NPV_commodCosts",
+                "NPV_commodRevenues",
             ]
-            .groupby(level=0)
-            .sum()
-            .values
-            - optSummary.loc[(optSummary.index.get_level_values(1) == "commodRevenues")]
-            .groupby(level=0)
-            .sum()
-            .values
-        )
+            # Unit dict: Specify units for props
+            units = {
+                props[0]: ["[-*h]", "[-*h/a]"],
+                props[1]: ["[" + esM.costUnit + "/a]"],
+                props[2]: ["[" + esM.costUnit + "/a]"],
+                props[3]: ["[" + esM.costUnit + "/a]"],
+                props[4]: ["[" + esM.costUnit + "/a]"],
+                props[5]: ["[" + esM.costUnit + "/a]"],
+                props[6]: ["[" + esM.costUnit + "/a]"],
+            }
+            # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
+            tuples = [
+                (compName, prop, unit)
+                for compName in compDict.keys()
+                for prop in props
+                for unit in units[prop]
+            ]
+            # Replace placeholder with correct unit of component
+            tuples = list(
+                map(
+                    lambda x: (
+                        x[0],
+                        x[1],
+                        x[2].replace("-", compDict[x[0]].commodityUnit),
+                    )
+                    if x[1] == "operation"
+                    else x,
+                    tuples,
+                )
+            )
+            mIndex = pd.MultiIndex.from_tuples(
+                tuples, names=["Component", "Property", "Unit"]
+            )
+            optSummary = pd.DataFrame(
+                index=mIndex, columns=sorted(esM.locations)
+            ).sort_index()
+            if optVal is not None:
+                # operation
+                opSum = optVal.sum(axis=1).unstack(-1)
+                optSummary.loc[
+                    [
+                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values
+                optSummary.loc[
+                    [
+                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = (
+                    opSum.values / esM.numberOfYears
+                )
 
-        # Quick fix if several runs with one investment period
-        if type(self.optSummary) is not dict:
-            self.optSummary = {}
-        self.optSummary[ip] = optSummary
+                # costs
+                tac_ox = resultsTAC_opexOp[ip]
+                tac_cCost = resultsTAC_commodCost[ip]
+                tac_cRevenue = resultsTAC_commodRevenue[ip]
+                tac_cCostTimeSeries = resultsTAC_commodCostTimeSeries[ip]
+                tac_cRevenueTimeSeries = resultsTAC_commodRevenueTimeSeries[ip]
 
-    def getOptimalValues(self, name="all"):
+                npv_ox = resultsNPV_opexOp[ip]
+                npv_cCost = resultsNPV_commodCost[ip]
+                npv_cRevenue = resultsNPV_commodRevenue[ip]
+                npv_cCostTimeSeries = resultsNPV_commodCostTimeSeries[ip]
+                npv_cRevenueTimeSeries = resultsNPV_commodRevenueTimeSeries[ip]
+
+                optSummary.loc[
+                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
+                    tac_ox.columns,
+                ] = tac_ox.values
+                optSummary.loc[
+                    [
+                        (ix, "NPV_opexOp", "[" + esM.costUnit + "/a]")
+                        for ix in npv_ox.index
+                    ],
+                    npv_ox.columns,
+                ] = npv_ox.values
+
+                # costs: commodity costs
+                tac_commodCosts = tac_cCostTimeSeries + tac_cCost
+                optSummary.loc[
+                    [
+                        (ix, "commodCosts", "[" + esM.costUnit + "/a]")
+                        for ix in tac_commodCosts.index
+                    ],
+                    tac_commodCosts.columns,
+                ] = tac_commodCosts.values
+
+                npv_commodCosts = npv_cCostTimeSeries + npv_cCost
+                optSummary.loc[
+                    [
+                        (ix, "NPV_commodCosts", "[" + esM.costUnit + "/a]")
+                        for ix in npv_commodCosts.index
+                    ],
+                    npv_commodCosts.columns,
+                ] = npv_commodCosts.values
+
+                # costs: commodity revenues
+                tac_commodRevenue = tac_cRevenueTimeSeries + tac_cRevenue
+                optSummary.loc[
+                    [
+                        (ix, "commodRevenues", "[" + esM.costUnit + "/a]")
+                        for ix in tac_commodRevenue.index
+                    ],
+                    tac_commodRevenue.columns,
+                ] = tac_commodRevenue.values
+
+                npv_commodRevenue = npv_cRevenueTimeSeries + npv_cRevenue
+                optSummary.loc[
+                    [
+                        (ix, "NPV_commodRevenues", "[" + esM.costUnit + "/a]")
+                        for ix in npv_commodRevenue.index
+                    ],
+                    npv_commodRevenue.columns,
+                ] = npv_commodRevenue.values
+
+            # get discounted investment cost as total annual cost (TAC)
+            optSummary = optSummary.append(
+                optSummaryBasic[esM.investmentPeriodNames[ip]]
+            ).sort_index()
+
+            # add operation specific contributions to the total annual cost (TAC) and substract revenues
+            optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "TAC")
+                    | (optSummary.index.get_level_values(1) == "opexOp")
+                    | (optSummary.index.get_level_values(1) == "commodCosts")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+                - optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "commodRevenues")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+            )
+            # add operation specific contributions to the net present value (NPV) and substract revenues
+            optSummary.loc[
+                optSummary.index.get_level_values(1) == "NPVcontribution"
+            ] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "NPVcontribution")
+                    | (optSummary.index.get_level_values(1) == "NPV_opexOp")
+                    | (optSummary.index.get_level_values(1) == "NPV_commodCosts")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+                - optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "NPV_commodRevenues")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+            )
+
+            # Delete details of NPV contributions
+            optSummary = optSummary.drop("NPV_opexOp", level=1)
+            optSummary = optSummary.drop("NPV_commodCosts", level=1)
+            optSummary = optSummary.drop("NPV_commodRevenues", level=1)
+
+            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
+
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
@@ -1335,13 +1325,17 @@ class SourceSinkModel(ComponentModel):
 
             * 'capacityVariables',
             * 'isBuiltVariables',
-            * 'operationVariablesOptimum',
+            * '_operationVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'
         :type name: string
 
+        :param ip: investment period
+        |br| * the default value is 0
+        :type ip: int
+
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        return super().getOptimalValues(name)
+        return super().getOptimalValues(name, ip=ip)

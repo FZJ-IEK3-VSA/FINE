@@ -57,7 +57,7 @@ def test_QPinvest():
     # time step length [h]
     timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
-    ### Buy electricity at the electricity market
+    # Buy electricity at the electricity market
     costs = pd.Series([0.5, 0.4, 0.2, 0.5], index=[0, 1, 2, 3])
     esM.add(
         fn.Source(
@@ -69,7 +69,7 @@ def test_QPinvest():
         )
     )  # euro/kWh
 
-    ### Electrolyzers
+    # Electrolyzers
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -87,7 +87,7 @@ def test_QPinvest():
         )
     )
 
-    ### Industry site
+    # Industry site
     demand = pd.Series([10000.0, 10000.0, 10000.0, 10000.0], index=[0, 1, 2, 3])
     esM.add(
         fn.Sink(
@@ -99,20 +99,29 @@ def test_QPinvest():
         )
     )
 
-    ### Optimize (just executed if gurobi is installed)
+    # Optimize (just executed if gurobi is installed)
+    esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    invest = round(
+        esM.getOptimizationSummary("ConversionModel")
+        .loc["Electrolyzer"]
+        .loc["invest"]["location1"]
+        .values.astype(float)[0],
+        3,
+    )
+    assert invest == 3148.179
 
-    flag = True
-    try:
-        esM.optimize(timeSeriesAggregation=False, solver="gurobi")
-    except:
-        flag = False
+    # flag = True
+    # try:
+    #     esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    # except:
+    #     flag = False
 
-    if flag:
-        invest = round(
-            esM.getOptimizationSummary("ConversionModel")
-            .loc["Electrolyzer"]
-            .loc["invest"]["location1"]
-            .values.astype(float)[0],
-            3,
-        )
-        assert invest == 3148.179
+    # if flag:
+    #     invest = round(
+    #         esM.getOptimizationSummary("ConversionModel")
+    #         .loc["Electrolyzer"]
+    #         .loc["invest"]["location1"]
+    #         .values.astype(float)[0],
+    #         3,
+    #     )
+    #     assert invest == 3148.179

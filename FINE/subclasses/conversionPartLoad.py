@@ -83,15 +83,6 @@ class ConversionPartLoad(Conversion):
             self.discretizedPartLoad = commodityConversionFactorsPartLoad[0]
             self.nSegments = commodityConversionFactorsPartLoad[1]
 
-    def addToEnergySystemModel(self, esM):
-        """
-        Function for adding a ConversionPartLoad component to the given energy system model.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-        """
-        super().addToEnergySystemModel(esM)
-
 
 class ConversionPartLoadModel(ConversionModel):
 
@@ -103,12 +94,13 @@ class ConversionPartLoadModel(ConversionModel):
     """
 
     def __init__(self):
+        super().__init__()
         self.abbrvName = "partLoad"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum = None
-        self.optSummary = None
+        self._operationVariablesOptimum = {}
+        self.discretizationPointVariablesOptimun = {}
+        self.discretizationSegmentConVariablesOptimun = {}
+        self.discretizationSegmentBinVariablesOptimun = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -297,7 +289,7 @@ class ConversionPartLoadModel(ConversionModel):
         setattr(
             pyM,
             "ConstrSegmentSOS1_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentSOS1),
+            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=segmentSOS1),
         )
 
     def segmentBigM(self, pyM):
@@ -359,13 +351,15 @@ class ConversionPartLoadModel(ConversionModel):
                         ]
                         for discretStep in range(compDict[compName].nSegments)
                     )
-                    == esM.hoursPerTimeStep * capVar[loc, compName]
+                    == esM.hoursPerTimeStep * capVar[loc, compName, ip]
                 )
 
             setattr(
                 pyM,
                 "ConstrSegmentCapacity_" + abbrvName,
-                pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint),
+                pyomo.Constraint(
+                    opVarSet, pyM.intraYearTimeSet, rule=segmentCapacityConstraint
+                ),
             )
         else:
 
@@ -377,7 +371,7 @@ class ConversionPartLoadModel(ConversionModel):
                         ]
                         for discretStep in range(compDict[compName].nSegments)
                     )
-                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName, ip]
                 )
 
             setattr(
@@ -392,7 +386,7 @@ class ConversionPartLoadModel(ConversionModel):
                         discretizationSegmentConVar[loc, compName, discretStep, p, t]
                         for discretStep in range(compDict[compName].nSegments)
                     )
-                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName, ip]
                 )
 
             setattr(
@@ -425,13 +419,15 @@ class ConversionPartLoadModel(ConversionModel):
                         discretizationPointConVar[loc, compName, discretStep, ip, p, t]
                         for discretStep in range(nPoints)
                     )
-                    == esM.hoursPerTimeStep * capVar[loc, compName]
+                    == esM.hoursPerTimeStep * capVar[loc, compName, ip]
                 )
 
             setattr(
                 pyM,
                 "ConstrPointCapacity_" + abbrvName,
-                pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint),
+                pyomo.Constraint(
+                    opVarSet, pyM.intraYearTimeSet, rule=pointCapacityConstraint
+                ),
             )
         else:
 
@@ -442,7 +438,7 @@ class ConversionPartLoadModel(ConversionModel):
                         discretizationPointConVar[loc, compName, discretStep, ip, p, t]
                         for discretStep in range(nPoints)
                     )
-                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName]
+                    == esM.hoursPerSegment.to_dict()[p, t] * capVar[loc, compName, ip]
                 )
 
             setattr(
@@ -450,26 +446,6 @@ class ConversionPartLoadModel(ConversionModel):
                 "ConstrPointCapacity_" + abbrvName,
                 pyomo.Constraint(opVarSet, pyM.timeSet, rule=pointCapacityConstraint),
             )
-
-    def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
-        """
-        Declare set of locations and components for which partLoadMin is not None.
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSetBin_" + abbrvName)
-
-        def declareOpConstrSetMinPartLoad(pyM):
-            return (
-                (loc, compName)
-                for loc, compName in varSet
-                if getattr(compDict[compName], "partLoadMin") is not None
-            )
-
-        setattr(
-            pyM,
-            constrSetName + "partLoadMin_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSetMinPartLoad),
-        )
 
     def pointSOS2(self, pyM):
         """
@@ -552,7 +528,9 @@ class ConversionPartLoadModel(ConversionModel):
         setattr(
             pyM,
             "ConstrpartLoadOperationOutput_" + abbrvName,
-            pyomo.Constraint(opVarSet, pyM.timeSet, rule=partLoadOperationOutput),
+            pyomo.Constraint(
+                opVarSet, pyM.intraYearTimeSet, rule=partLoadOperationOutput
+            ),
         )
 
     def declareComponentConstraints(self, esM, pyM):
@@ -581,10 +559,6 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
-
-    def getSharedPotentialContribution(self, pyM, key, loc):
-        """Get contributions to shared location potential."""
-        return super().getSharedPotentialContribution(pyM, key, loc)
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
         """
@@ -621,7 +595,7 @@ class ConversionPartLoadModel(ConversionModel):
                 ]
                 for discretStep in range(compDict[compName].nSegments + 1)
             )
-            for compName in opVarDict[loc]
+            for compName in opVarDict[ip][loc]
             if commod in compDict[compName].discretizedPartLoad
         )
 
@@ -637,7 +611,7 @@ class ConversionPartLoadModel(ConversionModel):
         """
         return super().getObjectiveFunctionContribution(esM, pyM)
 
-    def setOptimalValues(self, esM, pyM, ip):
+    def setOptimalValues(self, esM, pyM):
         """
         Set the optimal values of the components.
 
@@ -646,13 +620,8 @@ class ConversionPartLoadModel(ConversionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
-
-        :param ip: investment period
-        :type ip: int
         """
-
-        super().setOptimalValues(esM, pyM, ip)
-
+        super().setOptimalValues(esM, pyM)
         abbrvName = self.abbrvName
         discretizationPointVariables = getattr(pyM, "discretizationPoint_" + abbrvName)
         discretizationSegmentConVariables = getattr(
@@ -662,40 +631,43 @@ class ConversionPartLoadModel(ConversionModel):
             pyM, "discretizationSegmentBin_" + abbrvName
         )
 
-        discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(
-            discretizationPointVariables.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(
-            discretizationSegmentConVariables.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
-        discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(
-            discretizationSegmentBinVariables.get_values(),
-            "operationVariables",
-            "1dim",
-            ip,
-            esM.periodsOrder[ip],
-            esM=esM,
-        )
+        for ip in esM.investmentPeriods:
+            discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(
+                discretizationPointVariables.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(
+                discretizationSegmentConVariables.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(
+                discretizationSegmentBinVariables.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
 
-        self.discretizationPointVariablesOptimun = discretizationPointVariablesOptVal_
-        self.discretizationSegmentConVariablesOptimun = (
-            discretizationSegmentConVariablesOptVal_
-        )
-        self.discretizationSegmentBinVariablesOptimun = (
-            discretizationSegmentBinVariablesOptVal_
-        )
+            self.discretizationPointVariablesOptimun[
+                esM.investmentPeriodNames[ip]
+            ] = discretizationPointVariablesOptVal_
+            self.discretizationSegmentConVariablesOptimun[
+                esM.investmentPeriodNames[ip]
+            ] = discretizationSegmentConVariablesOptVal_
+            self.discretizationSegmentBinVariablesOptimun[
+                esM.investmentPeriodNames[ip]
+            ] = discretizationSegmentBinVariablesOptVal_
 
-    def getOptimalValues(self, name="all"):
+    def getOptimalValues(self, name="all", ip=0):
         """
         Return optimal values of the components.
 
@@ -703,11 +675,15 @@ class ConversionPartLoadModel(ConversionModel):
 
             * 'capacityVariables',
             * 'isBuiltVariables',
-            * 'operationVariablesOptimum',
+            * '_operationVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'
         :type name: string
+
+        :param ip: investment period
+        |br| * the default value is 0
+        :type ip: int
 
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
@@ -715,69 +691,69 @@ class ConversionPartLoadModel(ConversionModel):
         # return super().getOptimalValues(name)
         if name == "capacityVariablesOptimum":
             return {
-                "values": self.capacityVariablesOptimum,
+                "values": self._capacityVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "isBuiltVariablesOptimum":
             return {
-                "values": self.isBuiltVariablesOptimum,
+                "values": self._isBuiltVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
         elif name == "operationVariablesOptimum":
             return {
-                "values": self.operationVariablesOptimum,
+                "values": self._operationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "discretizationPointVariablesOptimun":
             return {
-                "values": self.discretizationPointVariablesOptimun,
+                "values": self._discretizationPointVariablesOptimun[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "discretizationSegmentConVariablesOptimun":
             return {
-                "values": self.discretizationSegmentConVariablesOptimun,
+                "values": self._discretizationSegmentConVariablesOptimun[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         elif name == "discretizationSegmentBinVariablesOptimun":
             return {
-                "values": self.discretizationSegmentBinVariablesOptimun,
+                "values": self._discretizationSegmentBinVariablesOptimun[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
         else:
             return {
                 "capacityVariablesOptimum": {
-                    "values": self.capacityVariablesOptimum,
+                    "values": self._capacityVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "isBuiltVariablesOptimum": {
-                    "values": self.isBuiltVariablesOptimum,
+                    "values": self._isBuiltVariablesOptimum[ip],
                     "timeDependent": False,
                     "dimension": self.dimension,
                 },
                 "operationVariablesOptimum": {
-                    "values": self.operationVariablesOptimum,
+                    "values": self._operationVariablesOptimum[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
                 "discretizationPointVariablesOptimun": {
-                    "values": self.discretizationPointVariablesOptimun,
+                    "values": self._discretizationPointVariablesOptimun[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
                 "discretizationSegmentConVariablesOptimun": {
-                    "values": self.discretizationSegmentConVariablesOptimun,
+                    "values": self._discretizationSegmentConVariablesOptimun[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },
                 "discretizationSegmentBinVariablesOptimun": {
-                    "values": self.discretizationSegmentBinVariablesOptimun,
+                    "values": self._discretizationSegmentBinVariablesOptimun[ip],
                     "timeDependent": True,
                     "dimension": self.dimension,
                 },

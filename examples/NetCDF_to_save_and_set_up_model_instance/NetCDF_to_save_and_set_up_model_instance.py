@@ -68,7 +68,7 @@ esm_datasets["Input"]["Sink"]["Industry site"][
 ].to_dataframe().unstack()
 
 # %%
-esm_datasets["Results"]["SourceSinkModel"]["Electricity market"]
+esm_datasets["Results"][0]["SourceSinkModel"]["Electricity market"]
 
 # %%
 esm_datasets["Parameters"]
@@ -102,6 +102,6 @@ esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_datasets)
 esm_from_datasets.getComponentAttribute("Industry site", "operationRateFix")
 
 # %%
-esm_datasets["Results"]["SourceSinkModel"]["Electricity market"][
+esm_datasets["Results"][0]["SourceSinkModel"]["Electricity market"][
     "operationVariablesOptimum"
 ]

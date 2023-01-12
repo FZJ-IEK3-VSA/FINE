@@ -66,7 +66,7 @@ SHAPEFILE_PATH = os.path.join(
 # information.
 
 aggregation_function_dict = {
-    "operationRateMax": ("mean", "capacityMax"),
+    "operationRateMax": ("weighted mean", "capacityMax"),
     "operationRateFix": ("sum", None),
 }
 

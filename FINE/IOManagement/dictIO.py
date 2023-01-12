@@ -17,7 +17,6 @@ def exportToDict(esM):
 
     # Get all input properties of the esM
     inputkwargs = inspect.getfullargspec(fn.EnergySystemModel.__init__)
-
     esmDict = {}
     # Loop over all props
     for arg in inputkwargs.args:
@@ -42,14 +41,12 @@ def exportToDict(esM):
 
             # Get component data
             component = componentModel.componentsDict[componentname]
-
             # Loop over all input props
             for prop in inputkwargs.args:
                 if (prop is not "self") and (prop is not "esM"):
                     # NOTE: thanks to utilsIO.PowerDict(), the nested dictionaries need
                     # not be created before adding the data.
                     compDict[classname][componentname][prop] = getattr(component, prop)
-
     return esmDict, compDict
 
 
@@ -65,7 +62,6 @@ def importFromDict(esmDict, compDict):
 
     :return: esM - EnergySystemModel instance in which the optimized model is held
     """
-
     esM = fn.EnergySystemModel(**esmDict)
 
     # add components

@@ -28,9 +28,9 @@ dependencies:
 - seaborn
 - conda-forge::rasterio
 - conda-forge::netcdf4
+- conda-forge::tsam
+- wquantiles
+- cython
 
 - pip:
-    - tsam
-    - wquantiles
     - .
-
