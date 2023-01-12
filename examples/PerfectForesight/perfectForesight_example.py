@@ -46,14 +46,14 @@ numberOfTimeSteps = 8760
 hoursPerTimeStep = 1
 
 # %% [markdown]
-# # 2.1 define Transformation Pathway parameters 
+# # 2.1 define Transformation Pathway parameters
 #
 # Transformation Pathway Analyses can be run by setting a number of investment periods
 # larger than 1, which is the default value and results in a single year optimization.
 
-numberOfInvestmentPeriods=3
-startYear=2020
-interval=5
+numberOfInvestmentPeriods = 3
+startYear = 2020
+interval = 5
 
 
 # %%
@@ -61,7 +61,7 @@ esM = fn.EnergySystemModel(
     locations=locations,
     commodities=commodities,
     numberOfInvestmentPeriods=numberOfInvestmentPeriods,
-    startYear=startYear, 
+    startYear=startYear,
     investmentPeriodInterval=interval,
     numberOfTimeSteps=8760,
     commodityUnitsDict=commodityUnitDict,
@@ -82,35 +82,29 @@ esM = fn.EnergySystemModel(
 
 # %% [markdown]
 # change weather conditions for the different investment periods
-operationRateMax={}
-operationRateMax[2020]=1.2*data["Wind (onshore), operationRateMax"]
-operationRateMax[2025]=0.7*data["Wind (onshore), operationRateMax"]
-operationRateMax[2030]=1*data["Wind (onshore), operationRateMax"]
+operationRateMax = {}
+operationRateMax[2020] = 1.2 * data["Wind (onshore), operationRateMax"]
+operationRateMax[2025] = 0.7 * data["Wind (onshore), operationRateMax"]
+operationRateMax[2030] = 1 * data["Wind (onshore), operationRateMax"]
 
 # %% [markdown]
 # define existing stock for wind onshore turbines
-stockWindCommissioning={
-    2010:5,
-    2015:10,
+stockWindCommissioning = {
+    2010: 5,
+    2015: 10,
 }
 
 # %% [markdown]
 # define invest and opex per capacity for wind onshore turbines
-investPerCapacityWind={
-    2010:1.5, 
-    2015:1.25, 
-    2020:1.1, 
-    2025:1, 
-    2030:0.95
-    }
+investPerCapacityWind = {2010: 1.5, 2015: 1.25, 2020: 1.1, 2025: 1, 2030: 0.95}
 
-opexPerCapacityWind={
-    2010:1.5*0.02, 
-    2015:1.25*0.02, 
-    2020:1.1*0.02, 
-    2025:1*0.02, 
-    2030:0.95*0.02
-    }
+opexPerCapacityWind = {
+    2010: 1.5 * 0.02,
+    2015: 1.25 * 0.02,
+    2020: 1.1 * 0.02,
+    2025: 1 * 0.02,
+    2030: 0.95 * 0.02,
+}
 
 # %% [markdown]
 # add wind onshore source to esM
@@ -151,7 +145,7 @@ esM.add(
         commodityConversionFactors={"electricity": 1, "hydrogen": -1 / 0.6},
         hasCapacityVariable=True,
         investPerCapacity=0.7,
-        opexPerCapacity={2020:0.021, 2025:0.018, 2030:0.025},
+        opexPerCapacity={2020: 0.021, 2025: 0.018, 2030: 0.025},
         interestRate=0.08,
         economicLifetime=30,
     )
@@ -230,7 +224,7 @@ esM.add(
         stateOfChargeMin=0.33,
         stateOfChargeMax=1,
         capacityMax=data["Salt caverns (hydrogen), capacityMax"],
-        investPerCapacity={2020:0.00011,2025: 0.00009,2030:0.00009},
+        investPerCapacity={2020: 0.00011, 2025: 0.00009, 2030: 0.00009},
         opexPerCapacity=0.00057,
         interestRate=0.08,
         economicLifetime=30,
@@ -249,10 +243,10 @@ esM.add(
 # %% [markdown]
 
 # vary the demand with the years - increasing demand by 30% per year
-electricityDemand={}
-electricityDemand[2020]=(1+0*0.3)*data["Electricity demand, operationRateFix"]
-electricityDemand[2025]=(1+1*0.3)*data["Electricity demand, operationRateFix"]
-electricityDemand[2030]=(1+2*0.3)*data["Electricity demand, operationRateFix"]
+electricityDemand = {}
+electricityDemand[2020] = (1 + 0 * 0.3) * data["Electricity demand, operationRateFix"]
+electricityDemand[2025] = (1 + 1 * 0.3) * data["Electricity demand, operationRateFix"]
+electricityDemand[2030] = (1 + 2 * 0.3) * data["Electricity demand, operationRateFix"]
 
 esM.add(
     fn.Sink(
@@ -274,10 +268,16 @@ esM.add(
 FCEV_penetration = 0.5
 
 # vary the demand with the years - increasing demand by 25% per year
-hydrogendDemand={}
-hydrogendDemand[2020]=(1+0*0.25)*data["Hydrogen demand, operationRateFix"] * FCEV_penetration
-hydrogendDemand[2025]=(1+0*0.25)*data["Hydrogen demand, operationRateFix"] * FCEV_penetration
-hydrogendDemand[2030]=(1+0*0.25)*data["Hydrogen demand, operationRateFix"] * FCEV_penetration
+hydrogendDemand = {}
+hydrogendDemand[2020] = (
+    (1 + 0 * 0.25) * data["Hydrogen demand, operationRateFix"] * FCEV_penetration
+)
+hydrogendDemand[2025] = (
+    (1 + 0 * 0.25) * data["Hydrogen demand, operationRateFix"] * FCEV_penetration
+)
+hydrogendDemand[2030] = (
+    (1 + 0 * 0.25) * data["Hydrogen demand, operationRateFix"] * FCEV_penetration
+)
 
 
 esM.add(
@@ -311,7 +311,7 @@ esM.optimize(timeSeriesAggregation=True, solver="glpk")
 # Show optimization summary
 
 # %% tags=["nbval-check-output"]
-for year in [2020,2025,2030]:
+for year in [2020, 2025, 2030]:
     print(f"\n Results of SourceSinkModel for year {year}")
     print(esM.getOptimizationSummary("SourceSinkModel", outputLevel=2, ip=year))
 
@@ -329,11 +329,11 @@ fig, ax = fn.plotOperation(esM, "Electricity demand", "GermanyRegion", ip=2030)
 
 # %% [markdown]
 # Operation color map for Electricity demand in Investment Period 2020
-fig, ax = fn.plotOperationColorMap(esM, "Electricity demand", "GermanyRegion",ip=2020)
+fig, ax = fn.plotOperationColorMap(esM, "Electricity demand", "GermanyRegion", ip=2020)
 
 # %% [markdown]
 # Operation color map for Electricity demand in Investment Period 2030
-fig, ax = fn.plotOperationColorMap(esM, "Electricity demand", "GermanyRegion",ip=2030)
+fig, ax = fn.plotOperationColorMap(esM, "Electricity demand", "GermanyRegion", ip=2030)
 
 # %% [markdown]
 # ### Conversion
@@ -341,17 +341,21 @@ fig, ax = fn.plotOperationColorMap(esM, "Electricity demand", "GermanyRegion",ip
 # Show optimization summary
 
 # %% tags=["nbval-check-output"]
-for year in [2020,2025,2030]:
+for year in [2020, 2025, 2030]:
     print(f"\n Results of ConversionMpdel for year {year}")
     esM.getOptimizationSummary("ConversionModel", outputLevel=2, ip=year)
 
 # %% [markdown]
 # Operation color map for New CCGT plants (hydrogen) in Investment Period 2020
-fig, ax = fn.plotOperationColorMap(esM, "New CCGT plants (hydrogen)", "GermanyRegion", ip=2020)
+fig, ax = fn.plotOperationColorMap(
+    esM, "New CCGT plants (hydrogen)", "GermanyRegion", ip=2020
+)
 
 # %% [markdown]
 # Operation color map for New CCGT plants (hydrogen) in Investment Period 2030
-fig, ax = fn.plotOperationColorMap(esM, "New CCGT plants (hydrogen)", "GermanyRegion", ip=2030)
+fig, ax = fn.plotOperationColorMap(
+    esM, "New CCGT plants (hydrogen)", "GermanyRegion", ip=2030
+)
 
 # %% [markdown]
 # ### Storage
@@ -359,7 +363,7 @@ fig, ax = fn.plotOperationColorMap(esM, "New CCGT plants (hydrogen)", "GermanyRe
 # Show optimization summary
 
 # %% tags=["nbval-check-output"]
-for year in [2020,2025,2030]:
+for year in [2020, 2025, 2030]:
     print(f"\n Results of StorageModel for year {year}")
     print(esM.getOptimizationSummary("StorageModel", outputLevel=2, ip=year))
 
@@ -370,7 +374,7 @@ fig, ax = fn.plotOperationColorMap(
     "Li-ion batteries",
     "GermanyRegion",
     variableName="stateOfChargeOperationVariablesOptimum",
-    ip=2020
+    ip=2020,
 )
 
 # %% [markdown]
@@ -380,7 +384,7 @@ fig, ax = fn.plotOperationColorMap(
     "Li-ion batteries",
     "GermanyRegion",
     variableName="stateOfChargeOperationVariablesOptimum",
-    ip=2025
+    ip=2025,
 )
 
 # %% [markdown]
@@ -390,7 +394,7 @@ fig, ax = fn.plotOperationColorMap(
     "Li-ion batteries",
     "GermanyRegion",
     variableName="stateOfChargeOperationVariablesOptimum",
-    ip=2030
+    ip=2030,
 )
 
 # %% [markdown]
@@ -400,7 +404,7 @@ fig, ax = fn.plotOperationColorMap(
     "Salt caverns (hydrogen)",
     "GermanyRegion",
     variableName="stateOfChargeOperationVariablesOptimum",
-    ip=2020
+    ip=2020,
 )
 
 # %% [markdown]
@@ -410,7 +414,7 @@ fig, ax = fn.plotOperationColorMap(
     "Salt caverns (hydrogen)",
     "GermanyRegion",
     variableName="stateOfChargeOperationVariablesOptimum",
-    ip=2025
+    ip=2025,
 )
 
 # %% [markdown]
@@ -420,5 +424,5 @@ fig, ax = fn.plotOperationColorMap(
     "Salt caverns (hydrogen)",
     "GermanyRegion",
     variableName="stateOfChargeOperationVariablesOptimum",
-    ip=2030
+    ip=2030,
 )
