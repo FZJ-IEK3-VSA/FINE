@@ -1,6 +1,7 @@
 import FINE as fn
 import pandas as pd
 import numpy as np
+import pytest
 
 """
 Here we are testing differnt inputs for time-invariant conversion factors that are
@@ -58,23 +59,26 @@ def test_conversion_factors_as_series():
 
     esM = create_core_esm()
 
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="Electrolyzers_VarConvFac",
-            physicalUnit=r"kW$_{el}$",
-            commodityConversionFactors=pd.Series(
-                [0.7, -1], index=["hydrogen", "electricity"]
-            ),  # Here we add a Series of time invariant conversion factors.
-            hasCapacityVariable=True,
-            investPerCapacity=1000,  # euro/kW
-            opexPerCapacity=500 * 0.025,
-            interestRate=0.08,
-            capacityMax=1000,
-            economicLifetime=10,
-            locationalEligibility=pd.Series([1], ["ElectrolyzerLocation"]),
+    with pytest.raises(
+        ValueError, match=r".*commodityConversionFactor must be a dict.*"
+    ):
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name="Electrolyzers_VarConvFac",
+                physicalUnit=r"kW$_{el}$",
+                commodityConversionFactors=pd.Series(
+                    [0.7, -1], index=["hydrogen", "electricity"]
+                ),  # Here we add a Series of time invariant conversion factors.
+                hasCapacityVariable=True,
+                investPerCapacity=1000,  # euro/kW
+                opexPerCapacity=500 * 0.025,
+                interestRate=0.08,
+                capacityMax=1000,
+                economicLifetime=10,
+                locationalEligibility=pd.Series([1], ["ElectrolyzerLocation"]),
+            )
         )
-    )
 
     # optimize
     esM.optimize(timeSeriesAggregation=False, solver="glpk")

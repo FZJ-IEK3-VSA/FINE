@@ -1411,6 +1411,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=1.1 * 0.02,
             interestRate=0.08,
             economicLifetime=20,
+            opexPerOperation=0.008,
         )
     )
 
@@ -1430,6 +1431,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=2.3 * 0.02,
             interestRate=0.08,
             economicLifetime=20,
+            opexPerOperation=0.005,
         )
     )
 
@@ -1449,6 +1451,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.65 * 0.02,
             interestRate=0.08,
             economicLifetime=25,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1467,6 +1470,7 @@ def multi_node_test_esM_init(scope="session"):
             capacityFix=data["Existing run-of-river plants, capacityFix"],
             investPerCapacity=0,
             opexPerCapacity=0.208,
+            opexPerOperation=0.005,
         )
     )
 
@@ -1527,6 +1531,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.021,
             interestRate=0.08,
             economicLifetime=33,
+            opexPerOperation=0.005,
         )
     )
 
@@ -1543,6 +1548,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.021,
             interestRate=0.08,
             economicLifetime=33,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1559,6 +1565,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.021,
             interestRate=0.08,
             economicLifetime=33,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1575,6 +1582,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.5 * 0.025,
             interestRate=0.08,
             economicLifetime=10,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1594,6 +1602,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=capexRSOC * 0.02 / 2,
             interestRate=0.08,
             economicLifetime=10,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1609,6 +1618,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=capexRSOC * 0.02 / 2,
             interestRate=0.08,
             economicLifetime=10,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1633,6 +1643,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.002,
             interestRate=0.08,
             economicLifetime=22,
+            opexPerChargeOperation=0.0001,
         )
     )
 
@@ -1657,6 +1668,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.00057,
             interestRate=0.08,
             economicLifetime=30,
+            opexPerChargeOperation=0.0001,
         )
     )
 
@@ -1681,6 +1693,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.00001,
             interestRate=0.08,
             economicLifetime=30,
+            opexPerChargeOperation=0.0001,
         )
     )
 
@@ -1701,6 +1714,7 @@ def multi_node_test_esM_init(scope="session"):
             capacityFix=data["Pumped hydro storage, capacityFix"],
             investPerCapacity=0,
             opexPerCapacity=0.000153,
+            opexPerChargeOperation=0.0001,
         )
     )
 
@@ -1716,6 +1730,7 @@ def multi_node_test_esM_init(scope="session"):
             hasCapacityVariable=True,
             capacityFix=data["AC cables, capacityFix"],
             reactances=data["AC cables, reactances"],
+            opexPerOperation=0.01,
         )
     )
 
@@ -1730,6 +1745,7 @@ def multi_node_test_esM_init(scope="session"):
             distances=data["DC cables, distances"],
             hasCapacityVariable=True,
             capacityFix=data["DC cables, capacityFix"],
+            opexPerOperation=0.01,
         )
     )
 
@@ -1752,6 +1768,7 @@ def multi_node_test_esM_init(scope="session"):
             investIfBuilt=0.000314,
             interestRate=0.08,
             economicLifetime=40,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1774,6 +1791,7 @@ def multi_node_test_esM_init(scope="session"):
             investIfBuilt=0.00033,
             interestRate=0.08,
             economicLifetime=40,
+            opexPerOperation=0.01,
         )
     )
 
@@ -2635,3 +2653,110 @@ def balanceLimitConstraint_test_esM():
     )
 
     return esM, losses, distances, balanceLimit
+
+
+@pytest.fixture
+def perfectForesight_test_esM(scope="session"):
+
+    # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand", "ForesightLand"},
+        commodities={"electricity", "hydrogen"},
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=4380,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=5,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+
+    PVoperationRateMax = pd.DataFrame(
+        [
+            np.array(
+                [
+                    0.5,
+                    0.25,
+                ]
+            ),
+            np.array(
+                [
+                    0.25,
+                    0.5,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=PVoperationRateMax,
+            capacityMax=4e6,
+            investPerCapacity=1e3,
+            opexPerCapacity=1,
+            interestRate=0.02,
+            opexPerOperation=0.01,
+            economicLifetime=10,
+        )
+    )
+
+    demand = {}
+    demand[2020] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T  # first investmentperiod
+    demand[2025] = demand[2020]
+    demand[2030] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+    demand[2035] = demand[2030]
+    demand[2040] = demand[2030]
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="EDemand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+
+    return esM

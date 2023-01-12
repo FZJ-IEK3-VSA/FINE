@@ -44,8 +44,12 @@ def test_fullloadhours_max(minimal_test_esM):
 
     # set fullloadhour limit
     electrolyzer.yearlyFullLoadHoursMax = pd.Series(100.0, index=esM.locations)
+    electrolyzer.processedYearlyFullLoadHoursMax = {
+        0: pd.Series(100.0, index=esM.locations)
+    }
     market.hasCapacityVariable = True
     market.yearlyFullLoadHoursMax = pd.Series(3000.0, index=esM.locations)
+    market.processedYearlyFullLoadHoursMax = {0: pd.Series(3000.0, index=esM.locations)}
 
     # optimize
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
@@ -98,8 +102,12 @@ def test_fullloadhours_min(minimal_test_esM):
 
     # set fullloadhour limit
     electrolyzer.yearlyFullLoadHoursMin = pd.Series(5000.0, index=esM.locations)
+    electrolyzer.processedYearlyFullLoadHoursMin = {
+        0: pd.Series(5000.0, index=esM.locations)
+    }
     market.hasCapacityVariable = True
     market.yearlyFullLoadHoursMin = pd.Series(3000.0, index=esM.locations)
+    market.processedYearlyFullLoadHoursMin = {0: pd.Series(3000.0, index=esM.locations)}
 
     # optimize
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
@@ -163,10 +171,10 @@ def test_init_full_load_hours(minimal_test_esM):
 
     full_load_hours_min = esM.getComponent(
         "Electrolyzers_minFLH"
-    ).yearlyFullLoadHoursMin
+    ).processedYearlyFullLoadHoursMin
     full_load_hours_max = esM.getComponent(
         "Electrolyzers_minFLH"
-    ).yearlyFullLoadHoursMax
+    ).processedYearlyFullLoadHoursMax
 
-    assert isinstance(full_load_hours_min, pd.Series)
+    assert isinstance(full_load_hours_min[0], pd.Series)
     assert full_load_hours_max is None

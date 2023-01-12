@@ -27,11 +27,29 @@ variables:
     - prebuild
 
 test-code:
+  #  Switch from branch pipeline to merge pipeline once a merge request has been
+  #  created on the branch.
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
   extends: .test_template
   script:
     - python -m pytest --cov=FINE test/
 
 test-formatting:
+  #  Switch from branch pipeline to merge pipeline once a merge request has been
+  #  created on the branch.
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
   extends: .test_template
   script:
     # Dry-run black auto-formatter. If the code needs reformatting this test
@@ -94,7 +112,6 @@ master-build:
       - include_dockerfile
 
 # Uncomment to enable dev builds
-#
 #dev-build:
 #  extends: .build_template
 #  script:

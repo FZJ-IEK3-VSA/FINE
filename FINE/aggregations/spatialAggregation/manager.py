@@ -163,15 +163,15 @@ def perform_spatial_aggregation(
             passed, this default dictionary is updated. The default dicitionary:
 
             {\n
-            "operationRateMax": ("weighted mean", "capacityMax"),\n
-            "operationRateFix": ("sum", None),\n
+            "processedOperationRateMax": ("weighted mean", "capacityMax"),\n
+            "processedOperationRateFix": ("sum", None),\n
             "locationalEligibility": ("bool", None),\n
             "capacityMax": ("sum", None),\n
-            "investPerCapacity": ("mean", None),\n
-            "investIfBuilt": ("bool", None),\n
-            "opexPerOperation": ("mean", None),\n
-            "opexPerCapacity": ("mean", None),\n
-            "opexIfBuilt": ("bool", None),\n
+            "processedInvestPerCapacity": ("mean", None),\n
+            "processedInvestIfBuilt": ("bool", None),\n
+            "processedOpexPerOperation": ("mean", None),\n
+            "processedOpexPerCapacity": ("mean", None),\n
+            "processedOpexIfBuilt": ("bool", None),\n
             "interestRate": ("mean", None),\n
             "economicLifetime": ("mean", None),\n
             "capacityFix": ("sum", None),\n
@@ -179,8 +179,8 @@ def perform_spatial_aggregation(
             "distances": ("mean", None),\n
             "commodityCost": ("mean", None),\n
             "commodityRevenue": ("mean", None),\n
-            "opexPerChargeOperation": ("mean", None),\n
-            "opexPerDischargeOperation": ("mean", None),\n
+            "processedOpexPerChargeOperation": ("mean", None),\n
+            "processedOpexPerDischargeOperation": ("mean", None),\n
             "QPcostScale": ("sum", None),\n
             "technicalLifetime": ("mean", None),\n
             "balanceLimit": ("sum", None)\n
@@ -302,24 +302,24 @@ def perform_spatial_aggregation(
 
     # STEP 5. Representation of the new regions
     aggregation_function_dict_default = {
-        "operationRateMax": ("weighted mean", "capacityMax"),
-        "operationRateFix": ("sum", None),
+        "processedOperationRateMax": ("weighted mean", "capacityMax"),
+        "processedOperationRateFix": ("sum", None),
         "locationalEligibility": ("bool", None),
         "capacityMax": ("sum", None),
-        "investPerCapacity": ("mean", None),
-        "investIfBuilt": ("bool", None),
-        "opexPerOperation": ("mean", None),
-        "opexPerCapacity": ("mean", None),
-        "opexIfBuilt": ("bool", None),
+        "processedInvestPerCapacity": ("mean", None),
+        "processedInvestIfBuilt": ("bool", None),
+        "processedOpexPerOperation": ("mean", None),
+        "processedOpexPerCapacity": ("mean", None),
+        "processedOpexIfBuilt": ("bool", None),
         "interestRate": ("mean", None),
         "economicLifetime": ("mean", None),
         "capacityFix": ("sum", None),
         "losses": ("mean", None),
         "distances": ("mean", None),
-        "commodityCost": ("mean", None),
-        "commodityRevenue": ("mean", None),
-        "opexPerChargeOperation": ("mean", None),
-        "opexPerDischargeOperation": ("mean", None),
+        "processedCommodityCost": ("mean", None),
+        "processedCommodityRevenue": ("mean", None),
+        "processedOpexPerChargeOperation": ("mean", None),
+        "processedOpexPerDischargeOperation": ("mean", None),
         "QPcostScale": ("sum", None),
         "technicalLifetime": ("mean", None),
         "balanceLimit": ("sum", None),

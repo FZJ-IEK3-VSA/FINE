@@ -240,15 +240,15 @@ def xr_and_dict_for_basic_representation():
     # DICT
     sub_to_sup_region_id_dict = {
         "01_reg_02_reg": ["01_reg", "02_reg"],
-        "03_reg_04_reg": ["03_reg", "04_reg"],
+        "03_reg_04_reg_05_reg": ["03_reg", "04_reg", "05_reg"],
     }
 
     # input data
     time_list = ["T0", "T1"]
-    space_list = ["01_reg", "02_reg", "03_reg", "04_reg"]
+    space_list = ["01_reg", "02_reg", "03_reg", "04_reg", "05_reg"]
 
     ## Source comp
-    operationRateMax = np.array([[3, 3, 3, 3] for i in range(2)])
+    operationRateMax = np.array([[3, 3, 3, 3, 0] for i in range(2)])
 
     operationRateMax_da = xr.DataArray(
         operationRateMax,
@@ -256,21 +256,28 @@ def xr_and_dict_for_basic_representation():
         dims=["time", "space"],
     )
 
-    capacityMax_1d = np.array([15, 15, 0, 0])
+    capacityMax_1d = np.array([15, 15, 15, 15, 0])
 
     capacityMax_1d_da = xr.DataArray(
         capacityMax_1d, coords=[space_list], dims=["space"]
+    )
+
+    locationalEligibility_1d = np.array([1, 1, 1, 1, 0])
+
+    locationalEligibility_1d_da = xr.DataArray(
+        locationalEligibility_1d, coords=[space_list], dims=["space"]
     )
 
     source_comp = xr.Dataset(
         {
             "ts_operationRateMax": operationRateMax_da,
             "1d_capacityMax": capacityMax_1d_da,
+            "1d_locationalEligibility": locationalEligibility_1d_da,
         }
     )
 
     ## Sink comp
-    operationRateFix = np.array([[5, 5, 5, 5] for i in range(2)])
+    operationRateFix = np.array([[5, 5, 5, 5, 5] for i in range(2)])
 
     operationRateFix_da = xr.DataArray(
         operationRateFix,
@@ -278,21 +285,36 @@ def xr_and_dict_for_basic_representation():
         dims=["time", "space"],
     )
 
-    capacityFix_1d = np.array([5, 5, 5, 5])
+    capacityFix_1d = np.array([5, 5, 5, 5, 5])
 
     capacityFix_1d_da = xr.DataArray(
         capacityFix_1d, coords=[space_list], dims=["space"]
+    )
+
+    locationalEligibility_1d = np.array([1, 1, 1, 1, 1])
+
+    locationalEligibility_1d_da = xr.DataArray(
+        locationalEligibility_1d, coords=[space_list], dims=["space"]
     )
 
     sink_comp = xr.Dataset(
         {
             "ts_operationRateFix": operationRateFix_da,
             "1d_capacityFix": capacityFix_1d_da,
+            "1d_locationalEligibility": locationalEligibility_1d_da,
         }
     )
 
     ## transmission comp
-    capacityMax_2d = np.array([[0, 5, 5, 5], [5, 0, 5, 5], [5, 5, 0, 5], [5, 5, 5, 0]])
+    capacityMax_2d = np.array(
+        [
+            [0, 5, 5, 5, 0],
+            [5, 0, 5, 5, 5],
+            [5, 5, 0, 5, 5],
+            [5, 5, 5, 0, 5],
+            [0, 5, 5, 5, 0],
+        ]
+    )
 
     capacityMax_2d_da = xr.DataArray(
         capacityMax_2d,
@@ -301,7 +323,13 @@ def xr_and_dict_for_basic_representation():
     )
 
     locationalEligibility_2d = np.array(
-        [[0, 1, 1, 1], [0, 0, 1, 1], [0, 0, 0, 1], [0, 0, 0, 0]]
+        [
+            [0, 1, 1, 1, 0],
+            [1, 0, 1, 1, 1],
+            [1, 1, 0, 1, 0],
+            [1, 1, 1, 0, 1],
+            [0, 1, 1, 1, 0],
+        ]
     )
 
     locationalEligibility_2d_da = xr.DataArray(
@@ -329,6 +357,7 @@ def xr_and_dict_for_basic_representation():
         Polygon([(2, 0), (4, 0), (4, 2), (2, 2)]),
         Polygon([(0, 0), (4, 0), (4, 4), (0, 4)]),
         Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]),
+        Polygon([(0, 4), (4, 4), (4, 5), (5, 0)]),
     ]
 
     gdf = gpd.GeoDataFrame({"index": space_list, "geometry": test_geometries})
