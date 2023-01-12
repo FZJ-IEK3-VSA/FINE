@@ -47,7 +47,10 @@ def timer(func):
 
 
 def writeOptimizationOutputToExcel(
-    esM, outputFileName="scenarioOutput", optSumOutputLevel=2, optValOutputLevel=1,
+    esM,
+    outputFileName="scenarioOutput",
+    optSumOutputLevel=2,
+    optValOutputLevel=1,
 ):
     """
     Write optimization output to an Excel file.

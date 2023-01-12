@@ -45,8 +45,8 @@ def test_export_to_dict_minimal(minimal_test_esM):
     expected_Electrolyzers_investPerCapacity = minimal_test_esM.getComponentAttribute(
         "Electrolyzers", "investPerCapacity"
     )
-    expected_Electricitymarket_operationRateMax = minimal_test_esM.getComponentAttribute(
-        "Electricity market", "operationRateMax"
+    expected_Electricitymarket_operationRateMax = (
+        minimal_test_esM.getComponentAttribute("Electricity market", "operationRateMax")
     )
     expected_Industrysite_operationRateFix = minimal_test_esM.getComponentAttribute(
         "Industry site", "operationRateFix"
@@ -115,11 +115,13 @@ def test_export_to_dict_singlenode(single_node_test_esM):
         )
     )
 
-    expected_Electrolyzers_investPerCapacity = single_node_test_esM.getComponentAttribute(
-        "Electrolyzers", "investPerCapacity"
+    expected_Electrolyzers_investPerCapacity = (
+        single_node_test_esM.getComponentAttribute("Electrolyzers", "investPerCapacity")
     )
-    expected_Electricitymarket_operationRateMax = single_node_test_esM.getComponentAttribute(
-        "Electricity market", "operationRateMax"
+    expected_Electricitymarket_operationRateMax = (
+        single_node_test_esM.getComponentAttribute(
+            "Electricity market", "operationRateMax"
+        )
     )
     expected_Industrysite_operationRateFix = single_node_test_esM.getComponentAttribute(
         "Industry site", "operationRateFix"
@@ -188,20 +190,28 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
         )
     )
 
-    expected_Windonshore_operationRateMax = multi_node_test_esM_init.getComponentAttribute(
-        "Wind (onshore)", "operationRateMax"
+    expected_Windonshore_operationRateMax = (
+        multi_node_test_esM_init.getComponentAttribute(
+            "Wind (onshore)", "operationRateMax"
+        )
     )
-    expected_CCGTplantsmethane_investPerCapacity = multi_node_test_esM_init.getComponentAttribute(
-        "CCGT plants (methane)", "investPerCapacity"
+    expected_CCGTplantsmethane_investPerCapacity = (
+        multi_node_test_esM_init.getComponentAttribute(
+            "CCGT plants (methane)", "investPerCapacity"
+        )
     )
-    expected_Saltcavernshydrogen_capacityMax = multi_node_test_esM_init.getComponentAttribute(
-        "Salt caverns (hydrogen)", "capacityMax"
+    expected_Saltcavernshydrogen_capacityMax = (
+        multi_node_test_esM_init.getComponentAttribute(
+            "Salt caverns (hydrogen)", "capacityMax"
+        )
     )
     expected_ACcables_reactances = multi_node_test_esM_init.getComponentAttribute(
         "AC cables", "reactances"
     )
-    expected_Hydrogendemand_operationRateFix = multi_node_test_esM_init.getComponentAttribute(
-        "Hydrogen demand", "operationRateFix"
+    expected_Hydrogendemand_operationRateFix = (
+        multi_node_test_esM_init.getComponentAttribute(
+            "Hydrogen demand", "operationRateFix"
+        )
     )
 
     # FUNCTION CALL

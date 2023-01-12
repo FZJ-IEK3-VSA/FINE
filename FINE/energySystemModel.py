@@ -585,8 +585,8 @@ class EnergySystemModel:
             This parameter is irrelevant if `grouping_mode` is 'string_based'.
             |br| * the default value is 3
         :type n_groups: strictly positive integer, None
-        
-        :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one. 
+
+        :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one.
             |br| * the default value is None. If not None, n_groups must be None
         :type distance_threshold: float
 
@@ -1338,7 +1338,8 @@ class EnergySystemModel:
                         )
 
             pyM.balanceLimitConstraint = pyomo.Constraint(
-                pyM.balanceLimitDict.keys(), rule=balanceLimitConstraint,
+                pyM.balanceLimitDict.keys(),
+                rule=balanceLimitConstraint,
             )
 
     def declareSharedPotentialConstraints(self, pyM):

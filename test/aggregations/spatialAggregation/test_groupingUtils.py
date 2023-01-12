@@ -37,14 +37,18 @@ def test_preprocess_dataset():
     var_ts_data = np.array([[0, 1, 1], [1, 1, 10]])
 
     var_ts_da = xr.DataArray(
-        var_ts_data, coords=[time_list, space_list], dims=["time", "space"],
+        var_ts_data,
+        coords=[time_list, space_list],
+        dims=["time", "space"],
     )
 
     ### 2d
     var_2d_data = np.array([[0, 1, 10], [1, 0, 1], [10, 1, 0]])
 
     var_2d_da = xr.DataArray(
-        var_2d_data, coords=[space_list, space_list], dims=["space", "space_2"],
+        var_2d_data,
+        coords=[space_list, space_list],
+        dims=["space", "space_2"],
     )
 
     ### 1d
@@ -56,12 +60,21 @@ def test_preprocess_dataset():
     var_0d_da = xr.DataArray(10, coords=[], dims=[])
 
     classA_compA_ds = xr.Dataset(
-        {"ts_var": var_ts_da, "1d_var": var_1d_da, "0d_var": var_0d_da,}
+        {
+            "ts_var": var_ts_da,
+            "1d_var": var_1d_da,
+            "0d_var": var_0d_da,
+        }
     )
 
     classA_compB_ds = xr.Dataset({"ts_var": var_ts_da})
 
-    classB_compB_ds = xr.Dataset({"2d_var": var_2d_da, "0d_var": var_0d_da,})
+    classB_compB_ds = xr.Dataset(
+        {
+            "2d_var": var_2d_da,
+            "0d_var": var_0d_da,
+        }
+    )
 
     test_xr_dict = {
         "ClassA": {"CompA": classA_compA_ds, "CompB": classA_compB_ds},

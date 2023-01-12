@@ -469,13 +469,15 @@ class Component(metaclass=ABCMeta):
         )
         # invest per capacity
         self.investPerCapacity = investPerCapacity
-        self.processedInvestPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM,
-            name,
-            investPerCapacity,
-            dimension,
-            elig,
-            self.processedStockYears + esM.investmentPeriods,
+        self.processedInvestPerCapacity = (
+            utils.checkAndSetInvestmentPeriodCostParameter(
+                esM,
+                name,
+                investPerCapacity,
+                dimension,
+                elig,
+                self.processedStockYears + esM.investmentPeriods,
+            )
         )
         # invest if built
         self.investIfBuilt = investIfBuilt
@@ -1771,7 +1773,10 @@ class ComponentModel(metaclass=ABCMeta):
             setattr(
                 pyM,
                 "ConstrCapacityDevelopment_" + abbrvName,
-                pyomo.Constraint(commisConstrSet, rule=capacityDevelopmentStochastic,),
+                pyomo.Constraint(
+                    commisConstrSet,
+                    rule=capacityDevelopmentStochastic,
+                ),
             )
         else:
             capVar = getattr(pyM, "cap_" + abbrvName)
@@ -2571,9 +2576,10 @@ class ComponentModel(metaclass=ABCMeta):
                     for ip in esM.investmentPeriods:
                         cContrSum = costContribution[(loc, compName)][ip].sum()
                         if getOptValueCostType == "NPV":
-                            cost_results[ip].loc[compName, loc] = (
-                                cContrSum
-                                * utils.netPresentValueFactor(esM, ip, compName, loc)
+                            cost_results[ip].loc[
+                                compName, loc
+                            ] = cContrSum * utils.netPresentValueFactor(
+                                esM, ip, compName, loc
                             )
                         elif getOptValueCostType == "TAC":
                             cost_results[ip].loc[compName, loc] = cContrSum
@@ -2855,9 +2861,10 @@ class ComponentModel(metaclass=ABCMeta):
                     for ip in esM.investmentPeriods:
                         cContrSum = costContribution[(loc, compName)][ip].sum()
                         if getOptValueCostType == "NPV":
-                            cost_results[ip].loc[compName, loc] = (
-                                cContrSum
-                                * utils.netPresentValueFactor(esM, ip, compName, loc)
+                            cost_results[ip].loc[
+                                compName, loc
+                            ] = cContrSum * utils.netPresentValueFactor(
+                                esM, ip, compName, loc
                             )
                         elif getOptValueCostType == "TAC":
                             cost_results[ip].loc[compName, loc] = cContrSum
@@ -3418,7 +3425,11 @@ class ComponentModel(metaclass=ABCMeta):
 
             optSummary_ip.loc[
                 [
-                    (ix, "NPVcontribution", "[" + esM.costUnit + "]",)
+                    (
+                        ix,
+                        "NPVcontribution",
+                        "[" + esM.costUnit + "]",
+                    )
                     for ix in npv.index
                 ],
                 npv.columns,

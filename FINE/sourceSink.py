@@ -306,8 +306,10 @@ class Source(Component):
         # commodityRevenueTimeSeries
         self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
         self.fullCommodityRevenueTimeSeries = {}
-        self.fullCommodityRevenueTimeSeries = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, commodityRevenueTimeSeries, locationalEligibility
+        self.fullCommodityRevenueTimeSeries = (
+            utils.checkAndSetInvestmentPeriodTimeSeries(
+                esM, name, commodityRevenueTimeSeries, locationalEligibility
+            )
         )
         self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
@@ -631,9 +633,13 @@ class SourceSinkModel(ComponentModel):
                 if comp.commodityLimitID is not None:
                     ID, limit = comp.commodityLimitID, comp.processedYearlyLimit[ip]
                     if (
-                        (ID, ip,) in yearlyCommodityLimitationDict.keys()
-                        and limit != yearlyCommodityLimitationDict[(ID, ip)][0]
-                    ):
+                        ID,
+                        ip,
+                    ) in yearlyCommodityLimitationDict.keys() and limit != yearlyCommodityLimitationDict[
+                        (ID, ip)
+                    ][
+                        0
+                    ]:
                         raise ValueError(
                             "yearlyLimitationIDs with different upper limits detected."
                         )
@@ -1195,7 +1201,9 @@ class SourceSinkModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (opSum.values / esM.numberOfYears)
+                ] = (
+                    opSum.values / esM.numberOfYears
+                )
 
                 # costs
                 tac_ox = resultsTAC_opexOp[ip]

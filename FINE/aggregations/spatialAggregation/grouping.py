@@ -94,8 +94,8 @@ def perform_distance_based_grouping(
     :param n_groups: The number of region groups to be formed from the original region set
         |br| * the default value is 3
     :type n_groups: strictly positive int
-    
-    :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one. 
+
+    :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one.
         |br| * the default value is None. If not None, n_groups must be None
     :type distance_threshold: float
 
@@ -105,7 +105,7 @@ def perform_distance_based_grouping(
 
         * Ex.: ['02_reg']
                ['02_reg', '03_reg]
-   
+
     :param enforced_groups: The groups that should be enforced when aggregating regions.
     |br| * the default value is None
     :type enforced_groups: Dict

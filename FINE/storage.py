@@ -289,24 +289,28 @@ class Storage(Component):
 
         # opexPerChargeOperation
         self.opexPerChargeOperation = opexPerChargeOperation
-        self.processedOpexPerChargeOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM,
-            name,
-            opexPerChargeOperation,
-            "1dim",
-            locationalEligibility,
-            esM.investmentPeriods,
+        self.processedOpexPerChargeOperation = (
+            utils.checkAndSetInvestmentPeriodCostParameter(
+                esM,
+                name,
+                opexPerChargeOperation,
+                "1dim",
+                locationalEligibility,
+                esM.investmentPeriods,
+            )
         )
 
         # opexPerDischargeOperation
         self.opexPerDischargeOperation = opexPerDischargeOperation
-        self.processedOpexPerDischargeOperation = utils.checkAndSetInvestmentPeriodCostParameter(
-            esM,
-            name,
-            opexPerDischargeOperation,
-            "1dim",
-            locationalEligibility,
-            esM.investmentPeriods,
+        self.processedOpexPerDischargeOperation = (
+            utils.checkAndSetInvestmentPeriodCostParameter(
+                esM,
+                name,
+                opexPerDischargeOperation,
+                "1dim",
+                locationalEligibility,
+                esM.investmentPeriods,
+            )
         )
 
         # chargeOpRateFix and chargeOpRateMax
@@ -1022,18 +1026,19 @@ class StorageModel(ComponentModel):
                 else 0
             )
             if not esM.pyM.hasSegmentation:
-                return SOCInter[loc, compName, ip, pInter + 1] == SOCInter[
-                    loc, compName, ip, pInter
-                ] * (1 - compDict[compName].selfDischarge) ** (
-                    (esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep
-                ) + SOC[
-                    loc,
-                    compName,
-                    ip,
-                    esM.periodsOrder[ip][pInter],
-                    esM.timeStepsPerPeriod[-1] + 1,
-                ] + (
-                    offsetUp_ - offsetDown_
+                return (
+                    SOCInter[loc, compName, ip, pInter + 1]
+                    == SOCInter[loc, compName, ip, pInter]
+                    * (1 - compDict[compName].selfDischarge)
+                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
+                    + SOC[
+                        loc,
+                        compName,
+                        ip,
+                        esM.periodsOrder[ip][pInter],
+                        esM.timeStepsPerPeriod[-1] + 1,
+                    ]
+                    + (offsetUp_ - offsetDown_)
                 )
             else:
                 # return SOCInter[loc, compName, pInter + 1] == \
@@ -1041,18 +1046,19 @@ class StorageModel(ComponentModel):
                 #     ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
                 #     SOC[loc, compName, esM.periodsOrder[pInter], esM.segmentsPerPeriod[-1] + 1] + \
                 #     (offsetUp_ - offsetDown_)
-                return SOCInter[loc, compName, ip, pInter + 1] == SOCInter[
-                    loc, compName, ip, pInter
-                ] * (1 - compDict[compName].selfDischarge) ** (
-                    (esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep
-                ) + SOC[
-                    loc,
-                    compName,
-                    ip,
-                    esM.periodsOrder[ip][pInter],
-                    esM.segmentsPerPeriod[-1] + 1,
-                ] + (
-                    offsetUp_ - offsetDown_
+                return (
+                    SOCInter[loc, compName, ip, pInter + 1]
+                    == SOCInter[loc, compName, ip, pInter]
+                    * (1 - compDict[compName].selfDischarge)
+                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
+                    + SOC[
+                        loc,
+                        compName,
+                        ip,
+                        esM.periodsOrder[ip][pInter],
+                        esM.segmentsPerPeriod[-1] + 1,
+                    ]
+                    + (offsetUp_ - offsetDown_)
                 )
 
         setattr(
@@ -1353,7 +1359,11 @@ class StorageModel(ComponentModel):
         setattr(
             pyM,
             "ConstrSOCMaxPrecise_" + abbrvName,
-            pyomo.Constraint(constrSet, pyM.intraYearTimeSet, rule=SOCMaxPrecise,),
+            pyomo.Constraint(
+                constrSet,
+                pyM.intraYearTimeSet,
+                rule=SOCMaxPrecise,
+            ),
         )
 
     def minSOCwithTSAprecise(self, pyM, esM):
@@ -1439,7 +1449,10 @@ class StorageModel(ComponentModel):
             pyM,
             "ConstrSOCMinPrecise_" + abbrvName,
             pyomo.Constraint(
-                preciseSet, esM.periods, esM.timeStepsPerPeriod, rule=SOCMinPrecise,
+                preciseSet,
+                esM.periods,
+                esM.timeStepsPerPeriod,
+                rule=SOCMinPrecise,
             ),
         )
 
@@ -1896,7 +1909,9 @@ class StorageModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (opSum.values / esM.numberOfYears)
+                ] = (
+                    opSum.values / esM.numberOfYears
+                )
                 optSummary.loc[
                     [
                         (

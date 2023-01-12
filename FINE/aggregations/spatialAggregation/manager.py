@@ -52,8 +52,8 @@ def perform_spatial_aggregation(
         This parameter is irrelevant if `grouping_mode` is 'string_based'.
         |br| * the default value is 3
     :type n_groups: strictly positive int
-    
-    :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one. 
+
+    :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one.
         |br| * the default value is None. If not None, n_groups must be None
     :type distance_threshold: float
 

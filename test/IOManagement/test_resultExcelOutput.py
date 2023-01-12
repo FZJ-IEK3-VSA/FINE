@@ -41,7 +41,8 @@ def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
     # create new result excel files
     pathMultiNode_output = os.path.join(dataPath, "output_result_multinode")
     saveExcelResults(
-        multi_node_test_esM_init, pathMultiNode_output,
+        multi_node_test_esM_init,
+        pathMultiNode_output,
     )
 
     # compare to correct result excel files

@@ -47,16 +47,67 @@ def minimal_test_esM(scope="session"):
 
     ### Buy electricity at the electricity market
     costs = pd.DataFrame(
-        [np.array([0.05, 0.0, 0.1, 0.051,]), np.array([0.0, 0.0, 0.0, 0.0,]),],
+        [
+            np.array(
+                [
+                    0.05,
+                    0.0,
+                    0.1,
+                    0.051,
+                ]
+            ),
+            np.array(
+                [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ]
+            ),
+        ],
         index=["ElectrolyzerLocation", "IndustryLocation"],
     ).T
     revenues = pd.DataFrame(
-        [np.array([0.0, 0.01, 0.0, 0.0,]), np.array([0.0, 0.0, 0.0, 0.0,]),],
+        [
+            np.array(
+                [
+                    0.0,
+                    0.01,
+                    0.0,
+                    0.0,
+                ]
+            ),
+            np.array(
+                [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ]
+            ),
+        ],
         index=["ElectrolyzerLocation", "IndustryLocation"],
     ).T
     maxpurchase = (
         pd.DataFrame(
-            [np.array([1e6, 1e6, 1e6, 1e6,]), np.array([0.0, 0.0, 0.0, 0.0,]),],
+            [
+                np.array(
+                    [
+                        1e6,
+                        1e6,
+                        1e6,
+                        1e6,
+                    ]
+                ),
+                np.array(
+                    [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                    ]
+                ),
+            ],
             index=["ElectrolyzerLocation", "IndustryLocation"],
         ).T
         * hoursPerTimeStep
@@ -119,7 +170,24 @@ def minimal_test_esM(scope="session"):
     ### Industry site
     demand = (
         pd.DataFrame(
-            [np.array([0.0, 0.0, 0.0, 0.0,]), np.array([6e3, 6e3, 6e3, 6e3,]),],
+            [
+                np.array(
+                    [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                    ]
+                ),
+                np.array(
+                    [
+                        6e3,
+                        6e3,
+                        6e3,
+                        6e3,
+                    ]
+                ),
+            ],
             index=["ElectrolyzerLocation", "IndustryLocation"],
         ).T
         * hoursPerTimeStep
@@ -165,9 +233,37 @@ def single_node_test_esM():
     timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
     ### Buy electricity at the electricity market
-    costs = pd.Series(np.array([0.05, 0.0, 0.1, 0.051,]))
-    revenues = pd.Series(np.array([0.0, 0.01, 0.0, 0.0,]))
-    maxpurchase = pd.Series(np.array([1e6, 1e6, 1e6, 1e6,]) * hoursPerTimeStep)
+    costs = pd.Series(
+        np.array(
+            [
+                0.05,
+                0.0,
+                0.1,
+                0.051,
+            ]
+        )
+    )
+    revenues = pd.Series(
+        np.array(
+            [
+                0.0,
+                0.01,
+                0.0,
+                0.0,
+            ]
+        )
+    )
+    maxpurchase = pd.Series(
+        np.array(
+            [
+                1e6,
+                1e6,
+                1e6,
+                1e6,
+            ]
+        )
+        * hoursPerTimeStep
+    )
     esM.add(
         fn.Source(
             esM=esM,
@@ -211,7 +307,17 @@ def single_node_test_esM():
     )
 
     ### Industry site
-    demand = pd.Series(np.array([6e3, 6e3, 6e3, 6e3,]) * hoursPerTimeStep)
+    demand = pd.Series(
+        np.array(
+            [
+                6e3,
+                6e3,
+                6e3,
+                6e3,
+            ]
+        )
+        * hoursPerTimeStep
+    )
 
     esM.add(
         fn.Sink(
@@ -2410,7 +2516,10 @@ def balanceLimitConstraint_test_esM():
             esM=esM,
             name="heatpump",
             physicalUnit=r"MW$_{el}$",
-            commodityConversionFactors={"electricity": -1, "heat": 2.5,},
+            commodityConversionFactors={
+                "electricity": -1,
+                "heat": 2.5,
+            },
             hasCapacityVariable=True,
             capacityMax=1e6,
             investPerCapacity=0.95,
@@ -2568,7 +2677,20 @@ def perfectForesight_test_esM(scope="session"):
     )
 
     PVoperationRateMax = pd.DataFrame(
-        [np.array([0.5, 0.25,]), np.array([0.25, 0.5,]),],
+        [
+            np.array(
+                [
+                    0.5,
+                    0.25,
+                ]
+            ),
+            np.array(
+                [
+                    0.25,
+                    0.5,
+                ]
+            ),
+        ],
         index=["PerfectLand", "ForesightLand"],
     ).T
 
@@ -2590,12 +2712,38 @@ def perfectForesight_test_esM(scope="session"):
 
     demand = {}
     demand[2020] = pd.DataFrame(
-        [np.array([4380, 1e3,]), np.array([2190, 1e3,]),],
+        [
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+        ],
         index=["PerfectLand", "ForesightLand"],
     ).T  # first investmentperiod
     demand[2025] = demand[2020]
     demand[2030] = pd.DataFrame(
-        [np.array([2190, 1e3,]), np.array([4380, 1e3,]),],
+        [
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+        ],
         index=["PerfectLand", "ForesightLand"],
     ).T
     demand[2035] = demand[2030]

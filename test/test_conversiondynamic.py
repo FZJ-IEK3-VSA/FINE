@@ -12,7 +12,9 @@ import pytest
 def test_ConversionDynamicNeedsCapacity():
 
     esM = fn.EnergySystemModel(
-        locations={"example_region1",},
+        locations={
+            "example_region1",
+        },
         commodities={"electricity", "methane"},
         commodityUnitsDict={"electricity": r"GW$_{el}$", "methane": r"GW$_{th}$"},
         verboseLogLevel=2,
@@ -49,7 +51,20 @@ def test_ConversionDynamicNeedsHigherOperationRate():
     )
 
     operationRateMax = pd.DataFrame(
-        [[0.2, 0.4, 1.0, 1.0,], [0.0, 0.0, 0.0, 0.0,],],
+        [
+            [
+                0.2,
+                0.4,
+                1.0,
+                1.0,
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ],
+        ],
         index=list(locations),
         columns=range(0, numberOfTimeSteps),
     ).T
@@ -85,7 +100,20 @@ def test_ConversionDynamicHasHigherOperationRate():
     )
 
     operationRateMax = pd.DataFrame(
-        [[0.0, 0.4, 1.0, 1.0,], [0.0, 0.0, 0.0, 0.0,],],
+        [
+            [
+                0.0,
+                0.4,
+                1.0,
+                1.0,
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ],
+        ],
         index=list(locations),
         columns=range(0, numberOfTimeSteps),
     ).T
