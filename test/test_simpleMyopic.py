@@ -339,46 +339,12 @@ def test_exceededLifetime():
     )
 
     ### Buy electricity at the electricity market
-    costs = pd.DataFrame(
-        [
-            np.array(
-                [
-                    0.05,
-                    0.0,
-                    0.1,
-                    0.051,
-                ]
-            )
-        ],
-        index=["OneLocation"],
-    ).T
+    costs = pd.DataFrame([np.array([0.05, 0.0, 0.1, 0.051,])], index=["OneLocation"],).T
     revenues = pd.DataFrame(
-        [
-            np.array(
-                [
-                    0.0,
-                    0.01,
-                    0.0,
-                    0.0,
-                ]
-            )
-        ],
-        index=["OneLocation"],
+        [np.array([0.0, 0.01, 0.0, 0.0,])], index=["OneLocation"],
     ).T
     maxpurchase = (
-        pd.DataFrame(
-            [
-                np.array(
-                    [
-                        1e6,
-                        1e6,
-                        1e6,
-                        1e6,
-                    ]
-                )
-            ],
-            index=["OneLocation"],
-        ).T
+        pd.DataFrame([np.array([1e6, 1e6, 1e6, 1e6,])], index=["OneLocation"],).T
         * hoursPerTimeStep
     )
     esM.add(
@@ -425,19 +391,7 @@ def test_exceededLifetime():
 
     ### Industry site
     demand = (
-        pd.DataFrame(
-            [
-                np.array(
-                    [
-                        6e3,
-                        6e3,
-                        6e3,
-                        6e3,
-                    ]
-                )
-            ],
-            index=["OneLocation"],
-        ).T
+        pd.DataFrame([np.array([6e3, 6e3, 6e3, 6e3,])], index=["OneLocation"],).T
         * hoursPerTimeStep
     )
     esM.add(

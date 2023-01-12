@@ -588,8 +588,9 @@ def createSteinerTree(graph, distances, inner_nodes):
 def _generateRobustScenarios(startNode_endNode, **kwargs):
     startNode = startNode_endNode[0]
     endNode = startNode_endNode[1]
-    return startNode_endNode, computeSingleSpecialScenario(
-        startNode=startNode, endNode=endNode, **kwargs
+    return (
+        startNode_endNode,
+        computeSingleSpecialScenario(startNode=startNode, endNode=endNode, **kwargs),
     )
 
 
@@ -826,8 +827,9 @@ def computeSingleSpecialScenario(
 
         def demandCapacities(model, node):
             if node in entries or node in exits:
-                return min(0, dic_nodes_MinCapacity[node]), max(
-                    0, dic_nodes_MaxCapacity[node]
+                return (
+                    min(0, dic_nodes_MinCapacity[node]),
+                    max(0, dic_nodes_MaxCapacity[node]),
                 )
             else:
                 return 0, 0
@@ -2083,11 +2085,14 @@ def _computeTimeStepFlows(index, injectionWithdrawalRates, graph, **kwargs):
             dic_nodes_MinCapacity[node] = 0
             dic_nodes_MaxCapacity[node] = 0
     # compute flows
-    return index, computeSingleSpecialScenario(
-        dic_nodes_MinCapacity=dic_nodes_MinCapacity,
-        dic_nodes_MaxCapacity=dic_nodes_MaxCapacity,
-        graph=graph,
-        **kwargs
+    return (
+        index,
+        computeSingleSpecialScenario(
+            dic_nodes_MinCapacity=dic_nodes_MinCapacity,
+            dic_nodes_MaxCapacity=dic_nodes_MaxCapacity,
+            graph=graph,
+            **kwargs
+        ),
     )
 
 

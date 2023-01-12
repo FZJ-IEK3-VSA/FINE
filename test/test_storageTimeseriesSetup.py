@@ -9,17 +9,7 @@ import FINE as fn
 def test_storageTimeseriesSetup(TSA, minimal_test_esM):
 
     dummy_time_series = pd.DataFrame(
-        [
-            np.array([0.1, 0.2, 0.3, 0.4]),
-            np.array(
-                [
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                ]
-            ),
-        ],
+        [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.0, 0.0, 0.0, 0.0,]),],
         index=["ElectrolyzerLocation", "IndustryLocation"],
     ).T
 

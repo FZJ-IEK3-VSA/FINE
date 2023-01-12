@@ -777,9 +777,7 @@ class ConversionModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = (opSum.values / esM.numberOfYears)
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")

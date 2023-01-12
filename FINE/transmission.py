@@ -975,9 +975,7 @@ class TransmissionModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = (opSum.values / esM.numberOfYears)
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
@@ -990,17 +988,13 @@ class TransmissionModel(ComponentModel):
                 optSummary.loc[
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
                     tac_ox.columns,
-                ] = (
-                    tac_ox.values * 0.5
-                )
+                ] = (tac_ox.values * 0.5)
 
                 npv_ox = resultsNPV_opexOp[ip]
                 optSummary.loc[
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
                     npv_ox.columns,
-                ] = (
-                    npv_ox.values * 0.5
-                )
+                ] = (npv_ox.values * 0.5)
 
             optSummary = optSummary.append(
                 optSummaryBasic[esM.investmentPeriodNames[ip]]

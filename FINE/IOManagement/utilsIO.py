@@ -327,8 +327,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                         _multi_index_dataframe = df.stack()
                         _multi_index_dataframe["ip"] = _ip
                         _multi_index_dataframe.index.set_names(
-                            ["ip", "space", "space_2"],
-                            inplace=True,
+                            ["ip", "space", "space_2"], inplace=True,
                         )
                         multi_index_dataframes.append(_multi_index_dataframe)
                     multi_index_dataframe = pd.concat(multi_index_dataframes, axis=0)

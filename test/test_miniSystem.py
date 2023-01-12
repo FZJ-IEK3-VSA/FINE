@@ -36,9 +36,7 @@ def test_miniSystem(minimal_test_esM):
     ].operationVariablesOptimum.xs("Electricity market")
     np.testing.assert_array_almost_equal(
         testresults.values,
-        [
-            np.array([1.877143e07, 3.754286e07, 0.0, 1.877143e07]),
-        ],
+        [np.array([1.877143e07, 3.754286e07, 0.0, 1.877143e07]),],
         decimal=-3,
     )
 
@@ -47,24 +45,7 @@ def test_miniSystem(minimal_test_esM):
 
     # of cost
     costs = pd.DataFrame(
-        [
-            np.array(
-                [
-                    0.05,
-                    0.0,
-                    0.1,
-                    0.051,
-                ]
-            ),
-            np.array(
-                [
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                ]
-            ),
-        ],
+        [np.array([0.05, 0.0, 0.1, 0.051,]), np.array([0.0, 0.0, 0.0, 0.0,]),],
         index=["ElectrolyzerLocation", "IndustryLocation"],
     ).T
 
@@ -80,24 +61,7 @@ def test_miniSystem(minimal_test_esM):
 
     # and of revenues
     revenues = pd.DataFrame(
-        [
-            np.array(
-                [
-                    0.0,
-                    0.01,
-                    0.0,
-                    0.0,
-                ]
-            ),
-            np.array(
-                [
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                ]
-            ),
-        ],
+        [np.array([0.0, 0.01, 0.0, 0.0,]), np.array([0.0, 0.0, 0.0, 0.0,]),],
         index=["ElectrolyzerLocation", "IndustryLocation"],
     ).T
     np.testing.assert_almost_equal(

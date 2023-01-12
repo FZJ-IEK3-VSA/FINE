@@ -31,9 +31,7 @@ def xr_for_connectivity():
     operationRateMax = np.array([[1] * 8 for i in range(2)])
 
     operationRateMax_da = xr.DataArray(
-        operationRateMax,
-        coords=[time_list, space_list],
-        dims=["time", "space"],
+        operationRateMax, coords=[time_list, space_list], dims=["time", "space"],
     )
 
     ## 1d variable data
@@ -65,9 +63,7 @@ def xr_for_connectivity():
     )
 
     capacityMax_2d_da = xr.DataArray(
-        capacityMax_2d,
-        coords=[space_list, space_list],
-        dims=["space", "space_2"],
+        capacityMax_2d, coords=[space_list, space_list], dims=["space", "space_2"],
     )
 
     locationalEligibility_2d = np.array(
@@ -174,9 +170,7 @@ def xr_for_parameter_based_grouping():
     ## Source: wind turbine
     operationRateMax = np.array([[0.2, 0.1, 0.1] for i in range(2)])
     operationRateMax = xr.DataArray(
-        operationRateMax,
-        coords=[time_list, space_list],
-        dims=["time", "space"],
+        operationRateMax, coords=[time_list, space_list], dims=["time", "space"],
     )
 
     capacityMax = np.array([1, 1, 0.2])
@@ -251,9 +245,7 @@ def xr_and_dict_for_basic_representation():
     operationRateMax = np.array([[3, 3, 3, 3, 0] for i in range(2)])
 
     operationRateMax_da = xr.DataArray(
-        operationRateMax,
-        coords=[time_list, space_list],
-        dims=["time", "space"],
+        operationRateMax, coords=[time_list, space_list], dims=["time", "space"],
     )
 
     capacityMax_1d = np.array([15, 15, 15, 15, 0])
@@ -280,9 +272,7 @@ def xr_and_dict_for_basic_representation():
     operationRateFix = np.array([[5, 5, 5, 5, 5] for i in range(2)])
 
     operationRateFix_da = xr.DataArray(
-        operationRateFix,
-        coords=[time_list, space_list],
-        dims=["time", "space"],
+        operationRateFix, coords=[time_list, space_list], dims=["time", "space"],
     )
 
     capacityFix_1d = np.array([5, 5, 5, 5, 5])
@@ -317,9 +307,7 @@ def xr_and_dict_for_basic_representation():
     )
 
     capacityMax_2d_da = xr.DataArray(
-        capacityMax_2d,
-        coords=[space_list, space_list],
-        dims=["space", "space_2"],
+        capacityMax_2d, coords=[space_list, space_list], dims=["space", "space_2"],
     )
 
     locationalEligibility_2d = np.array(

@@ -85,22 +85,14 @@ def create_geom_xarray(
     geometries = shapefile[geom_col_name]
     geom_ids = shapefile[geom_id_col_name]
 
-    geometries_da = xr.DataArray(
-        geometries,
-        coords=[geom_ids],
-        dims=["space"],
-    )
+    geometries_da = xr.DataArray(geometries, coords=[geom_ids], dims=["space"],)
 
     xr_ds = xr.Dataset({"geometries": geometries_da})
 
     if add_centroids:
         # centroids
         centroids = pd.Series([geom.centroid for geom in geometries_da.values])
-        centroids_da = xr.DataArray(
-            centroids,
-            coords=[geom_ids],
-            dims=["space"],
-        )
+        centroids_da = xr.DataArray(centroids, coords=[geom_ids], dims=["space"],)
 
         # centroid distances
         centroid_dist_da = xr.DataArray(
@@ -118,10 +110,7 @@ def create_geom_xarray(
                 )  # distances in km
 
         xr_ds.update(
-            {
-                "centroids": centroids_da,
-                "centroid_distances": centroid_dist_da,
-            }
+            {"centroids": centroids_da, "centroid_distances": centroid_dist_da,}
         )
 
     return xr_ds

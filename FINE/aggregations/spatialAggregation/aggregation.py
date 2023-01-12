@@ -61,10 +61,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
 
 
 def aggregate_time_series_spatially(
-    xr_data_array_in,
-    sub_to_sup_region_id_dict,
-    mode="mean",
-    xr_weight_array=None,
+    xr_data_array_in, sub_to_sup_region_id_dict, mode="mean", xr_weight_array=None,
 ):
     """
     For each region group, aggregates the given time series variable.
@@ -533,17 +530,13 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 ## 1d variables
                 elif var_dim == "1d_":
                     da = aggregate_values_spatially(
-                        da,
-                        sub_to_sup_region_id_dict,
-                        mode=aggregation_mode,
+                        da, sub_to_sup_region_id_dict, mode=aggregation_mode,
                     )
 
                 ## 2d variables
                 elif var_dim == "2d_":
                     da = aggregate_connections(
-                        da,
-                        sub_to_sup_region_id_dict,
-                        mode=aggregation_mode,
+                        da, sub_to_sup_region_id_dict, mode=aggregation_mode,
                     )
 
                 ## aggregated or 0d variables

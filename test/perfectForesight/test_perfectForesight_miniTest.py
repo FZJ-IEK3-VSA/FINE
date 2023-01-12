@@ -198,20 +198,7 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
     ### Industry site
     demand = (
         pd.DataFrame(
-            [
-                np.array(
-                    [
-                        0.0,
-                        0.0,
-                    ]
-                ),
-                np.array(
-                    [
-                        6e3,
-                        6e3,
-                    ]
-                ),
-            ],
+            [np.array([0.0, 0.0,]), np.array([6e3, 6e3,]),],
             index=["ForesightLand", "PerfectLand"],
         ).T
         * 4380
@@ -246,20 +233,8 @@ def test_perfectForesight_binary():
 
     # add a sink
     demand = {}
-    demand[2020] = pd.DataFrame(
-        columns=["PerfectLand"],
-        data=[
-            4380 * 1.1,
-            1e3,
-        ],
-    )
-    demand[2025] = pd.DataFrame(
-        columns=["PerfectLand"],
-        data=[
-            4380 * 1.9,
-            1e3,
-        ],
-    )
+    demand[2020] = pd.DataFrame(columns=["PerfectLand"], data=[4380 * 1.1, 1e3,],)
+    demand[2025] = pd.DataFrame(columns=["PerfectLand"], data=[4380 * 1.9, 1e3,],)
     demand[2030] = demand[2025]
     esM.add(
         fn.Sink(
@@ -289,9 +264,7 @@ def test_perfectForesight_binary():
             hasIsBuiltBinaryVariable=True,
             bigM=10,
             capacityMin=2,
-            stockCommissioning={
-                2015: pd.Series([1], index=["PerfectLand"]),
-            },
+            stockCommissioning={2015: pd.Series([1], index=["PerfectLand"]),},
         )
     )
 

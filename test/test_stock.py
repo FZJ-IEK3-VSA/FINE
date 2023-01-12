@@ -75,67 +75,16 @@ def stock_esM():
 
     ### Buy electricity at the electricity market
     costs = pd.DataFrame(
-        [
-            np.array(
-                [
-                    0.05,
-                    0.0,
-                    0.1,
-                    0.051,
-                ]
-            ),
-            np.array(
-                [
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                ]
-            ),
-        ],
+        [np.array([0.05, 0.0, 0.1, 0.051,]), np.array([0.0, 0.0, 0.0, 0.0,]),],
         index=["ElectrolyzerLocation", "IndustryLocation"],
     ).T
     revenues = pd.DataFrame(
-        [
-            np.array(
-                [
-                    0.0,
-                    0.01,
-                    0.0,
-                    0.0,
-                ]
-            ),
-            np.array(
-                [
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                ]
-            ),
-        ],
+        [np.array([0.0, 0.01, 0.0, 0.0,]), np.array([0.0, 0.0, 0.0, 0.0,]),],
         index=["ElectrolyzerLocation", "IndustryLocation"],
     ).T
     maxpurchase = (
         pd.DataFrame(
-            [
-                np.array(
-                    [
-                        1e6,
-                        1e6,
-                        1e6,
-                        1e6,
-                    ]
-                ),
-                np.array(
-                    [
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                    ]
-                ),
-            ],
+            [np.array([1e6, 1e6, 1e6, 1e6,]), np.array([0.0, 0.0, 0.0, 0.0,]),],
             index=["ElectrolyzerLocation", "IndustryLocation"],
         ).T
         * hoursPerTimeStep
@@ -238,24 +187,7 @@ def stock_esM():
     ### Industry site
     demand = (
         pd.DataFrame(
-            [
-                np.array(
-                    [
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0,
-                    ]
-                ),
-                np.array(
-                    [
-                        6e3,
-                        6e3,
-                        6e3,
-                        6e3,
-                    ]
-                ),
-            ],
+            [np.array([0.0, 0.0, 0.0, 0.0,]), np.array([6e3, 6e3, 6e3, 6e3,]),],
             index=["ElectrolyzerLocation", "IndustryLocation"],
         ).T
         * hoursPerTimeStep
