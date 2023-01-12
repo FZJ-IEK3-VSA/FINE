@@ -522,6 +522,10 @@ class EnergySystemModel:
             This parameter is irrelevant if `grouping_mode` is 'string_based'.
             |br| * the default value is 3
         :type n_groups: strictly positive integer, None
+        
+        :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one. 
+            |br| * the default value is None. If not None, n_groups must be None
+        :type distance_threshold: float
 
         :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved.
             If None, results are not saved.
@@ -1874,17 +1878,17 @@ class EnergySystemModel:
                 if self.numberOfInvestmentPeriods == 1:
                     mdl.optSummary = mdl.optSummary[0]
                     if key is "StorageModel" or key is "StorageExtModel":
-                        mdl.stateOfChargeOperationVariablesOptimum = (
-                            mdl.stateOfChargeOperationVariablesOptimum[0]
-                        )
+                        mdl.stateOfChargeOperationVariablesOptimum = mdl.stateOfChargeOperationVariablesOptimum[
+                            0
+                        ]
 
-                        mdl.chargeOperationVariablesOptimum = (
-                            mdl.chargeOperationVariablesOptimum[0]
-                        )
+                        mdl.chargeOperationVariablesOptimum = mdl.chargeOperationVariablesOptimum[
+                            0
+                        ]
 
-                        mdl.dischargeOperationVariablesOptimum = (
-                            mdl.dischargeOperationVariablesOptimum[0]
-                        )
+                        mdl.dischargeOperationVariablesOptimum = mdl.dischargeOperationVariablesOptimum[
+                            0
+                        ]
                     else:
                         mdl.operationVariablesOptimum = mdl.operationVariablesOptimum[0]
 
