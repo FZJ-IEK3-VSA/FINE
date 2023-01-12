@@ -25,6 +25,7 @@ def perform_spatial_aggregation(
     shapefile,
     grouping_mode="parameter_based",
     n_groups=3,
+    distance_threshold=None,
     aggregatedResultsPath=None,
     **kwargs,
 ):
@@ -223,11 +224,12 @@ def perform_spatial_aggregation(
             in order to perform spatial aggregation"
         )
 
-    if n_geometries < n_groups:
-        raise ValueError(
-            f"{n_geometries} regions cannot be reduced to {n_groups} \
-            regions. Please provide a valid number for n_groups"
-        )
+    if n_groups is not None:
+        if n_geometries < n_groups:
+            raise ValueError(
+                f"{n_geometries} regions cannot be reduced to {n_groups} \
+                regions. Please provide a valid number for n_groups"
+            )
 
     # STEP 2. Read xr_dataset
     if isinstance(xr_datasets, str):
@@ -273,7 +275,7 @@ def perform_spatial_aggregation(
         logger_spagat.info(f"Performing distance-based grouping on the regions")
 
         aggregation_dict = grouping.perform_distance_based_grouping(
-            geom_xr, n_groups, skip_regions, enforced_groups
+            geom_xr, n_groups, skip_regions, enforced_groups, distance_threshold
         )
 
     elif grouping_mode == "parameter_based":

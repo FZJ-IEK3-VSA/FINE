@@ -500,6 +500,7 @@ class EnergySystemModel:
         shapefile,
         grouping_mode="parameter_based",
         n_groups=3,
+        distance_threshold=None,
         aggregatedResultsPath=None,
         **kwargs
     ):
@@ -661,6 +662,7 @@ class EnergySystemModel:
             shapefile,
             grouping_mode,
             n_groups,
+            distance_threshold,
             aggregatedResultsPath,
             **kwargs
         )
