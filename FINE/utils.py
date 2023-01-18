@@ -97,6 +97,12 @@ def checkEnergySystemModelInput(
     isStrictlyPositiveInt(numberOfInvestmentPeriods)
     isStrictlyPositiveNumber(investmentPeriodInterval)
 
+    if numberOfInvestmentPeriods == 1 and investmentPeriodInterval > 1:
+        warnings.warn(
+            "Energy system model has only one investment period. However the investment period "
+            + f"interval is set to {investmentPeriodInterval}. This may results in a higher objective value. "
+        )
+
     if stochasticModel and numberOfInvestmentPeriods == 1:
         raise ValueError(
             "A stochastic optimization needs more than one numberOfInvestementPeriod"
@@ -1755,7 +1761,7 @@ def preprocess2dimInvestmentPeriodData(
             )
         elif isinstance(data, dict):
             parameter[ip] = preprocess2dimData(
-                data[ip], mapC, locationalEligibility, discard
+                data[_ip], mapC, locationalEligibility, discard
             )
         else:
             raise TypeError(
@@ -2366,10 +2372,9 @@ def annuityPresentValueFactor(esM, compName, loc):
         )
 
 
-def netPresentValueFactor(esM, ip, compName, loc):
+def discountFactor(esM, ip, compName, loc):
     return (
-        annuityPresentValueFactor(esM, compName, loc)
-        * 1
+        1
         / (1 + esM.getComponent(compName).interestRate[loc])
         ** (ip * esM.investmentPeriodInterval)
         * (1 + esM.getComponent(compName).interestRate[loc])
@@ -2404,7 +2409,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     checkCommodities(esM, set(comp.commodityConversionFactors.keys()))
 
     for ip in esM.investmentPeriods:
-        if isYearDependent:  # TODO implement ip and decommis depedency
+        if isYearDependent:
             _commodityConversionFactors = comp.commodityConversionFactors
         else:
             _commodityConversionFactors = comp.commodityConversionFactors
