@@ -513,7 +513,6 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         comp.capacityMax = castToSeries(comp.capacityMax, esM)
         comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
-        comp.QPcostScale = castToSeries(comp.QPcostScale, esM)
 
     capacityMin, capacityFix, capacityMax, QPcostScale = (
         comp.capacityMin,
