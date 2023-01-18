@@ -1,4 +1,4 @@
-import os
+# %%
 import pytest
 
 import numpy as np
@@ -10,7 +10,7 @@ from shapely.geometry import Point
 
 from FINE.aggregations.spatialAggregation import grouping
 
-
+# %%
 @pytest.mark.parametrize(
     "string_list, expected_keys, expected_value, separator, position",
     [
@@ -48,7 +48,84 @@ def test_perform_string_based_grouping(
     assert list(clustered_regions_dict.values())[0] == expected_value
 
 
-def test_perform_distance_based_grouping():
+# %%
+@pytest.mark.parametrize(
+    "n_groups, skip_regions, enforced_groups, distance_threshold, expected_ouput",
+    [
+        (
+            3,
+            None,
+            None,
+            None,
+            {
+                "01_reg": ["01_reg"],  ## Based on sample_labels ([2, 0, 0, 1, 1])
+                "02_reg_03_reg": ["02_reg", "03_reg"],
+                "04_reg_05_reg": ["04_reg", "05_reg"],
+            },
+        ),
+        (
+            3,
+            ["02_reg"],
+            None,
+            None,
+            {
+                "01_reg": ["01_reg"],
+                "03_reg": ["03_reg"],
+                "02_reg": ["02_reg"],
+                "04_reg_05_reg": ["04_reg", "05_reg"],
+            },
+        ),
+        (
+            2,
+            None,
+            {
+                "01_reg_02_reg": ["01_reg", "02_reg"],
+                "03_reg_04_reg_05_reg": [
+                    "03_reg",
+                    "04_reg",
+                    "05_reg",
+                ],  # enforced group
+            },
+            None,
+            {
+                "01_reg": ["01_reg"],
+                "02_reg": ["02_reg"],
+                "03_reg": ["03_reg"],
+                "04_reg_05_reg": ["04_reg", "05_reg"],
+            },
+        ),
+        (
+            2,
+            ["04_reg"],
+            {
+                "01_reg_02_reg": ["01_reg", "02_reg"],
+                "03_reg_05_reg": ["03_reg", "05_reg"],
+            },
+            None,
+            {
+                "01_reg": ["01_reg"],
+                "02_reg": ["02_reg"],
+                "03_reg": ["03_reg"],
+                "04_reg": ["04_reg"],
+                "05_reg": ["05_reg"],
+            },
+        ),
+        (
+            None,
+            None,
+            None,
+            0.00244257350516487,  # median distance based on distance matrix
+            {
+                "01_reg": ["01_reg"],  ## Based on sample_labels ([2, 0, 0, 1, 1])
+                "02_reg_03_reg": ["02_reg", "03_reg"],
+                "04_reg_05_reg": ["04_reg", "05_reg"],
+            },
+        ),
+    ],
+)
+def test_perform_distance_based_grouping(
+    n_groups, skip_regions, enforced_groups, distance_threshold, expected_ouput
+):
     # TEST DATA
     space_list = ["01_reg", "02_reg", "03_reg", "04_reg", "05_reg"]
 
@@ -67,16 +144,19 @@ def test_perform_distance_based_grouping():
     test_geom_xr = xr.Dataset({"centroids": centroid_da})
 
     # FUNCTION CALL
-    output_dict = grouping.perform_distance_based_grouping(test_geom_xr)
+    output_dict = grouping.perform_distance_based_grouping(
+        geom_xr=test_geom_xr,
+        n_groups=n_groups,
+        skip_regions=skip_regions,
+        enforced_groups=enforced_groups,
+        distance_threshold=distance_threshold,
+    )
 
     # ASSERTION
-    assert output_dict == {
-        "01_reg": ["01_reg"],  ## Based on sample_labels ([2, 0, 0, 1, 1])
-        "02_reg_03_reg": ["02_reg", "03_reg"],
-        "04_reg_05_reg": ["04_reg", "05_reg"],
-    }
+    assert output_dict == expected_ouput
 
 
+# %%
 @pytest.mark.parametrize("aggregation_method", ["kmedoids_contiguity", "hierarchical"])
 @pytest.mark.parametrize(
     "weights, expected_region_groups",

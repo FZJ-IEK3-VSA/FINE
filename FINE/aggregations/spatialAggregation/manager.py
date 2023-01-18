@@ -25,6 +25,7 @@ def perform_spatial_aggregation(
     shapefile,
     grouping_mode="parameter_based",
     n_groups=3,
+    distance_threshold=None,
     aggregatedResultsPath=None,
     **kwargs,
 ):
@@ -51,6 +52,10 @@ def perform_spatial_aggregation(
         This parameter is irrelevant if `grouping_mode` is 'string_based'.
         |br| * the default value is 3
     :type n_groups: strictly positive int
+
+    :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one.
+        |br| * the default value is None. If not None, n_groups must be None
+    :type distance_threshold: float
 
     :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved.
         If None, results are not saved.
@@ -121,6 +126,20 @@ def perform_spatial_aggregation(
 
         |br| * the default value is 'kmedoids_contiguity'
     :type aggregation_method: str, one of {'kmedoids_contiguity', 'hierarchical'}
+
+    :param skip_regions: The region IDs to be skipped while aggregating regions
+
+        .. note:: currently only implemented for `grouping_mode` 'distance_based'
+
+        |br| * the default value is None
+    :type skip_regions: List[str]
+
+    :param enforced_groups: The groups that should be enforced when aggregating regions.
+
+        .. note:: currently only implemented for `grouping_mode` 'distance_based'
+
+        |br| * the default value is None
+    :type enforced_groups: Dict[str, List[str]]
 
     :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'.
         The optimization solver to be chosen.
@@ -209,11 +228,12 @@ def perform_spatial_aggregation(
             in order to perform spatial aggregation"
         )
 
-    if n_geometries < n_groups:
-        raise ValueError(
-            f"{n_geometries} regions cannot be reduced to {n_groups} \
-            regions. Please provide a valid number for n_groups"
-        )
+    if n_groups is not None:
+        if n_geometries < n_groups:
+            raise ValueError(
+                f"{n_geometries} regions cannot be reduced to {n_groups} \
+                regions. Please provide a valid number for n_groups"
+            )
 
     # STEP 2. Read xr_dataset
     if isinstance(xr_datasets, str):
@@ -253,9 +273,14 @@ def perform_spatial_aggregation(
 
     elif grouping_mode == "distance_based":
 
+        skip_regions = kwargs.get("skip_regions", None)
+        enforced_groups = kwargs.get("enforced_groups", None)
+
         logger_spagat.info(f"Performing distance-based grouping on the regions")
 
-        aggregation_dict = grouping.perform_distance_based_grouping(geom_xr, n_groups)
+        aggregation_dict = grouping.perform_distance_based_grouping(
+            geom_xr, n_groups, skip_regions, enforced_groups, distance_threshold
+        )
 
     elif grouping_mode == "parameter_based":
 

@@ -9,6 +9,7 @@ import sklearn.cluster as skc
 from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
 from FINE.aggregations.spatialAggregation import groupingUtils as gprUtils
 from FINE.IOManagement.standardIO import timer
+from functools import partial
 
 logger_grouping = logging.getLogger("spatial_grouping")
 
@@ -72,8 +73,15 @@ def perform_string_based_grouping(regions, separator=None, position=None):
     return sub_to_sup_region_id_dict
 
 
+# %%
 @timer
-def perform_distance_based_grouping(geom_xr, n_groups=3):
+def perform_distance_based_grouping(
+    geom_xr,
+    n_groups=3,
+    skip_regions=None,
+    enforced_groups=None,
+    distance_threshold=None,
+):
     """
     Groups regions based on the regions' centroid distances,
     using sklearn's hierarchical clustering.
@@ -87,6 +95,24 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
         |br| * the default value is 3
     :type n_groups: strictly positive int
 
+    :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one.
+        |br| * the default value is None. If not None, n_groups must be None
+    :type distance_threshold: float
+
+    :param skip_regions: The region id's to be skipped while aggregating regions
+        |br| * the default value is None
+    :type skip_regions: List
+
+        * Ex.: ['02_reg']
+               ['02_reg', '03_reg]
+
+    :param enforced_groups: The groups that should be enforced when aggregating regions.
+    |br| * the default value is None
+    :type enforced_groups: Dict
+
+        * Ex.: {'es': ['01_es', '02_es', '03_es']
+                'de': ['01_de', '02_de', '03_de', '04_de']}
+
     :returns: aggregation_dict - A nested dictionary containing results of spatial grouping at various levels/number of groups
 
         * Ex.: {3: {'01_reg': ['01_reg'], '02_reg': ['02_reg'], '03_reg': ['03_reg']},\n
@@ -96,27 +122,74 @@ def perform_distance_based_grouping(geom_xr, n_groups=3):
     :rtype: Dict[int, Dict[str, List[str]]]
     """
 
-    centroids = geom_xr["centroids"].values
+    def _perform_distance_based_grouping(
+        geom_xr,
+        n_groups=3,
+        skip_regions=None,
+        enforced_group=None,
+        distance_threshold=distance_threshold,
+    ):
 
-    centroids_x_y_points = (
-        np.asarray([[point.x, point.y] for point in centroids]) / 1000
-    )  # km
-    regions_list = geom_xr["space"].values
+        regions_list, skipped_dict = gprUtils.get_region_list(
+            geom_xr, skip_regions, enforced_group
+        )
 
-    # STEP 1. Compute hierarchical clustering
-    model = skc.AgglomerativeClustering(n_clusters=n_groups).fit(centroids_x_y_points)
+        # reduce ds
+        geom_xr = geom_xr.sel(space=regions_list)
+        centroids = geom_xr["centroids"].values
 
-    # STEP 2. Create a regions dictionary for the aggregated regions
-    aggregation_dict = {}
-    for label in range(n_groups):
-        # Group the regions of this regions label
-        sub_regions_list = list(regions_list[model.labels_ == label])
-        sup_region_id = "_".join(sub_regions_list)
-        aggregation_dict[sup_region_id] = sub_regions_list.copy()
+        centroids_x_y_points = (
+            np.asarray([[point.x, point.y] for point in centroids]) / 1000
+        )  # km
 
-    return aggregation_dict
+        # STEP 1. Compute hierarchical clustering
+        model = skc.AgglomerativeClustering(
+            n_clusters=n_groups, distance_threshold=distance_threshold
+        ).fit(centroids_x_y_points)
+
+        # STEP 2. Create a regions dictionary for the aggregated regions
+        aggregation_dict = {}
+        for label in np.unique(model.labels_):
+            # Group the regions of this regions label
+            sub_regions_list = sorted(regions_list[model.labels_ == label])
+            sup_region_id = "_".join(sub_regions_list)
+            aggregation_dict[sup_region_id] = sub_regions_list.copy()
+
+        aggregation_dict.update(skipped_dict)
+
+        return aggregation_dict
+
+    if enforced_groups is None:
+
+        aggregation_dict = _perform_distance_based_grouping(
+            geom_xr=geom_xr,
+            skip_regions=skip_regions,
+            n_groups=n_groups,
+            distance_threshold=distance_threshold,
+        )
+        return aggregation_dict
+
+    else:
+
+        aggregation_dict = {}
+        for key, group in enforced_groups.items():
+            print("Grouping: ", key)
+            output = _perform_distance_based_grouping(
+                geom_xr=geom_xr,
+                skip_regions=skip_regions,
+                enforced_group=group,
+                n_groups=n_groups,
+                distance_threshold=distance_threshold,
+            )
+            aggregation_dict.update(output)
+
+        return aggregation_dict
 
 
+# %%
+
+# TODO: If there is a demand for it, implement skip_regions, and enforce_group
+# (just like in perform_distance_based_grouping) here as well
 @timer
 def perform_parameter_based_grouping(
     xarray_datasets,

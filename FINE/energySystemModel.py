@@ -563,6 +563,7 @@ class EnergySystemModel:
         shapefile,
         grouping_mode="parameter_based",
         n_groups=3,
+        distance_threshold=None,
         aggregatedResultsPath=None,
         **kwargs,
     ):
@@ -584,6 +585,10 @@ class EnergySystemModel:
             This parameter is irrelevant if `grouping_mode` is 'string_based'.
             |br| * the default value is 3
         :type n_groups: strictly positive integer, None
+
+        :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one.
+            |br| * the default value is None. If not None, n_groups must be None
+        :type distance_threshold: float
 
         :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved.
             If None, results are not saved.
@@ -724,6 +729,7 @@ class EnergySystemModel:
             shapefile,
             grouping_mode,
             n_groups,
+            distance_threshold,
             aggregatedResultsPath,
             **kwargs,
         )

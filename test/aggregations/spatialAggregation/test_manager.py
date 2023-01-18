@@ -155,8 +155,33 @@ def test_spatial_aggregation_string_based(test_esM_for_spagat):
     assert len(aggregated_esM.locations) == 8
 
 
-@pytest.mark.parametrize("n_regions", [2, 3])
-def test_spatial_aggregation_distance_based(test_esM_for_spagat, n_regions):
+@pytest.mark.parametrize(
+    "skip_regions, enforced_groups, n_expected_groups",
+    [
+        (None, None, 2),
+        (["cluster_3"], None, 3),
+        (
+            None,
+            {
+                "cluster_1_cluster_2_cluster_3": [
+                    "cluster_1",
+                    "cluster_2",
+                    "cluster_3",
+                ],
+                "cluster_4_cluster_5_cluster_6_cluster_7": [
+                    "cluster_4",
+                    "cluster_5",
+                    "cluster_6",
+                    "cluster_7",
+                ],
+            },
+            4,
+        ),
+    ],
+)
+def test_spatial_aggregation_distance_based(
+    test_esM_for_spagat, skip_regions, enforced_groups, n_expected_groups
+):
 
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
@@ -168,12 +193,14 @@ def test_spatial_aggregation_distance_based(test_esM_for_spagat, n_regions):
     aggregated_esM = test_esM_for_spagat.aggregateSpatially(
         shapefile=SHAPEFILE_PATH,
         grouping_mode="distance_based",
-        n_groups=n_regions,
+        n_groups=2,
         aggregatedResultsPath=None,
+        skip_regions=skip_regions,
+        enforced_groups=enforced_groups,
     )
 
     # ASSERTION
-    assert len(aggregated_esM.locations) == n_regions
+    assert len(aggregated_esM.locations) == n_expected_groups
 
 
 @pytest.mark.parametrize(
