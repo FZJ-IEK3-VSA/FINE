@@ -1520,18 +1520,18 @@ class EnergySystemModel:
 
         .. math::
                 design^{comp}_{loc,ip} =
-                \\sum\\limits_{year=ip-\\text{ipTechLifetime}}^{ip}
+                \\sum\\limits_{year=ip-\\text{ipEconomicLifetime}}^{ip}
                 \\text{F}^{comp,bin}_{loc,year}
                 \\cdot \\left(  \\frac{\\text{investPerCap}^{comp}_{loc,year}}{\\text{CCF}^{comp}_{loc,year}}
-                + \\text{opexPerCap}^{comp}_{loc,year} \\right) \\cdot \\text{commis}^{comp}_{loc,year}
+                + \\text{opexPerCap}^{comp}_{loc,year} \\right) \\cdot commis^{comp}_{loc,year}
                 \\cdot  \\text{APVF}^{comp}_{loc} \\cdot \\text{discFactor}^{comp}_{loc,ip}
 
         Contribution of binary design variables to the objective function
 
         .. math::
                 design^{comp}_{bin\\ loc,ip} =
-                \\sum\\limits_{year=ip-ipTechLifetime}^{ip}
-                \\text{F}^{comp,bin}_{loc,year} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc,year}}	{CCF^{comp}_{loc,year}}
+                \\sum\\limits_{year=ip-\\text{ipEconomicLifetime}}^{ip}
+                \\text{F}^{comp,bin}_{loc,year} \\cdot \\left( \\frac{\\text{investIfBuilt}^{comp}_{loc,year}}	{\\text{CCF}^{comp}_{loc,year}}
                 + \\text{opexIfBuilt}^{comp}_{loc,year} \\right)  \\cdot  bin^{comp}_{loc,year}
                 \\cdot  \\text{APVF}^{comp}_{loc} \\cdot \\text{discFactor}^{comp}_{loc,ip}
 
@@ -1546,12 +1546,14 @@ class EnergySystemModel:
         With the annuity present value factor (Rentenbarwertfaktor):
 
         .. math::
-            APVF^{comp}_{loc} = \\frac{(1 + interestRate^{comp}_{loc})^{interval} - 1}{interestRate^{comp}_{loc} \\cdot (1 + interestRate^{comp}_{loc})^{interval}} \\ if interestRate^{comp}_{loc} != 0 \\  else \\  1
+            APVF^{comp}_{loc} = \\frac{(1 + \\text{interestRate}^{comp}_{loc})^{interval} - 1}{\\text{interestRate}^{comp}_{loc} \\cdot
+            (1 + \\text{interestRate}^{comp}_{loc})^{interval}} \\ if \\text{interestRate}^{comp}_{loc} != 0 \\  else \\  1
 
         and the discount factor.
 
         .. math::
-            discFactor^{comp}_{loc,ip} = \\frac{1+interestRate^{comp}_{loc}}{(1+interestRate^{comp}_{loc})^{ip \\cdot interval}}
+            \\text{discFactor}^{comp}_{loc,ip} = \\frac{1+\\text{interestRate}^{comp}_{loc}}{(1+\\text{interestRate}^{comp}_{loc})^{ip \\cdot
+            \\text{interval}}}
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.

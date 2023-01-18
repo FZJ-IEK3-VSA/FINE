@@ -160,7 +160,7 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
-        :param partLoadMin: if specified, indicates minimal part load of component. # TODO PRO INVESTMENT PERIOD UND NICHT PRO COMMISSIONING YEAR
+        :param partLoadMin: if specified, indicates minimal part load of component.
         :type partLoadMin:
             * None or
             * Float value in range ]0;1]
@@ -1900,7 +1900,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            decommis^{comp}_{loc,ip} \eq commis^{comp}_{loc,ip-technicalLifetime}# TODO
+            decommis^{comp}_{loc,ip} \eq commis^{comp}_{loc,ip-\\text{ipTechnicalLifetime}}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -2576,10 +2576,10 @@ class ComponentModel(metaclass=ABCMeta):
                     for ip in esM.investmentPeriods:
                         cContrSum = costContribution[(loc, compName)][ip].sum()
                         if getOptValueCostType == "NPV":
-                            cost_results[ip].loc[
-                                compName, loc
-                            ] = cContrSum * utils.netPresentValueFactor(
-                                esM, ip, compName, loc
+                            cost_results[ip].loc[compName, loc] = (
+                                cContrSum
+                                * utils.annuityPresentValueFactor(esM, compName, loc)
+                                * utils.discountFactor(esM, ip, compName, loc)
                             )
                         elif getOptValueCostType == "TAC":
                             cost_results[ip].loc[compName, loc] = cContrSum
@@ -2587,7 +2587,8 @@ class ComponentModel(metaclass=ABCMeta):
             else:
                 return sum(
                     costContribution[(loc, compName)][ip].sum()
-                    * utils.netPresentValueFactor(esM, ip, compName, loc)
+                    * utils.annuityPresentValueFactor(esM, compName, loc)
+                    * utils.discountFactor(esM, ip, compName, loc)
                     for loc, compName, ip in var
                     if ip in esM.investmentPeriods
                 )
@@ -2837,8 +2838,6 @@ class ComponentModel(metaclass=ABCMeta):
 
             locCompIpCombinations = list(set([(x[0], x[1], x[2]) for x in var]))
             for loc, compName, year in locCompIpCombinations:
-                # TODO for next MR, commodityConversion year depending, cost
-                # contribution from year, year:decommisYear
                 costContribution[(loc, compName)].loc[
                     year, year
                 ] = self.getLocEconomicsOperation(
@@ -2861,10 +2860,10 @@ class ComponentModel(metaclass=ABCMeta):
                     for ip in esM.investmentPeriods:
                         cContrSum = costContribution[(loc, compName)][ip].sum()
                         if getOptValueCostType == "NPV":
-                            cost_results[ip].loc[
-                                compName, loc
-                            ] = cContrSum * utils.netPresentValueFactor(
-                                esM, ip, compName, loc
+                            cost_results[ip].loc[compName, loc] = (
+                                cContrSum
+                                * utils.annuityPresentValueFactor(esM, compName, loc)
+                                * utils.discountFactor(esM, ip, compName, loc)
                             )
                         elif getOptValueCostType == "TAC":
                             cost_results[ip].loc[compName, loc] = cContrSum
@@ -2872,7 +2871,8 @@ class ComponentModel(metaclass=ABCMeta):
             else:
                 return sum(
                     costContribution[(loc, compName)][ip].sum()
-                    * utils.netPresentValueFactor(esM, ip, compName, loc)
+                    * utils.annuityPresentValueFactor(esM, compName, loc)
+                    * utils.discountFactor(esM, ip, compName, loc)
                     for loc, compName, ip in locCompIpCombinations
                     if ip in esM.investmentPeriods
                 )
