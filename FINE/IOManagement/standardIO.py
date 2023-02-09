@@ -88,7 +88,9 @@ def writeOptimizationOutputToExcel(
     if investmentPeriod is None:
         investmentPeriodNamesExport = esM.investmentPeriodNames
     else:
-        investmentPeriodNamesExport = investmentPeriod
+        if not isinstance(investmentPeriod, int):
+            raise ValueError("investmentPeriod must be type int and specify a single year, which shall be exported.")
+        investmentPeriodNamesExport = [investmentPeriod]
         
     for ip in investmentPeriodNamesExport:
         if len(esM.investmentPeriodNames) > 1:

@@ -2,6 +2,7 @@ import FINE as fn
 from FINE import utils
 from FINE.IOManagement.standardIO import writeOptimizationOutputToExcel
 import os
+import copy
 
 def rollingHorizonOptimization(
     esM,
@@ -16,13 +17,19 @@ def rollingHorizonOptimization(
     solver="gurobi",
     optimizationSpecs="",
 ):
-"""If numberOfInvestmentPeriodsForRollingHorizon == numberOfInvestmentPeriods -> Forecasting, else Rolling Horizon"""
+    """
+    If numberOfInvestmentPeriodsForRollingHorizon == numberOfInvestmentPeriods -> Perfect Foresight,
+    If numberOfInvestmentPeriodsForRollingHorizon == 1 -> Foresight, else Rolling Horizon
+    """
 
     # checks
-    if esM.numberOfInvestmentPeriods < 3:
-        raise ValueError("At least three investmentperiods required for rolling horizon.")
-    if esM.numberOfInvestmentPeriods < numberOfInvestmentPeriodsForRollingHorizon:
-        raise ValueError("There must be at least on more investment period in the rolling horizon interval than in the transformation pathway")
+    if esM.numberOfInvestmentPeriods < 2:
+        raise ValueError("At least two investmentperiods required for rolling horizon.")
+    if esM.numberOfInvestmentPeriods <= numberOfInvestmentPeriodsForRollingHorizon:
+        raise ValueError("There must be at least one more investment period in the transformation pathway than in the rolling horizon interval")
+
+    utils.isStrictlyPositiveInt(numberOfInvestmentPeriodsForRollingHorizon)
+    utils.isStrictlyPositiveNumber(numberOfInvestmentPeriodsForRollingHorizon)
 
     # 0. set up rolling horizon intervals
     rollingHorizonIntervals= \
@@ -42,38 +49,41 @@ def rollingHorizonOptimization(
     for rollingHorizonYears in rollingHorizonIntervals:
         print(f"Initizializing rolling horizon optimization for {rollingHorizonYears}...")
         # 1. Analyse components and create dicts for adding them
-        rollingHorizonCompDict=compDict.copy()
+        rollingHorizonCompDict=copy.deepcopy(dict(compDict))
+        import pytest
+        pytest.set_trace()
         for classname in rollingHorizonCompDict:
             for comp in rollingHorizonCompDict[classname]:
                 # first thing: stockCommissioning!
                 # for first rolling horizon there is no internally created stock
-                if rollingHorizonYears == rollingHorizonIntervals[0]:
-                    if esM.getComponent(comp).stockCommissioning is None:
-                        stockYears=[]
-                    else:
-                        stockYears=list(esM.getComponent(comp).stockCommissioning.index) # years of initial esm
-                    pass # use stock years
-                # all further years have the stock commissioning of the previous run plus the optimization output 
-                # as stock (if something was commissioned) - oder ist das egal? dann einfach als 0??
-                else:
-                    if rollingHorizonEsm.getComponent(comp).stockCommissioning is None:
-                        _historicalStock=[]
-                    else:
-                        _historicalStock=list(rollingHorizonEsm.getComponent(comp).stockCommissioning.index)
+                # if rollingHorizonYears == rollingHorizonIntervals[0]:
+                #     if esM.getComponent(comp).stockCommissioning is None:
+                #         stockYears=[]
+                #     else:
+                #         stockYears=list(esM.getComponent(comp).stockCommissioning.index) # years of initial esm
+                #     pass # use stock years
+                # # all further years have the stock commissioning of the previous run plus the optimization output 
+                # # as stock (if something was commissioned) - oder ist das egal? dann einfach als 0??
+                # else:
+                #     if rollingHorizonEsm.getComponent(comp).stockCommissioning is None:
+                #         _historicalStock=[]
+                #     else:
+                #         _historicalStock=list(rollingHorizonEsm.getComponent(comp).stockCommissioning.index)
 
-                    # get results of previous run
-                    rollingHorizonEsm
-                    if commissioing in previous run:
+                #     # get results of previous run
+                #     rollingHorizonEsm
+                #     if commissioing in previous run:
 
-                    stockYears= (
-                        _historicalStock+ 
-                        [rollingHorizonYears[0]-rollingHorizonYears.investmentPeriodInterval]
-                        )
-                    pass # TODO add internal stock
-                # check if stock exists (historical) or new stock was added
+                #     stockYears= (
+                #         _historicalStock+ 
+                #         [rollingHorizonYears[0]-rollingHorizonYears.investmentPeriodInterval]
+                #         )
+                #     pass # TODO add internal stock
+                # # check if stock exists (historical) or new stock was added
                 
 
-                parameterYears=stockYears+rollingHorizonYears
+                #parameterYears=stockYears+rollingHorizonYears
+                parameterYears=rollingHorizonYears # TODO change!
                 for parameter_name, parameter_value in rollingHorizonCompDict[classname][comp].items():
                     if parameter_name == "stockCommissioning":
                         # already done previously
@@ -101,7 +111,13 @@ def rollingHorizonOptimization(
         rollingHorizonEsm = fn.EnergySystemModel(**rollingHorizonEsmDict)
         # add components per class
         for classname in rollingHorizonCompDict:
-            rollingHorizonEsm.add(getattr(fn, classname)(rollingHorizonEsm, **rollingHorizonCompDict[classname][comp]))
+            for comp in rollingHorizonCompDict[classname]:
+                rollingHorizonEsm.add(
+                    getattr(fn, classname)(
+                        esM=rollingHorizonEsm, 
+                        **rollingHorizonCompDict[classname][comp] # information of component
+                    )
+                )
 
         # 3. optimize the rolling horizon esM
         # Optimization
