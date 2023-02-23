@@ -697,6 +697,35 @@ def checkInvestmentPeriodParameters(name, param, years):
                 )
 
 
+def checkAndSetAnnuityPerpetuity(annuityPerpetuity, numberOfInvestmentPeriods):
+    if not isinstance(annuityPerpetuity, bool):
+        raise ValueError("annuityPerpetuity must be a bool.")
+    if annuityPerpetuity and numberOfInvestmentPeriods == 1:
+        raise ValueError(
+            "Annuity Perpetuity can only be set for a transformation "
+            + "pathway more than one investment period."
+        )
+    return annuityPerpetuity
+
+
+def checkAndSetInterestRate(esM, name, interestRate, dimension, elig):
+    # set up intrest rate per investment period
+    processedInterestRate = checkAndSetCostParameter(
+        esM, name, interestRate, dimension, elig
+    )
+    # if annuity perpetuity is used, the interest rate cannot be 0
+    if esM.annuityPerpetuity:
+        import pytest
+
+        pytest.set_trace()
+        for ip in esM.investmentPeriods:
+            if (processedInterestRate[ip] == 0).any():
+                raise ValueError(
+                    "An interest rate of 0 cannot be set if also using annuityPerpetuity"
+                )
+    return processedInterestRate
+
+
 def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPeriods):
     # If the commodity conversion is depending from commissioning year and investment period,
     # the input shall be a dict with keys of commissioing year and ip and then another dict
@@ -1066,6 +1095,23 @@ def checkTechnicalLifetime(esM, technicalLifetime, economicLifetime):
     return technicalLifetime
 
 
+def checkEconomicAndTechnicalLifetime(economicLifetime, technicalLifetime):
+    if (economicLifetime.sort_index() > technicalLifetime.sort_index()).any():
+        raise ValueError("Economic Lifetime must be smaller than technical Lifetime.")
+
+
+def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
+    if not isinstance(floorTechnicalLifetime, bool):
+        raise ValueError("floorTechnicalLifetime must be a bool")
+    if floorTechnicalLifetime and any(
+        (technicalLifetime.loc[technicalLifetime != 0] / interval) < 1
+    ):
+        raise ValueError(
+            "Flooring of a lifetime smaller than the interval not possible"
+        )
+    return floorTechnicalLifetime
+
+
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     if dimension == "1dim":
         if not (
@@ -1281,12 +1327,7 @@ def checkAndSetInvestmentPeriodCostParameter(
 
 
 def checkLifetimeInvestmentPeriod(esM, name, lifetime):
-    ipLifetimeCheck = lifetime % (esM.investmentPeriodInterval)
-    if any(x != 0 for x in ipLifetimeCheck.values):
-        raise ValueError(
-            f"The lifetime ({lifetime}) of '{name}' is not a multiple of the length of investment period"
-        )
-    ip_LifeTime = (lifetime / esM.investmentPeriodInterval).astype(int)
+    ip_LifeTime = lifetime / esM.investmentPeriodInterval
     return ip_LifeTime
 
 
@@ -2227,10 +2268,14 @@ def checkAndSetStock(component, esM, stockCommissioning):
     ]
 
     # fill missing year for timeframe of entire technical lifetime
-    all_stock_years = [
-        x for x in range(-1, -component.ipTechnicalLifetime.max() - 1, -1)
-    ]
-    stock_df = stock_df.reindex(all_stock_years).fillna(0)
+    import math
+
+    if component.floorTechnicalLifetime:
+        maxTechnicalLifetime = math.floor(component.ipTechnicalLifetime.max())
+    else:
+        maxTechnicalLifetime = math.ceil(component.ipTechnicalLifetime.max())
+    allStockYears = [x for x in range(-1, -maxTechnicalLifetime - 1, -1)]
+    stock_df = stock_df.reindex(allStockYears).fillna(0)
     processedStockCommissioning = stock_df.T.to_dict(orient="series")
     return processedStockCommissioning
 
@@ -2246,7 +2291,13 @@ def setStockCapacityStartYear(component, esM, dimension):
         stockCapacityStartYear = pd.Series()
         for loc in regions:
             _stock_location = 0
-            for year in range(-1, -component.ipTechnicalLifetime[loc] - 1, -1):
+            import math
+
+            if component.floorTechnicalLifetime:
+                ipTechLifetime = math.floor(component.ipTechnicalLifetime[loc])
+            else:
+                ipTechLifetime = math.ceil(component.ipTechnicalLifetime[loc])
+            for year in range(-1, -ipTechLifetime - 1, -1):
                 _stock_location += component.processedStockCommissioning[year].loc[loc]
             stockCapacityStartYear[loc] = _stock_location
         return stockCapacityStartYear
@@ -2360,14 +2411,14 @@ def addEmptyRegions(esM, data):
     return data
 
 
-def annuityPresentValueFactor(esM, compName, loc):
+def annuityPresentValueFactor(esM, compName, loc, years):
     # DE:Rentenbarwertfaktor
     intrestRate = esM.getComponent(compName).interestRate[loc]
     if intrestRate == 0:
-        return 1
+        return years
     else:
-        return (((1 + intrestRate) ** (esM.investmentPeriodInterval)) - 1) / (
-            intrestRate * (1 + intrestRate) ** (esM.investmentPeriodInterval)
+        return (((1 + intrestRate) ** (years)) - 1) / (
+            intrestRate * (1 + intrestRate) ** (years)
         )
 
 

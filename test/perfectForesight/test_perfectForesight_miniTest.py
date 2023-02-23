@@ -1,6 +1,5 @@
 import FINE as fn
 import numpy as np
-import pytest
 import pandas as pd
 import math
 
@@ -334,4 +333,12 @@ def test_perfectForesight_binary():
             "PV", "commissioning", "[kW$_{el}$]"
         ]["PerfectLand"],
         2,
+    )
+
+
+def test_perfectForsight_annuityPerpetuity(perfectForesight_test_esM):
+    perfectForesight_test_esM.annuityPerpetuity = True
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    np.testing.assert_almost_equal(
+        perfectForesight_test_esM.pyM.Obj(), 31984.802368949295
     )

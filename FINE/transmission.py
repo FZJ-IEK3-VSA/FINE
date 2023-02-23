@@ -43,6 +43,7 @@ class Transmission(Component):
         interestRate=0.08,
         economicLifetime=10,
         technicalLifetime=None,
+        floorTechnicalLifetime=True,
         balanceLimitID=None,
         stockCommissioning=None,
     ):
@@ -235,6 +236,7 @@ class Transmission(Component):
             QPcostScale=QPcostScale,
             economicLifetime=self.economicLifetime,
             technicalLifetime=self.technicalLifetime,
+            floorTechnicalLifetime=floorTechnicalLifetime,
             stockCommissioning=self.stockCommissioning,
         )
         # Set general component data
