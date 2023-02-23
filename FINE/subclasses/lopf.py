@@ -43,6 +43,7 @@ class LinearOptimalPowerFlow(Transmission):
         interestRate=0.08,
         economicLifetime=10,
         technicalLifetime=None,
+        floorTechnicalLifetime=True,
         stockCommissioning=None,
     ):
         """
@@ -88,6 +89,7 @@ class LinearOptimalPowerFlow(Transmission):
             interestRate=interestRate,
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
+            floorTechnicalLifetime=floorTechnicalLifetime,
             stockCommissioning=stockCommissioning,
         )
 
