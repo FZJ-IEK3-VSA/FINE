@@ -54,6 +54,7 @@ class Storage(Component):
         interestRate=0.08,
         economicLifetime=10,
         technicalLifetime=None,
+        floorTechnicalLifetime=True,
         socOffsetDown=-1,
         socOffsetUp=-1,
         stockCommissioning=None,
@@ -263,6 +264,7 @@ class Storage(Component):
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
             stockCommissioning=stockCommissioning,
+            floorTechnicalLifetime=floorTechnicalLifetime,
         )
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,

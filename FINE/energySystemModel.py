@@ -81,6 +81,7 @@ class EnergySystemModel:
         verboseLogLevel=0,
         balanceLimit=None,
         lowerBound=False,
+        annuityPerpetuity=False,
     ):
         """
         Constructor for creating an EnergySystemModel class instance
@@ -219,6 +220,12 @@ class EnergySystemModel:
                 Example: Define upper limit for Carbon Capture & Storage.\n
             |br| * the default value is False
         :type lowerBound: bool
+
+        :param annuityPerpetuity: defines weather a perpetuity will be declared for the system design and
+            operation of the final investment period of the transformation pathway. It implies an infinite
+            repetition of the last investment period after the end of the transformation pathway.
+            |br| * the default value is False
+        :type annuityPerpetuity: bool
         """
 
         # Check correctness of inputs
@@ -305,7 +312,9 @@ class EnergySystemModel:
         self.startYear = startYear
         self.investmentPeriodInterval = investmentPeriodInterval
         self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
-
+        self.annuityPerpetuity = utils.checkAndSetAnnuityPerpetuity(
+            annuityPerpetuity, numberOfInvestmentPeriods
+        )
         # set up the modelling years by the start year, interval and number of investment periods
         finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval
         # clear names, e.g.  [2020, 2025,...]
