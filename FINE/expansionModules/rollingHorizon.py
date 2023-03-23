@@ -54,47 +54,123 @@ def rollingHorizonOptimization(
     for rollingHorizonYears in rollingHorizonIntervals:
         print(f"Initizializing rolling horizon optimization for {rollingHorizonYears}...")
         # 1. Analyse components and create dicts for adding them
-        rollingHorizonCompDict=copy.deepcopy(dict(compDict))
+        rollingHorizonCompDict = copy.deepcopy(dict(compDict))
         for classname in rollingHorizonCompDict:
             for comp in rollingHorizonCompDict[classname]:
-                # get data for rolling horizon years from perfect foresight model
-                parameterYears=rollingHorizonYears # TODO change!
-                for parameter_name, parameter_value in rollingHorizonCompDict[classname][comp].items():
-                    # 1.1 stock commissioning 
-                    if parameter_name == "stockCommissioning":
-                        # first rolling horizon requires no changes, just external stock,
-                        # further years needs internal optimization results
-                        if rollingHorizonYears != rollingHorizonIntervals[0]:
-                            # get previous year
-                            previousYear=rollingHorizonYears[0]-interval
-                            # get model class from previous rolling horizon optimization
-                            mdl_class=esM_results[previousYear].componentNames[comp]
-                            # get commissioning results of previous rolling horizon
-                            previousCommissioning=esM_results[previousYear].getOptimizationSummary(mdl_class,ip=previousYear).loc[comp,'commissioning'].squeeze()
+                # 1.1 update stockCommissioning
+                # first rolling horizon requires no changes, just external stock,
+                # further years needs internal optimization results
+                if rollingHorizonYears != rollingHorizonIntervals[0]:
+                    # get previous year
+                    previousYear = rollingHorizonYears[0] - interval
+                    # get model class from previous rolling horizon optimization
+                    mdl_class = esM_results[previousYear].componentNames[
+                        comp
+                    ]
+                    # get commissioning results of previous rolling horizon
+                    previousCommissioning = (
+                        esM_results[previousYear]
+                        .getOptimizationSummary(mdl_class, ip=previousYear)
+                        .loc[comp, "commissioning"]
+                    )
+                    previousCommissioningLocation=previousCommissioning.loc[previousCommissioning.index[0]].T
 
-                            # add commissioning of previous runs as stock, if there was commissioning
-                            if previousCommissioning.sum() > 0: 
-                                # a) if no stock previously existed, create new structure
-                                if rollingHorizonCompDict[classname][comp]["stockCommissioning"] is None:
-                                    rollingHorizonCompDict[classname][comp]["stockCommissioning"]={}
-                                    rollingHorizonCompDict[classname][comp]["stockCommissioning"][previousYear]=previousCommissioning
-                                # b) else add to structure
-                                else:
-                                    rollingHorizonCompDict[classname][comp]["stockCommissioning"][previousYear] = previousCommissioning
+                    # add commissioning of previous runs as stock, if there was commissioning
+                    if round(previousCommissioningLocation.sum(), 5) > 0:
+                        # a) if no stock previously existed, create new structure
+                        if (
+                            rollingHorizonCompDict[classname][comp][
+                                "stockCommissioning"
+                            ]
+                            is None
+                        ):
+                            rollingHorizonCompDict[classname][comp][
+                                "stockCommissioning"
+                            ] = {}
+                            rollingHorizonCompDict[classname][comp][
+                                "stockCommissioning"
+                            ][previousYear] = previousCommissioningLocation
+                        # b) else add to structure
+                        else:
+                            rollingHorizonCompDict[classname][comp][
+                                "stockCommissioning"
+                            ][previousYear] = previousCommissioningLocation
+                            
+                        # c) delete "too" old stock, as it will make
+                        # problems with setup of parameters otherwise
+                        stockData=rollingHorizonCompDict[classname][comp][
+                                "stockCommissioning"
+                            ]
+                        technicalLifetime=rollingHorizonCompDict[classname][comp][
+                                "technicalLifetime"
+                            ]
+                        outdatedStockYears=[x for x in stockData.keys() if x < rollingHorizonYears[0]-technicalLifetime.max()]
+                        for outdatedStockYear in outdatedStockYears:
+                            rollingHorizonCompDict[classname][comp][
+                                "stockCommissioning"
+                            ].pop(outdatedStockYear)                            
+                
+                if rollingHorizonCompDict[classname][comp][ "stockCommissioning"] is not None:
+                    stockYears=list(rollingHorizonCompDict[classname][comp]["stockCommissioning"].keys())
+                else:
+                    stockYears=[]
+                
+                # get data for rolling horizon years from perfect foresight model
+                for parameter_name, parameter_value in rollingHorizonCompDict[
+                    classname
+                ][comp].items():
+                    # stock commissioning
+                    if parameter_name == "stockCommissioning":
+                        continue
                     # 1.2 commodity conversion factors
                     elif parameter_name == "commodityConversionFactors":
+                        firstKey=list(parameter_value.keys())[0]
                         # check for ip dependendy
-                        if parameter_value.keys()[0] in esM.investmentPeriods:
+                        if firstKey in self.parent.esM.investmentPeriods:
                             # filter for years of rolling horizon time frame
-                            new_parameter_value={key:value for (key,value) in parameter_value.items() if key in parameterYears}
-                            rollingHorizonCompDict[classname][comp][parameter_name]=new_parameter_value
+                            new_parameter_value = {
+                                key: value
+                                for (key, value) in parameter_value.items()
+                                if key in rollingHorizonYears
+                            }
+                            rollingHorizonCompDict[classname][comp][
+                                parameter_name
+                            ] = new_parameter_value
+                        # check for (commis, ip dependency)
+                        elif isinstance(firstKey, tuple):
+                            # filter for correct operation years
+                            _new_parameter_value = {
+                                (commisYear, opYear): value
+                                for ((commisYear, opYear), value) in parameter_value.items()
+                                if opYear in rollingHorizonYears
+                                }
+                            # filter out years before the modelyears
+                            # without commissioning
+                            new_parameter_value=_new_parameter_value.copy()
+                            for (commisYear, opYear) in _new_parameter_value.keys():
+                                if commisYear < rollingHorizonYears[0] and commisYear not in stockYears:
+                                    new_parameter_value.pop((commisYear, opYear))
+    
+                            rollingHorizonCompDict[classname][comp][
+                                parameter_name
+                            ] = new_parameter_value
                         else:
                             pass
                     # 1.3 other parameter which are yearly dependent
-                    elif isinstance(parameter_value,dict):
+                    elif isinstance(parameter_value, dict):
+                        if "PerOperation" in parameter_name:
+                            relevantYears = rollingHorizonYears
+                        else:
+                            relevantYears = rollingHorizonYears + stockYears
                         # filter for years of rolling horizon time frame
-                        new_parameter_value={key:value for (key,value) in parameter_value.items() if key in parameterYears}
-                        rollingHorizonCompDict[classname][comp][parameter_name]=new_parameter_value
+                        new_parameter_value = {
+                            _year: value
+                            for (_year, value) in parameter_value.items()
+                            if _year in relevantYears
+                        }
+                        rollingHorizonCompDict[classname][comp][
+                            parameter_name
+                        ] = new_parameter_value
                     # 1.4 other parameters, which do not change over time
                     else:
                         pass
@@ -104,6 +180,13 @@ def rollingHorizonOptimization(
         rollingHorizonEsmDict=esmDict.copy()
         rollingHorizonEsmDict["startYear"]=rollingHorizonYears[0]
         rollingHorizonEsmDict["numberOfInvestmentPeriods"]=numberOfInvestmentPeriodsForRollingHorizon
+        for param, value in rollingHorizonEsmDict.items():
+            if isinstance(value,dict) and list(value.keys())==esM.investmentPeriodNames:
+                rollingHorizonEsmDict[param] = {
+                    _year: _value
+                    for (_year, _value) in value.items()
+                    if _year in rollingHorizonYears
+                }
         rollingHorizonEsm = fn.EnergySystemModel(**rollingHorizonEsmDict)
         # add components per class
         for classname in rollingHorizonCompDict:
