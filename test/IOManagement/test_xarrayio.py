@@ -209,22 +209,43 @@ def test_capacityFix_subset(multi_node_test_esM_init):
     """
     esM = multi_node_test_esM_init
 
-    esM.componentModelingDict["ConversionModel"].componentsDict[
-        "New CCGT plants (biogas)"
-    ].locationalEligibility = Series(1, index=esM.locations)
-
-    # set capacity Fix for the biogas conversion component to 0 for all locations
-    esM.componentModelingDict["ConversionModel"].componentsDict[
-        "New CCGT plants (biogas)"
-    ].capacityFix = Series(0, index=esM.locations)
-
-    # alter the capacityFix value for cluster_1 to 3
-    esM.componentModelingDict["ConversionModel"].componentsDict[
-        "New CCGT plants (biogas)"
-    ].capacityFix["cluster_1"] = 3
+    capacityFix = Series(0, index=esM.locations)
+    capacityFix["cluster_1"] = 3
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="New CCGT plants (biogas)",
+            physicalUnit=r"GW$_{el}$",
+            commodityConversionFactors={"electricity": 1, "biogas": -1 / 0.635},
+            hasCapacityVariable=True,
+            investPerCapacity=0.7,
+            opexPerCapacity=0.021,
+            interestRate=0.08,
+            economicLifetime=33,
+            opexPerOperation=0.01,
+            locationalEligibility=Series(1, index=esM.locations),
+            capacityFix=capacityFix,
+            capacityMax=Series(3, index=esM.locations),
+        )
+    )
 
     fileName = "test_cdf_error.nc"
     xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=fileName)
     esM_reload = xrIO.readNetCDFtoEnergySystemModel(filePath=fileName)
 
     Path("test_cdf_error.nc").unlink()
+
+
+def test_esm_to_datasets_with_processed_values(minimal_test_esM):
+    esm_original = deepcopy(minimal_test_esM)
+
+    xr_dss = xrIO.convertOptimizationInputToDatasets(
+        esm_original, useProcessedValues=True
+    )
+    assert (
+        xr_dss.get("Input")
+        .get("Transmission")
+        .get("Pipelines")["0d_investPerCapacity.0"]
+        .item()
+        == 0.177
+    )

@@ -7,7 +7,6 @@ import logging
 import warnings
 from copy import deepcopy
 import numpy as np
-import shapely
 import xarray as xr
 from shapely.ops import cascaded_union
 import pandas as pd
@@ -98,13 +97,10 @@ def aggregate_time_series_spatially(
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
-
     space_coords = list(sub_to_sup_region_id_dict.keys())
-
     aggregated_coords = {
         key: value.values for key, value in xr_data_array_in.coords.items()
     }
-
     aggregated_coords["space"] = space_coords
 
     coord_list = [value for value in aggregated_coords.values()]
@@ -364,7 +360,7 @@ def aggregate_esm_parameters_spatially(
 
 
 def aggregate_based_on_sub_to_sup_region_id_dict(
-    xarray_datasets, sub_to_sup_region_id_dict, aggregation_function_dict=None
+    xarray_datasets, sub_to_sup_region_id_dict, aggregation_function_dict
 ):
     """
     After spatial grouping, for each region group, spatially aggregates the data.
@@ -379,17 +375,14 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
 
     :type sub_to_sup_region_id_dict: Dict[str, List[str]]
 
-    **Default arguments:**
-
-    :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable.\n
-        * Possibilities: mean, weighted mean, sum, bool(boolean OR).
+    :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable, component, and component class combination.\n
+        * Aggregation possibilities: mean, weighted mean, sum, bool(boolean OR).
         * Format of the dictionary:\n
-             {<variable_name>: (<mode_of_aggregation>, <weights>),\n
-              <variable_name>: (<mode_of_aggregation>, None)}\n
+             {<component_class>: {<component_name>: {<variable_name>: (<mode_of_aggregation>, <weights>),\n
+                                                    <variable_name>: (<mode_of_aggregation>, None)}}}\n
           <weights> is required only if <mode_of_aggregation> is
           'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
 
-        |br| * the default value is 'bool'
     :type aggregation_function_dict: Dict[str, Tuple(str, None/str)]
 
     :returns: aggregated_xr_dataset
@@ -400,17 +393,6 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.Dataset
     """
-
-    # xarray_dataset has prefix 1d_, 2d_ and ts_
-    # Therefore, in order to match that, the prefix is added
-    # in aggregation_function_dict for each variable
-    if aggregation_function_dict != None:
-        aggregation_function_dict = {
-            f"{dimension}_{key}": value
-            for key, value in aggregation_function_dict.items()
-            for dimension in ["ts", "1d", "2d"]
-        }
-
     # private function to get aggregation mode for a particular variable name
     def _get_aggregation_mode(varname, comp=None, comp_ds=None):
         # If aggregation_function_dict is passed AND the current variable is in it...
@@ -500,7 +482,6 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
             aggregated_comp_ds = xr.Dataset()
 
             for varname, da in comp_ds.data_vars.items():
-
                 # Check and set aggregation mode and weights
                 aggregation_mode, aggregation_weight = _get_aggregation_mode(
                     varname, comp, comp_ds
@@ -510,9 +491,9 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 var_dim = varname[:3]
                 if var_dim != "0d_":
                     if var_dim == "2d_":
-                        locational_eligibility = comp_ds[f"2d_locationalEligibility"]
+                        locational_eligibility = comp_ds["2d_locationalEligibility"]
                     else:
-                        locational_eligibility = comp_ds[f"1d_locationalEligibility"]
+                        locational_eligibility = comp_ds["1d_locationalEligibility"]
 
                     da = da.where(locational_eligibility != 0)
 
@@ -520,6 +501,16 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                         aggregation_weight = aggregation_weight.where(
                             locational_eligibility != 0
                         )
+
+                # check if multiple investment periods exist
+                if "Period" in da.coords:
+                    if not da.coords["Period"].values == np.array(0):
+                        raise NotImplementedError(
+                            "Spatial aggregation currently does not support multiple investment periods."
+                        )
+                    else:
+                        ## drop the period coordinate
+                        da = da.reset_coords("Period", drop=True)
 
                 ## Time series
                 if var_dim == "ts_":
@@ -546,7 +537,6 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                         mode=aggregation_mode,
                     )
 
-                ## aggregated or 0d variables
                 aggregated_comp_ds[varname] = da
 
             aggregated_xr_dataset["Input"][comp_class][comp] = aggregated_comp_ds

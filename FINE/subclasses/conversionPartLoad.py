@@ -121,8 +121,8 @@ class ConversionPartLoadModel(ConversionModel):
             return (
                 (loc, compName, discreteStep)
                 for compName, comp in compDict.items()
-                for loc in compDict[compName].locationalEligibility.index
-                if compDict[compName].locationalEligibility[loc] == 1
+                for loc in compDict[compName].processedLocationalEligibility.index
+                if compDict[compName].processedLocationalEligibility[loc] == 1
                 for discreteStep in range(compDict[compName].nSegments + 1)
             )
 
@@ -147,8 +147,8 @@ class ConversionPartLoadModel(ConversionModel):
             return (
                 (loc, compName, discreteStep)
                 for compName, comp in compDict.items()
-                for loc in compDict[compName].locationalEligibility.index
-                if compDict[compName].locationalEligibility[loc] == 1
+                for loc in compDict[compName].processedLocationalEligibility.index
+                if compDict[compName].processedLocationalEligibility[loc] == 1
                 for discreteStep in range(compDict[compName].nSegments)
             )
 

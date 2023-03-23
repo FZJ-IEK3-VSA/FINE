@@ -4,7 +4,7 @@ import FINE as fn
 from FINE.IOManagement import utilsIO
 
 
-def exportToDict(esM):
+def exportToDict(esM, useProcessedValues=False):
     """
     Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
 
@@ -17,6 +17,7 @@ def exportToDict(esM):
 
     # Get all input properties of the esM
     inputkwargs = inspect.getfullargspec(fn.EnergySystemModel.__init__)
+
     esmDict = {}
     # Loop over all props
     for arg in inputkwargs.args:
@@ -35,18 +36,61 @@ def exportToDict(esM):
 
             # Get class
             class_ = getattr(fn, classname)
-
             # Get input arguments of the class
             inputkwargs = inspect.getfullargspec(class_.__init__)
+            prop_list = inputkwargs.args
 
             # Get component data
             component = componentModel.componentsDict[componentname]
-            # Loop over all input props
-            for prop in inputkwargs.args:
-                if (prop is not "self") and (prop is not "esM"):
-                    # NOTE: thanks to utilsIO.PowerDict(), the nested dictionaries need
-                    # not be created before adding the data.
-                    compDict[classname][componentname][prop] = getattr(component, prop)
+
+            # replace raw values with processed values if useProcessedValues is True
+            if useProcessedValues:
+                prop_list_full_set = component.__dict__.keys()
+
+                _prop_list = prop_list.copy()
+                for prop in _prop_list:
+                    # for the transmission investment parameters, the preprocessed version
+                    # (without multiplication with the distance and 0.5) must be used
+                    if (
+                        f"preprocessed{prop[:1].upper()}{prop[1:]}"
+                        in prop_list_full_set
+                    ):
+                        prop_list.remove(prop)
+                        prop_list.append(
+                            (prop, f"preprocessed{prop[:1].upper()}{prop[1:]}")
+                        )
+
+                    # for time series, the full version must be used
+                    elif f"full{prop[:1].upper()}{prop[1:]}" in prop_list_full_set:
+                        prop_list.remove(prop)
+                        prop_list.append((prop, f"full{prop[:1].upper()}{prop[1:]}"))
+
+                    # for all other components, the processed version is used, if it exists
+                    elif f"processed{prop[:1].upper()}{prop[1:]}" in prop_list_full_set:
+                        prop_list.remove(prop)
+                        prop_list.append(
+                            (prop, f"processed{prop[:1].upper()}{prop[1:]}")
+                        )
+                    else:
+                        prop_list.remove(prop)
+                        prop_list.append((prop, prop))
+
+                # Loop over all input props
+                for prop in prop_list:
+                    if (prop[0] is not "self") and (prop[0] is not "esM"):
+                        # NOTE: thanks to utilsIO.PowerDict(), the nested dictionaries need
+                        # not be created before adding the data.
+                        compDict[classname][componentname][prop[0]] = getattr(
+                            component, prop[1]
+                        )
+            else:
+                # Loop over all input props
+                for prop in prop_list:
+                    if (prop is not "self") and (prop is not "esM"):
+                        compDict[classname][componentname][prop] = getattr(
+                            component, prop
+                        )
+
     return esmDict, compDict
 
 

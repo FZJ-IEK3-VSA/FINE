@@ -10,19 +10,27 @@ import FINE.utils as utils
 from FINE.IOManagement import dictIO, utilsIO
 
 
-def convertOptimizationInputToDatasets(esM):
+def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     """
     Takes esM instance input and converts it into xarray datasets.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
 
+    **Default arguments:**
+
+        :param useProcessedValues: True if the raw values should be over-written by processed values, False otherwise.
+            A requirement for perfect-foresight and by extension for spatial and technology aggregations
+            |br| * the default value is False
+        :type useProcessedValues: bool
+
     :return: xr_ds - esM instance data in xarray dataset format
     :rtype: xarray.dataset
     """
 
     # STEP 1. Get the esm and component dicts
-    esm_dict, component_dict = dictIO.exportToDict(esM)
+    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
+
     # STEP 2. Get the iteration dicts
     ip = esM.investmentPeriods
     (
@@ -49,7 +57,7 @@ def convertOptimizationInputToDatasets(esM):
 
     # STEP 6. Add all constant value variables to xr_ds
     xr_dss = utilsIO.addConstantsToXarray(
-        xr_dss, component_dict, constants_iteration_dict
+        xr_dss, component_dict, constants_iteration_dict, useProcessedValues
     )
 
     # STEP 7. Add the data present in esm_dict as xarray attributes
@@ -468,15 +476,6 @@ def convertDatasetsToEnergySystemModel(datasets):
     :return: esM - EnergySystemModel instance
     :rtype: EnergySystemModel instance
     """
-
-    # economic variables
-    eco_var_list = [
-        "investPerCapacity",
-        "investIfBuilt",
-        "opexPerCapacity",
-        "opexIfBuilt",
-    ]
-
     # Read parameters
     xarray_dataset = utilsIO.processXarrayAttributes(datasets["Parameters"])
     esm_dict = xarray_dataset.attrs

@@ -2,6 +2,89 @@ import math
 import numpy as np
 import pandas as pd
 import xarray as xr
+from functools import reduce  # forward compatibility for Python 3
+import operator
+
+
+def getFromDict(dataDict, mapList):
+    """
+    Get value from a dict by a list, which contains the dict keys.
+    e.g. for dict={'a': {'b': 1}} with mapList ['a','b'] the function returns 1
+
+    :param dataDict: nested dict, e.g. {'a': {'b'}
+    :type dataDict: dict
+
+    :param mapList: list with dictionary keys
+    :type mapList: list
+    """
+    return reduce(operator.getitem, mapList, dataDict)
+
+
+def setInDict(dataDict, mapList, value):
+    """
+    Set a value in a nested dict, where mapList contains the dict keys.
+    e.g. for dict={'a': {'b': 1}} with mapList ['a','b'] and value 2, the function sets dict={'a': {'b': 2}}
+
+    :param dataDict: nested dict, e.g. {'a': {'b'}
+    :type dataDict: dict
+
+    :param mapList: list with dictionary keys
+    :type mapList: list
+    """
+    getFromDict(dataDict, mapList[:-1])[mapList[-1]] = value
+
+
+def getKeyHierarchyOfNestedDict(
+    variable_description,
+):
+    """
+    Get a list of dictionary keys for a nested dict from the variable description.
+    e.g. 'processedCapacityMax.0.1' leads to ['processedCapacityMax', 0, 1]
+
+    :param variable_description: variable description
+    :type variable_description: str
+    """
+    if variable_description.count(".") == 0:
+        key_list = [variable_description]
+    elif variable_description.count(".") >= 1:
+        key_list = variable_description.split(".")
+
+    # for ip: convert digits to ints
+    key_list = [int(x) if x.isdigit() else x for x in key_list]
+    return key_list
+
+
+def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
+    """
+    Get a list of all paths in a nested dict, starting after the variable_name,
+    until the next value is not a dict anymore.
+    e.g. variable_name='a' and data_dict ={
+        'a': {
+            'b':{'c':1},
+            'f':{'g':1}
+        }
+        returns: [['b','c'],['f','g']]
+
+    :param data_dict: dict with data
+    :type data_dict: dict
+
+    :param variable_name: name of variable, as key in the dict
+    :type variable_name: string or int
+    """
+    if isinstance(data_dict[variable_name], dict):
+        key_lists_in_nested_dict = []
+        # either for ip dependency or for commodity conversion factors
+        for key1, data1 in data_dict[variable_name].items():
+            if isinstance(data1, dict):
+                # for commodity conversion factors which are ip depending -> 3 levels
+                # {"commodityConverionFactors":{ip:{"electricity":1,"hydrogen":1}}}}}
+                for key2, data2 in data1.items():
+                    key_lists_in_nested_dict.append([variable_name, key1, key2])
+            else:
+                key_lists_in_nested_dict.append([variable_name, key1])
+        return key_lists_in_nested_dict
+    else:
+        return [[variable_name]]
 
 
 def transform1dSeriesto2dDataFrame(series, locations):
@@ -22,25 +105,6 @@ def transform1dSeriesto2dDataFrame(series, locations):
     df = pd.DataFrame(values, columns=locations, index=locations)
 
     for row in series.iteritems():
-
-        # n_seperators = row[0].count("_")
-
-        # if (n_seperators % 2) == 0:
-        #     raise ValueError(
-        #         "Please rename your locations to contain same number "+
-        # "of _s in each location name"
-        #     )
-
-        # else:
-        #     # get the point of cut -> would be the middle _
-        #     _cut = math.ceil(n_seperators / 2)
-
-        #     split_id_list = row[0].split("_")
-        #     id_1 = "_".join(split_id_list[:_cut])
-        #     id_2 = "_".join(split_id_list[_cut:])
-
-        #     df.loc[id_1, id_2] = row[1]
-
         # Seperate loc1_loc2
         loc = ""
 
@@ -106,41 +170,24 @@ def generateIterationDicts(component_dict, investmentPeriods):
             for variable_description, data in component_dict[classname][
                 component
             ].items():
-                if isinstance(data, dict) and data.keys() == investmentPeriods:
-                    is_depending_on_ip = True
-                else:
-                    is_depending_on_ip = False
+                # 1. iterate through nested dict levels until constant, series or df, add
+                # 1. find list of keys in nested dict level
+                key_lists = getListsOfKeyPathsInNestedDict(
+                    component_dict[classname][component],
+                    variable_name=variable_description,
+                )
 
-                description_tuple = (classname, component, is_depending_on_ip)
+                # iterate over all key-"paths" in nested dict
+                for key_list in key_lists:
+                    _variable_description = ".".join(map(str, key_list))
 
-                # private function to check if the current variable is a dict, df, series or constant.
-                # If its a dict (in the case of commodityConversionFactors), this is unpacked and the
-                # the function is run on each value in dict
-                def _append_to_iteration_dicts(
-                    description_tuple, _variable_description, _data
-                ):
-                    if isinstance(_data, dict) and not description_tuple[2]:
-                        for key, value in _data.items():
+                    description_tuple = (classname, component)
 
-                            nested_variable_description = f"{_variable_description}.{key}"  # NOTE: a . is introduced in the variable here
+                    # add to the corresponding dicts
+                    data = getFromDict(component_dict[classname][component], key_list)
 
-                            _append_to_iteration_dicts(
-                                description_tuple, nested_variable_description, value
-                            )
-
-                    elif description_tuple[2] and [
-                        isinstance(value, dict) for value in _data.values()
-                    ]:
-                        raise NotImplementedError(
-                            "Different conversion factors for different investment periods are currenty not supported for netCDF functions."
-                        )
-
-                    elif isinstance(_data, pd.DataFrame) or (
-                        description_tuple[2]
-                        and [
-                            isinstance(value, pd.DataFrame) for value in _data.values()
-                        ]
-                    ):
+                    # 1 add dataframes
+                    if isinstance(data, pd.DataFrame):
                         if _variable_description not in df_iteration_dict.keys():
                             df_iteration_dict[_variable_description] = [
                                 description_tuple
@@ -149,14 +196,8 @@ def generateIterationDicts(component_dict, investmentPeriods):
                             df_iteration_dict[_variable_description].append(
                                 description_tuple
                             )
-
-                    # NOTE: transmission components are series in component_dict
-                    # (example index - cluster_0_cluster_2)
-
-                    elif isinstance(_data, pd.Series) or (
-                        description_tuple[2]
-                        and [isinstance(value, pd.Series) for value in _data.values()]
-                    ):
+                    # 2 add series
+                    elif isinstance(data, pd.Series):
                         if _variable_description not in series_iteration_dict.keys():
                             series_iteration_dict[_variable_description] = [
                                 description_tuple
@@ -165,12 +206,7 @@ def generateIterationDicts(component_dict, investmentPeriods):
                             series_iteration_dict[_variable_description].append(
                                 description_tuple
                             )
-
-                    elif description_tuple[2]:
-                        raise NotImplementedError(
-                            "Not implemented that dict can have different types."
-                        )
-
+                    # 3 add constant
                     else:
                         if _variable_description not in constants_iteration_dict.keys():
                             constants_iteration_dict[_variable_description] = [
@@ -181,9 +217,6 @@ def generateIterationDicts(component_dict, investmentPeriods):
                                 description_tuple
                             )
 
-                _append_to_iteration_dicts(
-                    description_tuple, variable_description, data
-                )
     return df_iteration_dict, series_iteration_dict, constants_iteration_dict
 
 
@@ -209,7 +242,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
         df_dict = {}
 
         for description_tuple in description_tuple_list:
-            classname, component, is_depending_on_ip = description_tuple
+            classname, component = description_tuple
 
             df_description = f"{classname}; {component}"
 
@@ -223,23 +256,11 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
             else:
                 data = component_dict[classname][component][variable_description]
 
-            if is_depending_on_ip:
-                multi_index_dataframes = []
-                for _ip, ip_data in data.items():
-                    _multi_index_dataframe = ip_data.stack()
-                    _multi_index_dataframe["ip"] = _ip
-                    _multi_index_dataframe.index.set_names("ip", level=0, inplace=True)
-                    _multi_index_dataframe.index.set_names(
-                        "time", level=1, inplace=True
-                    )
-                    _multi_index_dataframe.index.set_names(
-                        "space", level=2, inplace=True
-                    )
-                    multi_index_dataframes.append(_multi_index_dataframe)
-                multi_index_dataframe = pd.concat(multi_index_dataframes, axis=0)
-
+            multi_index_dataframe = data.stack()
+            if "Period" in multi_index_dataframe.index.names:
+                multi_index_dataframe.index.set_names("time", level=1, inplace=True)
+                multi_index_dataframe.index.set_names("space", level=2, inplace=True)
             else:
-                multi_index_dataframe = data.stack()
                 multi_index_dataframe.index.set_names("time", level=0, inplace=True)
                 multi_index_dataframe.index.set_names("space", level=1, inplace=True)
 
@@ -305,75 +326,41 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
         time_dict = {}
 
         for description_tuple in description_tuple_list:
-            classname, component, is_depending_on_ip = description_tuple
+            classname, component = description_tuple
 
             df_description = f"{classname}; {component}"
 
             # If a . is present in variable name, then the data would be
             # another level further in the component_dict
-            if "." in variable_description:
-                [var_name, subvar_name] = variable_description.split(".")
-                data = component_dict[classname][component][var_name][subvar_name]
-            else:
-                data = component_dict[classname][component][variable_description]
+            key_list = getKeyHierarchyOfNestedDict(variable_description)
 
-            # Only ['Transmission', 'LinearOptimalPowerFlow'] are 2d classes.
-            # So, if classname is one of these, append the data to space_space_dict
+            # get the data in the dict with all keys within the key_list
+            data = component_dict[classname][component]
+            for item in key_list:
+                data = data[item]
+
             if classname in ["Transmission", "LinearOptimalPowerFlow"]:
-                if is_depending_on_ip == True:
-                    multi_index_dataframes = []
-                    for _ip, ip_data in data.items():
-                        df = transform1dSeriesto2dDataFrame(ip_data, locations)
-                        _multi_index_dataframe = df.stack()
-                        _multi_index_dataframe["ip"] = _ip
-                        _multi_index_dataframe.index.set_names(
-                            ["ip", "space", "space_2"],
-                            inplace=True,
-                        )
-                        multi_index_dataframes.append(_multi_index_dataframe)
-                    multi_index_dataframe = pd.concat(multi_index_dataframes, axis=0)
-
-                else:
-                    df = transform1dSeriesto2dDataFrame(data, locations)
-                    multi_index_dataframe = df.stack()
-                    multi_index_dataframe.index.set_names(
-                        ["space", "space_2"], inplace=True
-                    )
+                df = transform1dSeriesto2dDataFrame(data, locations)
+                multi_index_dataframe = df.stack()
+                multi_index_dataframe.index.set_names(
+                    ["space", "space_2"], inplace=True
+                )
 
                 space_space_dict[df_description] = multi_index_dataframe
 
             else:
                 # If the data indices correspond to esM locations, then the
                 # data is appended to space_dict, else time_dict
-                if is_depending_on_ip is True:
-                    for _ip, ip_data in data.items():
-                        if set(ip_data.index.values).issubset(set(locations)):
-                            space_dict[df_description] = ip_data.rename_axis("space")
-                        else:
-                            time_dict[df_description] = ip_data.rename_axis("time")
-                            time_dict[df_description] = pd.concat(
-                                {locations[0]: time_dict[df_description]},
-                                names=["space"],
-                            )
-                            time_dict[df_description]["ip"] = _ip
-                            time_dict[df_description].index.set_names(
-                                "ip", level=0, inplace=True
-                            )  # funktioniert das so?
-                            time_dict[df_description] = time_dict[
-                                df_description
-                            ].reorder_levels(["ip", "time", "space"])
-
+                if set(data.index.values).issubset(set(locations)):
+                    space_dict[df_description] = data.rename_axis("space")
                 else:
-                    if set(data.index.values).issubset(set(locations)):
-                        space_dict[df_description] = data.rename_axis("space")
-                    else:
-                        time_dict[df_description] = data.rename_axis("time")
-                        time_dict[df_description] = pd.concat(
-                            {locations[0]: time_dict[df_description]}, names=["space"]
-                        )
-                        time_dict[df_description] = time_dict[
-                            df_description
-                        ].reorder_levels(["time", "space"])
+                    time_dict[df_description] = data.rename_axis("time")
+                    time_dict[df_description] = pd.concat(
+                        {locations[0]: time_dict[df_description]}, names=["space"]
+                    )
+                    time_dict[df_description] = time_dict[
+                        df_description
+                    ].reorder_levels(["time", "space"])
 
         # If the dicts are populated with at least one item,
         # process them further and merge with xr_ds
@@ -452,7 +439,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
     return xr_ds
 
 
-def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
+def addConstantsToXarray(
+    xr_ds, component_dict, constants_iteration_dict, useProcessedValues
+):
     """Adds all variables whose data is just a constant value, to xarray dataset.
 
     :param xr_ds: A dict of xarray datasets to which the constant value variables should be added
@@ -476,38 +465,25 @@ def addConstantsToXarray(xr_ds, component_dict, constants_iteration_dict):
 
         df_dict = {}
         for description_tuple in description_tuple_list:
-            classname, component, is_depending_on_ip = description_tuple
+            classname, component = description_tuple
             df_description = f"{classname}; {component}"
-            if "." in variable_description:
-                [var_name, subvar_name] = variable_description.split(".")
-                data = component_dict[classname][component][var_name][subvar_name]
-            else:
-                data = component_dict[classname][component][variable_description]
+
+            key_list = getKeyHierarchyOfNestedDict(variable_description)
+
+            # get the data in the dict with all keys within the key_list
+            data = component_dict[classname][component]
+            for item in key_list:
+                data = data[item]
 
             df_dict[df_description] = data
 
-        if is_depending_on_ip:
-            df_variables = []
-            for _ip, ip_data in df_dict.items():
-                _ip_df_variable = pd.DataFrame(ip_data)
-                _ip_df_variable["ip"] = _ip
-                _ip_df_variable.set_index("ip", level=1, inplace=True)
-                _ip_df_variable.index.set_names("component", level=0, inplace=True)
-                df_variables.append(_ip_df_variable)
-            df_variable = pd.concat(df_variables, axis=0)
-            ds_component = xr.Dataset()
-            ds_component[
-                f"0d_{variable_description}"
-            ] = df_variable.sort_index().to_xarray()  # for df's
+        df_variable = pd.Series(df_dict)
+        df_variable.index.set_names("component", inplace=True)
 
-        else:
-            df_variable = pd.Series(df_dict)
-            df_variable.index.set_names("component", inplace=True)
-
-            ds_component = xr.Dataset()
-            ds_component[f"0d_{variable_description}"] = xr.DataArray.from_series(
-                df_variable
-            )
+        ds_component = xr.Dataset()
+        ds_component[f"0d_{variable_description}"] = xr.DataArray.from_series(
+            df_variable
+        )
 
         for comp in df_variable.index.get_level_values(0).unique():
             this_class = comp.split("; ")[0]
@@ -658,17 +634,14 @@ def addTimeSeriesVariableToDict(
     class_name = component.split("; ")[0]
     comp_name = component.split("; ")[1]
 
-    if "." in variable:
-        [var_name, nested_var_name] = variable.split(".")
-        if nested_var_name.isdigit():
-            nested_var_name = int(nested_var_name)
-        component_dict[class_name][comp_name][var_name[3:]][
-            nested_var_name
-        ] = df.sort_index()
-        # NOTE: Thanks to PowerDict(), the nested dictionaries need not be created before adding the data.
+    key_list = getKeyHierarchyOfNestedDict(variable)
 
-    else:
-        component_dict[class_name][comp_name][variable[3:]] = df.sort_index()
+    key_list[0] = key_list[0][3:]
+
+    # update the dict value
+    setInDict(component_dict[class_name][comp_name], key_list, df.sort_index())
+
+    # NOTE: Thanks to PowerDict(), the nested dictionaries need not be created before adding the data.
 
     return component_dict
 
@@ -709,15 +682,10 @@ def add2dVariableToDict(
         class_name = component.split("; ")[0]
         comp_name = component.split("; ")[1]
 
-        if "." in variable:
-            [var_name, nested_var_name] = variable.split(".")
-            if nested_var_name.isdigit():
-                nested_var_name = int(nested_var_name)
-            component_dict[class_name][comp_name][var_name[3:]][
-                nested_var_name
-            ] = series.sort_index()
-        else:
-            component_dict[class_name][comp_name][variable[3:]] = series.sort_index()
+        key_list = getKeyHierarchyOfNestedDict(variable)
+        key_list[0] = key_list[0][3:]
+
+        setInDict(component_dict[class_name][comp_name], key_list, series.sort_index())
 
     return component_dict
 
@@ -756,15 +724,10 @@ def add1dVariableToDict(
     class_name = component.split("; ")[0]
     comp_name = component.split("; ")[1]
 
-    if "." in variable:
-        [var_name, nested_var_name] = variable.split(".")
-        if nested_var_name.isdigit():
-            nested_var_name = int(nested_var_name)
-        component_dict[class_name][comp_name][var_name[3:]][
-            nested_var_name
-        ] = series.sort_index()
-    else:
-        component_dict[class_name][comp_name][variable[3:]] = series.sort_index()
+    key_list = getKeyHierarchyOfNestedDict(variable)
+    key_list[0] = key_list[0][3:]
+
+    setInDict(component_dict[class_name][comp_name], key_list, series.sort_index())
 
     return component_dict
 
@@ -802,14 +765,9 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
         class_name = component.split("; ")[0]
         comp_name = component.split("; ")[1]
 
-        if "." in variable:
-            [var_name, nested_var_name] = variable.split(".")
-            if nested_var_name.isdigit():
-                nested_var_name = int(nested_var_name)
-            component_dict[class_name][comp_name][var_name[3:]][
-                nested_var_name
-            ] = var_value.item()
-        else:
-            component_dict[class_name][comp_name][variable[3:]] = var_value.item()
+        key_list = getKeyHierarchyOfNestedDict(variable)
+        key_list[0] = key_list[0][3:]
+
+        setInDict(component_dict[class_name][comp_name], key_list, var_value.item())
 
     return component_dict
