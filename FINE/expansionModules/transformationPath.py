@@ -214,13 +214,17 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                     # If capacities are installed, set the values as capacityFix.
                     if getattr(stockComp, "capacityFix") is None:
                         if isinstance(compValues.loc[comp], pd.DataFrame):
-                            stockComp.capacityFix = utils.preprocess2dimData(
+                            stockComp.processedCapacityFix = {}
+                            stockComp.processedCapacityFix[
+                                0
+                            ] = utils.preprocess2dimData(
                                 compValues.loc[comp].fillna(value=-1), discard=False
                             )
                         else:
                             # NOTE: Values of capacityMin and capacityMax are not overwritten.
                             # CapacityFix values set the capacity fix and fulfills the boundary constraints (capacityMin <= capacityFix <= capacityMax)
-                            stockComp.capacityFix = compValues.loc[comp]
+                            stockComp.processedCapacityFix = {}
+                            stockComp.processedCapacityFix[0] = compValues.loc[comp]
                     esM.add(stockComp)
 
                 elif (

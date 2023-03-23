@@ -43,8 +43,8 @@ class LinearOptimalPowerFlow(Transmission):
         interestRate=0.08,
         economicLifetime=10,
         technicalLifetime=None,
-        floorTechnicalLifetime=True,
         stockCommissioning=None,
+        floorTechnicalLifetime=True,
     ):
         """
         Constructor for creating an LinearOptimalPowerFlow class instance.

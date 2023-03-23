@@ -144,11 +144,14 @@ class Component(metaclass=ABCMeta):
         :type capacityMin:
 
             * None or
+            * float or
+            * int or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
-              to equal the in the energy system model specified locations.
+              to equal the in the energy system model specified locations. or
+            * Dict with investment periods as keys and one of the options above as values.
 
         :param capacityMax: if specified, indicates the maximum capacities. The type of this parameter depends on the
             dimension of the component: If dimension=1dim, it has to be a Pandas Series. If dimension=2dim, it has to
@@ -157,11 +160,14 @@ class Component(metaclass=ABCMeta):
         :type capacityMax:
 
             * None or
+            * float or
+            * int or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
-              to equal the in the energy system model specified locations.
+              to equal the in the energy system model specified locations. or
+            * Dict with investment periods as keys and one of the options above as values.
 
         :param partLoadMin: if specified, indicates minimal part load of component.
         :type partLoadMin:
@@ -190,11 +196,14 @@ class Component(metaclass=ABCMeta):
         :type capacityFix:
 
             * None or
+            * float or
+            * int or
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
-              to equal the in the energy system model specified locations.
+              to equal the in the energy system model specified locations. or
+            * Dict with investment periods as keys and one of the options above as values.
 
         :param isBuiltFix: if specified, indicates fixed decisions in which or between which locations the component is
             built (i.e. sets the isBuilt binary variables). The type of this parameter
@@ -451,15 +460,14 @@ class Component(metaclass=ABCMeta):
         self.partLoadMin = partLoadMin
 
         # Set economic data
-        elig = locationalEligibility
         self.economicLifetime = utils.checkAndSetCostParameter(
-            esM, name, economicLifetime, dimension, elig
+            esM, name, economicLifetime, dimension, locationalEligibility
         )
         technicalLifetime = utils.checkTechnicalLifetime(
             esM, technicalLifetime, economicLifetime
         )
         self.technicalLifetime = utils.checkAndSetCostParameter(
-            esM, name, technicalLifetime, dimension, elig
+            esM, name, technicalLifetime, dimension, locationalEligibility
         )
         utils.checkEconomicAndTechnicalLifetime(
             self.economicLifetime, self.technicalLifetime
@@ -467,10 +475,10 @@ class Component(metaclass=ABCMeta):
         self.floorTechnicalLifetime = utils.checkFlooringParameter(
             floorTechnicalLifetime, self.technicalLifetime, esM.investmentPeriodInterval
         )
-        self.ipTechnicalLifetime = utils.checkLifetimeInvestmentPeriod(
+        self.ipTechnicalLifetime = utils.checkAndSetLifetimeInvestmentPeriod(
             esM, name, self.technicalLifetime
         )
-        self.ipEconomicLifetime = utils.checkLifetimeInvestmentPeriod(
+        self.ipEconomicLifetime = utils.checkAndSetLifetimeInvestmentPeriod(
             esM, name, self.economicLifetime
         )
 
@@ -488,7 +496,7 @@ class Component(metaclass=ABCMeta):
                 name,
                 investPerCapacity,
                 dimension,
-                elig,
+                locationalEligibility,
                 self.processedStockYears + esM.investmentPeriods,
             )
         )
@@ -499,7 +507,7 @@ class Component(metaclass=ABCMeta):
             name,
             investIfBuilt,
             dimension,
-            elig,
+            locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
         # opex per capacity
@@ -509,7 +517,7 @@ class Component(metaclass=ABCMeta):
             name,
             opexPerCapacity,
             dimension,
-            elig,
+            locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
         # opex if built
@@ -519,7 +527,7 @@ class Component(metaclass=ABCMeta):
             name,
             opexIfBuilt,
             dimension,
-            elig,
+            locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
         # QP costscale
@@ -529,12 +537,12 @@ class Component(metaclass=ABCMeta):
             name,
             QPcostScale,
             dimension,
-            elig,
+            locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
         # interest rate
-        self.interestRate = utils.checkAndSetInterestRate(
-            esM, name, interestRate, dimension, elig
+        self.interestRate = utils.checkAndSetCostParameter(
+            esM, name, interestRate, dimension, locationalEligibility
         )
 
         self.CCF = utils.getCapitalChargeFactor(
@@ -546,19 +554,26 @@ class Component(metaclass=ABCMeta):
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
-        self.capacityMin = utils.castToSeries(capacityMin, esM)
-        self.capacityMax = utils.castToSeries(capacityMax, esM)
-        self.capacityFix = utils.castToSeries(capacityFix, esM)
+        self.capacityMin = capacityMin
+        self.capacityMax = capacityMax
+        self.capacityFix = capacityFix
+        (
+            self.processedCapacityMin,
+            self.processedCapacityMax,
+            self.processedCapacityFix,
+        ) = utils.checkAndSetCapacityBounds(
+            esM, name, capacityMin, capacityMax, capacityFix
+        )
         self.linkedQuantityID = linkedQuantityID
 
         # Set yearly fullload hour parameters
         self.yearlyFullLoadHoursMin = yearlyFullLoadHoursMin
         self.yearlyFullLoadHoursMax = yearlyFullLoadHoursMax
         self.processedYearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(
-            esM, name, yearlyFullLoadHoursMin, dimension, elig
+            esM, name, yearlyFullLoadHoursMin, dimension, locationalEligibility
         )
         self.processedYearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(
-            esM, name, yearlyFullLoadHoursMax, dimension, elig
+            esM, name, yearlyFullLoadHoursMax, dimension, locationalEligibility
         )
         self.processedYearlyFullLoadHoursMin = utils.setParamToNoneIfNoneForAllYears(
             self.processedYearlyFullLoadHoursMin
@@ -575,12 +590,23 @@ class Component(metaclass=ABCMeta):
         self.QPbound = utils.getQPbound(
             self.processedStockYears + esM.investmentPeriods,
             self.processedQPcostScale,
-            self.capacityMax,
-            self.capacityMin,
+            self.processedCapacityMax,
+            self.processedCapacityMin,
         )
         self.QPcostDev = utils.getQPcostDev(
             self.processedStockYears + esM.investmentPeriods, self.processedQPcostScale
         )
+
+        self.processedCapacityFix = utils.setParamToNoneIfNoneForAllYears(
+            self.processedCapacityFix
+        )
+        self.processedCapacityMin = utils.setParamToNoneIfNoneForAllYears(
+            self.processedCapacityMin
+        )
+        self.processedCapacityMax = utils.setParamToNoneIfNoneForAllYears(
+            self.processedCapacityMax
+        )
+
         # stock commissioning
         self.stockCommissioning = stockCommissioning
         self.processedStockCommissioning = utils.checkAndSetStock(
@@ -588,6 +614,16 @@ class Component(metaclass=ABCMeta):
         )
         self.stockCapacityStartYear = utils.setStockCapacityStartYear(
             self, esM, dimension
+        )
+
+        # check the capacity development with stock for mismatchs
+        utils.checkCapacityDevelopmentWithStock(
+            esM.investmentPeriods,
+            self.processedCapacityMax,
+            self.processedCapacityFix,
+            self.processedStockCommissioning,
+            self.ipTechnicalLifetime,
+            self.floorTechnicalLifetime,
         )
 
     def addToEnergySystemModel(self, esM):
@@ -811,9 +847,10 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
+                for loc in comp.processedLocationalEligibility.index
                 for ip in comp.processedStockYears + esM.investmentPeriods
-                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                if comp.processedLocationalEligibility[loc] == 1
+                and comp.hasCapacityVariable
             )
 
         setattr(
@@ -839,9 +876,10 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
+                for loc in comp.processedLocationalEligibility.index
                 for ip in esM.investmentPeriods
-                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                if comp.processedLocationalEligibility[loc] == 1
+                and comp.hasCapacityVariable
             )
 
         setattr(
@@ -863,8 +901,9 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
-                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                for loc in comp.processedLocationalEligibility.index
+                if comp.processedLocationalEligibility[loc] == 1
+                and comp.hasCapacityVariable
             )
 
         setattr(
@@ -889,9 +928,10 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
+                for loc in comp.processedLocationalEligibility.index
                 for ip in esM.investmentPeriods[:-1]
-                if comp.locationalEligibility[loc] == 1 and comp.hasCapacityVariable
+                if comp.processedLocationalEligibility[loc] == 1
+                and comp.hasCapacityVariable
             )
 
         setattr(
@@ -993,9 +1033,9 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
+                for loc in comp.processedLocationalEligibility.index
                 for ip in esM.investmentPeriods
-                if comp.locationalEligibility[loc] == 1
+                if comp.processedLocationalEligibility[loc] == 1
             )
 
         setattr(
@@ -1243,21 +1283,27 @@ class ComponentModel(metaclass=ABCMeta):
         def capBounds(pyM, loc, compName, ip):
             """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
-            if comp.capacityFix is not None and loc in comp.capacityFix.index:
+            if (
+                comp.processedCapacityFix is not None
+                and loc in comp.processedCapacityFix[ip].index
+            ):
                 # in utils.py there are checks to ensure that capacityFix is between min and max
-                return (comp.capacityFix[loc], comp.capacityFix[loc])
+                return (
+                    comp.processedCapacityFix[ip][loc],
+                    comp.processedCapacityFix[ip][loc],
+                )
             else:
                 # the upper bound is only set if the parameter is given and no binary design variable exists
                 # In the case of the binary design variable, the bigM-constraint will suffice as upper bound.
-                if (comp.capacityMin is not None) and (
+                if (comp.processedCapacityMin is not None) and (
                     not comp.hasIsBuiltBinaryVariable
                 ):
-                    capLowerBound = comp.capacityMin[loc]
+                    capLowerBound = comp.processedCapacityMin[ip][loc]
                 else:
                     capLowerBound = 0
 
-                if comp.capacityMax is not None:
-                    capUpperBound = comp.capacityMax[loc]
+                if comp.processedCapacityMax is not None:
+                    capUpperBound = comp.processedCapacityMax[ip][loc]
                 else:
                     capUpperBound = None
 
@@ -1372,7 +1418,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return pyomo.NonNegativeReals
 
             if (compDict[compName].isBuiltFix is not None) or (
-                compDict[compName].capacityFix is not None
+                compDict[compName].processedCapacityFix is not None
             ):
                 # If isBuiltFix or capacityFix is given, binary variable is already fixed.
                 return pyomo.NonNegativeReals
@@ -1388,11 +1434,15 @@ class ComponentModel(metaclass=ABCMeta):
                     compDict[compName].isBuiltFix[loc],
                 )
             elif (
-                compDict[compName].capacityFix is not None
-                and loc in compDict[compName].capacityFix.index
+                compDict[compName].processedCapacityFix is not None
+                and loc in compDict[compName].processedCapacityFix[ip].index
             ):
                 # If capacityFix is given, binary variable is set to 1
-                return (1, 1) if compDict[compName].capacityFix[loc] > 0 else (0, 0)
+                return (
+                    (1, 1)
+                    if compDict[compName].processedCapacityFix[ip][loc] > 0
+                    else (0, 0)
+                )
             else:
                 # Binary Variable between 0 and 1
                 return (0, 1)
@@ -1628,7 +1678,11 @@ class ComponentModel(metaclass=ABCMeta):
             comp = compDict[compName]
             if ip not in comp.processedStockYears:
                 # set bigM for investment periods
-                M = comp.capacityMax[loc] if comp.capacityMax is not None else comp.bigM
+                M = (
+                    comp.processedCapacityMax[ip][loc]
+                    if comp.processedCapacityMax is not None
+                    else comp.bigM
+                )
                 return (
                     commisVar[loc, compName, ip] <= commisBinVar[loc, compName, ip] * M
                 )
@@ -1673,9 +1727,9 @@ class ComponentModel(metaclass=ABCMeta):
             if ip not in compDict[compName].processedStockYears:
                 return (
                     capVar[loc, compName, ip]
-                    >= compDict[compName].capacityMin[loc]
+                    >= compDict[compName].processedCapacityMin[ip][loc]
                     * commisBinVar[loc, compName, ip]
-                    if compDict[compName].capacityMin is not None
+                    if compDict[compName].processedCapacityMin is not None
                     else pyomo.Constraint.Skip
                 )
             else:  # constraint not required for stock years
@@ -1707,8 +1761,9 @@ class ComponentModel(metaclass=ABCMeta):
 
         def capacityFix(pyM, loc, compName, ip):
             return (
-                capVar[loc, compName, ip] == compDict[compName].capacityFix[loc]
-                if compDict[compName].capacityFix is not None
+                capVar[loc, compName, ip]
+                == compDict[compName].processedCapacityFix[ip][loc]
+                if compDict[compName].processedCapacityFix is not None
                 else pyomo.Constraint.Skip
             )
 
@@ -1929,7 +1984,7 @@ class ComponentModel(metaclass=ABCMeta):
         def capacityDecommissioning(pyM, loc, compName, ip):
             tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
 
-            # is technical lifetime ceiled or floored to next interval
+            # commissioning date is depending whether technical lifetime ceiled or floored to next interval
             # if technical lifetime is already a multiple of the interval, nothing happens
             if self.componentsDict[compName].floorTechnicalLifetime:
                 comm_date = ip - math.floor(tech_lifetime)
@@ -2434,7 +2489,7 @@ class ComponentModel(metaclass=ABCMeta):
         capVar = getattr(pyM, "cap_" + abbrvName)
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
         return sum(
-            capVar[loc, compName, ip] / compDict[compName].capacityMax[loc]
+            capVar[loc, compName, ip] / compDict[compName].processedCapacityMax[ip][loc]
             for compName in compDict
             if compDict[compName].sharedPotentialID == key
             and (loc, compName, ip) in capVarSet
@@ -2628,7 +2683,7 @@ class ComponentModel(metaclass=ABCMeta):
                         # example: interval 5, economic lifetime 7, technical lifetime 12
                         _ipEconomicLifetime = ipEconomicLifetime
                         if esM.getComponent(compName).floorTechnicalLifetime:
-                            # example: technical lifetime is foored to 10, year 10 and 11 not relevant and without costs
+                            # example: technical lifetime is floored to 10, year 10 and 11 not relevant and without costs
                             hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
                                 False
                             )
@@ -3438,7 +3493,7 @@ class ComponentModel(metaclass=ABCMeta):
                 for compName, comp in compDict.items():
                     if (
                         comp.hasIsBuiltBinaryVariable
-                        and (comp.capacityMax is None)
+                        and (comp.processedCapacityMax is None)
                         and capOptVal.loc[compName].max() >= comp.bigM * 0.9
                         and esM.verbose < 2
                     ):

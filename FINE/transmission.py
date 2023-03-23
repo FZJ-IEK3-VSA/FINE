@@ -140,27 +140,56 @@ class Transmission(Component):
         :type balanceLimitID: string
         """
         # TODO add unit checks
+        self.capacityMax = capacityMax
+        self.capacityMin = capacityMin
+        self.capacityFix = capacityFix
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
-        self.capacityMax = utils.preprocess2dimData(
-            capacityMax, locationalEligibility=locationalEligibility
+        preprocessedCapacityMax = utils.process2dimCapacityData(
+            esM,
+            "capacityMax",
+            capacityMax,
+            esM.investmentPeriods,
         )
-        self.capacityFix = utils.preprocess2dimData(
-            capacityFix, locationalEligibility=locationalEligibility
+        preprocessedCapacityFix = utils.process2dimCapacityData(
+            esM,
+            "capacityFix",
+            capacityFix,
+            esM.investmentPeriods,
         )
         self.isBuiltFix = utils.preprocess2dimData(
             isBuiltFix, locationalEligibility=locationalEligibility
         )
 
         # Set locational eligibility
-        operationTimeSeries = (
-            operationRateFix if operationRateFix is not None else operationRateMax
-        )
+        if operationRateFix is None:
+            operationTimeSeries = operationRateMax
+        elif not isinstance(operationRateFix, dict):
+            operationTimeSeries = operationRateFix
+        elif isinstance(operationRateFix, dict) and any(
+            x is not None for x in operationRateFix.values()
+        ):
+            if not all(x is not None for x in operationRateFix.values()):
+                raise ValueError()
+            operationTimeSeries = operationRateFix
+        else:
+            operationTimeSeries = operationRateMax
+        # operationTimeSeries = (
+        #     operationRateFix if operationRateFix is not None else operationRateMax
+        # )
+
+        if not isinstance(operationTimeSeries, dict):
+            operationTimeSeries = dict.fromkeys(
+                esM.investmentPeriods, operationTimeSeries
+            )
+        if all(x is None for x in operationTimeSeries.values()):
+            operationTimeSeries = None
+
         self.locationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
-            self.capacityMax,
-            self.capacityFix,
+            preprocessedCapacityMax,
+            preprocessedCapacityFix,
             self.isBuiltFix,
             hasCapacityVariable,
             operationTimeSeries,
@@ -178,14 +207,15 @@ class Transmission(Component):
                     self._mapC.update({loc1 + "_" + loc2: (loc1, loc2)})
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + "_" + loc2})
                     self._mapI.update({loc1 + "_" + loc2: loc2 + "_" + loc1})
+
         # capacity parameter
-        self.capacityMax = utils.preprocess2dimData(
+        preprocessedCapacityMax = utils.preprocess2dimData(
             capacityMax, self._mapC, locationalEligibility=self.locationalEligibility
         )
-        self.capacityFix = utils.preprocess2dimData(
+        preprocessedCapacityFix = utils.preprocess2dimData(
             capacityFix, self._mapC, locationalEligibility=self.locationalEligibility
         )
-        self.capacityMin = utils.preprocess2dimData(
+        preprocessedCapacityMin = utils.preprocess2dimData(
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
         # stockCommissioning
@@ -221,12 +251,12 @@ class Transmission(Component):
             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
             bigM=bigM,
             locationalEligibility=self.locationalEligibility,
-            capacityMin=self.capacityMin,
-            capacityMax=self.capacityMax,
+            capacityMin=preprocessedCapacityMin,
+            capacityMax=preprocessedCapacityMax,
             partLoadMin=partLoadMin,
             sharedPotentialID=sharedPotentialID,
             linkedQuantityID=linkedQuantityID,
-            capacityFix=self.capacityFix,
+            capacityFix=preprocessedCapacityFix,
             isBuiltFix=self.isBuiltFix,
             investPerCapacity=0,
             investIfBuilt=0,
@@ -260,39 +290,39 @@ class Transmission(Component):
         # these are initialized with 0 in the component.__init__ and overwritten here,
         # due to its different structure otherwise the tests fail in the component
         self.investPerCapacity = investPerCapacity
-        _processedInvestPerCapacity = utils.preprocess2dimInvestmentPeriodData(
+        self.preprocessedInvestPerCapacity = utils.preprocess2dimInvestmentPeriodData(
             esM,
             "investPerCapacity",
             investPerCapacity,
             self.processedStockYears + esM.investmentPeriods,
-            self._mapC,
+            mapC=self._mapC,
         )
 
         self.investIfBuilt = investIfBuilt
-        _processedInvestIfBuilt = utils.preprocess2dimInvestmentPeriodData(
+        self.preprocessedInvestIfBuilt = utils.preprocess2dimInvestmentPeriodData(
             esM,
             "investIfBuilt",
             investIfBuilt,
             self.processedStockYears + esM.investmentPeriods,
-            self._mapC,
+            mapC=self._mapC,
         )
 
         self.opexPerCapacity = opexPerCapacity
-        _processedOpexPerCapacity = utils.preprocess2dimInvestmentPeriodData(
+        self.preprocessedOpexPerCapacity = utils.preprocess2dimInvestmentPeriodData(
             esM,
             "opexPerCapacity",
             opexPerCapacity,
             self.processedStockYears + esM.investmentPeriods,
-            self._mapC,
+            mapC=self._mapC,
         )
 
         self.opexIfBuilt = opexIfBuilt
-        _processedOpexIfBuilt = utils.preprocess2dimInvestmentPeriodData(
+        self.preprocessedOpexIfBuilt = utils.preprocess2dimInvestmentPeriodData(
             esM,
             "opexIfBuilt",
             opexIfBuilt,
             self.processedStockYears + esM.investmentPeriods,
-            self._mapC,
+            mapC=self._mapC,
         )
 
         # Set distance related costs data
@@ -302,16 +332,40 @@ class Transmission(Component):
         self.processedOpexIfBuilt = {}
         for year in self.processedStockYears + esM.investmentPeriods:
             self.processedInvestPerCapacity[year] = (
-                _processedInvestPerCapacity[year] * self.distances * 0.5
+                utils.preprocess2dimData(
+                    self.preprocessedInvestPerCapacity[year],
+                    self._mapC,
+                    self.locationalEligibility,
+                )
+                * self.distances
+                * 0.5
             )
             self.processedInvestIfBuilt[year] = (
-                _processedInvestIfBuilt[year] * self.distances * 0.5
+                utils.preprocess2dimData(
+                    self.preprocessedInvestIfBuilt[year],
+                    self._mapC,
+                    self.locationalEligibility,
+                )
+                * self.distances
+                * 0.5
             )
             self.processedOpexPerCapacity[year] = (
-                _processedOpexPerCapacity[year] * self.distances * 0.5
+                utils.preprocess2dimData(
+                    self.preprocessedOpexPerCapacity[year],
+                    self._mapC,
+                    self.locationalEligibility,
+                )
+                * self.distances
+                * 0.5
             )
             self.processedOpexIfBuilt[year] = (
-                _processedOpexIfBuilt[year] * self.distances * 0.5
+                utils.preprocess2dimData(
+                    self.preprocessedOpexIfBuilt[year],
+                    self._mapC,
+                    self.locationalEligibility,
+                )
+                * self.distances
+                * 0.5
             )
 
         # Set additional economic data
@@ -363,6 +417,9 @@ class Transmission(Component):
         self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
             self.fullOperationRateMax
         )
+
+        # set processed location eligiblity # TODO implement check and set
+        self.processedLocationalEligibility = self.locationalEligibility
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -687,8 +744,8 @@ class TransmissionModel(ComponentModel):
             [
                 comp.commodity == commod
                 and (
-                    loc + "_" + loc_ in comp.locationalEligibility.index
-                    or loc_ + "_" + loc in comp.locationalEligibility.index
+                    loc + "_" + loc_ in comp.processedLocationalEligibility.index
+                    or loc_ + "_" + loc in comp.processedLocationalEligibility.index
                 )
                 for comp in self.componentsDict.values()
                 for loc_ in esM.locations

@@ -271,7 +271,7 @@ def test_ceiling_differentInterval():
     assert srcSnk_optSum_2030.loc[_key] == 0
 
 
-def test_TAC_netPresentValueContributiuons():
+def test_TAC_netPresentValueContributions():
     technicalLifetime = 12
     economicLifetime = 11
     floorTechnicalLifetime = False
@@ -296,8 +296,6 @@ def test_TAC_netPresentValueContributiuons():
     discounted_tac_sum = 0
     for ip in esM.investmentPeriodNames:
         srcSnk_optSummary = esM.getOptimizationSummary("SourceSinkModel", ip=ip)
-        # import pytest
-        # pytest.set_trace()
         _tac = srcSnk_optSummary.loc[
             :, "TAC", :
         ].sum().sum() * annuityPresentValueFactor(

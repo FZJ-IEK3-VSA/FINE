@@ -402,11 +402,11 @@ class Storage(Component):
                     ]
                 )
 
-        self.locationalEligibility = utils.setLocationalEligibility(
+        self.processedLocationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
-            self.capacityMax,
-            self.capacityFix,
+            self.processedCapacityMax,
+            self.processedCapacityFix,
             self.isBuiltFix,
             self.hasCapacityVariable,
             timeSeriesData,
@@ -1646,7 +1646,8 @@ class StorageModel(ComponentModel):
         """
         return any(
             [
-                comp.commodity == commod and comp.locationalEligibility[loc] == 1
+                comp.commodity == commod
+                and comp.processedLocationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
             ]
         )

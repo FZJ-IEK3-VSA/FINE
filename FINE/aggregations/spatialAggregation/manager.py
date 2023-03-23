@@ -7,7 +7,7 @@ from FINE.aggregations.spatialAggregation import grouping
 from FINE.aggregations.spatialAggregation import aggregation
 from FINE.aggregations.spatialAggregation import managerUtils as manUtils
 from FINE.IOManagement.standardIO import timer
-from FINE.IOManagement import xarrayIO as xrIO
+from FINE.IOManagement import xarrayIO as xrIO, utilsIO
 
 try:
     import geopandas as gpd
@@ -167,15 +167,15 @@ def perform_spatial_aggregation(
             passed, this default dictionary is updated. The default dicitionary:
 
             {\n
-            "processedOperationRateMax": ("weighted mean", "capacityMax"),\n
-            "processedOperationRateFix": ("sum", None),\n
+            "operationRateMax": ("weighted mean", "capacityMax"),\n
+            "operationRateFix": ("sum", None),\n
             "locationalEligibility": ("bool", None),\n
             "capacityMax": ("sum", None),\n
-            "processedInvestPerCapacity": ("mean", None),\n
-            "processedInvestIfBuilt": ("bool", None),\n
-            "processedOpexPerOperation": ("mean", None),\n
-            "processedOpexPerCapacity": ("mean", None),\n
-            "processedOpexIfBuilt": ("bool", None),\n
+            "investPerCapacity": ("mean", None),\n
+            "investIfBuilt": ("bool", None),\n
+            "opexPerOperation": ("mean", None),\n
+            "opexPerCapacity": ("mean", None),\n
+            "opexIfBuilt": ("bool", None),\n
             "interestRate": ("mean", None),\n
             "economicLifetime": ("mean", None),\n
             "capacityFix": ("sum", None),\n
@@ -183,8 +183,8 @@ def perform_spatial_aggregation(
             "distances": ("mean", None),\n
             "commodityCost": ("mean", None),\n
             "commodityRevenue": ("mean", None),\n
-            "processedOpexPerChargeOperation": ("mean", None),\n
-            "processedOpexPerDischargeOperation": ("mean", None),\n
+            "opexPerChargeOperation": ("mean", None),\n
+            "opexPerDischargeOperation": ("mean", None),\n
             "QPcostScale": ("sum", None),\n
             "technicalLifetime": ("mean", None),\n
             "balanceLimit": ("sum", None)\n
@@ -305,32 +305,33 @@ def perform_spatial_aggregation(
         )
 
     # STEP 5. Representation of the new regions
+    ## prepare aggregation_funtion_dict
     aggregation_function_dict_default = {
-        "processedOperationRateMax": ("weighted mean", "capacityMax"),
-        "processedOperationRateFix": ("sum", None),
+        "operationRateMax": ("weighted mean", "capacityMax"),
+        "operationRateFix": ("sum", None),
         "locationalEligibility": ("bool", None),
         "capacityMax": ("sum", None),
-        "processedInvestPerCapacity": ("mean", None),
-        "processedInvestIfBuilt": ("bool", None),
-        "processedOpexPerOperation": ("mean", None),
-        "processedOpexPerCapacity": ("mean", None),
-        "processedOpexIfBuilt": ("bool", None),
+        "investPerCapacity": ("mean", None),
+        "investIfBuilt": ("bool", None),
+        "opexPerOperation": ("mean", None),
+        "opexPerCapacity": ("mean", None),
+        "opexIfBuilt": ("bool", None),
         "interestRate": ("mean", None),
         "economicLifetime": ("mean", None),
         "capacityFix": ("sum", None),
         "losses": ("mean", None),
         "distances": ("mean", None),
-        "processedCommodityCost": ("mean", None),
-        "processedCommodityRevenue": ("mean", None),
-        "processedOpexPerChargeOperation": ("mean", None),
-        "processedOpexPerDischargeOperation": ("mean", None),
+        "commodityCost": ("mean", None),
+        "commodityRevenue": ("mean", None),
+        "opexPerChargeOperation": ("mean", None),
+        "opexPerDischargeOperation": ("mean", None),
         "QPcostScale": ("sum", None),
         "technicalLifetime": ("mean", None),
         "balanceLimit": ("sum", None),
     }
 
+    ### if the user has passed some values, update the dict
     aggregation_function_dict = kwargs.get("aggregation_function_dict", None)
-
     if aggregation_function_dict != None:
         aggregation_function_dict_default.update(aggregation_function_dict)
 

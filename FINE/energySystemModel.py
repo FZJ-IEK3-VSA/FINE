@@ -689,7 +689,7 @@ class EnergySystemModel:
 
             | {"operationRateMax": ("weighted mean", "capacityMax"),
             | "operationRateFix": ("sum", None),
-            | "locationalEligibility": ("bool", None),
+            | "processedLocationalEligibility": ("bool", None),
             | "capacityMax": ("sum", None),
             | "investPerCapacity": ("mean", None),
             | "investIfBuilt": ("bool", None),
@@ -730,7 +730,9 @@ class EnergySystemModel:
         """
 
         # STEP 1. Obtain xr dataset from esM
-        xr_dataset = xrIO.convertOptimizationInputToDatasets(self)
+        xr_dataset = xrIO.convertOptimizationInputToDatasets(
+            self, useProcessedValues=True
+        )
 
         # STEP 2. Perform spatial aggregation
         aggregated_xr_dataset = spagat.perform_spatial_aggregation(
@@ -1379,8 +1381,8 @@ class EnergySystemModel:
                             potentialDict.setdefault(
                                 (comp.sharedPotentialID, loc, ip), []
                             ).append(compName)
-                            for loc in comp.locationalEligibility.index
-                            if comp.capacityMax[loc] != 0
+                            for loc in comp.processedLocationalEligibility.index
+                            if comp.processedCapacityMax[ip][loc] != 0
                         ]
         pyM.sharedPotentialDict = potentialDict
 
@@ -1423,7 +1425,7 @@ class EnergySystemModel:
                         compDict.setdefault((comp.linkedQuantityID, loc), []).append(
                             compName
                         )
-                        for loc in comp.locationalEligibility.index
+                        for loc in comp.processedLocationalEligibility.index
                     ]
         pyM.linkedQuantityDict = compDict
 

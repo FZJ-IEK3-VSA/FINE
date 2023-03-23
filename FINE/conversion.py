@@ -42,10 +42,10 @@ class Conversion(Component):
         interestRate=0.08,
         economicLifetime=10,
         technicalLifetime=None,
-        floorTechnicalLifetime=True,
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
+        floorTechnicalLifetime=True,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -214,20 +214,23 @@ class Conversion(Component):
         )
 
         # commodity conversions factors
-        # TODO The dependency of commodity conversion factors from
-        # commissioning year is currently not supported and will be implemented
-        # in the next merge request.
+        # # TODO The dependency of commodity conversion factors from
+        # # commissioning year is currently not supported and will be implemented
+        # # in the next merge request.
         if any(
             isinstance(commodityConversionFactors[x], dict)
             for x in commodityConversionFactors.keys()
         ):
-            raise NotImplementedError(
-                "A variation of commodity conversion factors over investment periods is currently not supported."
-            )
+            if len(commodityConversionFactors.keys()) != 1:
+                raise NotImplementedError(
+                    "A variation of commodity conversion factors over investment periods is currently not supported."
+                )
+            commodityConversionFactors = commodityConversionFactors[0]
         self.commodityConversionFactors = commodityConversionFactors
         (
             self.fullCommodityConversionFactors,
             self.processedCommodityConversionFactors,
+            self.preprocessedCommodityConversionFactors,
         ) = utils.checkAndSetCommodityConversionFactor(self, esM)
         self.aggregatedCommodityConversionFactors = dict.fromkeys(
             esM.investmentPeriods, {}
@@ -257,11 +260,11 @@ class Conversion(Component):
         else:
             operationTimeSeries = None
 
-        self.locationalEligibility = utils.setLocationalEligibility(
+        self.processedLocationalEligibility = utils.setLocationalEligibility(
             esM,
             self.locationalEligibility,
-            self.capacityMax,
-            self.capacityFix,
+            self.processedCapacityMax,
+            self.processedCapacityFix,
             self.isBuiltFix,
             self.hasCapacityVariable,
             operationTimeSeries,
@@ -411,13 +414,13 @@ class ConversionModel(ComponentModel):
                     [
                         (loc, values[i].name, values[i + 1].name)
                         for i in range(len(values) - 1)
-                        for loc, v in values[i].locationalEligibility.items()
+                        for loc, v in values[i].processedLocationalEligibility.items()
                         if v == 1
                     ]
                 )
         for comps in linkedComponentsList:
-            index1 = compDict[comps[1]].locationalEligibility.index
-            index2 = compDict[comps[2]].locationalEligibility.index
+            index1 = compDict[comps[1]].processedLocationalEligibility.index
+            index2 = compDict[comps[2]].processedLocationalEligibility.index
             if not index1.equals(index2):
                 raise ValueError(
                     "Conversion components ",
@@ -620,7 +623,7 @@ class ConversionModel(ComponentModel):
                         comp.processedCommodityConversionFactors[ip][commod] is not None
                     )
                 )
-                and comp.locationalEligibility[loc] == 1
+                and comp.processedLocationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
                 for ip in esM.investmentPeriods
             ]
