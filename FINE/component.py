@@ -1990,12 +1990,15 @@ class ComponentModel(metaclass=ABCMeta):
                 comm_date = ip - math.floor(tech_lifetime)
             else:
                 comm_date = ip - math.ceil(tech_lifetime)
-            # only set constraint if decomm_date is within investment periods
+            # if the commissioning date is within the investment periods, the
+            # decommissioning and commissioning variables are linked
             if comm_date in pyM.investSet._values.values():
                 return (
                     decommisVar[loc, compName, ip]
                     == commisVar[loc, compName, comm_date]
                 )
+            # else the decommissioning is depending on the stockcommissioning
+            # or set to 0
             else:
                 procStockCommissioning = self.componentsDict[
                     compName
@@ -2008,7 +2011,7 @@ class ComponentModel(metaclass=ABCMeta):
                         ][loc]
                     )
                 else:
-                    return pyomo.Constraint.Skip
+                    return decommisVar[loc, compName, ip] == 0
 
         setattr(
             pyM,
