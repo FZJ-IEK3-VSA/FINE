@@ -1,8 +1,4 @@
-import numpy as np
 import pandas as pd
-import os
-import shutil
-import warnings
 import pytest
 
 import FINE as fn
@@ -25,7 +21,6 @@ def test_capacityBounds():
         lengthUnit="km",
         verboseLogLevel=1,
         balanceLimit=None,
-        lowerBound=False,
     )
     locations = ["ElectrolyzerLocation", "IndustryLocation"]
 

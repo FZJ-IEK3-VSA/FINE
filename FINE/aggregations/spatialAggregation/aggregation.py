@@ -319,13 +319,16 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
 
 
 def aggregate_esm_parameters_spatially(
-    param_df_in, sub_to_sup_region_id_dict, mode="mean"
+    param_df_in, old_locations, sub_to_sup_region_id_dict, mode="mean"
 ):
     """
     For each region group, aggregates the given esm init parameter data.
 
     :param param_df_in: the dataframe with parameter data
     :type param_df_in: pd.DataFrame
+
+    :param old_locations: list of former unaggregated regions
+    :type old_locations: list
 
     :param sub_to_sup_region_id_dict: Dictionary new regions' ids and their corresponding group of regions
 
@@ -347,6 +350,8 @@ def aggregate_esm_parameters_spatially(
 
     new_col_names = list(sub_to_sup_region_id_dict.keys())
 
+    new_col_names.extend([x for x in param_df_in.columns if x not in old_locations])
+
     param_df_out = pd.DataFrame(data=0, index=param_df_in.index, columns=new_col_names)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
@@ -355,7 +360,6 @@ def aggregate_esm_parameters_spatially(
 
         if mode == "sum":
             param_df_out[sup_region_id] = param_df_in[sub_region_id_list].sum(axis=1)
-
     return param_df_out
 
 
@@ -461,11 +465,14 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
 
         elif isinstance(vardata, pd.DataFrame):
             old_locations = xarray_datasets.get("Parameters").attrs["locations"]
-            if set(vardata.columns) == old_locations:
+            if all([x in vardata.columns for x in old_locations]):
                 aggregation_mode, aggregation_weight = _get_aggregation_mode(varname)
 
                 aggregated_vardata = aggregate_esm_parameters_spatially(
-                    vardata, sub_to_sup_region_id_dict, mode=aggregation_mode
+                    vardata,
+                    old_locations,
+                    sub_to_sup_region_id_dict,
+                    mode=aggregation_mode,
                 )
 
                 parameters_dict[varname] = aggregated_vardata

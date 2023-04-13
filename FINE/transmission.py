@@ -45,6 +45,7 @@ class Transmission(Component):
         technicalLifetime=None,
         floorTechnicalLifetime=True,
         balanceLimitID=None,
+        pathwayBalanceLimitID=None,
         stockCommissioning=None,
     ):
         """
@@ -138,6 +139,10 @@ class Transmission(Component):
             it is imported into the region it is considered positive.
             |br| * the default value is None
         :type balanceLimitID: string
+
+        :param pathwayBalanceLimitID: similar to balanceLimitID just as restriction over the entire pathway.
+            |br| * the default value is None
+        :type pathwayBalanceLimitID: string
         """
         # TODO add unit checks
         self.capacityMax = capacityMax
@@ -239,6 +244,7 @@ class Transmission(Component):
         self.economicLifetime = utils.preprocess2dimData(economicLifetime, self._mapC)
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
         self.balanceLimitID = balanceLimitID
+        self.pathwayBalanceLimitID = pathwayBalanceLimitID
 
         Component.__init__(
             self,
@@ -787,7 +793,9 @@ class TransmissionModel(ComponentModel):
             if commod == compDict[compName].commodity
         )
 
-    def getBalanceLimitContribution(self, esM, pyM, ID, ip, loc, timeSeriesAggregation):
+    def getBalanceLimitContribution(
+        self, esM, pyM, ID, ip, loc, timeSeriesAggregation, componentNames
+    ):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
         Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
@@ -818,14 +826,15 @@ class TransmissionModel(ComponentModel):
 
         :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
         :type loc: string
+
+        :param componentNames: Names of components which contribute to the balance limit
+        :type componentNames: list
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, opVarDictIn = (
-            getattr(pyM, "op_" + abbrvName),
-            getattr(pyM, "operationVarDictIn_" + abbrvName),
-        )
+        opVar = getattr(pyM, "op_" + abbrvName)
+        opVarDictIn = getattr(pyM, "operationVarDictIn_" + abbrvName)
         opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
-        limitDict = getattr(pyM, "balanceLimitDict")
+
         if timeSeriesAggregation:
             periods = esM.typicalPeriods
             if esM.segmentation:
@@ -846,14 +855,14 @@ class TransmissionModel(ComponentModel):
             * esM.periodOccurrences[ip][p]
             for loc_ in opVarDictIn[ip][loc].keys()
             for compName in opVarDictIn[ip][loc][loc_]
-            if compName in limitDict[(ID, loc)]
+            if compName in componentNames
             for p in periods
             for t in timeSteps
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
             for loc_ in opVarDictOut[ip][loc].keys()
             for compName in opVarDictOut[ip][loc][loc_]
-            if compName in limitDict[(ID, loc)]
+            if compName in componentNames
             for p in periods
             for t in timeSteps
         )

@@ -21,7 +21,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "lengthUnit",
                 "verboseLogLevel",
                 "balanceLimit",
-                "lowerBound",
+                "pathwayBalanceLimit",
                 "annuityPerpetuity",
             ),
             (
@@ -38,7 +38,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.lengthUnit,
                 minimal_test_esM.verboseLogLevel,
                 minimal_test_esM.balanceLimit,
-                minimal_test_esM.lowerBound,
+                minimal_test_esM.pathwayBalanceLimit,
                 minimal_test_esM.annuityPerpetuity,
             ),
         )
@@ -96,7 +96,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "lengthUnit",
                 "verboseLogLevel",
                 "balanceLimit",
-                "lowerBound",
+                "pathwayBalanceLimit",
                 "annuityPerpetuity",
             ),
             (
@@ -113,7 +113,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.lengthUnit,
                 single_node_test_esM.verboseLogLevel,
                 single_node_test_esM.balanceLimit,
-                single_node_test_esM.lowerBound,
+                single_node_test_esM.pathwayBalanceLimit,
                 single_node_test_esM.annuityPerpetuity,
             ),
         )
@@ -173,7 +173,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "lengthUnit",
                 "verboseLogLevel",
                 "balanceLimit",
-                "lowerBound",
+                "pathwayBalanceLimit",
                 "annuityPerpetuity",
             ),
             (
@@ -190,7 +190,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.lengthUnit,
                 multi_node_test_esM_init.verboseLogLevel,
                 multi_node_test_esM_init.balanceLimit,
-                multi_node_test_esM_init.lowerBound,
+                multi_node_test_esM_init.pathwayBalanceLimit,
                 multi_node_test_esM_init.annuityPerpetuity,
             ),
         )
