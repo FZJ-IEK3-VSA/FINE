@@ -1702,8 +1702,41 @@ def checkAndSetYearlyLimit(esM, yearlyLimit):
     return processedYearlyLimit
 
 
+def _addColumnsBalanceLimit(balanceLimit, locations):
+    # check and set lower bounds
+    if "lowerBound" not in balanceLimit.columns:
+        # default as in docs: lowerBound is set to False
+        balanceLimit["lowerBound"] = 0
+    else:
+        if any(x for x in balanceLimit["lowerBound"] if x not in [0, 1]):
+            raise ValueError(
+                "lowerBound in balanceLimit must be set to either True, False, 0 or 1"
+            )
+    # check and set locations:
+    for loc in list(locations) + ["Total"]:
+        if loc not in balanceLimit.columns:
+            balanceLimit[loc] = None
+    return balanceLimit
+
+
+def checkAndSetPathwayBalanceLimit(esM, pathwayBalanceLimit, locations):
+    # pathwayBalanceLimit has to be DataFrame with locations as columns,
+    # if valid for whole model
+    if pathwayBalanceLimit is None:
+        processedPathwayBalanceLimit = None
+    else:
+        if not isinstance(pathwayBalanceLimit, pd.DataFrame):
+            raise ValueError("Wrong datatype for pathwayBalanceLimit")
+        processedPathwayBalanceLimit = _addColumnsBalanceLimit(
+            pathwayBalanceLimit, locations
+        )
+    return processedPathwayBalanceLimit
+
+
 def checkAndSetBalanceLimit(esM, balanceLimit, locations):
-    # balanceLimit has to be DataFrame with locations as columns or Series, if valid for whole model
+    # balanceLimit has to be DataFrame with locations as columns or Dict per
+    # investment periods as keys and described dataframe as values,
+    # if valid for whole model
 
     checkInvestmentPeriodParameters(
         "balanceLimit", balanceLimit, esM.investmentPeriodNames
@@ -1719,16 +1752,15 @@ def checkAndSetBalanceLimit(esM, balanceLimit, locations):
             _balanceLimit = balanceLimit
 
         if _balanceLimit is not None:
-            if (
-                not type(_balanceLimit) == pd.DataFrame
-                and not type(_balanceLimit) == pd.Series
-            ):
+            if not type(_balanceLimit) == pd.DataFrame:
                 raise TypeError(
-                    "The balanceLimit input argument has to be a pandas.DataFrame or a pd.Series."
+                    "The balanceLimit input argument has to be a pandas.DataFrame."
                 )
-            if (
-                type(_balanceLimit) == pd.DataFrame
-                and set(_balanceLimit.columns) != locations
+            if not all(
+                [
+                    col in list(locations) + ["Total", "lowerBound"]
+                    for col in _balanceLimit.columns
+                ]
             ):
                 raise ValueError(
                     "Location indices in the balanceLimit do not match the input locations.\n"
@@ -1741,6 +1773,11 @@ def checkAndSetBalanceLimit(esM, balanceLimit, locations):
             processedBalanceLimit[ip] = _balanceLimit
         else:
             processedBalanceLimit[ip] = None
+
+        if processedBalanceLimit[ip] is not None:
+            processedBalanceLimit[ip] = _addColumnsBalanceLimit(
+                processedBalanceLimit[ip], locations
+            )
     return processedBalanceLimit
 
 

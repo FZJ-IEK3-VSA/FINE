@@ -147,6 +147,7 @@ def test_electricitySourceDriver():
     ## Define balanceLimit constraint in relation to demand in two regions
     balanceLimit = pd.DataFrame(columns=["Region1", "Region2"], index=["Renewables"])
     balanceLimit.loc["Renewables"] = 0.25 * demand.sum()
+    balanceLimit["lowerBound"] = True
 
     # 2) Initialize esM with two regions
     esM = fn.EnergySystemModel(
@@ -159,7 +160,6 @@ def test_electricitySourceDriver():
         lengthUnit="km",
         verboseLogLevel=2,
         balanceLimit=balanceLimit,
-        lowerBound=True,
     )
 
     # 3) Components are added: 'Electricity demand', 'Electricity purchase', 'Wind turbines', 'PV', 'Batteries'
@@ -367,7 +367,6 @@ def test_hydrogenSinkDriver():
         lengthUnit="km",
         verboseLogLevel=2,
         balanceLimit=balanceLimit,
-        lowerBound=False,
     )
 
     # 3) Components are added: 'Wind turbines', 'Electrolyzer', 'Batteries' and 'Hydrogen Annual Production'
@@ -530,9 +529,11 @@ def test_CO2Limit():
     ).round(2)
 
     # 1) Define CO2-Limit with balanceLimitConstraint (sink are defined negative)
-    CO2_limit = pd.Series(index=["CO2 limit"])
-    CO2_limit.loc["CO2 limit"] = -1 * demand.sum().sum() * 0.6 * 201 * 1e-6 / 0.6
-
+    CO2_limit = pd.DataFrame(index=["CO2 limit"], columns=["Total", "lowerBound"])
+    CO2_limit.loc["CO2 limit"] = [
+        -1 * demand.sum().sum() * 0.6 * 201 * 1e-6 / 0.6,
+        True,
+    ]
     # 2) Initialize EnergySystemModel with two Regions
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -544,7 +545,6 @@ def test_CO2Limit():
         lengthUnit="km",
         verboseLogLevel=2,
         balanceLimit=CO2_limit,
-        lowerBound=True,
     )
 
     # 3) Components are added: 'Electricity demand', 'Methane purchase', 'cctg', 'CO2 to environment',
@@ -657,5 +657,9 @@ def test_CO2Limit():
         )
     tolerance = 0.001
     ## Compare modeled co2 emissions to limit set in constraint.
-    assert co2_to_environment * (1 - tolerance) < -1 * CO2_limit.loc["CO2 limit"]
-    assert co2_to_environment * (1 + tolerance) > -1 * CO2_limit.loc["CO2 limit"]
+    assert (
+        co2_to_environment * (1 - tolerance) < -1 * CO2_limit.loc["CO2 limit", "Total"]
+    )
+    assert (
+        co2_to_environment * (1 + tolerance) > -1 * CO2_limit.loc["CO2 limit", "Total"]
+    )

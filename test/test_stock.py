@@ -67,7 +67,6 @@ def stock_esM():
         lengthUnit="km",
         verboseLogLevel=1,
         balanceLimit=None,
-        lowerBound=False,
     )
 
     # time step length [h]

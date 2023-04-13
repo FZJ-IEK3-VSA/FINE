@@ -46,11 +46,12 @@ class Source(Component):
         interestRate=0.08,
         economicLifetime=10,
         technicalLifetime=None,
-        floorTechnicalLifetime=True,
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
         balanceLimitID=None,
+        pathwayBalanceLimitID=None,
         stockCommissioning=None,
+        floorTechnicalLifetime=True,
     ):
 
         """
@@ -214,6 +215,10 @@ class Source(Component):
             it is imported into the region it is considered positive.
             |br| * the default value is None
         :type balanceLimitID: string
+
+        :param pathwayBalanceLimitID: similar to balanceLimitID just as restriction over the entire pathway.
+            |br| * the default value is None
+        :type pathwayBalanceLimitID: string
         """
 
         Component.__init__(
@@ -257,6 +262,7 @@ class Source(Component):
         # TODO check value and type correctness
         self.commodityLimitID = commodityLimitID
         self.balanceLimitID = balanceLimitID
+        self.pathwayBalanceLimitID = pathwayBalanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
@@ -547,7 +553,9 @@ class Sink(Source):
         economicLifetime=10,
         technicalLifetime=None,
         balanceLimitID=None,
+        pathwayBalanceLimitID=None,
         stockCommissioning=None,
+        floorTechnicalLifetime=True,
     ):
         """
         Constructor for creating an Sink class instance.
@@ -593,7 +601,9 @@ class Sink(Source):
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
             balanceLimitID=balanceLimitID,
+            pathwayBalanceLimitID=pathwayBalanceLimitID,
             stockCommissioning=stockCommissioning,
+            floorTechnicalLifetime=floorTechnicalLifetime,
         )
 
         self.sign = -1
@@ -866,7 +876,7 @@ class SourceSinkModel(ComponentModel):
         )
 
     def getBalanceLimitContribution(
-        self, esM, pyM, ID, ip, timeSeriesAggregation, loc=None
+        self, esM, pyM, ID, ip, timeSeriesAggregation, loc, componentNames
     ):
         """
         Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
@@ -896,13 +906,12 @@ class SourceSinkModel(ComponentModel):
 
         :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
         :type loc: string
+
+        :param componentNames: Names of components which contribute to the balance limit
+        :type componentNames: list
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, opVarDict = (
-            getattr(pyM, "op_" + abbrvName),
-            getattr(pyM, "operationVarDict_" + abbrvName),
-        )
-        limitDict = getattr(pyM, "balanceLimitDict")
+        opVar = getattr(pyM, "op_" + abbrvName)
 
         if timeSeriesAggregation:
             periods = esM.typicalPeriods
@@ -913,17 +922,17 @@ class SourceSinkModel(ComponentModel):
         else:
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
-        # Check if locational input is not set in esM, if so additionally loop over all locations
-        if loc is None:
+        # Check if locational input is not set as Total in esM, if so additionally loop over all locations
+        if loc == "Total":
             balance = sum(
-                opVar[loc, compName, ip, p, t]
+                opVar[_loc, compName, ip, p, t]
                 * compDict[compName].sign
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
-                if compName in limitDict[ID]
+                if compName in componentNames
                 for p in periods
                 for t in timeSteps
-                for loc in esM.locations
+                for _loc in esM.locations
             )
         # Otherwise get the contribution for specific region
         else:
@@ -932,7 +941,7 @@ class SourceSinkModel(ComponentModel):
                 * compDict[compName].sign
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
-                if compName in limitDict[(ID, loc)]
+                if compName in componentNames
                 for p in periods
                 for t in timeSteps
             )

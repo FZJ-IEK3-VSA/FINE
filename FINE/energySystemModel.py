@@ -80,7 +80,7 @@ class EnergySystemModel:
         lengthUnit="km",
         verboseLogLevel=0,
         balanceLimit=None,
-        lowerBound=False,
+        pathwayBalanceLimit=None,
         annuityPerpetuity=False,
     ):
         """
@@ -182,30 +182,26 @@ class EnergySystemModel:
         :type verboseLogLevel: integer (0, 1 or 2)
 
         :param balanceLimit: defines the balanceLimit constraint (various different balanceLimitIDs possible)
-            for specific regions or the whole model. Furthermore the balanceLimit can be specified per investment period.
+            for specific regions or the whole model and optional also per investment period.
             The balancelimitID can be assigned to various components of e.g. SourceSinkModel or
             TransmissionModel to limit the balance of production, consumption and im/export.
-            If the balanceLimit is passed as pd.Series it will apply to the overall model, if it is passed
-            as pd.Dataframe each column will apply to one region of the multi-node model. In the latter case,
-            the number and names of the columns should match the regions/region names in the model.
-            Each row contains an individual balanceLimitID as index and the corresponding values for the model
-            (pd.Series) or regions (pd.Dataframe). If the balanceLimit is passed
-            as a dict with either the described pd.DataFrames or pd.Series as values it is considered per investment period.
+
+            Regional dependency:
+            The balanceLimit is defined as a pd.DataFrame. Each row contains an individual balanceLimitID as
+            index, the corresponding regional scope as columns and the values as data. The regional scope can be set
+            for a region with the matching region name as column name or "Total" as colum name for setting for the entire system.
+            Example:
+            - per region: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
+            - per region and per system: pd.DataFrame(columns=["Region1","Total"], index=["electricity"], data=[1000,2000])
+
+            Temporal dependency:
+            If the balanceLimit is passed as a dict with the described pd.DataFrames as values it is considered per investment period.
             Values are always given in the unit of the esM commodities unit.\n
-            Example: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
 
-            .. note::
-                If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
-                defined as negative.
-
-            |br| * the default value is None
-        :type balanceLimit:
-            * pd.DataFrame
-            * pd.Series
-            * dictionary with investment periods years as keys, and one of the two above mentioned as values
-
-        :param lowerBound: defines whether a lowerBound or an upperBound is considered in the balanceLimitConstraint.
-            By default an upperBound is considered. However, multiple cases can be considered:\n
+            Optional: A column named 'lowerBound' can be passed to specify if
+            the limit is an upper or lower bound.
+            By default an upperBound is considered ('lowerBound'=False).
+            However, multiple cases can be considered:\n
             1) Sources:\n
                 a) LowerBound=False: UpperBound for commodity from SourceComponent (Define positive value in
                 balanceLimit). Example: Limit CO2-Emission\n
@@ -218,14 +214,26 @@ class EnergySystemModel:
                 b) LowerBound=True: LowerBound in a mathematical sense for commodity from SourceComponent
                 (Logically maximum limit for negative values, define negative value in balanceLimit).
                 Example: Define upper limit for Carbon Capture & Storage.\n
-            |br| * the default value is False
+
+            .. note::
+                If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
+                defined as negative.
+
+            |br| * the default value is None
+
+        :type balanceLimit:
+            * pd.DataFrame
+            * dictionary with investment periods years as keys, and pd.DataFrame as values
+            |br| * the default value is None
         :type lowerBound: bool
 
-        :param annuityPerpetuity: defines weather a perpetuity will be declared for the system design and
-            operation of the final investment period of the transformation pathway. It implies an infinite
-            repetition of the last investment period after the end of the transformation pathway.
-            |br| * the default value is False
-        :type annuityPerpetuity: bool
+        :param pathwayBalanceLimit: the pathway balance limit defines commodity balance (lower or upper bound) for the pathway.
+            The structure is similar to the balanceLimit, however does without the temporal dependency per investment period.
+
+            Examples: CO2 budget for the entire transformation pathway
+
+            |br| * the default value is None
+        :type pathwayBalanceLimit: None or pd.DataFrame
         """
 
         # Check correctness of inputs
@@ -256,7 +264,6 @@ class EnergySystemModel:
         self._locationsOrdered = sorted(locations)
 
         self.numberOfTimeSteps = numberOfTimeSteps
-        self.lowerBound = lowerBound
 
         ################################################################################################################
         #                                            Time series parameters                                            #
@@ -338,8 +345,12 @@ class EnergySystemModel:
 
         # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
         self.balanceLimit = balanceLimit
+        self.pathwayBalanceLimit = pathwayBalanceLimit
         self.processedBalanceLimit = utils.checkAndSetBalanceLimit(
             self, balanceLimit, locations
+        )
+        self.processedPathwayBalanceLimit = utils.checkAndSetPathwayBalanceLimit(
+            self, pathwayBalanceLimit, locations
         )
         self.processedBalanceLimit = utils.setParamToNoneIfNoneForAllYears(
             self.processedBalanceLimit
@@ -1229,8 +1240,8 @@ class EnergySystemModel:
         boundaries. See the documentation of the parameters for further explanation. In general the following equation
         applies:
 
-            E_source - E_sink + E_exchange,in - E_exchange,out <= E_lim (self.LowerBound=False)
-            E_source - E_sink + E_exchange,in - E_exchange,out >= E_lim (self.LowerBound=True)
+            E_source - E_sink + E_exchange,in - E_exchange,out <= E_lim (LowerBound=False)
+            E_source - E_sink + E_exchange,in - E_exchange,out >= E_lim (LowerBound=True)
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -1244,109 +1255,122 @@ class EnergySystemModel:
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
         """
-        balanceLimitDict = {}
-        # 2 differentiations (or 4 cases). 1st: Locational or not; 2nd: lowerBound or not (lower bound)
-        # DataFrame with locational input. Otherwise error is thrown in input check.
-        for ip in self.investmentPeriods:
-            if self.processedBalanceLimit is None:
-                break  # only do the setup if there is a balance limit
-            if type(self.processedBalanceLimit[ip]) == pd.DataFrame:
-                for mdl_type, mdl in self.componentModelingDict.items():
-                    if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
-                        for compName, comp in mdl.componentsDict.items():
-                            if comp.balanceLimitID is not None:
-                                [
+        # 1) balance limit for individual years
+        if (
+            self.processedBalanceLimit is not None
+            or self.processedPathwayBalanceLimit is not None
+        ):
+            balanceLimitDict = {}
+
+            # Check for node specific and total limits:
+            for mdl_type, mdl in self.componentModelingDict.items():
+                if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
+                    for compName, comp in mdl.componentsDict.items():
+                        # 1. set yearly balance limits
+                        if comp.balanceLimitID is not None:
+                            # set balance limit per investment period
+                            for ip in self.investmentPeriods:
+                                # 1.1 locational restriction
+                                for loc in self.locations:
+                                    if (
+                                        self.processedBalanceLimit[ip].loc[
+                                            comp.balanceLimitID, loc
+                                        ]
+                                        is not None
+                                    ):
+                                        # locations specific restriction
+                                        balanceLimitDict.setdefault(
+                                            (comp.balanceLimitID, loc, ip), []
+                                        ).append(compName)
+                                # 1.2 for total restriction
+                                if (
+                                    self.processedBalanceLimit[ip].loc[
+                                        comp.balanceLimitID, "Total"
+                                    ]
+                                    is not None
+                                ):
                                     balanceLimitDict.setdefault(
-                                        (comp.balanceLimitID, loc), []
+                                        (comp.balanceLimitID, "Total", ip), []
                                     ).append(compName)
-                                    for loc in self.locations
+
+                        # 2. set pathway balance limits
+                        if comp.pathwayBalanceLimitID is not None:
+                            # 2.1 locational restriction
+                            for loc in self.locations:
+                                if (
+                                    self.processedPathwayBalanceLimit.loc[
+                                        comp.pathwayBalanceLimitID, loc
+                                    ]
+                                    is not None
+                                ):
+                                    # locations specific restriction
+                                    balanceLimitDict.setdefault(
+                                        (comp.pathwayBalanceLimitID, loc, None), []
+                                    ).append(compName)
+
+                            # 2.2 for total restriction
+                            if (
+                                self.processedPathwayBalanceLimit.loc[
+                                    comp.pathwayBalanceLimitID, "Total"
                                 ]
-                setattr(pyM, "balanceLimitDict", balanceLimitDict)
-
-                def balanceLimitConstraint(pyM, ID, loc):
-                    # Check whether we want to consider an upper or lower bound.
-                    if not self.lowerBound:
-                        return (
-                            sum(
-                                mdl.getBalanceLimitContribution(
-                                    esM=self,
-                                    pyM=pyM,
-                                    ID=ID,
-                                    ip=ip,
-                                    timeSeriesAggregation=timeSeriesAggregation,
-                                    loc=loc,
-                                )
-                                for mdl_type, mdl in self.componentModelingDict.items()
-                                if (
-                                    mdl_type == "SourceSinkModel"
-                                    or mdl_type == "TransmissionModel"
-                                )
-                            )
-                            <= self.processedBalanceLimit[ip].loc[ID, loc]
-                        )
-                    else:
-                        return (
-                            sum(
-                                mdl.getBalanceLimitContribution(
-                                    esM=self,
-                                    pyM=pyM,
-                                    ID=ID,
-                                    ip=ip,
-                                    timeSeriesAggregation=timeSeriesAggregation,
-                                    loc=loc,
-                                )
-                                for mdl_type, mdl in self.componentModelingDict.items()
-                                if (
-                                    mdl_type == "SourceSinkModel"
-                                    or mdl_type == "TransmissionModel"
-                                )
-                            )
-                            >= self.processedBalanceLimit[ip].loc[ID, loc]
-                        )
-
-            # Series as input. Whole model is considered.
-            else:
-                for mdl_type, mdl in self.componentModelingDict.items():
-                    if mdl_type == "SourceSinkModel":
-                        for compName, comp in mdl.componentsDict.items():
-                            if comp.balanceLimitID is not None:
+                                is not None
+                            ):
                                 balanceLimitDict.setdefault(
-                                    (comp.balanceLimitID), []
+                                    (comp.pathwayBalanceLimitID, "Total", None), []
                                 ).append(compName)
+
                 setattr(pyM, "balanceLimitDict", balanceLimitDict)
 
-                def balanceLimitConstraint(pyM, ID):
-                    # Check wether we want to consider an upper or lower bound
-                    if not self.lowerBound:
-                        return (
-                            sum(
-                                mdl.getBalanceLimitContribution(
-                                    esM=self,
-                                    pyM=pyM,
-                                    ID=ID,
-                                    ip=ip,
-                                    timeSeriesAggregation=timeSeriesAggregation,
-                                )
-                                for mdl_type, mdl in self.componentModelingDict.items()
-                                if (mdl_type == "SourceSinkModel")
-                            )
-                            <= self.processedBalanceLimit[ip].loc[ID]
+            def balanceLimitConstraint(pyM, ID, loc, ip):
+                # pathway restricition
+                if ip is None:
+                    balanceSum = sum(
+                        mdl.getBalanceLimitContribution(
+                            esM=self,
+                            pyM=pyM,
+                            ID=ID,
+                            ip=_ip,
+                            timeSeriesAggregation=timeSeriesAggregation,
+                            loc=loc,
+                            componentNames=balanceLimitDict[(ID, loc, None)],
                         )
-                    else:
-                        return (
-                            sum(
-                                mdl.getBalanceLimitContribution(
-                                    esM=self,
-                                    pyM=pyM,
-                                    ID=ID,
-                                    ip=ip,
-                                    timeSeriesAggregation=timeSeriesAggregation,
-                                )
-                                for mdl_type, mdl in self.componentModelingDict.items()
-                                if (mdl_type == "SourceSinkModel")
-                            )
-                            >= self.processedBalanceLimit[ip].loc[ID]
+                        for mdl_type, mdl in self.componentModelingDict.items()
+                        for _ip in self.investmentPeriods
+                        if (
+                            mdl_type == "SourceSinkModel"
+                            or mdl_type == "TransmissionModel"
                         )
+                    )
+                    value = self.processedPathwayBalanceLimit.loc[ID, loc]
+                    lowerBound = self.processedPathwayBalanceLimit.loc[ID, "lowerBound"]
+                    temporalScope = self.investmentPeriodInterval
+
+                # yearly restriction
+                else:
+                    balanceSum = sum(
+                        mdl.getBalanceLimitContribution(
+                            esM=self,
+                            pyM=pyM,
+                            ID=ID,
+                            ip=ip,
+                            timeSeriesAggregation=timeSeriesAggregation,
+                            loc=loc,
+                            componentNames=balanceLimitDict[(ID, loc, ip)],
+                        )
+                        for mdl_type, mdl in self.componentModelingDict.items()
+                        if (
+                            mdl_type == "SourceSinkModel"
+                            or mdl_type == "TransmissionModel"
+                        )
+                    )
+                    value = self.processedBalanceLimit[ip].loc[ID, loc]
+                    lowerBound = self.processedBalanceLimit[ip].loc[ID, "lowerBound"]
+                    temporalScope = 1
+                # Check whether we want to consider an upper or lower bound.
+                if lowerBound == 0:
+                    return balanceSum * temporalScope <= value
+                else:
+                    return balanceSum * temporalScope >= value
 
             pyM.balanceLimitConstraint = pyomo.Constraint(
                 pyM.balanceLimitDict.keys(),

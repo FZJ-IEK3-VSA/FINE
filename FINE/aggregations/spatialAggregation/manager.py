@@ -3,6 +3,7 @@
 import os
 import logging
 import warnings
+import difflib
 from FINE.aggregations.spatialAggregation import grouping
 from FINE.aggregations.spatialAggregation import aggregation
 from FINE.aggregations.spatialAggregation import managerUtils as manUtils
@@ -188,6 +189,7 @@ def perform_spatial_aggregation(
             "QPcostScale": ("sum", None),\n
             "technicalLifetime": ("mean", None),\n
             "balanceLimit": ("sum", None)\n
+            "pathwayBalanceLimit": ("sum", None)\n
             }
 
         |br| * the default value is None
@@ -328,6 +330,7 @@ def perform_spatial_aggregation(
         "QPcostScale": ("sum", None),
         "technicalLifetime": ("mean", None),
         "balanceLimit": ("sum", None),
+        "pathwayBalanceLimit": ("sum", None),
     }
 
     ### if the user has passed some values, update the dict

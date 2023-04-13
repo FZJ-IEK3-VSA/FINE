@@ -39,7 +39,6 @@ def minimal_test_esM(scope="session"):
         lengthUnit="km",
         verboseLogLevel=1,
         balanceLimit=None,
-        lowerBound=False,
     )
 
     # time step length [h]
@@ -226,7 +225,6 @@ def single_node_test_esM():
         lengthUnit="km",
         verboseLogLevel=1,
         balanceLimit=None,
-        lowerBound=False,
     )
 
     # time step length [h]
@@ -1878,7 +1876,6 @@ def multi_node_test_esM_optimized(scope="session"):
         lengthUnit="km",
         verboseLogLevel=0,
         balanceLimit=None,
-        lowerBound=False,
     )
 
     CO2_reductionTarget = 1
