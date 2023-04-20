@@ -49,8 +49,14 @@ def getKeyHierarchyOfNestedDict(
     elif variable_description.count(".") >= 1:
         key_list = variable_description.split(".")
 
-    # for ip: convert digits to ints
-    key_list = [int(x) if x.isdigit() else x for x in key_list]
+    # for (commis, ip) dependency: string to tuple
+    key_list = [eval(x) if x.startswith("(") else x for x in key_list]
+
+    # for ip: string of digits to ints
+    key_list = [
+        int(x) if (not isinstance(x, tuple) and x.isdigit()) else x for x in key_list
+    ]
+
     return key_list
 
 

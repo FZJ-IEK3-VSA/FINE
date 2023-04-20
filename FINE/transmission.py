@@ -179,9 +179,6 @@ class Transmission(Component):
             operationTimeSeries = operationRateFix
         else:
             operationTimeSeries = operationRateMax
-        # operationTimeSeries = (
-        #     operationRateFix if operationRateFix is not None else operationRateMax
-        # )
 
         if not isinstance(operationTimeSeries, dict):
             operationTimeSeries = dict.fromkeys(

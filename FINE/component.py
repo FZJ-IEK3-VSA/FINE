@@ -685,22 +685,15 @@ class Component(metaclass=ABCMeta):
         :return: data
         :rtype: Pandas DataFrame
         """
-        # rateFix/rateMax are either dictionaries for perfect foresight or None
-        if rateFix is None:
-            pass
+        # rateFix/rateMax can be passed as a dict with investment periods
+        if isinstance(rateFix, dict):
+            rateFix = rateFix[ip]
         else:
-            if isinstance(rateFix, dict):
-                rateFix = rateFix[ip]
-            elif isinstance(rateFix, pd.DataFrame):
-                rateFix = rateFix
-
-        if rateMax is None:
             pass
+        if isinstance(rateMax, dict):
+            rateMax = rateMax[ip]
         else:
-            if isinstance(rateMax, dict):
-                rateMax = rateMax[ip]
-            elif isinstance(rateMax, pd.DataFrame):
-                rateMax = rateMax
+            pass
 
         data_ = rateFix if rateFix is not None else rateMax
         if data_ is not None:
@@ -736,11 +729,12 @@ class Component(metaclass=ABCMeta):
         :rtype: Pandas DataFrame
         """
         if rate is not None:
+
             if isinstance(rate, dict):
                 uniqueIdentifiers = [
                     self.name + rateName + loc for loc in rate[ip].columns
                 ]
-                data_ = data[uniqueIdentifiers].copy()
+                data_ = data[uniqueIdentifiers].copy(deep=True)
                 data_.rename(
                     columns={
                         self.name + rateName + loc: loc for loc in rate[ip].columns
@@ -749,7 +743,7 @@ class Component(metaclass=ABCMeta):
                 )
             elif isinstance(rate, pd.DataFrame):
                 uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
-                data_ = data[uniqueIdentifiers].copy()
+                data_ = data[uniqueIdentifiers].copy(deep=True)
                 data_.rename(
                     columns={self.name + rateName + loc: loc for loc in rate.columns},
                     inplace=True,
@@ -1475,6 +1469,7 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         opRateFixName="processedOperationRateFix",
         opRateMaxName="processedOperationRateMax",
+        isOperationCommisYearDepending=False,
         relevanceThreshold=None,
     ):
         """
@@ -1498,6 +1493,9 @@ class ComponentModel(metaclass=ABCMeta):
         :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
+
+        :param isOperationCommisYearDepending: defines weather the operation variable is depending on the year of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency, variates over the transformation pathway
+        :type isOperationCommisYearDepending: str
         """
         abbrvName, compDict = self.abbrvName, self.componentsDict
 
@@ -1561,16 +1559,32 @@ class ComponentModel(metaclass=ABCMeta):
             else:
                 return (0, None)
 
-        setattr(
-            pyM,
-            opVarName + "_" + abbrvName,
-            pyomo.Var(
-                getattr(pyM, "operationVarSet_" + abbrvName),
-                pyM.intraYearTimeSet,
-                domain=pyomo.NonNegativeReals,
-                bounds=opBounds,
-            ),
-        )
+        if isOperationCommisYearDepending:
+            # if the operation is depending on the year of commissioning, e.g. due to variable efficienies over the transformation pathway, the operation is additionaly depending on commis
+            def opBounds_commisDepending(pyM, loc, compName, commis, ip, p, t):
+                return opBounds(pyM, loc, compName, ip, p, t)
+
+            setattr(
+                pyM,
+                opVarName + "_" + abbrvName,
+                pyomo.Var(
+                    getattr(pyM, "operationCommisVarSet_" + abbrvName),
+                    pyM.intraYearTimeSet,
+                    domain=pyomo.NonNegativeReals,
+                    bounds=opBounds_commisDepending,
+                ),
+            )
+        else:
+            setattr(
+                pyM,
+                opVarName + "_" + abbrvName,
+                pyomo.Var(
+                    getattr(pyM, "operationVarSet_" + abbrvName),
+                    pyM.intraYearTimeSet,
+                    domain=pyomo.NonNegativeReals,
+                    bounds=opBounds,
+                ),
+            )
 
     def declareOperationBinaryVars(self, pyM, opVarBinName):
         """
@@ -2032,6 +2046,7 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         factorName=None,
         isStateOfCharge=False,
+        isOperationCommisYearDepending=False,
     ):
         """
         Define operation mode 1. The operation [commodityUnit*h] is limited by the installed capacity in:\n
@@ -2045,23 +2060,38 @@ class ComponentModel(metaclass=ABCMeta):
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = (
-            getattr(pyM, opVarName + "_" + abbrvName),
-            getattr(pyM, "cap_" + abbrvName),
-        )
+        opVar = getattr(pyM, opVarName + "_" + abbrvName)
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        commisVar = getattr(pyM, "commis_" + abbrvName)
         constrSet1 = getattr(pyM, constrSetName + "1_" + abbrvName)
-        # operationRate is the same for all ip
+
         if not pyM.hasSegmentation:
             factor1 = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            if isOperationCommisYearDepending:
 
-            def op1(pyM, loc, compName, ip, p, t):
-                factor2 = (
-                    1 if factorName is None else getattr(compDict[compName], factorName)
-                )
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= factor1 * factor2 * capVar[loc, compName, ip]
-                )
+                def op1(pyM, loc, compName, commis, ip, p, t):
+                    factor2 = (
+                        1
+                        if factorName is None
+                        else getattr(compDict[compName], factorName)
+                    )
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        <= factor1 * factor2 * commisVar[loc, compName, commis]
+                    )
+
+            else:
+
+                def op1(pyM, loc, compName, ip, p, t):
+                    factor2 = (
+                        1
+                        if factorName is None
+                        else getattr(compDict[compName], factorName)
+                    )
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        <= factor1 * factor2 * capVar[loc, compName, ip]
+                    )
 
             setattr(
                 pyM,
@@ -2069,20 +2099,41 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet1, pyM.intraYearTimeSet, rule=op1),
             )
         else:
+            if isOperationCommisYearDepending:
 
-            def op1(pyM, loc, compName, ip, p, t):
-                factor1 = (
-                    (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                    if isStateOfCharge
-                    else esM.hoursPerSegment[ip].to_dict()
-                )
-                factor2 = (
-                    1 if factorName is None else getattr(compDict[compName], factorName)
-                )
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= factor1[p, t] * factor2 * capVar[loc, compName, ip]
-                )  # factor not dependend on ip
+                def op1(pyM, loc, compName, commis, ip, p, t):
+                    factor1 = (
+                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                        if isStateOfCharge
+                        else esM.hoursPerSegment[ip].to_dict()
+                    )
+                    factor2 = (
+                        1
+                        if factorName is None
+                        else getattr(compDict[compName], factorName)
+                    )
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        <= factor1[p, t] * factor2 * commisVar[loc, compName, commis]
+                    )  # factor not dependend on ip
+
+            else:
+
+                def op1(pyM, loc, compName, ip, p, t):
+                    factor1 = (
+                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                        if isStateOfCharge
+                        else esM.hoursPerSegment[ip].to_dict()
+                    )
+                    factor2 = (
+                        1
+                        if factorName is None
+                        else getattr(compDict[compName], factorName)
+                    )
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        <= factor1[p, t] * factor2 * capVar[loc, compName, ip]
+                    )  # factor not dependend on ip
 
             setattr(
                 pyM,
@@ -2099,6 +2150,7 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         opRateName="processedOperationRateFix",
         isStateOfCharge=False,
+        isOperationCommisYearDepending=False,
     ):
         """
         Define operation mode 2. The operation [commodityUnit*h] is equal to the installed capacity multiplied
@@ -2114,21 +2166,30 @@ class ComponentModel(metaclass=ABCMeta):
         # additions for perfect foresight
         # operationRate is the same for all ip
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = (
-            getattr(pyM, opVarName + "_" + abbrvName),
-            getattr(pyM, "cap_" + abbrvName),
-        )
+        opVar = getattr(pyM, opVarName + "_" + abbrvName)
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        commisVar = getattr(pyM, "commis_" + abbrvName)
         constrSet2 = getattr(pyM, constrSetName + "2_" + abbrvName)
 
         if not pyM.hasSegmentation:
             factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            if isOperationCommisYearDepending:
 
-            def op2(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    == capVar[loc, compName, ip] * rate[loc][p, t] * factor
-                )  # rate independent from ip
+                def op2(pyM, loc, compName, commis, ip, p, t):
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        == commisVar[loc, compName, commis] * rate[loc][p, t] * factor
+                    )  # rate independent from ip
+
+            else:
+
+                def op2(pyM, loc, compName, ip, p, t):
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        == capVar[loc, compName, ip] * rate[loc][p, t] * factor
+                    )  # rate independent from ip
 
             setattr(
                 pyM,
@@ -2136,18 +2197,35 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet2, pyM.intraYearTimeSet, rule=op2),
             )
         else:
+            if isOperationCommisYearDepending:
 
-            def op2(pyM, loc, compName, ip, p, t):
-                factor = (
-                    (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                    if isStateOfCharge
-                    else esM.hoursPerSegment[ip].to_dict()
-                )
-                rate = getattr(compDict[compName], opRateName)[ip]
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    == capVar[loc, compName, ip] * rate[loc][p, t] * factor[p, t]
-                )
+                def op2(pyM, loc, compName, commis, ip, p, t):
+                    factor = (
+                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                        if isStateOfCharge
+                        else esM.hoursPerSegment[ip].to_dict()
+                    )
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        == commisVar[loc, compName, commis]
+                        * rate[loc][p, t]
+                        * factor[p, t]
+                    )
+
+            else:
+
+                def op2(pyM, loc, compName, ip, p, t):
+                    factor = (
+                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                        if isStateOfCharge
+                        else esM.hoursPerSegment[ip].to_dict()
+                    )
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        == capVar[loc, compName, ip] * rate[loc][p, t] * factor[p, t]
+                    )
 
             setattr(
                 pyM,
@@ -2164,6 +2242,7 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         opRateName="processedOperationRateMax",
         isStateOfCharge=False,
+        isOperationCommisYearDepending=False,
         relevanceThreshold=None,
     ):
         """
@@ -2182,26 +2261,40 @@ class ComponentModel(metaclass=ABCMeta):
         """
         # operationRate is the same for all ip
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, capVar = (
-            getattr(pyM, opVarName + "_" + abbrvName),
-            getattr(pyM, "cap_" + abbrvName),
-        )
+        opVar = getattr(pyM, opVarName + "_" + abbrvName)
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        commisVar = getattr(pyM, "commis_" + abbrvName)
         constrSet3 = getattr(pyM, constrSetName + "3_" + abbrvName)
 
         if not pyM.hasSegmentation:
             factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            if isOperationCommisYearDepending:
 
-            def op3(pyM, loc, compName, ip, p, t):
-                rate = getattr(compDict[compName], opRateName)[ip]
-                if relevanceThreshold is not None:
-                    validTreshold = 0 < relevanceThreshold
-                    if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
-                        # operationRate is lower than threshold --> set to 0
-                        return opVar[loc, compName, ip, p, t] == 0
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= capVar[loc, compName, ip] * rate[loc][p, t] * factor
-                )
+                def op3(pyM, loc, compName, commis, ip, p, t):
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    if relevanceThreshold is not None:
+                        validTreshold = 0 < relevanceThreshold
+                        if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                            # operationRate is lower than threshold --> set to 0
+                            return opVar[loc, compName, commis, ip, p, t] == 0
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        <= commisVar[loc, compName, commis] * rate[loc][p, t] * factor
+                    )
+
+            else:
+
+                def op3(pyM, loc, compName, ip, p, t):
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    if relevanceThreshold is not None:
+                        validTreshold = 0 < relevanceThreshold
+                        if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                            # operationRate is lower than threshold --> set to 0
+                            return opVar[loc, compName, ip, p, t] == 0
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        <= capVar[loc, compName, ip] * rate[loc][p, t] * factor
+                    )
 
             setattr(
                 pyM,
@@ -2209,23 +2302,45 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet3, pyM.intraYearTimeSet, rule=op3),
             )
         else:
+            if isOperationCommisYearDepending:
 
-            def op3(pyM, loc, compName, ip, p, t):
-                factor = (
-                    (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                    if isStateOfCharge
-                    else esM.hoursPerSegment[ip].to_dict()
-                )
-                rate = getattr(compDict[compName], opRateName)[ip]
-                if relevanceThreshold is not None:
-                    validTreshold = 0 < relevanceThreshold
-                    if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
-                        # operationRate is lower than threshold --> set to 0
-                        return opVar[loc, compName, ip, p, t] == 0
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= capVar[loc, compName, ip] * rate[loc][p, t] * factor[p, t]
-                )  # rate and factor independent from ip
+                def op3(pyM, loc, compName, commis, ip, p, t):
+                    factor = (
+                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                        if isStateOfCharge
+                        else esM.hoursPerSegment[ip].to_dict()
+                    )
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    if relevanceThreshold is not None:
+                        validTreshold = 0 < relevanceThreshold
+                        if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                            # operationRate is lower than threshold --> set to 0
+                            return opVar[loc, compName, commis, ip, p, t] == 0
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        <= commisVar[loc, compName, commis]
+                        * rate[loc][p, t]
+                        * factor[p, t]
+                    )  # rate and factor independent from ip
+
+            else:
+
+                def op3(pyM, loc, compName, ip, p, t):
+                    factor = (
+                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                        if isStateOfCharge
+                        else esM.hoursPerSegment[ip].to_dict()
+                    )
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    if relevanceThreshold is not None:
+                        validTreshold = 0 < relevanceThreshold
+                        if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                            # operationRate is lower than threshold --> set to 0
+                            return opVar[loc, compName, ip, p, t] == 0
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        <= capVar[loc, compName, ip] * rate[loc][p, t] * factor[p, t]
+                    )  # rate and factor independent from ip
 
             setattr(
                 pyM,
@@ -2234,7 +2349,15 @@ class ComponentModel(metaclass=ABCMeta):
             )
 
     def additionalMinPartLoad(
-        self, pyM, esM, constrName, constrSetName, opVarName, opVarBinName, capVarName
+        self,
+        pyM,
+        esM,
+        constrName,
+        constrSetName,
+        opVarName,
+        opVarBinName,
+        capVarName,
+        isOperationCommisYearDepending=False,
     ):
         """
         Set, if applicable, the minimal part load of a component.
@@ -2247,14 +2370,26 @@ class ComponentModel(metaclass=ABCMeta):
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
         opVarBin = getattr(pyM, opVarBinName + "_" + abbrvName)
         capVar = getattr(pyM, capVarName + "_" + abbrvName)
+        commisVar = getattr(pyM, "commis_" + abbrvName)
         constrSetMinPartLoad = getattr(pyM, constrSetName + "partLoadMin_" + abbrvName)
 
-        def opMinPartLoad1(pyM, loc, compName, ip, p, t):
-            bigM = getattr(compDict[compName], "bigM")
-            return (
-                opVar[loc, compName, ip, p, t]
-                <= opVarBin[loc, compName, ip, p, t] * bigM
-            )
+        if isOperationCommisYearDepending:
+
+            def opMinPartLoad1(pyM, loc, compName, commis, ip, p, t):
+                bigM = getattr(compDict[compName], "bigM")
+                return (
+                    opVar[loc, compName, commis, ip, p, t]
+                    <= opVarBin[loc, compName, commis, ip, p, t] * bigM
+                )
+
+        else:
+
+            def opMinPartLoad1(pyM, loc, compName, ip, p, t):
+                bigM = getattr(compDict[compName], "bigM")
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    <= opVarBin[loc, compName, ip, p, t] * bigM
+                )
 
         setattr(
             pyM,
@@ -2263,17 +2398,31 @@ class ComponentModel(metaclass=ABCMeta):
                 constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1
             ),
         )
+        if isOperationCommisYearDepending:
 
-        def opMinPartLoad2(pyM, loc, compName, ip, p, t):
-            processedPartLoadMin = getattr(compDict[compName], "processedPartLoadMin")[
-                ip
-            ]
-            bigM = getattr(compDict[compName], "bigM")
-            return (
-                opVar[loc, compName, ip, p, t]
-                >= processedPartLoadMin * capVar[loc, compName, ip]
-                - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
-            )
+            def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
+                processedPartLoadMin = getattr(
+                    compDict[compName], "processedPartLoadMin"
+                )[ip]
+                bigM = getattr(compDict[compName], "bigM")
+                return (
+                    opVar[loc, compName, commis, ip, p, t]
+                    >= processedPartLoadMin * commisVar[loc, compName, commis]
+                    - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
+                )
+
+        else:
+
+            def opMinPartLoad2(pyM, loc, compName, ip, p, t):
+                processedPartLoadMin = getattr(
+                    compDict[compName], "processedPartLoadMin"
+                )[ip]
+                bigM = getattr(compDict[compName], "bigM")
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    >= processedPartLoadMin * capVar[loc, compName, ip]
+                    - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
+                )
 
         setattr(
             pyM,
@@ -2283,7 +2432,15 @@ class ComponentModel(metaclass=ABCMeta):
             ),
         )
 
-    def yearlyFullLoadHoursMin(self, pyM, esM):
+    def yearlyFullLoadHoursMin(
+        self,
+        pyM,
+        esM,
+        constrSetName,
+        constrName,
+        opVarName,
+        isOperationCommisYearDepending=False,
+    ):
         # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
         """
         Limit the annual full load hours to a minimum value.
@@ -2293,37 +2450,74 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param constrName: name for the constraint in esM.pyM
+        :type constrName: str
+
+        :param constrSetName: name of the constraint set
+        :type constrSetName: str
+
+        :param opVarName: name of the operation variables
+        :type opVarName: str
+
+        :param isOperationCommisYearDepending: defines weather the operation variable is depending on the year of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency, variates over the transformation pathway
+        :type isOperationCommisYearDepending: str
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
+        opVar = getattr(pyM, opVarName + "_" + abbrvName)
         capVar = getattr(pyM, "cap_" + abbrvName)
-        yearlyFullLoadHoursMinSet = getattr(
-            pyM, "yearlyFullLoadHoursMinSet_" + abbrvName
-        )
-
-        def yearlyFullLoadHoursMinConstraint(pyM, loc, compName, ip):
-            full_load_hours = (
-                sum(
-                    opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                    for p, t in pyM.intraYearTimeSet
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+        yearlyFullLoadHoursMinSet = getattr(pyM, constrSetName + "_" + abbrvName)
+        if isOperationCommisYearDepending:
+            # for technologies which have operations depending on the commissioning year, e.g. by variable commodity conversion factors
+            def yearlyFullLoadHoursMinConstraint(pyM, loc, compName, commis, ip):
+                full_load_hours = (
+                    sum(
+                        opVar[loc, compName, commis, ip, p, t]
+                        * esM.periodOccurrences[ip][p]
+                        for p, t in pyM.intraYearTimeSet
+                    )
+                    / esM.numberOfYears
                 )
-                / esM.numberOfYears
-            )
-            return (
-                full_load_hours
-                >= capVar[loc, compName, ip]
-                * compDict[compName].processedYearlyFullLoadHoursMin[ip][loc]
-            )
+                return (
+                    full_load_hours
+                    >= commisVar[loc, compName, commis]
+                    * compDict[compName].processedYearlyFullLoadHoursMin[ip][loc]
+                )
+
+        else:
+
+            def yearlyFullLoadHoursMinConstraint(pyM, loc, compName, ip):
+                full_load_hours = (
+                    sum(
+                        opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                        for p, t in pyM.intraYearTimeSet
+                    )
+                    / esM.numberOfYears
+                )
+                return (
+                    full_load_hours
+                    >= capVar[loc, compName, ip]
+                    * compDict[compName].processedYearlyFullLoadHoursMin[ip][loc]
+                )
 
         setattr(
             pyM,
-            "ConstrYearlyFullLoadHoursMin_" + abbrvName,
+            constrName + "_" + abbrvName,
             pyomo.Constraint(
                 yearlyFullLoadHoursMinSet, rule=yearlyFullLoadHoursMinConstraint
             ),
         )
 
-    def yearlyFullLoadHoursMax(self, pyM, esM):
+    def yearlyFullLoadHoursMax(
+        self,
+        pyM,
+        esM,
+        constrSetName,
+        constrName,
+        opVarName,
+        isOperationCommisYearDepending=False,
+    ):
         """
         Limit the annual full load hours to a maximum value.
 
@@ -2332,31 +2526,60 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param constrName: name for the constraint in esM.pyM
+        :type constrName: str
+
+        :param constrSetName: name of the constraint set
+        :type constrSetName: str
+
+        :param opVarName: name of the operation variables
+        :type opVarName: str
+
+        :param isOperationCommisYearDepending: defines weather the operation variable is depending on the year of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency, variates over the transformation pathway
+        :type isOperationCommisYearDepending: str
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
+        opVar = getattr(pyM, opVarName + "_" + abbrvName)
         capVar = getattr(pyM, "cap_" + abbrvName)
-        yearlyFullLoadHoursMaxSet = getattr(
-            pyM, "yearlyFullLoadHoursMaxSet_" + abbrvName
-        )
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+        yearlyFullLoadHoursMaxSet = getattr(pyM, constrSetName + "_" + abbrvName)
+        if isOperationCommisYearDepending:
 
-        def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, ip):
-            full_load_hours = (
-                sum(
-                    opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                    for p, t in pyM.intraYearTimeSet
+            def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, commis, ip):
+                full_load_hours = (
+                    sum(
+                        opVar[loc, compName, commis, ip, p, t]
+                        * esM.periodOccurrences[ip][p]
+                        for p, t in pyM.intraYearTimeSet
+                    )
+                    / esM.numberOfYears
                 )
-                / esM.numberOfYears
-            )
-            return (
-                full_load_hours
-                <= capVar[loc, compName, ip]
-                * compDict[compName].processedYearlyFullLoadHoursMax[ip][loc]
-            )
+                return (
+                    full_load_hours
+                    <= commisVar[loc, compName, commis]
+                    * compDict[compName].processedYearlyFullLoadHoursMax[ip][loc]
+                )
+
+        else:
+
+            def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, ip):
+                full_load_hours = (
+                    sum(
+                        opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                        for p, t in pyM.intraYearTimeSet
+                    )
+                    / esM.numberOfYears
+                )
+                return (
+                    full_load_hours
+                    <= capVar[loc, compName, ip]
+                    * compDict[compName].processedYearlyFullLoadHoursMax[ip][loc]
+                )
 
         setattr(
             pyM,
-            "ConstrYearlyFullLoadHoursMax_" + abbrvName,
+            constrName + "_" + abbrvName,
             pyomo.Constraint(
                 yearlyFullLoadHoursMaxSet, rule=yearlyFullLoadHoursMaxConstraint
             ),
