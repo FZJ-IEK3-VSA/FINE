@@ -524,7 +524,3 @@ def test_stock():
         esM.pyM.commis_conv.get_values()[("ElectrolyzerLocation", "Electrolyzers", 0)],
         rtol=0.005,
     )
-
-
-if __name__ == "__main__":
-    test_stock()

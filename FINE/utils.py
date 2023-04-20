@@ -818,7 +818,23 @@ def checkCapacityDevelopmentWithStock(
                     _techLifetime = math.ceil(technicalLifetime[loc])
                 yearRange = list(range(ip, ip + _techLifetime))
                 yearRange = [x for x in yearRange if x <= max(investmentPeriods)]
+
+                # for floating numbers a normal sum can lead to floating point issues,
+                # e.g. 4.19+2.19=6.380000000000001
+                # therefore a rounding is applied, as otherwise the following
+                # errors can be wrongly raised
+                if stockCommis[loc] - round(stockCommis[loc], 10) != 0:
+                    warnings.warn(
+                        f"A stock comissioning of {stockCommis[loc]} was "
+                        + f"passed for location {loc} in year {ip}. "
+                        + "It will be rounded to 10 digits to "
+                        + "check if the installed stock capacity does "
+                        + "not exceed capacityMax and capacityFix"
+                    )
                 stockCapacity.loc[yearRange, loc] += stockCommis[loc]
+                stockCapacity.loc[yearRange, loc] = round(
+                    stockCapacity.loc[yearRange, loc], 10
+                )
         # check that the capacity max is not lower as the resulting
         # stock capacity
         for loc in stockCapacity.columns:
@@ -2535,14 +2551,30 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 + "pd.Series with location as index and stock as value."
             )
 
-    # check if capacityMin and capacityMax is kept per region
+    # check if capacityFix and capacityMax is kept per region
     for loc in regions:
         installed_sum = 0
         for year in stockCommissioning.keys():
             if year < esM.startYear - component.technicalLifetime[loc]:
                 pass
             else:
-                installed_sum += stockCommissioning[year][loc]
+                # for floating numbers a normal sum can lead to floating point issues,
+                # e.g. 4.19+2.19=6.380000000000001
+                # therefore a rounding is applied, as otherwise the following
+                if (
+                    stockCommissioning[year][loc]
+                    - round(stockCommissioning[year][loc], 10)
+                    != 0
+                ):
+                    warnings.warn(
+                        f"A stock comissioning of {stockCommissioning[year][loc]} was "
+                        + f"passed for location {loc} in year {year}. "
+                        + "It will be rounded to 10 digits to "
+                        + "check if the installed stock capacity does "
+                        + "not exceed capacityMax and capacityFix"
+                    )
+                installed_sum += round(stockCommissioning[year][loc], 10)
+                installed_sum = round(installed_sum, 10)
         # reduce the installed_sum by the decommissioning, which will occur in
         # the first year
         if (
@@ -2583,7 +2615,7 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 + f"{loc} will not be considered "
                 + f"for years {list(stockOlderThanTechnicalLifetime.index)} as it "
                 + "exceeds the technical lifetime. A capacity of "
-                + f"{stockOlderThanTechnicalLifetime.sum().sum()} wil be dropped."
+                + f"{stockOlderThanTechnicalLifetime.sum().sum()} will be dropped."
             )
             stock_df.loc[yearsWithStockOlderThanTechLifetime, loc] = 0
 
@@ -2758,66 +2790,180 @@ def discountFactor(esM, ip, compName, loc):
 
 
 def checkAndSetCommodityConversionFactor(comp, esM):
-    """Set up the full commodity conversion factor per ip.
-    # TODO later also per commissioning year
+    """Set up the full commodity conversion factor, if necessary depending on
+    commissioning year and investment period.
     """
-    # Check for type
+    # Check that type is a dict
     if not isinstance(comp.commodityConversionFactors, dict):
         raise ValueError("commodityConversionFactor must be a dict")
 
-    # 1. check if the commodity conversion variates per investment period
-    isYearDependent = False
-    if any(isinstance(x, dict) for x in comp.commodityConversionFactors.values()):
-        # -> indictates ip dependency, then data required for all years
-        if not all(
-            isinstance(x, dict) for x in comp.commodityConversionFactors.values()
-        ):
-            raise ValueError(
-                "Some values of commodityConversionFactors are "
-                + "dictionaries, however not consistently."
+    # 0. get a copy of the commodityConversionFactors
+    commodityConversionFactors = comp.commodityConversionFactors.copy()
+
+    # 1. check if the commodity conversion variates
+    # a) not at all over transformation pathway
+    # b) per investment period -> weather dependency
+    # c) per commissioning year and investment period
+    dictInDict = any(isinstance(x, dict) for x in commodityConversionFactors.values())
+    commisInvestmentPeriodTuple = [
+        (x, y)
+        for x in (comp.stockYears + esM.investmentPeriodNames)
+        for y in esM.investmentPeriodNames
+        if y >= x and y < x + comp.technicalLifetime.max()
+    ]
+    dictKeys = sorted(list(commodityConversionFactors.keys()))
+
+    if not dictInDict:  # commodity conversion is not variated over time
+        comp.isIpDepending = False
+        comp.isCommisDepending = False
+        iterationList = esM.investmentPeriodNames
+    elif dictInDict and dictKeys == esM.investmentPeriodNames:
+        # commodity conversion is not variated between the investment periods
+        comp.isIpDepending = True
+        comp.isCommisDepending = False
+        iterationList = esM.investmentPeriodNames
+    elif dictInDict and dictKeys == sorted(commisInvestmentPeriodTuple):
+        # input keys of commodity conversion are variated over investment period and commissioning year
+
+        # check if also data is variated over commissioning year
+        isDataVariating = False
+        commissioningIndependentCommodityConversionFactor = {}
+        for ip in esM.investmentPeriodNames:
+            # get commodity conversion factors in ip for all possible commissioning years
+            _commisYearsForIp = [
+                (x, y) for (x, y) in commisInvestmentPeriodTuple if y == ip
+            ]
+            _commodConvFactorForIp = [
+                commodityConversionFactors[(x, y)] for (x, y) in _commisYearsForIp
+            ]
+            # define first one commodityConversionFactor of the ip as base to compare
+            _baseCommodConvFactor = commodityConversionFactors[_commisYearsForIp[0]]
+
+            # compare if all commodities are same as in the baseCommodConvFactor
+            for ccf in _commodConvFactorForIp:
+                for commod in ccf.keys():
+                    # check for same datatype
+                    if type(ccf[commod]) != type(_baseCommodConvFactor[commod]):
+                        raise ValueError(
+                            f"Unallowed data type variation for commodity {commod} for yearly dependency."
+                        )
+                    if isinstance(ccf[commod], (pd.Series, pd.DataFrame)):
+                        if not ccf[commod].equals(_baseCommodConvFactor[commod]):
+                            isDataVariating = True
+                            break
+                    else:
+                        if not ccf[commod] == _baseCommodConvFactor[commod]:
+                            isDataVariating = True
+                            break
+            # if all are same, save the base commodity conversion of the ip in the new dict
+            commissioningIndependentCommodityConversionFactor[
+                ip
+            ] = _baseCommodConvFactor
+
+        # if data is variating set commis depending true
+        if isDataVariating:
+            comp.isIpDepending = True
+            comp.isCommisDepending = True
+            iterationList = commisInvestmentPeriodTuple
+        # if data is not variating with the commis, set isCommisDepending to
+        # False and update the commodityConversionFactors
+        else:
+            comp.isIpDepending = True
+            comp.isCommisDepending = False
+            iterationList = esM.investmentPeriodNames
+            commodityConversionFactors = (
+                commissioningIndependentCommodityConversionFactor
             )
+    else:
+        raise ValueError(
+            f"Wrong format for commodityConversionFactors for {comp.name}. Please check the init"
+        )
 
     # 2. Check and set up commodity conversion factors
+    if comp.isIpDepending or comp.isCommisDepending:
+        commodities = []
+        for key, _commodConv in commodityConversionFactors.items():
+            commodities = _commodConv.keys()
+            checkCommodities(esM, set(_commodConv.keys()))
+        commodities = list(set(commodities))
+    else:
+        checkCommodities(esM, set(commodityConversionFactors.keys()))
+        commodities = list(set(commodityConversionFactors.keys()))
+
+    # 3. check that type of commodity conversion factors is constant over transformation pathway
+    # no switch if one commodity has data in type pd.series or pd.dataframe
+    if comp.isIpDepending or comp.isCommisDepending:
+        for commod in commodities:
+            # if there is one pd series or pd
+            if any(
+                isinstance(comFac[commod], (pd.Series, pd.DataFrame))
+                for comFac in commodityConversionFactors.values()
+            ):
+                commodTypes = [
+                    type(comFac[commod])
+                    for comFac in commodityConversionFactors.values()
+                ]
+                if len(set(commodTypes)) != 1:
+                    raise ValueError(
+                        f"Unallowed data type variation for commodity {commod} for yearly dependency."
+                    )
+
+    # 3. Setup of fullCommodityConversionFactor, processedConversionFactor
+    # and preprocessedConversionFactor
     fullCommodityConversionFactor = {}
     processedCommodityConversionFactor = {}
     preprocessedCommodityConversionFactor = {}
-    checkCommodities(esM, set(comp.commodityConversionFactors.keys()))
-
-    for ip in esM.investmentPeriods:
-        if isYearDependent:
-            _commodityConversionFactors = comp.commodityConversionFactors
+    for _key in iterationList:
+        # get the required name for the keys of the resulting dict
+        if comp.isCommisDepending:
+            (y1, y2) = _key
+            commisYearInternalName = int(
+                (y1 - esM.startYear) / esM.investmentPeriodInterval
+            )
+            yearInternalName = esM.investmentPeriodNames.index(y2)
+            newKeyName = (commisYearInternalName, yearInternalName)
         else:
-            _commodityConversionFactors = comp.commodityConversionFactors
+            newKeyName = esM.investmentPeriodNames.index(_key)
 
-        fullCommodityConversionFactor[ip] = {}
-        processedCommodityConversionFactor[ip] = {}
-        preprocessedCommodityConversionFactor[ip] = {}
+        # get the original commodity conversion
+        if comp.isIpDepending or comp.isCommisDepending:
+            _commodityConversionFactors = commodityConversionFactors[_key]
+        else:
+            _commodityConversionFactors = commodityConversionFactors
+
+        # initialize empty
+        fullCommodityConversionFactor[newKeyName] = {}
+        processedCommodityConversionFactor[newKeyName] = {}
+        preprocessedCommodityConversionFactor[newKeyName] = {}
+
         for commod in _commodityConversionFactors.keys():
             if isinstance(
                 _commodityConversionFactors[commod], (pd.Series, pd.DataFrame)
             ):
-                fullCommodityConversionFactor[ip][
+                fullCommodityConversionFactor[newKeyName][
                     commod
                 ] = checkAndSetTimeSeriesConversionFactors(
                     esM,
                     _commodityConversionFactors[commod],
                     comp.locationalEligibility,
                 )
-                preprocessedCommodityConversionFactor[ip][
+                preprocessedCommodityConversionFactor[newKeyName][
                     commod
-                ] = fullCommodityConversionFactor[ip][commod]
-            elif isinstance(comp.commodityConversionFactors[commod], (int, float)):
+                ] = fullCommodityConversionFactor[newKeyName][commod]
+
+            elif isinstance(_commodityConversionFactors[commod], (int, float)):
                 # fix values do not need a time-series aggregation and are written
                 # directly to processedCommodityConversion
-                processedCommodityConversionFactor[ip][
+                processedCommodityConversionFactor[newKeyName][
                     commod
                 ] = _commodityConversionFactors[commod]
-                preprocessedCommodityConversionFactor[ip][
+                preprocessedCommodityConversionFactor[newKeyName][
                     commod
-                ] = processedCommodityConversionFactor[ip][commod]
+                ] = processedCommodityConversionFactor[newKeyName][commod]
             else:
                 raise ValueError(
-                    f"Data type '{type(comp.commodityConversionFactors[commod])}' not accepted."
+                    f"Data type '{_commodityConversionFactors}' for commodiy "
+                    + f"{commod} in {_key} not accepted."
                 )
     return (
         fullCommodityConversionFactor,

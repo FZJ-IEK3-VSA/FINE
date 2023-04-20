@@ -68,7 +68,6 @@ class Conversion(Component):
             indicates that the commodity is consumed. A positive value indicates that the commodity is produced.
             Check unit consistency when specifying this parameter!
 
-            The conversion factors are currently constant over the transformation pathway!
 
             Examples:
 
@@ -81,9 +80,30 @@ class Conversion(Component):
                 GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
                 -> the commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.
 
-        :type commodityConversionFactors: dictionary, assigns commodities (string) to a conversion factors
-            (float, pandas.Series or pandas.DataFrame) or dictionary with assigned conversion factors per
-            investment period
+            If a transformation pathway analysis is performed the conversion factors can also be variated
+            over the transformation  pathway. Therefore two different options are available:
+
+            1: variation with operation year (for example to incorporate weather changes for a heat pump).
+                Example:
+                    {2020: {'electricity':-1,'heat':pd.Series(data=[2.5, 2.8, 2.5, ...])},
+                     2025: {'electricity':-1,'heat':pd.Series(data=[2.7, 2.4, 2.9, ...])},
+                     ...
+                    }
+            2: variation with commissioning and operation year (for example to incorporate efficiency
+            changes dependent on the installation year). Please note that this implementation massively
+            increases the complexity of the optimization problem.
+                Example:
+                    {(2020, 2020): {'electricity':-1,'heat':pd.Series(data=[2.5, 2.8, 2.5, ...])},
+                     (2020, 2025): {'electricity':-1,'heat':pd.Series(data=[2.7, 2.4, 2.9, ...])},
+                     (2025, 2025): {'electricity':-1,'heat':pd.Series(data=[3.7, 3.4, 3.9, ...])},
+                     ...
+                    }
+
+        :type commodityConversionFactors:
+            * dictionary, assigns commodities (string) to a conversion factors
+            (float, pandas.Series or pandas.DataFrame)
+            * dictionary with investment periods as key and one of the first option  as value
+            * dictionary with tuple of (commissioning year, investment period) as key and one of the first option above as value
 
         **Default arguments:**
 
@@ -214,18 +234,6 @@ class Conversion(Component):
         )
 
         # commodity conversions factors
-        # # TODO The dependency of commodity conversion factors from
-        # # commissioning year is currently not supported and will be implemented
-        # # in the next merge request.
-        if any(
-            isinstance(commodityConversionFactors[x], dict)
-            for x in commodityConversionFactors.keys()
-        ):
-            if len(commodityConversionFactors.keys()) != 1:
-                raise NotImplementedError(
-                    "A variation of commodity conversion factors over investment periods is currently not supported."
-                )
-            commodityConversionFactors = commodityConversionFactors[0]
         self.commodityConversionFactors = commodityConversionFactors
         (
             self.fullCommodityConversionFactors,
@@ -233,7 +241,7 @@ class Conversion(Component):
             self.preprocessedCommodityConversionFactors,
         ) = utils.checkAndSetCommodityConversionFactor(self, esM)
         self.aggregatedCommodityConversionFactors = dict.fromkeys(
-            esM.investmentPeriods, {}
+            self.fullCommodityConversionFactors.keys()
         )
 
         utils.isPositiveNumber(tsaWeight)
@@ -287,13 +295,14 @@ class Conversion(Component):
             self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
         )
         # processedCommodityConversions
-        for ip in self.fullCommodityConversionFactors.keys():
-            if self.fullCommodityConversionFactors[ip] != {}:
-                for commod in self.fullCommodityConversionFactors[ip]:
-                    self.processedCommodityConversionFactors[ip][commod] = (
-                        self.aggregatedCommodityConversionFactors[ip][commod]
+        # timeInfo can either be ip or (commis,ip)
+        for timeInfo in self.fullCommodityConversionFactors.keys():
+            if self.fullCommodityConversionFactors[timeInfo] != {}:
+                for commod in self.fullCommodityConversionFactors[timeInfo]:
+                    self.processedCommodityConversionFactors[timeInfo][commod] = (
+                        self.aggregatedCommodityConversionFactors[timeInfo][commod]
                         if hasTSA
-                        else self.fullCommodityConversionFactors[ip][commod]
+                        else self.fullCommodityConversionFactors[timeInfo][commod]
                     )
 
     def getDataForTimeSeriesAggregation(self, ip):
@@ -302,7 +311,6 @@ class Conversion(Component):
         :param ip: investment period of transformation path analysis.
         :type ip: int
         """
-
         weightDict, data = {}, []
         weightDict, data = self.prepareTSAInput(
             self.fullOperationRateFix,
@@ -313,16 +321,40 @@ class Conversion(Component):
             data,
             ip,
         )
-        for commod in self.fullCommodityConversionFactors[ip]:
-            weightDict, data = self.prepareTSAInput(
-                self.fullCommodityConversionFactors[ip][commod],
-                None,
-                "_commodityConversionFactorTimeSeries" + str(commod) + "_",
-                self.tsaWeight,
-                weightDict,
-                data,
-                ip,
-            )
+
+        if not self.isCommisDepending:
+            for commod in self.fullCommodityConversionFactors[ip]:
+                weightDict, data = self.prepareTSAInput(
+                    self.fullCommodityConversionFactors[ip][commod],
+                    None,
+                    "_commodityConversionFactorTimeSeries" + str(commod) + "_",
+                    self.tsaWeight,
+                    weightDict,
+                    data,
+                    ip,
+                )
+        # for components with conversion time-series depending on commissioning years,
+        # the time-series of all commissioning years relevant for the investment period must be considered
+        else:
+            relevantCommissioningYears = [
+                x for (x, y) in self.fullCommodityConversionFactors.keys() if y == ip
+            ]
+            for commisYear in relevantCommissioningYears:
+                # divide the weight by the number of relevant commissioning years to
+                # prevent a too high total weight of the commodity conversion time-series
+                for commod in self.fullCommodityConversionFactors[(commisYear, ip)]:
+                    weightDict, data = self.prepareTSAInput(
+                        self.fullCommodityConversionFactors[(commisYear, ip)][commod],
+                        None,
+                        "_commodityConversionFactorTimeSeries"
+                        + str(commod)
+                        + str(commisYear).replace("-", "minus")
+                        + "_",
+                        self.tsaWeight / len(relevantCommissioningYears),
+                        weightDict,
+                        data,
+                        ip,
+                    )
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data, ip):
@@ -335,7 +367,6 @@ class Conversion(Component):
         :param ip: investment period of transformation path analysis.
         :type ip: int
         """
-
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(
             self.fullOperationRateFix, "_operationRate_", data, ip
         )
@@ -343,16 +374,44 @@ class Conversion(Component):
             self.fullOperationRateMax, "_operationRate_", data, ip
         )
 
-        if self.fullCommodityConversionFactors[ip] != {}:
-            for commod in self.fullCommodityConversionFactors[ip]:
-                self.aggregatedCommodityConversionFactors[ip][
-                    commod
-                ] = self.getTSAOutput(
-                    self.fullCommodityConversionFactors[ip][commod],
-                    "_commodityConversionFactorTimeSeries" + str(commod) + "_",
-                    data,
-                    ip,
-                )
+        # get the aggregated commodity conversion factors
+        # procedure changes whether the commodity converison factors are depending
+        # on the commissioning year or only on the operation year (investment period)
+        if not self.isCommisDepending:
+            if self.fullCommodityConversionFactors[ip] != {}:
+                self.aggregatedCommodityConversionFactors[ip] = {}
+                for commod in self.fullCommodityConversionFactors[ip]:
+                    self.aggregatedCommodityConversionFactors[ip][
+                        commod
+                    ] = self.getTSAOutput(
+                        self.fullCommodityConversionFactors[ip][commod],
+                        "_commodityConversionFactorTimeSeries" + str(commod) + "_",
+                        data,
+                        ip,
+                    )
+        else:
+            # if depending on the commissioning year, iterate over the relevant commissioning years for the
+            # operation of the investment period ip and get the time-series
+            relevantCommissioningYears = [
+                x for (x, y) in self.fullCommodityConversionFactors.keys() if y == ip
+            ]
+            for commisYear in relevantCommissioningYears:
+                if self.fullCommodityConversionFactors[(commisYear, ip)] != {}:
+                    self.aggregatedCommodityConversionFactors[(commisYear, ip)] = {}
+                    for commod in self.fullCommodityConversionFactors[(commisYear, ip)]:
+                        self.aggregatedCommodityConversionFactors[(commisYear, ip)][
+                            commod
+                        ] = self.getTSAOutput(
+                            self.fullCommodityConversionFactors[(commisYear, ip)][
+                                commod
+                            ],
+                            "_commodityConversionFactorTimeSeries"
+                            + str(commod)
+                            + str(commisYear).replace("-", "minus")
+                            + "_",
+                            data,
+                            ip,
+                        )
 
     def checkProcessedDataSets(self):
         """
@@ -431,6 +490,180 @@ class ConversionModel(ComponentModel):
                 )
         setattr(pyM, "linkedComponentsList_" + self.abbrvName, linkedComponentsList)
 
+    def declareOpCommisVarSet(self, esM, pyM):
+        """
+        Declare operation set for components, which commodity conversion factors are depending on the
+        commissioning year in the pyomo object for amodeling class.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+
+        commisDependingComp = [
+            compName for (compName, comp) in compDict.items() if comp.isCommisDepending
+        ]
+        # Set for operation variables
+        def declareOpCommisVarSet(pyM):
+            return (
+                (loc, compName, commis, ip)
+                for compName in commisDependingComp
+                for loc in compDict[compName].processedLocationalEligibility.index
+                for (commis, ip) in compDict[
+                    compName
+                ].processedCommodityConversionFactors.keys()
+                if compDict[compName].processedLocationalEligibility[loc] == 1
+            )
+
+        setattr(
+            pyM,
+            "operationCommisVarSet_" + abbrvName,
+            pyomo.Set(dimen=4, initialize=declareOpCommisVarSet),
+        )
+
+    def declareOpCommisConstrSet1(self, pyM, constrSetName, rateMax, rateFix):
+        """
+        Declare set of locations and components for which hasCapacityVariable is set to True and neither the
+        maximum nor the fixed operation rate is given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
+
+        def declareOpCommisConstrSet1(pyM):
+            return (
+                (loc, compName, commis, ip)
+                for loc, compName, commis, ip in varSet
+                if compDict[compName].hasCapacityVariable
+                and getattr(compDict[compName], rateMax) is None
+                and getattr(compDict[compName], rateFix) is None
+                and compDict[compName].isCommisDepending
+            )
+
+        setattr(
+            pyM,
+            constrSetName + "1_" + abbrvName,
+            pyomo.Set(dimen=4, initialize=declareOpCommisConstrSet1),
+        )
+
+    def declareOpCommisConstrSet2(self, pyM, constrSetName, rateFix):
+        """
+        Declare set of locations and components for which hasCapacityVariable is set to True and a fixed
+        operation rate is given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
+
+        def declareOpCommisConstrSet2(pyM):
+            return (
+                (loc, compName, commis, ip)
+                for loc, compName, commis, ip in varSet
+                if compDict[compName].hasCapacityVariable
+                and getattr(compDict[compName], rateFix) is not None
+                and compDict[compName].isCommisDepending
+            )
+
+        setattr(
+            pyM,
+            constrSetName + "2_" + abbrvName,
+            pyomo.Set(dimen=4, initialize=declareOpCommisConstrSet2),
+        )
+
+    def declareOpCommisConstrSet3(self, pyM, constrSetName, rateMax):
+        """
+        Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
+        operation rate is given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
+
+        def declareOpCommisConstrSet3(pyM):
+            return (
+                (loc, compName, commis, ip)
+                for loc, compName, commis, ip in varSet
+                if compDict[compName].hasCapacityVariable
+                and getattr(compDict[compName], rateMax) is not None
+                and compDict[compName].isCommisDepending
+            )
+
+        setattr(
+            pyM,
+            constrSetName + "3_" + abbrvName,
+            pyomo.Set(dimen=4, initialize=declareOpCommisConstrSet3),
+        )
+
+    def declareOpCommisConstrSetMinPartLoad(self, pyM, constrSetName):
+        """
+        Declare set of locations and components for which partLoadMin is not None.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
+
+        def declareOpCommisConstrSetMinPartLoad(pyM):
+            return (
+                (loc, compName, commis, ip)
+                for loc, compName, commis, ip in varSet
+                if getattr(compDict[compName], "processedPartLoadMin") is not None
+                and compDict[compName].isCommisDepending
+            )
+
+        setattr(
+            pyM,
+            constrSetName + "partLoadMin_" + abbrvName,
+            pyomo.Set(dimen=4, initialize=declareOpCommisConstrSetMinPartLoad),
+        )
+
+    def declareYearlyFullLoadHoursCommisMinSet(self, pyM):
+        """
+        Declare set of locations and components for which minimum yearly full load hours are given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
+
+        def declareYearlyFullLoadHoursCommisMinSet():
+            return (
+                (loc, compName, commis, ip)
+                for loc, compName, commis, ip in varSet
+                if compDict[compName].processedYearlyFullLoadHoursMin is not None
+                and compDict[compName].isCommisDepending
+            )
+
+        setattr(
+            pyM,
+            "yearlyFullLoadHoursCommisMinSet_" + abbrvName,
+            pyomo.Set(dimen=4, initialize=declareYearlyFullLoadHoursCommisMinSet()),
+        )
+
+    def declareYearlyFullLoadHoursCommisMaxSet(self, pyM):
+        """
+        Declare set of locations and components for which maximum yearly full load hours are given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
+
+        def declareYearlyFullLoadHoursCommisMaxSet():
+            return (
+                (loc, compName, commis, ip)
+                for loc, compName, commis, ip in varSet
+                if compDict[compName].processedYearlyFullLoadHoursMax is not None
+                and compDict[compName].isCommisDepending
+            )
+
+        setattr(
+            pyM,
+            "yearlyFullLoadHoursCommisMaxSet_" + abbrvName,
+            pyomo.Set(dimen=4, initialize=declareYearlyFullLoadHoursCommisMaxSet()),
+        )
+
+    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix):
+        super().declareOperationModeSets(pyM, constrSetName, rateMax, rateFix)
+        self.declareOpCommisConstrSet1(pyM, "opCommisConstrSet", rateMax, rateFix)
+        self.declareOpCommisConstrSet2(pyM, "opCommisConstrSet", rateFix)
+        self.declareOpCommisConstrSet3(pyM, "opCommisConstrSet", rateMax)
+        self.declareOpCommisConstrSetMinPartLoad(pyM, "opCommisConstrSet")
+
     def declareSets(self, esM, pyM):
         """
         Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
@@ -456,6 +689,7 @@ class ConversionModel(ComponentModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
+        self.declareOpCommisVarSet(esM, pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
@@ -467,9 +701,11 @@ class ConversionModel(ComponentModel):
 
         # Declare minimum yearly full load hour set
         self.declareYearlyFullLoadHoursMinSet(pyM)
+        self.declareYearlyFullLoadHoursCommisMinSet(pyM)
 
         # Declare maximum yearly full load hour set
         self.declareYearlyFullLoadHoursMaxSet(pyM)
+        self.declareYearlyFullLoadHoursCommisMaxSet(pyM)
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -505,6 +741,13 @@ class ConversionModel(ComponentModel):
         self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
         # Operation of component [physicalUnit*hour]
         self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
+        self.declareOperationVars(
+            pyM,
+            esM,
+            "op_commis",
+            relevanceThreshold=relevanceThreshold,
+            isOperationCommisYearDepending=True,
+        )
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
         # Capacity development variables [physicalUnit]
@@ -567,9 +810,29 @@ class ConversionModel(ComponentModel):
         # Link, if applicable, the capacity of components with the same linkedConversionCapacityID
         self.linkedCapacity(pyM)
         # Set yearly full load hours minimum limit
-        self.yearlyFullLoadHoursMin(pyM, esM)
+        self.yearlyFullLoadHoursMin(
+            pyM, esM, "yearlyFullLoadHoursMinSet", "ConstrYearlyFullLoadHoursMin", "op"
+        )
+        self.yearlyFullLoadHoursMin(
+            pyM,
+            esM,
+            "yearlyFullLoadHoursCommisMinSet",
+            "ConstrYearlyFullLoadHoursMinCommis",
+            "op_commis",
+            isOperationCommisYearDepending=True,
+        )
         # Set yearly full load hours maximum limit
-        self.yearlyFullLoadHoursMax(pyM, esM)
+        self.yearlyFullLoadHoursMax(
+            pyM, esM, "yearlyFullLoadHoursMaxSet", "ConstrYearlyFullLoadHoursMax", "op"
+        )
+        self.yearlyFullLoadHoursMax(
+            pyM,
+            esM,
+            "yearlyFullLoadHoursCommisMaxSet",
+            "ConstrYearlyFullLoadHoursMaxCommis",
+            "op_commis",
+            isOperationCommisYearDepending=True,
+        )
 
         ################################################################################################################
         #                                    Declare pathway constraints                                               #
@@ -587,15 +850,93 @@ class ConversionModel(ComponentModel):
         # Operation [physicalUnit*h] is limited by the installed capacity [physicalUnit] multiplied by the hours per
         # time step [h]
         self.operationMode1(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+        self.operationMode1(
+            pyM,
+            esM,
+            "ConstrOperationCommis",
+            "opCommisConstrSet",
+            "op_commis",
+            isOperationCommisYearDepending=True,
+        )
         # Operation [physicalUnit*h] is equal to the installed capacity [physicalUnit] multiplied by operation time
         # series [-] and the hours per time step [h]
         self.operationMode2(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+        self.operationMode2(
+            pyM,
+            esM,
+            "ConstrOperationCommis",
+            "opCommisConstrSet",
+            "op_commis",
+            isOperationCommisYearDepending=True,
+        )
         # Operation [physicalUnit*h] is limited by the installed capacity [physicalUnit] multiplied by operation time
         # series [-] and the hours per time step [h]
         self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+        self.operationMode3(
+            pyM,
+            esM,
+            "ConstrOperationCommis",
+            "opCommisConstrSet",
+            "op_commis",
+            isOperationCommisYearDepending=True,
+        )
+
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
+        )
+        self.additionalMinPartLoad(
+            pyM,
+            esM,
+            "ConstrOperationCommis",
+            "opCommisConstrSet",
+            "op",
+            "op_bin",
+            "cap",
+            isOperationCommisYearDepending=True,
+        )
+        # Operation for components with commissioning year depending commodity conversions
+        self.getTotalOperationIfDifferentCommodityConversionFactors(
+            pyM, esM
+        )  # TODO new name
+
+    def getTotalOperationIfDifferentCommodityConversionFactors(
+        self,
+        pyM,
+        esM,
+    ):
+        """
+        # TODO formula
+        # TODO new name of function
+
+        """
+
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar = getattr(pyM, "op_" + abbrvName)
+        opCommisVar = getattr(pyM, "op_commis_" + abbrvName)
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        def combinedOperation(pyM, loc, compName, ip, p, t):
+            if not compDict[compName].isCommisDepending:
+                return pyomo.Constraint.Skip
+            else:
+                commisYearsWithOperationInIp = [
+                    _commis
+                    for (_commis, _ip) in compDict[
+                        compName
+                    ].processedCommodityConversionFactors
+                    if _ip == ip
+                ]
+                sumOpCommisVar = sum(
+                    opCommisVar[loc, compName, commis, ip, p, t]
+                    for commis in commisYearsWithOperationInIp
+                )
+                return opVar[loc, compName, ip, p, t] == sumOpCommisVar
+
+        setattr(
+            pyM,
+            "commisCombinedOperation_conv2" + abbrvName,
+            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=combinedOperation),
         )
 
     ####################################################################################################################
@@ -615,17 +956,21 @@ class ConversionModel(ComponentModel):
         :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
         :param commod: string
         """
+        # note: year definition can either
+        # a) int: if the commodity converison factor is constant for commissioning years
+        # b) tuple with (commisYear,ip) if the commodity conversion is varying with the commissioning year
         return any(
             [
                 (
-                    commod in comp.processedCommodityConversionFactors[ip]
+                    commod in comp.processedCommodityConversionFactors[yearDefinition]
                     and (
-                        comp.processedCommodityConversionFactors[ip][commod] is not None
+                        comp.processedCommodityConversionFactors[yearDefinition][commod]
+                        is not None
                     )
                 )
                 and comp.processedLocationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
-                for ip in esM.investmentPeriods
+                for yearDefinition in comp.processedCommodityConversionFactors.keys()
             ]
         )
 
@@ -638,10 +983,9 @@ class ConversionModel(ComponentModel):
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, opVarDict = (
-            getattr(pyM, "op_" + abbrvName),
-            getattr(pyM, "operationVarDict_" + abbrvName),
-        )
+        opVar = getattr(pyM, "op_" + abbrvName)
+        opCommisVar = getattr(pyM, "op_commis_" + abbrvName)
+        opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
 
         def getFactor(commodCommodityConversionFactors, loc, p, t):
             if isinstance(commodCommodityConversionFactors, (int, float)):
@@ -649,7 +993,9 @@ class ConversionModel(ComponentModel):
             else:
                 return commodCommodityConversionFactors[loc][p, t]
 
-        return sum(
+        # 1. get balance for compontents, which do not have commodity conversions varying with the commissioning year
+        # prepare data
+        sumCommisYearIndependent = sum(
             opVar[loc, compName, ip, p, t]
             * getFactor(
                 compDict[compName].processedCommodityConversionFactors[ip][commod],
@@ -658,8 +1004,40 @@ class ConversionModel(ComponentModel):
                 t,
             )
             for compName in opVarDict[ip][loc]
-            if commod in compDict[compName].processedCommodityConversionFactors[ip]
+            if not compDict[compName].isCommisDepending
+            and commod in compDict[compName].processedCommodityConversionFactors[ip]
         )
+        # 2. commodity conversions factors is depending on the commissioning year (e.g. efficiencies) if
+        # a) component has isCommisDepending
+        # b) component processes the commodity
+        sumCommisYearDependent = 0
+        if any(compDict[comp].isCommisDepending for comp in opVarDict[ip][loc]):
+            # TODO implement dataframe similar to cost consideration
+            for compName in opVarDict[ip][loc]:
+                if compDict[compName].isCommisDepending:
+                    commodConv = compDict[compName].processedCommodityConversionFactors
+                    relevantCommissioningYears = [
+                        x for (x, y) in commodConv.keys() if y == ip
+                    ]
+                    for _commis in relevantCommissioningYears:
+                        if (
+                            commod
+                            in compDict[compName].processedCommodityConversionFactors[
+                                (_commis, ip)
+                            ]
+                        ):
+                            sumCommisYearDependent += opCommisVar[
+                                loc, compName, _commis, ip, p, t
+                            ] * getFactor(
+                                compDict[compName].processedCommodityConversionFactors[
+                                    (_commis, ip)
+                                ][commod],
+                                loc,
+                                p,
+                                t,
+                            )
+
+        return sumCommisYearIndependent + sumCommisYearDependent
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """

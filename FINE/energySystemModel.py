@@ -921,9 +921,8 @@ class EnergySystemModel:
         self.hoursPerSegment = {}
         self.segmentStartTime = {}
 
-        # loop over all ips
+        # clustering of the time series data per investment period individually
         for ip in self.investmentPeriods:
-
             timeSeriesData, weightDict = [], {}
             for mdlName, mdl in self.componentModelingDict.items():
                 for compName, comp in mdl.componentsDict.items():
@@ -990,8 +989,7 @@ class EnergySystemModel:
                 data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
 
             # Store the respective clustered time series data in the associated components
-            # To-Do: Continue here
-            for mdlName, mdl in self.componentModelingDict.items():  # for-loop for ip
+            for mdlName, mdl in self.componentModelingDict.items():
                 for compName, comp in mdl.componentsDict.items():
                     comp.setAggregatedTimeSeriesData(data, ip)
 
@@ -1528,7 +1526,6 @@ class EnergySystemModel:
         # Declare and initialize commodity balance constraints by checking for each location and commodity in the
         # locationCommoditySet and for each period and time step within the period if the commodity source and sink
         # terms add up to zero. For this, get the contribution to commodity balance from each modeling class.
-        # To-Do: Perfect Foresight Explanation
         def commodityBalanceConstraint(pyM, loc, commod, ip, p, t):
             return (
                 sum(

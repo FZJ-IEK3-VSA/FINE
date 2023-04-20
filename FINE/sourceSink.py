@@ -817,9 +817,13 @@ class SourceSinkModel(ComponentModel):
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Set yearly full load hours minimum limit
-        self.yearlyFullLoadHoursMin(pyM, esM)
+        self.yearlyFullLoadHoursMin(
+            pyM, esM, "yearlyFullLoadHoursMinSet", "ConstrYearlyFullLoadHoursMin", "op"
+        )
         # Set yearly full load hours maximum limit
-        self.yearlyFullLoadHoursMax(pyM, esM)
+        self.yearlyFullLoadHoursMax(
+            pyM, esM, "yearlyFullLoadHoursMaxSet", "ConstrYearlyFullLoadHoursMax", "op"
+        )
 
         ################################################################################################################
         #                                    Declare pathway constraints                                               #
