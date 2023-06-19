@@ -2137,6 +2137,13 @@ class StorageModel(ComponentModel):
                 .values
             )
 
+            for comp in set(optSummary.index.get_level_values(0)):
+                for loc in optSummary.columns:
+                    optSummary.loc[(comp, "NPVcontributionRH", "[" + esM.costUnit + "]")][loc] = (
+                            optSummary.loc[(comp, "NPVcontribution", "[" + esM.costUnit + "]")][loc] /
+                            (1 + compDict[comp].interestRate[loc]) ** (esM.startYear - esM.rollingHorizonStartYear)
+                    )
+
             # # Delete details of NPV contributions
             optSummary = optSummary.drop("NPV_opexCharge", level=1)
             optSummary = optSummary.drop("NPV_opexDischarge", level=1)

@@ -81,6 +81,7 @@ class EnergySystemModel:
         verboseLogLevel=0,
         balanceLimit=None,
         lowerBound=False,
+        rollingHorizonStartYear=None,
     ):
         """
         Constructor for creating an EnergySystemModel class instance
@@ -234,6 +235,7 @@ class EnergySystemModel:
             stochasticModel,
             costUnit,
             lengthUnit,
+            rollingHorizonStartYear,
         )
 
         ################################################################################################################
@@ -305,6 +307,7 @@ class EnergySystemModel:
         self.startYear = startYear
         self.investmentPeriodInterval = investmentPeriodInterval
         self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
+        self.rollingHorizonStartYear = rollingHorizonStartYear
 
         # set up the modelling years by the start year, interval and number of investment periods
         finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval

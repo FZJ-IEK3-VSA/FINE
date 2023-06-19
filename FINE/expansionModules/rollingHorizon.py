@@ -22,11 +22,15 @@ def rollingHorizonOptimization(
     If numberOfInvestmentPeriodsForRollingHorizon == 1 -> Foresight, else Rolling Horizon
     """
 
+    if esM.rollingHorizonStartYear is None:
+        esM.rollingHorizonStartYear = esM.startYear
+
     # checks for data input
     if esM.numberOfInvestmentPeriods < 2:
         raise ValueError("At least two investmentperiods required for rolling horizon.")
     if esM.numberOfInvestmentPeriods <= numberOfInvestmentPeriodsForRollingHorizon:
-        raise ValueError("There must be at least one more investment period in the transformation pathway than in the rolling horizon interval")
+        raise ValueError("There must be at least one more investment period in the "
+                         "transformation pathway than in the rolling horizon interval")
 
     utils.isStrictlyPositiveInt(numberOfInvestmentPeriodsForRollingHorizon)
     utils.isStrictlyPositiveNumber(numberOfInvestmentPeriodsForRollingHorizon)
