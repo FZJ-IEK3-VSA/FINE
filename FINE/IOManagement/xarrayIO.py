@@ -747,33 +747,51 @@ def convertDatasetsToEnergySystemModel(datasets):
 
                     operationVariablesOptimum_dict[
                         int(ip)
-                    ] = operationVariablesOptimum_dict[int(ip)].append(
-                        _operationVariablesOptimum_df
+                    ] = pd.concat(
+                        [
+                            operationVariablesOptimum_dict[int(ip)],
+                            _operationVariablesOptimum_df
+                        ]
                     )
                     capacityVariablesOptimum_dict[
                         int(ip)
-                    ] = capacityVariablesOptimum_dict[int(ip)].append(
-                        _capacityVariablesOptimum_df
+                    ] = pd.concat(
+                        [
+                            capacityVariablesOptimum_dict[int(ip)],
+                            _capacityVariablesOptimum_df
+                        ]
                     )
                     isBuiltVariablesOptimum_dict[
                         int(ip)
-                    ] = isBuiltVariablesOptimum_dict[int(ip)].append(
-                        _isBuiltVariablesOptimum_df
+                    ] = pd.concat(
+                        [
+                            isBuiltVariablesOptimum_dict[int(ip)],
+                            _isBuiltVariablesOptimum_df
+                        ]
                     )
-                    chargeOperationVariablesOptimum_dict[
+                    chargeVariablesOptimum_dict[
                         int(ip)
-                    ] = chargeOperationVariablesOptimum_dict[int(ip)].append(
-                        _chargeOperationVariablesOptimum_df
+                    ] = pd.concat(
+                        [
+                            chargeVariablesOptimum_dict[int(ip)],
+                            _chargeVariablesOptimum_df
+                        ]
                     )
-                    dischargeOperationVariablesOptimum_dict[
+                    dischargeVariablesOptimum_dict[
                         int(ip)
-                    ] = dischargeOperationVariablesOptimum_dict[int(ip)].append(
-                        _dischargeOperationVariablesOptimum_df
+                    ] = pd.concat(
+                        [
+                            dischargeVariablesOptimum_dict[int(ip)],
+                            _dischargeVariablesOptimum_df
+                        ]
                     )
-                    stateOfChargeOperationVariablesOptimum_dict[
+                    stateOfChargeVariablesOptimum_dict[
                         int(ip)
-                    ] = stateOfChargeOperationVariablesOptimum_dict[int(ip)].append(
-                        _stateOfChargeOperationVariablesOptimum_df
+                    ] = pd.concat(
+                        [
+                            stateOfChargeVariablesOptimum_dict[int(ip)],
+                            _stateOfChargeVariablesOptimum_df
+                        ]
                     )
 
                 # check if empty, if yes convert to None
