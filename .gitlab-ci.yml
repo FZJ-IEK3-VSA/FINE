@@ -19,7 +19,7 @@ variables:
 .test_formatting_template:
   stage: test
   before_script:
-    - micromamba create -n fine_formatting black 
+    - micromamba create -n fine_formatting -c conda-forge black 
     - micromamba info --envs
     - source activate fine_formatting
 
