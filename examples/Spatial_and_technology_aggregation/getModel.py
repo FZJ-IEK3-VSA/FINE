@@ -14,7 +14,6 @@ data = getData()
 
 
 def getModel():
-
     # 1. Create an energy system model instance
     locations = {
         "cluster_0",

@@ -14,7 +14,6 @@ import FINE.aggregations.spatialAggregation.managerUtils as manUtils
 
 @pytest.fixture()
 def xr_for_connectivity():
-
     space_list = [
         "01_reg",
         "02_reg",

@@ -506,6 +506,7 @@ class ConversionModel(ComponentModel):
         commisDependingComp = [
             compName for (compName, comp) in compDict.items() if comp.isCommisDepending
         ]
+
         # Set for operation variables
         def declareOpCommisVarSet(pyM):
             return (

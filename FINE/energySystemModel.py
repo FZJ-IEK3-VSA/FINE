@@ -1475,7 +1475,7 @@ class EnergySystemModel:
                 == capVar2[loc, compName2, ip] / capPPU2
             )
 
-        for (i, j) in pyM.linkedQuantityDict.keys():
+        for i, j in pyM.linkedQuantityDict.keys():
             linkedQuantityList = []
             linkedQuantityList.append((i, j))
             setattr(

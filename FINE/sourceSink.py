@@ -53,7 +53,6 @@ class Source(Component):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
     ):
-
         """
         Constructor for creating an Source class instance.
         The Source component specific input arguments are described below. The general component

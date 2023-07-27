@@ -77,7 +77,6 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
 
 
 def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
-
     perfectForesight_test_esM.add(
         fn.Conversion(
             esM=perfectForesight_test_esM,
@@ -152,7 +151,6 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
 
 
 def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_esM):
-
     perfectForesight_test_esM.add(
         fn.Conversion(
             esM=perfectForesight_test_esM,

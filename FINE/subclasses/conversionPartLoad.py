@@ -63,7 +63,6 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     if nSegments == None:
         nSegments = 5
     elif nSegments == "optimizeSegmentNumbers":
-
         bounds = [{"name": "var_1", "type": "discrete", "domain": np.arange(2, 8)}]
 
         # Define objective function to get optimal number of line segments
@@ -322,7 +321,6 @@ class ConversionPartLoad(Conversion):
         nSegments=None,
         **kwargs
     ):
-
         """
         Constructor for creating an ConversionPartLoad class instance. Capacities are given in the physical unit
         of the plants.

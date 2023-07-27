@@ -10,7 +10,6 @@ import FINE as fn
 def compare_values(value_1, value_2):
     # Dataframes and Series need a special treatment.
     if isinstance(value_1, DataFrame):
-
         # Reset index names
         if isinstance(value_1.index, Index):
             value_1.index.name = None
@@ -42,7 +41,7 @@ def compare_values(value_1, value_2):
 
 
 def compare_dicts(dict_1, dict_2):
-    for ((key_1, value_1), (key_2, value_2)) in zip(dict_1.items(), dict_2.items()):
+    for (key_1, value_1), (key_2, value_2) in zip(dict_1.items(), dict_2.items()):
         # If the values are dicts we iterate over the dict key-value pairs
         # and compare those.
         if isinstance(value_1, dict):
@@ -128,7 +127,6 @@ def compare_esm_outputs(esm_1, esm_2):
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
-
     esm_original = deepcopy(minimal_test_esM)
 
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
@@ -138,7 +136,6 @@ def test_esm_input_to_dataset_and_back(minimal_test_esM):
 
 
 def test_esm_output_to_dataset_and_back(minimal_test_esM):
-
     esm_original = deepcopy(minimal_test_esM)
     esm_original.optimize()
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)

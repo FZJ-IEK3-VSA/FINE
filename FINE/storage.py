@@ -376,7 +376,6 @@ class Storage(Component):
 
         timeSeriesData = {}
         for ip in esM.investmentPeriods:
-
             tsNb = sum(
                 [
                     0 if data is None else 1
@@ -912,6 +911,7 @@ class StorageModel(ComponentModel):
 
         else:
             SOCInter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
+
             # tests for testing the storage class with ip and TSAM
             def cyclicState(pyM, loc, compName, ip, p):
                 # Question to Max: Is this correct?
@@ -1028,19 +1028,18 @@ class StorageModel(ComponentModel):
                 else 0
             )
             if not esM.pyM.hasSegmentation:
-                return (
-                    SOCInter[loc, compName, ip, pInter + 1]
-                    == SOCInter[loc, compName, ip, pInter]
-                    * (1 - compDict[compName].selfDischarge)
-                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
-                    + SOC[
-                        loc,
-                        compName,
-                        ip,
-                        esM.periodsOrder[ip][pInter],
-                        esM.timeStepsPerPeriod[-1] + 1,
-                    ]
-                    + (offsetUp_ - offsetDown_)
+                return SOCInter[loc, compName, ip, pInter + 1] == SOCInter[
+                    loc, compName, ip, pInter
+                ] * (1 - compDict[compName].selfDischarge) ** (
+                    (esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep
+                ) + SOC[
+                    loc,
+                    compName,
+                    ip,
+                    esM.periodsOrder[ip][pInter],
+                    esM.timeStepsPerPeriod[-1] + 1,
+                ] + (
+                    offsetUp_ - offsetDown_
                 )
             else:
                 # return SOCInter[loc, compName, pInter + 1] == \
@@ -1048,19 +1047,18 @@ class StorageModel(ComponentModel):
                 #     ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
                 #     SOC[loc, compName, esM.periodsOrder[pInter], esM.segmentsPerPeriod[-1] + 1] + \
                 #     (offsetUp_ - offsetDown_)
-                return (
-                    SOCInter[loc, compName, ip, pInter + 1]
-                    == SOCInter[loc, compName, ip, pInter]
-                    * (1 - compDict[compName].selfDischarge)
-                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
-                    + SOC[
-                        loc,
-                        compName,
-                        ip,
-                        esM.periodsOrder[ip][pInter],
-                        esM.segmentsPerPeriod[-1] + 1,
-                    ]
-                    + (offsetUp_ - offsetDown_)
+                return SOCInter[loc, compName, ip, pInter + 1] == SOCInter[
+                    loc, compName, ip, pInter
+                ] * (1 - compDict[compName].selfDischarge) ** (
+                    (esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep
+                ) + SOC[
+                    loc,
+                    compName,
+                    ip,
+                    esM.periodsOrder[ip][pInter],
+                    esM.segmentsPerPeriod[-1] + 1,
+                ] + (
+                    offsetUp_ - offsetDown_
                 )
 
         setattr(

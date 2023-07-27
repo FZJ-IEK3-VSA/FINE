@@ -129,7 +129,6 @@ def perform_distance_based_grouping(
         enforced_group=None,
         distance_threshold=distance_threshold,
     ):
-
         regions_list, skipped_dict = gprUtils.get_region_list(
             geom_xr, skip_regions, enforced_group
         )
@@ -160,7 +159,6 @@ def perform_distance_based_grouping(
         return aggregation_dict
 
     if enforced_groups is None:
-
         aggregation_dict = _perform_distance_based_grouping(
             geom_xr=geom_xr,
             skip_regions=skip_regions,
@@ -170,7 +168,6 @@ def perform_distance_based_grouping(
         return aggregation_dict
 
     else:
-
         aggregation_dict = {}
         for key, group in enforced_groups.items():
             print("Grouping: ", key)
@@ -187,6 +184,7 @@ def perform_distance_based_grouping(
 
 
 # %%
+
 
 # TODO: If there is a demand for it, implement skip_regions, and enforce_group
 # (just like in perform_distance_based_grouping) here as well
@@ -285,7 +283,6 @@ def perform_parameter_based_grouping(
 
     # STEP 4. Cluster the regions
     if aggregation_method == "hierarchical":
-
         model = skc.AgglomerativeClustering(
             n_clusters=n_groups,
             affinity="precomputed",
@@ -301,7 +298,6 @@ def perform_parameter_based_grouping(
             aggregation_dict[sup_region_id] = sub_regions_list.copy()
 
     elif aggregation_method == "kmedoids_contiguity":
-
         r_y, r_x, r_obj = k_medoids_contiguity(
             precomputed_dist_matrix, n_groups, connectivity_matrix, solver=solver
         )

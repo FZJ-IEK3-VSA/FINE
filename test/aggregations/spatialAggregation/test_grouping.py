@@ -10,6 +10,7 @@ from shapely.geometry import Point
 
 from FINE.aggregations.spatialAggregation import grouping
 
+
 # %%
 @pytest.mark.parametrize(
     "string_list, expected_keys, expected_value, separator, position",
@@ -178,7 +179,6 @@ def test_perform_distance_based_grouping(
 def test_perform_parameter_based_grouping(
     aggregation_method, weights, expected_region_groups, xr_for_parameter_based_grouping
 ):
-
     regions_list = xr_for_parameter_based_grouping.get("Geometry")["space"].values
 
     # FUNCTION CALL

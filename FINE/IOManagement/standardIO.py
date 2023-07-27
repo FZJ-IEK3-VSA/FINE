@@ -166,7 +166,7 @@ def writeOptimizationOutputToExcel(
             segmentDuration.index.name = "segmentNumber"
             segmentDuration.to_excel(writer, "Misc", startrow=3)
         utils.output("\tSaving file...", esM.verbose, 0)
-        writer.save()
+        writer.close()
         utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
 
@@ -819,7 +819,6 @@ def plotLocations(
     dpi=200,
     **kwargs,
 ):
-
     """
     Plot locations from a shape file.
 
@@ -1212,7 +1211,7 @@ def plotLocationalColorMap(
         )
 
     if perArea:
-        gdf.loc[:, "data"] = gdf.loc[:, "data"] / (gdf.geometry.area / areaFactor ** 2)
+        gdf.loc[:, "data"] = gdf.loc[:, "data"] / (gdf.geometry.area / areaFactor**2)
         if zlabel is None:
             if isinstance(esM.getComponent(compName), fn.Conversion):
                 unit = esM.getComponent(compName).physicalUnit
