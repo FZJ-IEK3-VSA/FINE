@@ -242,8 +242,6 @@ def checkCommodityUnits(esM, commodityUnit):
         )
 
 
-
-
 def checkCallableConversionFactor(conversionFactor):
     """Check if the callable conversion factor includes only conversion factors greater than 0 in the relevant part load range."""
     nPointsForTesting = 1001
