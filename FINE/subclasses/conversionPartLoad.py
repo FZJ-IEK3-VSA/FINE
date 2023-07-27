@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import warnings
 import pwlf
+
 try:
     from GPyOpt.methods import BayesianOptimization
 except ImportError:
@@ -140,7 +141,8 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
         "R2values": R2values,
     }
 
- def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
+
+def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
     """Preprocess the conversion factors passed by the user"""
     discretizedPartLoad = {
         commod: None for commod in commodityConversionFactorsPartLoad.keys()
@@ -175,6 +177,7 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     discretizedPartLoad[nonFunctionOrRawCommod]["nSegments"] = nSegments
     checkAndCorrectDiscretizedPartloads(discretizedPartLoad)
     return discretizedPartLoad, nSegments
+
 
 def checkAndCorrectDiscretizedPartloads(discretizedPartLoad):
     """Check if the discretized points are >=0 and <=100%"""
@@ -268,6 +271,7 @@ def checkAndCorrectDiscretizedPartloads(discretizedPartLoad):
                     )
 
     return discretizedPartLoad
+
 
 def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
     """
