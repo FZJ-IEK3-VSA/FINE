@@ -1,5 +1,5 @@
-pandas>=0.19.2
-numpy>=1.11.3
+pandas<=1.5
+numpy<=1.23
 pyomo>=5.5.0
 tsam>=0.9.9
 sphinx_rtd_theme>=0.3.1
