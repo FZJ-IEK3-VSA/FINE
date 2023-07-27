@@ -1,9 +1,9 @@
 import FINE as fn
 import pandas as pd
 import numpy as np
-from pytest.mark import skip
+import pytest
 
-@skip(reason="GPyOpt reached end of maintenance.")
+@pytest.mark.skip(reason="GPyOpt reached end of maintenance.")
 def test_conversionPartLoad():
 
     # Set up energy system model instance
