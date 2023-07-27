@@ -2,6 +2,303 @@ from FINE.conversion import Conversion, ConversionModel
 from FINE import utils
 import pyomo.environ as pyomo
 import pandas as pd
+import numpy as np
+import warnings
+import pwlf
+
+try:
+    from GPyOpt.methods import BayesianOptimization
+except ImportError:
+    warnings.warn(
+        """
+        In order to user the `conversionPartLoadClass` you need to install GPyOpt. 
+        GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
+        Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
+        """
+    )
+
+
+def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
+    """
+    Determine xSegments, ySegments.
+    If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by
+    a bayesian optimization algorithm.
+    """
+    if callable(functionOrRaw):
+        nPointsForInputData = 1000
+        x = np.linspace(xLowerBound, xUpperBound, nPointsForInputData)
+        y = np.array([functionOrRaw(x_i) for x_i in x])
+    else:
+        x = np.array(functionOrRaw.iloc[:, 0])
+        y = np.array(functionOrRaw.iloc[:, 1])
+        if not 0.0 in x:
+            xMinDefined = np.amin(x)
+            xMaxDefined = np.amax(x)
+            lenIntervalDefined = xMaxDefined - xMinDefined
+            lenIntervalUndefined = xMinDefined
+            nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
+            xMinIndex = np.argmin(x)
+            for i in range(int(nPointsUndefined)):
+                x = np.append(x, [i / int(nPointsUndefined + 1) * lenIntervalUndefined])
+                y = np.append(y, y[xMinIndex])
+        if not 1.0 in x:
+            xMinDefined = np.amin(x)
+            xMaxDefined = np.amax(x)
+            lenIntervalDefined = xMaxDefined - xMinDefined
+            lenIntervalUndefined = 1.0 - xMaxDefined
+            nPointsUndefined = lenIntervalUndefined * (x.size / lenIntervalDefined)
+            xMaxIndex = np.argmax(x)
+            for i in range(int(nPointsUndefined)):
+                x = np.append(
+                    x,
+                    [
+                        xMaxDefined
+                        + (i + 1) / int(nPointsUndefined) * lenIntervalUndefined
+                    ],
+                )
+                y = np.append(y, y[xMaxIndex])
+
+    myPwlf = pwlf.PiecewiseLinFit(x, y)
+
+    if nSegments == None:
+        nSegments = 5
+    elif nSegments == "optimizeSegmentNumbers":
+
+        bounds = [{"name": "var_1", "type": "discrete", "domain": np.arange(2, 8)}]
+
+        # Define objective function to get optimal number of line segments
+        def my_obj(_x):
+            # The penalty parameter l is set arbitrarily.
+            # It depends upon the noise in your data and the value of your sum of square of residuals
+            l = y.mean() * 0.001
+
+            f = np.zeros(_x.shape[0])
+
+            for i, j in enumerate(_x):
+                myPwlf.fit(j[0])
+                f[i] = myPwlf.ssr + (l * j[0])
+            return f
+
+        myBopt = BayesianOptimization(
+            my_obj,
+            domain=bounds,
+            model_type="GP",
+            initial_design_numdata=10,
+            initial_design_type="latin",
+            exact_feval=True,
+            verbosity=True,
+            verbosity_model=False,
+        )
+
+        max_iter = 30
+
+        # Perform bayesian optimization to find the optimum number of line segments
+        myBopt.run_optimization(max_iter=max_iter, verbosity=True)
+        nSegments = int(myBopt.x_opt)
+
+    xSegments = myPwlf.fit(nSegments)
+
+    # Get the y segments
+    ySegments = myPwlf.predict(xSegments)
+
+    # Calcualte the R^2 value
+    Rsquared = myPwlf.r_squared()
+
+    # Calculate the piecewise R^2 value
+    R2values = np.zeros(nSegments)
+    for i in range(nSegments):
+        # Segregate the data based on break point locations
+        xMin = myPwlf.fit_breaks[i]
+        xMax = myPwlf.fit_breaks[i + 1]
+        xTemp = myPwlf.x_data
+        yTemp = myPwlf.y_data
+        indTemp = np.where(xTemp >= xMin)
+        xTemp = myPwlf.x_data[indTemp]
+        yTemp = myPwlf.y_data[indTemp]
+        indTemp = np.where(xTemp <= xMax)
+        xTemp = xTemp[indTemp]
+        yTemp = yTemp[indTemp]
+
+        # Predict for the new data
+        yHatTemp = myPwlf.predict(xTemp)
+
+        # Calcualte ssr
+        e = yHatTemp - yTemp
+        ssr = np.dot(e, e)
+
+        # Calculate sst
+        yBar = np.ones(yTemp.size) * np.mean(yTemp)
+        ydiff = yTemp - yBar
+        sst = np.dot(ydiff, ydiff)
+
+        R2values[i] = 1.0 - (ssr / sst)
+
+    return {
+        "xSegments": xSegments,
+        "ySegments": ySegments,
+        "nSegments": nSegments,
+        "Rsquared": Rsquared,
+        "R2values": R2values,
+    }
+
+
+def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
+    """Preprocess the conversion factors passed by the user"""
+    discretizedPartLoad = {
+        commod: None for commod in commodityConversionFactorsPartLoad.keys()
+    }
+    functionOrRawCommod = None
+    nonFunctionOrRawCommod = None
+    for commod, conversionFactor in commodityConversionFactorsPartLoad.items():
+        if (isinstance(conversionFactor, pd.DataFrame)) or (callable(conversionFactor)):
+            discretizedPartLoad[commod] = pieceWiseLinearization(
+                functionOrRaw=conversionFactor,
+                xLowerBound=0,
+                xUpperBound=1,
+                nSegments=nSegments,
+            )
+            functionOrRawCommod = commod
+            nSegments = discretizedPartLoad[commod]["nSegments"]
+        elif conversionFactor == 1 or conversionFactor == -1:
+            discretizedPartLoad[commod] = {
+                "xSegments": None,
+                "ySegments": None,
+                "nSegments": None,
+                "Rsquared": 1.0,
+                "R2values": 1.0,
+            }
+            nonFunctionOrRawCommod = commod
+    discretizedPartLoad[nonFunctionOrRawCommod]["xSegments"] = discretizedPartLoad[
+        functionOrRawCommod
+    ]["xSegments"]
+    discretizedPartLoad[nonFunctionOrRawCommod]["ySegments"] = np.array(
+        [commodityConversionFactorsPartLoad[nonFunctionOrRawCommod]] * (nSegments + 1)
+    )
+    discretizedPartLoad[nonFunctionOrRawCommod]["nSegments"] = nSegments
+    checkAndCorrectDiscretizedPartloads(discretizedPartLoad)
+    return discretizedPartLoad, nSegments
+
+
+def checkAndCorrectDiscretizedPartloads(discretizedPartLoad):
+    """Check if the discretized points are >=0 and <=100%"""
+
+    for commod, conversionFactor in discretizedPartLoad.items():
+        # ySegments
+        if not np.all(
+            conversionFactor["ySegments"] == conversionFactor["ySegments"][0]
+        ):
+            if any(conversionFactor["ySegments"] < 0):
+                if sum(conversionFactor["ySegments"] < 0) > 1:
+                    raise ValueError(
+                        "There is at least two partLoad efficiency values that are < 0. Please check your partLoadEfficiency data or function visually."
+                    )
+                else:
+                    # First element
+                    if np.where(conversionFactor["ySegments"] < 0)[0][0] == 0:
+                        # Correct efficiency < 0 for index = 0 -> construct line
+                        coefficients = np.polyfit(
+                            conversionFactor["xSegments"][0:2],
+                            conversionFactor["ySegments"][0:2],
+                            1,
+                        )
+                        discretizedPartLoad[commod]["ySegments"][0] = 0
+                        discretizedPartLoad[commod]["xSegments"][0] = (
+                            -coefficients[1] / coefficients[0]
+                        )
+
+                    # Last element
+                    elif (
+                        np.where(conversionFactor["ySegments"] < 0)[0][0]
+                        == len(conversionFactor["ySegments"]) - 1
+                    ):
+                        # Correct efficiency < for index = 0 -> construct line
+                        coefficients = np.polyfit(
+                            conversionFactor["xSegments"][-2:],
+                            conversionFactor["ySegments"][-2:],
+                            1,
+                        )
+                        discretizedPartLoad[commod]["ySegments"][-1] = 0
+                        discretizedPartLoad[commod]["xSegments"][-1] = (
+                            -coefficients[1] / coefficients[0]
+                        )
+                    else:
+                        raise ValueError(
+                            "PartLoad efficiency value < 0 detected where slope cannot be constructed. Please check your partLoadEfficiency data or function visually."
+                        )
+        # xSegments
+        if any(conversionFactor["xSegments"] < 0):
+            if sum(conversionFactor["xSegments"] < 0) > 1:
+                raise ValueError(
+                    "There is at least two partLoad efficiency values that are < 0. Please check your partLoadEfficiency data or function visually."
+                )
+            else:
+                # First element
+                if np.where(conversionFactor["xSegments"] < 0)[0][0] == 0:
+                    coefficients = np.polyfit(
+                        conversionFactor["xSegments"][0:2],
+                        conversionFactor["ySegments"][0:2],
+                        1,
+                    )
+                    discretizedPartLoad[commod]["xSegments"][0] = 0
+                    discretizedPartLoad[commod]["ySegments"][0] = coefficients[1]
+                else:
+                    raise ValueError(
+                        "PartLoad efficiency value < 0 detected where slope cannot be constructed. Please check your partLoadEfficiency data or function visually."
+                    )
+        if any(conversionFactor["xSegments"] > 1):
+            if sum(conversionFactor["xSegments"] > 1) > 1:
+                raise ValueError(
+                    "There is at least two partLoad efficiency values that are > 1. Please check your partLoadEfficiency data or function visually."
+                )
+            else:
+                # Last element
+                if (
+                    np.where(conversionFactor["xSegments"] > 1)[0][0]
+                    == len(conversionFactor["xSegments"]) - 1
+                ):
+                    coefficients = np.polyfit(
+                        conversionFactor["xSegments"][-2:],
+                        conversionFactor["ySegments"][-2:],
+                        1,
+                    )
+                    discretizedPartLoad[commod]["xSegments"][0] = 1
+                    discretizedPartLoad[commod]["ySegments"][0] = (
+                        coefficients[0] + coefficients[1]
+                    )
+                else:
+                    raise ValueError(
+                        "PartLoad efficiency value > 1 detected where slope cannot be constructed. Please check your partLoadEfficiency data or function visually."
+                    )
+
+    return discretizedPartLoad
+
+
+def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
+    """
+    Check if one of the commodity conversion factors equals 1 and another is either a lambda function or a set of data points.
+    Additionally check if the conversion factor that depicts part load behavior
+        (1) covers part loads from 0 to 1 and
+        (2) includes only conversion factors greater than 0 in the relevant part load range.
+    """
+    partLoadCommodPresent = False
+    nonPartLoadCommodPresent = False
+
+    for conversionFactor in commodityConversionFactorsPartLoad:
+        if isinstance(conversionFactor, pd.DataFrame):
+            checkDataFrameConversionFactor(conversionFactor)
+            partLoadCommodPresent = True
+        elif callable(conversionFactor):
+            checkCallableConversionFactor(conversionFactor)
+            partLoadCommodPresent = True
+        elif conversionFactor == 1 or conversionFactor == -1:
+            nonPartLoadCommodPresent = True
+
+    if nonPartLoadCommodPresent == False:
+        raise TypeError("One conversion factor needs to be either 1 or -1.")
+    if partLoadCommodPresent == False:
+        raise TypeError(
+            "One conversion factor needs to be either a callable function or a list of two-dimensional data points."
+        )
 
 
 class ConversionPartLoad(Conversion):
@@ -72,7 +369,7 @@ class ConversionPartLoad(Conversion):
                 commodityConversionFactorsPartLoad.values()
             )
             self.commodityConversionFactorsPartLoad = commodityConversionFactorsPartLoad
-            self.discretizedPartLoad, self.nSegments = utils.getDiscretizedPartLoad(
+            self.discretizedPartLoad, self.nSegments = getDiscretizedPartLoad(
                 commodityConversionFactorsPartLoad, nSegments
             )
 
