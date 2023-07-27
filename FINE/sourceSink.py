@@ -1285,10 +1285,14 @@ class SourceSinkModel(ComponentModel):
                 ] = npv_commodRevenue.values
 
             # get discounted investment cost as total annual cost (TAC)
+            optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]
+            if isinstance(optSummaryBasic_frame, pd.Series):
+                optSummaryBasic_frame = optSummaryBasic_frame.to_frame().T
+
             optSummary = pd.concat(
                 [
                     optSummary,
-                    optSummaryBasic[esM.investmentPeriodNames[ip]],
+                    optSummaryBasic_frame,
                 ],
                 axis=0,
             ).sort_index()
