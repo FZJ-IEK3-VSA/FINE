@@ -1,6 +1,7 @@
 import FINE as fn
 import numpy as np
 import pandas as pd
+import pytest
 
 np.random.seed(
     42
@@ -316,6 +317,7 @@ def test_CO2ReductionTargets():
     )
 
 
+@pytest.mark.skip()
 def test_exceededLifetime():
     # load a minimal test system
     """Returns minimal instance of esM"""

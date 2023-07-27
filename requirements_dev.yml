@@ -17,7 +17,6 @@ dependencies:
 - pyomo
 - numpy<=1.23
 - pandas
-- GPyOpt
 - networkx
 - scipy
 - pwlf

@@ -1,4 +1,4 @@
-image: condaforge/mambaforge:latest
+image: mambaorg/micromamba
 
 stages:
   - test
@@ -12,10 +12,16 @@ variables:
 .test_template:
   stage: test
   before_script:
-    # - conda install mamba -c conda-forge
-    - mamba env update -n fine --file=requirements_dev.yml
-    - mamba info --envs
-    - source activate fine
+    - micromamba create -y -n fine --file=requirements_dev.yml
+    - eval "$(micromamba shell hook --shell bash)"
+    - micromamba activate fine
+
+.test_formatting_template:
+  stage: test
+  before_script:
+    - micromamba create -y -n fine_formatting -c conda-forge "black=21.9b0" "click=8.0.4" "python=3.10"
+    - eval "$(micromamba shell hook --shell bash)"
+    - micromamba activate fine_formatting
 
 .build_template:
   stage: build
@@ -50,7 +56,7 @@ test-formatting:
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
     - if: $CI_COMMIT_BRANCH
-  extends: .test_template
+  extends: .test_formatting_template
   script:
     # Dry-run black auto-formatter. If the code needs reformatting this test
     # will fail.   
