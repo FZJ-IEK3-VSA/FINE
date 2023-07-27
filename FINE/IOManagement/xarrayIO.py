@@ -581,7 +581,10 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 "LocationIn",
                             ]
                             _optSum_df = _optSum_df.droplevel(0, axis=1)
-                            optSum_df_comp = pd.concat([optSum_df_comp, _optSum_df])
+                            optSum_df_comp = pd.concat(
+                                [optSum_df_comp, _optSum_df],
+                                axis=0,
+                            )
                         else:
                             _optSum_df = (
                                 datasets["Results"][ip][model][component][variable]
@@ -596,9 +599,15 @@ def convertDatasetsToEnergySystemModel(datasets):
                             ]
                             _optSum_df.index = pd.MultiIndex.from_tuples(iterables)
                             _optSum_df.index.names = ["Component", "Property", "Unit"]
-                            optSum_df_comp = pd.concat([optSum_df_comp, _optSum_df])
+                            optSum_df_comp = pd.concat(
+                                [optSum_df_comp, _optSum_df],
+                                axis=0,
+                            )
 
-                    optSum_df = pd.concat([optSum_df, optSum_df_comp])
+                    optSum_df = pd.concat(
+                        [optSum_df, optSum_df_comp],
+                        axis=0,
+                    )
                 optSum[int(ip)] = optSum_df
 
                 setattr(esM.componentModelingDict[model], "_optSummary", optSum)
@@ -648,7 +657,10 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     )
                                     _df = _df.set_index(idx)
                                     _operationVariablesOptimum_df = (
-                                        pd.concat([_operationVariablesOptimum_df, _df])
+                                        pd.concat(
+                                        [_operationVariablesOptimum_df, _df],
+                                        axis=0,
+                                        )
                                     )
 
                             else:
@@ -750,40 +762,45 @@ def convertDatasetsToEnergySystemModel(datasets):
                     ] = pd.concat(
                         [
                             operationVariablesOptimum_dict[int(ip)],
-                            _operationVariablesOptimum_df
-                        ]
+                            _operationVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
                     capacityVariablesOptimum_dict[
                         int(ip)
                     ] = pd.concat(
                         [
                             capacityVariablesOptimum_dict[int(ip)],
-                            _capacityVariablesOptimum_df
-                        ]
+                            _capacityVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
                     isBuiltVariablesOptimum_dict[
                         int(ip)
                     ] = pd.concat(
                         [
                             isBuiltVariablesOptimum_dict[int(ip)],
-                            _isBuiltVariablesOptimum_df
-                        ]
+                            _isBuiltVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
                     chargeVariablesOptimum_dict[
                         int(ip)
                     ] = pd.concat(
                         [
                             chargeVariablesOptimum_dict[int(ip)],
-                            _chargeVariablesOptimum_df
-                        ]
+                            _chargeVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
                     dischargeVariablesOptimum_dict[
                         int(ip)
                     ] = pd.concat(
                         [
                             dischargeVariablesOptimum_dict[int(ip)],
-                            _dischargeVariablesOptimum_df
-                        ]
+                            _dischargeVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
                     stateOfChargeVariablesOptimum_dict[
                         int(ip)
@@ -791,7 +808,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                         [
                             stateOfChargeVariablesOptimum_dict[int(ip)],
                             _stateOfChargeVariablesOptimum_df
-                        ]
+                        ],
+                        axis=0,
                     )
 
                 # check if empty, if yes convert to None

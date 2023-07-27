@@ -1066,8 +1066,9 @@ class TransmissionModel(ComponentModel):
             optSummary = pd.concat(
                 [
                     optSummary,
-                    optSummaryBasic[esM.investmentPeriodNames[ip]]
-                ]
+                    optSummaryBasic[esM.investmentPeriodNames[ip]],
+                ],
+            axis=0,
             ).sort_index()
 
             # Summarize all contributions to the total annual cost
