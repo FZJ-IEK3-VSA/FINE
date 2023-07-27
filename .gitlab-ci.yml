@@ -19,7 +19,7 @@ variables:
 .test_formatting_template:
   stage: test
   before_script:
-    - micromamba create -y -n fine_formatting -c conda-forge "black=21.9b0" "click=8.0.4" "python=3.10"
+    - micromamba create -y -n fine_formatting -c conda-forge "black=23.7.0" "click=8.1.4" "python=3.10"
     - eval "$(micromamba shell hook --shell bash)"
     - micromamba activate fine_formatting
 

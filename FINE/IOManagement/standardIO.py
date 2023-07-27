@@ -194,11 +194,15 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
     :return: esM, esMData - an EnergySystemModel class instance and general esMData as a Series
     """
     file = pd.ExcelFile(fileName, engine=engine)
-    esMData = pd.read_excel(
-        file,
-        sheet_name="EnergySystemModel",
-        index_col=0,
-    ).squeeze("columns").dropna(axis="index", how="all")
+    esMData = (
+        pd.read_excel(
+            file,
+            sheet_name="EnergySystemModel",
+            index_col=0,
+        )
+        .squeeze("columns")
+        .dropna(axis="index", how="all")
+    )
     esMData = esMData.apply(
         lambda v: ast.literal_eval(v) if type(v) == str and v[0] == "{" else v
     )
