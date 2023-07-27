@@ -15,7 +15,7 @@ dependencies:
 - matplotlib
 - xlrd
 - pyomo
-- numpy
+- numpy<=1.23
 - pandas
 - GPyOpt
 - networkx
