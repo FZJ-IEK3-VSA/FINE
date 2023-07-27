@@ -582,12 +582,12 @@ def convertDatasetsToEnergySystemModel(datasets):
                             ]
                             _optSum_df = _optSum_df.droplevel(0, axis=1)
                             if isinstance(_optSum_df, pd.Series):
-                                raise TypeError
-                                #_optSum_df = _optSum_df.to_frame().T
+                                _optSum_df = _optSum_df.to_frame().T
                             optSum_df_comp = pd.concat(
                                 [optSum_df_comp, _optSum_df],
                                 axis=0,
                             )
+
                         else:
                             _optSum_df = (
                                 datasets["Results"][ip][model][component][variable]
@@ -608,8 +608,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                     
                     if isinstance(optSum_df_comp, pd.Series):
-                                raise TypeError
-                                #optSum_df_comp = optSum_df_comp.to_frame().T
+                                optSum_df_comp = optSum_df_comp.to_frame().T
                     optSum_df = pd.concat(
                         [optSum_df, optSum_df_comp],
                         axis=0,
