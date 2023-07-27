@@ -12,14 +12,14 @@ variables:
 .test_template:
   stage: test
   before_script:
-    - micromamba create -n fine --file=requirements_dev.yml
+    - micromamba create -y -n fine --file=requirements_dev.yml
     - micromamba info --envs
     - micromamba activate fine_formatting
 
 .test_formatting_template:
   stage: test
   before_script:
-    - micromamba create -n fine_formatting -c conda-forge black 
+    - micromamba create -y -n fine_formatting -c conda-forge "black=21.9b0" "python=3.10"
     - micromamba activate fine_formatting
 
 .build_template:
