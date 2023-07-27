@@ -26,7 +26,7 @@ def test_minimumPartLoad():
     high operation costs and no investment costs, one varible sized conversion
     has low operation costs but investment costs. The 10 GW conversion is
     restricted to a minimum part load of 4 GW.
-    
+
     The cost optimal solution builds 1 GW of the component with low operation
     costs and runs it whenever possible. A higher capacity of this component
     would not be economically beneficial since the 10 GW has no cost. The

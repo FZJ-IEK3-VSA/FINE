@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import pytest
 
+
 @pytest.mark.skip(reason="GPyOpt reached end of maintenance.")
 def test_conversionPartLoad():
 

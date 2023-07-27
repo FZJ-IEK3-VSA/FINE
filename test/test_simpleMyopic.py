@@ -316,6 +316,7 @@ def test_CO2ReductionTargets():
         == 0
     )
 
+
 @pytest.mark.skip()
 def test_exceededLifetime():
     # load a minimal test system
