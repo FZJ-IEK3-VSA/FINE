@@ -17,7 +17,7 @@ def test_watersupply():
         ),
         index_col=[0, 1, 2],
         header=None,
-    )
+    ).squeeze("columns")
 
     # get parameters
     locations = [

@@ -14,7 +14,7 @@ def getData(engine="openpyxl"):
         ),
         index_col=0,
         engine=engine,
-    )
+    ).squeeze("columns")
     operationRateMax = pd.read_excel(
         os.path.join(
             inputDataPath, "SpatialData", "Wind", "maxOperationRateOnshore_el.xlsx"
@@ -38,7 +38,7 @@ def getData(engine="openpyxl"):
             ),
             index_col=0,
             engine=engine,
-        )
+        ).squeeze("columns")
         * 3
         / 10
     )

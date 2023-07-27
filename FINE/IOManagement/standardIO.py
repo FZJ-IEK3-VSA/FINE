@@ -198,7 +198,7 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
         file,
         sheet_name="EnergySystemModel",
         index_col=0,
-    ).dropna(axis="index", how="all")
+    ).squeeze("columns").dropna(axis="index", how="all")
     esMData = esMData.apply(
         lambda v: ast.literal_eval(v) if type(v) == str and v[0] == "{" else v
     )
