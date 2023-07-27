@@ -13,7 +13,6 @@ def getData(engine="openpyxl"):
             inputDataPath, "SpatialData", "Wind", "maxCapacityOnshore_GW_el.xlsx"
         ),
         index_col=0,
-        squeeze=True,
         engine=engine,
     )
     operationRateMax = pd.read_excel(
@@ -38,7 +37,6 @@ def getData(engine="openpyxl"):
                 "existingSaltCavernsCapacity_GWh_methane.xlsx",
             ),
             index_col=0,
-            squeeze=True,
             engine=engine,
         )
         * 3

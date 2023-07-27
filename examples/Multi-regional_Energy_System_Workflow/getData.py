@@ -13,7 +13,6 @@ def getData(engine="openpyxl"):
             inputDataPath, "SpatialData", "Wind", "maxCapacityOnshore_GW_el.xlsx"
         ),
         index_col=0,
-        squeeze=True,
         engine=engine,
     )
     operationRateMax = pd.read_excel(
@@ -34,7 +33,6 @@ def getData(engine="openpyxl"):
             inputDataPath, "SpatialData", "Wind", "maxCapacityOffshore_GW_el.xlsx"
         ),
         index_col=0,
-        squeeze=True,
         engine=engine,
     )
     operationRateMax = pd.read_excel(
@@ -53,7 +51,6 @@ def getData(engine="openpyxl"):
     capacityMax = pd.read_excel(
         os.path.join(inputDataPath, "SpatialData", "PV", "maxCapacityPV_GW_el.xlsx"),
         index_col=0,
-        squeeze=True,
         engine=engine,
     )
     operationRateMax = pd.read_excel(
@@ -72,7 +69,6 @@ def getData(engine="openpyxl"):
             inputDataPath, "SpatialData", "HydroPower", "fixCapacityROR_GW_el.xlsx"
         ),
         index_col=0,
-        squeeze=True,
         engine=engine,
     )
     operationRateFix = pd.read_excel(
@@ -139,7 +135,6 @@ def getData(engine="openpyxl"):
             "existingCombinedCycleGasTurbinePlantsCapacity_GW_el.xlsx",
         ),
         index_col=0,
-        squeeze=True,
         engine=engine,
     )
 
@@ -155,7 +150,6 @@ def getData(engine="openpyxl"):
                 "existingSaltCavernsCapacity_GWh_methane.xlsx",
             ),
             index_col=0,
-            squeeze=True,
             engine=engine,
         )
         * 3
@@ -173,7 +167,6 @@ def getData(engine="openpyxl"):
             "existingSaltCavernsCapacity_GWh_methane.xlsx",
         ),
         index_col=0,
-        squeeze=True,
         engine=engine,
     )
 
@@ -188,7 +181,6 @@ def getData(engine="openpyxl"):
             "fixCapacityPHS_storage_GWh_energyPHS.xlsx",
         ),
         index_col=0,
-        squeeze=True,
         engine=engine,
     )
 
