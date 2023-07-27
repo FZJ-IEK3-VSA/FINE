@@ -12,15 +12,15 @@ variables:
 .test_template:
   stage: test
   before_script:
-    - mamba create -n fine --file=requirements_dev.yml
-    - mamba info --envs
+    - micromamba create -n fine --file=requirements_dev.yml
+    - micromamba info --envs
     - source activate fine
 
 .test_formatting_template:
   stage: test
   before_script:
-    - mamba create -n fine_formatting black 
-    - mamba info --envs
+    - micromamba create -n fine_formatting black 
+    - micromamba info --envs
     - source activate fine_formatting
 
 .build_template:
