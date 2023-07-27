@@ -13,7 +13,6 @@ variables:
   stage: test
   before_script:
     - micromamba create -y -n fine --file=requirements_dev.yml
-    - micromamba info --envs
     - eval "$(micromamba shell hook --shell bash)"
     - micromamba activate fine_formatting
 
