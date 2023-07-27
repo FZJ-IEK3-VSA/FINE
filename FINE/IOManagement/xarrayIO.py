@@ -581,7 +581,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 "LocationIn",
                             ]
                             _optSum_df = _optSum_df.droplevel(0, axis=1)
-                            optSum_df_comp = optSum_df_comp.append(_optSum_df)
+                            optSum_df_comp = pd.concat([optSum_df_comp, _optSum_df])
                         else:
                             _optSum_df = (
                                 datasets["Results"][ip][model][component][variable]
@@ -596,9 +596,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                             ]
                             _optSum_df.index = pd.MultiIndex.from_tuples(iterables)
                             _optSum_df.index.names = ["Component", "Property", "Unit"]
-                            optSum_df_comp = optSum_df_comp.append(_optSum_df)
+                            optSum_df_comp = pd.concat([optSum_df_comp, _optSum_df])
 
-                    optSum_df = optSum_df.append(optSum_df_comp)
+                    optSum_df = pd.concat([optSum_df, optSum_df_comp])
                 optSum[int(ip)] = optSum_df
 
                 setattr(esM.componentModelingDict[model], "_optSummary", optSum)
@@ -648,7 +648,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     )
                                     _df = _df.set_index(idx)
                                     _operationVariablesOptimum_df = (
-                                        _operationVariablesOptimum_df.append(_df)
+                                        pd.concat([_operationVariablesOptimum_df, _df])
                                     )
 
                             else:

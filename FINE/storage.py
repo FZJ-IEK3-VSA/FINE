@@ -2111,8 +2111,11 @@ class StorageModel(ComponentModel):
                 )
 
             # Append optimization summaries
-            optSummary = optSummary.append(
-                optSummaryBasic[esM.investmentPeriodNames[ip]]
+            optSummary = pd.concat(
+                [
+                    optSummary,
+                    optSummaryBasic[esM.investmentPeriodNames[ip]]
+                ]
             ).sort_index()
 
             # Summarize all contributions to the total annual cost

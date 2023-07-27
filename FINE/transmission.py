@@ -1062,9 +1062,12 @@ class TransmissionModel(ComponentModel):
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
                     npv_ox.columns,
                 ] = npv_ox.values
-
-            optSummary = optSummary.append(
-                optSummaryBasic[esM.investmentPeriodNames[ip]]
+            
+            optSummary = pd.concat(
+                [
+                    optSummary,
+                    optSummaryBasic[esM.investmentPeriodNames[ip]]
+                ]
             ).sort_index()
 
             # Summarize all contributions to the total annual cost

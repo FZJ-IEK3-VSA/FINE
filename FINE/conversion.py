@@ -1187,8 +1187,11 @@ class ConversionModel(ComponentModel):
                     npv_ox.columns,
                 ] = npv_ox.values
 
-            optSummary = optSummary.append(
-                optSummaryBasic[esM.investmentPeriodNames[ip]]
+            optSummary = pd.concat(
+                [
+                    optSummary,
+                    optSummaryBasic[esM.investmentPeriodNames[ip]]
+                ]
             ).sort_index()
 
             # Summarize all contributions to the total annual cost
