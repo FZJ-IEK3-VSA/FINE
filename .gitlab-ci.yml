@@ -25,9 +25,9 @@ variables:
 
 .build_template:
   stage: build
-  image: docker
+  image: docker@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
   services:
-    - docker:dind
+    - docker:dind@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
   when: on_success
   dependencies:
     - prebuild
@@ -84,7 +84,7 @@ prebuild:
   script:
     # Extract the current image version from setup.py
     # Check image version
-    - export IMAGE_VERSION=$(grep -E -o "(version=)(*.*)" setup.py | cut -d\' -f2)
+    - export IMAGE_VERSION=$(grep -E -o "(version=)(*.*)" setup.py | cut -d\" -f2)
     - echo "IMAGE_VERSION=$IMAGE_VERSION"
     # Export a master and dev tag for each versions using the current image version
     - export MASTER_TAG=fzjiek3/fine:${IMAGE_VERSION}
