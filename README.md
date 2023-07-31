@@ -23,7 +23,7 @@ The installation process uses a Conda-based Python package manger. We highly rec
 
 > For Anaconda installer on Windows 10: Remeber to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
 
-Further, you will need a Mixed Integer Linear Programming (MILP) solver like Gurobi or GLPK to solve the FINE models. See ["Installation of an optimization solver"](#installation-of-an-optimization-solver) for instructions.
+The project environment includes [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](#installation-of-an-optimization-solver) for more information.
 
 ## Installation
 
@@ -67,11 +67,12 @@ pytest --cov=FINE test/
 
 ## Installation of an optimization solver
 
-FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). There are three standard solvers defined:
+FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). It searches for the following solvers in this order:
 - [GUROBI](http://www.gurobi.com/)
    - Recommended due to better performance but requires license (free academic version available)
    - Set as standard solver
 - [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download)
+  - This solver is installed with the FINE environment.
   - Free version available 
 - [CBC](https://projects.coin-or.org/Cbc)
   - Free version available
