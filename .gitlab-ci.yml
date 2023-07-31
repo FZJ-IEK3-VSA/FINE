@@ -1,4 +1,4 @@
-image: continuumio/miniconda3:latest
+image: mambaorg/micromamba
 
 stages:
   - test
@@ -12,10 +12,16 @@ variables:
 .test_template:
   stage: test
   before_script:
-    - conda install mamba -c conda-forge
-    - mamba env update -n fine --file=requirements_dev.yml
-    - mamba info --envs
-    - source activate fine
+    - micromamba create -y -n fine --file=requirements_dev.yml
+    - eval "$(micromamba shell hook --shell bash)"
+    - micromamba activate fine
+
+.test_formatting_template:
+  stage: test
+  before_script:
+    - micromamba create -y -n fine_formatting -c conda-forge "black=21.9b0" "click=8.0.4" "python=3.10"
+    - eval "$(micromamba shell hook --shell bash)"
+    - micromamba activate fine_formatting
 
 .build_template:
   stage: build
@@ -27,12 +33,30 @@ variables:
     - prebuild
 
 test-code:
+  #  Switch from branch pipeline to merge pipeline once a merge request has been
+  #  created on the branch.
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
   extends: .test_template
   script:
     - python -m pytest --cov=FINE test/
 
 test-formatting:
-  extends: .test_template
+  #  Switch from branch pipeline to merge pipeline once a merge request has been
+  #  created on the branch.
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+  extends: .test_formatting_template
   script:
     # Dry-run black auto-formatter. If the code needs reformatting this test
     # will fail.   
@@ -60,7 +84,7 @@ prebuild:
   script:
     # Extract the current image version from setup.py
     # Check image version
-    - export IMAGE_VERSION=$(grep -P -o '(?<=version=").*(?=")' setup.py | cut -d\' -f2)
+    - export IMAGE_VERSION=$(grep -E -o "(version=)(*.*)" setup.py | cut -d\' -f2)
     - echo "IMAGE_VERSION=$IMAGE_VERSION"
     # Export a master and dev tag for each versions using the current image version
     - export MASTER_TAG=fzjiek3/fine:${IMAGE_VERSION}
@@ -94,7 +118,6 @@ master-build:
       - include_dockerfile
 
 # Uncomment to enable dev builds
-#
 #dev-build:
 #  extends: .build_template
 #  script:
