@@ -1,7 +1,7 @@
 name: FINE_dev
 
 dependencies:
-- python
+- python>=3.6,<=3.10
 - conda-forge::libiconv
 - conda-forge::gdal>2.2.0,<3.0.0
 - conda-forge::geopandas
@@ -14,9 +14,9 @@ dependencies:
 - openpyxl
 - matplotlib
 - xlrd
-- pyomo
-- numpy
-- pandas
+- pyomo<6.4.2
+- numpy<=1.23
+- pandas<=1.5
 - GPyOpt
 - networkx
 - scipy
@@ -36,7 +36,6 @@ dependencies:
 - pytest-cov
 - pylint
 - conda-forge::nbval
-- conda-forge::black=21.9b0 
 
 - pip:
     - -e .
