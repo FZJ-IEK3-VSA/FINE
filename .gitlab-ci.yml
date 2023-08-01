@@ -98,7 +98,6 @@ prebuild:
   only:
     refs:
       - master
-      - include_dockerfile
   when: on_success
 
 master-build:
@@ -115,7 +114,6 @@ master-build:
   only:
     refs:
       - master
-      - include_dockerfile
 
 # Uncomment to enable dev builds
 #dev-build:
