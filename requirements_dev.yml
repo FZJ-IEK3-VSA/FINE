@@ -35,6 +35,8 @@ dependencies:
 - pytest-cov
 - pylint
 - conda-forge::nbval
+- conda-forge::black=21.9b0
+- conda-forge::click=8.0.4
 
 - pip:
     - -e .
