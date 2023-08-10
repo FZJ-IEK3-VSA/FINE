@@ -14,74 +14,65 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 * complexity reducing storage formulation based on typical periods
 
 ## Documentation
-
 A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
+
 ## Requirements
-### Framework
-The FINE Framework itself requires the following components:
-- FINE sourcecode
-- Python dependencies
-- A Mixed Integer Linear Programming (MILP) solver like Gurobi or GLPK
-### Installation 
-The installation proceedure requires:
-- Git
-- Anaconda
-## Installation of framework and dependencies
-### Installation requirements
-1.  Install anaconda [by choosing your operating system here](https://docs.anaconda.com/anaconda/install/). If you are a Windows 10 user, remember to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
-2. Install git from https://git-scm.com/downloads
-### Prepare folder
-1. Open a prompt e.g. "anaconda prompt" or "cmd" from the windows start menu
-2. Make a folder where you want to work, for example C:\Users\<your username>\work with "mkdir C:\Users\<your username>\work"
-3. Go to that directory with "cd C:\Users\<your username>\work" at the command line
+The installation process uses a Conda-based Python package manger. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/). If you choose to use [Anaconda](https://docs.anaconda.com/anaconda/install/) then the solving of dependencies during the installation might be very slow.
 
+> If you choose to use Anaconda then replace all `mamba` commands with `conda`.
 
-### Get source code via GIT
+> For Anaconda installer on Windows 10: Remeber to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
 
-Clone public repository or repository of your choice first
+The project environment includes [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](#installation-of-an-optimization-solver) for more information.
+
+## Installation
+
+###  Installation via conda-forge
+The simplest way ist to install FINE into a fresh environment from `conda-forge` with:
+```bash
+mamba create -n fine -c conda-forge fine
 ```
+
+### Installation from local folder
+Alternatively you can first clone the content of this repository and perform the installation from there: 
+
+1. Clone the content of this repository 
+```bash
 git clone https://github.com/FZJ-IEK3-VSA/FINE.git 
 ```
-Move into the FINE folder with
-```
+2. Move into the FINE folder with
+```bash
 cd fine
 ```
-
-### Installation for users
-It is recommended to create a clean environment with conda to use FINE because it requires many dependencies. 
-
+3. It is recommended to create a clean environment with conda to use FINE because it requires many dependencies. 
+```bash
+mamba env create -f requirements.yml
 ```
-conda env create -f requirements.yml
-```
-
-This directly installs FINE and its dependencies in the `FINE` conda environment. Activate the created environment with:
-
-```
-activate FINE
+5. Activate the new enviroment. You should see `(fine)` in front of your command prompt to indicate that you are now in the virtual environment.
+```bash
+mamba activate fine
 ```
 
 ### Installation for developers
-Create a development environment if you want to modify it.
-Install the requirements in a clean conda environment:
+I you want to work on the FINE codebase you need to run. 
+```bash
+mamba env create -f requirements_dev.yml
 ```
-conda env create -f requirements_dev.yml
-activate FINE_dev
-```
+This installs additional dependencies such as `pytest` and installs FINE from the folder in editable mode with `pip -e`. Changes in the folder are then reflected in the package installation.
 
-This installs FINE and its requirements for development (testing, formatting). Further changes in the current folder are reflected in package installation through the installation with `pip -e`.
-
-Run the test suite with:
+You can run the test suite with:
 ```
 pytest --cov=FINE test/
 ```
 
 ## Installation of an optimization solver
 
-FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). There are three standard solvers defined:
+FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). It searches for the following solvers in this order:
 - [GUROBI](http://www.gurobi.com/)
    - Recommended due to better performance but requires license (free academic version available)
    - Set as standard solver
 - [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download)
+  - This solver is installed with the FINE environment.
   - Free version available 
 - [CBC](https://projects.coin-or.org/Cbc)
   - Free version available
