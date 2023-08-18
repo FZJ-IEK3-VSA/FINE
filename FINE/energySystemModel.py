@@ -1,6 +1,7 @@
 import time
 import warnings
 import numpy as np
+import inspect
 
 import pandas as pd
 import pyomo.environ as pyomo
@@ -8,6 +9,11 @@ import pyomo.opt as opt
 
 from FINE import utils
 from FINE.component import Component, ComponentModel
+from FINE.sourceSink import Source, Sink
+from FINE.conversion import Conversion
+from FINE.transmission import Transmission
+from FINE.storage import Storage
+
 
 from FINE.IOManagement import xarrayIO as xrIO
 from FINE.aggregations.spatialAggregation import manager as spagat
@@ -508,6 +514,66 @@ class EnergySystemModel:
             )
         modelingClass = self.componentNames[componentName]
         return self.componentModelingDict[modelingClass].componentsDict[componentName]
+    
+    def updateComponent(self, componentName, updateAttrs):
+        """
+        Overwrite selected attributes of an existing esM component with new values.
+
+        :param componentName: Name of the component that shall be updated.
+
+        :type componentName: str
+
+        :param updateAttrs: A dict of component attributes as keys and values that shall be set as dict values.
+
+        :type updateAttrs: dict 
+        """
+        if not componentName in self.componentNames.keys():
+            raise AttributeError(f"componentName '{componentName}' is not a component in this esM instance.")
+        if not (isinstance(updateAttrs, dict) and len(updateAttrs)>0):
+            raise TypeError(f"updateAttrs must be dict type with at least one key/value pair.")            
+
+        # get affected classes and extract relevant class attributes
+        class_dict={
+            'SourceSinkModel':[Sink, Source],
+            'TransmissionModel':[Transmission],
+            'ConversionModel':[Conversion],
+            'StorageModel':[Storage],
+        }
+        try:
+            # extract the sign attribute which is -1 for sinks and +1 for sources
+            _id = self.getComponentAttribute(componentName=componentName, attributeName='sign')
+            # if -1, set to 0 to extract the first entry, else leave as 1 for second entry
+            if _id == -1:
+                _id = 0
+        except:
+            # if no sign attribute, always get the first entry
+            _id = 0
+        _class = class_dict[self.componentNames[componentName]][_id]
+        class_attrs = list(inspect.signature(_class).parameters.keys())
+        
+        # make sure all arguments to be updated are class attributes
+        for k in updateAttrs.keys():
+            if not k in class_attrs: 
+                raise AttributeError(f"parameter '{k}' from updateAttrs is not an attribute of the component class '{_class}'.")
+        
+        # extract all class parameter values from the existing object and write to dict
+        new_args=dict()
+        for _attr in class_attrs:
+            # skip esM attribute, cannot be extracted via getComponentAttribute and will be added later
+            if _attr == 'esM':
+                continue
+            new_args[_attr] = self.getComponentAttribute(
+                componentName=componentName, 
+                attributeName=_attr)
+        new_args['esM']=self
+        
+        # update the required arguments
+        for _arg, _val in updateAttrs.items():
+            new_args[_arg] = _val
+
+        # overwrite the existing component with the new data
+        self.add(_class(**new_args))
+
 
     def getComponentAttribute(self, componentName, attributeName):
         """
