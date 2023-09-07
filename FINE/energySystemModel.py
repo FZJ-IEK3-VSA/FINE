@@ -1,6 +1,7 @@
 import time
 import warnings
 import numpy as np
+import inspect
 
 import pandas as pd
 import pyomo.environ as pyomo
@@ -12,7 +13,6 @@ from FINE.component import Component, ComponentModel
 from FINE.IOManagement import xarrayIO as xrIO
 from FINE.aggregations.spatialAggregation import manager as spagat
 from tsam.timeseriesaggregation import TimeSeriesAggregation
-
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -508,6 +508,61 @@ class EnergySystemModel:
             )
         modelingClass = self.componentNames[componentName]
         return self.componentModelingDict[modelingClass].componentsDict[componentName]
+
+    def updateComponent(self, componentName, updateAttrs):
+        """
+        Overwrite selected attributes of an existing esM component with new values.
+        .. note::
+            Be aware of the fact that some attributes are filled automatically while initializing a component.
+            E.g., if you want to change attributes like economic lifetime, there might occur the error that the new
+            value does not match with the technical lifetime of the component.
+            Additionally: You cannot change the name of an existing component by using this function.
+            If you do so, you will not update the component but create a new one with the new name.
+            The old component will still exist.
+
+        :param componentName: Name of the component that shall be updated.
+        :type componentName: str
+
+        :param updateAttrs: A dict of component attributes as keys and values that shall be set as dict values.
+        :type updateAttrs: dict
+        """
+        if not componentName in self.componentNames.keys():
+            raise AttributeError(
+                f"componentName '{componentName}' is not a component in this esM instance."
+            )
+        if not (isinstance(updateAttrs, dict) and len(updateAttrs) > 0):
+            raise TypeError(
+                f"updateAttrs must be dict type with at least one key/value pair."
+            )
+
+        # get affected classes and extract relevant class attributes
+        _class = self.getComponent(componentName).__class__
+        class_attrs = list(inspect.signature(_class).parameters.keys())
+
+        # check if all arguments to be updated are class attributes
+        for k in updateAttrs.keys():
+            if not k in class_attrs:
+                raise AttributeError(
+                    f"parameter '{k}' from updateAttrs is not an attribute of the component class '{_class}'."
+                )
+            if k == "name":
+                warnings.warn(
+                    "Updating the name will just create a new component."
+                    + "The old component will still exist with the old attributes."
+                )
+
+        # get attributes of original component
+        old_attrs = self.getComponent(componentName).__dict__
+
+        # extract all class parameter values from the existing object and write to dict
+        new_args = dict([(x, old_attrs[x]) for x in class_attrs if x in old_attrs])
+
+        # update the required arguments
+        for _arg, _val in updateAttrs.items():
+            new_args[_arg] = _val
+
+        # overwrite the existing component with the new data
+        self.add(_class(self, **new_args))
 
     def getComponentAttribute(self, componentName, attributeName):
         """
@@ -1475,7 +1530,7 @@ class EnergySystemModel:
                 == capVar2[loc, compName2, ip] / capPPU2
             )
 
-        for (i, j) in pyM.linkedQuantityDict.keys():
+        for i, j in pyM.linkedQuantityDict.keys():
             linkedQuantityList = []
             linkedQuantityList.append((i, j))
             setattr(
