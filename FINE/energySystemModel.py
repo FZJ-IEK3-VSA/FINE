@@ -9,10 +9,6 @@ import pyomo.opt as opt
 
 from FINE import utils
 from FINE.component import Component, ComponentModel
-from FINE.sourceSink import Source, Sink
-from FINE.conversion import Conversion
-from FINE.transmission import Transmission
-from FINE.storage import Storage
 
 
 from FINE.IOManagement import xarrayIO as xrIO
