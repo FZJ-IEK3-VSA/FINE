@@ -10,11 +10,9 @@ import pyomo.opt as opt
 from FINE import utils
 from FINE.component import Component, ComponentModel
 
-
 from FINE.IOManagement import xarrayIO as xrIO
 from FINE.aggregations.spatialAggregation import manager as spagat
 from tsam.timeseriesaggregation import TimeSeriesAggregation
-
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -516,11 +514,9 @@ class EnergySystemModel:
         Overwrite selected attributes of an existing esM component with new values.
 
         :param componentName: Name of the component that shall be updated.
-
         :type componentName: str
 
         :param updateAttrs: A dict of component attributes as keys and values that shall be set as dict values.
-
         :type updateAttrs: dict
         """
         if not componentName in self.componentNames.keys():
@@ -536,30 +532,25 @@ class EnergySystemModel:
         _class = self.getComponent(componentName).__class__
         class_attrs = list(inspect.signature(_class).parameters.keys())
 
-        # make sure all arguments to be updated are class attributes
+        # check if all arguments to be updated are class attributes
         for k in updateAttrs.keys():
             if not k in class_attrs:
                 raise AttributeError(
                     f"parameter '{k}' from updateAttrs is not an attribute of the component class '{_class}'."
                 )
 
+        # get attributes of original component
+        set_attrs = self.getComponent(componentName).__dict__
+
         # extract all class parameter values from the existing object and write to dict
-        new_args = dict()
-        for _attr in class_attrs:
-            # skip esM attribute, cannot be extracted via getComponentAttribute and will be added later
-            if _attr == "esM":
-                continue
-            new_args[_attr] = self.getComponentAttribute(
-                componentName=componentName, attributeName=_attr
-            )
-        new_args["esM"] = self
+        new_args = dict([(x, set_attrs[x]) for x in class_attrs if x in set_attrs])
 
         # update the required arguments
         for _arg, _val in updateAttrs.items():
             new_args[_arg] = _val
 
         # overwrite the existing component with the new data
-        self.add(_class(**new_args))
+        self.add(_class(self, **new_args))
 
     def getComponentAttribute(self, componentName, attributeName):
         """
