@@ -537,24 +537,7 @@ class EnergySystemModel:
             )
 
         # get affected classes and extract relevant class attributes
-        class_dict = {
-            "SourceSinkModel": [Sink, Source],
-            "TransmissionModel": [Transmission],
-            "ConversionModel": [Conversion],
-            "StorageModel": [Storage],
-        }
-        try:
-            # extract the sign attribute which is -1 for sinks and +1 for sources
-            _id = self.getComponentAttribute(
-                componentName=componentName, attributeName="sign"
-            )
-            # if -1, set to 0 to extract the first entry, else leave as 1 for second entry
-            if _id == -1:
-                _id = 0
-        except:
-            # if no sign attribute, always get the first entry
-            _id = 0
-        _class = class_dict[self.componentNames[componentName]][_id]
+        _class = self.getComponent(componentName).__class__
         class_attrs = list(inspect.signature(_class).parameters.keys())
 
         # make sure all arguments to be updated are class attributes
