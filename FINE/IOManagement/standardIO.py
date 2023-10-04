@@ -6,6 +6,7 @@ import inspect
 import time
 import warnings
 from functools import wraps
+import matplotlib.patches as mpatches
 
 try:
     import geopandas as gpd
@@ -817,7 +818,6 @@ def plotLocations(
     dpi=200,
     **kwargs,
 ):
-
     """
     Plot locations from a shape file.
 
@@ -1269,3 +1269,96 @@ def plotLocationalColorMap(
         plt.savefig(fileName, dpi=dpi, bbox_inches="tight")
 
     return fig, ax
+
+
+def plotPieChart(
+    locFilePath,
+    results_df,
+    Property_to_plot="capacity",
+    indexColumn_in_shp="index",
+    color_list=[
+        "skyBlue",
+        "green",
+        "yellowGreen",
+        "#FFB732",
+        "yellow",
+        "darkOrange",
+        "#996300",
+        "steelBlue",
+        "darkBlue",
+    ],
+    scaling_factor=500,
+    legend_fontsize=14,
+):
+    # Import shapefile, add centroid information
+    shapefile = gpd.read_file(locFilePath)
+    shapefile["centroid"] = shapefile.geometry.centroid
+
+    # Subset, change NAs to 0s, Transpose, set indexColumn name in the property data
+    property_subset = results_df.iloc[
+        results_df.index.get_level_values("Property") == Property_to_plot
+    ]
+
+    property_subset = property_subset.droplevel(["Property", "Unit"]).fillna(0)
+    property_subset = property_subset.transpose()
+    property_subset.index.name = indexColumn_in_shp
+
+    # Total property values in each region
+    regional_property_sum = property_subset.sum(axis=1)
+
+    fig, ax = plotLocations(
+        locFilePath, plotLocNames=False, indexColumn=indexColumn_in_shp
+    )
+    ax.set_aspect("equal")
+
+    Total_degree = 360
+
+    for region in shapefile[indexColumn_in_shp]:  # LOOP OVER REGIONS
+        xValue = float(
+            shapefile.loc[shapefile[indexColumn_in_shp] == region].centroid.x.values
+        )
+        yValue = float(
+            shapefile.loc[shapefile[indexColumn_in_shp] == region].centroid.y.values
+        )
+
+        total_property_value = regional_property_sum[region]
+
+        theta1 = 0
+        for i, component in enumerate(
+            property_subset.columns
+        ):  # LOOP OVER TECHNOLOGIES
+            component_property_value = property_subset.loc[region, component]
+
+            share = (component_property_value / total_property_value) * Total_degree
+
+            theta2 = theta1 + share
+
+            wedge = mpatches.Wedge(
+                (xValue, yValue),
+                total_property_value
+                * (10 / property_subset.values.mean())
+                * scaling_factor,  # radius
+                theta1,  # theta1
+                theta2,  # theta2
+                fc=color_list[i],  # color
+                lw=0.6,
+                zorder=2,
+                edgecolor="black",
+            )
+            theta1 = theta2
+
+            ax.add_artist(wedge)
+
+    # Legend
+    handles = []
+    for i, component in enumerate(property_subset.columns):
+        component_patch = mpatches.Patch(color=color_list[i], label=component)
+
+        handles.append(component_patch)
+
+    ax.legend(
+        handles=handles,
+        bbox_to_anchor=(1.05, 1),
+        loc="upper left",
+        fontsize=legend_fontsize,
+    )
