@@ -45,6 +45,10 @@ test-code:
   extends: .test_template
   script:
     - python -m pytest --cov=FINE test/
+  artifacts:
+    paths:
+      - */test/*
+    expire_in: 1 week
 
 test-formatting:
   #  Switch from branch pipeline to merge pipeline once a merge request has been
