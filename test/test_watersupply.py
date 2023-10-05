@@ -8,7 +8,6 @@ import FINE as fn
 
 
 def test_watersupply():
-
     # read in original results
     results = pd.read_csv(
         os.path.join(

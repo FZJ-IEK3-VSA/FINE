@@ -384,7 +384,6 @@ def getQPcostDev(investmentPeriods, QPcostScale):
 
 
 def checkLocationSpecficDesignInputParams(comp, esM):
-
     if len(esM.locations) == 1:
         comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
@@ -1135,7 +1134,6 @@ def checkAndSetTimeSeries(
         checkTimeSeriesIndex(esM, operationTimeSeries)
 
         if dimension == "1dim":
-
             operationTimeSeries = checkRegionalColumnTitles(
                 esM, operationTimeSeries, locationalEligibility
             )
@@ -2103,7 +2101,6 @@ def checkComponentsEquality(esM, file):
 
 
 def checkNumberOfConversionFactors(commods):
-
     if len(commods) > 2:
         if all([isinstance(value, (int, float)) for value in commods.values()]):
             raise ValueError(

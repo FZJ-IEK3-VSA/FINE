@@ -267,7 +267,6 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
     "test_esM_fixture", ["minimal_test_esM", "multi_node_test_esM_init"]
 )
 def test_import_from_dict(test_esM_fixture, request):
-
     test_esM = request.getfixturevalue(test_esM_fixture)
 
     # FUNCTION CALL

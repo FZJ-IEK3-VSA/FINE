@@ -29,7 +29,6 @@ def aggregate_RE_technology(
     shp_geometry_col="geometry",
     linkage="average",
 ):
-
     """
     Reduces the number of a particular RE technology (e.g. onshore wind turbine)
     to a desired number, within each region.
@@ -297,7 +296,6 @@ def aggregate_RE_technology(
         n_timeSteps = len(time_steps)
 
     if n_timeSeries_perRegion == 1:
-
         # STEP 2. Create resultant xarray dataset
         ## time series
         data = np.zeros((n_timeSteps, n_regions))
@@ -347,7 +345,6 @@ def aggregate_RE_technology(
         return regional_represented_RE_ds
 
     else:
-
         # STEP 2. Create resultant xarray dataset
         TS_ids = [f"TS_{i}" for i in range(n_timeSeries_perRegion)]
 

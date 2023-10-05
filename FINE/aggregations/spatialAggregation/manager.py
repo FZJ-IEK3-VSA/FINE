@@ -261,7 +261,6 @@ def perform_spatial_aggregation(
 
     # STEP 4. Spatial grouping
     if grouping_mode == "string_based":
-
         separator = kwargs.get("separator", None)
         position = kwargs.get("position", None)
 
@@ -274,7 +273,6 @@ def perform_spatial_aggregation(
         )
 
     elif grouping_mode == "distance_based":
-
         skip_regions = kwargs.get("skip_regions", None)
         enforced_groups = kwargs.get("enforced_groups", None)
 
@@ -285,7 +283,6 @@ def perform_spatial_aggregation(
         )
 
     elif grouping_mode == "parameter_based":
-
         weights = kwargs.get("weights", None)
         aggregation_method = kwargs.get("aggregation_method", "kmedoids_contiguity")
         solver = kwargs.get("solver", "gurobi")

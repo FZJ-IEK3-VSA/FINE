@@ -729,7 +729,6 @@ class Component(metaclass=ABCMeta):
         :rtype: Pandas DataFrame
         """
         if rate is not None:
-
             if isinstance(rate, dict):
                 uniqueIdentifiers = [
                     self.name + rateName + loc for loc in rate[ip].columns
@@ -3022,7 +3021,7 @@ class ComponentModel(metaclass=ABCMeta):
                     # contribution, implying the system design and operation
                     # will remain constant after the time frame of the
                     # transformation pathway.
-                    for (loc, compName) in costContribution.keys():
+                    for loc, compName in costContribution.keys():
                         costContribution[(loc, compName)][
                             esM.investmentPeriods[-1]
                         ] = costContribution[(loc, compName)][
@@ -3333,7 +3332,7 @@ class ComponentModel(metaclass=ABCMeta):
                     # contribution, implying the system design and operation
                     # will remain constant after the time frame of the
                     # transformation pathway.
-                    for (loc, compName) in costContribution.keys():
+                    for loc, compName in costContribution.keys():
                         costContribution[(loc, compName)][
                             esM.investmentPeriods[-1]
                         ] = costContribution[(loc, compName)][

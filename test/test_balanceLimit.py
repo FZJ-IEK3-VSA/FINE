@@ -300,7 +300,6 @@ def test_electricitySourceDriver():
 # 5) The balanceLimit is compared to the outcome of the model
 #   Hydrogen Annual Production >= hydrogenDriver (as balanceLimitID)
 def test_hydrogenSinkDriver():
-
     # 0) Preprocess energy system model
     locations = {"Region1"}
     commodityUnitDict = {"electricity": r"MW$_{el}$", "hydrogen": r"MW$_{LHV_H2}$"}

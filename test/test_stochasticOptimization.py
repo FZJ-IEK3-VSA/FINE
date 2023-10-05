@@ -4,7 +4,6 @@ import pandas as pd
 
 
 def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False):
-
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 

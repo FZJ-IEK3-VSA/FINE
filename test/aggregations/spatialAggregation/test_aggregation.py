@@ -5,7 +5,6 @@ from FINE.aggregations.spatialAggregation import aggregation
 
 
 def test_aggregate_geometries(xr_and_dict_for_basic_representation):
-
     (
         sub_to_sup_region_id_dict,
         xr_for_basic_representation,
@@ -66,7 +65,6 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict(
     expected_2d_capacityMax,
     expected_2d_locationalEligibility,
 ):
-
     sub_to_sup_region_id_dict, test_xr = xr_and_dict_for_basic_representation
 
     output_ds_dict = aggregation.aggregate_based_on_sub_to_sup_region_id_dict(

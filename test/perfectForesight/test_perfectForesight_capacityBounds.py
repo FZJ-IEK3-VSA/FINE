@@ -29,7 +29,7 @@ def test_capacityBounds():
     capMaxSeries = pd.Series(index=locations, data=5)
     capMinSeries = pd.Series(index=locations, data=1)
     capacityTypes = [(5, 1), (capMaxSeries, capMinSeries)]
-    for (capacityMax, capacityMin) in capacityTypes:
+    for capacityMax, capacityMin in capacityTypes:
         esM.add(
             fn.Storage(
                 esM=esM,
@@ -68,7 +68,7 @@ def test_capacityBounds():
     capMaxDataFrame.loc["IndustryLocation", "ElectrolyzerLocation"] = 5
     capMinDataFrame = pd.DataFrame(index=locations, columns=locations, data=0)
     capacityTypes = [(5, 1), (capMaxDataFrame, capMinDataFrame)]
-    for (capacityMax, capacityMin) in capacityTypes:
+    for capacityMax, capacityMin in capacityTypes:
         esM.add(
             fn.Transmission(
                 esM=esM,
@@ -246,7 +246,6 @@ def test_capacityBounds():
 
     # error for a decreasing capacityFix which cannot be fulfilled by the technicalLifetime
     with pytest.raises(ValueError, match=r".*Decreasing capacity fix set.*"):
-
         esM.add(
             fn.Storage(
                 esM=esM,
