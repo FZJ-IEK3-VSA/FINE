@@ -47,7 +47,7 @@ test-code:
     - python -m pytest --cov=FINE test/
   artifacts:
     paths:
-      - */test/*
+      - /*test/*
     expire_in: 1 week
 
 test-formatting:
