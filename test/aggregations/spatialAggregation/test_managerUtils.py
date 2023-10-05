@@ -36,7 +36,6 @@ def test_create_gdf():
 
 @pytest.mark.parametrize("add_centroids", [True, False])
 def test_create_geom_xarray(sample_shapefile, add_centroids):
-
     expected_centroids = [Point(2, 2), Point(5.5, 2)]
     expected_centroid_distances = 0.001 * np.array(
         [[0, 3.5], [3.5, 0]]

@@ -137,7 +137,6 @@ def test_error_in_reading_shp(test_esM_for_spagat):
 
 
 def test_spatial_aggregation_string_based(test_esM_for_spagat):
-
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
         "../../../examples/Multi-regional_Energy_System_Workflow/",
@@ -183,7 +182,6 @@ def test_spatial_aggregation_string_based(test_esM_for_spagat):
 def test_spatial_aggregation_distance_based(
     test_esM_for_spagat, skip_regions, enforced_groups, n_expected_groups
 ):
-
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
         "../../../examples/Multi-regional_Energy_System_Workflow/",
@@ -221,7 +219,6 @@ def test_spatial_aggregation_distance_based(
 def test_spatial_aggregation_parameter_based(
     test_esM_for_spagat, aggregation_function_dict, n_regions
 ):
-
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
         "../../../examples/Multi-regional_Energy_System_Workflow/",

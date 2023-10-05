@@ -42,7 +42,6 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     shape_list = []
 
     for sub_region_id_list in sub_to_sup_region_id_dict.values():
-
         temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values)
 
         shape_union = cascaded_union(temp_shape_list)
@@ -112,7 +111,6 @@ def aggregate_time_series_spatially(
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
-
         sub_region_da = xr_data_array_in.sel(space=sub_region_id_list)
         # drop regions that contains only NAs. These correspond to locationally ineligible regions
         sub_region_da = sub_region_da.dropna(dim="space", how="all")
@@ -204,7 +202,6 @@ def aggregate_values_spatially(
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
-
         sub_region_da = xr_data_array_in.sel(space=sub_region_id_list)
 
         if mode == "mean":
@@ -278,7 +275,6 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
 
     for sup_region_id, sub_region_id_list in sub_to_sup_region_id_dict.items():
         for sup_region_id_2, sub_region_id_list_2 in sub_to_sup_region_id_dict.items():
-
             sub_region_da = xr_data_array_in.sel(
                 space=sub_region_id_list, space_2=sub_region_id_list_2
             )
@@ -397,13 +393,13 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.Dataset
     """
+
     # private function to get aggregation mode for a particular variable name
     def _get_aggregation_mode(varname, comp=None, comp_ds=None):
         # If aggregation_function_dict is passed AND the current variable is in it...
         if (aggregation_function_dict is not None) and (
             varname in aggregation_function_dict.keys()
         ):
-
             ## Get the mode and weight
             aggregation_mode = aggregation_function_dict[varname][0]
             aggregation_weight = aggregation_function_dict[varname][1]
@@ -459,7 +455,6 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     parameters_dict = aggregated_xr_dataset.get("Parameters").attrs
 
     for varname, vardata in parameters_dict.items():
-
         if varname == "locations":
             parameters_dict[varname] = set(sub_to_sup_region_id_dict.keys())
 
@@ -485,7 +480,6 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     # Aggregate input data
     for comp_class, comp_dict in xarray_datasets.get("Input").items():
         for comp, comp_ds in comp_dict.items():
-
             aggregated_comp_ds = xr.Dataset()
 
             for varname, da in comp_ds.data_vars.items():

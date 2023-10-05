@@ -170,9 +170,7 @@ def generateIterationDicts(component_dict, investmentPeriods):
 
     # Loop through every class-component-variable combination
     for classname in component_dict:
-
         for component in component_dict[classname]:
-
             for variable_description, data in component_dict[classname][
                 component
             ].items():
@@ -468,7 +466,6 @@ def addConstantsToXarray(
         variable_description,
         description_tuple_list,
     ) in constants_iteration_dict.items():
-
         df_dict = {}
         for description_tuple in description_tuple_list:
             classname, component = description_tuple
@@ -541,7 +538,6 @@ def processXarrayAttributes(xarray_dataset):
         elif isinstance(attr_value, list):
             # If its a "flattened" list, convert it to dict
             if all(":" in v for v in attr_value):
-
                 _dict = {}
                 for item in attr_value:
                     [k, v] = item.split(" : ")
@@ -578,7 +574,6 @@ def processXarrayAttributes(xarray_dataset):
 
     # STEP 2. Reconstruct pandas series or df for each item in dot_attrs_dict
     if len(dot_attrs_dict) > 0:
-
         for new_attr_name, new_attr_dict in dot_attrs_dict.items():
             if all(
                 [
@@ -684,7 +679,6 @@ def add2dVariableToDict(
     series = series[series > 0]
 
     if not len(series.index) == 0:
-
         class_name = component.split("; ")[0]
         comp_name = component.split("; ")[1]
 

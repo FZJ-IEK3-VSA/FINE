@@ -25,10 +25,6 @@
 import FINE as fn
 from getData import getData
 
-# import pandas as pd
-import os
-
-cwd = os.getcwd()
 data = getData()
 
 # %matplotlib inline

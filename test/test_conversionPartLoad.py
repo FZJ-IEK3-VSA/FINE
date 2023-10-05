@@ -6,7 +6,6 @@ import pytest
 
 @pytest.mark.skip(reason="GPyOpt reached end of maintenance.")
 def test_conversionPartLoad():
-
     # Set up energy system model instance
     locations = {"GlassProductionSite"}
     commodities = {"electricity", "heat", "hydrogen", "O2", "CO2", "rawMaterial"}

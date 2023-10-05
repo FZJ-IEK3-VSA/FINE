@@ -122,7 +122,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
             #     optSum[esM.startYear] = optSum
             if esM.componentModelingDict[name].dimension == "1dim":
                 for component in optSum.index.get_level_values(0).unique():
-
                     variables = optSum.loc[component].index.get_level_values(0)
                     units = optSum.loc[component].index.get_level_values(1)
                     variables_unit = dict(zip(variables, units))
@@ -147,7 +146,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
                         )
             elif esM.componentModelingDict[name].dimension == "2dim":
                 for component in optSum.index.get_level_values(0).unique():
-
                     variables = optSum.loc[component].index.get_level_values(0)
                     units = optSum.loc[component].index.get_level_values(1)
                     variables_unit = dict(zip(variables, units))
@@ -347,14 +345,12 @@ def writeDatasetsToNetCDF(
 
     for group in datasets.keys():
         if group == "Parameters":
-
             xarray_dataset = datasets[group]
             _xarray_dataset = (
                 xarray_dataset.copy()
             )  # Copying to avoid errors due to change of size during iteration
 
             for attr_name, attr_value in _xarray_dataset.attrs.items():
-
                 # if the attribute is set, convert into sorted list
                 if isinstance(attr_value, set):
                     xarray_dataset.attrs[attr_name] = sorted(
@@ -489,7 +485,6 @@ def convertDatasetsToEnergySystemModel(datasets):
         for component_name, comp_xr in comps.items():
             for variable, comp_var_xr in comp_xr.data_vars.items():
                 if not pd.isnull(comp_var_xr.values).all():  # Skip if all are NAs
-
                     component = f"{model}; {component_name}"
 
                     # STEP 4 (i). Set regional time series (region, time)
@@ -612,7 +607,6 @@ def convertDatasetsToEnergySystemModel(datasets):
                 stateOfChargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
 
                 for component in datasets["Results"][ip][model]:
-
                     _operationVariablesOptimum_df = pd.DataFrame([])
                     _capacityVariablesOptimum_df = pd.DataFrame([])
                     _isBuiltVariablesOptimum_df = pd.DataFrame([])

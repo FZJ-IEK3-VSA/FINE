@@ -17,11 +17,11 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
 
 ## Requirements
-The installation process uses a Conda-based Python package manger. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/). If you choose to use [Anaconda](https://docs.anaconda.com/anaconda/install/) then the solving of dependencies during the installation might be very slow.
+The installation process uses a Conda-based Python package manager. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/). If you choose to use [Anaconda](https://docs.anaconda.com/anaconda/install/) then the solving of dependencies during the installation might be very slow.
 
 > If you choose to use Anaconda then replace all `mamba` commands with `conda`.
 
-> For Anaconda installer on Windows 10: Remeber to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
+> For Anaconda installer on Windows 10: Remember to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
 
 The project environment includes [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](#installation-of-an-optimization-solver) for more information.
 
@@ -60,9 +60,9 @@ mamba env create -f requirements_dev.yml
 ```
 This installs additional dependencies such as `pytest` and installs FINE from the folder in editable mode with `pip -e`. Changes in the folder are then reflected in the package installation.
 
-You can run the test suite with:
+You can run the following command in the project root folder:
 ```
-pytest --cov=FINE test/
+pytest
 ```
 
 ## Installation of an optimization solver

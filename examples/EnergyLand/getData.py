@@ -1,12 +1,13 @@
 import pandas as pd
 import os
+from pathlib import Path
 
 
 def getData(engine="openpyxl"):
-    cwd = os.getcwd()
-    inProfileDataPath = os.path.join(cwd, "Input_profiles_fine.xlsx")
-    outProfileDataPath = os.path.join(cwd, "Output_profiles_fine.xlsx")
-    esDataPath = os.path.join(cwd, "Potentials.xlsx")
+    current_directory = Path(__file__).parent.absolute()
+    inProfileDataPath = os.path.join(current_directory, "Input_profiles_fine.xlsx")
+    outProfileDataPath = os.path.join(current_directory, "Output_profiles_fine.xlsx")
+    esDataPath = os.path.join(current_directory, "Potentials.xlsx")
 
     data = {}
 

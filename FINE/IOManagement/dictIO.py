@@ -27,10 +27,8 @@ def exportToDict(esM, useProcessedValues=False):
     compDict = utilsIO.PowerDict()
     # Loop over all component models
     for componentModel in esM.componentModelingDict.values():
-
         # Loop over all components belonging to the model
         for componentname in componentModel.componentsDict:
-
             # Get class name of component
             classname = type(componentModel.componentsDict[componentname]).__name__
 

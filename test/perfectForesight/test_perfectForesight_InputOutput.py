@@ -2,9 +2,12 @@ import numpy as np
 import pandas as pd
 import os
 import shutil
+import io
+import time
 
 import FINE as fn
 from FINE.IOManagement.standardIO import writeOptimizationOutputToExcel
+from pathlib import Path
 
 
 def test_perfectForesight_excel(perfectForesight_test_esM):
@@ -12,8 +15,8 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
     perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
     # create empty directory to save results
-    cwd = os.getcwd()
-    dataPath = os.path.join(cwd, "test", "data")
+    parent__directory = Path(__file__).parent.absolute()
+    dataPath = os.path.join(parent__directory, "data")
     resultPath = os.path.join(dataPath, "perfect_foresight_results")
     os.makedirs(resultPath, exist_ok=True)
 
@@ -77,7 +80,6 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
 
 
 def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
-
     perfectForesight_test_esM.add(
         fn.Conversion(
             esM=perfectForesight_test_esM,
@@ -152,7 +154,6 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
 
 
 def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_esM):
-
     perfectForesight_test_esM.add(
         fn.Conversion(
             esM=perfectForesight_test_esM,

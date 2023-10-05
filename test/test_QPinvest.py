@@ -35,7 +35,6 @@ def test_LPinvest(minimal_test_esM):
     reason="QP solver required (check for license",
 )
 def test_QPinvest():
-
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 

@@ -332,7 +332,6 @@ def single_node_test_esM():
 
 @pytest.fixture(scope="session")
 def esM_init():
-
     locations = {
         "cluster_0",
         "cluster_1",
@@ -2654,7 +2653,6 @@ def balanceLimitConstraint_test_esM():
 
 @pytest.fixture
 def perfectForesight_test_esM(scope="session"):
-
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},
