@@ -758,7 +758,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 )
                             )
                     if isinstance(_operationVariablesOptimum_df, pd.Series):
-                        _operationVariablesOptimum_df = _operationVariablesOptimum_df.to_frame().T
+                        _operationVariablesOptimum_df = (
+                            _operationVariablesOptimum_df.to_frame().T
+                        )
                     operationVariablesOptimum_dict[int(ip)] = pd.concat(
                         [
                             operationVariablesOptimum_dict[int(ip)],
@@ -767,7 +769,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                         axis=0,
                     )
                     if isinstance(_capacityVariablesOptimum_df, pd.Series):
-                        _capacityVariablesOptimum_df = _capacityVariablesOptimum_df.to_frame().T
+                        _capacityVariablesOptimum_df = (
+                            _capacityVariablesOptimum_df.to_frame().T
+                        )
                     capacityVariablesOptimum_dict[int(ip)] = pd.concat(
                         [
                             capacityVariablesOptimum_dict[int(ip)],
@@ -776,7 +780,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                         axis=0,
                     )
                     if isinstance(_isBuiltVariablesOptimum_df, pd.Series):
-                        _isBuiltVariablesOptimum_df = _isBuiltVariablesOptimum_df.to_frame().T
+                        _isBuiltVariablesOptimum_df = (
+                            _isBuiltVariablesOptimum_df.to_frame().T
+                        )
                     isBuiltVariablesOptimum_dict[int(ip)] = pd.concat(
                         [
                             isBuiltVariablesOptimum_dict[int(ip)],
@@ -785,7 +791,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                         axis=0,
                     )
                     if isinstance(_chargeOperationVariablesOptimum_df, pd.Series):
-                        _chargeOperationVariablesOptimum_df = _chargeOperationVariablesOptimum_df.to_frame().T
+                        _chargeOperationVariablesOptimum_df = (
+                            _chargeOperationVariablesOptimum_df.to_frame().T
+                        )
                     chargeOperationVariablesOptimum_dict[int(ip)] = pd.concat(
                         [
                             chargeOperationVariablesOptimum_dict[int(ip)],
@@ -794,7 +802,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                         axis=0,
                     )
                     if isinstance(_dischargeOperationVariablesOptimum_df, pd.Series):
-                        _dischargeOperationVariablesOptimum_df = _dischargeOperationVariablesOptimum_df.to_frame().T
+                        _dischargeOperationVariablesOptimum_df = (
+                            _dischargeOperationVariablesOptimum_df.to_frame().T
+                        )
                     dischargeOperationVariablesOptimum_dict[int(ip)] = pd.concat(
                         [
                             dischargeOperationVariablesOptimum_dict[int(ip)],
@@ -802,8 +812,12 @@ def convertDatasetsToEnergySystemModel(datasets):
                         ],
                         axis=0,
                     )
-                    if isinstance(_stateOfChargeOperationVariablesOptimum_df, pd.Series):
-                        _stateOfChargeOperationVariablesOptimum_df = _stateOfChargeOperationVariablesOptimum_df.to_frame().T
+                    if isinstance(
+                        _stateOfChargeOperationVariablesOptimum_df, pd.Series
+                    ):
+                        _stateOfChargeOperationVariablesOptimum_df = (
+                            _stateOfChargeOperationVariablesOptimum_df.to_frame().T
+                        )
                     stateOfChargeOperationVariablesOptimum_dict[int(ip)] = pd.concat(
                         [
                             stateOfChargeOperationVariablesOptimum_dict[int(ip)],
