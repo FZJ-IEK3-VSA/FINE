@@ -4,14 +4,14 @@ import pyomo.environ as pyomo
 import pandas as pd
 import numpy as np
 import warnings
-import pwlf
 
 try:
     from GPyOpt.methods import BayesianOptimization
+    import pwlf
 except ImportError:
     warnings.warn(
         """
-        In order to user the `conversionPartLoadClass` you need to install GPyOpt. 
+        In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`. 
         GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
         Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
         """
