@@ -55,16 +55,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
             pd.Series(shape_list, index=space).to_xarray().rename({"index": "space"})
         )
 
-    if all(isinstance(x, Polygon) for x in shape_list):
-        shape_list = np.array(tuple(shape_list), dtype=Polygon)
-    elif all(isinstance(x, MultiPolygon) for x in shape_list):
-        shape_list = np.array(tuple(shape_list), dtype=MultiPolygon)
-    else:
-        _shape_list = deepcopy(shape_list)
-        for idx, s in enumerate(_shape_list):
-            if isinstance(s, Polygon):
-                shape_list[idx] = MultiPolygon([s])
-        shape_list = np.array(tuple(shape_list), dtype=MultiPolygon)
+    shape_list = np.array(tuple(shape_list), dtype=object)
 
     xr_data_array_out = xr.DataArray(shape_list, coords=[space], dims=["space"])
 
