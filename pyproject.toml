@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "fine"
+version = "2.2.3"
+description = "Framework for integrated energy systems assessment"
+readme = "README.md"
+authors = [
+    { name = "Theresa Groß", email = "t.gross@fz-juelich.de" },
+    { name = "Kevin Knossala", email = "k.knosala@fz-juelich.de" },
+]
+maintainers = [
+    { name = "Theresa Groß", email = "t.gross@fz-juelich.de" },
+    { name = "Kevin Knossala", email = "k.knosala@fz-juelich.de" },
+]
+license = { file = "LICENSE" }
+
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["energy assesment", "energy system", "optimization"]
+dependencies = []
+requires-python = ">=3.10,<3.11"
+
+#Configureation options
+# https://docs.pytest.org/en/7.1.x/reference/reference.html#configuration-options
+[tool.pytest.ini_options]
+testpaths = ["test"]
+console_output_style = "progress"
+# How to configure Filterwarning:
+# https://docs.python.org/3/library/warnings.html#warning-filter
+# action:message:category:module:line
+# Omit a field by add ing ":" for each omitted field
+# Actions are: "default"
+# "error", "ignore", "always", "module", "once"
+filterwarnings = [
+    "ignore:The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.:FutureWarning",
+]
+
+[project.urls]
+homepage = "https://www.fz-juelich.de/de/iek/iek-3/forschung/open-source/fine"
+repository = "https://github.com/FZJ-IEK3-VSA/FINE"
+documentation = "https://vsa-fine.readthedocs.io/en/master/"

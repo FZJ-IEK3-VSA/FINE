@@ -6,6 +6,7 @@
 
 import os
 import sys
+from pathlib import Path
 
 import pandas as pd
 import xarray as xr
@@ -49,11 +50,11 @@ esM.locations
 
 # In[4]:
 
+current_directory = Path(__file__).absolute()
 
 # The input data to spatial aggregation are esM instance and the shapefile containing model regions' geometries
 SHAPEFILE_PATH = os.path.join(
-    cwd,
-    "..",
+    current_directory,
     "Multi-regional_Energy_System_Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
 )
 

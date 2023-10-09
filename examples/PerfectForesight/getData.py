@@ -1,10 +1,11 @@
 import pandas as pd
 import os
+from pathlib import Path
 
 
 def getData(engine="openpyxl"):
-    cwd = os.path.dirname(os.path.realpath(__file__))
-    inputDataPath = os.path.join(cwd, "InputData")
+    current_directory = Path(__file__).parent.absolute()
+    inputDataPath = os.path.join(current_directory, "InputData")
     data = {}
 
     # Onshore data

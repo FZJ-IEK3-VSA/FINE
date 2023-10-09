@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # %%
 import warnings
+import os
 
 warnings.filterwarnings(
     "ignore"
@@ -40,6 +41,7 @@ np.random.seed(
 
 # %% tags=["nbval-skip"]
 import geopandas as gpd  # Used to display geo-referenced plots
+from pathlib import Path
 
 # %% [markdown]
 # # Model an energy system
@@ -94,11 +96,13 @@ investPerCapacity, opexPerCapacity = 1200, 1200 * 0.02
 interestRate, economicLifetime = 0.08, 20
 
 # If data should be read from an excel file:
-writer = pd.ExcelWriter("windTurbineProfile.xlsx")  # writes data to an excel file
+current_directory = Path(__file__).parent.absolute()
+output_file_path = os.path.join(current_directory, "windTurbineProfile.xlsx")
+writer = pd.ExcelWriter(output_file_path)  # writes data to an excel file
 operationRateMax.to_excel(writer)  # (not required if excel file
-writer.save()  #  already exists)
+writer.close()  #  already exists)
 operationRateMax = pd.read_excel(
-    "windTurbineProfile.xlsx", index_col=0
+    output_file_path, index_col=0
 )  # reads an excel file located in
 # the current working directory
 

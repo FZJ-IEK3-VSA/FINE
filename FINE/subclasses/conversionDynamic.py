@@ -21,7 +21,7 @@ class ConversionDynamic(Conversion):
         upTimeMin=None,
         rampUpMax=None,
         rampDownMax=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Constructor for creating a ConversionDynamic class instance.

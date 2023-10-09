@@ -6,8 +6,6 @@ import xarray as xr
 
 import FINE as fn
 
-cwd = os.getcwd()
-sys.path.append(os.path.join(cwd, "..", "Multi-regional_Energy_System_Workflow"))
 from getData import getData
 
 data = getData()

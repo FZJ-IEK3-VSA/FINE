@@ -99,7 +99,7 @@ class Source(Component):
             |br| * the default value is None
         :type operationRateFix:
             * None
-            * Pandas DataFrame with positive (>=0) per investement period. The row indices have
+            * Pandas DataFrame with positive (>=0) per investment period. The row indices have
             to match the in the energy system model specified time steps. The column indices have to equal the
             in the energy system model specified locations. The data in ineligible locations are set to zero.
             * a dictionary with investment periods as keys and one of the two options above as values
@@ -759,7 +759,7 @@ class SourceSinkModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         warnings.warn(
-            "The yearly limit is depreceated and moved to the balanceLimit",
+            "The yearly limit is deprecated and moved to the balanceLimit",
             DeprecationWarning,
         )
         compDict, abbrvName = self.componentsDict, self.abbrvName

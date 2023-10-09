@@ -319,7 +319,7 @@ class ConversionPartLoad(Conversion):
         commodityConversionFactors,
         commodityConversionFactorsPartLoad,
         nSegments=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Constructor for creating an ConversionPartLoad class instance. Capacities are given in the physical unit
