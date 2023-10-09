@@ -110,7 +110,7 @@ def transform1dSeriesto2dDataFrame(series, locations):
 
     df = pd.DataFrame(values, columns=locations, index=locations)
 
-    for row in series.iteritems():
+    for row in series.items():
         # Seperate loc1_loc2
         loc = ""
 

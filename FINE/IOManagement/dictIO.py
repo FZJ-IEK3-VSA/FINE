@@ -75,7 +75,7 @@ def exportToDict(esM, useProcessedValues=False):
 
                 # Loop over all input props
                 for prop in prop_list:
-                    if (prop[0] is not "self") and (prop[0] is not "esM"):
+                    if (prop[0] != "self") and (prop[0] != "esM"):
                         # NOTE: thanks to utilsIO.PowerDict(), the nested dictionaries need
                         # not be created before adding the data.
                         compDict[classname][componentname][prop[0]] = getattr(
@@ -84,7 +84,7 @@ def exportToDict(esM, useProcessedValues=False):
             else:
                 # Loop over all input props
                 for prop in prop_list:
-                    if (prop is not "self") and (prop is not "esM"):
+                    if (prop != "self") and (prop != "esM"):
                         compDict[classname][componentname][prop] = getattr(
                             component, prop
                         )

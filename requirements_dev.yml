@@ -14,9 +14,9 @@ dependencies:
 - conda-forge::openpyxl
 - conda-forge::matplotlib
 - conda-forge::xlrd
-- conda-forge::pyomo<6.4.2
-- conda-forge::numpy<=1.23
-- conda-forge::pandas<=1.5
+- conda-forge::pyomo
+- conda-forge::numpy
+- conda-forge::pandas
 - conda-forge::networkx
 - conda-forge::scipy
 - conda-forge::pwlf
@@ -35,8 +35,8 @@ dependencies:
 - conda-forge::pytest-cov
 - conda-forge::pylint
 - conda-forge::nbval
-- conda-forge::black=21.9b0
-- conda-forge::click=8.0.4
+- conda-forge::black
+- conda-forge::click
 
 - pip:
     - -e .

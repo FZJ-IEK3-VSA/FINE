@@ -576,7 +576,13 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 "LocationIn",
                             ]
                             _optSum_df = _optSum_df.droplevel(0, axis=1)
-                            optSum_df_comp = optSum_df_comp.append(_optSum_df)
+                            if isinstance(_optSum_df, pd.Series):
+                                _optSum_df = _optSum_df.to_frame().T
+                            optSum_df_comp = pd.concat(
+                                [optSum_df_comp, _optSum_df],
+                                axis=0,
+                            )
+
                         else:
                             _optSum_df = (
                                 datasets["Results"][ip][model][component][variable]
@@ -591,9 +597,19 @@ def convertDatasetsToEnergySystemModel(datasets):
                             ]
                             _optSum_df.index = pd.MultiIndex.from_tuples(iterables)
                             _optSum_df.index.names = ["Component", "Property", "Unit"]
-                            optSum_df_comp = optSum_df_comp.append(_optSum_df)
+                            if isinstance(_optSum_df, pd.Series):
+                                _optSum_df = _optSum_df.to_frame().T
+                            optSum_df_comp = pd.concat(
+                                [optSum_df_comp, _optSum_df],
+                                axis=0,
+                            )
 
-                    optSum_df = optSum_df.append(optSum_df_comp)
+                    if isinstance(optSum_df_comp, pd.Series):
+                        optSum_df_comp = optSum_df_comp.to_frame().T
+                    optSum_df = pd.concat(
+                        [optSum_df, optSum_df_comp],
+                        axis=0,
+                    )
                 optSum[int(ip)] = optSum_df
 
                 setattr(esM.componentModelingDict[model], "_optSummary", optSum)
@@ -641,8 +657,11 @@ def convertDatasetsToEnergySystemModel(datasets):
                                         [[component], [item], list(_df.index)]
                                     )
                                     _df = _df.set_index(idx)
-                                    _operationVariablesOptimum_df = (
-                                        _operationVariablesOptimum_df.append(_df)
+                                    if isinstance(_df, pd.Series):
+                                        _df = _df.to_frame().T
+                                    _operationVariablesOptimum_df = pd.concat(
+                                        [_operationVariablesOptimum_df, _df],
+                                        axis=0,
                                     )
 
                             else:
@@ -738,36 +757,73 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     idx
                                 )
                             )
-
-                    operationVariablesOptimum_dict[
-                        int(ip)
-                    ] = operationVariablesOptimum_dict[int(ip)].append(
-                        _operationVariablesOptimum_df
+                    if isinstance(_operationVariablesOptimum_df, pd.Series):
+                        _operationVariablesOptimum_df = (
+                            _operationVariablesOptimum_df.to_frame().T
+                        )
+                    operationVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            operationVariablesOptimum_dict[int(ip)],
+                            _operationVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
-                    capacityVariablesOptimum_dict[
-                        int(ip)
-                    ] = capacityVariablesOptimum_dict[int(ip)].append(
-                        _capacityVariablesOptimum_df
+                    if isinstance(_capacityVariablesOptimum_df, pd.Series):
+                        _capacityVariablesOptimum_df = (
+                            _capacityVariablesOptimum_df.to_frame().T
+                        )
+                    capacityVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            capacityVariablesOptimum_dict[int(ip)],
+                            _capacityVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
-                    isBuiltVariablesOptimum_dict[
-                        int(ip)
-                    ] = isBuiltVariablesOptimum_dict[int(ip)].append(
-                        _isBuiltVariablesOptimum_df
+                    if isinstance(_isBuiltVariablesOptimum_df, pd.Series):
+                        _isBuiltVariablesOptimum_df = (
+                            _isBuiltVariablesOptimum_df.to_frame().T
+                        )
+                    isBuiltVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            isBuiltVariablesOptimum_dict[int(ip)],
+                            _isBuiltVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
-                    chargeOperationVariablesOptimum_dict[
-                        int(ip)
-                    ] = chargeOperationVariablesOptimum_dict[int(ip)].append(
-                        _chargeOperationVariablesOptimum_df
+                    if isinstance(_chargeOperationVariablesOptimum_df, pd.Series):
+                        _chargeOperationVariablesOptimum_df = (
+                            _chargeOperationVariablesOptimum_df.to_frame().T
+                        )
+                    chargeOperationVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            chargeOperationVariablesOptimum_dict[int(ip)],
+                            _chargeOperationVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
-                    dischargeOperationVariablesOptimum_dict[
-                        int(ip)
-                    ] = dischargeOperationVariablesOptimum_dict[int(ip)].append(
-                        _dischargeOperationVariablesOptimum_df
+                    if isinstance(_dischargeOperationVariablesOptimum_df, pd.Series):
+                        _dischargeOperationVariablesOptimum_df = (
+                            _dischargeOperationVariablesOptimum_df.to_frame().T
+                        )
+                    dischargeOperationVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            dischargeOperationVariablesOptimum_dict[int(ip)],
+                            _dischargeOperationVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
-                    stateOfChargeOperationVariablesOptimum_dict[
-                        int(ip)
-                    ] = stateOfChargeOperationVariablesOptimum_dict[int(ip)].append(
-                        _stateOfChargeOperationVariablesOptimum_df
+                    if isinstance(
+                        _stateOfChargeOperationVariablesOptimum_df, pd.Series
+                    ):
+                        _stateOfChargeOperationVariablesOptimum_df = (
+                            _stateOfChargeOperationVariablesOptimum_df.to_frame().T
+                        )
+                    stateOfChargeOperationVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            stateOfChargeOperationVariablesOptimum_dict[int(ip)],
+                            _stateOfChargeOperationVariablesOptimum_df,
+                        ],
+                        axis=0,
                     )
 
                 # check if empty, if yes convert to None

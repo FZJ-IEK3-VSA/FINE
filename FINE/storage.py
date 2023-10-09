@@ -2109,8 +2109,16 @@ class StorageModel(ComponentModel):
                 )
 
             # Append optimization summaries
-            optSummary = optSummary.append(
-                optSummaryBasic[esM.investmentPeriodNames[ip]]
+            optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]
+            if isinstance(optSummaryBasic_frame, pd.Series):
+                optSummaryBasic_frame = optSummaryBasic_frame.to_frame().T
+
+            optSummary = pd.concat(
+                [
+                    optSummary,
+                    optSummaryBasic_frame,
+                ],
+                axis=0,
             ).sort_index()
 
             # Summarize all contributions to the total annual cost
