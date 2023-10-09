@@ -12,6 +12,7 @@ __pycache__/
 *.dist/
 *.docs/build/
 .vscode/
+build/
 
 # file types to ignore
 *.pyc
