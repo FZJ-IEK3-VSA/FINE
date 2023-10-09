@@ -9,6 +9,8 @@ from copy import deepcopy
 import numpy as np
 import xarray as xr
 from shapely.ops import cascaded_union
+from shapely.geometry.multipolygon import MultiPolygon
+from shapely.geometry.polygon import Polygon
 import pandas as pd
 
 logger_representation = logging.getLogger("spatial_representation")
@@ -52,6 +54,13 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         shape_list = (
             pd.Series(shape_list, index=space).to_xarray().rename({"index": "space"})
         )
+
+    _shape_list = deepcopy(shape_list)
+    for idx, s in enumerate(_shape_list):
+        if isinstance(s, Polygon):
+            shape_list[idx] = MultiPolygon([s])
+
+    shape_list = np.asarray(shape_list, dtype=MultiPolygon)
 
     xr_data_array_out = xr.DataArray(shape_list, coords=[space], dims=["space"])
 
