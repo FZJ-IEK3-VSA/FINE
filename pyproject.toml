@@ -45,6 +45,7 @@ console_output_style = "progress"
 # "error", "ignore", "always", "module", "once"
 filterwarnings = [
     "ignore:The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.:FutureWarning",
+    "ignore:Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas.:FutureWarning",
 ]
 
 [project.urls]
