@@ -220,18 +220,17 @@ class EnergySystemModel:
                 defined as negative.
 
             |br| * the default value is None
-
         :type balanceLimit:
+
             * pd.DataFrame
             * dictionary with investment periods years as keys, and pd.DataFrame as values
+
             |br| * the default value is None
         :type lowerBound: bool
 
         :param pathwayBalanceLimit: the pathway balance limit defines commodity balance (lower or upper bound) for the pathway.
             The structure is similar to the balanceLimit, however does without the temporal dependency per investment period.
-
             Examples: CO2 budget for the entire transformation pathway
-
             |br| * the default value is None
         :type pathwayBalanceLimit: None or pd.DataFrame
         """

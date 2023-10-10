@@ -135,8 +135,8 @@ class Storage(Component):
         :type chargeOpRateMax:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model  specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param chargeOpRateFix: if specified, indicates a fixed charging rate for each location and each time
@@ -149,8 +149,8 @@ class Storage(Component):
         :type chargeOpRateFix:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model  specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param chargeTsaWeight: weight with which the chargeOpRate (max/fix) time series of the
@@ -168,8 +168,8 @@ class Storage(Component):
         :type dischargeOpRateMax:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model  specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param dischargeOpRateFix: if specified, indicates a fixed discharging rate for each location and each
@@ -182,8 +182,8 @@ class Storage(Component):
         :type dischargeOpRateFix:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model  specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param dischargeTsaWeight: weight with which the dischargeOpRate (max/fix) time series of the
@@ -2172,7 +2172,7 @@ class StorageModel(ComponentModel):
         :type name: string
 
         :param ip: investment period
-        |br| * the default value is 0
+            |br| * the default value is 0
         :type ip: int
 
         :returns: a dictionary with the optimal values of the components

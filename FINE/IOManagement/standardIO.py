@@ -955,6 +955,7 @@ def plotTransmission(
     :type loc1: string
 
     **Default arguments:**
+    
     :param ip: investment periods
         |br| * the default value is 0
     :type ip: int

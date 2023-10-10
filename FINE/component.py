@@ -188,13 +188,10 @@ class Component(metaclass=ABCMeta):
 
         :param capacityFix: if specified, indicates the fixed capacities. The type of this parameter
             depends on the dimension of the component:
-
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
-
             |br| * the default value is None
         :type capacityFix:
-
             * None or
             * float or
             * int or
@@ -208,13 +205,10 @@ class Component(metaclass=ABCMeta):
         :param isBuiltFix: if specified, indicates fixed decisions in which or between which locations the component is
             built (i.e. sets the isBuilt binary variables). The type of this parameter
             depends on the dimension of the component:
-
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
-
             |br| * the default value is None
         :type isBuiltFix:
-
             * None or
             * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -415,16 +409,18 @@ class Component(metaclass=ABCMeta):
         :param stockCommissioning: if specified, indictates historical commissioned capacities.
             The parameter describes, how much capacity was commissioned per location in which past
             investment period. The past investment period is not part of the optimized investment periods.
-            e.g. if startYear is 2020:
-            {2016:pandas.series(index=["loc1","loc2"],data=[4,3]).
-            2018: pandas.series(index=["loc1","loc2"],data=[1,2])}
-            e.g. if startYear is 0:
-            {-4:pandas.series(index=["loc1","loc2"],data=[4,3]).
-            -2: pandas.series(index=["loc1","loc2"],data=[1,2])}
+
+            * e.g. if startYear is 2020:
+              {2016:pandas.series(index=["loc1","loc2"],data=[4,3]).
+              2018: pandas.series(index=["loc1","loc2"],data=[1,2])}
+            * e.g. if startYear is 0:
+              {-4:pandas.series(index=["loc1","loc2"],data=[4,3]).
+              -2: pandas.series(index=["loc1","loc2"],data=[1,2])}
+
             Warning: Commissioning years older than the technical lifetime from startYear will be ignored.
             |br| * the default value is None
-
         :type stockCommissioning:
+
             * None or
             * Dict with past years as keys and pandas.Series with index of locations as values
 
@@ -3511,7 +3507,7 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments**
 
         :param unitApp: string which appends the capacity unit in the optimization summary.
-        For example, for the StorageModel class, the parameter is set to '\*h'.
+            For example, for the StorageModel class, the parameter is set to '\*h'.
             |br| * the default value is ''.
         :type unitApp: string
 

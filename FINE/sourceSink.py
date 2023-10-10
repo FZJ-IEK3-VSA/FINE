@@ -84,10 +84,11 @@ class Source(Component):
             of the commodityUnit for each time step.
             |br| * the default value is None
         :type operationRateMax:
+
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to equal the
-            in the energy system model specified locations. The data in ineligible locations are set to zero.
+              to match the in the energy system model specified time steps. The column indices have to equal the
+              in the energy system model specified locations. The data in ineligible locations are set to zero.
             * a dictionary with investment periods as keys and one of the two options above as values
 
 
@@ -98,33 +99,39 @@ class Source(Component):
             of the commodityUnit for each time step.
             |br| * the default value is None
         :type operationRateFix:
+
             * None
             * Pandas DataFrame with positive (>=0) per investment period. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to equal the
-            in the energy system model specified locations. The data in ineligible locations are set to zero.
+              to match the in the energy system model specified time steps. The column indices have to equal the
+              in the energy system model specified locations. The data in ineligible locations are set to zero.
             * a dictionary with investment periods as keys and one of the two options above as values
+
 
         :param commodityCostTimeSeries: if specified, indicates commodity cost rates for each location and each
             time step, if required also for each investment period, by a positive float. The values are given as specific values relative to the commodityUnit
             for each time step.
             |br| * the default value is None
         :type commodityCostTimeSeries:
+
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model specified time steps. The column indices have to equal the
-            in the energy system model specified locations. The data in ineligible locations are set to zero.
+              to match the in the energy system model specified time steps. The column indices have to equal the
+              in the energy system model specified locations. The data in ineligible locations are set to zero.
             * a dictionary with investment periods as keys and one of the two options above as values
+
 
         :param commodityRevenueTimeSeries:  if specified, indicates commodity revenue rate for each location and
             each time step, if required also for each investment period, by a positive float. The values are given as specific values relative to the
             commodityUnit for each time step.
             |br| * the default value is None
         :type commodityRevenueTimeSeries:
+
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices
-            have to match the in the energy system model specified time steps. The column indices have to equal
-            the in the energy system model specified locations. The data in ineligible locations are set to zero.
+              have to match the in the energy system model specified time steps. The column indices have to equal
+              the in the energy system model specified locations. The data in ineligible locations are set to zero.
             * a dictionary with investment periods as keys and one of the two options above as values
+
 
         :param tsaWeight: weight with which the time series of the component should be considered when applying
             time series aggregation.
@@ -157,8 +164,10 @@ class Source(Component):
 
             |br| * the default value is None
         :type yearlyLimit:
+
             * float
             * a dictionary with investment periods as keys and float as values
+
 
         :param opexPerOperation: describes the cost for one unit of the operation. The cost which is directly
             proportional to the operation of the component is obtained by multiplying the opexPerOperation parameter
@@ -168,10 +177,11 @@ class Source(Component):
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
         :type opexPerOperation:
+
             * positive (>=0) float
-            Pandas Series with positive (>=0) values.
-            The indices of the series have to equal the in the energy system model specified locations.
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
+
 
         :param commodityCost: describes the cost value of one operation´s unit of the component.
             The cost which is directly proportional to the operation of the component
@@ -187,9 +197,11 @@ class Source(Component):
 
             |br| * the default value is 0
         :type commodityCost:
+
             * positive (>=0) float
             * Pandas Series with positive (>=0).The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
+
 
         :param commodityRevenue: describes the revenue of one operation´s unit of the component.
             The revenue which is directly proportional to the operation of the component
@@ -204,9 +216,11 @@ class Source(Component):
 
             |br| * the default value is 0
         :type commodityRevenue:
+
             * positive (>=0) float
             * Pandas Series with positive (>=0). The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
+
 
         :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
             Should be specified if the respective component of the SourceSinkModel is supposed to be included in
@@ -1355,7 +1369,7 @@ class SourceSinkModel(ComponentModel):
         :type name: string
 
         :param ip: investment period
-        |br| * the default value is 0
+            |br| * the default value is 0
         :type ip: int
 
         :returns: a dictionary with the optimal values of the components

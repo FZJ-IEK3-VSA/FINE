@@ -90,11 +90,11 @@ class Transmission(Component):
         :type operationRateMax:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model specified time steps. The column indices are combinations
-            of locations (as defined in the energy system model), separated by a underscore (e.g.
-            "location1_location2"). The first location indicates where the commodity is coming from. The second
-            location indicates where the commodity is going too. If a flow is specified from location i to
-            location j, it also has to be specified from j to i.
+              to match the in the energy system model specified time steps. The column indices are combinations
+              of locations (as defined in the energy system model), separated by a underscore (e.g.
+              "location1_location2"). The first location indicates where the commodity is coming from. The second
+              location indicates where the commodity is going too. If a flow is specified from location i to
+              location j, it also has to be specified from j to i.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param operationRateFix: if specified, indicates a fixed operation rate for all possible connections
@@ -107,11 +107,11 @@ class Transmission(Component):
         :type operationRateFix:
             * None
             * Pandas DataFrame with positive (>= 0). The row indices have
-            to match the in the energy system model specified time steps. The column indices are combinations
-            of locations (as defined in the energy system model), separated by a underscore (e.g.
-            "location1_location2"). The first location indicates where the commodity is coming from. The second
-            one location indicates where the commodity is going too. If a flow is specified from location i to
-            location j, it also has to be specified from j to i.
+              to match the in the energy system model specified time steps. The column indices are combinations
+              of locations (as defined in the energy system model), separated by a underscore (e.g.
+              "location1_location2"). The first location indicates where the commodity is coming from. The second
+              one location indicates where the commodity is going too. If a flow is specified from location i to
+              location j, it also has to be specified from j to i.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param tsaWeight: weight with which the time series of the component should be considered when applying
@@ -130,7 +130,7 @@ class Transmission(Component):
         :type opexPerOperation:
             * positive (>=0) float
             * Pandas DataFrame with positive (>=0).The row and column indices of the DataFrame have to equal the in the energy system model
-            specified locations.
+              specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
@@ -759,12 +759,12 @@ class TransmissionModel(ComponentModel):
         """ Get contribution to a commodity balance. 
         
             .. math::
-            :nowrap:
+                :nowrap:
 
-            \\begin{eqnarray*}
-            \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
-            & - & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
-            \\end{eqnarray*}
+                \\begin{eqnarray*}
+                \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
+                & - & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
+                \\end{eqnarray*}
             
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
