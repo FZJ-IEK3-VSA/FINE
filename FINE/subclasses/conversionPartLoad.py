@@ -19,7 +19,7 @@
 #     except ImportError as e:
 #         warnings.warn(
 #             """
-#             In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`. 
+#             In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`.
 #             GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
 #             Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
 #             """,
@@ -356,7 +356,7 @@
 
 #         warnings.warn(
 #             """
-#             In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`. 
+#             In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`.
 #             GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
 #             Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
 #             """,

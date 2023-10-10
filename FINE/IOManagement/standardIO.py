@@ -29,6 +29,7 @@ def timer(func):
 
     .. note:: Usage as a decorator before a function -> @timer
     """
+
     @wraps(func)  # Required to get documentation for functions using this decorator
     def f(*args, **kwargs):
         before = time.perf_counter()
