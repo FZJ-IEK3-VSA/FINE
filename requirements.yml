@@ -1,36 +1,30 @@
 name: FINE
-
+channels:
+  - nodefaults
 dependencies:
-- python>=3.6,<=3.10
-- conda-forge::libiconv
-- conda-forge::gdal>2.2.0,<3.0.0
-- conda-forge::geopandas
-- conda-forge::jupyter
-- conda-forge::notebook
-- conda-forge::libpysal
-- pip
-- descartes
-- glpk
-- openpyxl
-- matplotlib
-- xlrd
-- pyomo<6.4.2
-- numpy<=1.23
-- pandas<=1.5
-- GPyOpt
-- networkx
-- scipy
-- pwlf
-- pyDOE
-- sphinx_rtd_theme
-- scikit-learn
-- xarray
-- seaborn
-- conda-forge::rasterio
-- conda-forge::netcdf4
-- conda-forge::tsam
-- wquantiles
-- cython
+  - conda-forge::python>=3.10
+  - conda-forge::libiconv
+  - conda-forge::gdal=3.4
+  - conda-forge::geopandas
+  - conda-forge::jupyter
+  - conda-forge::notebook
+  - conda-forge::libpysal
+  - conda-forge::pip
+  - conda-forge::descartes
+  - conda-forge::glpk
+  - conda-forge::openpyxl
+  - conda-forge::matplotlib
+  - conda-forge::xlrd
+  - conda-forge::pyomo
+  - conda-forge::numpy
+  - conda-forge::pandas>=2
+  - conda-forge::networkx
+  - conda-forge::scipy
+  - conda-forge::scikit-learn
+  - conda-forge::xarray
+  - conda-forge::rasterio
+  - conda-forge::netcdf4
+  - conda-forge::tsam
 
-- pip:
-    - .
+  - pip:
+      - .

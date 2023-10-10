@@ -4,12 +4,12 @@ from pandas import DataFrame, Series, MultiIndex, Index
 from pandas.testing import assert_frame_equal, assert_series_equal
 import FINE.IOManagement.xarrayIO as xrIO
 from FINE.IOManagement.dictIO import exportToDict
+import FINE as fn
 
 
 def compare_values(value_1, value_2):
     # Dataframes and Series need a special treatment.
     if isinstance(value_1, DataFrame):
-
         # Reset index names
         if isinstance(value_1.index, Index):
             value_1.index.name = None
@@ -41,7 +41,7 @@ def compare_values(value_1, value_2):
 
 
 def compare_dicts(dict_1, dict_2):
-    for ((key_1, value_1), (key_2, value_2)) in zip(dict_1.items(), dict_2.items()):
+    for (key_1, value_1), (key_2, value_2) in zip(dict_1.items(), dict_2.items()):
         # If the values are dicts we iterate over the dict key-value pairs
         # and compare those.
         if isinstance(value_1, dict):
@@ -70,55 +70,63 @@ def compare_esm_inputs(esm_1, esm_2):
 
 
 def compare_esm_outputs(esm_1, esm_2):
+    for ip in esm_1.investmentPeriodNames:
+        results_original = {}
+        results_from_netcdf = {}
+        for model in esm_1.componentModelingDict.keys():
+            results_original[model] = esm_1.getOptimizationSummary(
+                model, outputLevel=0, ip=ip
+            )
+        for model in esm_2.componentModelingDict.keys():
+            results_from_netcdf[model] = esm_2.getOptimizationSummary(
+                model, outputLevel=0, ip=ip
+            )
 
-    results_original = {}
-    results_from_netcdf = {}
-    for model in esm_1.componentModelingDict.keys():
-        results_original[model] = esm_1.getOptimizationSummary(model, outputLevel=0)
-    for model in esm_2.componentModelingDict.keys():
-        results_from_netcdf[model] = esm_2.getOptimizationSummary(model, outputLevel=0)
+        assert results_original.keys() == results_from_netcdf.keys()
 
-    assert results_original.keys() == results_from_netcdf.keys()
+        for model_key in results_original.keys():
+            model_results_original = results_original[model_key]
+            model_results_from_netcdf = results_from_netcdf[model_key]
 
-    for model_key in results_original.keys():
-        model_results_original = results_original[model_key]
-        model_results_from_netcdf = results_from_netcdf[model_key]
+            # Only total operation is saved in netCDF not the yearly value so we drop the
+            # opreation value. This needs to be fixed in future.
+            switch = False
+            labels = set()
+            for label in list(
+                model_results_original.index.get_level_values(1).unique()
+            ):
+                if label.startswith("operation"):
+                    switch = True
+                    labels.add(label)
+            if switch:
+                for label in labels:
+                    model_results_original.drop(
+                        index=model_results_original.xs(
+                            label, axis=0, level=1, drop_level=False
+                        ).index.tolist(),
+                        inplace=True,
+                    )
+                    model_results_from_netcdf.drop(
+                        index=model_results_from_netcdf.xs(
+                            label, axis=0, level=1, drop_level=False
+                        ).index.tolist(),
+                        inplace=True,
+                    )
 
-        # Only total operation is saved in netCDF not the yearly value so we drop the
-        # opreation value. This needs to be fixed in future.
-        switch = False
-        labels = set()
-        for label in list(model_results_original.index.get_level_values(1).unique()):
-            if label.startswith("operation"):
-                switch = True
-                labels.add(label)
-        if switch:
-            for label in labels:
-                model_results_original.drop(
-                    index=model_results_original.xs(
-                        label, axis=0, level=1, drop_level=False
-                    ).index.tolist(),
-                    inplace=True,
-                )
-                model_results_from_netcdf.drop(
-                    index=model_results_from_netcdf.xs(
-                        label, axis=0, level=1, drop_level=False
-                    ).index.tolist(),
-                    inplace=True,
-                )
+            # Reading from netCDF creates a column name `space_1`. This needs to be
+            # fixed in future.
+            model_results_original.columns.name = None
+            model_results_from_netcdf.columns.name = None
 
-        # Reading from netCDF creates a column name `space_1`. This needs to be
-        # fixed in future.
-        model_results_original.columns.name = None
-        model_results_from_netcdf.columns.name = None
+            model_results_original = model_results_original.sort_index()
+            model_results_from_netcdf = model_results_from_netcdf.sort_index()
 
-        assert_frame_equal(
-            model_results_original, model_results_from_netcdf, check_dtype=False
-        )
+            assert_frame_equal(
+                model_results_original, model_results_from_netcdf, check_dtype=False
+            )
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
-
     esm_original = deepcopy(minimal_test_esM)
 
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
@@ -128,7 +136,6 @@ def test_esm_input_to_dataset_and_back(minimal_test_esM):
 
 
 def test_esm_output_to_dataset_and_back(minimal_test_esM):
-
     esm_original = deepcopy(minimal_test_esM)
     esm_original.optimize()
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
@@ -168,3 +175,74 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM):
     compare_esm_outputs(esm_original, esm_from_netcdf)
 
     Path("test_esM.nc").unlink()
+
+
+def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_esM):
+    """Optimize an esM, write it to  netCDF, then load the esM from this file.
+    Compare if both esMs are identical. Inputs are compared with exportToDict,
+    outputs are compared with optimizationSummary.
+    """
+
+    esm_original_pf = deepcopy(perfectForesight_test_esM)
+    esm_original_pf.optimize()
+
+    _ = xrIO.writeEnergySystemModelToNetCDF(
+        esm_original_pf, outputFilePath="test_esM_pf.nc"
+    )
+    esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM_pf.nc")
+
+    compare_esm_inputs(esm_original_pf, esm_pf_from_netcdf)
+    compare_esm_outputs(esm_original_pf, esm_pf_from_netcdf)
+
+    Path("test_esM_pf.nc").unlink()
+
+
+def test_capacityFix_subset(multi_node_test_esM_init):
+    """
+    Optimize esM, set optimal capacity values for every component as capacity Fix.
+    Then, save the esM to netCDF and read out the same netCDF to esM.
+    Assert that capacityFix values do not have to be provided for every location when saving to NetCDF.
+    Assert that capacityFix index can be a subset of locationalEligibility when reading in NetCDF.
+    """
+    esM = multi_node_test_esM_init
+
+    capacityFix = Series(0, index=esM.locations)
+    capacityFix["cluster_1"] = 3
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="New CCGT plants (biogas)",
+            physicalUnit=r"GW$_{el}$",
+            commodityConversionFactors={"electricity": 1, "biogas": -1 / 0.635},
+            hasCapacityVariable=True,
+            investPerCapacity=0.7,
+            opexPerCapacity=0.021,
+            interestRate=0.08,
+            economicLifetime=33,
+            opexPerOperation=0.01,
+            locationalEligibility=Series(1, index=esM.locations),
+            capacityFix=capacityFix,
+            capacityMax=Series(3, index=esM.locations),
+        )
+    )
+
+    fileName = "test_cdf_error.nc"
+    xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=fileName)
+    esM_reload = xrIO.readNetCDFtoEnergySystemModel(filePath=fileName)
+
+    Path("test_cdf_error.nc").unlink()
+
+
+def test_esm_to_datasets_with_processed_values(minimal_test_esM):
+    esm_original = deepcopy(minimal_test_esM)
+
+    xr_dss = xrIO.convertOptimizationInputToDatasets(
+        esm_original, useProcessedValues=True
+    )
+    assert (
+        xr_dss.get("Input")
+        .get("Transmission")
+        .get("Pipelines")["0d_investPerCapacity.0"]
+        .item()
+        == 0.177
+    )

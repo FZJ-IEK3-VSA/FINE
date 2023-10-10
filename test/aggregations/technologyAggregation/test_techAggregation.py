@@ -10,7 +10,6 @@ from FINE.aggregations.technologyAggregation.techAggregation import (
 def test_aggregate_RE_technology_gridded(
     gridded_RE_data, sample_shapefile, n_timeSeries_perRegion
 ):
-
     # Function call
     represented_RE_ds = aggregate_RE_technology(
         gridded_RE_data,
@@ -34,7 +33,6 @@ def test_aggregate_RE_technology_gridded(
         assert np.all(np.isclose(represented_RE_ds["capfac"].loc[:, "reg_02"], 1.5))
 
     else:
-
         # Expected
         expected_capfac = np.array([[1, 2] for i in range(10)])
         expected_capfac_shuffled = expected_capfac[:, [1, 0]]
@@ -91,7 +89,6 @@ def test_aggregate_RE_technology_gridded(
 def test_aggregate_RE_technology_non_gridded(
     non_gridded_RE_data, n_timeSeries_perRegion
 ):
-
     # Function call
     represented_RE_ds = aggregate_RE_technology(
         non_gridded_RE_ds=non_gridded_RE_data,
@@ -123,7 +120,6 @@ def test_aggregate_RE_technology_non_gridded(
 
         ## capfacs
         for region in ["region1", "region2"]:
-
             try:
                 assert np.array_equal(
                     represented_RE_ds["capfac"].loc[:, region, :], expected_capfac

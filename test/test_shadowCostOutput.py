@@ -13,26 +13,34 @@ def test_shadowCostOutPut(minimal_test_esM):
 
     SP = fn.getShadowPrices(
         esM,
-        esM.pyM.ConstrOperation4_srcSnk,
+        esM.pyM.commodityBalanceConstraint,
         dualValues=None,
         hasTimeSeries=True,
         periodOccurrences=esM.periodOccurrences,
         periodsOrder=esM.periodsOrder,
     )
 
-    assert np.round(SP.sum(), 4) == 0.2955
+    assert np.round(SP.loc["hydrogen", "IndustryLocation"].sum(), 4) == 0.2955
 
-    esM.aggregateTemporally(numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=2,
+        numberOfTimeStepsPerPeriod=1,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
+
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     SP = fn.getShadowPrices(
         esM,
-        esM.pyM.ConstrOperation4_srcSnk,
+        esM.pyM.commodityBalanceConstraint,
         dualValues=None,
         hasTimeSeries=True,
         periodOccurrences=esM.periodOccurrences,
         periodsOrder=esM.periodsOrder,
     )
 
-    assert np.round(SP.sum(), 4) == 0.3296
-    assert len(SP) == 4
+    assert np.round(SP.loc["hydrogen", "IndustryLocation"].sum(), 4) == 0.3296
+    assert len(SP.loc["hydrogen", "IndustryLocation"]) == 4

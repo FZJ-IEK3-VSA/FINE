@@ -13,6 +13,7 @@ def optimizeSimpleMyopic(
     timeSeriesAggregation=True,
     numberOfTypicalPeriods=7,
     numberOfTimeStepsPerPeriod=24,
+    clusterMethod="hierarchical",
     logFileName="",
     threads=3,
     solver="gurobi",
@@ -69,6 +70,15 @@ def optimizeSimpleMyopic(
         |br| * the default value is 24
     :type numberOfTimeStepsPerPeriod: strictly positive integer
 
+    :param clusterMethod: states the method which is used in the tsam package for clustering the time series
+        data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
+
+        .. note::
+            Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+
+        |br| * the default value is 'hierarchical'
+    :type clusterMethod: string
+
     :param CO2Reference: gives the reference value of the CO2 emission to which the reduction should be applied to.
         The default value refers to the emissions of 1990 within the electricity sector (366kt CO2_eq)
         |br| * the default value is 366
@@ -93,7 +103,11 @@ def optimizeSimpleMyopic(
         nothing is returned.
     :rtype: dict of all optimized instances of the EnergySystemModel class or None.
     """
-
+    if esM.numberOfInvestmentPeriods != 1:
+        raise ValueError(
+            "Myopic is based on single year optimizations. "
+            + "numberOfInvestmentPeriods must be 1"
+        )
     nbOfSteps, nbOfRepresentedYears = utils.checkAndSetTimeHorizon(
         startYear, endYear, nbOfSteps, nbOfRepresentedYears
     )
@@ -115,6 +129,12 @@ def optimizeSimpleMyopic(
             esM.aggregateTemporally(
                 numberOfTypicalPeriods=numberOfTypicalPeriods,
                 numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+                segmentation=False,
+                clusterMethod=clusterMethod,
+                solver=solver,
+                sortValues=True,
+                rescaleClusterPeriods=True,
+                representationMethod=None,
             )
 
         esM.optimize(
@@ -168,7 +188,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
     """
     for mdl in esM.componentModelingDict.keys():
         compValues = esM.componentModelingDict[mdl].getOptimalValues(
-            "capacityVariablesOptimum"
+            "capacityVariablesOptimum", ip=0
         )["values"]
         if compValues is not None:
             for comp in compValues.index.get_level_values(0).unique():
@@ -194,13 +214,17 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                     # If capacities are installed, set the values as capacityFix.
                     if getattr(stockComp, "capacityFix") is None:
                         if isinstance(compValues.loc[comp], pd.DataFrame):
-                            stockComp.capacityFix = utils.preprocess2dimData(
+                            stockComp.processedCapacityFix = {}
+                            stockComp.processedCapacityFix[
+                                0
+                            ] = utils.preprocess2dimData(
                                 compValues.loc[comp].fillna(value=-1), discard=False
                             )
                         else:
                             # NOTE: Values of capacityMin and capacityMax are not overwritten.
                             # CapacityFix values set the capacity fix and fulfills the boundary constraints (capacityMin <= capacityFix <= capacityMax)
-                            stockComp.capacityFix = compValues.loc[comp]
+                            stockComp.processedCapacityFix = {}
+                            stockComp.processedCapacityFix[0] = compValues.loc[comp]
                     esM.add(stockComp)
 
                 elif (

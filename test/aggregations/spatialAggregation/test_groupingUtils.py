@@ -10,7 +10,6 @@ import FINE.aggregations.spatialAggregation.groupingUtils as gprUtils
     "test_array", [np.array([[10, 9, 8], [7, 4, 6], [2, 1, 0]]), np.array([10, 5, 0])]
 )
 def test_get_normalized_array(test_array):
-
     expected_array = 0.1 * test_array
 
     output_array = gprUtils.get_normalized_array(test_array)
@@ -19,7 +18,6 @@ def test_get_normalized_array(test_array):
 
 
 def test_get_normalized_array_flat():
-
     test_array = np.array([5, 5, 5])
     expected_array = np.array([1, 1, 1])
 
@@ -175,7 +173,6 @@ def test_preprocess_dataset():
 def test_get_custom_distance_matrix(
     weights, expected_dist_matrix, data_for_distance_measure
 ):
-
     test_ts_dict, test_1d_dict, test_2d_dict = data_for_distance_measure
 
     # FUNCTION CALL
@@ -200,7 +197,6 @@ def test_get_custom_distance_matrix(
 def test_get_custom_distance_matrix_with_unusual_weights(
     weights, data_for_distance_measure
 ):
-
     test_ts_dict, test_1d_dict, test_2d_dict = data_for_distance_measure
 
     # FUNCTION CALL
@@ -215,13 +211,13 @@ def test_get_connectivity_matrix(xr_for_connectivity):
     # EXPECTED
     expected_matrix = np.array(
         [
-            [1, 1, 0, 1, 1, 0, 0, 0],
+            [1, 1, 0, 1, 1, 1, 0, 0],
             [1, 1, 1, 1, 1, 1, 0, 0],
             [0, 1, 1, 0, 1, 1, 0, 0],
-            [1, 1, 0, 1, 1, 0, 1, 0],
+            [1, 1, 0, 1, 1, 0, 0, 0],
             [1, 1, 1, 1, 1, 1, 0, 0],
-            [0, 1, 1, 0, 1, 1, 0, 1],
-            [0, 0, 0, 1, 0, 0, 1, 1],
+            [1, 1, 1, 0, 1, 1, 0, 1],
+            [0, 0, 0, 0, 0, 0, 1, 1],
             [0, 0, 0, 0, 0, 1, 1, 1],
         ]
     )

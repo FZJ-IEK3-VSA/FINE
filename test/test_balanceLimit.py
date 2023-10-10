@@ -15,313 +15,77 @@ import numpy as np
 #   purchase + exchange_in - exchange_out <= balanceLimit
 
 
-def test_balanceLimitConstraint():
-    # 0) Preprocess energy system model
-    locations = {"Region1", "Region2"}
-    commodityUnitDict = {"electricity": r"MW$_{el}$", "heat": r"MW$_{th}$"}
-    commodities = {"electricity", "heat"}
-    ndays = 30
-    nhours = 24 * ndays
+def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
+    def check_selfSufficiency(esM, losses, distances, balanceLimit):
+        for i, loc in enumerate(esM.locations):
+            # Get Electricity Purchase for location
+            el_purchase = (
+                esM.componentModelingDict["SourceSinkModel"]
+                .operationVariablesOptimum.loc["Electricity purchase", loc]
+                .sum()
+            )
+            heat_purchase = (
+                esM.componentModelingDict["SourceSinkModel"]
+                .operationVariablesOptimum.loc["Heat purchase", loc]
+                .sum()
+            )
+            # Get Exchange going into region and out of region
+            cables = esM.componentModelingDict[
+                "TransmissionModel"
+            ].operationVariablesOptimum.loc["AC cables"]
 
-    # Electricity Demand
-    dailyProfileSimple = [
-        0.6,
-        0.6,
-        0.6,
-        0.6,
-        0.6,
-        0.7,
-        0.9,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        0.9,
-        0.8,
-    ]
-    demand = pd.DataFrame(
-        [
-            [(u + 0.1 * np.random.rand()) * 40, (u + 0.1 * np.random.rand()) * 60]
-            for day in range(ndays)
-            for u in dailyProfileSimple
-        ],
-        index=range(nhours),
-        columns=["Region1", "Region2"],
-    ).round(2)
-    heat_demand = pd.DataFrame(
-        [
-            [(u + 0.1 * np.random.rand()) * 10, (u + 0.1 * np.random.rand()) * 20]
-            for day in range(ndays)
-            for u in dailyProfileSimple
-        ],
-        index=range(nhours),
-        columns=["Region1", "Region2"],
-    ).round(2)
-    # 1) Define balanceLimit constraint in relation to demand in regions
-    balanceLimit = pd.DataFrame(columns=["Region1", "Region2"], index=["el", "heat"])
-    perNetAutarky = 0.75
-    perNetAutarky_h = 1
-    balanceLimit.loc["el"] = (1 - perNetAutarky) * demand.sum()
-    balanceLimit.loc["heat"] = (1 - perNetAutarky_h) * heat_demand.sum()
+            pipes = esM.componentModelingDict[
+                "TransmissionModel"
+            ].operationVariablesOptimum.loc["Heat pipes"]
 
-    # 2) Initialize esM with two regions
-    esM = fn.EnergySystemModel(
-        locations=locations,
-        commodities=commodities,
-        numberOfTimeSteps=nhours,
-        commodityUnitsDict=commodityUnitDict,
-        hoursPerTimeStep=1,
-        costUnit="1e6 Euro",
-        lengthUnit="km",
-        verboseLogLevel=2,
-        balanceLimit=balanceLimit,
-    )
+            for j, loc_ in enumerate(esM.locations):
+                if loc != loc_:
+                    exch_in = (
+                        cables.loc[loc_, loc] * (1 - losses * distances.loc[loc_, loc])
+                    ).T.sum()
+                    exch_in_h = (
+                        pipes.loc[loc_, loc] * (1 - losses * distances.loc[loc_, loc])
+                    ).T.sum()
+                    exch_out = cables.loc[loc, loc_].T.sum()
+                    exch_out_h = pipes.loc[loc, loc_].T.sum()
 
-    # 3) Components are added: 'Electricity demand', 'Heat demand', 'Electricity purchase', 'Heat purchase',
-    # 'Heat pump', 'Wind turbines', 'PV', 'Batteries', 'AC cables', 'Heat pipes'
+            tolerance = 0.001
 
-    # Define Electricity demand and added to Energysystem
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="Electricity demand",
-            commodity="electricity",
-            hasCapacityVariable=False,
-            operationRateFix=demand,
-        )
-    )
-    # Define Heat demand and added to Energysystem
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="Heat demand",
-            commodity="heat",
-            hasCapacityVariable=False,
-            operationRateFix=heat_demand,
-        )
-    )
+            ## Compare modelled autarky to limit set in constraint.
+            assert np.isclose(
+                (el_purchase + exch_in - exch_out), balanceLimit.loc["el", loc]
+            )
+            assert np.isclose(
+                (heat_purchase + exch_in_h - exch_out_h), balanceLimit.loc["heat", loc]
+            )
 
-    # Define Cheap purchase 'Electricity purchase' and 'Heat purchase', which incentives to purchase,
-    # but is limited because of balanceLimit
-    # added to Energysystem
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Electricity purchase",
-            commodity="electricity",
-            hasCapacityVariable=False,
-            commodityCost=0.001,
-            balanceLimitID="el",
-        )
-    )
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Heat purchase",
-            commodity="heat",
-            hasCapacityVariable=False,
-            commodityCost=0.001,
-            balanceLimitID="heat",
-        )
-    )
-    # Define heatpump and added to Energysystem
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="heatpump",
-            physicalUnit=r"MW$_{el}$",
-            commodityConversionFactors={
-                "electricity": -1,
-                "heat": 2.5,
-            },
-            hasCapacityVariable=True,
-            capacityMax=1e6,
-            investPerCapacity=0.95,
-            opexPerCapacity=0.95 * 0.01,
-            interestRate=0.08,
-            economicLifetime=33,
-        )
-    )
-    # Define Wind turbines and added to Energysystem
-    operationRateMax = pd.DataFrame(
-        [[np.random.beta(a=2, b=7.5), np.random.beta(a=2, b=9)] for t in range(nhours)],
-        index=range(nhours),
-        columns=["Region1", "Region2"],
-    ).round(6)
-    capacityMax = pd.Series([400, 200], index=["Region1", "Region2"])
-    investPerCapacity, opexPerCapacity = 1200, 1200 * 0.02
-    interestRate, economicLifetime = 0.08, 20
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Wind turbines",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            operationRateMax=operationRateMax,
-            capacityMax=capacityMax,
-            investPerCapacity=investPerCapacity,
-            opexPerCapacity=opexPerCapacity,
-            interestRate=interestRate,
-            economicLifetime=economicLifetime,
-        )
-    )
-
-    # Define PV and added to Energysystem
-    operationRateMax = pd.DataFrame(
-        [[u, u] for day in range(ndays) for u in dailyProfileSimple],
-        index=range(nhours),
-        columns=["Region1", "Region2"],
-    )
-    capacityMax = pd.Series([100, 100], index=["Region1", "Region2"])
-    investPerCapacity, opexPerCapacity = 800, 800 * 0.02
-    interestRate, economicLifetime = 0.08, 25
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="PV",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            operationRateMax=operationRateMax,
-            capacityMax=capacityMax,
-            investPerCapacity=investPerCapacity,
-            opexPerCapacity=opexPerCapacity,
-            interestRate=interestRate,
-            economicLifetime=economicLifetime,
-        )
-    )
-
-    # Define Batteries and added to Energysystem
-    chargeEfficiency, dischargeEfficiency, selfDischarge = (
-        0.95,
-        0.95,
-        1 - (1 - 0.03) ** (1 / (30 * 24)),
-    )
-    chargeRate, dischargeRate = 1, 1
-    investPerCapacity, opexPerCapacity = 150, 150 * 0.01
-    interestRate, economicLifetime, cyclicLifetime = 0.08, 22, 10000
-
-    esM.add(
-        fn.Storage(
-            esM=esM,
-            name="Batteries",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            chargeEfficiency=chargeEfficiency,
-            cyclicLifetime=cyclicLifetime,
-            dischargeEfficiency=dischargeEfficiency,
-            selfDischarge=selfDischarge,
-            chargeRate=chargeRate,
-            dischargeRate=dischargeRate,
-            investPerCapacity=investPerCapacity,
-            opexPerCapacity=opexPerCapacity,
-            interestRate=interestRate,
-            economicLifetime=economicLifetime,
-        )
-    )
-
-    # Transmission Components
-    # Define AC Cables and added to Energysystem
-    capacityFix = pd.DataFrame(
-        [[0, 30], [30, 0]], columns=["Region1", "Region2"], index=["Region1", "Region2"]
-    )
-    distances = pd.DataFrame(
-        [[0, 400], [400, 0]],
-        columns=["Region1", "Region2"],
-        index=["Region1", "Region2"],
-    )
-    losses = 0.0001
-    esM.add(
-        fn.Transmission(
-            esM=esM,
-            name="AC cables",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            capacityFix=capacityFix,
-            distances=distances,
-            losses=losses,
-            balanceLimitID="el",
-        )
-    )
-
-    # Define Heat pipes and added to Energysystem
-    capacityFix = pd.DataFrame(
-        [[0, 30], [30, 0]], columns=["Region1", "Region2"], index=["Region1", "Region2"]
-    )
-    distances = pd.DataFrame(
-        [[0, 400], [400, 0]],
-        columns=["Region1", "Region2"],
-        index=["Region1", "Region2"],
-    )
-    losses = 0.0001
-    esM.add(
-        fn.Transmission(
-            esM=esM,
-            name="Heat pipes",
-            commodity="heat",
-            hasCapacityVariable=True,
-            capacityFix=capacityFix,
-            distances=distances,
-            losses=losses,
-            balanceLimitID="heat",
-        )
-    )
-
-    # 4) Optimize model
+    # Test without segmentation:
+    esM, losses, distances, balanceLimit = balanceLimitConstraint_test_esM
+    # 1) Optimize model
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
-
-    # 5) The balanceLimit is compared to the outcome of the model
+    # 2) The balanceLimit is compared to the outcome of the model
     #   purchase + exchange_in - exchange_out <= balanceLimit
-    for i, loc in enumerate(esM.locations):
-        # Get Electricity Purchase for location
-        el_purchase = (
-            esM.componentModelingDict["SourceSinkModel"]
-            .operationVariablesOptimum.loc["Electricity purchase", loc]
-            .sum()
-        )
-        heat_purchase = (
-            esM.componentModelingDict["SourceSinkModel"]
-            .operationVariablesOptimum.loc["Heat purchase", loc]
-            .sum()
-        )
-        # Get Exchange going into region and out of region
-        cables = esM.componentModelingDict[
-            "TransmissionModel"
-        ].operationVariablesOptimum.loc["AC cables"]
-        pipes = esM.componentModelingDict[
-            "TransmissionModel"
-        ].operationVariablesOptimum.loc["Heat pipes"]
-        for j, loc_ in enumerate(esM.locations):
-            if loc != loc_:
-                exch_in = (
-                    cables.loc[loc_, loc] * (1 - losses * distances.loc[loc_, loc])
-                ).T.sum()
-                exch_in_h = (
-                    pipes.loc[loc_, loc] * (1 - losses * distances.loc[loc_, loc])
-                ).T.sum()
-                exch_out = cables.loc[loc, loc_].T.sum()
-                exch_out_h = pipes.loc[loc, loc_].T.sum()
+    check_selfSufficiency(esM, losses, distances, balanceLimit)
 
-        tolerance = 0.001
+    # Test self sufficiency with segmenation
+    esM_segmentation, losses, distances, balanceLimit = balanceLimitConstraint_test_esM
+    esM_segmentation.aggregateTemporally(
+        numberOfTypicalPeriods=10,
+        numberOfTimeStepsPerPeriod=24,
+        storeTSAinstance=False,
+        segmentation=True,
+        numberOfSegmentsPerPeriod=4,
+        clusterMethod="hierarchical",
+        representationMethod="durationRepresentation",
+        sortValues=False,
+        rescaleClusterPeriods=False,
+    )
 
-        ## Compare modelled autarky to limit set in constraint.
-        assert (
-            el_purchase + exch_in - exch_out - tolerance < balanceLimit.loc["el", loc]
-        )
-        assert (
-            heat_purchase + exch_in_h - exch_out_h - tolerance
-            < balanceLimit.loc["heat", loc]
-        )
+    # 1) Optimize model
+    esM_segmentation.optimize(timeSeriesAggregation=True, solver="glpk")
+    # 2) The balanceLimit is compared to the outcome of the model
+    #   purchase + exchange_in - exchange_out <= balanceLimit
+    check_selfSufficiency(esM_segmentation, losses, distances, balanceLimit)
 
 
 # In this test the following steps are performed:
@@ -383,6 +147,7 @@ def test_electricitySourceDriver():
     ## Define balanceLimit constraint in relation to demand in two regions
     balanceLimit = pd.DataFrame(columns=["Region1", "Region2"], index=["Renewables"])
     balanceLimit.loc["Renewables"] = 0.25 * demand.sum()
+    balanceLimit["lowerBound"] = True
 
     # 2) Initialize esM with two regions
     esM = fn.EnergySystemModel(
@@ -395,7 +160,6 @@ def test_electricitySourceDriver():
         lengthUnit="km",
         verboseLogLevel=2,
         balanceLimit=balanceLimit,
-        lowerBound=True,
     )
 
     # 3) Components are added: 'Electricity demand', 'Electricity purchase', 'Wind turbines', 'PV', 'Batteries'
@@ -536,7 +300,6 @@ def test_electricitySourceDriver():
 # 5) The balanceLimit is compared to the outcome of the model
 #   Hydrogen Annual Production >= hydrogenDriver (as balanceLimitID)
 def test_hydrogenSinkDriver():
-
     # 0) Preprocess energy system model
     locations = {"Region1"}
     commodityUnitDict = {"electricity": r"MW$_{el}$", "hydrogen": r"MW$_{LHV_H2}$"}
@@ -603,7 +366,6 @@ def test_hydrogenSinkDriver():
         lengthUnit="km",
         verboseLogLevel=2,
         balanceLimit=balanceLimit,
-        lowerBound=False,
     )
 
     # 3) Components are added: 'Wind turbines', 'Electrolyzer', 'Batteries' and 'Hydrogen Annual Production'
@@ -766,9 +528,11 @@ def test_CO2Limit():
     ).round(2)
 
     # 1) Define CO2-Limit with balanceLimitConstraint (sink are defined negative)
-    CO2_limit = pd.Series(index=["CO2 limit"])
-    CO2_limit.loc["CO2 limit"] = -1 * demand.sum().sum() * 0.6 * 201 * 1e-6 / 0.6
-
+    CO2_limit = pd.DataFrame(index=["CO2 limit"], columns=["Total", "lowerBound"])
+    CO2_limit.loc["CO2 limit"] = [
+        -1 * demand.sum().sum() * 0.6 * 201 * 1e-6 / 0.6,
+        True,
+    ]
     # 2) Initialize EnergySystemModel with two Regions
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -780,7 +544,6 @@ def test_CO2Limit():
         lengthUnit="km",
         verboseLogLevel=2,
         balanceLimit=CO2_limit,
-        lowerBound=True,
     )
 
     # 3) Components are added: 'Electricity demand', 'Methane purchase', 'cctg', 'CO2 to environment',
@@ -893,5 +656,9 @@ def test_CO2Limit():
         )
     tolerance = 0.001
     ## Compare modeled co2 emissions to limit set in constraint.
-    assert co2_to_environment * (1 - tolerance) < -1 * CO2_limit.loc["CO2 limit"]
-    assert co2_to_environment * (1 + tolerance) > -1 * CO2_limit.loc["CO2 limit"]
+    assert (
+        co2_to_environment * (1 - tolerance) < -1 * CO2_limit.loc["CO2 limit", "Total"]
+    )
+    assert (
+        co2_to_environment * (1 + tolerance) > -1 * CO2_limit.loc["CO2 limit", "Total"]
+    )

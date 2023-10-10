@@ -39,7 +39,6 @@ def minimal_test_esM(scope="session"):
         lengthUnit="km",
         verboseLogLevel=1,
         balanceLimit=None,
-        lowerBound=False,
     )
 
     # time step length [h]
@@ -226,7 +225,6 @@ def single_node_test_esM():
         lengthUnit="km",
         verboseLogLevel=1,
         balanceLimit=None,
-        lowerBound=False,
     )
 
     # time step length [h]
@@ -332,11 +330,8 @@ def single_node_test_esM():
     return esM
 
 
-@pytest.fixture
-def multi_node_test_esM_init(scope="session"):
-    data = getData()
-
-    # 2. Create an energy system model instance
+@pytest.fixture(scope="session")
+def esM_init():
     locations = {
         "cluster_0",
         "cluster_1",
@@ -366,6 +361,16 @@ def multi_node_test_esM_init(scope="session"):
         lengthUnit="km",
         verboseLogLevel=0,
     )
+
+    return esM
+
+
+@pytest.fixture(scope="session")
+def multi_node_test_esM_init(esM_init):
+    data = getData()
+
+    # 2. Create an energy system model instance
+    esM = esM_init
 
     CO2_reductionTarget = 1
 
@@ -794,17 +799,11 @@ def multi_node_test_esM_init(scope="session"):
         )
     )
 
-    # 8. Optimize energy system model
-
-    # esM.cluster(numberOfTypicalPeriods=3)
-
-    # esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
-
     return esM
 
 
-@pytest.fixture
-def test_esM_for_spagat(scope="session"):
+@pytest.fixture(scope="session")
+def test_esM_for_spagat(esM_init):
     """
     Simpler version of multi_node_test_esM_init.
     Makes spagat tests faster.
@@ -812,34 +811,7 @@ def test_esM_for_spagat(scope="session"):
     data = getData()
 
     # Create an energy system model instance
-    locations = {
-        "cluster_0",
-        "cluster_1",
-        "cluster_2",
-        "cluster_3",
-        "cluster_4",
-        "cluster_5",
-        "cluster_6",
-        "cluster_7",
-    }
-
-    commodityUnitDict = {
-        "electricity": r"GW$_{el}$",
-        "CO2": r"Mio. t$_{CO_2}$/h",
-        "hydrogen": r"GW$_{H_{2},LHV}$",
-    }
-    commodities = {"electricity", "hydrogen", "CO2"}
-
-    esM = fn.EnergySystemModel(
-        locations=locations,
-        commodities=commodities,
-        numberOfTimeSteps=8760,
-        commodityUnitsDict=commodityUnitDict,
-        hoursPerTimeStep=1,
-        costUnit="1e9 Euro",
-        lengthUnit="km",
-        verboseLogLevel=0,
-    )
+    esM = esM_init
 
     # onshore wind
     esM.add(
@@ -932,45 +904,12 @@ def test_esM_for_spagat(scope="session"):
     return esM
 
 
-@pytest.fixture
-def multi_node_test_esM_optimized(scope="session"):
-    cwd = os.getcwd()
-    data = getData()
+@pytest.fixture(scope="session")
+def multi_node_test_esM_optimized(esM_init):
+    data = getData(esM_init)
 
     # 2. Create an energy system model instance
-    locations = {
-        "cluster_0",
-        "cluster_1",
-        "cluster_2",
-        "cluster_3",
-        "cluster_4",
-        "cluster_5",
-        "cluster_6",
-        "cluster_7",
-    }
-    commodityUnitDict = {
-        "electricity": r"GW$_{el}$",
-        "methane": r"GW$_{CH_{4},LHV}$",
-        "biogas": r"GW$_{biogas,LHV}$",
-        "CO2": r"Mio. t$_{CO_2}$/h",
-        "hydrogen": r"GW$_{H_{2},LHV}$",
-    }
-    commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
-    numberOfTimeSteps = 8760
-    hoursPerTimeStep = 1
-
-    esM = fn.EnergySystemModel(
-        locations=locations,
-        commodities=commodities,
-        numberOfTimeSteps=8760,
-        commodityUnitsDict=commodityUnitDict,
-        hoursPerTimeStep=1,
-        costUnit="1e9 Euro",
-        lengthUnit="km",
-        verboseLogLevel=0,
-        balanceLimit=None,
-        lowerBound=False,
-    )
+    esM = esM_init
 
     CO2_reductionTarget = 1
 
@@ -1401,7 +1340,13 @@ def multi_node_test_esM_optimized(scope="session"):
 
     # 8. Optimize energy system model
 
-    esM.aggregateTemporally(numberOfTypicalPeriods=3)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
 
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
@@ -1463,6 +1408,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=1.1 * 0.02,
             interestRate=0.08,
             economicLifetime=20,
+            opexPerOperation=0.008,
         )
     )
 
@@ -1482,6 +1428,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=2.3 * 0.02,
             interestRate=0.08,
             economicLifetime=20,
+            opexPerOperation=0.005,
         )
     )
 
@@ -1501,6 +1448,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.65 * 0.02,
             interestRate=0.08,
             economicLifetime=25,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1519,6 +1467,7 @@ def multi_node_test_esM_init(scope="session"):
             capacityFix=data["Existing run-of-river plants, capacityFix"],
             investPerCapacity=0,
             opexPerCapacity=0.208,
+            opexPerOperation=0.005,
         )
     )
 
@@ -1579,6 +1528,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.021,
             interestRate=0.08,
             economicLifetime=33,
+            opexPerOperation=0.005,
         )
     )
 
@@ -1595,6 +1545,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.021,
             interestRate=0.08,
             economicLifetime=33,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1611,6 +1562,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.021,
             interestRate=0.08,
             economicLifetime=33,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1627,6 +1579,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.5 * 0.025,
             interestRate=0.08,
             economicLifetime=10,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1646,6 +1599,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=capexRSOC * 0.02 / 2,
             interestRate=0.08,
             economicLifetime=10,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1661,6 +1615,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=capexRSOC * 0.02 / 2,
             interestRate=0.08,
             economicLifetime=10,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1685,6 +1640,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.002,
             interestRate=0.08,
             economicLifetime=22,
+            opexPerChargeOperation=0.0001,
         )
     )
 
@@ -1709,6 +1665,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.00057,
             interestRate=0.08,
             economicLifetime=30,
+            opexPerChargeOperation=0.0001,
         )
     )
 
@@ -1733,6 +1690,7 @@ def multi_node_test_esM_init(scope="session"):
             opexPerCapacity=0.00001,
             interestRate=0.08,
             economicLifetime=30,
+            opexPerChargeOperation=0.0001,
         )
     )
 
@@ -1753,6 +1711,7 @@ def multi_node_test_esM_init(scope="session"):
             capacityFix=data["Pumped hydro storage, capacityFix"],
             investPerCapacity=0,
             opexPerCapacity=0.000153,
+            opexPerChargeOperation=0.0001,
         )
     )
 
@@ -1768,6 +1727,7 @@ def multi_node_test_esM_init(scope="session"):
             hasCapacityVariable=True,
             capacityFix=data["AC cables, capacityFix"],
             reactances=data["AC cables, reactances"],
+            opexPerOperation=0.01,
         )
     )
 
@@ -1782,6 +1742,7 @@ def multi_node_test_esM_init(scope="session"):
             distances=data["DC cables, distances"],
             hasCapacityVariable=True,
             capacityFix=data["DC cables, capacityFix"],
+            opexPerOperation=0.01,
         )
     )
 
@@ -1804,6 +1765,7 @@ def multi_node_test_esM_init(scope="session"):
             investIfBuilt=0.000314,
             interestRate=0.08,
             economicLifetime=40,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1826,6 +1788,7 @@ def multi_node_test_esM_init(scope="session"):
             investIfBuilt=0.00033,
             interestRate=0.08,
             economicLifetime=40,
+            opexPerOperation=0.01,
         )
     )
 
@@ -1872,12 +1835,6 @@ def multi_node_test_esM_init(scope="session"):
         )
     )
 
-    # 8. Optimize energy system model
-
-    # esM.aggregateTemporally(numberOfTypicalPeriods=3)
-
-    # esM.optimize(timeSeriesAggregation=True, solver = 'glpk')
-
     return esM
 
 
@@ -1918,7 +1875,6 @@ def multi_node_test_esM_optimized(scope="session"):
         lengthUnit="km",
         verboseLogLevel=0,
         balanceLimit=None,
-        lowerBound=False,
     )
 
     CO2_reductionTarget = 1
@@ -2350,7 +2306,13 @@ def multi_node_test_esM_optimized(scope="session"):
 
     # 8. Optimize energy system model
 
-    esM.aggregateTemporally(numberOfTypicalPeriods=3)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
 
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
@@ -2421,3 +2383,375 @@ def dsm_test_esM(scope="session"):
     )
 
     return esM, load_without_dsm, timestep_up, timestep_down, time_shift, cheap_capacity
+
+
+@pytest.fixture
+def balanceLimitConstraint_test_esM():
+    # 0) Preprocess energy system model
+    locations = {"Region1", "Region2"}
+    commodityUnitDict = {"electricity": r"MW$_{el}$", "heat": r"MW$_{th}$"}
+    commodities = {"electricity", "heat"}
+    ndays = 30
+    nhours = 24 * ndays
+
+    # Electricity Demand
+    dailyProfileSimple = [
+        0.6,
+        0.6,
+        0.6,
+        0.6,
+        0.6,
+        0.7,
+        0.9,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0.9,
+        0.8,
+    ]
+    demand = pd.DataFrame(
+        [
+            [(u + 0.1 * np.random.rand()) * 40, (u + 0.1 * np.random.rand()) * 60]
+            for day in range(ndays)
+            for u in dailyProfileSimple
+        ],
+        index=range(nhours),
+        columns=["Region1", "Region2"],
+    ).round(2)
+    heat_demand = pd.DataFrame(
+        [
+            [(u + 0.1 * np.random.rand()) * 10, (u + 0.1 * np.random.rand()) * 20]
+            for day in range(ndays)
+            for u in dailyProfileSimple
+        ],
+        index=range(nhours),
+        columns=["Region1", "Region2"],
+    ).round(2)
+    # 1) Define balanceLimit constraint in relation to demand in regions
+    balanceLimit = pd.DataFrame(columns=["Region1", "Region2"], index=["el", "heat"])
+    perNetAutarky = 0.75
+    perNetAutarky_h = 1
+    balanceLimit.loc["el"] = (1 - perNetAutarky) * demand.sum()
+    balanceLimit.loc["heat"] = (1 - perNetAutarky_h) * heat_demand.sum()
+
+    # 2) Initialize esM with two regions
+    esM = fn.EnergySystemModel(
+        locations=locations,
+        commodities=commodities,
+        numberOfTimeSteps=nhours,
+        commodityUnitsDict=commodityUnitDict,
+        hoursPerTimeStep=1,
+        costUnit="1e6 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        balanceLimit=balanceLimit,
+    )
+
+    # 3) Components are added: 'Electricity demand', 'Heat demand', 'Electricity purchase', 'Heat purchase',
+    # 'Heat pump', 'Wind turbines', 'PV', 'Batteries', 'AC cables', 'Heat pipes'
+
+    # Define Electricity demand and added to Energysystem
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Electricity demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+    # Define Heat demand and added to Energysystem
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Heat demand",
+            commodity="heat",
+            hasCapacityVariable=False,
+            operationRateFix=heat_demand,
+        )
+    )
+
+    # Define Cheap purchase 'Electricity purchase' and 'Heat purchase', which incentives to purchase,
+    # but is limited because of balanceLimit
+    # added to Energysystem
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Electricity purchase",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            commodityCost=0.001,
+            balanceLimitID="el",
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Heat purchase",
+            commodity="heat",
+            hasCapacityVariable=False,
+            commodityCost=0.001,
+            balanceLimitID="heat",
+        )
+    )
+    # Define heatpump and added to Energysystem
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="heatpump",
+            physicalUnit=r"MW$_{el}$",
+            commodityConversionFactors={
+                "electricity": -1,
+                "heat": 2.5,
+            },
+            hasCapacityVariable=True,
+            capacityMax=1e6,
+            investPerCapacity=0.95,
+            opexPerCapacity=0.95 * 0.01,
+            interestRate=0.08,
+            economicLifetime=33,
+        )
+    )
+    # Define Wind turbines and added to Energysystem
+    operationRateMax = pd.DataFrame(
+        [[np.random.beta(a=2, b=7.5), np.random.beta(a=2, b=9)] for t in range(nhours)],
+        index=range(nhours),
+        columns=["Region1", "Region2"],
+    ).round(6)
+    capacityMax = pd.Series([400, 200], index=["Region1", "Region2"])
+    investPerCapacity, opexPerCapacity = 1200, 1200 * 0.02
+    interestRate, economicLifetime = 0.08, 20
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Wind turbines",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=operationRateMax,
+            capacityMax=capacityMax,
+            investPerCapacity=investPerCapacity,
+            opexPerCapacity=opexPerCapacity,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+        )
+    )
+
+    # Define PV and added to Energysystem
+    operationRateMax = pd.DataFrame(
+        [[u, u] for day in range(ndays) for u in dailyProfileSimple],
+        index=range(nhours),
+        columns=["Region1", "Region2"],
+    )
+    capacityMax = pd.Series([100, 100], index=["Region1", "Region2"])
+    investPerCapacity, opexPerCapacity = 800, 800 * 0.02
+    interestRate, economicLifetime = 0.08, 25
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=operationRateMax,
+            capacityMax=capacityMax,
+            investPerCapacity=investPerCapacity,
+            opexPerCapacity=opexPerCapacity,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+        )
+    )
+
+    # Define Batteries and added to Energysystem
+    chargeEfficiency, dischargeEfficiency, selfDischarge = (
+        0.95,
+        0.95,
+        1 - (1 - 0.03) ** (1 / (30 * 24)),
+    )
+    chargeRate, dischargeRate = 1, 1
+    investPerCapacity, opexPerCapacity = 150, 150 * 0.01
+    interestRate, economicLifetime, cyclicLifetime = 0.08, 22, 10000
+
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Batteries",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            chargeEfficiency=chargeEfficiency,
+            cyclicLifetime=cyclicLifetime,
+            dischargeEfficiency=dischargeEfficiency,
+            selfDischarge=selfDischarge,
+            chargeRate=chargeRate,
+            dischargeRate=dischargeRate,
+            investPerCapacity=investPerCapacity,
+            opexPerCapacity=opexPerCapacity,
+            interestRate=interestRate,
+            economicLifetime=economicLifetime,
+        )
+    )
+
+    # Transmission Components
+    # Define AC Cables and added to Energysystem
+    capacityFix = pd.DataFrame(
+        [[0, 30], [30, 0]], columns=["Region1", "Region2"], index=["Region1", "Region2"]
+    )
+    distances = pd.DataFrame(
+        [[0, 400], [400, 0]],
+        columns=["Region1", "Region2"],
+        index=["Region1", "Region2"],
+    )
+    losses = 0.0001
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="AC cables",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            capacityFix=capacityFix,
+            distances=distances,
+            losses=losses,
+            balanceLimitID="el",
+        )
+    )
+
+    # Define Heat pipes and added to Energysystem
+    capacityFix = pd.DataFrame(
+        [[0, 30], [30, 0]], columns=["Region1", "Region2"], index=["Region1", "Region2"]
+    )
+    distances = pd.DataFrame(
+        [[0, 400], [400, 0]],
+        columns=["Region1", "Region2"],
+        index=["Region1", "Region2"],
+    )
+    losses = 0.0001
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="Heat pipes",
+            commodity="heat",
+            hasCapacityVariable=True,
+            capacityFix=capacityFix,
+            distances=distances,
+            losses=losses,
+            balanceLimitID="heat",
+        )
+    )
+
+    return esM, losses, distances, balanceLimit
+
+
+@pytest.fixture
+def perfectForesight_test_esM(scope="session"):
+    # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand", "ForesightLand"},
+        commodities={"electricity", "hydrogen"},
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=4380,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=5,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+
+    PVoperationRateMax = pd.DataFrame(
+        [
+            np.array(
+                [
+                    0.5,
+                    0.25,
+                ]
+            ),
+            np.array(
+                [
+                    0.25,
+                    0.5,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=PVoperationRateMax,
+            capacityMax=4e6,
+            investPerCapacity=1e3,
+            opexPerCapacity=1,
+            interestRate=0.02,
+            opexPerOperation=0.01,
+            economicLifetime=10,
+        )
+    )
+
+    demand = {}
+    demand[2020] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T  # first investmentperiod
+    demand[2025] = demand[2020]
+    demand[2030] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+    demand[2035] = demand[2030]
+    demand[2040] = demand[2030]
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="EDemand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+
+    return esM

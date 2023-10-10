@@ -124,7 +124,6 @@ def preprocess_2d_variables(vars_dict):
 
         # For each component...
         for comp_name, da in var_dict.items():
-
             ## Normalize the data
             norm_comp_matrix = get_normalized_array(da.values)
 
@@ -165,7 +164,6 @@ def preprocess_dataset(xarray_dataset):
     for comp_class, comp_dict in xarray_dataset.items():
         for comp, comp_ds in comp_dict.items():
             for varname, da in comp_ds.data_vars.items():
-
                 ## Time series
                 if varname[:3] == "ts_":
                     vars_ts[varname][comp] = da
@@ -276,7 +274,6 @@ def get_custom_distance(
         wgt = 1
 
         if weights != None:
-
             [var_category, var] = var_name.split(
                 "_"
             )  # strip the category and take only var
@@ -437,7 +434,6 @@ def get_connectivity_matrix(xarray_datasets):
         if (
             np.count_nonzero(connectivity_matrix[row, :] == 1) == 1
         ):  # if a region is connected only to itself
-
             # get the nearest neighbor based on regions centroids
             centroid_distances = geom_xr["centroid_distances"].values[row, :]
             nearest_neighbor_idx = np.argmin(
@@ -455,10 +451,82 @@ def get_connectivity_matrix(xarray_datasets):
     for comp_class, comp_dict in input_xr.items():
         for comp, comp_ds in comp_dict.items():
             for varname, da in comp_ds.data_vars.items():
-
                 if varname[:3] == "2d_":
                     connectivity_matrix[
                         da.values > 0
                     ] = 1  # if a pos, non-zero value exits, make a connection!
 
     return connectivity_matrix
+
+
+def get_region_list(geom_xr, skip_regions, enforced_group):
+    """
+    Generates a modified region list that is to be used during region grouping.
+
+    :param geom_xr: The xarray dataset holding the geom info
+    :type geom_xr: xr.Dataset
+
+    param skip_regions: The region IDs to be skipped while aggregating regions
+        |br| * the default value is None
+    :type skip_regions: List
+
+        * Ex.: ['02_reg']
+               ['02_reg', '03_reg]
+
+    :param enforced_group: A region group
+    |br| * the default value is None
+    :type enforced_group: List
+
+        * Ex.: ['01_es', '02_es', '03_es']
+
+    :returns: connectivity_matrix - A n_regions by n_regions symmetric matrix
+    :rtype: np.ndarray
+    """
+
+    if (skip_regions is not None) & (enforced_group is None):
+        assert isinstance(
+            skip_regions, list
+        ), "A list containing the region ID's to be skipped should be provided."
+
+        # get all regions
+        regions_list = geom_xr["space"].values
+
+        # remove regions that should be skipped
+        regions_list = np.array(list(set(regions_list) - set(skip_regions)))
+
+        # create skipped regions dict
+        skipped_dict = {reg: [reg] for reg in skip_regions}
+
+    elif (skip_regions is None) & (enforced_group is not None):
+        assert isinstance(
+            enforced_group, list
+        ), "A dictionary containing the super-regions as keys and sub-regions values should be provided."
+
+        # get subset of regions
+        regions_list = np.array(list(enforced_group))
+
+        # create an empty skipped regions dict
+        skipped_dict = {}
+
+    elif (skip_regions is not None) & (enforced_group is not None):
+        assert isinstance(
+            skip_regions, list
+        ), "A list containing the region ID's to be skipped should be provided."
+        assert isinstance(
+            enforced_group, list
+        ), "A dictionary containing the super-regions as keys and sub-regions values should be provided."
+
+        # get region subset based on enfored_group
+        skip_regions, enforced_group = list(map(set, [skip_regions, enforced_group]))
+        regions_list = enforced_group - skip_regions
+        regions_list = np.array(list(regions_list))
+
+        # create skipped regions dict
+        skipped_dict = {reg: [reg] for reg in skip_regions}
+
+    else:
+        # get all regions
+        regions_list = geom_xr["space"].values
+        skipped_dict = {}
+
+    return regions_list, skipped_dict

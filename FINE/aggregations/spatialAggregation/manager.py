@@ -3,11 +3,12 @@
 import os
 import logging
 import warnings
+import difflib
 from FINE.aggregations.spatialAggregation import grouping
 from FINE.aggregations.spatialAggregation import aggregation
 from FINE.aggregations.spatialAggregation import managerUtils as manUtils
 from FINE.IOManagement.standardIO import timer
-from FINE.IOManagement import xarrayIO as xrIO
+from FINE.IOManagement import xarrayIO as xrIO, utilsIO
 
 try:
     import geopandas as gpd
@@ -25,6 +26,7 @@ def perform_spatial_aggregation(
     shapefile,
     grouping_mode="parameter_based",
     n_groups=3,
+    distance_threshold=None,
     aggregatedResultsPath=None,
     **kwargs,
 ):
@@ -51,6 +53,10 @@ def perform_spatial_aggregation(
         This parameter is irrelevant if `grouping_mode` is 'string_based'.
         |br| * the default value is 3
     :type n_groups: strictly positive int
+
+    :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one.
+        |br| * the default value is None. If not None, n_groups must be None
+    :type distance_threshold: float
 
     :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved.
         If None, results are not saved.
@@ -122,6 +128,20 @@ def perform_spatial_aggregation(
         |br| * the default value is 'kmedoids_contiguity'
     :type aggregation_method: str, one of {'kmedoids_contiguity', 'hierarchical'}
 
+    :param skip_regions: The region IDs to be skipped while aggregating regions
+
+        .. note:: currently only implemented for `grouping_mode` 'distance_based'
+
+        |br| * the default value is None
+    :type skip_regions: List[str]
+
+    :param enforced_groups: The groups that should be enforced when aggregating regions.
+
+        .. note:: currently only implemented for `grouping_mode` 'distance_based'
+
+        |br| * the default value is None
+    :type enforced_groups: Dict[str, List[str]]
+
     :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'.
         The optimization solver to be chosen.
         |br| * the default value is 'gurobi'
@@ -167,7 +187,9 @@ def perform_spatial_aggregation(
             "opexPerChargeOperation": ("mean", None),\n
             "opexPerDischargeOperation": ("mean", None),\n
             "QPcostScale": ("sum", None),\n
-            "technicalLifetime": ("mean", None)\n
+            "technicalLifetime": ("mean", None),\n
+            "balanceLimit": ("sum", None)\n
+            "pathwayBalanceLimit": ("sum", None)\n
             }
 
         |br| * the default value is None
@@ -208,11 +230,12 @@ def perform_spatial_aggregation(
             in order to perform spatial aggregation"
         )
 
-    if n_geometries < n_groups:
-        raise ValueError(
-            f"{n_geometries} regions cannot be reduced to {n_groups} \
-            regions. Please provide a valid number for n_groups"
-        )
+    if n_groups is not None:
+        if n_geometries < n_groups:
+            raise ValueError(
+                f"{n_geometries} regions cannot be reduced to {n_groups} \
+                regions. Please provide a valid number for n_groups"
+            )
 
     # STEP 2. Read xr_dataset
     if isinstance(xr_datasets, str):
@@ -225,13 +248,19 @@ def perform_spatial_aggregation(
     geom_col_name = kwargs.get("geom_col_name", "geometry")
     geom_id_col_name = kwargs.get("geom_id_col_name", "index")
 
-    geom_xr = manUtils.create_geom_xarray(shapefile, geom_col_name, geom_id_col_name)
+    if grouping_mode == "string_based":
+        add_centroids = False
+    else:
+        add_centroids = True
+
+    geom_xr = manUtils.create_geom_xarray(
+        shapefile, geom_col_name, geom_id_col_name, add_centroids
+    )
 
     xr_datasets["Geometry"] = geom_xr
 
     # STEP 4. Spatial grouping
     if grouping_mode == "string_based":
-
         separator = kwargs.get("separator", None)
         position = kwargs.get("position", None)
 
@@ -244,13 +273,16 @@ def perform_spatial_aggregation(
         )
 
     elif grouping_mode == "distance_based":
+        skip_regions = kwargs.get("skip_regions", None)
+        enforced_groups = kwargs.get("enforced_groups", None)
 
         logger_spagat.info(f"Performing distance-based grouping on the regions")
 
-        aggregation_dict = grouping.perform_distance_based_grouping(geom_xr, n_groups)
+        aggregation_dict = grouping.perform_distance_based_grouping(
+            geom_xr, n_groups, skip_regions, enforced_groups, distance_threshold
+        )
 
     elif grouping_mode == "parameter_based":
-
         weights = kwargs.get("weights", None)
         aggregation_method = kwargs.get("aggregation_method", "kmedoids_contiguity")
         solver = kwargs.get("solver", "gurobi")
@@ -272,6 +304,7 @@ def perform_spatial_aggregation(
         )
 
     # STEP 5. Representation of the new regions
+    ## prepare aggregation_funtion_dict
     aggregation_function_dict_default = {
         "operationRateMax": ("weighted mean", "capacityMax"),
         "operationRateFix": ("sum", None),
@@ -293,10 +326,12 @@ def perform_spatial_aggregation(
         "opexPerDischargeOperation": ("mean", None),
         "QPcostScale": ("sum", None),
         "technicalLifetime": ("mean", None),
+        "balanceLimit": ("sum", None),
+        "pathwayBalanceLimit": ("sum", None),
     }
 
+    ### if the user has passed some values, update the dict
     aggregation_function_dict = kwargs.get("aggregation_function_dict", None)
-
     if aggregation_function_dict != None:
         aggregation_function_dict_default.update(aggregation_function_dict)
 

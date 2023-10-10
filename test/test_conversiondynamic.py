@@ -10,7 +10,6 @@ import pytest
 
 
 def test_ConversionDynamicNeedsCapacity():
-
     esM = fn.EnergySystemModel(
         locations={
             "example_region1",
@@ -21,7 +20,6 @@ def test_ConversionDynamicNeedsCapacity():
     )
 
     with pytest.raises(ValueError, match=r".*hasCapacityVariable.*"):
-
         fn.ConversionDynamic(
             esM=esM,
             name="restricted",
@@ -65,12 +63,11 @@ def test_ConversionDynamicNeedsHigherOperationRate():
                 0.0,
             ],
         ],
-        index=locations,
+        index=list(locations),
         columns=range(0, numberOfTimeSteps),
     ).T
 
     with pytest.raises(ValueError, match=r".*operationRateMax.*"):
-
         fn.ConversionDynamic(
             esM=esM,
             name="restricted",
@@ -114,7 +111,7 @@ def test_ConversionDynamicHasHigherOperationRate():
                 0.0,
             ],
         ],
-        index=locations,
+        index=list(locations),
         columns=range(0, numberOfTimeSteps),
     ).T
 

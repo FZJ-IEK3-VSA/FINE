@@ -12,16 +12,12 @@ variables:
 .test_template:
   stage: test
   before_script:
-    - micromamba create -y -n fine --file=requirements_dev.yml
-    - eval "$(micromamba shell hook --shell bash)"
-    - micromamba activate fine
+    - micromamba install -n base -y --file=requirements_dev.yml
 
 .test_formatting_template:
   stage: test
   before_script:
-    - micromamba create -y -n fine_formatting -c conda-forge "black=21.9b0" "click=8.0.4" "python=3.10"
-    - eval "$(micromamba shell hook --shell bash)"
-    - micromamba activate fine_formatting
+    - micromamba install -y -c conda-forge "black"  "python=3.10"
 
 .build_template:
   stage: build
@@ -45,6 +41,10 @@ test-code:
   extends: .test_template
   script:
     - python -m pytest --cov=FINE test/
+  artifacts:
+    paths:
+      - test/data/*
+    expire_in: 1 week
 
 test-formatting:
   #  Switch from branch pipeline to merge pipeline once a merge request has been

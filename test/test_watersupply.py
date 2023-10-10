@@ -8,7 +8,6 @@ import FINE as fn
 
 
 def test_watersupply():
-
     # read in original results
     results = pd.read_csv(
         os.path.join(
@@ -18,8 +17,7 @@ def test_watersupply():
         ),
         index_col=[0, 1, 2],
         header=None,
-        squeeze=True,
-    )
+    ).squeeze("columns")
 
     # get parameters
     locations = [
@@ -226,7 +224,13 @@ def test_watersupply():
     )
 
     # # Optimize the system
-    esM.aggregateTemporally(numberOfTypicalPeriods=7)
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=7,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     # # Selected results output

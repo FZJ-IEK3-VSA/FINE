@@ -21,7 +21,7 @@ class ConversionDynamic(Conversion):
         upTimeMin=None,
         rampUpMax=None,
         rampDownMax=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Constructor for creating a ConversionDynamic class instance.
@@ -91,59 +91,33 @@ class ConversionDynamicModel(ConversionModel):
     """
 
     def __init__(self):
+        super().__init__()
         self.abbrvName = "conv_dyn"
         self.dimension = "1dim"
-        self.componentsDict = {}
-        self.capacityVariablesOptimum, self.isBuiltVariablesOptimum = None, None
-        self.operationVariablesOptimum = None
-        self.optSummary = None
+        self._operationVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
-
-    def declareOperationStartStopBinarySet(self, pyM):
-        """
-        Declare operation related sets for binary decicion variables (operation variables) in the pyomo object for a
-        modeling class. This reflects the starting or stopping state of the conversion component.
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-
-        def declareOperationBinarySet(pyM):
-            return (
-                (loc, compName)
-                for compName, comp in compDict.items()
-                for loc in comp.locationalEligibility.index
-                if comp.locationalEligibility[loc] == 1
-            )
-
-        setattr(
-            pyM,
-            "operationVarStartStopSetBin_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOperationBinarySet),
-        )
 
     def declareOpConstrSetMinDownTime(self, pyM, constrSetName):
         """
         Declare set of locations and components for which downTimeMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarStartStopSetBin_" + abbrvName)
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         def declareOpConstrSetMinDownTime(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if getattr(compDict[compName], "downTimeMin") is not None
             )
 
         setattr(
             pyM,
             constrSetName + "downTimeMin_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSetMinDownTime),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSetMinDownTime),
         )
 
     def declareOpConstrSetMinUpTime(self, pyM, constrSetName):
@@ -151,19 +125,19 @@ class ConversionDynamicModel(ConversionModel):
         Declare set of locations and components for which upTimeMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarStartStopSetBin_" + abbrvName)
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         def declareOpConstrSetMinUpTime(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if getattr(compDict[compName], "upTimeMin") is not None
             )
 
         setattr(
             pyM,
             constrSetName + "upTimeMin_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSetMinUpTime),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSetMinUpTime),
         )
 
     def declareOpConstrSetMaxRampUp(self, pyM, constrSetName):
@@ -175,15 +149,15 @@ class ConversionDynamicModel(ConversionModel):
 
         def declareOpConstrSetMaxRampUp(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if getattr(compDict[compName], "rampUpMax") is not None
             )
 
         setattr(
             pyM,
             constrSetName + "rampUpMax_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSetMaxRampUp),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSetMaxRampUp),
         )
 
     def declareOpConstrSetMaxRampDown(self, pyM, constrSetName):
@@ -195,15 +169,15 @@ class ConversionDynamicModel(ConversionModel):
 
         def declareOpConstrSetMaxRampDown(pyM):
             return (
-                (loc, compName)
-                for loc, compName in varSet
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
                 if getattr(compDict[compName], "rampDownMax") is not None
             )
 
         setattr(
             pyM,
             constrSetName + "rampDownMax_" + abbrvName,
-            pyomo.Set(dimen=2, initialize=declareOpConstrSetMaxRampDown),
+            pyomo.Set(dimen=3, initialize=declareOpConstrSetMaxRampDown),
         )
 
     def declareSets(self, esM, pyM):
@@ -218,9 +192,6 @@ class ConversionDynamicModel(ConversionModel):
         :type pyM: pyomo ConcreteModel
         """
         super().declareSets(esM, pyM)
-
-        # Declare operation variable sets
-        self.declareOperationStartStopBinarySet(pyM)
 
         # Declare Min down time constraint
         self.declareOpConstrSetMinDownTime(pyM, "opConstrSet")
@@ -243,8 +214,8 @@ class ConversionDynamicModel(ConversionModel):
             pyM,
             "startVariable_" + self.abbrvName,
             pyomo.Var(
-                getattr(pyM, "operationVarStartStopSetBin_" + self.abbrvName),
-                pyM.timeSet,
+                getattr(pyM, "operationVarSet_" + self.abbrvName),
+                pyM.intraYearTimeSet,
                 domain=pyomo.Binary,
             ),
         )
@@ -253,13 +224,13 @@ class ConversionDynamicModel(ConversionModel):
             pyM,
             "stopVariable_" + self.abbrvName,
             pyomo.Var(
-                getattr(pyM, "operationVarStartStopSetBin_" + self.abbrvName),
-                pyM.timeSet,
+                getattr(pyM, "operationVarSet_" + self.abbrvName),
+                pyM.intraYearTimeSet,
                 domain=pyomo.Binary,
             ),
         )
 
-    def declareVariables(self, esM, pyM, relaxIsBuiltBinary):
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
         """
         Declare design and operation variables
 
@@ -268,8 +239,17 @@ class ConversionDynamicModel(ConversionModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+
+        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
+            bound of the problem.
+            |br| * the default value is False
+        :type declaresOptimizationProblem: boolean
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
         """
-        super().declareVariables(esM, pyM, relaxIsBuiltBinary)
+        super().declareVariables(esM, pyM, relaxIsBuiltBinary, relevanceThreshold)
 
         self.declareStartStopVariables(pyM)
 
@@ -287,51 +267,54 @@ class ConversionDynamicModel(ConversionModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         opVarBin = getattr(pyM, "op_bin_" + abbrvName)
-        opVarStartBin, opVarStopBin = getattr(
-            pyM, "startVariable_" + abbrvName
-        ), getattr(pyM, "stopVariable_" + abbrvName)
+        opVarStartBin, opVarStopBin = (
+            getattr(pyM, "startVariable_" + abbrvName),
+            getattr(pyM, "stopVariable_" + abbrvName),
+        )
         constrSetMinDownTime = getattr(pyM, "opConstrSet" + "downTimeMin_" + abbrvName)
         if not pyM.hasSegmentation:
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
 
-        def minimumDownTime1(pyM, loc, compName, p, t):
+        def minimumDownTime1(pyM, loc, compName, ip, p, t):
             if t >= 1:
                 return (
-                    opVarBin[loc, compName, p, t]
-                    - opVarBin[loc, compName, p, t - 1]
-                    - opVarStartBin[loc, compName, p, t]
-                    + opVarStopBin[loc, compName, p, t]
+                    opVarBin[loc, compName, ip, p, t]
+                    - opVarBin[loc, compName, ip, p, t - 1]
+                    - opVarStartBin[loc, compName, ip, p, t]
+                    + opVarStopBin[loc, compName, ip, p, t]
                     == 0
                 )
             else:
                 return (
-                    opVarBin[loc, compName, p, t]
-                    - opVarBin[loc, compName, p, numberOfTimeSteps - 1]
-                    - opVarStartBin[loc, compName, p, t]
-                    + opVarStopBin[loc, compName, p, t]
+                    opVarBin[loc, compName, ip, p, t]
+                    - opVarBin[loc, compName, ip, p, numberOfTimeSteps - 1]
+                    - opVarStartBin[loc, compName, ip, p, t]
+                    + opVarStopBin[loc, compName, ip, p, t]
                     == 0
                 )
 
         setattr(
             pyM,
             "ConstrMinDownTime1_" + abbrvName,
-            pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime1),
+            pyomo.Constraint(
+                constrSetMinDownTime, pyM.intraYearTimeSet, rule=minimumDownTime1
+            ),
         )
 
-        def minimumDownTime2(pyM, loc, compName, p, t):
+        def minimumDownTime2(pyM, loc, compName, ip, p, t):
             downTimeMin = getattr(compDict[compName], "downTimeMin")
             if t >= downTimeMin:
-                return opVarBin[loc, compName, p, t] <= 1 - pyomo.quicksum(
-                    opVarStopBin[loc, compName, p, t_down]
+                return opVarBin[loc, compName, ip, p, t] <= 1 - pyomo.quicksum(
+                    opVarStopBin[loc, compName, ip, p, t_down]
                     for t_down in range(t - downTimeMin + 1, t)
                 )
             else:
-                return opVarBin[loc, compName, p, t] <= 1 - pyomo.quicksum(
-                    opVarStopBin[loc, compName, p, t_down] for t_down in range(0, t)
+                return opVarBin[loc, compName, ip, p, t] <= 1 - pyomo.quicksum(
+                    opVarStopBin[loc, compName, ip, p, t_down] for t_down in range(0, t)
                 ) - pyomo.quicksum(
-                    opVarStopBin[loc, compName, p, t_down]
+                    opVarStopBin[loc, compName, ip, p, t_down]
                     for t_down in range(
                         numberOfTimeSteps - (downTimeMin - t), numberOfTimeSteps
                     )
@@ -340,7 +323,9 @@ class ConversionDynamicModel(ConversionModel):
         setattr(
             pyM,
             "ConstrMinDownTime2_" + abbrvName,
-            pyomo.Constraint(constrSetMinDownTime, pyM.timeSet, rule=minimumDownTime2),
+            pyomo.Constraint(
+                constrSetMinDownTime, pyM.intraYearTimeSet, rule=minimumDownTime2
+            ),
         )
 
     def minimumUpTime(self, pyM, esM):
@@ -354,52 +339,55 @@ class ConversionDynamicModel(ConversionModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         opVarBin = getattr(pyM, "op_bin_" + abbrvName)
-        opVarStartBin, opVarStopBin = getattr(
-            pyM, "startVariable_" + abbrvName
-        ), getattr(pyM, "stopVariable_" + abbrvName)
+        opVarStartBin, opVarStopBin = (
+            getattr(pyM, "startVariable_" + abbrvName),
+            getattr(pyM, "stopVariable_" + abbrvName),
+        )
         constrSetMinUpTime = getattr(pyM, "opConstrSet" + "upTimeMin_" + abbrvName)
         if not pyM.hasSegmentation:
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
 
-        def minimumUpTime1(pyM, loc, compName, p, t):
+        def minimumUpTime1(pyM, loc, compName, ip, p, t):
             downTimeMin = getattr(compDict[compName], "downTimeMin")
             if t >= 1 and downTimeMin == None:  # avoid to set constraints twice
                 return (
-                    opVarBin[loc, compName, p, t]
-                    - opVarBin[loc, compName, p, t - 1]
-                    - opVarStartBin[loc, compName, p, t]
-                    + opVarStopBin[loc, compName, p, t]
+                    opVarBin[loc, compName, ip, p, t]
+                    - opVarBin[loc, compName, ip, p, t - 1]
+                    - opVarStartBin[loc, compName, ip, p, t]
+                    + opVarStopBin[loc, compName, ip, p, t]
                     == 0
                 )
             else:
                 return (
-                    opVarBin[loc, compName, p, t]
-                    - opVarBin[loc, compName, p, numberOfTimeSteps - 1]
-                    - opVarStartBin[loc, compName, p, t]
-                    + opVarStopBin[loc, compName, p, t]
+                    opVarBin[loc, compName, ip, p, t]
+                    - opVarBin[loc, compName, ip, p, numberOfTimeSteps - 1]
+                    - opVarStartBin[loc, compName, ip, p, t]
+                    + opVarStopBin[loc, compName, ip, p, t]
                     == 0
                 )
 
         setattr(
             pyM,
             "ConstrMinUpTime1_" + abbrvName,
-            pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime1),
+            pyomo.Constraint(
+                constrSetMinUpTime, pyM.intraYearTimeSet, rule=minimumUpTime1
+            ),
         )
 
-        def minimumUpTime2(pyM, loc, compName, p, t):
+        def minimumUpTime2(pyM, loc, compName, ip, p, t):
             upTimeMin = getattr(compDict[compName], "upTimeMin")
             if t >= upTimeMin:
-                return opVarBin[loc, compName, p, t] >= pyomo.quicksum(
-                    opVarStartBin[loc, compName, p, t_up]
+                return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
+                    opVarStartBin[loc, compName, ip, p, t_up]
                     for t_up in range(t - upTimeMin + 1, t)
                 )
             else:
-                return opVarBin[loc, compName, p, t] >= pyomo.quicksum(
-                    opVarStartBin[loc, compName, p, t_up] for t_up in range(0, t)
+                return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
+                    opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(0, t)
                 ) + pyomo.quicksum(
-                    opVarStartBin[loc, compName, p, t_up]
+                    opVarStartBin[loc, compName, ip, p, t_up]
                     for t_up in range(
                         numberOfTimeSteps - (upTimeMin - t), numberOfTimeSteps
                     )
@@ -408,7 +396,9 @@ class ConversionDynamicModel(ConversionModel):
         setattr(
             pyM,
             "ConstrMinUpTime2_" + abbrvName,
-            pyomo.Constraint(constrSetMinUpTime, pyM.timeSet, rule=minimumUpTime2),
+            pyomo.Constraint(
+                constrSetMinUpTime, pyM.intraYearTimeSet, rule=minimumUpTime2
+            ),
         )
 
     def rampUpMax(self, pyM, esM):
@@ -430,39 +420,41 @@ class ConversionDynamicModel(ConversionModel):
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
 
-        def rampUpMax(pyM, loc, compName, p, t):
+        def rampUpMax(pyM, loc, compName, ip, p, t):
             rampRateMax = getattr(compDict[compName], "rampUpMax")
             if not pyM.hasSegmentation:
                 if t >= 1:  # avoid to set constraints twice
                     return (
-                        opVar[loc, compName, p, t] - opVar[loc, compName, p, t - 1]
-                        <= rampRateMax * capVar[loc, compName]
+                        opVar[loc, compName, ip, p, t]
+                        - opVar[loc, compName, ip, p, t - 1]
+                        <= rampRateMax * capVar[loc, compName, ip]
                     )
                 else:
                     return (
-                        opVar[loc, compName, p, t]
-                        - opVar[loc, compName, p, numberOfTimeSteps - 1]
-                        <= rampRateMax * capVar[loc, compName]
+                        opVar[loc, compName, ip, p, t]
+                        - opVar[loc, compName, ip, p, numberOfTimeSteps - 1]
+                        <= rampRateMax * capVar[loc, compName, ip]
                     )
             else:
                 if t >= 1:  # avoid to set constraints twice
                     return (
-                        opVar[loc, compName, p, t] - opVar[loc, compName, p, t - 1]
-                        <= rampRateMax * capVar[loc, compName]
+                        opVar[loc, compName, ip, p, t]
+                        - opVar[loc, compName, ip, p, t - 1]
+                        <= rampRateMax * capVar[loc, compName, ip]
                     )
                 else:
                     return (
-                        opVar[loc, compName, p, t]
-                        - opVar[loc, compName, p, numberOfTimeSteps - 1]
+                        opVar[loc, compName, ip, p, t]
+                        - opVar[loc, compName, ip, p, numberOfTimeSteps - 1]
                         <= rampRateMax
-                        * esM.timeStepsPerSegment.to_dict()[p, t]
-                        * capVar[loc, compName]
+                        * esM.timeStepsPerSegment.to_dict()[ip, p, t]
+                        * capVar[loc, compName, ip]
                     )
 
         setattr(
             pyM,
             "ConstrRampUpMax_" + abbrvName,
-            pyomo.Constraint(constrSetRampUpMax, pyM.timeSet, rule=rampUpMax),
+            pyomo.Constraint(constrSetRampUpMax, pyM.intraYearTimeSet, rule=rampUpMax),
         )
 
     def rampDownMax(self, pyM, esM):
@@ -484,39 +476,43 @@ class ConversionDynamicModel(ConversionModel):
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
 
-        def rampDownMax(pyM, loc, compName, p, t):
+        def rampDownMax(pyM, loc, compName, ip, p, t):
             rampRateMax = getattr(compDict[compName], "rampDownMax")
             if not pyM.hasSegmentation:
                 if t >= 1:  # avoid to set constraints twice
                     return (
-                        opVar[loc, compName, p, t - 1] - opVar[loc, compName, p, t]
-                        <= rampRateMax * capVar[loc, compName]
+                        opVar[loc, compName, ip, p, t - 1]
+                        - opVar[loc, compName, ip, p, t]
+                        <= rampRateMax * capVar[loc, compName, ip]
                     )
                 else:
                     return (
-                        opVar[loc, compName, p, numberOfTimeSteps - 1]
-                        - opVar[loc, compName, p, t]
-                        <= rampRateMax * capVar[loc, compName]
+                        opVar[loc, compName, ip, p, numberOfTimeSteps - 1]
+                        - opVar[loc, compName, ip, p, t]
+                        <= rampRateMax * capVar[loc, compName, ip]
                     )
             else:
                 if t >= 1:  # avoid to set constraints twice
                     return (
-                        opVar[loc, compName, p, t - 1] - opVar[loc, compName, p, t]
-                        <= rampRateMax * capVar[loc, compName]
+                        opVar[loc, compName, ip, p, t - 1]
+                        - opVar[loc, compName, ip, p, t]
+                        <= rampRateMax * capVar[loc, compName, ip]
                     )
                 else:
                     return (
-                        opVar[loc, compName, p, numberOfTimeSteps - 1]
-                        - opVar[loc, compName, p, t]
+                        opVar[loc, compName, ip, p, numberOfTimeSteps - 1]
+                        - opVar[loc, compName, ip, p, t]
                         <= rampRateMax
-                        * esM.timeStepsPerSegment.to_dict()[p, t]
-                        * capVar[loc, compName]
+                        * esM.timeStepsPerSegment.to_dict()[ip, p, t]
+                        * capVar[loc, compName, ip]
                     )
 
         setattr(
             pyM,
             "ConstrRampDownMax_" + abbrvName,
-            pyomo.Constraint(constrSetRampDownMax, pyM.timeSet, rule=rampDownMax),
+            pyomo.Constraint(
+                constrSetRampDownMax, pyM.intraYearTimeSet, rule=rampDownMax
+            ),
         )
 
     def declareComponentConstraints(self, esM, pyM):

@@ -2,6 +2,7 @@ import os
 import pytest
 import numpy as np
 from FINE import xarrayIO as xrIO
+import geopandas as gpd
 
 
 @pytest.mark.parametrize("use_saved_file", [False, True])
@@ -70,12 +71,13 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
     assert np.array_equal(output_1d, expected_1d)
 
     expected_0d = test_esM_for_spagat.getComponentAttribute(
-        "Electroylzers", "investPerCapacity"
-    ).values
+        "Electroylzers", "processedInvestPerCapacity"
+    )
     output_0d = aggregated_esM.getComponentAttribute(
         "Electroylzers", "investPerCapacity"
-    ).values
-    assert np.array_equal(output_0d, expected_0d)
+    )
+
+    assert expected_0d.sort_index().equals(output_0d)
 
     expected_0d_bool = test_esM_for_spagat.getComponentAttribute(
         "CO2 from enviroment", "hasCapacityVariable"
@@ -135,7 +137,6 @@ def test_error_in_reading_shp(test_esM_for_spagat):
 
 
 def test_spatial_aggregation_string_based(test_esM_for_spagat):
-
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
         "../../../examples/Multi-regional_Energy_System_Workflow/",
@@ -154,9 +155,33 @@ def test_spatial_aggregation_string_based(test_esM_for_spagat):
     assert len(aggregated_esM.locations) == 8
 
 
-@pytest.mark.parametrize("n_regions", [2, 3])
-def test_spatial_aggregation_distance_based(test_esM_for_spagat, n_regions):
-
+@pytest.mark.parametrize(
+    "skip_regions, enforced_groups, n_expected_groups",
+    [
+        (None, None, 2),
+        (["cluster_3"], None, 3),
+        (
+            None,
+            {
+                "cluster_1_cluster_2_cluster_3": [
+                    "cluster_1",
+                    "cluster_2",
+                    "cluster_3",
+                ],
+                "cluster_4_cluster_5_cluster_6_cluster_7": [
+                    "cluster_4",
+                    "cluster_5",
+                    "cluster_6",
+                    "cluster_7",
+                ],
+            },
+            4,
+        ),
+    ],
+)
+def test_spatial_aggregation_distance_based(
+    test_esM_for_spagat, skip_regions, enforced_groups, n_expected_groups
+):
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
         "../../../examples/Multi-regional_Energy_System_Workflow/",
@@ -167,12 +192,14 @@ def test_spatial_aggregation_distance_based(test_esM_for_spagat, n_regions):
     aggregated_esM = test_esM_for_spagat.aggregateSpatially(
         shapefile=SHAPEFILE_PATH,
         grouping_mode="distance_based",
-        n_groups=n_regions,
+        n_groups=2,
         aggregatedResultsPath=None,
+        skip_regions=skip_regions,
+        enforced_groups=enforced_groups,
     )
 
     # ASSERTION
-    assert len(aggregated_esM.locations) == n_regions
+    assert len(aggregated_esM.locations) == n_expected_groups
 
 
 @pytest.mark.parametrize(
@@ -192,7 +219,6 @@ def test_spatial_aggregation_distance_based(test_esM_for_spagat, n_regions):
 def test_spatial_aggregation_parameter_based(
     test_esM_for_spagat, aggregation_function_dict, n_regions
 ):
-
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
         "../../../examples/Multi-regional_Energy_System_Workflow/",
@@ -215,3 +241,24 @@ def test_spatial_aggregation_parameter_based(
     #  Additional check - if the optimization runs through
     aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=4)
     aggregated_esM.optimize(timeSeriesAggregation=True)
+
+
+def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):
+    esM = balanceLimitConstraint_test_esM[0]
+    SHAPEFILE_PATH = os.path.join(
+        os.path.dirname(__file__),
+        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
+    )
+
+    gdf = gpd.read_file(SHAPEFILE_PATH)
+    gdf = gdf.iloc[:2]
+    gdf["index"] = [f"Region{i}" for i in [1, 2]]
+
+    # FUNCTION CALL
+    aggregated_esM = esM.aggregateSpatially(
+        shapefile=gdf,
+        grouping_mode="distance_based",
+        n_groups=1,
+        aggregatedResultsPath=None,
+    )
