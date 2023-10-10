@@ -3511,7 +3511,7 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments**
 
         :param unitApp: string which appends the capacity unit in the optimization summary.
-            For example, for the StorageModel class, the parameter is set to '\*h'.
+        For example, for the StorageModel class, the parameter is set to '\*h'.
             |br| * the default value is ''.
         :type unitApp: string
 
