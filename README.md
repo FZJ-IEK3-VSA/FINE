@@ -17,11 +17,7 @@ If you want to use FINE in a published work, please [**kindly cite following pub
 A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
 
 ## Requirements
-The installation process uses a Conda-based Python package manager. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/). If you choose to use [Anaconda](https://docs.anaconda.com/anaconda/install/) then the solving of dependencies during the installation might be very slow.
-
-> If you choose to use Anaconda then replace all `mamba` commands with `conda`.
-
-> For Anaconda installer on Windows 10: Remember to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
+The installation process uses a Conda-based Python package manager. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/) instead of Anaconda. The recommended way to use Mamba on your system is to install the [Miniforge distribution](https://github.com/conda-forge/miniforge#miniforge3). They offer installers for Windows, Linux and OS X. Have a look at the Miniforge Readme for further details.
 
 The project environment includes [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](#installation-of-an-optimization-solver) for more information.
 
