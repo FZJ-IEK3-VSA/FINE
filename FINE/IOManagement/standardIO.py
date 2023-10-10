@@ -23,15 +23,12 @@ except ImportError:
 
 def timer(func):
     """
-    Wrapper around a function to track the time taken by
-    the function.
+    Wrapper around a function to track the time taken by the function.
 
     :param func: Function
 
     .. note:: Usage as a decorator before a function -> @timer
-
     """
-
     @wraps(func)  # Required to get documentation for functions using this decorator
     def f(*args, **kwargs):
         before = time.perf_counter()

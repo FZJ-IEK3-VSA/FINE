@@ -40,6 +40,7 @@ and its corresponding literatur can be found `here <https://github.com/FZJ-IEK3-
 
     gettingStartedDoc
     usersGuideDoc
+    mathematicalBackgroundDoc
     newsDoc
     integratedSoftwareDoc
     legalNoticeDoc
@@ -48,6 +49,3 @@ and its corresponding literatur can be found `here <https://github.com/FZJ-IEK3-
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-
-

@@ -512,6 +512,7 @@ class EnergySystemModel:
     def updateComponent(self, componentName, updateAttrs):
         """
         Overwrite selected attributes of an existing esM component with new values.
+
         .. note::
             Be aware of the fact that some attributes are filled automatically while initializing a component.
             E.g., if you want to change attributes like economic lifetime, there might occur the error that the new

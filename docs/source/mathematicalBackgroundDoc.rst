@@ -30,4 +30,3 @@ The constraints enforce that the operation and design of the system is within el
 Variables represent are for example the capacity of a component or its operation in each region and at each time step.
 
 A more detailed description of the underlying mathematical optimization problem will be provided in a future release.
-

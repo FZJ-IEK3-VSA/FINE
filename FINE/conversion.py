@@ -68,7 +68,6 @@ class Conversion(Component):
             indicates that the commodity is consumed. A positive value indicates that the commodity is produced.
             Check unit consistency when specifying this parameter!
 
-
             Examples:
 
             * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
@@ -81,15 +80,15 @@ class Conversion(Component):
                 -> the commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.
 
             If a transformation pathway analysis is performed the conversion factors can also be variated
-            over the transformation  pathway. Therefore two different options are available:
+            over the transformation pathway. Therefore two different options are available:
 
-            1: variation with operation year (for example to incorporate weather changes for a heat pump).
+            #. Variation with operation year (for example to incorporate weather changes for a heat pump).
                 Example:
                     {2020: {'electricity':-1,'heat':pd.Series(data=[2.5, 2.8, 2.5, ...])},
                      2025: {'electricity':-1,'heat':pd.Series(data=[2.7, 2.4, 2.9, ...])},
                      ...
                     }
-            2: variation with commissioning and operation year (for example to incorporate efficiency
+            #. Variation with commissioning and operation year (for example to incorporate efficiency
             changes dependent on the installation year). Please note that this implementation massively
             increases the complexity of the optimization problem.
                 Example:

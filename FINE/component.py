@@ -414,7 +414,7 @@ class Component(metaclass=ABCMeta):
 
         :param stockCommissioning: if specified, indictates historical commissioned capacities.
         The parameter describes, how much capacity was commissioned per location in which past
-        investment period. The past investment period is not part of the optimized investment periods.
+            investment period. The past investment period is not part of the optimized investment periods.
             e.g. if startYear is 2020:
                 {2016:pandas.series(index=["loc1","loc2"],data=[4,3]).
                  2018: pandas.series(index=["loc1","loc2"],data=[1,2])}
@@ -433,8 +433,8 @@ class Component(metaclass=ABCMeta):
         :type modelingClass: a class inheriting from ComponentModeling
 
         :param floorTechnicalLifetime: if a technical lifetime is not a multiple of the interval, this
-        parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval, by default True
-        The costs will then be applied to the corrected interval.
+            parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval,
+            by default True. The costs will then be applied to the corrected interval.
         """
         # Set general component data
         utils.isEnergySystemModelInstance(esM)
@@ -1258,7 +1258,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            \\text{capMin}^{comp}_{loc} \leq cap^{comp}_{loc} \leq \\text{capMax}^{comp}_{loc}
+            \\text{capMin}^{comp}_{loc} \\leq cap^{comp}_{loc} \\leq \\text{capMax}^{comp}_{loc}
 
         If a capacityFix parameter is given, the bounds are set to enforce
 
@@ -1613,7 +1613,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbReal^{comp}_{loc}
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \\cdot nbReal^{comp}_{loc}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1647,7 +1647,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbInt^{comp}_{loc}
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \\cdot nbInt^{comp}_{loc}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1726,7 +1726,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            \\text{capMin}^{comp}_{loc} \cdot commisBin^{comp}_{loc,ip} \leq  cap^{comp}_{loc,ip}
+            \\text{capMin}^{comp}_{loc} \\cdot commisBin^{comp}_{loc,ip} \\leq  cap^{comp}_{loc,ip}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1825,7 +1825,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc,ip+1} \eq  cap^{comp}_{loc,ip}
+            cap^{comp}_{loc,ip+1} \\eq  cap^{comp}_{loc,ip}
 
         For the development pathway, the capacity of an investment period is composed
         of the capacity of the previous investment periods and the commissioning and
@@ -1833,7 +1833,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc,ip+1} \eq  cap^{comp}_{loc,ip} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,ip}
+            cap^{comp}_{loc,ip+1} \\eq  cap^{comp}_{loc,ip} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,ip}
 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -1888,13 +1888,13 @@ class ComponentModel(metaclass=ABCMeta):
         For stochastic, the stock of past investment periods is not only valid for ip=0 but for all investment periods.
         .. math::
 
-            cap^{comp}_{loc,ip} \eq  stockCap^{comp}_{loc} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,0}
+            cap^{comp}_{loc,ip} \\eq  stockCap^{comp}_{loc} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,0}
 
         For capacity development, the stock is only considered for the first investment periods.
 
         .. math::
 
-            cap^{comp}_{loc,0} \eq  stockCap^{comp}_{loc} + commis^{comp}_{loc,0} - decommis^{comp}_{loc,0}
+            cap^{comp}_{loc,0} \\eq  stockCap^{comp}_{loc} + commis^{comp}_{loc,0} - decommis^{comp}_{loc,0}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1981,7 +1981,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            decommis^{comp}_{loc,ip} \eq commis^{comp}_{loc,ip-\\text{ipTechnicalLifetime}}
+            decommis^{comp}_{loc,ip} \\eq commis^{comp}_{loc,ip-\\text{ipTechnicalLifetime}}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -2055,7 +2055,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \cdot \\text{opFactor}^{opType} \cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \\cdot \\text{opFactor}^{opType} \\cdot cap^{comp}_{loc,ip}
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -2159,7 +2159,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,ip,p,t} \cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,ip,p,t} \\cdot cap^{comp}_{loc,ip}
 
         """
         # additions for perfect foresight
@@ -2251,7 +2251,7 @@ class ComponentModel(metaclass=ABCMeta):
         * [commodityUnit] multiplied by the hours per time step (else).\n
 
         .. math::
-            op^{comp,opType}_{loc,ip,p,t} = \\tau^{hours} \cdot \\text{opRateFix}^{comp,opType}_{loc,ip,p,t} \cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} = \\tau^{hours} \\cdot \\text{opRateFix}^{comp,opType}_{loc,ip,p,t} \\cdot cap^{comp}_{loc,ip}
 
         :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
             |br| * the default value is None
