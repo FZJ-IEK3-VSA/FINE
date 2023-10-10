@@ -87,9 +87,8 @@ Run the test suite with:
 A development platform which can be used to work with/on the code and which comes with Anaconda is Spyder.
 Other development platforms are PyCharm or Visua Studio Code.
 
-The Python packages `tsam <https://github.com/FZJ-IEK3-VSA/tsam>`_ and `PYOMO <http://www.pyomo.org/>`_ are
-installed by pip alongside FINE. Some plots in FINE require the GeoPandas package to be installed (nice-to-have).
-Installation instructions are given `here <http://geopandas.org/install.html>`_. In some cases, the dependencies of
+The Python packages `tsam <https://github.com/FZJ-IEK3-VSA/tsam>`_ and `PYOMO <https://pyomo.readthedocs.io/en/stable/index.html>`_ are
+installed by pip alongside FINE. Some plots in FINE require the `GeoPandas package <http://geopandas.org/install.html>`_ to be installed (nice-to-have). In some cases, the dependencies of
 the GeoPandas package have to be installed manually before the package itself can be installed.
 
 Installation of an optimization solver
@@ -122,15 +121,6 @@ The installation requires the following three components:
 * Gurobi python api
     * The python api can be installed according to `this instruction <https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python->`_.
 
-GLPK installation
------------------
-
-A complete installation instruction for Windows can be found `here <http://winglpk.sourceforge.net/>`_.
-
-CBC
----
-
-Installation procedure can be found `here <https://projects.coin-or.org/Cbc>`_.
 
 ********
 About Us

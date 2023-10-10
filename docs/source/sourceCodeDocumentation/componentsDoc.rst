@@ -38,6 +38,5 @@ LinearOptimalPowerFlow + LOPFModel class inherit from the Transmission and Trans
 .. toctree::
    :maxdepth: 1
 
-   components/subclasses/conversionPartLoadClassDoc
    components/subclasses/conversionDynamicClassDoc
    components/subclasses/lopfClassDoc
