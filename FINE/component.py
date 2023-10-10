@@ -413,14 +413,14 @@ class Component(metaclass=ABCMeta):
             * Dict with years as keys and one of the two options above as values.
 
         :param stockCommissioning: if specified, indictates historical commissioned capacities.
-        The parameter describes, how much capacity was commissioned per location in which past
+            The parameter describes, how much capacity was commissioned per location in which past
             investment period. The past investment period is not part of the optimized investment periods.
             e.g. if startYear is 2020:
-                {2016:pandas.series(index=["loc1","loc2"],data=[4,3]).
-                 2018: pandas.series(index=["loc1","loc2"],data=[1,2])}
+            {2016:pandas.series(index=["loc1","loc2"],data=[4,3]).
+            2018: pandas.series(index=["loc1","loc2"],data=[1,2])}
             e.g. if startYear is 0:
-                {-4:pandas.series(index=["loc1","loc2"],data=[4,3]).
-                 -2: pandas.series(index=["loc1","loc2"],data=[1,2])}
+            {-4:pandas.series(index=["loc1","loc2"],data=[4,3]).
+            -2: pandas.series(index=["loc1","loc2"],data=[1,2])}
             Warning: Commissioning years older than the technical lifetime from startYear will be ignored.
             |br| * the default value is None
 
@@ -1825,7 +1825,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc,ip+1} \\eq  cap^{comp}_{loc,ip}
+            cap^{comp}_{loc,ip+1} =  cap^{comp}_{loc,ip}
 
         For the development pathway, the capacity of an investment period is composed
         of the capacity of the previous investment periods and the commissioning and
@@ -1833,7 +1833,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc,ip+1} \\eq  cap^{comp}_{loc,ip} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,ip}
+            cap^{comp}_{loc,ip+1} =  cap^{comp}_{loc,ip} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,ip}
 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -1888,13 +1888,13 @@ class ComponentModel(metaclass=ABCMeta):
         For stochastic, the stock of past investment periods is not only valid for ip=0 but for all investment periods.
         .. math::
 
-            cap^{comp}_{loc,ip} \\eq  stockCap^{comp}_{loc} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,0}
+            cap^{comp}_{loc,ip} =  stockCap^{comp}_{loc} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,0}
 
         For capacity development, the stock is only considered for the first investment periods.
 
         .. math::
 
-            cap^{comp}_{loc,0} \\eq  stockCap^{comp}_{loc} + commis^{comp}_{loc,0} - decommis^{comp}_{loc,0}
+            cap^{comp}_{loc,0} =  stockCap^{comp}_{loc} + commis^{comp}_{loc,0} - decommis^{comp}_{loc,0}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1981,7 +1981,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            decommis^{comp}_{loc,ip} \\eq commis^{comp}_{loc,ip-\\text{ipTechnicalLifetime}}
+            decommis^{comp}_{loc,ip} = commis^{comp}_{loc,ip-\\mathrm{ipTechnicalLifetime}}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -2754,7 +2754,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param divisorName: String of the variable that is used as a divisor within the equation (e.g. 'CCF').
             If the divisorName is an empty string, there is no division within the equation.
-            |br| * the default value is ''.
+            |br| * the default value is "".
         :type divisorName: string
 
         :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['processedQPcostScale'])
@@ -3511,7 +3511,7 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments**
 
         :param unitApp: string which appends the capacity unit in the optimization summary.
-            For example, for the StorageModel class, the parameter is set to '*h'.
+            For example, for the StorageModel class, the parameter is set to '\*h'.
             |br| * the default value is ''.
         :type unitApp: string
 
@@ -4002,7 +4002,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type name: string
 
         :param ip: investment period of transformation path analysis.
-        |br| * the default value is 0
+            |br| * the default value is 0
         :type ip: int
 
         :returns: a dictionary with the optimal values of the components
