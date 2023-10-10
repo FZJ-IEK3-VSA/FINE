@@ -21,7 +21,7 @@ def exportToDict(esM, useProcessedValues=False):
     esmDict = {}
     # Loop over all props
     for arg in inputkwargs.args:
-        if not arg is "self":
+        if arg != "self":
             esmDict[arg] = getattr(esM, arg)
 
     compDict = utilsIO.PowerDict()
