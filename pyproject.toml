@@ -5,16 +5,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.2.3"
+version = "2.3.0"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
     { name = "Theresa Groß", email = "t.gross@fz-juelich.de" },
-    { name = "Kevin Knossala", email = "k.knosala@fz-juelich.de" },
+    { name = "Kevin Knosala", email = "k.knosala@fz-juelich.de" },
 ]
 maintainers = [
     { name = "Theresa Groß", email = "t.gross@fz-juelich.de" },
-    { name = "Kevin Knossala", email = "k.knosala@fz-juelich.de" },
+    { name = "Kevin Knosala", email = "k.knosala@fz-juelich.de" },
 ]
 license = { file = "LICENSE" }
 
@@ -30,7 +30,7 @@ classifiers = [
 ]
 keywords = ["energy assesment", "energy system", "optimization"]
 dependencies = []
-requires-python = ">=3.10,<3.11"
+requires-python = ">=3.10"
 
 #Configureation options
 # https://docs.pytest.org/en/7.1.x/reference/reference.html#configuration-options
