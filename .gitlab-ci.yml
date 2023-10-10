@@ -82,7 +82,7 @@ test-notebooks:
 test-documentation:
   extends: .test_template
   script:
-    - mamba install -y graphviz texlive-core dvipng
+    - micromamba install -y graphviz texlive-core dvipng
     - cd docs
     - sphinx-build -avW -M html "source" "build"
   only:
