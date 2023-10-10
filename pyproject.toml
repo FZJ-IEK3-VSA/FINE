@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.3"
+version = "2.3.0"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
