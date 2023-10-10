@@ -22,7 +22,8 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
             In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`. 
             GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
             Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
-            """, DeprecationWarning
+            """,
+            DeprecationWarning,
         )
         raise e
 
@@ -301,6 +302,7 @@ def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
             "One conversion factor needs to be either a callable function or a list of two-dimensional data points."
         )
 
+
 class ConversionPartLoad(Conversion):
     """
     A ConversionPartLoad component maps the (nonlinear) part-load behavior of a Conversion component.
@@ -357,8 +359,8 @@ class ConversionPartLoad(Conversion):
             In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`. 
             GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
             Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
-            """
-            , DeprecationWarning
+            """,
+            DeprecationWarning,
         )
 
         Conversion.__init__(
