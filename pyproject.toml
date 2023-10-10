@@ -43,10 +43,7 @@ console_output_style = "progress"
 # Omit a field by add ing ":" for each omitted field
 # Actions are: "default"
 # "error", "ignore", "always", "module", "once"
-filterwarnings = [
-    "ignore:The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.:FutureWarning",
-    "ignore:Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas.:FutureWarning",
-]
+filterwarnings = []
 
 [project.urls]
 homepage = "https://www.fz-juelich.de/de/iek/iek-3/forschung/open-source/fine"
