@@ -2,7 +2,7 @@ name: FINE
 channels:
   - nodefaults
 dependencies:
-  - conda-forge::python=3.10
+  - conda-forge::python>=3.10
   - conda-forge::libiconv
   - conda-forge::gdal=3.4
   - conda-forge::geopandas
@@ -17,20 +17,14 @@ dependencies:
   - conda-forge::xlrd
   - conda-forge::pyomo
   - conda-forge::numpy
-  - conda-forge::pandas
+  - conda-forge::pandas>=2
   - conda-forge::networkx
   - conda-forge::scipy
-  - conda-forge::pwlf
-  - conda-forge::pyDOE
-  - conda-forge::sphinx_rtd_theme
   - conda-forge::scikit-learn
   - conda-forge::xarray
-  - conda-forge::seaborn
   - conda-forge::rasterio
   - conda-forge::netcdf4
   - conda-forge::tsam
-  - conda-forge::wquantiles
-  - conda-forge::cython
 
   - pip:
       - .

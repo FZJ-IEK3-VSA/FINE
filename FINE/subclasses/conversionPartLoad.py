@@ -1,21 +1,10 @@
 from FINE.conversion import Conversion, ConversionModel
+from FINE.utils import checkDataFrameConversionFactor, checkCallableConversionFactor
 from FINE import utils
 import pyomo.environ as pyomo
 import pandas as pd
 import numpy as np
 import warnings
-import pwlf
-
-try:
-    from GPyOpt.methods import BayesianOptimization
-except ImportError:
-    warnings.warn(
-        """
-        In order to user the `conversionPartLoadClass` you need to install GPyOpt. 
-        GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
-        Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
-        """
-    )
 
 
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
@@ -24,6 +13,20 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by
     a bayesian optimization algorithm.
     """
+    try:
+        from GPyOpt.methods import BayesianOptimization
+        import pwlf
+    except ImportError as e:
+        warnings.warn(
+            """
+            In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`. 
+            GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
+            Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
+            """,
+            DeprecationWarning,
+        )
+        raise e
+
     if callable(functionOrRaw):
         nPointsForInputData = 1000
         x = np.linspace(xLowerBound, xUpperBound, nPointsForInputData)
@@ -350,6 +353,16 @@ class ConversionPartLoad(Conversion):
         :type **kwargs:
             * Check Conversion Class documentation.
         """
+
+        warnings.warn(
+            """
+            In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`. 
+            GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
+            Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
+            """,
+            DeprecationWarning,
+        )
+
         Conversion.__init__(
             self, esM, name, physicalUnit, commodityConversionFactors, **kwargs
         )
@@ -363,7 +376,7 @@ class ConversionPartLoad(Conversion):
             # TODO: Multiple conversionPartLoads
             utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad)
             utils.checkCommodities(esM, set(commodityConversionFactorsPartLoad.keys()))
-            utils.checkCommodityConversionFactorsPartLoad(
+            checkCommodityConversionFactorsPartLoad(
                 commodityConversionFactorsPartLoad.values()
             )
             self.commodityConversionFactorsPartLoad = commodityConversionFactorsPartLoad

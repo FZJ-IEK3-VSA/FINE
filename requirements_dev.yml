@@ -1,42 +1,34 @@
 name: FINE_dev
 
 dependencies:
-- conda-forge::python=3.10
-- conda-forge::libiconv
-- conda-forge::gdal=3.4
-- conda-forge::geopandas
-- conda-forge::jupyter
-- conda-forge::notebook
-- conda-forge::libpysal
-- conda-forge::pip
-- conda-forge::descartes
-- conda-forge::glpk
-- conda-forge::openpyxl
-- conda-forge::matplotlib
-- conda-forge::xlrd
-- conda-forge::pyomo
-- conda-forge::numpy
-- conda-forge::pandas
-- conda-forge::networkx
-- conda-forge::scipy
-- conda-forge::pwlf
-- conda-forge::pyDOE
-- conda-forge::sphinx_rtd_theme
-- conda-forge::scikit-learn
-- conda-forge::xarray
-- conda-forge::statsmodels
-- conda-forge::seaborn
-- conda-forge::rasterio
-- conda-forge::netcdf4
-- conda-forge::tsam
-- conda-forge::wquantiles
-- conda-forge::cython
-- conda-forge::pytest
-- conda-forge::pytest-cov
-- conda-forge::pylint
-- conda-forge::nbval
-- conda-forge::black
-- conda-forge::click
+  - conda-forge::python>=3.10
+  - conda-forge::libiconv
+  - conda-forge::gdal=3.4
+  - conda-forge::geopandas
+  - conda-forge::jupyter
+  - conda-forge::notebook
+  - conda-forge::libpysal
+  - conda-forge::pip
+  - conda-forge::descartes
+  - conda-forge::glpk
+  - conda-forge::openpyxl
+  - conda-forge::matplotlib
+  - conda-forge::xlrd
+  - conda-forge::pyomo
+  - conda-forge::numpy
+  - conda-forge::pandas>=2
+  - conda-forge::networkx
+  - conda-forge::scipy
+  - conda-forge::scikit-learn
+  - conda-forge::xarray
+  - conda-forge::rasterio
+  - conda-forge::netcdf4
+  - conda-forge::tsam
+  - conda-forge::sphinx_rtd_theme
+  - conda-forge::pytest
+  - conda-forge::pytest-cov
+  - conda-forge::nbval
+  - conda-forge::black
 
-- pip:
-    - -e .
+  - pip:
+      - -e .
