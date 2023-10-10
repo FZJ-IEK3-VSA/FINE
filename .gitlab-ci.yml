@@ -79,6 +79,17 @@ test-notebooks:
       - develop
       - merge_requests
 
+test-documentation:
+  extends: .test_template
+  script:
+    - cd docs
+    - sphinx-build -M "source" "build" -avW
+  only:
+    refs:
+      - master
+      - develop
+      - merge_requests
+
 prebuild:
   stage: prebuild
   script:
