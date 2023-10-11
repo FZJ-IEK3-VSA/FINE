@@ -206,7 +206,7 @@ class Storage(Component):
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
         :type opexPerChargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values or dict of
-            positive (>=0) float or Pandas Series with positive (>=0) values per investement period.
+            positive (>=0) float or Pandas Series with positive (>=0) values per investment period.
             The indices of the series have to equal the in the energy system model specified locations.
 
         :param opexPerDischargeOperation: describes the cost for one unit of the discharge operation.
@@ -914,7 +914,6 @@ class StorageModel(ComponentModel):
 
             # tests for testing the storage class with ip and TSAM
             def cyclicState(pyM, loc, compName, ip, p):
-                # Question to Max: Is this correct?
                 # tLast = esM.interPeriodTimeSteps[-1]
                 tLast = esM.numberOfInterPeriodTimeSteps
                 offsetUp_ = (
@@ -1491,7 +1490,7 @@ class StorageModel(ComponentModel):
         self.designDevelopmentConstraint(pyM, esM)
         self.decommissioningConstraint(pyM, esM)
         self.stockCapacityConstraint(pyM, esM)
-        self.stockCommissioningConstaint(pyM, esM)
+        self.stockCommissioningConstraint(pyM, esM)
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################

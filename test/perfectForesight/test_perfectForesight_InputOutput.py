@@ -129,7 +129,7 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
 
             # see test/IOManagement/test_xarrayio.py: "Only total operation is
             # saved in netCDF not the yearly value so we drop the
-            # opreation value. This needs to be fixed in future."
+            # operation value. This needs to be fixed in the future."
             drop_rows_condition = [
                 x
                 for x in expected_OptSum.index
