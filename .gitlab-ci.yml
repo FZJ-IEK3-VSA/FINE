@@ -82,7 +82,7 @@ test-notebooks:
 test-documentation:
   extends: .test_template
   script:
-    - micromamba install -y -c conda-forge graphviz texlive-core
+    - su -c "apt-get install -y --no-install-recommends graphviz texlive-core"
     - cd docs
     - sphinx-build -M html "source" "build" -avW
   only:
