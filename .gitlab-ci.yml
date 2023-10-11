@@ -82,9 +82,9 @@ test-notebooks:
 test-documentation:
   extends: .test_template
   script:
-    # - micromamba install -y graphviz texlive-core dvipng
+    - micromamba install -y -c conda-forge graphviz texlive-core
     - cd docs
-    - sphinx-build -avW -M html "source" "build"
+    - sphinx-build -M html "source" "build" -avW
   only:
     refs:
       - master
