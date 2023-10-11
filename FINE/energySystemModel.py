@@ -233,6 +233,16 @@ class EnergySystemModel:
             Examples: CO2 budget for the entire transformation pathway
             |br| * the default value is None
         :type pathwayBalanceLimit: None or pd.DataFrame
+
+        :param annuityPerpetuity: if set to True, it is assumed that the design and operation of the last investment
+            period will be maintained forever. Therefore, the cost contribution of each component's last investment
+            period is divided by the component's interest rate to account for perpetuity costs.
+
+            To enable annuity perpetuity the interest rate of every component must be greater than 0.
+
+            |br| * the default value is False
+        :type: annuityPerpetuity: bool
+
         """
 
         # Check correctness of inputs
@@ -672,7 +682,7 @@ class EnergySystemModel:
 
         **Additional keyword arguments that can be passed via kwargs:**
 
-        :param geom_col_name: The geomtry column name in `shapefile`
+        :param geom_col_name: The geometry column name in `shapefile`
             |br| * the default value is 'geometry'
         :type geom_col_name: string
 
@@ -699,7 +709,7 @@ class EnergySystemModel:
 
         :param weights: Relevant only if `grouping_mode` is 'parameter_based'.
             Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating
-            distance corresonding to each variable-component pair, these specified weights are
+            distance corresponding to each variable-component pair, these specified weights are
             considered, otherwise taken as 1.
 
             It must be in one of the formats:
@@ -2068,7 +2078,7 @@ class EnergySystemModel:
                 utils.output(outputString, self.verbose, 0)
 
                 # convert optimal values from internal name to external name
-                # e.g. from _capacitiyVariablesOptimum to capacityVariablesOptimmum
+                # e.g. from _capacityVariablesOptimum to capacityVariablesOptimum
                 # For perfectForesight the data stays the same, for a single year optimization
                 # the data is converted from a dict with a single entry to a dataframe
                 # By this, old models will not fail.

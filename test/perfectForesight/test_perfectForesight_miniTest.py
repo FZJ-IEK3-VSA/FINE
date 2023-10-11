@@ -336,7 +336,7 @@ def test_perfectForesight_binary():
     )
 
 
-def test_perfectForsight_annuityPerpetuity(perfectForesight_test_esM):
+def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
     perfectForesight_test_esM.annuityPerpetuity = True
     perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     np.testing.assert_almost_equal(

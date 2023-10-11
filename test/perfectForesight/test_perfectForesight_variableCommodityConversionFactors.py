@@ -10,7 +10,7 @@ def test_perfectForesight_variableConversions_input(
 ):
     esM = copy.deepcopy(perfectForesight_test_esM)
     # 1. Variation of the commodity conversion per investment period
-    # e.g. due to weather differencecs
+    # e.g. due to weather differences
     # note: electrolyzers just exemplary for usage
     esM.add(
         fn.Conversion(
@@ -533,7 +533,7 @@ def test_perfectForesight_variableConversions_timedepending(
             np.array([0.84, 0.71]),
         )
 
-        # get commodity conversion factor of perfect land with commis in -1 in the first time stepü
+        # get commodity conversion factor of perfect land with commis in -1 in the first time step
         commodConv_CommisYearMinusOne = (
             esM.getComponent("Electrolyzer")
             .processedCommodityConversionFactors[(-1, 0)]["hydrogen"]
@@ -562,7 +562,7 @@ def test_perfectForesight_variableConversions_timedepending(
 
 
 @pytest.mark.parametrize("use_tsa", [True, False])
-def test_perfectForesight_variableConversions_opeationRateMax(
+def test_perfectForesight_variableConversions_operationRateMax(
     use_tsa,
     perfectForesight_test_esM,
 ):
@@ -683,7 +683,7 @@ def test_perfectForesight_variableConversions_opeationRateMax(
 
 
 @pytest.mark.parametrize("use_tsa", [True])
-def test_perfectForesight_variableConversions_opeationRateFix(
+def test_perfectForesight_variableConversions_operationRateFix(
     use_tsa,
     perfectForesight_test_esM,
 ):

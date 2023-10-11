@@ -71,7 +71,7 @@ class Source(Component):
 
             * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
             * Emitting CO2 into the environment is not per se limited by a capacity ->
-              hasCapaityVariable is False.
+              hasCapacityVariable is False.
 
         :type hasCapacityVariable: boolean
 
@@ -141,14 +141,14 @@ class Source(Component):
         :param commodityLimitID: can be specified to limit an annual commodity import/export over the
             energySystemModel's boundaries for one or multiple Source/Sink components. If the same ID
             is used in multiple components, the sum of all imports and exports is considered. If a
-            commoditiyLimitID is specified, the yearlyLimit parameters has to be set as well.
+            commodityLimitID is specified, the yearlyLimit parameters has to be set as well.
             |br| * the default value is None
         :type commodityLimitID: string
 
         :param yearlyLimit: if specified, indicates a yearly import/export commodity limit per investment period for all components with
             the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is
             limited. If negative, the commodity flow entering the energySystemModel is limited. If a
-            yearlyLimit is specified, the commoditiyLimitID parameters has to be set as well. The yearlyLimit can also be specified for
+            yearlyLimit is specified, the commodityLimitID parameters has to be set as well. The yearlyLimit can also be specified for
             every investment period year individually.
             Examples:
 
@@ -571,7 +571,7 @@ class Sink(Source):
         floorTechnicalLifetime=True,
     ):
         """
-        Constructor for creating an Sink class instance.
+        Constructor for creating a Sink class instance.
 
         The Sink class inherits from the Source class. They coincide with the input parameters
         (see Source class for the parameter description) and differ in the sign
@@ -845,7 +845,7 @@ class SourceSinkModel(ComponentModel):
         self.designDevelopmentConstraint(pyM, esM)
         self.decommissioningConstraint(pyM, esM)
         self.stockCapacityConstraint(pyM, esM)
-        self.stockCommissioningConstaint(pyM, esM)
+        self.stockCommissioningConstraint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #

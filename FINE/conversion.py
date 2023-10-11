@@ -842,7 +842,7 @@ class ConversionModel(ComponentModel):
         self.designDevelopmentConstraint(pyM, esM)
         self.decommissioningConstraint(pyM, esM)
         self.stockCapacityConstraint(pyM, esM)
-        self.stockCommissioningConstaint(pyM, esM)
+        self.stockCommissioningConstraint(pyM, esM)
 
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
