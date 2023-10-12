@@ -7,7 +7,9 @@
 
 The FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities and time steps can be modeled. Target of the optimization is the minimization of the total annual cost while considering technical and enviromental constraints. Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
 
-If you want to use FINE in a published work, please [**kindly cite following publication**](https://www.sciencedirect.com/science/article/pii/S036054421830879X) which gives a description of the first stages of the framework. The python package which provides the time series aggregation module and its corresponding literatur can be found [**here**](https://github.com/FZJ-IEK3-VSA/tsam).
+FINE is used for the modelling of a diverse group of optimization problems within the [ETHOS Model Suite at IEK-3](https://www.fz-juelich.de/de/iek/iek-3/leistungen/model-services).  
+
+If you want to use FINE in a published work, please [**kindly cite following publication**](https://www.sciencedirect.com/science/article/pii/S036054421830879X) which gives a description of the first stages of the framework. The python package which provides the time series aggregation module and its corresponding literatur can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
 
 ## Features
 * representation of an energy system by multiple locations, commodities and time steps
@@ -90,7 +92,7 @@ Installation procedure can be found [here](https://projects.coin-or.org/Cbc).
 
 ## Examples
 
-A number of [**examples**](examples/) shows the capabilities of FINE.
+A number of [examples](examples/) shows the capabilities of FINE.
 
 ## License
 
@@ -113,9 +115,7 @@ We are the <a href="https://www.fz-juelich.de/en/iek/iek-3">Institute of Energy 
 
 ## Contributions and Users
 
-Within the BMWi funded project [**METIS**](http://www.metis-platform.net/) we develop together with the RWTH-Aachen ([**Prof. Aaron Praktiknjo**](http://www.wiwi.rwth-aachen.de/cms/Wirtschaftswissenschaften/Die-Fakultaet/Institute-und-Lehrstuehle/Professoren/~jgfr/Praktiknjo-Aaron/?allou=1&lidx=1)), the EDOM Team at FAU ([**PD Bismark Singh**](https://www.math.fau.de/wirtschaftsmathematik/team/bismark-singh/)) and the [**Jülich Supercomputing Centre**](http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html) new methods and models within FINE.
-
-<a href="http://www.metis-platform.net/"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/projectTeamAtKickOffMeeting_640x338.jpg?raw=true" alt="METIS Team" width="400px" style="float:center"></a> 
+From 2018 to 2022  we developed  together with the RWTH-Aachen ([Prof. Aaron Praktiknjo](http://www.wiwi.rwth-aachen.de/cms/Wirtschaftswissenschaften/Die-Fakultaet/Institute-und-Lehrstuehle/Professoren/~jgfr/Praktiknjo-Aaron/?allou=1&lidx=1)), the [EDOM Team at FAU](https://www.math.fau.de/wirtschaftsmathematik/) and the [Jülich Supercomputing Centre](http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html) new methods and models for FINE within the BMWi funded project [METIS](http://www.metis-platform.net/).
 
 <p float="left">
 <a href="https://www.rwth-aachen.de/go/id/a/"> <img src="https://upload.wikimedia.org/wikipedia/commons/1/1e/RWTH_Logo_3.svg" width="230" /> </a> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
