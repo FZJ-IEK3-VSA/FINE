@@ -2,11 +2,11 @@
 [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/fine.svg)](https://anaconda.org/conda-forge/fine)
 [![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/)
-[![PyPI - License](https://img.shields.io/pypi/l/FINE)]((https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt))
+[![PyPI - License](https://img.shields.io/pypi/l/FINE)](https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)
 [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
 
 
-<a href="https://www.fz-juelich.de/en/iek/iek-3"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/FJZ_IEK-3_logo.svg" alt="Forschungszentrum Juelich Logo" width="300px"></a> 
+<a href="https://www.fz-juelich.de/en/iek/iek-3"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/FJZ_IEK-3_logo.svg?raw=True" alt="Forschungszentrum Juelich Logo" width="300px"></a> 
 
 # ETHOS.FINE - Framework for Integrated Energy System Assessment
 
@@ -97,13 +97,13 @@ Installation procedure can be found [here](https://projects.coin-or.org/Cbc).
 
 ## Examples
 
-A number of [examples](examples/) shows the capabilities of FINE.
+A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples) shows the capabilities of FINE.
 
 ## License
 
 MIT License
 
-Copyright (C) 2016-2022 FZJ-IEK-3
+Copyright (C) 2016-2023 FZJ-IEK-3
 
 Active Developers: Theresa Groß, Kevin Knosala, Noah Pflugradt, Johannes Behrens, Julian Belina, Arne Burdack, Toni Busch, Philipp Dunkel, Patrick Freitag, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Shitab Ishmam, Stefan Kraus, Felix Kullmann, Jochen Linßen, Rachel Maier, Peter Markewitz, Lars Nolting, Shruthi Patil, Jan Priesmann, Stanley Risch, Julian Schönau, Bismark Singh, Maximilian Stargardt, Christoph Winkler, Michael Zier, Detlef Stolten
 
@@ -121,7 +121,7 @@ We are the <a href="https://www.fz-juelich.de/en/iek/iek-3">Institute of Energy 
 
 ## Contributions and Users
 
-From 2018 to 2022  we developed  together with the RWTH-Aachen ([Prof. Aaron Praktiknjo](http://www.wiwi.rwth-aachen.de/cms/Wirtschaftswissenschaften/Die-Fakultaet/Institute-und-Lehrstuehle/Professoren/~jgfr/Praktiknjo-Aaron/?allou=1&lidx=1)), the [EDOM Team at FAU](https://www.math.fau.de/wirtschaftsmathematik/) and the [Jülich Supercomputing Centre](http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html) new methods and models for ETHOS.FINE within the BMWi funded project [METIS](http://www.metis-platform.net/).
+From 2018 to 2022  we developed methods and models for ETHOS.FINE together with the RWTH-Aachen ([Prof. Aaron Praktiknjo](http://www.wiwi.rwth-aachen.de/cms/Wirtschaftswissenschaften/Die-Fakultaet/Institute-und-Lehrstuehle/Professoren/~jgfr/Praktiknjo-Aaron/?allou=1&lidx=1)), the [EDOM Team at FAU](https://www.math.fau.de/wirtschaftsmathematik/) and the [Jülich Supercomputing Centre](http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html)  within the BMWi funded project [METIS](http://www.metis-platform.net/).
 
 <p float="left">
 <a href="https://www.rwth-aachen.de/go/id/a/"> <img src="https://upload.wikimedia.org/wikipedia/commons/1/1e/RWTH_Logo_3.svg" width="230" /> </a> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
@@ -132,4 +132,6 @@ From 2018 to 2022  we developed  together with the RWTH-Aachen ([Prof. Aaron Pra
 
 This work was supported by the Helmholtz Association under the Joint Initiative ["Energy System 2050   A Contribution of the Research Field Energy"](https://www.helmholtz.de/en/research/energy/energy_system_2050/).
 
-<a href="https://www.helmholtz.de/en/"><img src="https://www.helmholtz.de/fileadmin/user_upload/05_aktuelles/Marke_Design/logos/HG_LOGO_S_ENG_RGB.jpg" alt="Helmholtz Logo" width="200px" style="float:right"></a>
+<p float="left">
+<a href="https://www.helmholtz.de/en/"><img src="https://www.helmholtz.de/fileadmin/user_upload/05_aktuelles/Marke_Design/logos/HG_LOGO_S_ENG_RGB.jpg" alt="Helmholtz Logo" width="200px"></a>
+</p>
