@@ -83,8 +83,7 @@ def perform_distance_based_grouping(
     distance_threshold=None,
 ):
     """
-    Groups regions based on the regions' centroid distances,
-    using sklearn's hierarchical clustering.
+    Groups regions based on the regions' centroid distances, using sklearn's hierarchical clustering.
 
     :param geom_xr: The xarray dataset holding the geom info
     :type geom_xr: xr.Dataset
@@ -107,7 +106,7 @@ def perform_distance_based_grouping(
                ['02_reg', '03_reg]
 
     :param enforced_groups: The groups that should be enforced when aggregating regions.
-    |br| * the default value is None
+        |br| * the default value is None
     :type enforced_groups: Dict
 
         * Ex.: {'es': ['01_es', '02_es', '03_es']

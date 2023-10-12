@@ -103,7 +103,7 @@ def checkEnergySystemModelInput(
 
     if stochasticModel and numberOfInvestmentPeriods == 1:
         raise ValueError(
-            "A stochastic optimization needs more than one numberOfInvestementPeriod"
+            "A stochastic optimization needs more than one numberOfInvestmentPeriod"
         )
 
     # The costUnit and lengthUnit input parameter have to be strings
@@ -699,7 +699,7 @@ def checkCapacityDevelopmentWithStock(
                 # errors can be wrongly raised
                 if stockCommis[loc] - round(stockCommis[loc], 10) != 0:
                     warnings.warn(
-                        f"A stock comissioning of {stockCommis[loc]} was "
+                        f"A stock commissioning of {stockCommis[loc]} was "
                         + f"passed for location {loc} in year {ip}. "
                         + "It will be rounded to 10 digits to "
                         + "check if the installed stock capacity does "
@@ -812,7 +812,7 @@ def checkAndSetAnnuityPerpetuity(annuityPerpetuity, numberOfInvestmentPeriods):
 
 
 def checkAndSetInterestRate(esM, name, interestRate, dimension, elig):
-    # set up intrest rate per investment period
+    # set up interest rate per investment period
     processedInterestRate = checkAndSetCostParameter(
         esM, name, interestRate, dimension, elig
     )
@@ -827,20 +827,20 @@ def checkAndSetInterestRate(esM, name, interestRate, dimension, elig):
 
 
 def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPeriods):
-    # If the commodity conversion is depending from commissioning year and investment period,
-    # the input shall be a dict with keys of commissioing year and ip and then another dict
+    # If the commodity conversion is depending on commissioning year and investment period,
+    # the input shall be a dict with keys of commissioning year and ip and then another dict
     # for commodity conversions
     if any(
         isinstance(commodityConversion[x], dict) for x in commodityConversion.keys()
     ):
         if len(commodityConversion.keys()) != len(investmentPeriods):
             raise ValueError(
-                "CommodtityConversion is initialized as dict but does not "
+                "CommodityConversion is initialized as dict but does not "
                 + "contain values for each investment-period"
             )
         if sorted(commodityConversion.keys()) != sorted(investmentPeriods):
             raise ValueError(
-                f"CommodtityConversion has different ip-names "
+                f"CommodityConversion has different ip-names "
                 + f"('{commodityConversion.keys()}') than the investment "
                 + f"periods of the esM ('{investmentPeriods}')",
             )
@@ -1993,12 +1993,18 @@ def process2dimCapacityData(esM, name, data, years):
 
 
 def preprocess2dimInvestmentPeriodData(
-    esM, name, data, years, locationalEligibility=None, mapC=None, discard=True
+    esM,
+    name,
+    data,
+    ComponentInvestmentPeriods,
+    locationalEligibility=None,
+    mapC=None,
+    discard=True,
 ):
     parameter = {}
-    for ip in years:
-        # map of year name (e.g. 2020) to intenral name (e.g. 0)
-        _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
+    for ip in ComponentInvestmentPeriods:
+        # map of year name (e.g. 2020) to internal name (e.g. 0)
+        year = int(esM.startYear + ip * esM.investmentPeriodInterval)
 
         if (
             isinstance(data, int)
@@ -2010,7 +2016,7 @@ def preprocess2dimInvestmentPeriodData(
             parameter[ip] = data
         elif isinstance(data, dict):
             parameter[ip] = preprocess2dimData(
-                data[_ip], mapC, locationalEligibility, discard
+                data[year], mapC, locationalEligibility, discard
             )
         else:
             raise TypeError(
@@ -2673,7 +2679,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 ] = processedCommodityConversionFactor[newKeyName][commod]
             else:
                 raise ValueError(
-                    f"Data type '{_commodityConversionFactors}' for commodiy "
+                    f"Data type '{_commodityConversionFactors}' for commodity "
                     + f"{commod} in {_key} not accepted."
                 )
     return (

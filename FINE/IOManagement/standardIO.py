@@ -23,13 +23,11 @@ except ImportError:
 
 def timer(func):
     """
-    Wrapper around a function to track the time taken by
-    the function.
+    Wrapper around a function to track the time taken by the function.
 
     :param func: Function
 
     .. note:: Usage as a decorator before a function -> @timer
-
     """
 
     @wraps(func)  # Required to get documentation for functions using this decorator
@@ -957,6 +955,7 @@ def plotTransmission(
     :type loc1: string
 
     **Default arguments:**
+
     :param ip: investment periods
         |br| * the default value is 0
     :type ip: int

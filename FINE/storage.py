@@ -135,8 +135,8 @@ class Storage(Component):
         :type chargeOpRateMax:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model  specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param chargeOpRateFix: if specified, indicates a fixed charging rate for each location and each time
@@ -149,8 +149,8 @@ class Storage(Component):
         :type chargeOpRateFix:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model  specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param chargeTsaWeight: weight with which the chargeOpRate (max/fix) time series of the
@@ -168,8 +168,8 @@ class Storage(Component):
         :type dischargeOpRateMax:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model  specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param dischargeOpRateFix: if specified, indicates a fixed discharging rate for each location and each
@@ -182,8 +182,8 @@ class Storage(Component):
         :type dischargeOpRateFix:
             * None
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
-            to match the in the energy system model  specified time steps. The column indices have to match the
-            in the energy system model specified locations.
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param dischargeTsaWeight: weight with which the dischargeOpRate (max/fix) time series of the
@@ -206,7 +206,7 @@ class Storage(Component):
             system model (e.g. Euro, Dollar, 1e6 Euro).
             |br| * the default value is 0
         :type opexPerChargeOperation: positive (>=0) float or Pandas Series with positive (>=0) values or dict of
-            positive (>=0) float or Pandas Series with positive (>=0) values per investement period.
+            positive (>=0) float or Pandas Series with positive (>=0) values per investment period.
             The indices of the series have to equal the in the energy system model specified locations.
 
         :param opexPerDischargeOperation: describes the cost for one unit of the discharge operation.
@@ -914,7 +914,6 @@ class StorageModel(ComponentModel):
 
             # tests for testing the storage class with ip and TSAM
             def cyclicState(pyM, loc, compName, ip, p):
-                # Question to Max: Is this correct?
                 # tLast = esM.interPeriodTimeSteps[-1]
                 tLast = esM.numberOfInterPeriodTimeSteps
                 offsetUp_ = (
@@ -1134,7 +1133,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            SoC^{comp,min} \cdot cap^{comp}_{loc,ip} \leq SoC^{comp}_{loc,ip,0,t}
+            SoC^{comp,min} \\cdot cap^{comp}_{loc,ip} \\leq SoC^{comp}_{loc,ip,0,t}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1373,7 +1372,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            \\text{SoC}^{min} \cdot cap^{comp}_{loc,ip} \leq SoC^{inter}_{loc,ip,p} \cdot (1 - \eta^{\\text{self-discharge}})^{\\frac{t \cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,ip,map(p),t}
+            \\text{SoC}^{min} \\cdot cap^{comp}_{loc,ip} \\leq SoC^{inter}_{loc,ip,p} \\cdot (1 - \\eta^{\\text{self-discharge}})^{\\frac{t \\cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,ip,map(p),t}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1491,7 +1490,7 @@ class StorageModel(ComponentModel):
         self.designDevelopmentConstraint(pyM, esM)
         self.decommissioningConstraint(pyM, esM)
         self.stockCapacityConstraint(pyM, esM)
-        self.stockCommissioningConstaint(pyM, esM)
+        self.stockCommissioningConstraint(pyM, esM)
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################
@@ -2172,7 +2171,7 @@ class StorageModel(ComponentModel):
         :type name: string
 
         :param ip: investment period
-        |br| * the default value is 0
+            |br| * the default value is 0
         :type ip: int
 
         :returns: a dictionary with the optimal values of the components

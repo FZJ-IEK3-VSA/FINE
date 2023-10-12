@@ -192,7 +192,7 @@ def test_capacityBounds():
             )
         )
 
-    # error for capacityMax and capaityFix
+    # error for capacityMax and capacityFix
     with pytest.raises(
         ValueError, match=r".*capacityFix values > capacityMax values detected.*"
     ):

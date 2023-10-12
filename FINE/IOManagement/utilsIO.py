@@ -83,7 +83,7 @@ def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
         for key1, data1 in data_dict[variable_name].items():
             if isinstance(data1, dict):
                 # for commodity conversion factors which are ip depending -> 3 levels
-                # {"commodityConverionFactors":{ip:{"electricity":1,"hydrogen":1}}}}}
+                # {"commodityConversionFactors":{ip:{"electricity":1,"hydrogen":1}}}}}
                 for key2, data2 in data1.items():
                     key_lists_in_nested_dict.append([variable_name, key1, key2])
             else:

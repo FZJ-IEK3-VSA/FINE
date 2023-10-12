@@ -33,22 +33,22 @@ class ConversionDynamic(Conversion):
 
         :param downTimeMin: if specified, indicates minimal down time of the component [number of time steps].
             |br| * the default value is None
-        :type downTimeMin: None or integer value in range ]0,numberOfTimeSteps]
+        :type downTimeMin: None or integer value in range \]0,numberOfTimeSteps\]
 
         :param upTimeMin: if specified, indicates minimal up time of the component [number of time steps].
             |br| * the default value is None
-        :type upTimeMin:None or integer value in range ]0,numberOfTimeSteps]
+        :type upTimeMin: None or integer value in range \[0,numberOfTimeSteps\]
 
         :param rampUpMax: A maximum ramping rate to limit the increase in the operation of the component as share of the installed capacity.
             |br| * the default value is None
-        :type rampUpMax: None or float value in range ]0.0,1.0]
+        :type rampUpMax: None or float value in range \]0.0,1.0\]
 
         :param rampDownMax: A maximum ramping rate to limit the decrease in the operation of the component as share of the installed capacity.
             |br| * the default value is None
-        :type rampDownMax: None or float value in range ]0.0,1.0]
+        :type rampDownMax: None or float value in range \]0.0,1.0\]
 
-        :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
-        :type **kwargs: Check Conversion Class documentation.
+        :param \*\*kwargs: All other keyword arguments of the conversion class can be defined as well.
+        :type \*\*kwargs: Check Conversion Class documentation.
         """
         Conversion.__init__(
             self, esM, name, physicalUnit, commodityConversionFactors, **kwargs

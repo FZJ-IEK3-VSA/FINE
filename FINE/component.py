@@ -138,7 +138,7 @@ class Component(metaclass=ABCMeta):
 
         :param capacityMin: if specified, indicates the minimum capacities. The type of this parameter depends on the
             dimension of the component: If dimension=1dim, it has to be a Pandas Series. If dimension=2dim, it has to
-            to be a Pandas Series or DataFrame. If binary decision variables are declared, capacityMin is only used
+            be a Pandas Series or DataFrame. If binary decision variables are declared, capacityMin is only used
             if the component is built.
             |br| * the default value is None
         :type capacityMin:
@@ -155,7 +155,7 @@ class Component(metaclass=ABCMeta):
 
         :param capacityMax: if specified, indicates the maximum capacities. The type of this parameter depends on the
             dimension of the component: If dimension=1dim, it has to be a Pandas Series. If dimension=2dim, it has to
-            to be a Pandas Series or DataFrame.
+            be a Pandas Series or DataFrame.
             |br| * the default value is None
         :type capacityMax:
 
@@ -188,13 +188,10 @@ class Component(metaclass=ABCMeta):
 
         :param capacityFix: if specified, indicates the fixed capacities. The type of this parameter
             depends on the dimension of the component:
-
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
-
             |br| * the default value is None
         :type capacityFix:
-
             * None or
             * float or
             * int or
@@ -208,13 +205,10 @@ class Component(metaclass=ABCMeta):
         :param isBuiltFix: if specified, indicates fixed decisions in which or between which locations the component is
             built (i.e. sets the isBuilt binary variables). The type of this parameter
             depends on the dimension of the component:
-
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
-
             |br| * the default value is None
         :type isBuiltFix:
-
             * None or
             * Pandas Series with values equal to 0 and 1. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
@@ -292,8 +286,8 @@ class Component(metaclass=ABCMeta):
               in which the parameter is given has to match the one specified in the energy system model divided by
               the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km). The value has to match the unit
               costUnit/(lengthUnit * physicalUnit) (e.g. Euro/(kW * m), 1e6 Euro/(GW * km))
-            * a dict with with years as keys (past years which had stock commissioning and investment periods which
-              will beoptimized) and one of the two options above as value.
+            * a dict with years as keys (past years which had stock commissioning and investment periods which
+              will be optimized) and one of the two options above as value.
               e.g. {2020: 1000, 2025: 800, 2030: 750}
 
             |br| * the default value is 0
@@ -318,8 +312,8 @@ class Component(metaclass=ABCMeta):
             * a float or a Pandas Series or DataFrame with location specific values (dimension=2dim). The cost unit
               in which the parameter is given has to match the one specified in the energy system model divided by
               the specified lengthUnit (e.g. Euro/m, Dollar/m, 1e6 Euro/km).
-            * a dict with with years as keys (past years which had stock commissioning and investment periods which
-              will beoptimized) and one of the two options above as value.
+            * a dict with years as keys (past years which had stock commissioning and investment periods which
+              will be optimized) and one of the two options above as value.
               e.g. {2020: 1000, 2025: 800, 2030: 750}
 
             |br| * the default value is 0
@@ -413,18 +407,20 @@ class Component(metaclass=ABCMeta):
             * Dict with years as keys and one of the two options above as values.
 
         :param stockCommissioning: if specified, indictates historical commissioned capacities.
-        The parameter describes, how much capacity was commissioned per location in which past
-        investment period. The past investment period is not part of the optimized investment periods.
-            e.g. if startYear is 2020:
-                {2016:pandas.series(index=["loc1","loc2"],data=[4,3]).
-                 2018: pandas.series(index=["loc1","loc2"],data=[1,2])}
-            e.g. if startYear is 0:
-                {-4:pandas.series(index=["loc1","loc2"],data=[4,3]).
-                 -2: pandas.series(index=["loc1","loc2"],data=[1,2])}
+            The parameter describes, how much capacity was commissioned per location in which past
+            investment period. The past investment period is not part of the optimized investment periods.
+
+            * e.g. if startYear is 2020:
+              {2016:pandas.series(index=["loc1","loc2"],data=[4,3]).
+              2018: pandas.series(index=["loc1","loc2"],data=[1,2])}
+            * e.g. if startYear is 0:
+              {-4:pandas.series(index=["loc1","loc2"],data=[4,3]).
+              -2: pandas.series(index=["loc1","loc2"],data=[1,2])}
+
             Warning: Commissioning years older than the technical lifetime from startYear will be ignored.
             |br| * the default value is None
-
         :type stockCommissioning:
+
             * None or
             * Dict with past years as keys and pandas.Series with index of locations as values
 
@@ -433,8 +429,8 @@ class Component(metaclass=ABCMeta):
         :type modelingClass: a class inheriting from ComponentModeling
 
         :param floorTechnicalLifetime: if a technical lifetime is not a multiple of the interval, this
-        parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval, by default True
-        The costs will then be applied to the corrected interval.
+            parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval,
+            by default True. The costs will then be applied to the corrected interval.
         """
         # Set general component data
         utils.isEnergySystemModelInstance(esM)
@@ -1258,7 +1254,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            \\text{capMin}^{comp}_{loc} \leq cap^{comp}_{loc} \leq \\text{capMax}^{comp}_{loc}
+            \\text{capMin}^{comp}_{loc} \\leq cap^{comp}_{loc} \\leq \\text{capMax}^{comp}_{loc}
 
         If a capacityFix parameter is given, the bounds are set to enforce
 
@@ -1559,7 +1555,8 @@ class ComponentModel(metaclass=ABCMeta):
                 return (0, None)
 
         if isOperationCommisYearDepending:
-            # if the operation is depending on the year of commissioning, e.g. due to variable efficienies over the transformation pathway, the operation is additionaly depending on commis
+            # if the operation is depending on the year of commissioning, e.g. due to variable efficiencies over the
+            # transformation pathway, the operation is additionally depending on commis
             def opBounds_commisDepending(pyM, loc, compName, commis, ip, p, t):
                 return opBounds(pyM, loc, compName, ip, p, t)
 
@@ -1613,7 +1610,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbReal^{comp}_{loc}
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \\cdot nbReal^{comp}_{loc}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1647,7 +1644,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \cdot nbInt^{comp}_{loc}
+            cap^{comp}_{loc} = \\text{capPerUnit}^{comp} \\cdot nbInt^{comp}_{loc}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1726,7 +1723,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            \\text{capMin}^{comp}_{loc} \cdot commisBin^{comp}_{loc,ip} \leq  cap^{comp}_{loc,ip}
+            \\text{capMin}^{comp}_{loc} \\cdot commisBin^{comp}_{loc,ip} \\leq  cap^{comp}_{loc,ip}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1825,7 +1822,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc,ip+1} \eq  cap^{comp}_{loc,ip}
+            cap^{comp}_{loc,ip+1} =  cap^{comp}_{loc,ip}
 
         For the development pathway, the capacity of an investment period is composed
         of the capacity of the previous investment periods and the commissioning and
@@ -1833,7 +1830,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            cap^{comp}_{loc,ip+1} \eq  cap^{comp}_{loc,ip} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,ip}
+            cap^{comp}_{loc,ip+1} =  cap^{comp}_{loc,ip} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,ip}
 
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -1848,7 +1845,7 @@ class ComponentModel(metaclass=ABCMeta):
             capVar = getattr(pyM, "cap_" + abbrvName)
 
             def capacityDevelopmentStochastic(pyM, loc, compName, ip):
-                # all investmentperiods must have the same capacity
+                # all investment periods must have the same capacity
                 return capVar[loc, compName, ip + 1] == capVar[loc, compName, ip]
 
             setattr(
@@ -1883,18 +1880,18 @@ class ComponentModel(metaclass=ABCMeta):
     def stockCapacityConstraint(self, pyM, esM):
         """
         Set the stock capacity constraint. The stock capacity is the sum of the stock
-        commissioning, which do not exceed its technical technical lifetime.
+        commissioning, which do not exceed its technical lifetime.
 
         For stochastic, the stock of past investment periods is not only valid for ip=0 but for all investment periods.
         .. math::
 
-            cap^{comp}_{loc,ip} \eq  stockCap^{comp}_{loc} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,0}
+            cap^{comp}_{loc,ip} =  stockCap^{comp}_{loc} + commis^{comp}_{loc,ip} - decommis^{comp}_{loc,0}
 
         For capacity development, the stock is only considered for the first investment periods.
 
         .. math::
 
-            cap^{comp}_{loc,0} \eq  stockCap^{comp}_{loc} + commis^{comp}_{loc,0} - decommis^{comp}_{loc,0}
+            cap^{comp}_{loc,0} =  stockCap^{comp}_{loc} + commis^{comp}_{loc,0} - decommis^{comp}_{loc,0}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1943,7 +1940,7 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(locCompConstrSet, rule=initialYear),
             )
 
-    def stockCommissioningConstaint(self, pyM, esM):
+    def stockCommissioningConstraint(self, pyM, esM):
         """
         Set commissioning variable for past investment periods. For past investment periods,
         where no stock commissioning is specified the commissioning variable is set to zero.
@@ -1981,7 +1978,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            decommis^{comp}_{loc,ip} \eq commis^{comp}_{loc,ip-\\text{ipTechnicalLifetime}}
+            decommis^{comp}_{loc,ip} = commis^{comp}_{loc,ip-\\mathrm{ipTechnicalLifetime}}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -2055,7 +2052,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \cdot \\text{opFactor}^{opType} \cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \\cdot \\text{opFactor}^{opType} \\cdot cap^{comp}_{loc,ip}
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -2114,7 +2111,7 @@ class ComponentModel(metaclass=ABCMeta):
                     return (
                         opVar[loc, compName, commis, ip, p, t]
                         <= factor1[p, t] * factor2 * commisVar[loc, compName, commis]
-                    )  # factor not dependend on ip
+                    )  # factor not dependent on ip
 
             else:
 
@@ -2132,7 +2129,7 @@ class ComponentModel(metaclass=ABCMeta):
                     return (
                         opVar[loc, compName, ip, p, t]
                         <= factor1[p, t] * factor2 * capVar[loc, compName, ip]
-                    )  # factor not dependend on ip
+                    )  # factor not dependent on ip
 
             setattr(
                 pyM,
@@ -2159,7 +2156,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,ip,p,t} \cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,ip,p,t} \\cdot cap^{comp}_{loc,ip}
 
         """
         # additions for perfect foresight
@@ -2251,7 +2248,7 @@ class ComponentModel(metaclass=ABCMeta):
         * [commodityUnit] multiplied by the hours per time step (else).\n
 
         .. math::
-            op^{comp,opType}_{loc,ip,p,t} = \\tau^{hours} \cdot \\text{opRateFix}^{comp,opType}_{loc,ip,p,t} \cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} = \\tau^{hours} \\cdot \\text{opRateFix}^{comp,opType}_{loc,ip,p,t} \\cdot cap^{comp}_{loc,ip}
 
         :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
             |br| * the default value is None
@@ -2754,7 +2751,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param divisorName: String of the variable that is used as a divisor within the equation (e.g. 'CCF').
             If the divisorName is an empty string, there is no division within the equation.
-            |br| * the default value is ''.
+            |br| * the default value is "".
         :type divisorName: string
 
         :param QPfactorNames: Strings of the parameters that have to be multiplied when quadratic programming is used. (e.g. ['processedQPcostScale'])
@@ -2822,7 +2819,7 @@ class ComponentModel(metaclass=ABCMeta):
             # Components can have different investPerCapacity in different years.
             # The capex contribution however only depends on the capex of the
             # commissioning year. Therefore, we initialize a dataframe with index and
-            # columns of the investement periods. The rows describe the commissioning
+            # columns of the investment periods. The rows describe the commissioning
             # years, e.g. a component build in year 2 but with a lifetime of three
             # years would have entries for df.loc[2,2:5]. Afterwards we
             # sum the contributions per column, multiply it with the annuity
@@ -2874,7 +2871,7 @@ class ComponentModel(metaclass=ABCMeta):
 
                 # B) Costs for design variables.
                 # The applied costs for the design variables are more complex.
-                # The cost distrubutiuon depends on the economic lifetime, the technical
+                # The cost distribution depends on the economic lifetime, the technical
                 # lifetime, the flooring/ceiling of the technical lifetime to the next
                 # interval and the length of the interval.
                 # Complex example: interval of 5 years, economic lifetime of 8 years,
@@ -3079,7 +3076,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         **Default arguments:**
 
-        :param ip: investement period
+        :param ip: investment period
         :type ip: int
 
         :param divisorName: String of the variable that is used as a divisor within the equation (e.g. 'CCF').
@@ -3113,7 +3110,8 @@ class ComponentModel(metaclass=ABCMeta):
             )
         if ip < -roundedTechnicalLifetime:
             return 0
-        # years where component could have commissioning as it is within the technichal lifetime, but does not have commissioning
+        # years where component could have commissioning as it is within the technical
+        # lifetime, but does not have commissioning
         elif (
             ip < 0 and self.componentsDict[compName].processedStockCommissioning is None
         ):
@@ -3214,7 +3212,7 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean
 
-        :param getOptValueCostType: the cost type can either be TAC (total anualized costs) or NPV (net present value)
+        :param getOptValueCostType: the cost type can either be TAC (total annualized costs) or NPV (net present value)
             |br| * the default value is None.
         :type getOptValueCostType: string
         """
@@ -3265,10 +3263,10 @@ class ComponentModel(metaclass=ABCMeta):
                     for loc, compName, ip in locCompIpCombinations
                 )
         else:
-            # Components can have differentninvestPerCapacity in different
-            # years. The capex contributionhowever only depends on the capex
+            # Components can have different investPerCapacity in different
+            # years. The capex contribution however only depends on the capex
             # of the commissioning year. Therefore, we initialize a
-            # dataframe with index and columns of the investement periods.
+            # dataframe with index and columns of the investment periods.
             # The rows describe the commissioning years,
             # e.g. a component build in year 2 but with a lifetime of three
             # years would have entries for df.loc[2,2:5]. Afterwards we
@@ -3308,7 +3306,7 @@ class ComponentModel(metaclass=ABCMeta):
                     getOptValue,
                 )
 
-            # create dictonary with ip as key and a dataframe with
+            # create dictionary with ip as key and a dataframe with
             # cost contribution per component+location as value
             if getOptValue:
                 cost_results = {ip: pd.DataFrame() for ip in esM.investmentPeriods}
@@ -3511,7 +3509,7 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments**
 
         :param unitApp: string which appends the capacity unit in the optimization summary.
-            For example, for the StorageModel class, the parameter is set to '*h'.
+            For example, for the StorageModel class, the parameter is set to '\*h'.
             |br| * the default value is ''.
         :type unitApp: string
 
@@ -3921,7 +3919,7 @@ class ComponentModel(metaclass=ABCMeta):
             # either decommissioning or capacity exists
             # (years can have decommissioning, leading to no left capacity)
             if decommisOptVal is not None or capOptVal is not None:
-                # Fill in the optimiation summary for commissioning and decommissioning
+                # Fill in the optimization summary for commissioning and decommissioning
                 # commissioning
                 optSummary_ip.loc[
                     [
@@ -4002,7 +4000,7 @@ class ComponentModel(metaclass=ABCMeta):
         :type name: string
 
         :param ip: investment period of transformation path analysis.
-        |br| * the default value is 0
+            |br| * the default value is 0
         :type ip: int
 
         :returns: a dictionary with the optimal values of the components

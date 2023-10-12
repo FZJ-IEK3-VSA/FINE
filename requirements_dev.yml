@@ -24,6 +24,7 @@ dependencies:
   - conda-forge::rasterio
   - conda-forge::netcdf4
   - conda-forge::tsam
+  - conda-forge::sphinx
   - conda-forge::sphinx_rtd_theme
   - conda-forge::pytest
   - conda-forge::pytest-cov
