@@ -45,6 +45,7 @@ extensions = [
     "sphinx.ext.imgmath",
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
+    "myst_parser",
 ]
 
 inheritance_graph_attrs = dict(

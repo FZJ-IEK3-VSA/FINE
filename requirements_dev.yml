@@ -26,6 +26,7 @@ dependencies:
   - conda-forge::tsam
   - conda-forge::sphinx
   - conda-forge::sphinx_rtd_theme
+  - conda-forge::myst-parser
   - conda-forge::pytest
   - conda-forge::pytest-cov
   - conda-forge::nbval
