@@ -3,6 +3,21 @@ FINE's News Feed
 ################
 
 *********************
+Release version 2.3.0
+*********************
+
+FINE release (2.3.0) provides new major functionalities:
+
+* Representation of multiple investment periods in a transformation pathway (perfect foresight) or for single year optimization (stochastic optimization)
+* Consideration of CO<sub>2</sub> budgets for the full transformation pathway
+* Consideration of stock including techno-economic parameters depending on commissioning date
+* Variable efficiencies for conversion components depending on commissioning date and operation time
+* Additional or lowered costs for components which are not present for full investment periods
+
+The ConversionPartLoad class is not supported in this release due to the deprecated package `GPyOpt`.
+Also, the installation method has been changed from `setup.py` to `pyproject.toml`.
+
+*********************
 Release version 2.2.2
 *********************
 
