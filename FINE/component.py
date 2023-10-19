@@ -2838,7 +2838,7 @@ class ComponentModel(metaclass=ABCMeta):
                     + esM.investmentPeriods
                 )
                 costContribution[(loc, compName)] = pd.DataFrame(
-                    None, index=years, columns=esM.investmentPeriods, dtype="object"
+                    0, index=years, columns=esM.investmentPeriods, dtype="object"
                 )
 
             # fill the dataframes (per location and compName) with the cost
@@ -3283,7 +3283,7 @@ class ComponentModel(metaclass=ABCMeta):
                     + esM.investmentPeriods
                 )
                 costContribution[(loc, compName)] = pd.DataFrame(
-                    None, index=years, columns=esM.investmentPeriods, dtype="object"
+                    0, index=years, columns=esM.investmentPeriods, dtype="object"
                 )
 
             # fill the dataframes (per location and compName) with the cost
