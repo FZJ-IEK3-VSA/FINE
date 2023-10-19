@@ -1674,7 +1674,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            \\text{M}^{comp} \cdot bin^{comp}_{loc,ip} \geq commis^{comp}_{loc,ip}
+            \\text{M}^{comp} \\cdot bin^{comp}_{loc,ip} \\geq commis^{comp}_{loc,ip}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -2052,7 +2052,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \\cdot \\text{opFactor}^{opType} \\cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} \\leq \\tau^{hours} \\cdot \\text{opFactor}^{opType} \\cdot cap^{comp}_{loc,ip}
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -2156,7 +2156,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,ip,p,t} \\cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} \\leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,ip,p,t} \\cdot cap^{comp}_{loc,ip}
 
         """
         # additions for perfect foresight
@@ -2838,7 +2838,7 @@ class ComponentModel(metaclass=ABCMeta):
                     + esM.investmentPeriods
                 )
                 costContribution[(loc, compName)] = pd.DataFrame(
-                    0, index=years, columns=esM.investmentPeriods
+                    None, index=years, columns=esM.investmentPeriods, dtype="object"
                 )
 
             # fill the dataframes (per location and compName) with the cost
@@ -3283,7 +3283,7 @@ class ComponentModel(metaclass=ABCMeta):
                     + esM.investmentPeriods
                 )
                 costContribution[(loc, compName)] = pd.DataFrame(
-                    0, index=years, columns=esM.investmentPeriods
+                    None, index=years, columns=esM.investmentPeriods, dtype="object"
                 )
 
             # fill the dataframes (per location and compName) with the cost
@@ -3509,7 +3509,7 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments**
 
         :param unitApp: string which appends the capacity unit in the optimization summary.
-            For example, for the StorageModel class, the parameter is set to '\*h'.
+            For example, for the StorageModel class, the parameter is set to '\\*h'.
             |br| * the default value is ''.
         :type unitApp: string
 
