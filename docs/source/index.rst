@@ -8,9 +8,9 @@
     :maxdepth: 1
     :caption: Contents:
 
+    Home <self>
     purposeAndVisionDoc
     usersGuideDoc
     newsDoc
     integratedSoftwareDoc
-    legalNoticeDoc
     furtherReadingDoc

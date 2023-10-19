@@ -1,6 +1,6 @@
-﻿###############
+﻿##################
 Purpose and Vision
-###############
+##################
 
 FINE is a framework for generating energy system optimization models. This might sound difficult, but the puporse is easy to understand:
 FINE is designed to answer pressing questions on future energy systems which include affordability, a high share of renewable energy sources and - most importantly - low CO\ :sub:`2` emissions.
