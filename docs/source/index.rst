@@ -8,7 +8,7 @@
     :maxdepth: 1
     :caption: Contents:
 
-    gettingStartedDoc
+    purposeAndVisionDoc
     usersGuideDoc
     mathematicalBackgroundDoc
     newsDoc
