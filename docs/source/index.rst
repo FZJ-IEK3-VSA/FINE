@@ -10,7 +10,6 @@
 
     purposeAndVisionDoc
     usersGuideDoc
-    mathematicalBackgroundDoc
     newsDoc
     integratedSoftwareDoc
     legalNoticeDoc
