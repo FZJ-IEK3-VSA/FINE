@@ -681,9 +681,7 @@ def checkCapacityDevelopmentWithStock(
         # stock capacities as values
         locations = stockCommissioning[-1].index
         years = [x for x in stockCommissioning.keys()] + investmentPeriods
-        stockCapacity = (
-            pd.DataFrame(index=years, columns=locations).sort_index().fillna(0)
-        )
+        stockCapacity = pd.DataFrame(0.0, index=years, columns=locations).sort_index()
         for ip, stockCommis in stockCommissioning.items():
             for loc in stockCommis.index:
                 if floorTechnicalLifetime:
