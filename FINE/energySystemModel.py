@@ -1476,7 +1476,7 @@ class EnergySystemModel:
 
         .. math::
 
-            \\underset{\\text{comp} \in \mathcal{C}^{ID}}{\sum} \\text{cap}^{comp}_{loc} / \\text{capMax}^{comp}_{loc} \leq 1
+            \\underset{\\text{comp} \\in \\mathcal{C}^{ID}}{\\sum} \\text{cap}^{comp}_{loc} / \\text{capMax}^{comp}_{loc} \\leq 1
 
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
@@ -1590,7 +1590,7 @@ class EnergySystemModel:
 
         .. math::
 
-            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,ip,p,t} = 0
+            \\underset{\\text{comp} \\in \\mathcal{C}^{comm}_{loc}}{\\sum} \\text{C}^{comp,comm}_{loc,ip,p,t} = 0
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
