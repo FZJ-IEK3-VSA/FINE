@@ -2831,16 +2831,19 @@ class ComponentModel(metaclass=ABCMeta):
             locCompNamesCombinations = list(
                 set([(x[0], x[1]) for x in var.get_values()])
             )
+            componentYears = {}
 
             for loc, compName in locCompNamesCombinations:
                 # get all years of component with location (also stock years)
-                years = (
+                componentYears[compName] = (
                     esM.getComponentAttribute(compName, "processedStockYears")
                     + esM.investmentPeriods
                 )
 
                 costContribution[(loc, compName)] = {
-                    (y, i): 0 for y in years for i in esM.investmentPeriods
+                    (y, i): 0
+                    for y in componentYears[compName]
+                    for i in esM.investmentPeriods
                 }
 
             # fill the dataframes (per location and compName) with the cost
@@ -3016,7 +3019,7 @@ class ComponentModel(metaclass=ABCMeta):
                         cContrSum = sum(
                             [
                                 costContribution[(loc, compName)].get((y, ip), 0)
-                                for y in years
+                                for y in componentYears[compName]
                             ]
                         )
                         if getOptValueCostType == "NPV":
@@ -3037,7 +3040,7 @@ class ComponentModel(metaclass=ABCMeta):
                     # will remain constant after the time frame of the
                     # transformation pathway.
                     for loc, compName in costContribution.keys():
-                        for y in years:
+                        for y in componentYears[compName]:
                             costContribution[(loc, compName)][
                                 (y, esM.investmentPeriods[-1])
                             ] = costContribution[(loc, compName)][
@@ -3052,7 +3055,7 @@ class ComponentModel(metaclass=ABCMeta):
                     sum(
                         [
                             costContribution[(loc, compName)].get((y, ip), 0)
-                            for y in years
+                            for y in componentYears[compName]
                         ]
                     )
                     * utils.discountFactor(esM, ip, compName, loc)
@@ -3300,14 +3303,17 @@ class ComponentModel(metaclass=ABCMeta):
 
             # initialize dict with (loc,comp) as key and df as values
             costContribution = {}
+            componentYears = {}
             for loc, compName in locCompNamesCombinations:
                 # get all years of component with location (also stock years)
-                years = (
+                componentYears[compName] = (
                     esM.getComponentAttribute(compName, "processedStockYears")
                     + esM.investmentPeriods
                 )
                 costContribution[(loc, compName)] = {
-                    (y, i): 0 for y in years for i in esM.investmentPeriods
+                    (y, i): 0
+                    for y in componentYears[compName]
+                    for i in esM.investmentPeriods
                 }
 
             # fill the dataframes (per location and compName) with the cost
@@ -3339,7 +3345,7 @@ class ComponentModel(metaclass=ABCMeta):
                         cContrSum = sum(
                             [
                                 costContribution[(loc, compName)].get((y, ip), 0)
-                                for y in years
+                                for y in componentYears[compName]
                             ]
                         )
                         if getOptValueCostType == "NPV":
@@ -3360,7 +3366,7 @@ class ComponentModel(metaclass=ABCMeta):
                     # will remain constant after the time frame of the
                     # transformation pathway.
                     for loc, compName in costContribution.keys():
-                        for y in years:
+                        for y in componentYears[compName]:
                             costContribution[(loc, compName)][
                                 (y, esM.investmentPeriods[-1])
                             ] = costContribution[(loc, compName)][
@@ -3375,7 +3381,7 @@ class ComponentModel(metaclass=ABCMeta):
                     sum(
                         [
                             costContribution[(loc, compName)].get((y, ip), 0)
-                            for y in years
+                            for y in componentYears[compName]
                         ]
                     )
                     * utils.annuityPresentValueFactor(
