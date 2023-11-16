@@ -4,7 +4,7 @@ from FINE import utils
 import pyomo.environ as pyomo
 import pandas as pd
 import numpy as np
-import warnings
+import pwlf
 
 
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
@@ -13,19 +13,6 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by
     a bayesian optimization algorithm.
     """
-    try:
-        #     from GPyOpt.methods import BayesianOptimization
-        import pwlf
-    except ImportError as e:
-        warnings.warn(
-            """
-            In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`.
-            GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
-            Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
-            """,
-            DeprecationWarning,
-        )
-        raise e
 
     if callable(functionOrRaw):
         nPointsForInputData = 1000
@@ -34,7 +21,7 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     else:
         x = np.array(functionOrRaw.iloc[:, 0])
         y = np.array(functionOrRaw.iloc[:, 1])
-        if not 0.0 in x:
+        if 0.0 not in x:
             xMinDefined = np.amin(x)
             xMaxDefined = np.amax(x)
             lenIntervalDefined = xMaxDefined - xMinDefined
@@ -44,7 +31,7 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
             for i in range(int(nPointsUndefined)):
                 x = np.append(x, [i / int(nPointsUndefined + 1) * lenIntervalUndefined])
                 y = np.append(y, y[xMinIndex])
-        if not 1.0 in x:
+        if 1.0 not in x:
             xMinDefined = np.amin(x)
             xMaxDefined = np.amax(x)
             lenIntervalDefined = xMaxDefined - xMinDefined
@@ -63,43 +50,8 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
 
     myPwlf = pwlf.PiecewiseLinFit(x, y)
 
-    if nSegments == None:
+    if nSegments is None:
         nSegments = 5
-
-    ## GPyOpt not needed, when nsegments is set manually -> therefore commented out because package is no longer maintained
-
-    # elif nSegments == "optimizeSegmentNumbers":
-    #     bounds = [{"name": "var_1", "type": "discrete", "domain": np.arange(2, 8)}]
-
-    # # Define objective function to get optimal number of line segments
-    # def my_obj(_x):
-    #     # The penalty parameter l is set arbitrarily.
-    #     # It depends upon the noise in your data and the value of your sum of square of residuals
-    #     l = y.mean() * 0.001
-
-    #     f = np.zeros(_x.shape[0])
-
-    #     for i, j in enumerate(_x):
-    #         myPwlf.fit(j[0])
-    #         f[i] = myPwlf.ssr + (l * j[0])
-    #     return f
-
-    # myBopt = BayesianOptimization(
-    #     my_obj,
-    #     domain=bounds,
-    #     model_type="GP",
-    #     initial_design_numdata=10,
-    #     initial_design_type="latin",
-    #     exact_feval=True,
-    #     verbosity=True,
-    #     verbosity_model=False,
-    # )
-
-    # max_iter = 30
-
-    # # Perform bayesian optimization to find the optimum number of line segments
-    # myBopt.run_optimization(max_iter=max_iter, verbosity=True)
-    # nSegments = int(myBopt.x_opt)
 
     xSegments = myPwlf.fit(nSegments)
 
@@ -356,15 +308,6 @@ class ConversionPartLoad(Conversion):
         :type **kwargs:
             * Check Conversion Class documentation.
         """
-
-        warnings.warn(
-            """
-            In order to use the `conversionPartLoadClass` you need to install `GPyOpt` and `pwlf`.
-            GPyOpt reached end of maintenance and does not work with current versions of e.g. pandas.
-            Make sure to downgrade necessary packages to make GPyOpt work for your Python installation.
-            """,
-            DeprecationWarning,
-        )
 
         Conversion.__init__(
             self, esM, name, physicalUnit, commodityConversionFactors, **kwargs
