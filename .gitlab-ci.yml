@@ -29,6 +29,8 @@ variables:
 .test_docker_template_noupdate:
   stage: test
   image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
+  before_script:
+    - python -m pip install -e .
   rules:
     # Do not run for pushes to master or develop and for merge requests to master
     - if: $CI_COMMIT_BRANCH == "master"
