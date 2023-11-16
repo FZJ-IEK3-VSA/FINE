@@ -54,7 +54,7 @@ variables:
   stage: test
   image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
   before_script:
-    - micromamba update -n base -y --file=requirements_dev.yml
+    - micromamba install -n base -y --file=requirements_dev.yml
   rules:
     # Do not run for pushes to master or develop and for merge requests to master
     - if: $CI_COMMIT_BRANCH == "master"
