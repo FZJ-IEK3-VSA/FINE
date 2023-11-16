@@ -128,6 +128,12 @@ test-formatting:
     - black --version
     - black --check FINE
     - black --check test
+  # Switch from branch pipeline to merge pipeline once a merge request has
+  # been created on the branch.
+  - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+    when: never
+  - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+    when: never
 
 # Deployment
 
