@@ -1,10 +1,9 @@
-import FINE as fn
-import pandas as pd
 import numpy as np
-import pytest
+import pandas as pd
+
+import FINE as fn
 
 
-@pytest.mark.skip(reason="GPyOpt reached end of maintenance.")
 def test_conversionPartLoad():
     # Set up energy system model instance
     locations = {"GlassProductionSite"}
@@ -604,7 +603,6 @@ def test_conversionPartLoad():
         2556.29322664,
     ]
     np.testing.assert_allclose(opVarOptPartLoad, opVarOptConstLoad, rtol=0.01)
-
 
 if __name__ == "__main__":
     test_conversionPartLoad()
