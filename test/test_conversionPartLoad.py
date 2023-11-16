@@ -604,5 +604,6 @@ def test_conversionPartLoad():
     ]
     np.testing.assert_allclose(opVarOptPartLoad, opVarOptConstLoad, rtol=0.01)
 
+
 if __name__ == "__main__":
     test_conversionPartLoad()
