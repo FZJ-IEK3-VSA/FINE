@@ -31,7 +31,7 @@ dependencies:
   - conda-forge::pytest-cov
   - conda-forge::nbval
   - conda-forge::black
-  - pwlf
+  - conda-forge::pwlf
   
   - pip:
       - -e .
