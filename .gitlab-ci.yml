@@ -26,6 +26,29 @@ variables:
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
 
+.test_docker_template_noupdate:
+  stage: test
+  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
+  rules:
+    # Do not run for pushes to master or develop and for merge requests to master
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: never
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
+      when: never
+    # Switch from branch pipeline to merge pipeline once a merge request has
+    # been created on the branch.
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - changes:
+        - pyproject.toml
+        - requirements.yml
+        - requirements_dev.yml
+      when: never
+
 
 .test_docker_template:
   stage: test
@@ -46,7 +69,11 @@ variables:
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
-    - when: on_success
+    - changes:
+        - pyproject.toml
+        - requirements.yml
+        - requirements_dev.yml
+      when: on_success
 
 .build_template:
   stage: build
@@ -67,6 +94,11 @@ test-code-docker:
   script:
     - python -m pytest --cov=FINE test/
 
+test-code-docker-noupdate:
+  extends: .test_docker_template_noupdate
+  script:
+    - python -m pytest --cov=FINE test/
+
 test-notebooks:
   extends: .test_template
   script:
@@ -78,6 +110,11 @@ test-notebooks:
 
 test-notebooks-docker:
   extends: .test_docker_template
+  script:
+    - python -m pytest --nbval-lax --current-env --durations=20 examples/
+
+test-notebooks-docker-noupdate:
+  extends: .test_docker_template_noupdate
   script:
     - python -m pytest --nbval-lax --current-env --durations=20 examples/
 
