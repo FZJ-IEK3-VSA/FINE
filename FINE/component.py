@@ -1480,7 +1480,7 @@ class ComponentModel(metaclass=ABCMeta):
         operation mode 5: If operationRateMax is given, the variables are bounded by operationRateMax, i.e. the operation [commodityUnit*h] is limited by a time series.
 
         .. math::
-            op^{comp,opType}_{loc,p,t} \leq \\text{opRateMax}^{comp,opType}_{loc,p,t}
+            op^{comp,opType}_{loc,p,t} \\leq \\text{opRateMax}^{comp,opType}_{loc,p,t}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1674,7 +1674,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            \\text{M}^{comp} \cdot bin^{comp}_{loc,ip} \geq commis^{comp}_{loc,ip}
+            \\text{M}^{comp} \\cdot bin^{comp}_{loc,ip} \\geq commis^{comp}_{loc,ip}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -2052,7 +2052,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \\cdot \\text{opFactor}^{opType} \\cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} \\leq \\tau^{hours} \\cdot \\text{opFactor}^{opType} \\cdot cap^{comp}_{loc,ip}
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -2156,7 +2156,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         .. math::
 
-            op^{comp,opType}_{loc,ip,p,t} \leq \\tau^{hours} \cdot \\text{opRateMax}^{comp,opType}_{loc,ip,p,t} \\cdot cap^{comp}_{loc,ip}
+            op^{comp,opType}_{loc,ip,p,t} \\leq \\tau^{hours} \\cdot \\text{opRateMax}^{comp,opType}_{loc,ip,p,t} \\cdot cap^{comp}_{loc,ip}
 
         """
         # additions for perfect foresight
@@ -2831,15 +2831,20 @@ class ComponentModel(metaclass=ABCMeta):
             locCompNamesCombinations = list(
                 set([(x[0], x[1]) for x in var.get_values()])
             )
+            componentYears = {}
+
             for loc, compName in locCompNamesCombinations:
                 # get all years of component with location (also stock years)
-                years = (
+                componentYears[compName] = (
                     esM.getComponentAttribute(compName, "processedStockYears")
                     + esM.investmentPeriods
                 )
-                costContribution[(loc, compName)] = pd.DataFrame(
-                    0, index=years, columns=esM.investmentPeriods
-                )
+
+                costContribution[(loc, compName)] = {
+                    (y, i): 0
+                    for y in componentYears[compName]
+                    for i in esM.investmentPeriods
+                }
 
             # fill the dataframes (per location and compName) with the cost
             # contributions depending on the commissioning year (index) and the
@@ -2947,11 +2952,12 @@ class ComponentModel(metaclass=ABCMeta):
 
                 # write costs into dataframe
                 # a) costs for complete intervals
-                costContribution[(loc, compName)].loc[
-                    commisYear, commisYear : commisYear + intervalsWithCompleteCosts - 1
-                ] = annuity * utils.annuityPresentValueFactor(
-                    esM, compName, loc, esM.investmentPeriodInterval
-                )
+                for i in range(commisYear, commisYear + intervalsWithCompleteCosts):
+                    costContribution[(loc, compName)][
+                        (commisYear, i)
+                    ] = annuity * utils.annuityPresentValueFactor(
+                        esM, compName, loc, esM.investmentPeriodInterval
+                    )
 
                 # b) costs for last economic interval
                 # example: interval 5, economic lifetime 7, technical lifetime 10
@@ -2962,8 +2968,8 @@ class ComponentModel(metaclass=ABCMeta):
                     partlyCostInLastEconomicInterval = (
                         ipEconomicLifetime % 1
                     ) * esM.investmentPeriodInterval
-                    costContribution[(loc, compName)].loc[
-                        commisYear, commisYear + intervalsWithCompleteCosts
+                    costContribution[(loc, compName)][
+                        (commisYear, commisYear + intervalsWithCompleteCosts)
                     ] = annuity * utils.annuityPresentValueFactor(
                         esM, compName, loc, partlyCostInLastEconomicInterval
                     )
@@ -2978,15 +2984,25 @@ class ComponentModel(metaclass=ABCMeta):
                     partlyCostInLastTechnicalInterval = (
                         1 - (ipTechnicalLifetime % 1)
                     ) * esM.investmentPeriodInterval
-                    if (
-                        commisYear + math.ceil(ipTechnicalLifetime) - 1
-                        in costContribution[(loc, compName)].columns
-                    ):
-                        costContribution[(loc, compName)].loc[
-                            commisYear, commisYear + math.ceil(ipTechnicalLifetime) - 1
-                        ] += annuity * (
+                    if commisYear + math.ceil(ipTechnicalLifetime) - 1 in [
+                        k[1] for k in costContribution[(loc, compName)].keys()
+                    ]:
+                        costContribution[(loc, compName)][
+                            (
+                                commisYear,
+                                commisYear + math.ceil(ipTechnicalLifetime) - 1,
+                            )
+                        ] = costContribution[(loc, compName)][
+                            (
+                                commisYear,
+                                commisYear + math.ceil(ipTechnicalLifetime) - 1,
+                            )
+                        ] + annuity * (
                             utils.annuityPresentValueFactor(
-                                esM, compName, loc, partlyCostInLastTechnicalInterval
+                                esM,
+                                compName,
+                                loc,
+                                partlyCostInLastTechnicalInterval,
                             )
                             / (1 + esM.getComponent(compName).interestRate[loc])
                             ** (
@@ -3000,7 +3016,12 @@ class ComponentModel(metaclass=ABCMeta):
                 cost_results = {ip: pd.DataFrame() for ip in esM.investmentPeriods}
                 for loc, compName in locCompNamesCombinations:
                     for ip in esM.investmentPeriods:
-                        cContrSum = costContribution[(loc, compName)][ip].sum()
+                        cContrSum = sum(
+                            [
+                                costContribution[(loc, compName)].get((y, ip), 0)
+                                for y in componentYears[compName]
+                            ]
+                        )
                         if getOptValueCostType == "NPV":
                             cost_results[ip].loc[
                                 compName, loc
@@ -3019,18 +3040,24 @@ class ComponentModel(metaclass=ABCMeta):
                     # will remain constant after the time frame of the
                     # transformation pathway.
                     for loc, compName in costContribution.keys():
-                        costContribution[(loc, compName)][
-                            esM.investmentPeriods[-1]
-                        ] = costContribution[(loc, compName)][
-                            esM.investmentPeriods[-1]
-                        ] / (
-                            utils.annuityPresentValueFactor(
-                                esM, compName, loc, esM.investmentPeriodInterval
+                        for y in componentYears[compName]:
+                            costContribution[(loc, compName)][
+                                (y, esM.investmentPeriods[-1])
+                            ] = costContribution[(loc, compName)][
+                                (y, esM.investmentPeriods[-1])
+                            ] / (
+                                utils.annuityPresentValueFactor(
+                                    esM, compName, loc, esM.investmentPeriodInterval
+                                )
+                                * esM.getComponent(compName).interestRate[loc]
                             )
-                            * esM.getComponent(compName).interestRate[loc]
-                        )
                 return sum(
-                    costContribution[(loc, compName)][ip].sum()
+                    sum(
+                        [
+                            costContribution[(loc, compName)].get((y, ip), 0)
+                            for y in componentYears[compName]
+                        ]
+                    )
                     * utils.discountFactor(esM, ip, compName, loc)
                     for loc, compName, ip in var
                     if ip in esM.investmentPeriods
@@ -3276,15 +3303,18 @@ class ComponentModel(metaclass=ABCMeta):
 
             # initialize dict with (loc,comp) as key and df as values
             costContribution = {}
+            componentYears = {}
             for loc, compName in locCompNamesCombinations:
                 # get all years of component with location (also stock years)
-                years = (
+                componentYears[compName] = (
                     esM.getComponentAttribute(compName, "processedStockYears")
                     + esM.investmentPeriods
                 )
-                costContribution[(loc, compName)] = pd.DataFrame(
-                    0, index=years, columns=esM.investmentPeriods
-                )
+                costContribution[(loc, compName)] = {
+                    (y, i): 0
+                    for y in componentYears[compName]
+                    for i in esM.investmentPeriods
+                }
 
             # fill the dataframes (per location and compName) with the cost
             # contributions depending on the commissioning year (index) and the
@@ -3292,8 +3322,8 @@ class ComponentModel(metaclass=ABCMeta):
 
             locCompIpCombinations = list(set([(x[0], x[1], x[2]) for x in var]))
             for loc, compName, year in locCompIpCombinations:
-                costContribution[(loc, compName)].loc[
-                    year, year
+                costContribution[(loc, compName)][
+                    (year, year)
                 ] = self.getLocEconomicsOperation(
                     pyM,
                     esM,
@@ -3312,7 +3342,12 @@ class ComponentModel(metaclass=ABCMeta):
                 cost_results = {ip: pd.DataFrame() for ip in esM.investmentPeriods}
                 for loc, compName in locCompNamesCombinations:
                     for ip in esM.investmentPeriods:
-                        cContrSum = costContribution[(loc, compName)][ip].sum()
+                        cContrSum = sum(
+                            [
+                                costContribution[(loc, compName)].get((y, ip), 0)
+                                for y in componentYears[compName]
+                            ]
+                        )
                         if getOptValueCostType == "NPV":
                             cost_results[ip].loc[compName, loc] = (
                                 cContrSum
@@ -3331,18 +3366,24 @@ class ComponentModel(metaclass=ABCMeta):
                     # will remain constant after the time frame of the
                     # transformation pathway.
                     for loc, compName in costContribution.keys():
-                        costContribution[(loc, compName)][
-                            esM.investmentPeriods[-1]
-                        ] = costContribution[(loc, compName)][
-                            esM.investmentPeriods[-1]
-                        ] / (
-                            utils.annuityPresentValueFactor(
-                                esM, compName, loc, esM.investmentPeriodInterval
+                        for y in componentYears[compName]:
+                            costContribution[(loc, compName)][
+                                (y, esM.investmentPeriods[-1])
+                            ] = costContribution[(loc, compName)][
+                                (y, esM.investmentPeriods[-1])
+                            ] / (
+                                utils.annuityPresentValueFactor(
+                                    esM, compName, loc, esM.investmentPeriodInterval
+                                )
+                                * esM.getComponent(compName).interestRate[loc]
                             )
-                            * esM.getComponent(compName).interestRate[loc]
-                        )
                 return sum(
-                    costContribution[(loc, compName)][ip].sum()
+                    sum(
+                        [
+                            costContribution[(loc, compName)].get((y, ip), 0)
+                            for y in componentYears[compName]
+                        ]
+                    )
                     * utils.annuityPresentValueFactor(
                         esM, compName, loc, esM.investmentPeriodInterval
                     )
@@ -3509,7 +3550,7 @@ class ComponentModel(metaclass=ABCMeta):
         **Default arguments**
 
         :param unitApp: string which appends the capacity unit in the optimization summary.
-            For example, for the StorageModel class, the parameter is set to '\*h'.
+            For example, for the StorageModel class, the parameter is set to '\\*h'.
             |br| * the default value is ''.
         :type unitApp: string
 

@@ -7,6 +7,9 @@ import pandas as pd
 import pyomo.environ as pyomo
 import pyomo.opt as opt
 
+import os, psutil
+import grblogtools as glt
+
 from FINE import utils
 from FINE.component import Component, ComponentModel
 
@@ -1102,9 +1105,11 @@ class EnergySystemModel:
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
-        utils.output(
-            "\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", self.verbose, 0
-        )
+        timeEnd = time.time()
+        if storeTSAinstance:
+            clusterClass.tsaBuildTime = timeEnd - timeStart
+            self.tsaInstance = clusterClass
+        utils.output("\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verbose, 0)
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """
@@ -1318,126 +1323,155 @@ class EnergySystemModel:
             |br| * the default value is False
         :type timeSeriesAggregation: boolean
         """
-        # 1) balance limit for individual years
-        if (
-            self.processedBalanceLimit is not None
-            or self.processedPathwayBalanceLimit is not None
-        ):
-            balanceLimitDict = {}
-
-            # Check for node specific and total limits:
+        # 1) Yearly Balance Limit
+        if self.processedBalanceLimit is not None:
+            # Get Components per balance limit
+            componentsOfBalanceLimit = {}
             for mdl_type, mdl in self.componentModelingDict.items():
                 if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
                     for compName, comp in mdl.componentsDict.items():
-                        # 1. set yearly balance limits
                         if comp.balanceLimitID is not None:
-                            # set balance limit per investment period
-                            for ip in self.investmentPeriods:
-                                # 1.1 locational restriction
-                                for loc in self.locations:
-                                    if (
-                                        self.processedBalanceLimit[ip].loc[
-                                            comp.balanceLimitID, loc
-                                        ]
-                                        is not None
-                                    ):
-                                        # locations specific restriction
-                                        balanceLimitDict.setdefault(
-                                            (comp.balanceLimitID, loc, ip), []
-                                        ).append(compName)
-                                # 1.2 for total restriction
-                                if (
-                                    self.processedBalanceLimit[ip].loc[
-                                        comp.balanceLimitID, "Total"
-                                    ]
-                                    is not None
-                                ):
-                                    balanceLimitDict.setdefault(
-                                        (comp.balanceLimitID, "Total", ip), []
-                                    ).append(compName)
+                            componentsOfBalanceLimit.setdefault(
+                                comp.balanceLimitID, []
+                            ).append(compName)
 
-                        # 2. set pathway balance limits
-                        if comp.pathwayBalanceLimitID is not None:
-                            # 2.1 locational restriction
-                            for loc in self.locations:
-                                if (
-                                    self.processedPathwayBalanceLimit.loc[
-                                        comp.pathwayBalanceLimitID, loc
-                                    ]
-                                    is not None
-                                ):
-                                    # locations specific restriction
-                                    balanceLimitDict.setdefault(
-                                        (comp.pathwayBalanceLimitID, loc, None), []
-                                    ).append(compName)
+            yearlyBalanceLimitDict = {}
 
-                            # 2.2 for total restriction
-                            if (
-                                self.processedPathwayBalanceLimit.loc[
-                                    comp.pathwayBalanceLimitID, "Total"
-                                ]
-                                is not None
-                            ):
-                                balanceLimitDict.setdefault(
-                                    (comp.pathwayBalanceLimitID, "Total", None), []
-                                ).append(compName)
-
-                setattr(pyM, "balanceLimitDict", balanceLimitDict)
-
-            def balanceLimitConstraint(pyM, ID, loc, ip):
-                # pathway restricition
-                if ip is None:
-                    balanceSum = sum(
-                        mdl.getBalanceLimitContribution(
-                            esM=self,
-                            pyM=pyM,
-                            ID=ID,
-                            ip=_ip,
-                            timeSeriesAggregation=timeSeriesAggregation,
-                            loc=loc,
-                            componentNames=balanceLimitDict[(ID, loc, None)],
+            # iterate over balance limit to define either minimal, maximal or both balance limits per balanceLimitID
+            for ip in self.investmentPeriods:
+                for balanceLimitID, data in self.processedBalanceLimit[ip].iterrows():
+                    # check for regional constraints
+                    for loc in self.locations:
+                        if data[loc] is not None:
+                            yearlyBalanceLimitDict.setdefault(
+                                (
+                                    balanceLimitID,
+                                    loc,
+                                    ip,
+                                    data["lowerBound"],
+                                    data[loc],
+                                ),
+                                componentsOfBalanceLimit[balanceLimitID],
+                            )
+                    # check for total constraints over all regions
+                    if data["Total"] is not None:
+                        yearlyBalanceLimitDict.setdefault(
+                            (
+                                balanceLimitID,
+                                "Total",
+                                ip,
+                                data["lowerBound"],
+                                data["Total"],
+                            ),
+                            componentsOfBalanceLimit[balanceLimitID],
                         )
-                        for mdl_type, mdl in self.componentModelingDict.items()
-                        for _ip in self.investmentPeriods
-                        if (
-                            mdl_type == "SourceSinkModel"
-                            or mdl_type == "TransmissionModel"
-                        )
-                    )
-                    value = self.processedPathwayBalanceLimit.loc[ID, loc]
-                    lowerBound = self.processedPathwayBalanceLimit.loc[ID, "lowerBound"]
-                    temporalScope = self.investmentPeriodInterval
 
+            setattr(pyM, "yearlyBalanceLimitDict", yearlyBalanceLimitDict)
+
+            def yearlyBalanceLimitConstraint(pyM, ID, loc, ip, lowerBound, value):
                 # yearly restriction
-                else:
-                    balanceSum = sum(
-                        mdl.getBalanceLimitContribution(
-                            esM=self,
-                            pyM=pyM,
-                            ID=ID,
-                            ip=ip,
-                            timeSeriesAggregation=timeSeriesAggregation,
-                            loc=loc,
-                            componentNames=balanceLimitDict[(ID, loc, ip)],
-                        )
-                        for mdl_type, mdl in self.componentModelingDict.items()
-                        if (
-                            mdl_type == "SourceSinkModel"
-                            or mdl_type == "TransmissionModel"
-                        )
+                balanceSum = sum(
+                    mdl.getBalanceLimitContribution(
+                        esM=self,
+                        pyM=pyM,
+                        ID=ID,
+                        ip=ip,
+                        timeSeriesAggregation=timeSeriesAggregation,
+                        loc=loc,
+                        componentNames=yearlyBalanceLimitDict[
+                            (ID, loc, ip, lowerBound, value)
+                        ],
                     )
-                    value = self.processedBalanceLimit[ip].loc[ID, loc]
-                    lowerBound = self.processedBalanceLimit[ip].loc[ID, "lowerBound"]
-                    temporalScope = 1
+                    for mdl_type, mdl in self.componentModelingDict.items()
+                    if (
+                        mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel"
+                    )
+                )
+                # Check whether we want to consider an upper or lower bound.
+                if lowerBound == 0:
+                    return balanceSum <= value
+                else:
+                    return balanceSum >= value
+
+            pyM.yearlyBalanceLimitConstraint = pyomo.Constraint(
+                pyM.yearlyBalanceLimitDict.keys(),
+                rule=yearlyBalanceLimitConstraint,
+            )
+
+        # 2) Pathway Balance Limit
+        if self.processedPathwayBalanceLimit is not None:
+            # Get Components per balance limit
+            componentsOfBalanceLimit = {}
+            for mdl_type, mdl in self.componentModelingDict.items():
+                if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
+                    for compName, comp in mdl.componentsDict.items():
+                        if comp.pathwayBalanceLimitID is not None:
+                            componentsOfBalanceLimit.setdefault(
+                                comp.pathwayBalanceLimitID, []
+                            ).append(compName)
+
+            pathwayBalanceLimitDict = {}
+            # Check for node specific and total limits:
+            # iterate over balance limit to define either minimal, maximal or both balance limits per balanceLimitID
+            for balanceLimitID, data in self.processedPathwayBalanceLimit.iterrows():
+                # check for regional constraints
+                for loc in self.locations:
+                    if data[loc] is not None:
+                        pathwayBalanceLimitDict.setdefault(
+                            (
+                                balanceLimitID,
+                                loc,
+                                data["lowerBound"],
+                                data[loc],
+                            ),
+                            componentsOfBalanceLimit[balanceLimitID],
+                        )
+                # check for total constraints over all regions
+                if data["Total"] is not None:
+                    pathwayBalanceLimitDict.setdefault(
+                        (
+                            balanceLimitID,
+                            "Total",
+                            data["lowerBound"],
+                            data["Total"],
+                        ),
+                        componentsOfBalanceLimit[balanceLimitID],
+                    )
+
+            setattr(pyM, "pathwayBalanceLimitDict", pathwayBalanceLimitDict)
+
+            def pathwayBalanceLimitConstraint(pyM, ID, loc, lowerBound, value):
+                # pathway restricition
+                balanceSum = sum(
+                    mdl.getBalanceLimitContribution(
+                        esM=self,
+                        pyM=pyM,
+                        ID=ID,
+                        ip=_ip,
+                        timeSeriesAggregation=timeSeriesAggregation,
+                        loc=loc,
+                        componentNames=pathwayBalanceLimitDict[
+                            (ID, loc, lowerBound, value)
+                        ],
+                    )
+                    for mdl_type, mdl in self.componentModelingDict.items()
+                    for _ip in self.investmentPeriods
+                    if (
+                        mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel"
+                    )
+                )
+                value = self.processedPathwayBalanceLimit.loc[ID, loc]
+                lowerBound = self.processedPathwayBalanceLimit.loc[ID, "lowerBound"]
+                temporalScope = self.investmentPeriodInterval
                 # Check whether we want to consider an upper or lower bound.
                 if lowerBound == 0:
                     return balanceSum * temporalScope <= value
                 else:
                     return balanceSum * temporalScope >= value
 
-            pyM.balanceLimitConstraint = pyomo.Constraint(
-                pyM.balanceLimitDict.keys(),
-                rule=balanceLimitConstraint,
+            pyM.pathwayBalanceLimitConstraint = pyomo.Constraint(
+                pyM.pathwayBalanceLimitDict.keys(),
+                rule=pathwayBalanceLimitConstraint,
             )
 
     def declareSharedPotentialConstraints(self, pyM):
@@ -1447,7 +1481,7 @@ class EnergySystemModel:
 
         .. math::
 
-            \\underset{\\text{comp} \in \mathcal{C}^{ID}}{\sum} \\text{cap}^{comp}_{loc} / \\text{capMax}^{comp}_{loc} \leq 1
+            \\underset{\\text{comp} \\in \\mathcal{C}^{ID}}{\\sum} \\text{cap}^{comp}_{loc} / \\text{capMax}^{comp}_{loc} \\leq 1
 
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
@@ -1561,7 +1595,7 @@ class EnergySystemModel:
 
         .. math::
 
-            \\underset{\\text{comp} \in \mathcal{C}^{comm}_{loc}}{\sum} \\text{C}^{comp,comm}_{loc,ip,p,t} = 0
+            \\underset{\\text{comp} \\in \\mathcal{C}^{comm}_{loc}}{\\sum} \\text{C}^{comp,comm}_{loc,ip,p,t} = 0
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -1805,6 +1839,7 @@ class EnergySystemModel:
         optimizationSpecs="",
         warmstart=False,
         relevanceThreshold=None,
+        includePerformanceSummary=False,
     ):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
@@ -1884,6 +1919,16 @@ class EnergySystemModel:
         :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
+
+        :param includePerformanceSummary: If True this will store a performance summary (in Dataframe format) as attribute ('self.performanceSummary') in the esM instance.
+            The performance summary includes Data about RAM usage (assesed by the psutil package), 
+            Gurobi values (extracted from gurobi log with the grblogtools package) and other various paramerts
+            such as model buildtime, runtime and time series aggregation paramerters.
+            |br| * the default value is False
+        :type includePerformanceSummary: boolean
+
+        Last edited: November 16, 2023
+        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
 
         if not timeSeriesAggregation:
@@ -1901,6 +1946,28 @@ class EnergySystemModel:
                     "The optimization problem is not declared yet. Set the argument declaresOptimization"
                     " problem to True or call the declareOptimizationProblem function first."
                 )
+
+        if includePerformanceSummary:
+            """
+            this will store a performance summary (in Dataframe format) as attribute ('self.performanceSummary') in the esM instance.
+            """
+            ## make sure logging is enabled for gurobi, otherwise gurobi values cannot be included in the performance summary
+            if logFileName == "":
+                warnings.warn(
+                    "A logFile Name has to be specified in order to extract Gurobi values! Gurobi values will not be listed in performance summary!"
+                )
+            # If time series aggregation is enabled, the TSA instance needs to be saved in order to be included in the performance summary
+            if self.isTimeSeriesDataClustered and (self.tsaInstance == None):
+                warnings.warn(
+                    "storeTSAinstance has to be set to true to extract TSA Parameters! TSA parameters will not be listed in performance summary!"
+                )
+
+            # get RAM usage of process before and after optimization
+            process = psutil.Process(os.getpid())
+            rss_by_psutil_start = process.memory_info().rss / (
+                1024 * 1024 * 1024
+            )  # from Bytes to GB
+            # start optimization
 
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -2123,3 +2190,89 @@ class EnergySystemModel:
         self.solverSpecs["runtime"] = (
             self.solverSpecs["buildtime"] + time.time() - timeStart
         )
+
+        if includePerformanceSummary:
+            rss_by_psutil_end = process.memory_info().rss / (
+                1024 * 1024 * 1024
+            )  # from Bytes to GB
+
+            # CREATE PERFORMANCE SUMMARY
+
+            # FINE Model
+            fine_parameters_dict = {
+                "noOfRegions": len(self.locations),
+                "numberOfTimeSteps": self.numberOfTimeSteps,
+                "hoursPerTimestep": self.hoursPerTimeStep,
+                "numberOfYears": self.numberOfYears,
+                "optimizationSpecs": self.solverSpecs["optimizationSpecs"],
+            }
+
+            # RAM Usage
+            ram_usage_dict = {
+                "ramUsageStartGB": rss_by_psutil_start,
+                "ramUsageEndGB": rss_by_psutil_end,
+            }
+
+            # TSA Values
+            if self.isTimeSeriesDataClustered and (self.tsaInstance is not None):
+                tsaBuildTime = self.tsaInstance.tsaBuildTime
+
+                tsa_parameters_dict = {
+                    "clusterMethod": self.tsaInstance.clusterMethod,
+                    "noTypicalPeriods": self.tsaInstance.noTypicalPeriods,
+                    "hoursPerPeriod": self.tsaInstance.hoursPerPeriod,
+                    "segmentation": self.tsaInstance.segmentation,
+                    "noSegments": self.tsaInstance.noSegments,
+                    "tsaSolver": self.tsaInstance.solver,
+                    "timeStepsPerPeriod": self.tsaInstance.timeStepsPerPeriod,
+                    "tsaBuildTime": self.tsaInstance.tsaBuildTime,
+                }
+            else:
+                tsa_parameters_dict = {}
+                tsaBuildTime = None
+
+            # Procesing Times
+            processing_time_dict = {
+                "buildtime": self.solverSpecs["buildtime"],
+                "tsaBuildTime": tsaBuildTime,
+                "solvetime": self.solverSpecs["solvetime"],
+                "runtime": self.solverSpecs["runtime"],
+            }
+
+            if solver == "gurobi":
+                # Create DataFrame from gurobi log file
+                if logFileName == "":
+                    gurobi_summary_dict = {}
+                else:
+                    absolute_logFilePath = os.path.abspath(logFileName)
+                    gurobi_summary_dict = glt.get_dataframe(
+                        [
+                            os.path.join(absolute_logFilePath)
+                        ]  # passed path has to be a list
+                    ).T.to_dict()[0]
+            else:
+                gurobi_summary_dict = {}
+
+            # Combine to Overall Summary
+            summary_dict = {
+                "FineParameters": fine_parameters_dict,
+                "RAMUsage": ram_usage_dict,
+                "ProcessingTimes": processing_time_dict,
+                "TSAParameters": tsa_parameters_dict,
+                "GurobiSummary": gurobi_summary_dict,
+            }
+
+            summary_dict = {
+                (i, j): summary_dict[i][j]
+                for i in summary_dict.keys()
+                for j in summary_dict[i].keys()
+            }
+
+            mux = pd.MultiIndex.from_tuples(summary_dict.keys())
+            mux = mux.set_names(["Category", "Parameter"])
+            PerformanceSummary_df = pd.DataFrame(
+                list(summary_dict.values()), index=mux, columns=["Value"]
+            )
+
+            # Save perfromance summary in the EnergySystemModel instance
+            self.performanceSummary = PerformanceSummary_df

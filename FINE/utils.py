@@ -1,8 +1,8 @@
+import math
 import warnings
 
-import pandas as pd
 import numpy as np
-import math
+import pandas as pd
 
 import FINE as fn
 
@@ -681,9 +681,7 @@ def checkCapacityDevelopmentWithStock(
         # stock capacities as values
         locations = stockCommissioning[-1].index
         years = [x for x in stockCommissioning.keys()] + investmentPeriods
-        stockCapacity = (
-            pd.DataFrame(index=years, columns=locations).sort_index().fillna(0)
-        )
+        stockCapacity = pd.DataFrame(0.0, index=years, columns=locations).sort_index()
         for ip, stockCommis in stockCommissioning.items():
             for loc in stockCommis.index:
                 if floorTechnicalLifetime:
@@ -1579,13 +1577,20 @@ def checkAndSetYearlyLimit(esM, yearlyLimit):
             if isinstance(_data, int) or isinstance(_data, float):
                 if _data < 0:
                     raise ValueError(
-                        "Value error in detected.\n "
+                        "Value error detected.\n "
                         + "Yearly Limit limitations have to be positive."
+                    )
+                processedYearlyLimit[ip] = _data
+            elif isinstance(_data, pd.Series):
+                if _data[_data < 0].any():
+                    raise ValueError(
+                        "Value error detected.\n "
+                        + "all regional Yearly Limit limitations have to be positive."
                     )
                 processedYearlyLimit[ip] = _data
             else:
                 raise ValueError(
-                    "Value error in detected.\n "
+                    "Value error detected.\n "
                     + "Yearly Limit limitations have to be positive float."
                 )
     return processedYearlyLimit

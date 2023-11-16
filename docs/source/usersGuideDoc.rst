@@ -9,5 +9,6 @@ In the following sections you can find general information about energy systems 
     :caption: Contents:
 
     componentsIntroDoc
+    mathematicalDescriptionsDoc
     structureOfFINEDoc
     tutorialDoc

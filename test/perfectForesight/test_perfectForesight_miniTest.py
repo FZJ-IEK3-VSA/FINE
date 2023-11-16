@@ -1,7 +1,8 @@
 import FINE as fn
+import math
 import numpy as np
 import pandas as pd
-import math
+import pytest
 
 
 def test_perfectForesight_mini(perfectForesight_test_esM):
@@ -342,3 +343,55 @@ def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 31984.802368949295
     )
+
+
+@pytest.mark.parametrize("annuityPerpetuity", [True, False])
+def test_perfectForesight_npv_with_stock(perfectForesight_test_esM, annuityPerpetuity):
+    PVoperationRateMax = pd.DataFrame(
+        [
+            np.array(
+                [
+                    0.01,
+                    0.01,
+                ]
+            ),
+            np.array(
+                [
+                    0.01,
+                    0.01,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+
+    perfectForesight_test_esM.add(
+        fn.Source(
+            esM=perfectForesight_test_esM,
+            name="PV_expensive",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            capacityMax=4e6,
+            investPerCapacity=1e4,
+            operationRateMax=PVoperationRateMax,
+            opexPerCapacity=1,
+            interestRate=0.02,
+            opexPerOperation=0.01,
+            economicLifetime=10,
+            stockCommissioning={
+                2015: pd.Series(index=["PerfectLand", "ForesightLand"], data=[10, 10])
+            },
+        )
+    )
+    perfectForesight_test_esM.annuityPerpetuity = annuityPerpetuity
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+
+    print(perfectForesight_test_esM.pyM.Obj())
+    if annuityPerpetuity:
+        np.testing.assert_almost_equal(
+            perfectForesight_test_esM.pyM.Obj(), 138802.48424830733
+        )
+    else:
+        np.testing.assert_almost_equal(
+            perfectForesight_test_esM.pyM.Obj(), 118679.45366263221
+        )

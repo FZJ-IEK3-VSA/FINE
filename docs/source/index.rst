@@ -8,10 +8,9 @@
     :maxdepth: 1
     :caption: Contents:
 
-    gettingStartedDoc
+    Home <self>
+    purposeAndVisionDoc
     usersGuideDoc
-    mathematicalBackgroundDoc
     newsDoc
     integratedSoftwareDoc
-    legalNoticeDoc
     furtherReadingDoc

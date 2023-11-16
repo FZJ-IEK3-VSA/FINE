@@ -1,6 +1,7 @@
 import FINE as fn
 import pandas as pd
 import numpy as np
+import pytest
 
 # Test balanceLimit constraint for autarky analysis
 # In this test the following steps are performed:
@@ -478,7 +479,8 @@ def test_hydrogenSinkDriver():
 # 4) Optimize Model
 # 5) The CO2_limit is compared to the outcome of the model
 # (sink are defined negative)
-def test_CO2Limit():
+@pytest.mark.parametrize("co2_limits", [[("max", 1)], [("max", 1.2), ("min", 1.1)]])
+def test_CO2Limit(co2_limits):
     # 0) Preprocess energy system model
     locations = {"Region1", "Region2"}
     commodityUnitDict = {
@@ -528,11 +530,33 @@ def test_CO2Limit():
     ).round(2)
 
     # 1) Define CO2-Limit with balanceLimitConstraint (sink are defined negative)
-    CO2_limit = pd.DataFrame(index=["CO2 limit"], columns=["Total", "lowerBound"])
-    CO2_limit.loc["CO2 limit"] = [
-        -1 * demand.sum().sum() * 0.6 * 201 * 1e-6 / 0.6,
-        True,
-    ]
+    base_co2_limit = -1 * demand.sum().sum() * 0.6 * 201 * 1e-6 / 0.6
+    # possibility to add upper and lower bound for balance limit
+    constaints = []
+    for minMax, scalingFactor in co2_limits:
+        minMaxBool = True if minMax == "max" else False
+        constaints.append(
+            pd.DataFrame(
+                index=["CO2 limit"],
+                columns=["Total", "lowerBound"],
+                data=[[base_co2_limit * scalingFactor, minMaxBool]],
+            )
+        )
+    CO2_limit = pd.concat(constaints)
+
+    # extract values for checking the constraint later
+    if len(constaints) == 1:
+        minCheckingValue = CO2_limit.loc["CO2 limit", "Total"]
+        maxCheckingValue = CO2_limit.loc["CO2 limit", "Total"]
+    else:
+        CO2_limit.loc[CO2_limit["lowerBound"] == True].loc["CO2 limit", "Total"]
+        minCheckingValue = CO2_limit.loc[CO2_limit["lowerBound"] == False].loc[
+            "CO2 limit", "Total"
+        ]
+        maxCheckingValue = CO2_limit.loc[CO2_limit["lowerBound"] == True].loc[
+            "CO2 limit", "Total"
+        ]
+
     # 2) Initialize EnergySystemModel with two Regions
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -656,9 +680,5 @@ def test_CO2Limit():
         )
     tolerance = 0.001
     ## Compare modeled co2 emissions to limit set in constraint.
-    assert (
-        co2_to_environment * (1 - tolerance) < -1 * CO2_limit.loc["CO2 limit", "Total"]
-    )
-    assert (
-        co2_to_environment * (1 + tolerance) > -1 * CO2_limit.loc["CO2 limit", "Total"]
-    )
+    assert co2_to_environment * (1 - tolerance) < -1 * maxCheckingValue
+    assert co2_to_environment * (1 + tolerance) > -1 * minCheckingValue

@@ -70,7 +70,7 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     return xr_dss
 
 
-def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLevel=1):
+def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
     """
     Takes esM instance output and converts it into an xarray dataset.
 
@@ -83,17 +83,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
         (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
         |br| * the default value is 2
     :type optSumOutputLevel: int (0,1,2) or dict
-
-    :param optValOutputLevel: Output level of the optimal values. Either an
-        integer (0,1) which holds for all model classes or a dictionary with
-        model class names as keys and an integer (0,1) for each key (e.g.
-        {'StorageModel':1,'SourceSinkModel':1,...}
-
-        - 0: all values are kept.
-        - 1: Lines containing only zeroes are dropped.
-
-        |br| * the default value is 1
-    :type optValOutputLevel: int (0,1) or dict
 
     :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
     :rtype: xarray.dataset
@@ -178,8 +167,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0, optValOutputLe
 
             # Write output from esM.esM.componentModelingDict[name].getOptimalValues() to datasets
             data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
-            oL = optValOutputLevel
-            oL_ = oL[name] if type(oL) == dict else oL
             dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
             dataTI, indexTI = [], []
             for key, d in data.items():
@@ -903,7 +890,6 @@ def writeEnergySystemModelToNetCDF(
     outputFilePath="my_esm.nc",
     overwriteExisting=False,
     optSumOutputLevel=0,
-    optValOutputLevel=1,
     groupPrefix=None,
 ):
     """
@@ -927,17 +913,6 @@ def writeEnergySystemModelToNetCDF(
         |br| * the default value is 2
     :type optSumOutputLevel: int (0,1,2) or dict
 
-    :param optValOutputLevel: Output level of the optimal values. Either an
-        integer (0,1) which holds for all model classes or a dictionary with
-        model class names as keys and an integer (0,1) for each key (e.g.
-        {'StorageModel':1,'SourceSinkModel':1,...}
-
-        * 0: all values are kept.
-        * 1: Lines containing only zeroes are dropped.
-
-        |br| * the default value is 1
-    :type optValOutputLevel: int (0,1) or dict
-
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
@@ -959,9 +934,7 @@ def writeEnergySystemModelToNetCDF(
     xr_dss_input = convertOptimizationInputToDatasets(esM)
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
     if esM.objectiveValue != None:  # model was optimized
-        xr_dss_output = convertOptimizationOutputToDatasets(
-            esM, optSumOutputLevel, optValOutputLevel
-        )
+        xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)

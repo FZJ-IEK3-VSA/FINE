@@ -2,22 +2,81 @@ image: mambaorg/micromamba
 
 stages:
   - test
-  - prebuild
   - build
 
 variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
 
+# Templates
+
 .test_template:
   stage: test
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
+  rules:
+    # Run only for pushes to master or develop and for merge requests to master
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+    # Switch from branch pipeline to merge pipeline once a merge request has
+    # been created on the branch.
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
 
-.test_formatting_template:
+.test_docker_template_noupdate:
   stage: test
+  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
   before_script:
-    - micromamba install -y -c conda-forge "black"  "python=3.10"
+    - python -m pip install -e .
+  rules:
+    # Do not run for pushes to master or develop and for merge requests to master
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: never
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
+      when: never
+    # Switch from branch pipeline to merge pipeline once a merge request has
+    # been created on the branch.
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - changes:
+        - pyproject.toml
+        - requirements.yml
+        - requirements_dev.yml
+      when: never
+    - when: on_success
+
+
+.test_docker_template:
+  stage: test
+  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
+  before_script:
+    - micromamba install -n base -y --file=requirements_dev.yml
+  rules:
+    # Do not run for pushes to master or develop and for merge requests to master
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: never
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
+      when: never
+    # Switch from branch pipeline to merge pipeline once a merge request has
+    # been created on the branch.
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - changes:
+        - pyproject.toml
+        - requirements.yml
+        - requirements_dev.yml
+      when: on_success
 
 .build_template:
   stage: build
@@ -25,44 +84,23 @@ variables:
   services:
     - docker:dind@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
   when: on_success
-  dependencies:
-    - prebuild
+
+# Tests
 
 test-code:
-  #  Switch from branch pipeline to merge pipeline once a merge request has been
-  #  created on the branch.
-  rules:
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
-      when: never
-    - if: $CI_COMMIT_BRANCH
   extends: .test_template
   script:
     - python -m pytest --cov=FINE test/
-  artifacts:
-    paths:
-      - test/data/*
-    expire_in: 1 week
 
-test-formatting:
-  #  Switch from branch pipeline to merge pipeline once a merge request has been
-  #  created on the branch.
-  rules:
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
-      when: never
-    - if: $CI_COMMIT_BRANCH
-  extends: .test_formatting_template
+test-code-docker:
+  extends: .test_docker_template
   script:
-    # Dry-run black auto-formatter. If the code needs reformatting this test
-    # will fail.
-    - black --version
-    - black --check FINE
-    - black --check test
+    - python -m pytest --cov=FINE test/
+
+test-code-docker-noupdate:
+  extends: .test_docker_template_noupdate
+  script:
+    - python -m pytest --cov=FINE test/
 
 test-notebooks:
   extends: .test_template
@@ -72,35 +110,37 @@ test-notebooks:
     # execution errors Cells tagged 'nbval-check-output' are checked for
     # consistent output Cells tagged 'nbval-skip' are skipped.
     - python -m pytest --nbval-lax --current-env --durations=20 examples/
-  # Only test examples notebooks for branches master and develop
-  only:
-    refs:
-      - master
-      - develop
-      - merge_requests
 
-prebuild:
-  stage: prebuild
+test-notebooks-docker:
+  extends: .test_docker_template
   script:
-    # Extract the current image version from setup.py
-    # Check image version
-    - export IMAGE_VERSION=$(awk -F\= '{gsub(/"/,"",$2);print $1"="$2}' pyproject.toml | grep -E -o "(version = )(*.*)" | cut -d" " -f 3)
-    - echo "IMAGE_VERSION=$IMAGE_VERSION"
-    # Export a master and dev tag for each versions using the current image version
-    - export MASTER_TAG=fzjiek3/fine:${IMAGE_VERSION}
-    - export DEV_TAG=fzjiek3/fine-dev:${IMAGE_VERSION}
-    # Pass tags to build.env to be usable in the next stage
-    - echo "MASTER_TAG=$MASTER_TAG" >> build.env
-    - echo "DEV_TAG=$DEV_TAG" >> build.env
-  artifacts:
-    reports:
-      dotenv: build.env
-  only:
-    refs:
-      - master
-  when: on_success
+    - python -m pytest --nbval-lax --current-env --durations=20 examples/
 
-master-build:
+test-notebooks-docker-noupdate:
+  extends: .test_docker_template_noupdate
+  script:
+    - python -m pytest --nbval-lax --current-env --durations=20 examples/
+
+test-formatting:
+  stage: test
+  image: pyfound/black:latest_release
+  script:
+    # Dry-run black auto-formatter. If the code needs reformatting this test
+    # will fail.
+    - black --version
+    - black --check FINE
+    - black --check test
+  rules:
+    # Switch from branch pipeline to merge pipeline once a merge request has
+    # been created on the branch.
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+
+# Deployment
+
+build-master-latest:
   extends: .build_template
   script:
     # Login to the DockerHub repo using a specialized access token.
@@ -108,19 +148,32 @@ master-build:
     # with the current version, as well as latest.
     # Afterwards, push to DockerHub.
     - docker login -u fzjiek3 -p $DOCKER_AT
-    - docker build -t $MASTER_TAG -t "fzjiek3/fine:latest" .
-    - docker push $MASTER_TAG
+    - docker build -t "fzjiek3/fine:latest" .
     - docker push fzjiek3/fine:latest
-  only:
-    refs:
-      - master
-# Uncomment to enable dev builds
-#dev-build:
-#  extends: .build_template
-#  script:
-#    - docker login -u fzjiek3 -p $DOCKER_AT
-#    - docker build -t $DEV_TAG
-#    - docker push $DEV_TAG
-#  only:
-#    refs:
-#      - develop
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+
+build-tag:
+  extends: .build_template
+  script:
+    - docker login -u fzjiek3 -p $DOCKER_AT
+    - docker build -t fzjiek3/fine:${CI_COMMIT_TAG} .
+    - docker push fzjiek3/fine:${CI_COMMIT_TAG}
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+
+# Push develop build to local jugit registry
+build-dev:
+  extends: .build_template
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - export DEV_TAG=jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:${CI_COMMIT_SHA}
+    - docker build -t $DEV_TAG -t "jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest" .
+    - docker push $DEV_TAG
+    - docker push jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'

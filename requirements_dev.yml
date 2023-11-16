@@ -16,7 +16,7 @@ dependencies:
   - conda-forge::xlrd
   - conda-forge::pyomo
   - conda-forge::numpy
-  - conda-forge::pandas>=2
+  - conda-forge::pandas
   - conda-forge::networkx
   - conda-forge::scipy
   - conda-forge::scikit-learn
@@ -31,6 +31,9 @@ dependencies:
   - conda-forge::pytest-cov
   - conda-forge::nbval
   - conda-forge::black
-
+  - conda-forge::pwlf
+  - conda-forge::psutil
+  
   - pip:
+      - grblogtools
       - -e .
