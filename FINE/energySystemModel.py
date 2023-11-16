@@ -7,6 +7,9 @@ import pandas as pd
 import pyomo.environ as pyomo
 import pyomo.opt as opt
 
+import os, psutil
+import grblogtools as glt
+
 from FINE import utils
 from FINE.component import Component, ComponentModel
 
@@ -1102,9 +1105,11 @@ class EnergySystemModel:
 
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
-        utils.output(
-            "\t\t(%.4f" % (time.time() - timeStart) + " sec)\n", self.verbose, 0
-        )
+        timeEnd = time.time()
+        if storeTSAinstance:
+            clusterClass.tsaBuildTime = timeEnd - timeStart
+            self.tsaInstance = clusterClass
+        utils.output("\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verbose, 0)
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """
@@ -1834,6 +1839,7 @@ class EnergySystemModel:
         optimizationSpecs="",
         warmstart=False,
         relevanceThreshold=None,
+        includePerformanceSummary=False,
     ):
         """
         Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
@@ -1913,6 +1919,16 @@ class EnergySystemModel:
         :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
+
+        :param includePerformanceSummary: If True this will store a performance summary (in Dataframe format) as attribute ('self.performanceSummary') in the esM instance.
+            The performance summary includes Data about RAM usage (assesed by the psutil package), 
+            Gurobi values (extracted from gurobi log with the grblogtools package) and other various paramerts
+            such as model buildtime, runtime and time series aggregation paramerters.
+            |br| * the default value is False
+        :type includePerformanceSummary: boolean
+
+        Last edited: November 16, 2023
+        |br| @author: FINE Developer Team (FZJ IEK-3)
         """
 
         if not timeSeriesAggregation:
@@ -1930,6 +1946,28 @@ class EnergySystemModel:
                     "The optimization problem is not declared yet. Set the argument declaresOptimization"
                     " problem to True or call the declareOptimizationProblem function first."
                 )
+
+        if includePerformanceSummary:
+            """
+            this will store a performance summary (in Dataframe format) as attribute ('self.performanceSummary') in the esM instance.
+            """
+            ## make sure logging is enabled for gurobi, otherwise gurobi values cannot be included in the performance summary
+            if logFileName == "":
+                warnings.warn(
+                    "A logFile Name has to be specified in order to extract Gurobi values! Gurobi values will not be listed in performance summary!"
+                )
+            # If time series aggregation is enabled, the TSA instance needs to be saved in order to be included in the performance summary
+            if self.isTimeSeriesDataClustered and (self.tsaInstance == None):
+                warnings.warn(
+                    "storeTSAinstance has to be set to true to extract TSA Parameters! TSA parameters will not be listed in performance summary!"
+                )
+
+            # get RAM usage of process before and after optimization
+            process = psutil.Process(os.getpid())
+            rss_by_psutil_start = process.memory_info().rss / (
+                1024 * 1024 * 1024
+            )  # from Bytes to GB
+            # start optimization
 
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -2152,3 +2190,89 @@ class EnergySystemModel:
         self.solverSpecs["runtime"] = (
             self.solverSpecs["buildtime"] + time.time() - timeStart
         )
+
+        if includePerformanceSummary:
+            rss_by_psutil_end = process.memory_info().rss / (
+                1024 * 1024 * 1024
+            )  # from Bytes to GB
+
+            # CREATE PERFORMANCE SUMMARY
+
+            # FINE Model
+            fine_parameters_dict = {
+                "noOfRegions": len(self.locations),
+                "numberOfTimeSteps": self.numberOfTimeSteps,
+                "hoursPerTimestep": self.hoursPerTimeStep,
+                "numberOfYears": self.numberOfYears,
+                "optimizationSpecs": self.solverSpecs["optimizationSpecs"],
+            }
+
+            # RAM Usage
+            ram_usage_dict = {
+                "ramUsageStartGB": rss_by_psutil_start,
+                "ramUsageEndGB": rss_by_psutil_end,
+            }
+
+            # TSA Values
+            if self.isTimeSeriesDataClustered and (self.tsaInstance is not None):
+                tsaBuildTime = self.tsaInstance.tsaBuildTime
+
+                tsa_parameters_dict = {
+                    "clusterMethod": self.tsaInstance.clusterMethod,
+                    "noTypicalPeriods": self.tsaInstance.noTypicalPeriods,
+                    "hoursPerPeriod": self.tsaInstance.hoursPerPeriod,
+                    "segmentation": self.tsaInstance.segmentation,
+                    "noSegments": self.tsaInstance.noSegments,
+                    "tsaSolver": self.tsaInstance.solver,
+                    "timeStepsPerPeriod": self.tsaInstance.timeStepsPerPeriod,
+                    "tsaBuildTime": self.tsaInstance.tsaBuildTime,
+                }
+            else:
+                tsa_parameters_dict = {}
+                tsaBuildTime = None
+
+            # Procesing Times
+            processing_time_dict = {
+                "buildtime": self.solverSpecs["buildtime"],
+                "tsaBuildTime": tsaBuildTime,
+                "solvetime": self.solverSpecs["solvetime"],
+                "runtime": self.solverSpecs["runtime"],
+            }
+
+            if solver == "gurobi":
+                # Create DataFrame from gurobi log file
+                if logFileName == "":
+                    gurobi_summary_dict = {}
+                else:
+                    absolute_logFilePath = os.path.abspath(logFileName)
+                    gurobi_summary_dict = glt.get_dataframe(
+                        [
+                            os.path.join(absolute_logFilePath)
+                        ]  # passed path has to be a list
+                    ).T.to_dict()[0]
+            else:
+                gurobi_summary_dict = {}
+
+            # Combine to Overall Summary
+            summary_dict = {
+                "FineParameters": fine_parameters_dict,
+                "RAMUsage": ram_usage_dict,
+                "ProcessingTimes": processing_time_dict,
+                "TSAParameters": tsa_parameters_dict,
+                "GurobiSummary": gurobi_summary_dict,
+            }
+
+            summary_dict = {
+                (i, j): summary_dict[i][j]
+                for i in summary_dict.keys()
+                for j in summary_dict[i].keys()
+            }
+
+            mux = pd.MultiIndex.from_tuples(summary_dict.keys())
+            mux = mux.set_names(["Category", "Parameter"])
+            PerformanceSummary_df = pd.DataFrame(
+                list(summary_dict.values()), index=mux, columns=["Value"]
+            )
+
+            # Save perfromance summary in the EnergySystemModel instance
+            self.performanceSummary = PerformanceSummary_df

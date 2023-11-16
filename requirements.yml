@@ -26,6 +26,8 @@ dependencies:
   - conda-forge::netcdf4
   - conda-forge::tsam
   - conda-forge::pwlf
+  - conda-forge::psutil
 
   - pip:
+      - grblogtools
       - .

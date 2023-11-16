@@ -32,6 +32,8 @@ dependencies:
   - conda-forge::nbval
   - conda-forge::black
   - conda-forge::pwlf
+  - conda-forge::psutil
   
   - pip:
+      - grblogtools
       - -e .
