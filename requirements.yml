@@ -25,6 +25,7 @@ dependencies:
   - conda-forge::rasterio
   - conda-forge::netcdf4
   - conda-forge::tsam
+  - conda-forge::pwlf
 
   - pip:
       - .
