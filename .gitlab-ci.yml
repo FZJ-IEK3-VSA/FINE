@@ -10,21 +10,25 @@ variables:
 
 # Templates
 
+# NOTE on rules: Rules are evaluated in order until the first match. When a match is
+# found, the job is either included or excluded from the pipeline, depending on
+# the configuration.
+
 .test_template:
   stage: test
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
   rules:
-    # Run only for pushes to master or develop and for merge requests to master
-    - if: '$CI_COMMIT_BRANCH == "master"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
     # Switch from branch pipeline to merge pipeline once a merge request has
     # been created on the branch.
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
+    # Run only for pushes to master or develop and for merge requests to master
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
 
 .test_docker_template_noupdate:
   stage: test
@@ -83,7 +87,6 @@ variables:
   image: docker@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
   services:
     - docker:dind@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
-  when: on_success
 
 # Tests
 
@@ -137,6 +140,7 @@ test-formatting:
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
+    - when: on_success 
 
 # Deployment
 
@@ -151,9 +155,9 @@ build-master-latest:
     - docker build -t "fzjiek3/fine:latest" .
     - docker push fzjiek3/fine:latest
   rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
+    - if: $CI_COMMIT_BRANCH == "master"
 
 build-tag:
   extends: .build_template
@@ -162,9 +166,9 @@ build-tag:
     - docker build -t fzjiek3/fine:${CI_COMMIT_TAG} .
     - docker push fzjiek3/fine:${CI_COMMIT_TAG}
   rules:
-    - if: '$CI_COMMIT_TAG'
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
+    - if: $CI_COMMIT_TAG
 
 # Push develop build to local jugit registry
 build-dev:
@@ -176,4 +180,4 @@ build-dev:
     - docker push $DEV_TAG
     - docker push jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
   rules:
-    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: $CI_COMMIT_BRANCH == "develop"
