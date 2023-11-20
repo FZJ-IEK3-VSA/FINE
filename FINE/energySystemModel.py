@@ -1921,7 +1921,7 @@ class EnergySystemModel:
         :type relevanceThreshold: float (>=0) or None
 
         :param includePerformanceSummary: If True this will store a performance summary (in Dataframe format) as attribute ('self.performanceSummary') in the esM instance.
-            The performance summary includes Data about RAM usage (assesed by the psutil package), 
+            The performance summary includes Data about RAM usage (assesed by the psutil package),
             Gurobi values (extracted from gurobi log with the grblogtools package) and other various paramerts
             such as model buildtime, runtime and time series aggregation paramerters.
             |br| * the default value is False
