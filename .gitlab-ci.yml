@@ -16,6 +16,18 @@ variables:
 
 .test_template:
   stage: test
+  variables:
+    CONDA_PKGS_DIRS: "$CI_PROJECT_DIR/.cache/pkgs"
+  cache:
+    key:
+      files:
+        - requirements_dev.yml 
+        - .gitlab-ci.yml
+      prefix: ${CI_JOB_NAME}
+    paths:
+      # Cache dir needs to be in project dir
+      - ".cache/pkgs"
+    policy: pull
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
   rules:
@@ -25,10 +37,7 @@ variables:
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
-    # Run only for pushes to master or develop and for merge requests to master
-    - if: '$CI_COMMIT_BRANCH == "master"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+
 
 .test_docker_template_noupdate:
   stage: test
@@ -60,6 +69,18 @@ variables:
 .test_docker_template:
   stage: test
   image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
+  variables:
+    CONDA_PKGS_DIRS: "$CI_PROJECT_DIR/.cache/pkgs"
+  cache:
+    key:
+      files:
+        - requirements_dev.yml 
+        - .gitlab-ci.yml
+      prefix: ${CI_JOB_NAME}
+    paths:
+      # Cache dir needs to be in project dir
+      - ".cache/pkgs"
+    policy: pull
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
   rules:
@@ -94,6 +115,24 @@ test-code:
   extends: .test_template
   script:
     - python -m pytest --cov=FINE test/
+  rules:
+    # Run only for pushes to master or develop and for merge requests to master.
+    # Do not run for scheduled pushes to master (runs `test-code-push-cache` instead).
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "master"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+
+test-code-push-cache:
+  extends: .test_template
+  cache:
+    policy: push
+  script:
+    - python -m pytest --cov=FINE test/
+  rules:
+    # Run only for scheduled pushes to master.
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "master"'
 
 test-code-docker:
   extends: .test_docker_template
@@ -112,17 +151,22 @@ test-notebooks:
     # cell executing durations. With 'nbval-lax', notebooks are only tested for
     # execution errors Cells tagged 'nbval-check-output' are checked for
     # consistent output Cells tagged 'nbval-skip' are skipped.
-    - python -m pytest --nbval-lax --current-env --durations=20 examples/
+    - python -m pytest --nbval-lax --nbval-current-env --durations=20 examples/
+  rules:
+    # Run only for pushes to master or develop and for merge requests to master.
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
 
 test-notebooks-docker:
   extends: .test_docker_template
   script:
-    - python -m pytest --nbval-lax --current-env --durations=20 examples/
+    - python -m pytest --nbval-lax --nbval-current-env  --durations=20 examples/
 
 test-notebooks-docker-noupdate:
   extends: .test_docker_template_noupdate
   script:
-    - python -m pytest --nbval-lax --current-env --durations=20 examples/
+    - python -m pytest --nbval-lax --nbval-current-env  --durations=20 examples/
 
 test-formatting:
   stage: test
