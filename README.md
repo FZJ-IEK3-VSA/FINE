@@ -24,11 +24,18 @@ If you want to use ETHOS.FINE in a published work, please [**kindly cite followi
 A "Read the Docs" documentation of ETHOS.FINE can be found [here](https://vsa-fine.readthedocs.io/en/latest/).
 
 ## Requirements
-The installation process uses a Conda-based Python package manager. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/) instead of Anaconda. The recommended way to use Mamba on your system is to install the [Miniforge distribution](https://github.com/conda-forge/miniforge#miniforge3). They offer installers for Windows, Linux and OS X. Have a look at the Miniforge Readme for further details.
 
+### Python package manager
+The installation process uses a Conda-based Python package manager. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/) instead of Conda. The recommended way to use Mamba on your system is to install the [Miniforge distribution](https://github.com/conda-forge/miniforge#miniforge3). They offer installers for Windows, Linux and OS X. In principle, Conda and Mamba are interchangeable. The commands and concepts are the same.The distributions differ in the methodology for determining dependencies when installing Python packages. Mamba relies on a more modern methodology, which (with the same result) leads to very significant time savings during the installation of FINE. Switching to Mamba usually does not lead to any problems, as it is virtually identical to Conda in terms of operation.
+
+If you decide to use Conda you have to expect longer installation times for FINE. In this case, we recommend the installation [through our conda-forge package](#installation-via-conda-forge).
+
+### Mixed Integer Linear Programming (MILP) solver
 The project environment includes [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](#installation-of-an-optimization-solver) for more information.
 
 ## Installation
+
+If you would like to run FINE for your analysis we recommend to install it directly from conda-forge into a new Python environment. Alternatively you can install it from a local folder by using the `requirements.yml` file. If want to work on the FINE code base coose "Installation for developers". It performs an editiable installtion of FINE and add some developer tools (e.g. pytest, black) to the environment.
 
 ###  Installation via conda-forge
 The simplest way ist to install FINE into a fresh environment from `conda-forge` with:
@@ -36,7 +43,7 @@ The simplest way ist to install FINE into a fresh environment from `conda-forge`
 mamba create -n fine -c conda-forge fine
 ```
 
-### Installation from local folder
+### Installation from a local folder
 Alternatively you can first clone the content of this repository and perform the installation from there: 
 
 1. Clone the content of this repository 
@@ -63,7 +70,7 @@ mamba env create -f requirements_dev.yml
 ```
 This installs additional dependencies such as `pytest` and installs FINE from the folder in editable mode with `pip -e`. Changes in the folder are then reflected in the package installation.
 
-You can run the following command in the project root folder:
+Test your installation with the following command in the project root folder:
 ```
 pytest
 ```
