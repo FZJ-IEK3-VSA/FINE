@@ -139,7 +139,8 @@ create-frozen-requirements:
   script:
     - micromamba env export --no-md5 --no-build -n base > requirements_frozen.yaml
     # Replace `name: base` with `name: fine_frozen`
-    - "sed -ri 's/^(\s*)(name\s*:\s*base\s*$)/\1name: fine_frozen/' requirements_frozen.yml"
+    - >
+        sed -ri 's/^(\s*)(name\s*:\s*base\s*$)/\1name: fine_frozen/' requirements_frozen.yml
     - git config --global user.name "${GITLAB_USER_NAME}"
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - git config --global --add safe.directory /builds/iek-3/shared-code/fine
