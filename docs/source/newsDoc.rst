@@ -3,6 +3,15 @@ FINE's News Feed
 ################
 
 *********************
+Release version 2.3.2
+*********************
+
+FINE release 2.3.1 provides minor changes in the requirements:
+
+* Specify `GDAL` version 3.4.3 because version 3.4.1 is not compatible with the latest Fiona versions. 
+* Change the repository of `gurobi-logtools` from pypi to conda-forge.
+
+*********************
 Release version 2.3.1
 *********************
 
