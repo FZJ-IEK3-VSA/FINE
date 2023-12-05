@@ -4,7 +4,7 @@ channels:
 dependencies:
   - conda-forge::python>=3.10
   - conda-forge::libiconv
-  - conda-forge::gdal=3.4
+  - conda-forge::gdal=3.4.3
   - conda-forge::geopandas
   - conda-forge::jupyter
   - conda-forge::notebook
@@ -27,7 +27,7 @@ dependencies:
   - conda-forge::tsam
   - conda-forge::pwlf
   - conda-forge::psutil
+  - conda-forge::gurobi-logtools
 
   - pip:
-      - grblogtools
       - .
