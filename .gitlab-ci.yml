@@ -142,6 +142,7 @@ create-frozen-requirements:
     # Replace `name: base` with `name: fine_frozen`
     - >
         sed -ri 's/^(\s*)(name\s*:\s*base\s*$)/\1name: fine_frozen/' requirements_frozen.yml
+    - micromamba install -n base -y -c conda-forge git
     - git config --global user.name "${GITLAB_USER_NAME}"
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - git config --global --add safe.directory /builds/iek-3/shared-code/fine
