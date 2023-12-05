@@ -134,6 +134,27 @@ test-code-push-cache:
     # Run only for scheduled pushes to master.
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "master"'
 
+create-frozen-requirements:
+  extends: .test_template
+  script:
+    - micromamba env export --no-md5 --no-build -n base > requirements_frozen.yaml
+    # Replace `name: base` with `name: fine_frozen`
+    - "sed -ri 's/^(\s*)(name\s*:\s*base\s*$)/\1name: fine_frozen/' requirements_frozen.yml"
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+    - git config --global --add safe.directory /builds/iek-3/shared-code/fine
+    - git add requirements_frozen.yml
+    - git commit -m "Update frozen requirements"
+    - git push https://fine:${PROJECT_ACCESS_TOKEN}@jugit.fz-juelich.de/iek-3/shared-code/fine.git HEAD:develop -o ci.skip
+  dependencies:
+    - test-code
+    - test-notebooks
+    - test-formatting
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "develop"
+
 test-code-docker:
   extends: .test_docker_template
   script:
