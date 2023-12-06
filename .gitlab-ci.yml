@@ -138,7 +138,7 @@ create-frozen-requirements:
   extends: .test_template
   stage: build
   script:
-    - micromamba env export --no-md5 --no-build -n base > requirements_frozen.yaml
+    - micromamba env export --no-md5 --no-build -n base > requirements_frozen.yml
     # Replace `name: base` with `name: fine_frozen`
     - >
         sed -ri 's/^(\s*)(name\s*:\s*base\s*$)/\1name: fine_frozen/' requirements_frozen.yml
