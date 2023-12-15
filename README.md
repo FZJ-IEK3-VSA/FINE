@@ -48,7 +48,7 @@ Alternatively you can first clone the content of this repository and perform the
 
 1. Clone the content of this repository 
 ```bash
-git clone https://github.com/FZJ-IEK3-VSA/FINE.git 
+git clone --depth 1 https://github.com/FZJ-IEK3-VSA/FINE.git 
 ```
 2. Move into the FINE folder with
 ```bash
