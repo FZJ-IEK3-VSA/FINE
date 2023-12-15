@@ -5,8 +5,8 @@ import shutil
 import io
 import time
 
-import FINE as fn
-from FINE.IOManagement.standardIO import writeOptimizationOutputToExcel
+import fine as fn
+from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 from pathlib import Path
 
 

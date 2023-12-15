@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-import FINE as fn
+import fine as fn
 
 
 def test_capacityBounds():

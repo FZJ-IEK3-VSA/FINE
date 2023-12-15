@@ -10,10 +10,10 @@ import pyomo.environ as pyomo
 import pyomo.opt as opt
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
-from FINE import utils
-from FINE.aggregations.spatialAggregation import manager as spagat
-from FINE.component import Component, ComponentModel
-from FINE.IOManagement import xarrayIO as xrIO
+from fine import utils
+from fine.aggregations.spatialAggregation import manager as spagat
+from fine.component import Component, ComponentModel
+from fine.IOManagement import xarrayIO as xrIO
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)

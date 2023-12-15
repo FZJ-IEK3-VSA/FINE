@@ -114,7 +114,7 @@ variables:
 test-code:
   extends: .test_template
   script:
-    - python -m pytest --cov=FINE test/
+    - python -m pytest --cov=fine test/
   rules:
     # Run only for pushes to master or develop and for merge requests to master.
     # Do not run for scheduled pushes to master (runs `test-code-push-cache` instead).
@@ -129,7 +129,7 @@ test-code-push-cache:
   cache:
     policy: push
   script:
-    - python -m pytest --cov=FINE test/
+    - python -m pytest --cov=fine test/
   rules:
     # Run only for scheduled pushes to master.
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "master"'
@@ -161,12 +161,12 @@ create-frozen-requirements:
 test-code-docker:
   extends: .test_docker_template
   script:
-    - python -m pytest --cov=FINE test/
+    - python -m pytest --cov=fine test/
 
 test-code-docker-noupdate:
   extends: .test_docker_template_noupdate
   script:
-    - python -m pytest --cov=FINE test/
+    - python -m pytest --cov=fine test/
 
 test-notebooks:
   extends: .test_template
@@ -199,7 +199,7 @@ test-formatting:
     # Dry-run black auto-formatter. If the code needs reformatting this test
     # will fail.
     - black --version
-    - black --check FINE
+    - black --check fine
     - black --check test
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has

@@ -1,4 +1,4 @@
-name: FINE_dev
+name: fine_dev
 
 dependencies:
   - conda-forge::python>=3.10

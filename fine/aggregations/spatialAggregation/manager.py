@@ -4,11 +4,11 @@ import os
 import logging
 import warnings
 import difflib
-from FINE.aggregations.spatialAggregation import grouping
-from FINE.aggregations.spatialAggregation import aggregation
-from FINE.aggregations.spatialAggregation import managerUtils as manUtils
-from FINE.IOManagement.standardIO import timer
-from FINE.IOManagement import xarrayIO as xrIO, utilsIO
+from fine.aggregations.spatialAggregation import grouping
+from fine.aggregations.spatialAggregation import aggregation
+from fine.aggregations.spatialAggregation import managerUtils as manUtils
+from fine.IOManagement.standardIO import timer
+from fine.IOManagement import xarrayIO as xrIO, utilsIO
 
 try:
     import geopandas as gpd

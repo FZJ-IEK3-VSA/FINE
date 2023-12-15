@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import xarray as xr
 
-import FINE.aggregations.spatialAggregation.groupingUtils as gprUtils
+import fine.aggregations.spatialAggregation.groupingUtils as gprUtils
 
 
 @pytest.mark.parametrize(

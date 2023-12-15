@@ -1,5 +1,5 @@
-from FINE.component import Component, ComponentModel
-from FINE import utils
+from fine.component import Component, ComponentModel
+from fine import utils
 import pyomo.environ as pyomo
 import warnings
 import pandas as pd

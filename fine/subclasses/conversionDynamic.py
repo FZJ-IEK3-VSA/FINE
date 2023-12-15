@@ -1,5 +1,5 @@
-from FINE.conversion import Conversion, ConversionModel
-from FINE import utils
+from fine.conversion import Conversion, ConversionModel
+from fine import utils
 import pyomo.environ as pyomo
 import pandas as pd
 

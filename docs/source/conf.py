@@ -69,7 +69,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "FINE"
+project = "fine"
 copyright = "2016-2023, FINE Developer Team"
 author = "FINE Developer Team"
 

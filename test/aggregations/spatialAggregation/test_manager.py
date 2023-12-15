@@ -1,7 +1,7 @@
 import os
 import pytest
 import numpy as np
-from FINE import xarrayIO as xrIO
+from fine import xarrayIO as xrIO
 import geopandas as gpd
 
 

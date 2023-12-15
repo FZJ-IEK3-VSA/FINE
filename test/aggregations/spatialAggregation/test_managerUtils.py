@@ -7,7 +7,7 @@ import numpy as np
 import geopandas as gpd
 from shapely.geometry import Point
 
-import FINE.aggregations.spatialAggregation.managerUtils as manUtils
+import fine.aggregations.spatialAggregation.managerUtils as manUtils
 
 
 def test_create_gdf():

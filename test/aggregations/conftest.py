@@ -7,7 +7,7 @@ import xarray as xr
 from shapely.geometry import Polygon, MultiPolygon
 from collections import namedtuple
 
-import FINE.aggregations.spatialAggregation.managerUtils as manUtils
+import fine.aggregations.spatialAggregation.managerUtils as manUtils
 
 # ============================================Fixtures for Grouping==================================================#
 

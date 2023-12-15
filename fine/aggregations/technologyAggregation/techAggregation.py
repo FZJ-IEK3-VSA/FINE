@@ -5,8 +5,8 @@ import logging
 import numpy as np
 import xarray as xr
 from sklearn.cluster import AgglomerativeClustering
-from FINE.IOManagement.standardIO import timer
-from FINE.aggregations.technologyAggregation import techAggregationUtils
+from fine.IOManagement.standardIO import timer
+from fine.aggregations.technologyAggregation import techAggregationUtils
 
 logger_tech_agg = logging.getLogger("technology_representation")
 

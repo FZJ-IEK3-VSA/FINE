@@ -1,5 +1,5 @@
 import pandas as pd
-import FINE as fn
+import fine as fn
 
 
 def test_fullloadhours_above(minimal_test_esM):
