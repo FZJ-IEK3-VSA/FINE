@@ -11,6 +11,8 @@ FINE release 2.3.1 provides minor changes in the requirements:
 * Specify `GDAL` version 3.4.3 because version 3.4.1 is not compatible with the latest Fiona versions. 
 * Change the repository of `gurobi-logtools` from pypi to conda-forge.
 
+Further, the name of the package folder has been changed from `FINE` to `fine`. If you still see a `FINE` folder locally after pulling the latest change, you might need to clone repository to a new folder. 
+
 *********************
 Release version 2.3.1
 *********************
