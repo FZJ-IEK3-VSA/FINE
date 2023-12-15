@@ -147,8 +147,14 @@ create-frozen-requirements:
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - git config --global --add safe.directory /builds/iek-3/shared-code/fine
     - git add requirements_frozen.yml
-    - git commit -m "Update frozen requirements"
-    - git push https://fine:${PROJECT_ACCESS_TOKEN}@jugit.fz-juelich.de/iek-3/shared-code/fine.git HEAD:develop -o ci.skip
+    - commit-and-push() {
+      if ! [[ $(git status) =~ "working tree clean" || $(git status) =~ "nothing added to commit but untracked files present" ]]; then
+        git commit -m "Update frozen requirements";
+        git push https://fine:${PROJECT_ACCESS_TOKEN}@jugit.fz-juelich.de/iek-3/shared-code/fine.git HEAD:develop -o ci.skip
+      fi;
+      }
+    - commit-and-push
+
   dependencies:
     - test-code
     - test-notebooks
