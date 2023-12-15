@@ -21,7 +21,7 @@
 
 # 1. Import required packages and set input data path
 
-import FINE as fn
+import fine as fn
 import pandas as pd
 import numpy as np
 import os

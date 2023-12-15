@@ -1,7 +1,7 @@
 import inspect
 
-import FINE as fn
-from FINE.IOManagement import utilsIO
+import fine as fn
+from fine.IOManagement import utilsIO
 
 
 def exportToDict(esM, useProcessedValues=False):

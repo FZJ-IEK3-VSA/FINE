@@ -1,6 +1,6 @@
-from FINE.conversion import Conversion, ConversionModel
-from FINE.utils import checkDataFrameConversionFactor, checkCallableConversionFactor
-from FINE import utils
+from fine.conversion import Conversion, ConversionModel
+from fine.utils import checkDataFrameConversionFactor, checkCallableConversionFactor
+from fine import utils
 import pyomo.environ as pyomo
 import pandas as pd
 import numpy as np

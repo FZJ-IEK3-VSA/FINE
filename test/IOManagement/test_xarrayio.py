@@ -2,9 +2,9 @@ from copy import deepcopy
 from pathlib import Path
 from pandas import DataFrame, Series, MultiIndex, Index
 from pandas.testing import assert_frame_equal, assert_series_equal
-import FINE.IOManagement.xarrayIO as xrIO
-from FINE.IOManagement.dictIO import exportToDict
-import FINE as fn
+import fine.IOManagement.xarrayIO as xrIO
+from fine.IOManagement.dictIO import exportToDict
+import fine as fn
 
 
 def compare_values(value_1, value_2):

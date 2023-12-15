@@ -4,7 +4,7 @@ import sys
 import pandas as pd
 import xarray as xr
 
-import FINE as fn
+import fine as fn
 
 from getData import getData
 

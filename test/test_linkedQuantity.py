@@ -1,4 +1,4 @@
-import FINE as fn
+import fine as fn
 import pandas as pd
 
 

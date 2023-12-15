@@ -23,7 +23,7 @@ install:
 
 script:
   - source activate fine
-  - pytest --cov=./FINE
+  - pytest --cov=./fine
 
 after_success:
   - codecov

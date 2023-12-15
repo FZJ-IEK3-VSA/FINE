@@ -147,7 +147,7 @@ def test_fullloadhours_min(minimal_test_esM):
 
 
 def test_init_full_load_hours(minimal_test_esM):
-    import FINE as fn
+    import fine as fn
     import pandas as pd
 
     # load minimal test system

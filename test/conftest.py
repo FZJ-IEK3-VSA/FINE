@@ -5,7 +5,7 @@ import os
 import numpy as np
 import pandas as pd
 
-import FINE as fn
+import fine as fn
 
 sys.path.append(
     os.path.join(

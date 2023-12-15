@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-import FINE as fn
+import fine as fn
 
 
 @pytest.mark.parametrize("TSA", [True, False])

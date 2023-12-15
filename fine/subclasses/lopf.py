@@ -1,5 +1,5 @@
-from FINE.transmission import Transmission, TransmissionModel
-from FINE import utils
+from fine.transmission import Transmission, TransmissionModel
+from fine import utils
 import pyomo.environ as pyomo
 import pandas as pd
 

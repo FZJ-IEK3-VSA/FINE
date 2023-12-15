@@ -4,7 +4,7 @@ import time
 import pandas as pd
 import numpy as np
 
-import FINE as fn
+import fine as fn
 
 
 def test_watersupply():
