@@ -1,5 +1,5 @@
-import FINE as fn
-import FINE.utils as utils
+import fine as fn
+import fine.utils as utils
 import pandas as pd
 import ast
 import inspect

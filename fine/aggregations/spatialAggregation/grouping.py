@@ -7,8 +7,8 @@ import logging
 import numpy as np
 import sklearn.cluster as skc
 from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
-from FINE.aggregations.spatialAggregation import groupingUtils as gprUtils
-from FINE.IOManagement.standardIO import timer
+from fine.aggregations.spatialAggregation import groupingUtils as gprUtils
+from fine.IOManagement.standardIO import timer
 from functools import partial
 
 logger_grouping = logging.getLogger("spatial_grouping")

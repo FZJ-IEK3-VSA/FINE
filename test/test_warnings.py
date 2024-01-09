@@ -1,7 +1,7 @@
 import pytest
 import warnings
 
-from FINE import utils
+from fine import utils
 
 
 def test_deprecation_warning_esm(minimal_test_esM):

@@ -1,5 +1,5 @@
-from FINE import utils
-import FINE as fn
+from fine import utils
+import fine as fn
 import numpy as np
 
 

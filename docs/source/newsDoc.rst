@@ -3,6 +3,17 @@ FINE's News Feed
 ################
 
 *********************
+Release version 2.3.2
+*********************
+
+IMPORTANT: The name of the package folder has been changed from `FINE` to `fine` in this release. If you still see a `FINE` folder locally after pulling the latest change, you might need to clone the repository to a new folder.
+
+Further, FINE release 2.3.2 provides changes in the requirements:
+
+* Pin `GDAL` to version 3.4.3 because version 3.4.1 is not compatible with the latest Fiona versions.
+* Change the repository of `gurobi-logtools` from pypi to conda-forge.
+
+*********************
 Release version 2.3.1
 *********************
 

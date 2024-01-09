@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from FINE import utils
+from fine import utils
 import warnings
 import pyomo.environ as pyomo
 import pandas as pd

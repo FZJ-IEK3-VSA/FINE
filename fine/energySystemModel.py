@@ -1,21 +1,19 @@
+import inspect
+import os
 import time
 import warnings
-import numpy as np
-import inspect
 
+import gurobi_logtools as glt
 import pandas as pd
+import psutil
 import pyomo.environ as pyomo
 import pyomo.opt as opt
-
-import os, psutil
-import grblogtools as glt
-
-from FINE import utils
-from FINE.component import Component, ComponentModel
-
-from FINE.IOManagement import xarrayIO as xrIO
-from FINE.aggregations.spatialAggregation import manager as spagat
 from tsam.timeseriesaggregation import TimeSeriesAggregation
+
+from fine import utils
+from fine.aggregations.spatialAggregation import manager as spagat
+from fine.component import Component, ComponentModel
+from fine.IOManagement import xarrayIO as xrIO
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -1922,7 +1920,7 @@ class EnergySystemModel:
 
         :param includePerformanceSummary: If True this will store a performance summary (in Dataframe format) as attribute ('self.performanceSummary') in the esM instance.
             The performance summary includes Data about RAM usage (assesed by the psutil package),
-            Gurobi values (extracted from gurobi log with the grblogtools package) and other various paramerts
+            Gurobi values (extracted from gurobi log with the gurobi-logtools package) and other various paramerts
             such as model buildtime, runtime and time series aggregation paramerters.
             |br| * the default value is False
         :type includePerformanceSummary: boolean

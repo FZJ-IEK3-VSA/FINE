@@ -3,7 +3,7 @@ from importlib.metadata import version
 
 import pandas as pd
 
-from FINE.IOManagement.standardIO import writeOptimizationOutputToExcel
+from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
 
 def test_compareResults_miniSystem(minimal_test_esM):

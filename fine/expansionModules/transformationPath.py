@@ -1,5 +1,5 @@
-from FINE import utils
-from FINE.IOManagement import standardIO
+from fine import utils
+from fine.IOManagement import standardIO
 import pandas as pd
 import copy
 

@@ -11,7 +11,7 @@ echo[
 
 call activate %env%
 
-echo import FINE as fn > run.py
+echo import fine as fn > run.py
 echo fn.energySystemModelRunFromExcel('%file%') >> run.py
 
 python run.py 

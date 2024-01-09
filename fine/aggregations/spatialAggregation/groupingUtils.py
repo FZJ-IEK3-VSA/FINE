@@ -3,7 +3,7 @@
 import warnings
 import numpy as np
 from scipy.cluster import hierarchy
-from FINE.IOManagement.utilsIO import PowerDict
+from fine.IOManagement.utilsIO import PowerDict
 
 try:
     import geopandas as gpd

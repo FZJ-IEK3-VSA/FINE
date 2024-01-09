@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from FINE.aggregations.technologyAggregation.techAggregation import (
+from fine.aggregations.technologyAggregation.techAggregation import (
     aggregate_RE_technology,
 )
 

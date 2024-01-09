@@ -6,8 +6,8 @@ import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
 
-import FINE.utils as utils
-from FINE.IOManagement import dictIO, utilsIO
+import fine.utils as utils
+from fine.IOManagement import dictIO, utilsIO
 
 
 def convertOptimizationInputToDatasets(esM, useProcessedValues=False):

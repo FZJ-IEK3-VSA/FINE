@@ -1,4 +1,4 @@
-import FINE as fn
+import fine as fn
 import numpy as np
 import pandas as pd
 
@@ -291,7 +291,7 @@ def test_TAC_netPresentValueContributions():
     np.testing.assert_almost_equal(esM.pyM.Obj(), npv_sum_optSummary)
 
     # the sum of discounted TAC must be equal to the NPV
-    from FINE.utils import annuityPresentValueFactor, discountFactor
+    from fine.utils import annuityPresentValueFactor, discountFactor
 
     discounted_tac_sum = 0
     for ip in esM.investmentPeriodNames:

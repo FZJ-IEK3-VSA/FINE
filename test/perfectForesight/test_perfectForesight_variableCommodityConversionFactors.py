@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-import FINE as fn
+import fine as fn
 import copy
 
 
