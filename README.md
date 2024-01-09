@@ -10,11 +10,11 @@
 
 # ETHOS.FINE - Framework for Integrated Energy System Assessment
 
-The ETHOS.FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities and time steps can be modeled. Target of the optimization is the minimization of the total annual cost while considering technical and enviromental constraints. Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
+The ETHOS.FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities and time steps can be modeled. Target of the optimization is the minimization of the total annual cost while considering technical and environmental constraints. Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
 
 ETHOS.FINE is used for the modelling of a diverse group of optimization problems within the [Energy Transformation PatHway Optimization Suite (ETHOS) at IEK-3](https://www.fz-juelich.de/de/iek/iek-3/leistungen/model-services).  
 
-If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://www.sciencedirect.com/science/article/pii/S036054421830879X) which gives a description of the first stages of the framework. The python package which provides the time series aggregation module and its corresponding literatur can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
+If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://www.sciencedirect.com/science/article/pii/S036054421830879X) which gives a description of the first stages of the framework. The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
 
 ## Features
 * representation of an energy system by multiple locations, commodities and time steps
@@ -26,7 +26,7 @@ A "Read the Docs" documentation of ETHOS.FINE can be found [here](https://vsa-fi
 ## Requirements
 
 ### Python package manager
-The installation process uses a Conda-based Python package manager. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/) instead of Conda. The recommended way to use Mamba on your system is to install the [Miniforge distribution](https://github.com/conda-forge/miniforge#miniforge3). They offer installers for Windows, Linux and OS X. In principle, Conda and Mamba are interchangeable. The commands and concepts are the same.The distributions differ in the methodology for determining dependencies when installing Python packages. Mamba relies on a more modern methodology, which (with the same result) leads to very significant time savings during the installation of FINE. Switching to Mamba usually does not lead to any problems, as it is virtually identical to Conda in terms of operation.
+The installation process uses a Conda-based Python package manager. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/) instead of Conda. The recommended way to use Mamba on your system is to install the [Miniforge distribution](https://github.com/conda-forge/miniforge#miniforge3). They offer installers for Windows, Linux and OS X. In principle, Conda and Mamba are interchangeable. The commands and concepts are the same. The distributions differ in the methodology for determining dependencies when installing Python packages. Mamba relies on a more modern methodology, which (with the same result) leads to very significant time savings during the installation of FINE. Switching to Mamba usually does not lead to any problems, as it is virtually identical to Conda in terms of operation.
 
 If you decide to use Conda you have to expect longer installation times for FINE. In this case, we recommend the installation [through our conda-forge package](#installation-via-conda-forge).
 
@@ -35,7 +35,7 @@ The project environment includes [GLPK](https://sourceforge.net/projects/winglpk
 
 ## Installation
 
-If you would like to run FINE for your analysis we recommend to install it directly from conda-forge into a new Python environment. Alternatively you can install it from a local folder by using the `requirements.yml` file. If want to work on the FINE code base coose "Installation for developers". It performs an editiable installtion of FINE and add some developer tools (e.g. pytest, black) to the environment.
+If you would like to run FINE for your analysis we recommend to install it directly from conda-forge into a new Python environment. Alternatively you can install it from a local folder by using the `requirements.yml` file. If you want to work on the FINE code base choose "Installation for developers". It performs an editable installation of FINE and add some developer tools (e.g. pytest, black) to the environment.
 
 ###  Installation via conda-forge
 The simplest way ist to install FINE into a fresh environment from `conda-forge` with:
@@ -58,13 +58,13 @@ cd fine
 ```bash
 mamba env create -f requirements.yml
 ```
-5. Activate the new enviroment. You should see `(fine)` in front of your command prompt to indicate that you are now in the virtual environment.
+5. Activate the new environment. You should see `(fine)` in front of your command prompt to indicate that you are now in the virtual environment.
 ```bash
 mamba activate fine
 ```
 
 ### Installation for developers
-I you want to work on the FINE codebase you need to run. 
+If you want to work on the FINE codebase you need to run. 
 ```bash
 mamba env create -f requirements_dev.yml
 ```
