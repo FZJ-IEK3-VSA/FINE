@@ -650,18 +650,13 @@ class Component(metaclass=ABCMeta):
             esM.componentModelingDict.update({mdl: self.modelingClass()})
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
-    def prepareTSAInput(
-        self, rateFix, rateMax, rateName, rateWeight, weightDict, data, ip
-    ):
+    def prepareTSAInput(self, rate, rateName, rateWeight, weightDict, data, ip):
         """
         Format the time series data of a component to fit the requirements of the time series aggregation package and
         return a list of formatted data.
 
-        :param rateFix: a fixed operation time series or None
-        :type rateFix: Pandas DataFrame or None
-
-        :param rateMax: a maximum operation time series or None
-        :type rateMax: Pandas DataFrame of None
+        :param rate: a fixed/maximum/minimum operation time series or None
+        :type rate: Pandas DataFrame or None
 
         :param rateName: name of the time series (to ensure uniqueness if a component has multiple relevant time series)
         :type rateName: string
@@ -681,17 +676,13 @@ class Component(metaclass=ABCMeta):
         :return: data
         :rtype: Pandas DataFrame
         """
-        # rateFix/rateMax can be passed as a dict with investment periods
-        if isinstance(rateFix, dict):
-            rateFix = rateFix[ip]
-        else:
-            pass
-        if isinstance(rateMax, dict):
-            rateMax = rateMax[ip]
+        # rate can be passed as a dict with investment periods
+        if isinstance(rate, dict):
+            rate = rate[ip]
         else:
             pass
 
-        data_ = rateFix if rateFix is not None else rateMax
+        data_ = rate
         if data_ is not None:
             data_ = data_.copy()
             uniqueIdentifiers = [self.name + rateName + loc for loc in data_.columns]
@@ -1163,6 +1154,28 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet3),
         )
 
+    def declareOpConstrSet4(self, pyM, constrSetName, rateMin):
+        """
+        Declare set of locations and components for which  hasCapacityVariable is set to True and a minimum
+        operation rate is given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        def declareOpConstrSet4(pyM):
+            return (
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
+                if compDict[compName].hasCapacityVariable
+                and getattr(compDict[compName], rateMin) is not None
+            )
+
+        setattr(
+            pyM,
+            constrSetName + "4_" + abbrvName,
+            pyomo.Set(dimen=3, initialize=declareOpConstrSet4),
+        )
+
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
         """
         Declare set of locations and components for which partLoadMin is not None.
@@ -1183,7 +1196,9 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSetMinPartLoad),
         )
 
-    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix):
+    def declareOperationModeSets(
+        self, pyM, constrSetName, rateMax, rateFix, rateMin=None
+    ):
         """
         Declare operating mode sets.
 
@@ -1196,12 +1211,18 @@ class ComponentModel(metaclass=ABCMeta):
         :param rateMax: attribute of the considered component which stores the maximum operation rate data.
         :type rateMax: string
 
+        :param rateMax: attribute of the considered component which stores the minimum operation rate data.
+        :type rateMax: string
+
         :param rateFix: attribute of the considered component which stores the fixed operation rate data.
         :type rateFix: string
         """
         self.declareOpConstrSet1(pyM, constrSetName, rateMax, rateFix)
         self.declareOpConstrSet2(pyM, constrSetName, rateFix)
         self.declareOpConstrSet3(pyM, constrSetName, rateMax)
+        if rateMin:
+            self.declareOpConstrSet4(pyM, constrSetName, rateMin)
+
         self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
 
     def declareYearlyFullLoadHoursMinSet(self, pyM):
@@ -2342,6 +2363,121 @@ class ComponentModel(metaclass=ABCMeta):
                 pyM,
                 constrName + "3_" + abbrvName,
                 pyomo.Constraint(constrSet3, pyM.intraYearTimeSet, rule=op3),
+            )
+
+    def operationMode4(
+        self,
+        pyM,
+        esM,
+        constrName,
+        constrSetName,
+        opVarName,
+        opRateName="processedOperationRateMin",
+        isStateOfCharge=False,
+        isOperationCommisYearDepending=False,
+        relevanceThreshold=None,
+    ):
+        """
+        Define operation mode 4. The operation [commodityUnit*h] is limited by an installed capacity multiplied
+        with a time series in:\n
+        * [commodityUnit*h] (for storages) or in
+        * [commodityUnit] multiplied by the hours per time step (else).\n
+
+        .. math::
+            op^{comp,opType}_{loc,ip,p,t} = \\tau^{hours} \\cdot \\text{opRateFix}^{comp,opType}_{loc,ip,p,t} \\cdot cap^{comp}_{loc,ip}
+
+        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
+            |br| * the default value is None
+        :type relevanceThreshold: float (>=0) or None
+
+        """
+        # operationRate is the same for all ip
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar = getattr(pyM, opVarName + "_" + abbrvName)
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+        constrSet4 = getattr(pyM, constrSetName + "4_" + abbrvName)
+
+        if not pyM.hasSegmentation:
+            factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            if isOperationCommisYearDepending:
+
+                def op4(pyM, loc, compName, commis, ip, p, t):
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    if relevanceThreshold is not None:
+                        validTreshold = 0 < relevanceThreshold
+                        if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                            # operationRate is lower than threshold --> set to 0
+                            return opVar[loc, compName, commis, ip, p, t] == 0
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        >= commisVar[loc, compName, commis] * rate[loc][p, t] * factor
+                    )
+
+            else:
+
+                def op4(pyM, loc, compName, ip, p, t):
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    if relevanceThreshold is not None:
+                        validTreshold = 0 < relevanceThreshold
+                        if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                            # operationRate is lower than threshold --> set to 0
+                            return opVar[loc, compName, ip, p, t] == 0
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        >= capVar[loc, compName, ip] * rate[loc][p, t] * factor
+                    )
+
+            setattr(
+                pyM,
+                constrName + "4_" + abbrvName,
+                pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
+            )
+        else:
+            if isOperationCommisYearDepending:
+
+                def op4(pyM, loc, compName, commis, ip, p, t):
+                    factor = (
+                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                        if isStateOfCharge
+                        else esM.hoursPerSegment[ip].to_dict()
+                    )
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    if relevanceThreshold is not None:
+                        validTreshold = 0 < relevanceThreshold
+                        if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                            # operationRate is lower than threshold --> set to 0
+                            return opVar[loc, compName, commis, ip, p, t] == 0
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        >= commisVar[loc, compName, commis]
+                        * rate[loc][p, t]
+                        * factor[p, t]
+                    )  # rate and factor independent from ip
+
+            else:
+
+                def op4(pyM, loc, compName, ip, p, t):
+                    factor = (
+                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
+                        if isStateOfCharge
+                        else esM.hoursPerSegment[ip].to_dict()
+                    )
+                    rate = getattr(compDict[compName], opRateName)[ip]
+                    if relevanceThreshold is not None:
+                        validTreshold = 0 < relevanceThreshold
+                        if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
+                            # operationRate is lower than threshold --> set to 0
+                            return opVar[loc, compName, ip, p, t] == 0
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        >= capVar[loc, compName, ip] * rate[loc][p, t] * factor[p, t]
+                    )  # rate and factor independent from ip
+
+            setattr(
+                pyM,
+                constrName + "4_" + abbrvName,
+                pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
     def additionalMinPartLoad(

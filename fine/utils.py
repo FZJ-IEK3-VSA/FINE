@@ -1369,6 +1369,7 @@ def checkAndSetPartLoadMin(
     fullOperationFix,
     bigM,
     hasCapacityVariable,
+    fullOperationMin=None,
 ):
     # checking function
     def checkPartLoadMin(partLoadMin, bigM, hasCapacityVariable):
@@ -1455,6 +1456,11 @@ def checkAndSetPartLoadMin(
                         '"fullOperationRateFix" needs to be higher than "partLoadMin" or 0 for component '
                         + name
                     )
+            if fullOperationMin[ip] is not None:
+                raise ValueError(
+                    '"operationRateMin" must not be set if "partLoadMin" is set for component '
+                    + name
+                )
     return partLoadMin_ip
 
 
