@@ -470,9 +470,14 @@ class Storage(Component):
         ]
 
         for rateFix, rateMax, rateName, rateWeight in I:
-            weightDict, data = self.prepareTSAInput(
-                rateFix, rateMax, rateName, rateWeight, weightDict, data, ip
-            )
+            if rateFix:
+                weightDict, data = self.prepareTSAInput(
+                    rateFix, rateName, rateWeight, weightDict, data, ip
+                )
+            if rateMax:
+                weightDict, data = self.prepareTSAInput(
+                    rateMax, rateName, rateWeight, weightDict, data, ip
+                )
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data, ip):

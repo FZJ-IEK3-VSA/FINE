@@ -22,6 +22,7 @@ class Conversion(Component):
         linkedConversionCapacityID=None,
         hasIsBuiltBinaryVariable=False,
         bigM=None,
+        operationRateMin=None,
         operationRateMax=None,
         operationRateFix=None,
         tsaWeight=1,
@@ -111,6 +112,19 @@ class Conversion(Component):
             same ID have to have the same capacity.
             |br| * the default value is None
         :type linkedConversionCapacityID: string
+
+        :param operationRateMin: if specified, indicates a minimum operation rate for each location and each time
+            step, if required also for each investment period, by a positive float. If hasCapacityVariable is set
+            to True, the values are given relative to the installed capacities (i.e. a value of 1 indicates a
+            utilization of 100% of the capacity). If hasCapacityVariable is set to False, the values are given as
+            absolute values in form of the physicalUnit of the plant for each time step.
+            |br| * the default value is None
+        :type operationRateMin:
+            * None
+            * pandas DataFrame with positive (>=0). The row indices have
+              to match the in the energy system model specified time steps. The column indices have to match the
+              in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param operationRateMax: if specified, indicates a maximum operation rate for each location and each time
             step, if required also for each investment period, by a positive float. If hasCapacityVariable is set
@@ -206,6 +220,29 @@ class Conversion(Component):
                     "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
                     + "The operationRateMax time series was set to None."
                 )
+        if operationRateMin is not None and operationRateFix is not None:
+            operationRateMin = None
+            if esM.verbose < 2:
+                warnings.warn(
+                    "If operationRateFix is specified, the operationRateMin parameter is not required.\n"
+                    + "The operationRateMin time series was set to None."
+                )
+        # if both operationRateMin and operationRateMax are given, check if operationRateMin <= operationRateMax
+        if operationRateMin is not None and operationRateMax is not None:
+            if not (operationRateMax >= operationRateMin).all():
+                # raise error
+                raise ValueError(
+                    "The operationRateMin time series has to be smaller or equal to the operationRateMax time series."
+                )
+
+        # operationRateMin
+        self.operationRateMin = operationRateMin
+        self.fullOperationRateMin = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, operationRateMin, locationalEligibility
+        )
+        self.aggregatedOperationRateMin = {}
+        self.processedOperationRateMin = {}
+
         # operationRateMax
         self.operationRateMax = operationRateMax
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
@@ -231,6 +268,7 @@ class Conversion(Component):
             self.fullOperationRateFix,
             self.bigM,
             self.hasCapacityVariable,
+            fullOperationMin=self.fullOperationRateMin,
         )
 
         # commodity conversions factors
@@ -260,11 +298,16 @@ class Conversion(Component):
         self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
             self.fullOperationRateMax
         )
+        self.fullOperationRateMin = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateMin
+        )
 
         if self.fullOperationRateFix is not None:
             operationTimeSeries = self.fullOperationRateFix
         elif self.fullOperationRateMax is not None:
             operationTimeSeries = self.fullOperationRateMax
+        elif self.fullOperationRateMin is not None:
+            operationTimeSeries = self.fullOperationRateMin
         else:
             operationTimeSeries = None
 
@@ -294,6 +337,10 @@ class Conversion(Component):
         self.processedOperationRateFix = (
             self.aggregatedOperationRateFix if hasTSA else self.fullOperationRateFix
         )
+        # processedOperationMin
+        self.processedOperationRateMin = (
+            self.aggregatedOperationRateMin if hasTSA else self.fullOperationRateMin
+        )
         # processedCommodityConversions
         # timeInfo can either be ip or (commis,ip)
         for timeInfo in self.fullCommodityConversionFactors.keys():
@@ -312,21 +359,38 @@ class Conversion(Component):
         :type ip: int
         """
         weightDict, data = {}, []
-        weightDict, data = self.prepareTSAInput(
-            self.fullOperationRateFix,
-            self.fullOperationRateMax,
-            "_operationRate_",
-            self.tsaWeight,
-            weightDict,
-            data,
-            ip,
-        )
+        if self.fullOperationRateFix:
+            weightDict, data = self.prepareTSAInput(
+                self.fullOperationRateFix,
+                "_operationRateFix_",
+                self.tsaWeight,
+                weightDict,
+                data,
+                ip,
+            )
+        if self.fullOperationRateMin:
+            weightDict, data = self.prepareTSAInput(
+                self.fullOperationRateMin,
+                "_operationRateMin_",
+                self.tsaWeight,
+                weightDict,
+                data,
+                ip,
+            )
+        if self.fullOperationRateMax:
+            weightDict, data = self.prepareTSAInput(
+                self.fullOperationRateMax,
+                "_operationRateMax_",
+                self.tsaWeight,
+                weightDict,
+                data,
+                ip,
+            )
 
         if not self.isCommisDepending:
             for commod in self.fullCommodityConversionFactors[ip]:
                 weightDict, data = self.prepareTSAInput(
                     self.fullCommodityConversionFactors[ip][commod],
-                    None,
                     "_commodityConversionFactorTimeSeries" + str(commod) + "_",
                     self.tsaWeight,
                     weightDict,
@@ -345,7 +409,6 @@ class Conversion(Component):
                 for commod in self.fullCommodityConversionFactors[(commisYear, ip)]:
                     weightDict, data = self.prepareTSAInput(
                         self.fullCommodityConversionFactors[(commisYear, ip)][commod],
-                        None,
                         "_commodityConversionFactorTimeSeries"
                         + str(commod)
                         + str(commisYear).replace("-", "minus")
@@ -368,10 +431,13 @@ class Conversion(Component):
         :type ip: int
         """
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(
-            self.fullOperationRateFix, "_operationRate_", data, ip
+            self.fullOperationRateFix, "_operationRateFix_", data, ip
+        )
+        self.aggregatedOperationRateMin[ip] = self.getTSAOutput(
+            self.fullOperationRateMin, "_operationRateMin_", data, ip
         )
         self.aggregatedOperationRateMax[ip] = self.getTSAOutput(
-            self.fullOperationRateMax, "_operationRate_", data, ip
+            self.fullOperationRateMax, "_operationRateMax_", data, ip
         )
 
         # get the aggregated commodity conversion factors
@@ -419,7 +485,11 @@ class Conversion(Component):
         aggregation. If all entries of dictionary are None
         the parameter itself is set to None.
         """
-        for parameter in ["processedOperationRateFix", "processedOperationRateMax"]:
+        for parameter in [
+            "processedOperationRateFix",
+            "processedOperationRateMax",
+            "processedOperationRateMin",
+        ]:
             setattr(
                 self,
                 parameter,
@@ -525,7 +595,7 @@ class ConversionModel(ComponentModel):
             pyomo.Set(dimen=4, initialize=declareOpCommisVarSet),
         )
 
-    def declareOpCommisConstrSet1(self, pyM, constrSetName, rateMax, rateFix):
+    def declareOpCommisConstrSet1(self, pyM, constrSetName, rateMax, rateFix, rateMin):
         """
         Declare set of locations and components for which hasCapacityVariable is set to True and neither the
         maximum nor the fixed operation rate is given.
@@ -540,6 +610,7 @@ class ConversionModel(ComponentModel):
                 if compDict[compName].hasCapacityVariable
                 and getattr(compDict[compName], rateMax) is None
                 and getattr(compDict[compName], rateFix) is None
+                and getattr(compDict[compName], rateMin) is None
                 and compDict[compName].isCommisDepending
             )
 
@@ -593,6 +664,29 @@ class ConversionModel(ComponentModel):
             pyM,
             constrSetName + "3_" + abbrvName,
             pyomo.Set(dimen=4, initialize=declareOpCommisConstrSet3),
+        )
+
+    def declareOpCommisConstrSet4(self, pyM, constrSetName, rateMin):
+        """
+        Declare set of locations and components for which  hasCapacityVariable is set to True and a minimum
+        operation rate is given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
+
+        def declareOpCommisConstrSet4(pyM):
+            return (
+                (loc, compName, commis, ip)
+                for loc, compName, commis, ip in varSet
+                if compDict[compName].hasCapacityVariable
+                and getattr(compDict[compName], rateMin) is not None
+                and compDict[compName].isCommisDepending
+            )
+
+        setattr(
+            pyM,
+            constrSetName + "4_" + abbrvName,
+            pyomo.Set(dimen=4, initialize=declareOpCommisConstrSet4),
         )
 
     def declareOpCommisConstrSetMinPartLoad(self, pyM, constrSetName):
@@ -658,11 +752,14 @@ class ConversionModel(ComponentModel):
             pyomo.Set(dimen=4, initialize=declareYearlyFullLoadHoursCommisMaxSet()),
         )
 
-    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix):
-        super().declareOperationModeSets(pyM, constrSetName, rateMax, rateFix)
-        self.declareOpCommisConstrSet1(pyM, "opCommisConstrSet", rateMax, rateFix)
+    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix, rateMin):
+        super().declareOperationModeSets(pyM, constrSetName, rateMax, rateFix, rateMin)
+        self.declareOpCommisConstrSet1(
+            pyM, "opCommisConstrSet", rateMax, rateFix, rateMin
+        )
         self.declareOpCommisConstrSet2(pyM, "opCommisConstrSet", rateFix)
         self.declareOpCommisConstrSet3(pyM, "opCommisConstrSet", rateMax)
+        self.declareOpCommisConstrSet4(pyM, "opCommisConstrSet", rateMin)
         self.declareOpCommisConstrSetMinPartLoad(pyM, "opCommisConstrSet")
 
     def declareSets(self, esM, pyM):
@@ -694,7 +791,11 @@ class ConversionModel(ComponentModel):
 
         # Declare operation mode sets
         self.declareOperationModeSets(
-            pyM, "opConstrSet", "processedOperationRateMax", "processedOperationRateFix"
+            pyM,
+            "opConstrSet",
+            "processedOperationRateMax",
+            "processedOperationRateFix",
+            "processedOperationRateMin",
         )
 
         # Declare linked components dictionary
@@ -874,6 +975,17 @@ class ConversionModel(ComponentModel):
         # series [-] and the hours per time step [h]
         self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         self.operationMode3(
+            pyM,
+            esM,
+            "ConstrOperationCommis",
+            "opCommisConstrSet",
+            "op_commis",
+            isOperationCommisYearDepending=True,
+        )
+        # Operation [physicalUnit*h] is limited (min) by the installed capacity [physicalUnit] multiplied by operation time
+        # series [-] and the hours per time step [h]
+        self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+        self.operationMode4(
             pyM,
             esM,
             "ConstrOperationCommis",
