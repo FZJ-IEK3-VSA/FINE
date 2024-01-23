@@ -19,7 +19,7 @@ dependencies:
   - conda-forge::pandas
   - conda-forge::networkx
   - conda-forge::scipy
-  - conda-forge::scikit-learn
+  - conda-forge::scikit-learn>=1.2
   - conda-forge::xarray
   - conda-forge::rasterio
   - conda-forge::netcdf4

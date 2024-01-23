@@ -446,15 +446,24 @@ class Transmission(Component):
         :type ip: int
         """
         weightDict, data = {}, []
-        weightDict, data = self.prepareTSAInput(
-            self.fullOperationRateFix,
-            self.fullOperationRateMax,
-            "_operationRate_",
-            self.tsaWeight,
-            weightDict,
-            data,
-            ip,
-        )
+        if self.fullOperationRateFix:
+            weightDict, data = self.prepareTSAInput(
+                self.fullOperationRateFix,
+                "_operationRateFix_",
+                self.tsaWeight,
+                weightDict,
+                data,
+                ip,
+            )
+        if self.fullOperationRateMax:
+            weightDict, data = self.prepareTSAInput(
+                self.fullOperationRateMax,
+                "_operationRateMax_",
+                self.tsaWeight,
+                weightDict,
+                data,
+                ip,
+            )
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data, ip):
@@ -469,10 +478,10 @@ class Transmission(Component):
         """
 
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(
-            self.fullOperationRateFix, "_operationRate_", data, ip
+            self.fullOperationRateFix, "_operationRateFix_", data, ip
         )
         self.aggregatedOperationRateMax[ip] = self.getTSAOutput(
-            self.fullOperationRateMax, "_operationRate_", data, ip
+            self.fullOperationRateMax, "_operationRateMax_", data, ip
         )
 
     def checkProcessedDataSets(self):

@@ -1,5 +1,6 @@
 import os
 from importlib.metadata import version
+from pathlib import Path
 
 import pandas as pd
 
@@ -7,8 +8,8 @@ from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
 
 def test_compareResults_miniSystem(minimal_test_esM):
-    cwd = os.getcwd()
-    dataPath = os.path.join(cwd, "test", "data")
+    module_directory = Path(__file__).parent.absolute()
+    dataPath = os.path.join(module_directory, "..", "data")
 
     # create new result excel files
     pathWithoutSegmentation_output = os.path.join(dataPath, "output_result_minisystem")
@@ -36,8 +37,8 @@ def test_compareResults_miniSystem(minimal_test_esM):
 
 
 def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
-    cwd = os.getcwd()
-    dataPath = os.path.join(cwd, "test", "data")
+    module_directory = Path(__file__).parent.absolute()
+    dataPath = os.path.join(module_directory, "..", "data")
 
     # create new result excel files
     pathMultiNode_output = os.path.join(dataPath, "output_result_multinode")

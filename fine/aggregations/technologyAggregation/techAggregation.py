@@ -387,7 +387,7 @@ def aggregate_RE_technology(
 
             # Clustering
             agg_cluster = AgglomerativeClustering(
-                n_clusters=n_timeSeries_perRegion, affinity="euclidean", linkage=linkage
+                n_clusters=n_timeSeries_perRegion, metric="euclidean", linkage=linkage
             )
             agglomerative_model = agg_cluster.fit(regional_capfac_da)
 

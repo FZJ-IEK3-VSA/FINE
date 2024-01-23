@@ -20,6 +20,7 @@ class Source(Component):
         capacityPerPlantUnit=1,
         hasIsBuiltBinaryVariable=False,
         bigM=None,
+        operationRateMin=None,
         operationRateMax=None,
         operationRateFix=None,
         tsaWeight=1,
@@ -76,6 +77,19 @@ class Source(Component):
         :type hasCapacityVariable: boolean
 
         **Default arguments:**
+        :param operationRateMin: if specified, indicates a minimum operation rate for each location and each time, if required also for each investment period, if
+            step by a positive float. If hasCapacityVariable is set to True, the values are given relative
+            to the installed capacities (i.e. a value of 1 indicates a utilization of 100% of the
+            capacity). If hasCapacityVariable is set to False, the values are given as absolute values in form
+            of the commodityUnit for each time step.
+            |br| * the default value is None
+        :type operationRateMin:
+
+            * None
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
+              to match the in the energy system model specified time steps. The column indices have to equal the
+              in the energy system model specified locations. The data in ineligible locations are set to zero.
+            * a dict
 
         :param operationRateMax: if specified, indicates a maximum operation rate for each location and each time, if required also for each investment period, if
             step by a positive float. If hasCapacityVariable is set to True, the values are given relative
@@ -335,6 +349,14 @@ class Source(Component):
         self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
+        # operationRateMin
+        self.operationRateMin = operationRateMin
+        self.fullOperationRateMin = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, operationRateMin, locationalEligibility
+        )
+        self.aggregatedOperationRateMin = {}
+        self.processedOperationRateMin = {}
+
         # operationRateMax
         self.operationRateMax = operationRateMax
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
@@ -364,12 +386,24 @@ class Source(Component):
                         + "The operationRateMax time series of investment period "
                         + f"'{esM.investmentPeriodNames[ip]}' was set to None."
                     )
+            if (
+                self.fullOperationRateFix[ip] is not None
+                and self.fullOperationRateMin[ip] is not None
+            ):
+                self.fullOperationRateMin[ip] = None
+                if esM.verbose < 2:
+                    warnings.warn(
+                        "If operationRateFix is specified, the operationRateMin parameter is not required.\n"
+                        + "The operationRateMin time series of investment period "
+                        + f"'{esM.investmentPeriodNames[ip]}' was set to None."
+                    )
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
             esM,
             name,
             partLoadMin,
+            self.fullOperationRateMin,
             self.fullOperationRateMax,
             self.fullOperationRateFix,
             self.bigM,
@@ -382,6 +416,9 @@ class Source(Component):
         # set parameter to None if all years have None values
         self.fullOperationRateFix = utils.setParamToNoneIfNoneForAllYears(
             self.fullOperationRateFix
+        )
+        self.fullOperationRateMin = utils.setParamToNoneIfNoneForAllYears(
+            self.fullOperationRateMin
         )
         self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
             self.fullOperationRateMax
@@ -398,6 +435,8 @@ class Source(Component):
 
         if self.fullOperationRateFix is not None:
             operationTimeSeries = self.fullOperationRateFix
+        elif self.fullOperationRateMin is not None:
+            operationTimeSeries = self.fullOperationRateMin
         elif self.fullOperationRateMax is not None:
             operationTimeSeries = self.fullOperationRateMax
         else:
@@ -421,6 +460,10 @@ class Source(Component):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
+        self.processedOperationRateMin = (
+            self.aggregatedOperationRateMin if hasTSA else self.fullOperationRateMin
+        )
+
         self.processedOperationRateMax = (
             self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
         )
@@ -449,18 +492,35 @@ class Source(Component):
         """
 
         weightDict, data = {}, []
-        weightDict, data = self.prepareTSAInput(
-            self.fullOperationRateFix,
-            self.fullOperationRateMax,
-            "_operationRate_",
-            self.tsaWeight,
-            weightDict,
-            data,
-            ip,
-        )
+        if self.fullOperationRateFix:
+            weightDict, data = self.prepareTSAInput(
+                self.fullOperationRateFix,
+                "_operationRateFix_",
+                self.tsaWeight,
+                weightDict,
+                data,
+                ip,
+            )
+        if self.fullOperationRateMin:
+            weightDict, data = self.prepareTSAInput(
+                self.fullOperationRateMin,
+                "_operationRateMin_",
+                self.tsaWeight,
+                weightDict,
+                data,
+                ip,
+            )
+        if self.fullOperationRateMax:
+            weightDict, data = self.prepareTSAInput(
+                self.fullOperationRateMax,
+                "_operationRateMax_",
+                self.tsaWeight,
+                weightDict,
+                data,
+                ip,
+            )
         weightDict, data = self.prepareTSAInput(
             self.fullCommodityCostTimeSeries,
-            None,
             "_commodityCostTimeSeries_",
             self.tsaWeight,
             weightDict,
@@ -469,7 +529,6 @@ class Source(Component):
         )
         weightDict, data = self.prepareTSAInput(
             self.fullCommodityRevenueTimeSeries,
-            None,
             "_commodityRevenueTimeSeries_",
             self.tsaWeight,
             weightDict,
@@ -491,10 +550,13 @@ class Source(Component):
         """
 
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(
-            self.fullOperationRateFix, "_operationRate_", data, ip
+            self.fullOperationRateFix, "_operationRateFix_", data, ip
         )
         self.aggregatedOperationRateMax[ip] = self.getTSAOutput(
-            self.fullOperationRateMax, "_operationRate_", data, ip
+            self.fullOperationRateMax, "_operationRateMax_", data, ip
+        )
+        self.aggregatedOperationRateMin[ip] = self.getTSAOutput(
+            self.fullOperationRateMin, "_operationRateMin_", data, ip
         )
         self.aggregatedCommodityCostTimeSeries[ip] = self.getTSAOutput(
             self.fullCommodityCostTimeSeries, "_commodityCostTimeSeries_", data, ip
@@ -513,6 +575,7 @@ class Source(Component):
         """
         for parameter in [
             "processedOperationRateFix",
+            "processedOperationRateMin",
             "processedOperationRateMax",
             "processedCommodityCostTimeSeries",
             "processedCommodityRevenueTimeSeries",
@@ -539,6 +602,7 @@ class Sink(Source):
         capacityPerPlantUnit=1,
         hasIsBuiltBinaryVariable=False,
         bigM=None,
+        operationRateMin=None,
         operationRateMax=None,
         operationRateFix=None,
         tsaWeight=1,
@@ -587,6 +651,7 @@ class Sink(Source):
             capacityPerPlantUnit=capacityPerPlantUnit,
             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
             bigM=bigM,
+            operationRateMin=operationRateMin,
             operationRateMax=operationRateMax,
             operationRateFix=operationRateFix,
             tsaWeight=tsaWeight,
@@ -705,7 +770,11 @@ class SourceSinkModel(ComponentModel):
 
         # Declare sets for case differentiation of operating modes
         self.declareOperationModeSets(
-            pyM, "opConstrSet", "processedOperationRateMax", "processedOperationRateFix"
+            pyM,
+            "opConstrSet",
+            "processedOperationRateMax",
+            "processedOperationRateFix",
+            "processedOperationRateMin",
         )
 
         # Declare commodity limitation dictionary
@@ -860,6 +929,9 @@ class SourceSinkModel(ComponentModel):
         # Operation [commodityUnit*h] limited by the installed capacity [commodityUnit] multiplied by operation time
         # series [-] and the hours per time step [h])
         self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+        # Operation [commodityUnit*h] limited(min) by the installed capacity [commodityUnit] multiplied by operation time
+        # series [-] and the hours per time step [h])
+        self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
