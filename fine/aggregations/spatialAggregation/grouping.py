@@ -284,7 +284,7 @@ def perform_parameter_based_grouping(
     if aggregation_method == "hierarchical":
         model = skc.AgglomerativeClustering(
             n_clusters=n_groups,
-            affinity="precomputed",
+            metric="precomputed",
             linkage="complete",
             connectivity=connectivity_matrix,
         ).fit(precomputed_dist_matrix)
