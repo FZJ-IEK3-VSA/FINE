@@ -1,6 +1,7 @@
 """
 Functions to assist technology aggregation algorithm.
 """
+
 import warnings
 import os
 import numpy as np

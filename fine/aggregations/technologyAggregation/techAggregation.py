@@ -1,6 +1,7 @@
 """
 Aggregation of RE technologies in every region.
 """
+
 import logging
 import numpy as np
 import xarray as xr

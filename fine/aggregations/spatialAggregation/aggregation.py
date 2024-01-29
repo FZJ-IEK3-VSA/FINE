@@ -130,10 +130,9 @@ def aggregate_time_series_spatially(
 
             weighted_sub_region_da = sub_region_da * sub_region_weight_da
 
-            xr_data_array_out.loc[
-                dict(space=sup_region_id)
-            ] = weighted_sub_region_da.sum(dim="space") / sub_region_weight_da.sum(
-                dim="space"
+            xr_data_array_out.loc[dict(space=sup_region_id)] = (
+                weighted_sub_region_da.sum(dim="space")
+                / sub_region_weight_da.sum(dim="space")
             )
 
         elif mode == "mean":
