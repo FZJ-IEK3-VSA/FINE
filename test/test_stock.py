@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 import fine as fn
+import warnings
 
 
 def test_Stock_wrongStockYears():
@@ -27,7 +28,7 @@ def test_Stock_wrongStockYears():
         verboseLogLevel=2,
     )
 
-    with pytest.warns(None) as warnings:
+    with pytest.warns() as my_warnings:
         fn.Source(
             esM=esM,
             name="PV",
@@ -42,8 +43,7 @@ def test_Stock_wrongStockYears():
             technicalLifetime=6,
             stockCommissioning={2013: 2, 2017: 0, 2018: 5},
         )
-
-    if not any(w for w in warnings if "Stock of component" in str(w)):
+    if not any(w for w in my_warnings if "Stock of component" in str(w)):
         raise ValueError(
             "Warning for stock with capacity older than technical lifetime is not raised."
         )

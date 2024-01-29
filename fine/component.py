@@ -3089,10 +3089,11 @@ class ComponentModel(metaclass=ABCMeta):
                 # write costs into dataframe
                 # a) costs for complete intervals
                 for i in range(commisYear, commisYear + intervalsWithCompleteCosts):
-                    costContribution[(loc, compName)][
-                        (commisYear, i)
-                    ] = annuity * utils.annuityPresentValueFactor(
-                        esM, compName, loc, esM.investmentPeriodInterval
+                    costContribution[(loc, compName)][(commisYear, i)] = (
+                        annuity
+                        * utils.annuityPresentValueFactor(
+                            esM, compName, loc, esM.investmentPeriodInterval
+                        )
                     )
 
                 # b) costs for last economic interval
@@ -3159,14 +3160,15 @@ class ComponentModel(metaclass=ABCMeta):
                             ]
                         )
                         if getOptValueCostType == "NPV":
-                            cost_results[ip].loc[
-                                compName, loc
-                            ] = cContrSum * utils.discountFactor(esM, ip, compName, loc)
+                            cost_results[ip].loc[compName, loc] = (
+                                cContrSum * utils.discountFactor(esM, ip, compName, loc)
+                            )
                         elif getOptValueCostType == "TAC":
-                            cost_results[ip].loc[
-                                compName, loc
-                            ] = cContrSum / utils.annuityPresentValueFactor(
-                                esM, compName, loc, esM.investmentPeriodInterval
+                            cost_results[ip].loc[compName, loc] = (
+                                cContrSum
+                                / utils.annuityPresentValueFactor(
+                                    esM, compName, loc, esM.investmentPeriodInterval
+                                )
                             )
                 return cost_results
             else:
@@ -3458,18 +3460,18 @@ class ComponentModel(metaclass=ABCMeta):
 
             locCompIpCombinations = list(set([(x[0], x[1], x[2]) for x in var]))
             for loc, compName, year in locCompIpCombinations:
-                costContribution[(loc, compName)][
-                    (year, year)
-                ] = self.getLocEconomicsOperation(
-                    pyM,
-                    esM,
-                    fncType,
-                    factorNames,
-                    varName,
-                    loc,
-                    compName,
-                    year,
-                    getOptValue,
+                costContribution[(loc, compName)][(year, year)] = (
+                    self.getLocEconomicsOperation(
+                        pyM,
+                        esM,
+                        fncType,
+                        factorNames,
+                        varName,
+                        loc,
+                        compName,
+                        year,
+                        getOptValue,
+                    )
                 )
 
             # create dictionary with ip as key and a dataframe with
@@ -3737,12 +3739,14 @@ class ComponentModel(metaclass=ABCMeta):
         tuples = list(
             map(
                 lambda x: (
-                    x[0],
-                    x[1],
-                    "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
-                )
-                if x[1] in ["capacity", "commissioning", "decommissioning"]
-                else x,
+                    (
+                        x[0],
+                        x[1],
+                        "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
+                    )
+                    if x[1] in ["capacity", "commissioning", "decommissioning"]
+                    else x
+                ),
                 tuples,
             )
         )
@@ -3871,9 +3875,9 @@ class ComponentModel(metaclass=ABCMeta):
             commisOptVal_ = utils.formatOptimizationOutput(
                 commisValues, "designVariables", self.dimension, ip, compDict=compDict
             )
-            self._commissioningVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = commisOptVal_
+            self._commissioningVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                commisOptVal_
+            )
             # Get and set optimal variable values for decommissioning
             decommisValues = decommisVar.get_values()
             decommisOptVal = utils.formatOptimizationOutput(
@@ -3882,9 +3886,9 @@ class ComponentModel(metaclass=ABCMeta):
             decommisOptVal_ = utils.formatOptimizationOutput(
                 decommisValues, "designVariables", self.dimension, ip, compDict=compDict
             )
-            self._decommissioningVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = decommisOptVal_
+            self._decommissioningVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                decommisOptVal_
+            )
 
             if capOptVal is not None:
                 # Check if the installed capacities are close to a bigM val

@@ -274,9 +274,9 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
         df_variable.index.set_names("component", level=0, inplace=True)
 
         ds_component = xr.Dataset()
-        ds_component[
-            f"ts_{variable_description}"
-        ] = df_variable.sort_index().to_xarray()
+        ds_component[f"ts_{variable_description}"] = (
+            df_variable.sort_index().to_xarray()
+        )
 
         for comp in df_variable.index.get_level_values(0).unique():
             this_class = comp.split("; ")[0]
@@ -372,9 +372,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             df_variable = pd.concat(space_space_dict)
             df_variable.index.set_names("component", level=0, inplace=True)
             ds_component = xr.Dataset()
-            ds_component[
-                f"2d_{variable_description}"
-            ] = df_variable.sort_index().to_xarray()
+            ds_component[f"2d_{variable_description}"] = (
+                df_variable.sort_index().to_xarray()
+            )
 
             for comp in df_variable.index.get_level_values(0).unique():
                 this_class = comp.split("; ")[0]
@@ -396,9 +396,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             df_variable = pd.concat(space_dict)
             df_variable.index.set_names("component", level=0, inplace=True)
             ds_component = xr.Dataset()
-            ds_component[
-                f"1d_{variable_description}"
-            ] = df_variable.sort_index().to_xarray()
+            ds_component[f"1d_{variable_description}"] = (
+                df_variable.sort_index().to_xarray()
+            )
 
             for comp in df_variable.index.get_level_values(0).unique():
                 this_class = comp.split("; ")[0]
@@ -420,9 +420,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             df_variable = pd.concat(time_dict)
             df_variable.index.set_names("component", level=0, inplace=True)
             ds_component = xr.Dataset()
-            ds_component[
-                f"ts_{variable_description}"
-            ] = df_variable.sort_index().to_xarray()
+            ds_component[f"ts_{variable_description}"] = (
+                df_variable.sort_index().to_xarray()
+            )
 
             for comp in df_variable.index.get_level_values(0).unique():
                 this_class = comp.split("; ")[0]

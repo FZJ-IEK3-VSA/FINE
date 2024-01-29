@@ -1854,24 +1854,28 @@ class StorageModel(ComponentModel):
             tuples = list(
                 map(
                     lambda x: (
-                        x[0],
-                        x[1],
-                        x[2].replace("-", compDict[x[0]].commodityUnit),
-                    )
-                    if x[1] in ["operationCharge", "NPV_operationCharge"]
-                    else x,
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace("-", compDict[x[0]].commodityUnit),
+                        )
+                        if x[1] in ["operationCharge", "NPV_operationCharge"]
+                        else x
+                    ),
                     tuples,
                 )
             )
             tuples = list(
                 map(
                     lambda x: (
-                        x[0],
-                        x[1],
-                        x[2].replace("-", compDict[x[0]].commodityUnit),
-                    )
-                    if x[1] in ["operationDischarge", "NPV_operationDischarge"]
-                    else x,
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace("-", compDict[x[0]].commodityUnit),
+                        )
+                        if x[1] in ["operationDischarge", "NPV_operationDischarge"]
+                        else x
+                    ),
                     tuples,
                 )
             )
@@ -1891,9 +1895,9 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._chargeOperationVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = optVal_charge
+            self._chargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                optVal_charge
+            )
 
             if optVal_charge is not None:
                 idx = pd.IndexSlice
@@ -1956,9 +1960,9 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._dischargeOperationVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = optVal_discharge
+            self._dischargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                optVal_discharge
+            )
             # Check if there are time steps, at which a storage component is both charging and discharging
             for compName in opSum.index:
                 simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(

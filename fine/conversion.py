@@ -447,13 +447,13 @@ class Conversion(Component):
             if self.fullCommodityConversionFactors[ip] != {}:
                 self.aggregatedCommodityConversionFactors[ip] = {}
                 for commod in self.fullCommodityConversionFactors[ip]:
-                    self.aggregatedCommodityConversionFactors[ip][
-                        commod
-                    ] = self.getTSAOutput(
-                        self.fullCommodityConversionFactors[ip][commod],
-                        "_commodityConversionFactorTimeSeries" + str(commod) + "_",
-                        data,
-                        ip,
+                    self.aggregatedCommodityConversionFactors[ip][commod] = (
+                        self.getTSAOutput(
+                            self.fullCommodityConversionFactors[ip][commod],
+                            "_commodityConversionFactorTimeSeries" + str(commod) + "_",
+                            data,
+                            ip,
+                        )
                     )
         else:
             # if depending on the commissioning year, iterate over the relevant commissioning years for the
@@ -1243,12 +1243,14 @@ class ConversionModel(ComponentModel):
             tuples = list(
                 map(
                     lambda x: (
-                        x[0],
-                        x[1],
-                        x[2].replace("-", compDict[x[0]].physicalUnit),
-                    )
-                    if x[1] == "operation"
-                    else x,
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace("-", compDict[x[0]].physicalUnit),
+                        )
+                        if x[1] == "operation"
+                        else x
+                    ),
                     tuples,
                 )
             )

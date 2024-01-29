@@ -339,7 +339,6 @@ class ConversionPartLoad(Conversion):
 
 
 class ConversionPartLoadModel(ConversionModel):
-
     """
     A ConversionPartLoad class instance will be instantly created if a ConversionPartLoad class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the Conversion class
@@ -911,9 +910,9 @@ class ConversionPartLoadModel(ConversionModel):
                 esM=esM,
             )
 
-            self.discretizationPointVariablesOptimun[
-                esM.investmentPeriodNames[ip]
-            ] = discretizationPointVariablesOptVal_
+            self.discretizationPointVariablesOptimun[esM.investmentPeriodNames[ip]] = (
+                discretizationPointVariablesOptVal_
+            )
             self.discretizationSegmentConVariablesOptimun[
                 esM.investmentPeriodNames[ip]
             ] = discretizationSegmentConVariablesOptVal_

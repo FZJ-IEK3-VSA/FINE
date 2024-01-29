@@ -1271,12 +1271,14 @@ class SourceSinkModel(ComponentModel):
             tuples = list(
                 map(
                     lambda x: (
-                        x[0],
-                        x[1],
-                        x[2].replace("-", compDict[x[0]].commodityUnit),
-                    )
-                    if x[1] == "operation"
-                    else x,
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace("-", compDict[x[0]].commodityUnit),
+                        )
+                        if x[1] == "operation"
+                        else x
+                    ),
                     tuples,
                 )
             )
