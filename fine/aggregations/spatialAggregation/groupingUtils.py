@@ -1,5 +1,6 @@
 """Functions to assist spatial grouping algorithms. 
 """
+
 import warnings
 import numpy as np
 from scipy.cluster import hierarchy
@@ -452,9 +453,9 @@ def get_connectivity_matrix(xarray_datasets):
         for comp, comp_ds in comp_dict.items():
             for varname, da in comp_ds.data_vars.items():
                 if varname[:3] == "2d_":
-                    connectivity_matrix[
-                        da.values > 0
-                    ] = 1  # if a pos, non-zero value exits, make a connection!
+                    connectivity_matrix[da.values > 0] = (
+                        1  # if a pos, non-zero value exits, make a connection!
+                    )
 
     return connectivity_matrix
 

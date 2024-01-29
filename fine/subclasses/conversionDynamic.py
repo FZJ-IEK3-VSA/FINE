@@ -82,7 +82,6 @@ class ConversionDynamic(Conversion):
 
 
 class ConversionDynamicModel(ConversionModel):
-
     """
     A ConversionDynamicModel class instance will be instantly created if a ConversionDynamic class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the ConversionDynamic

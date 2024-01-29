@@ -2584,9 +2584,9 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                             isDataVariating = True
                             break
             # if all are same, save the base commodity conversion of the ip in the new dict
-            commissioningIndependentCommodityConversionFactor[
-                ip
-            ] = _baseCommodConvFactor
+            commissioningIndependentCommodityConversionFactor[ip] = (
+                _baseCommodConvFactor
+            )
 
         # if data is variating set commis depending true
         if isDataVariating:
@@ -2668,26 +2668,26 @@ def checkAndSetCommodityConversionFactor(comp, esM):
             if isinstance(
                 _commodityConversionFactors[commod], (pd.Series, pd.DataFrame)
             ):
-                fullCommodityConversionFactor[newKeyName][
-                    commod
-                ] = checkAndSetTimeSeriesConversionFactors(
-                    esM,
-                    _commodityConversionFactors[commod],
-                    comp.locationalEligibility,
+                fullCommodityConversionFactor[newKeyName][commod] = (
+                    checkAndSetTimeSeriesConversionFactors(
+                        esM,
+                        _commodityConversionFactors[commod],
+                        comp.locationalEligibility,
+                    )
                 )
-                preprocessedCommodityConversionFactor[newKeyName][
-                    commod
-                ] = fullCommodityConversionFactor[newKeyName][commod]
+                preprocessedCommodityConversionFactor[newKeyName][commod] = (
+                    fullCommodityConversionFactor[newKeyName][commod]
+                )
 
             elif isinstance(_commodityConversionFactors[commod], (int, float)):
                 # fix values do not need a time-series aggregation and are written
                 # directly to processedCommodityConversion
-                processedCommodityConversionFactor[newKeyName][
-                    commod
-                ] = _commodityConversionFactors[commod]
-                preprocessedCommodityConversionFactor[newKeyName][
-                    commod
-                ] = processedCommodityConversionFactor[newKeyName][commod]
+                processedCommodityConversionFactor[newKeyName][commod] = (
+                    _commodityConversionFactors[commod]
+                )
+                preprocessedCommodityConversionFactor[newKeyName][commod] = (
+                    processedCommodityConversionFactor[newKeyName][commod]
+                )
             else:
                 raise ValueError(
                     f"Data type '{_commodityConversionFactors}' for commodity "
