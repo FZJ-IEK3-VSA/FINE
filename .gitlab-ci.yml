@@ -16,6 +16,8 @@ variables:
 
 .test_template:
   stage: test
+  tags:
+    - workstation
   variables:
     CONDA_PKGS_DIRS: "$CI_PROJECT_DIR/.cache/pkgs"
   cache:
@@ -105,6 +107,8 @@ variables:
 
 .build_template:
   stage: build
+  tags:
+    - workstation
   image: docker@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
   services:
     - docker:dind@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
