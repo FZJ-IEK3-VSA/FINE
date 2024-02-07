@@ -38,6 +38,3 @@ dependencies:
   - pytest-cov
   - nbval
   - black
-
-  - pip:
-      - -e .
