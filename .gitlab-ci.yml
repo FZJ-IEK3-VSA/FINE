@@ -120,7 +120,7 @@ variables:
 test-code:
   extends: .test_template
   script:
-    - python -m pytest --cov=fine test/
+    - python -m pytest -n 6 --cov=fine test/
   rules:
     # Run only for pushes to master or develop and for merge requests to master.
     # Do not run for scheduled pushes to master (runs `test-code-push-cache` instead).
@@ -135,7 +135,7 @@ test-code-push-cache:
   cache:
     policy: push
   script:
-    - python -m pytest --cov=fine test/
+    - python -m pytest -n auto --cov=fine test/
   rules:
     # Run only for scheduled pushes to master.
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "master"'
@@ -143,12 +143,12 @@ test-code-push-cache:
 test-code-docker:
   extends: .test_docker_template
   script:
-    - python -m pytest --cov=fine test/
+    - python -m pytest -n auto --cov=fine test/
 
 test-code-docker-noupdate:
   extends: .test_docker_template_noupdate
   script:
-    - python -m pytest --cov=fine test/
+    - python -m pytest -n auto --cov=fine test/
 
 test-notebooks:
   extends: .test_template
