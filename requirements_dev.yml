@@ -1,39 +1,44 @@
 name: fine_dev
 
+channels:
+  - conda-forge
+  - nodefaults
+
 dependencies:
-  - conda-forge::python>=3.10
-  - conda-forge::libiconv
-  - conda-forge::gdal=3.4.3
-  - conda-forge::geopandas
-  - conda-forge::jupyter
-  - conda-forge::notebook
-  - conda-forge::libpysal
-  - conda-forge::pip
-  - conda-forge::descartes
-  - conda-forge::glpk
-  - conda-forge::openpyxl
-  - conda-forge::matplotlib
-  - conda-forge::xlrd
-  - conda-forge::pyomo
-  - conda-forge::numpy
-  - conda-forge::pandas
-  - conda-forge::networkx
-  - conda-forge::scipy
-  - conda-forge::scikit-learn>=1.2
-  - conda-forge::xarray
-  - conda-forge::rasterio
-  - conda-forge::netcdf4
-  - conda-forge::tsam
-  - conda-forge::sphinx
-  - conda-forge::sphinx_rtd_theme
-  - conda-forge::myst-parser
-  - conda-forge::pytest
-  - conda-forge::pytest-cov
-  - conda-forge::nbval
-  - conda-forge::black
-  - conda-forge::pwlf
-  - conda-forge::psutil
-  - conda-forge::gurobi-logtools
+  - python>=3.10
+  - libiconv
+  - gdal=3.4.*
+  - geopandas
+  - jupyter
+  - notebook
+  - libpysal
+  - pip
+  - descartes
+  - glpk
+  - openpyxl
+  - matplotlib
+  - pillow
+  - xlrd
+  - pyomo
+  - numpy
+  - pandas
+  - networkx
+  - scipy
+  - scikit-learn>=1.2
+  - xarray
+  - rasterio
+  - netcdf4
+  - tsam
+  - sphinx
+  - sphinx_rtd_theme
+  - myst-parser
+  - pytest
+  - pytest-cov
+  - nbval
+  - black
+  - pwlf
+  - psutil
+  - gurobi-logtools
   
   - pip:
       - -e .
