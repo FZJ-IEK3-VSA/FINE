@@ -88,11 +88,16 @@ python -m pip install .
 ### Installation for developers
 If you want to work on the FINE codebase you need to run. 
 ```bash
+git clone https://github.com/FZJ-IEK3-VSA/FINE.git
+```
+to get the whole git history and then
+```bash
 mamba env create -f requirements_dev.yml
 ```
+
 This installs additional dependencies such as `pytest` and installs FINE from the folder in editable mode with `pip -e`. Changes in the folder are then reflected in the package installation.
 
-Install FINE in editable mode with:
+Finally, install FINE in editable mode with:
 ```bash
 python -m pip install -e .
 ```
