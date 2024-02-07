@@ -117,7 +117,7 @@ variables:
 test-code:
   extends: .test_template
   script:
-    - python -m pytest -n 6 --cov=fine test/
+    - python -m pytest -n auto --cov=fine test/
   rules:
     # Run only for pushes to master or develop and for merge requests to master.
     # Do not run for scheduled pushes to master (runs `test-code-push-cache` instead).
