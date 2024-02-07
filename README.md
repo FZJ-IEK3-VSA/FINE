@@ -10,18 +10,35 @@
 
 # ETHOS.FINE - Framework for Integrated Energy System Assessment
 
+
 The ETHOS.FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities and time steps can be modeled. Target of the optimization is the minimization of the total annual cost while considering technical and environmental constraints. Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
+
+This readme provides information on the installation of the package. For further information have a look at the [documentation](https://vsa-fine.readthedocs.io/en/latest/).
 
 ETHOS.FINE is used for the modelling of a diverse group of optimization problems within the [Energy Transformation PatHway Optimization Suite (ETHOS) at IEK-3](https://www.fz-juelich.de/de/iek/iek-3/leistungen/model-services).  
 
 If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://www.sciencedirect.com/science/article/pii/S036054421830879X) which gives a description of the first stages of the framework. The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
 
-## Features
-* representation of an energy system by multiple locations, commodities and time steps
-* complexity reducing storage formulation based on typical periods
+## Content
+<!-- TOC -->
+* [Requirements](#requirements)
+  * [Python package manager](#python-package-manager)
+  * [Mixed Integer Linear Programming (MILP) solver](#mixed-integer-linear-programming-milp-solver)
+* [Installation](#installation)
+  * [Installation via conda-forge](#installation-via-conda-forge)
+  * [Installation from a local folder](#installation-from-a-local-folder)
+  * [Installation for developers](#installation-for-developers)
+* [Installation of an optimization solver](#installation-of-an-optimization-solver)
+  * [Gurobi installation](#gurobi-installation)
+  * [GLPK installation](#glpk-installation)
+  * [CBC](#cbc)
+* [Examples](#examples)
+* [License](#license)
+* [About Us](#about-us-)
+* [Contributions and Users](#contributions-and-users)
+* [Acknowledgement](#acknowledgement)
+<!-- TOC -->
 
-## Documentation
-A "Read the Docs" documentation of ETHOS.FINE can be found [here](https://vsa-fine.readthedocs.io/en/latest/).
 
 ## Requirements
 
