@@ -30,6 +30,3 @@ dependencies:
   - pwlf
   - psutil
   - gurobi-logtools
-
-  - pip:
-      - .

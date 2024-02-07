@@ -32,6 +32,7 @@ variables:
     policy: pull
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
+    - python -m pip install .
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has
     # been created on the branch.
@@ -43,7 +44,7 @@ variables:
 
 .test_docker_template_noupdate:
   stage: test
-  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
+  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
   before_script:
     - python -m pip install -e .
   rules:
@@ -70,7 +71,7 @@ variables:
 
 .test_docker_template:
   stage: test
-  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
+  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
   variables:
     CONDA_PKGS_DIRS: "$CI_PROJECT_DIR/.cache/pkgs"
   cache:
@@ -85,6 +86,7 @@ variables:
     policy: pull
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
+    - python -m pip install .
   rules:
     # Do not run for pushes to master or develop and for merge requests to master
     - if: $CI_COMMIT_BRANCH == "master"

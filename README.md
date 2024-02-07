@@ -80,12 +80,22 @@ mamba env create -f requirements.yml
 mamba activate fine
 ```
 
+6. Install FINE with:
+```bash
+python -m pip install .
+```
+
 ### Installation for developers
 If you want to work on the FINE codebase you need to run. 
 ```bash
 mamba env create -f requirements_dev.yml
 ```
 This installs additional dependencies such as `pytest` and installs FINE from the folder in editable mode with `pip -e`. Changes in the folder are then reflected in the package installation.
+
+Install FINE in editable mode with:
+```bash
+python -m pip install -e .
+```
 
 Test your installation with the following command in the project root folder:
 ```
