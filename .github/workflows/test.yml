@@ -75,10 +75,12 @@ jobs:
         run: |
           ls
           echo "LS Done"
-          mamba install --yes --file requirements_dev.yml
+          cd fine
+          mamba env create --name fine_env --yes --file requirements_dev.yml
+          conda run --name fine_env pip install . --no-deps
           echo "Installation done"
           conda list
           echo "libaries printed"
           echo "start pytest"
-          pytest
+          conda run --name fine_env pytest
           echo "Pytest done"
