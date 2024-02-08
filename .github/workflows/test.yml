@@ -75,7 +75,7 @@ jobs:
         run: |
           ls
           echo "LS Done"
-          mamba install -yes --name fine --file requirements_dev.yml
+          mamba install --yes --name fine --file requirements_dev.yml
           conda activate fine
           echo "Installation done"
           conda list
