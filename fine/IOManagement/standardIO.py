@@ -95,7 +95,7 @@ def writeOptimizationOutputToExcel(
             if not optSum.empty:
                 optSum.to_excel(
                     writer,
-                    name[:-5]
+                    sheet_name=name[:-5]
                     + "OptSummary_"
                     + esM.componentModelingDict[name].dimension,
                 )
@@ -123,7 +123,7 @@ def writeOptimizationOutputToExcel(
                         ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
                     ]
                 if not dfTD1dim.empty:
-                    dfTD1dim.to_excel(writer, name[:-5] + "_TDoptVar_1dim")
+                    dfTD1dim.to_excel(writer, sheet_name=name[:-5] + "_TDoptVar_1dim")
             if dataTD2dim:
                 names = ["Variable", "Component", "LocationIn", "LocationOut"]
                 dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
@@ -132,7 +132,7 @@ def writeOptimizationOutputToExcel(
                         ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
                     ]
                 if not dfTD2dim.empty:
-                    dfTD2dim.to_excel(writer, name[:-5] + "_TDoptVar_2dim")
+                    dfTD2dim.to_excel(writer, sheet_name=name[:-5] + "_TDoptVar_2dim")
             if dataTI:
                 if esM.componentModelingDict[name].dimension == "1dim":
                     names = ["Variable type", "Component"]
@@ -144,7 +144,7 @@ def writeOptimizationOutputToExcel(
                 if not dfTI.empty:
                     dfTI.to_excel(
                         writer,
-                        name[:-5]
+                        sheet_name=name[:-5]
                         + "_TIoptVar_"
                         + esM.componentModelingDict[name].dimension,
                     )
@@ -154,7 +154,7 @@ def writeOptimizationOutputToExcel(
         periodsOrder = pd.DataFrame(
             [esM.periodsOrder[_ip]], index=["periodsOrder"], columns=esM.periods
         )
-        periodsOrder.to_excel(writer, "Misc")
+        periodsOrder.to_excel(writer, sheet_name="Misc")
         if esM.segmentation:
             ls = []
             for i in esM.periodsOrder[_ip].tolist():
@@ -163,7 +163,7 @@ def writeOptimizationOutputToExcel(
                 columns={"Segment Duration": "timeStepsPerSegment"}
             )
             segmentDuration.index.name = "segmentNumber"
-            segmentDuration.to_excel(writer, "Misc", startrow=3)
+            segmentDuration.to_excel(writer, sheet_name="Misc", startrow=3)
         utils.output("\tSaving file...", esM.verbose, 0)
         writer.close()
         utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
