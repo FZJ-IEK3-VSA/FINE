@@ -809,7 +809,7 @@ def plotLocations(
     locationsShapeFileName,
     indexColumn,
     plotLocNames=False,
-    crs="epsg:3035",
+    crs="EPSG:3035",
     faceColor="none",
     edgeColor="black",
     fig=None,
@@ -840,7 +840,7 @@ def plotLocations(
     :type plotLocNames: boolean
 
     :param crs: coordinate reference system
-        |br| * the default value is 'epsg:3035'
+        |br| * the default value is 'EPSG:3035'
     :type crs: string
 
     :param faceColor: face color of the plot
@@ -884,7 +884,7 @@ def plotLocations(
     :type dpi: scalar > 0
     """
 
-    gdf = gpd.read_file(locationsShapeFileName).to_crs({"init": crs})
+    gdf = gpd.read_file(locationsShapeFileName).to_crs(crs)
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
@@ -919,7 +919,7 @@ def plotTransmission(
     loc0,
     loc1,
     ip=0,
-    crs="epsg:3035",
+    crs="EPSG:3035",
     variableName="capacityVariablesOptimum",
     color="k",
     loc=7,
@@ -961,7 +961,7 @@ def plotTransmission(
     :type ip: int
 
     :param crs: coordinate reference system
-        |br| * the default value is 'epsg:3035'
+        |br| * the default value is 'EPSG:3035'
     :type crs: string
 
     :param variableName: parameter for plotting installed capacity ('_capacityVariablesOptimum') or operation
@@ -1024,7 +1024,7 @@ def plotTransmission(
     if capMax == 0:
         return fig, ax
     cap = cap / capMax
-    gdf = gpd.read_file(transmissionShapeFileName).to_crs({"init": crs})
+    gdf = gpd.read_file(transmissionShapeFileName).to_crs(crs)
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
@@ -1082,7 +1082,7 @@ def plotLocationalColorMap(
     ip=0,
     perArea=True,
     areaFactor=1e3,
-    crs="epsg:3035",
+    crs="EPSG:3035",
     variableName="capacityVariablesOptimum",
     doSum=False,
     cmap="viridis",
@@ -1128,7 +1128,7 @@ def plotLocationalColorMap(
     :type areaFactor: scalar > 0
 
     :param crs: coordinate reference system
-        |br| * the default value is 'epsg:3035'
+        |br| * the default value is 'EPSG:3035'
     :type crs: string
 
     :param variableName: parameter for plotting installed capacity ('_capacityVariablesOptimum') or operation
@@ -1184,7 +1184,7 @@ def plotLocationalColorMap(
 
     if doSum:
         data = data.sum(axis=1)
-    gdf = gpd.read_file(locationsShapeFileName).to_crs({"init": crs})
+    gdf = gpd.read_file(locationsShapeFileName).to_crs(crs)
 
     # Make sure the data and gdf indices match
     ## 1. Sort the indices to obtain same order

@@ -148,7 +148,7 @@ def rasterize_xr_ds(
         )
 
     # STEP 2. Match the CRS of shapefile to that of the dataset
-    shp_file = shp_file.to_crs({"init": gridded_RE_ds.attrs[CRS_attr]})
+    shp_file = shp_file.to_crs(gridded_RE_ds.attrs[CRS_attr])
 
     # STEP 3. rasterize each geometry and add it to new data_var "rasters"
 

@@ -45,7 +45,7 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
     :rtype: gpd.GeoDataFrame
     """
 
-    gdf = gpd.GeoDataFrame(df, geometry=geometries, crs=f"epsg:{crs}")
+    gdf = gpd.GeoDataFrame(df, geometry=geometries, crs=f"EPSG:{crs}")
 
     if file_path is not None:
         gdf.reset_index(drop=True, inplace=True)
