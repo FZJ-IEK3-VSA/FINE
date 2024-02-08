@@ -177,9 +177,20 @@ def test_get_custom_distance_matrix(
 
     # FUNCTION CALL
     n_regions = 3
-    output_dist_matrix = gprUtils.get_custom_distance_matrix(
-        test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
-    )
+    if isinstance(weights, dict):
+        if not "variables" in weights:
+            with pytest.warns(UserWarning):
+                output_dist_matrix = gprUtils.get_custom_distance_matrix(
+                    test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
+                )
+        else:
+            output_dist_matrix = gprUtils.get_custom_distance_matrix(
+                test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
+            )
+    else:
+        output_dist_matrix = gprUtils.get_custom_distance_matrix(
+            test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
+        )
 
     # ASSERTION
     assert np.isclose(expected_dist_matrix, output_dist_matrix).all()

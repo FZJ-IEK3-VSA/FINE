@@ -6,12 +6,11 @@ of regions obtained as a result of spatial grouping of regions.
 import logging
 import warnings
 from copy import deepcopy
+
 import numpy as np
-import xarray as xr
-from shapely.ops import cascaded_union
-from shapely.geometry.multipolygon import MultiPolygon
-from shapely.geometry.polygon import Polygon
 import pandas as pd
+import xarray as xr
+from shapely.ops import unary_union
 
 logger_representation = logging.getLogger("spatial_representation")
 
@@ -46,7 +45,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
     for sub_region_id_list in sub_to_sup_region_id_dict.values():
         temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values)
 
-        shape_union = cascaded_union(temp_shape_list)
+        shape_union = unary_union(temp_shape_list)
 
         shape_list.append(shape_union)
 
