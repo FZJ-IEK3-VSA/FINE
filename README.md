@@ -63,7 +63,7 @@ mamba create -n fine -c conda-forge fine
 ### Installation from a local folder
 Alternatively you can first clone the content of this repository and perform the installation from there: 
 
-1. Clone the content of this repository 
+1. (Shallow) clone the content of this repository 
 ```bash
 git clone --depth 1 https://github.com/FZJ-IEK3-VSA/FINE.git 
 ```
@@ -79,10 +79,9 @@ mamba env create -f requirements.yml
 ```bash
 mamba activate fine
 ```
-
 6. Install FINE with:
 ```bash
-python -m pip install .
+python -m pip install --no-deps .
 ```
 
 ### Installation for developers
@@ -94,14 +93,11 @@ to get the whole git history and then
 ```bash
 mamba env create -f requirements_dev.yml
 ```
-
 This installs additional dependencies such as `pytest` and installs FINE from the folder in editable mode with `pip -e`. Changes in the folder are then reflected in the package installation.
-
 Finally, install FINE in editable mode with:
 ```bash
-python -m pip install -e .
+python -m pip install --no-deps --editable .
 ```
-
 Test your installation with the following command in the project root folder:
 ```
 pytest
