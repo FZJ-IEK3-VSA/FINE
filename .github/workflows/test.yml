@@ -30,7 +30,7 @@ jobs:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: FZJ-IEK3-VSA/FINE
           path: './fine'
@@ -45,6 +45,38 @@ jobs:
           ls
           echo "LS Done"
           mamba install fine pytest
+          echo "Installation done"
+          conda list
+          echo "libaries printed"
+          echo "start pytest"
+          pytest
+          echo "Pytest done"
+
+  TestFineDevLocal:
+    name: Ex1 (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: FZJ-IEK3-VSA/FINE
+          path: './fine'
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge
+          activate-environment: test_env
+      - name: Run tests
+        shell: pwsh
+        run: |
+          ls
+          echo "LS Done"
+          mamba install -yes --name fine --file requirements_dev.yml
+          conda activate fine
           echo "Installation done"
           conda list
           echo "libaries printed"
