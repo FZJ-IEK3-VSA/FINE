@@ -14,7 +14,31 @@ def test_perfectForesight_mini(perfectForesight_test_esM):
 
 def test_perfectForesight_stock(perfectForesight_test_esM):
     esM = perfectForesight_test_esM
-    PVoperationRateMax = esM.getComponent("PV").operationRateMax
+    PvOperationRateMax = esM.getComponent("PV").operationRateMax
+
+    with pytest.warns(UserWarning, match=r".*Stock of component.*"):
+        esM.add(
+            fn.Source(
+                esM=esM,
+                name="PV",
+                commodity="electricity",
+                hasCapacityVariable=True,
+                operationRateMax=PvOperationRateMax,
+                capacityMax=4e6,
+                investPerCapacity=1e3,
+                opexPerCapacity=1,
+                interestRate=0.02,
+                opexPerOperation=0.01,
+                economicLifetime=10,
+                stockCommissioning={
+                    2005: pd.Series([10, 5], index=["ForesightLand", "PerfectLand"]),
+                    2010: pd.Series([10, 5], index=["ForesightLand", "PerfectLand"]),
+                    2015: pd.Series(
+                        [0.5, 0.25], index=["ForesightLand", "PerfectLand"]
+                    ),
+                },
+            )
+        )
 
     esM.add(
         fn.Source(
@@ -22,7 +46,7 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
             name="PV",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=PVoperationRateMax,
+            operationRateMax=PvOperationRateMax,
             capacityMax=4e6,
             investPerCapacity=1e3,
             opexPerCapacity=1,
@@ -30,7 +54,6 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
             opexPerOperation=0.01,
             economicLifetime=10,
             stockCommissioning={
-                2005: pd.Series([10, 5], index=["ForesightLand", "PerfectLand"]),
                 2010: pd.Series([10, 5], index=["ForesightLand", "PerfectLand"]),
                 2015: pd.Series([0.5, 0.25], index=["ForesightLand", "PerfectLand"]),
             },
@@ -57,7 +80,7 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
     assert list(esM.getComponent("PV").processedStockCommissioning.keys()) == [-1, -2]
     assert perfectForesight_test_esM.getComponent("PV").processedStockYears == [-2, -1]
 
-    # check that parameters are correctly setup
+    # check that parameters are correctly set up
     # a) parameters which need to include stock years as commissioning year dependent
     assert list(esM.getComponent("PV").processedInvestPerCapacity.keys()) == [
         -2,
@@ -272,14 +295,14 @@ def test_perfectForesight_binary():
     )
 
     # add PV
-    PVoperationRateMax = pd.DataFrame(columns=["PerfectLand"], data=[1, 1])
+    PvOperationRateMax = pd.DataFrame(columns=["PerfectLand"], data=[1, 1])
     esM.add(
         fn.Source(
             esM=esM,
             name="PV",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=PVoperationRateMax,
+            operationRateMax=PvOperationRateMax,
             investPerCapacity=1e3,
             investIfBuilt=1e3,
             opexPerCapacity=1,
@@ -347,7 +370,7 @@ def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
 
 @pytest.mark.parametrize("annuityPerpetuity", [True, False])
 def test_perfectForesight_npv_with_stock(perfectForesight_test_esM, annuityPerpetuity):
-    PVoperationRateMax = pd.DataFrame(
+    PvOperationRateMax = pd.DataFrame(
         [
             np.array(
                 [
@@ -373,7 +396,7 @@ def test_perfectForesight_npv_with_stock(perfectForesight_test_esM, annuityPerpe
             hasCapacityVariable=True,
             capacityMax=4e6,
             investPerCapacity=1e4,
-            operationRateMax=PVoperationRateMax,
+            operationRateMax=PvOperationRateMax,
             opexPerCapacity=1,
             interestRate=0.02,
             opexPerOperation=0.01,
