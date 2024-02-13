@@ -688,7 +688,7 @@ def test_perfectForesight_variableConversions_operationRateFix(
     perfectForesight_test_esM,
 ):
     esM = copy.deepcopy(perfectForesight_test_esM)
-    # add a operation rate fix, so that the additional h2 source must be used to meet the demand
+    # add operation rate fix, so that the additional h2 source must be used to meet the demand
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -899,7 +899,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMax(
         timeStepList = [0]
         factor = 2
 
-    # check that yearly full load hours max is kept for the install capacities for each commissioning year
+    # check that yearly full load hours max is kept for the installed capacities for each commissioning year
     for region in ["PerfectLand", "ForesightLand"]:
         for ip in [0, 1, 2, 3, 4]:
             for commisYear in [-1, 0, 1, 2, 3, 4]:
@@ -1031,7 +1031,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
         timeStepList = [0]
         factor = 2
 
-    # check that yearly full load hours min is kept for the install capacities for each commissioning year
+    # check that yearly full load hours min is kept for the installed capacities for each commissioning year
     # duration of time step :  4380
     for region in ["PerfectLand", "ForesightLand"]:
         for ip in [0, 1, 2, 3, 4]:
