@@ -95,7 +95,7 @@ def writeOptimizationOutputToExcel(
             if not optSum.empty:
                 optSum.to_excel(
                     writer,
-                    name[:-5]
+                    sheet_name=name[:-5]
                     + "OptSummary_"
                     + esM.componentModelingDict[name].dimension,
                 )
@@ -123,7 +123,7 @@ def writeOptimizationOutputToExcel(
                         ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
                     ]
                 if not dfTD1dim.empty:
-                    dfTD1dim.to_excel(writer, name[:-5] + "_TDoptVar_1dim")
+                    dfTD1dim.to_excel(writer, sheet_name=name[:-5] + "_TDoptVar_1dim")
             if dataTD2dim:
                 names = ["Variable", "Component", "LocationIn", "LocationOut"]
                 dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
@@ -132,7 +132,7 @@ def writeOptimizationOutputToExcel(
                         ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
                     ]
                 if not dfTD2dim.empty:
-                    dfTD2dim.to_excel(writer, name[:-5] + "_TDoptVar_2dim")
+                    dfTD2dim.to_excel(writer, sheet_name=name[:-5] + "_TDoptVar_2dim")
             if dataTI:
                 if esM.componentModelingDict[name].dimension == "1dim":
                     names = ["Variable type", "Component"]
@@ -144,7 +144,7 @@ def writeOptimizationOutputToExcel(
                 if not dfTI.empty:
                     dfTI.to_excel(
                         writer,
-                        name[:-5]
+                        sheet_name=name[:-5]
                         + "_TIoptVar_"
                         + esM.componentModelingDict[name].dimension,
                     )
@@ -154,7 +154,7 @@ def writeOptimizationOutputToExcel(
         periodsOrder = pd.DataFrame(
             [esM.periodsOrder[_ip]], index=["periodsOrder"], columns=esM.periods
         )
-        periodsOrder.to_excel(writer, "Misc")
+        periodsOrder.to_excel(writer, sheet_name="Misc")
         if esM.segmentation:
             ls = []
             for i in esM.periodsOrder[_ip].tolist():
@@ -163,7 +163,7 @@ def writeOptimizationOutputToExcel(
                 columns={"Segment Duration": "timeStepsPerSegment"}
             )
             segmentDuration.index.name = "segmentNumber"
-            segmentDuration.to_excel(writer, "Misc", startrow=3)
+            segmentDuration.to_excel(writer, sheet_name="Misc", startrow=3)
         utils.output("\tSaving file...", esM.verbose, 0)
         writer.close()
         utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
@@ -809,7 +809,7 @@ def plotLocations(
     locationsShapeFileName,
     indexColumn,
     plotLocNames=False,
-    crs="epsg:3035",
+    crs="EPSG:3035",
     faceColor="none",
     edgeColor="black",
     fig=None,
@@ -840,7 +840,7 @@ def plotLocations(
     :type plotLocNames: boolean
 
     :param crs: coordinate reference system
-        |br| * the default value is 'epsg:3035'
+        |br| * the default value is 'EPSG:3035'
     :type crs: string
 
     :param faceColor: face color of the plot
@@ -884,7 +884,7 @@ def plotLocations(
     :type dpi: scalar > 0
     """
 
-    gdf = gpd.read_file(locationsShapeFileName).to_crs({"init": crs})
+    gdf = gpd.read_file(locationsShapeFileName).to_crs(crs)
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
@@ -919,7 +919,7 @@ def plotTransmission(
     loc0,
     loc1,
     ip=0,
-    crs="epsg:3035",
+    crs="EPSG:3035",
     variableName="capacityVariablesOptimum",
     color="k",
     loc=7,
@@ -961,7 +961,7 @@ def plotTransmission(
     :type ip: int
 
     :param crs: coordinate reference system
-        |br| * the default value is 'epsg:3035'
+        |br| * the default value is 'EPSG:3035'
     :type crs: string
 
     :param variableName: parameter for plotting installed capacity ('_capacityVariablesOptimum') or operation
@@ -1024,7 +1024,7 @@ def plotTransmission(
     if capMax == 0:
         return fig, ax
     cap = cap / capMax
-    gdf = gpd.read_file(transmissionShapeFileName).to_crs({"init": crs})
+    gdf = gpd.read_file(transmissionShapeFileName).to_crs(crs)
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
@@ -1082,7 +1082,7 @@ def plotLocationalColorMap(
     ip=0,
     perArea=True,
     areaFactor=1e3,
-    crs="epsg:3035",
+    crs="EPSG:3035",
     variableName="capacityVariablesOptimum",
     doSum=False,
     cmap="viridis",
@@ -1128,7 +1128,7 @@ def plotLocationalColorMap(
     :type areaFactor: scalar > 0
 
     :param crs: coordinate reference system
-        |br| * the default value is 'epsg:3035'
+        |br| * the default value is 'EPSG:3035'
     :type crs: string
 
     :param variableName: parameter for plotting installed capacity ('_capacityVariablesOptimum') or operation
@@ -1184,7 +1184,7 @@ def plotLocationalColorMap(
 
     if doSum:
         data = data.sum(axis=1)
-    gdf = gpd.read_file(locationsShapeFileName).to_crs({"init": crs})
+    gdf = gpd.read_file(locationsShapeFileName).to_crs(crs)
 
     # Make sure the data and gdf indices match
     ## 1. Sort the indices to obtain same order

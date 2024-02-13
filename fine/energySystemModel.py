@@ -1005,7 +1005,7 @@ class EnergySystemModel:
             timeSeriesData.index = pd.date_range(
                 "2050-01-01 00:30:00",
                 periods=len(self.totalTimeSteps),
-                freq=(str(self.hoursPerTimeStep) + "H"),
+                freq=(str(self.hoursPerTimeStep) + "h"),
                 tz="Europe/Berlin",
             )
 

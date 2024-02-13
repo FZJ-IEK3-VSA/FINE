@@ -2,6 +2,8 @@
 FINE's News Feed
 ################
 
+Since version 2.3.3 this news feed is not updated anymore. Please refer to the [release page](https://github.com/FZJ-IEK3-VSA/FINE/releases) for changelogs.
+
 *********************
 Release version 2.3.2
 *********************

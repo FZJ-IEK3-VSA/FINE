@@ -28,7 +28,7 @@ def test_Stock_wrongStockYears():
         verboseLogLevel=2,
     )
 
-    with pytest.warns() as my_warnings:
+    with pytest.warns(expected_warning=UserWarning) as my_warnings:
         fn.Source(
             esM=esM,
             name="PV",
