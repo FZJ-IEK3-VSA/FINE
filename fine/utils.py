@@ -1636,7 +1636,7 @@ def checkAndSetComponentLimit(esM, componentLimit, componentLimitEligibility, lo
     # componentLimit has to be DataFrame with componentLimitIDs as index, and "value","bound","type" as columns
     # or a dict per investment periods as keys and described dataframe as values,
     # if valid for whole model
-    pass
+
     checkInvestmentPeriodParameters(
         "componentLimit", componentLimit, esM.investmentPeriodNames
     )
@@ -1701,7 +1701,7 @@ def checkAndSetComponentLimit(esM, componentLimit, componentLimitEligibility, lo
             processedComponentLimit[ip] = None
             processedComponentLimitEligibility[ip] = None
         
-        
+    return processedComponentLimit, processedComponentLimitEligibility
 
 def checkAndSetBalanceLimit(esM, balanceLimit, locations):
     # balanceLimit has to be DataFrame with locations as columns or Dict per

@@ -371,9 +371,9 @@ class EnergySystemModel:
         self.componentLimit = componentLimit
         self.componentLimitEligibility = componentLimitEligibility
 
-        #TODO: add processing
-        self.processedComponentLimit = self.componentLimit
-        self.processedComponentLimitEligibility = self.componentLimitEligibility
+        self.processedComponentLimit, self.processedComponentLimitEligibility = utils.checkAndSetComponentLimit(
+            self, componentLimit, componentLimitEligibility, locations
+        )
         
         ################################################################################################################
         #                                        Component specific parameters                                         #
