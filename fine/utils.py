@@ -1632,7 +1632,10 @@ def checkAndSetPathwayBalanceLimit(esM, pathwayBalanceLimit, locations):
         )
     return processedPathwayBalanceLimit
 
-def checkAndSetComponentLimit(esM, componentLimit, componentLimitEligibility, locations):
+
+def checkAndSetComponentLimit(
+    esM, componentLimit, componentLimitEligibility, locations
+):
     # componentLimit has to be DataFrame with componentLimitIDs as index, and "value","bound","type" as columns
     # or a dict per investment periods as keys and described dataframe as values,
     # if valid for whole model
@@ -1641,16 +1644,21 @@ def checkAndSetComponentLimit(esM, componentLimit, componentLimitEligibility, lo
         "componentLimit", componentLimit, esM.investmentPeriodNames
     )
     checkInvestmentPeriodParameters(
-        "componentLimitEligibility", componentLimitEligibility, esM.investmentPeriodNames
+        "componentLimitEligibility",
+        componentLimitEligibility,
+        esM.investmentPeriodNames,
     )
     processedComponentLimit = {}
     processedComponentLimitEligibility = {}
-    
+
     # check if both componentLimit and componentLimitEligibility are either None or not None
-    if (componentLimit is None and componentLimitEligibility is not None) or (componentLimit is not None and componentLimitEligibility is None):
-        raise ValueError("componentLimit and componentLimitEligibility have to be either both None or both not None")
-    
-    
+    if (componentLimit is None and componentLimitEligibility is not None) or (
+        componentLimit is not None and componentLimitEligibility is None
+    ):
+        raise ValueError(
+            "componentLimit and componentLimitEligibility have to be either both None or both not None"
+        )
+
     for ip in esM.investmentPeriods:
         _ip = esM.investmentPeriodNames[ip]
 
@@ -1658,7 +1666,7 @@ def checkAndSetComponentLimit(esM, componentLimit, componentLimitEligibility, lo
             _componentLimit = componentLimit[_ip]
         else:
             _componentLimit = componentLimit
-        
+
         if isinstance(componentLimitEligibility, dict):
             _componentLimitEligibility = componentLimitEligibility[_ip]
         else:
@@ -1669,15 +1677,13 @@ def checkAndSetComponentLimit(esM, componentLimit, componentLimitEligibility, lo
                 raise TypeError(
                     "The componentLimit input argument has to be a pandas.DataFrame."
                 )
-                
+
             required_columns = ["value", "bound", "type"]
-            if not all(
-                [col in _componentLimit.columns for col in required_columns]
-            ):
+            if not all([col in _componentLimit.columns for col in required_columns]):
                 raise ValueError(
                     "componentLimit has to contain the columns 'value', 'bound' and 'type'"
                 )
-        
+
         if _componentLimitEligibility is not None:
             if not type(_componentLimitEligibility) == pd.DataFrame:
                 raise TypeError(
@@ -1687,21 +1693,22 @@ def checkAndSetComponentLimit(esM, componentLimit, componentLimitEligibility, lo
             if not set(locations) == set(componentLimitEligibility.index):
                 raise ValueError(
                     "componentLimitEligibility does not have the same locations as the model"
-                )      
+                )
             # ComponentLimitEligibility has to be a DataFrame with 0 and 1 as values
             vals = _componentLimitEligibility.unstack().unique()
             if len(vals) > 2 or not all([val in [0, 1] for val in vals]):
                 raise ValueError(
                     "componentLimitEligibility has to contain only 0 and 1 as values"
                 )
-                
+
             processedComponentLimit[ip] = _componentLimit
             processedComponentLimitEligibility[ip] = _componentLimitEligibility
         else:
             processedComponentLimit[ip] = None
             processedComponentLimitEligibility[ip] = None
-        
+
     return processedComponentLimit, processedComponentLimitEligibility
+
 
 def checkAndSetBalanceLimit(esM, balanceLimit, locations):
     # balanceLimit has to be DataFrame with locations as columns or Dict per

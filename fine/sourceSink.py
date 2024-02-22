@@ -966,7 +966,9 @@ class SourceSinkModel(ComponentModel):
             ]
         )
 
-    def getComponentLimitContribution(self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type):
+    def getComponentLimitContribution(
+        self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type
+    ):
         """
         Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
         Sum of the operation time series of a SourceSink component is used as the componentLimit contribution:
@@ -998,10 +1000,10 @@ class SourceSinkModel(ComponentModel):
 
         :param componentNames: Names of components which contribute to the component limit
         :type componentNames: list
-        
+
         :param type: Type of the variable ("operation" or "capacity")
         :type type: string
-        
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         if type == "operation":
@@ -1022,7 +1024,8 @@ class SourceSinkModel(ComponentModel):
                 * compDict[compName].sign
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
-                if compName in componentNames and compDict[compName].processedLocationalEligibility[loc] == 1
+                if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
                 for p in periods
                 for t in timeSteps
             )
@@ -1035,15 +1038,17 @@ class SourceSinkModel(ComponentModel):
             balance = sum(
                 capVar[loc, compName, ip]
                 for compName in compDict.keys()
-                if compName in componentNames and compDict[compName].processedLocationalEligibility[loc] == 1
+                if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
             )
             if isinstance(balance, int) or isinstance(balance, float):
                 return None
             else:
                 return balance
         else:
-            raise ValueError("Invalid type in ComponentLimit Contraint. Please choose 'operation' or 'capacity'.")
-
+            raise ValueError(
+                "Invalid type in ComponentLimit Contraint. Please choose 'operation' or 'capacity'."
+            )
 
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, timeSeriesAggregation, loc, componentNames

@@ -367,14 +367,16 @@ class EnergySystemModel:
         self.processedBalanceLimit = utils.setParamToNoneIfNoneForAllYears(
             self.processedBalanceLimit
         )
-        
+
         self.componentLimit = componentLimit
         self.componentLimitEligibility = componentLimitEligibility
 
-        self.processedComponentLimit, self.processedComponentLimitEligibility = utils.checkAndSetComponentLimit(
-            self, componentLimit, componentLimitEligibility, locations
+        self.processedComponentLimit, self.processedComponentLimitEligibility = (
+            utils.checkAndSetComponentLimit(
+                self, componentLimit, componentLimitEligibility, locations
+            )
         )
-        
+
         ################################################################################################################
         #                                        Component specific parameters                                         #
         ################################################################################################################
@@ -1308,9 +1310,8 @@ class EnergySystemModel:
         )
 
     def declareComponentBalanceLimitConstraints(self, pyM, timeSeriesAggregation):
-        
         """
-        input: 
+        input:
         ComponentLimitEligibility
         ComponentLimit -> pd.DataFrame
         componentLimit
@@ -1332,15 +1333,19 @@ class EnergySystemModel:
                                         componentsOfommodityLimit.setdefault(
                                             componentLimitID, []
                                         ).append(compName)
-                    componentsOfBalanceLimit[ip][componentLimitID] = componentsOfommodityLimit
-                
+                    componentsOfBalanceLimit[ip][
+                        componentLimitID
+                    ] = componentsOfommodityLimit
+
             yearlyComponentLimitDict = {}
-            
+
             # iterate over commodity limit to define either minimal, maximal or fixed balance limits per balanceLimitID
             for ip in self.investmentPeriods:
                 for balanceLimitID, data in self.processedComponentLimit[ip].iterrows():
                     # check which region is affected
-                    _elig = self.processedComponentLimitEligibility[ip].loc[:,balanceLimitID]
+                    _elig = self.processedComponentLimitEligibility[ip].loc[
+                        :, balanceLimitID
+                    ]
                     locs = _elig[_elig == 1].index.tolist()
                     if locs:
                         yearlyComponentLimitDict.setdefault(
@@ -1351,14 +1356,16 @@ class EnergySystemModel:
                                 data["type"],
                                 data["value"],
                             ),
-                            [componentsOfBalanceLimit[ip][balanceLimitID], locs]
+                            [componentsOfBalanceLimit[ip][balanceLimitID], locs],
                         )
             setattr(pyM, "yearlyComponentLimitDict", yearlyComponentLimitDict)
 
             def yearlyComponentLimitConstraint(pyM, ID, ip, bound, type, value):
                 # yearly restriction
                 locs = yearlyComponentLimitDict[(ID, ip, bound, type, value)][1]
-                componentNames = yearlyComponentLimitDict[(ID, ip, bound, type, value)][0][ID]
+                componentNames = yearlyComponentLimitDict[(ID, ip, bound, type, value)][
+                    0
+                ][ID]
                 balanceList = [
                     mdl.getComponentLimitContribution(
                         esM=self,
@@ -1371,9 +1378,7 @@ class EnergySystemModel:
                     )
                     for loc in locs
                     for mdl_type, mdl in self.componentModelingDict.items()
-                    if (
-                        mdl_type == "SourceSinkModel"
-                    ) 
+                    if (mdl_type == "SourceSinkModel")
                 ]
                 balanceSum = sum(const for const in balanceList if const is not None)
                 if isinstance(balanceSum, int) or isinstance(balanceSum, float):
@@ -1390,8 +1395,6 @@ class EnergySystemModel:
                 pyM.yearlyComponentLimitDict.keys(),
                 rule=yearlyComponentLimitConstraint,
             )
-        
-        
 
     def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
         """
@@ -1912,7 +1915,7 @@ class EnergySystemModel:
         _t = time.time()
         self.declareComponentBalanceLimitConstraints(pyM, timeSeriesAggregation)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
-        
+
         ################################################################################################################
         #                                         Declare objective function                                           #
         ################################################################################################################
