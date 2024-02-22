@@ -1343,7 +1343,9 @@ class EnergySystemModel:
             # iterate over commodity limit to define either minimal, maximal or fixed balance limits per balanceLimitID
             for ip in self.investmentPeriods:
                 if self.processedComponentLimit[ip] is not None:
-                    for balanceLimitID, data in self.processedComponentLimit[ip].iterrows():
+                    for balanceLimitID, data in self.processedComponentLimit[
+                        ip
+                    ].iterrows():
                         # check which region is affected
                         _elig = self.processedComponentLimitEligibility[ip].loc[
                             :, balanceLimitID
