@@ -81,6 +81,8 @@ class EnergySystemModel:
         lengthUnit="km",
         verboseLogLevel=0,
         balanceLimit=None,
+        componentLimitEligibility=None,
+        componentLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
     ):
@@ -365,7 +367,14 @@ class EnergySystemModel:
         self.processedBalanceLimit = utils.setParamToNoneIfNoneForAllYears(
             self.processedBalanceLimit
         )
+        
+        self.componentLimit = componentLimit
+        self.componentLimitEligibility = componentLimitEligibility
 
+        #TODO: add processing
+        self.processedComponentLimit = self.componentLimit
+        self.processedComponentLimitEligibility = self.componentLimitEligibility
+        
         ################################################################################################################
         #                                        Component specific parameters                                         #
         ################################################################################################################
@@ -1298,6 +1307,92 @@ class EnergySystemModel:
             dimen=1, initialize=initInvestPeriodInterPeriodSet
         )
 
+    def declareComponentBalanceLimitConstraints(self, pyM, timeSeriesAggregation):
+        
+        """
+        input: 
+        ComponentLimitEligibility
+        ComponentLimit -> pd.DataFrame
+        componentLimit
+        """
+        if self.processedComponentLimit is not None:
+            # get all componentLimits from the processedComponentLimit
+            componentsOfBalanceLimit = {}
+            for ip in self.investmentPeriods:
+                componentsOfBalanceLimit[ip] = {}
+                componentLimitIDs = self.processedComponentLimit[ip].index.unique()
+                for componentLimitID in componentLimitIDs:
+                    # Get Components per balance limit
+                    componentsOfommodityLimit = {}
+                    for mdl_type, mdl in self.componentModelingDict.items():
+                        if mdl_type == "SourceSinkModel":
+                            for compName, comp in mdl.componentsDict.items():
+                                if comp.componentLimitID is not None:
+                                    if componentLimitID in comp.componentLimitID:
+                                        componentsOfommodityLimit.setdefault(
+                                            componentLimitID, []
+                                        ).append(compName)
+                    componentsOfBalanceLimit[ip][componentLimitID] = componentsOfommodityLimit
+                
+            yearlyComponentLimitDict = {}
+            
+            # iterate over commodity limit to define either minimal, maximal or fixed balance limits per balanceLimitID
+            for ip in self.investmentPeriods:
+                for balanceLimitID, data in self.processedComponentLimit[ip].iterrows():
+                    # check which region is affected
+                    _elig = self.processedComponentLimitEligibility[ip].loc[:,balanceLimitID]
+                    locs = _elig[_elig == 1].index.tolist()
+                    if locs:
+                        yearlyComponentLimitDict.setdefault(
+                            (
+                                balanceLimitID,
+                                ip,
+                                data["bound"],
+                                data["type"],
+                                data["value"],
+                            ),
+                            [componentsOfBalanceLimit[ip][balanceLimitID], locs]
+                        )
+            setattr(pyM, "yearlyComponentLimitDict", yearlyComponentLimitDict)
+
+            def yearlyComponentLimitConstraint(pyM, ID, ip, bound, type, value):
+                # yearly restriction
+                locs = yearlyComponentLimitDict[(ID, ip, bound, type, value)][1]
+                componentNames = yearlyComponentLimitDict[(ID, ip, bound, type, value)][0][ID]
+                balanceList = [
+                    mdl.getComponentLimitContribution(
+                        esM=self,
+                        pyM=pyM,
+                        timeSeriesAggregation=timeSeriesAggregation,
+                        ip=ip,
+                        loc=loc,
+                        componentNames=componentNames,
+                        type=type,
+                    )
+                    for loc in locs
+                    for mdl_type, mdl in self.componentModelingDict.items()
+                    if (
+                        mdl_type == "SourceSinkModel"
+                    ) 
+                ]
+                balanceSum = sum(const for const in balanceList if const is not None)
+                if isinstance(balanceSum, int) or isinstance(balanceSum, float):
+                    return pyomo.Constraint.Skip
+                # Check whether we want to consider an upper or lower bound.
+                if bound == "lower":
+                    return balanceSum >= value
+                elif bound == "upper":
+                    return balanceSum <= value
+                elif bound == "fixed":
+                    return balanceSum == value
+
+            pyM.yearlyComponentLimitConstraint = pyomo.Constraint(
+                pyM.yearlyComponentLimitDict.keys(),
+                rule=yearlyComponentLimitConstraint,
+            )
+        
+        
+
     def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
         """
         Declare balance limit constraint.
@@ -1813,6 +1908,11 @@ class EnergySystemModel:
         self.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
+        # Declare constraint for componentLimit
+        _t = time.time()
+        self.declareComponentBalanceLimitConstraints(pyM, timeSeriesAggregation)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+        
         ################################################################################################################
         #                                         Declare objective function                                           #
         ################################################################################################################
