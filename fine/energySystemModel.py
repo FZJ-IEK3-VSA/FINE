@@ -1318,46 +1318,48 @@ class EnergySystemModel:
         """
         if self.processedComponentLimit is not None:
             # get all componentLimits from the processedComponentLimit
-            componentsOfBalanceLimit = {}
+            componentsOfComponentLimit = {}
             for ip in self.investmentPeriods:
-                componentsOfBalanceLimit[ip] = {}
-                componentLimitIDs = self.processedComponentLimit[ip].index.unique()
-                for componentLimitID in componentLimitIDs:
-                    # Get Components per balance limit
-                    componentsOfommodityLimit = {}
-                    for mdl_type, mdl in self.componentModelingDict.items():
-                        if mdl_type == "SourceSinkModel":
-                            for compName, comp in mdl.componentsDict.items():
-                                if comp.componentLimitID is not None:
-                                    if componentLimitID in comp.componentLimitID:
-                                        componentsOfommodityLimit.setdefault(
-                                            componentLimitID, []
-                                        ).append(compName)
-                    componentsOfBalanceLimit[ip][
-                        componentLimitID
-                    ] = componentsOfommodityLimit
+                componentsOfComponentLimit[ip] = {}
+                if self.processedComponentLimit[ip] is not None:
+                    componentLimitIDs = self.processedComponentLimit[ip].index.unique()
+                    for componentLimitID in componentLimitIDs:
+                        # Get Components per balance limit
+                        componentsOfommodityLimit = {}
+                        for mdl_type, mdl in self.componentModelingDict.items():
+                            if mdl_type == "SourceSinkModel":
+                                for compName, comp in mdl.componentsDict.items():
+                                    if comp.componentLimitID is not None:
+                                        if componentLimitID in comp.componentLimitID:
+                                            componentsOfommodityLimit.setdefault(
+                                                componentLimitID, []
+                                            ).append(compName)
+                        componentsOfComponentLimit[ip][
+                            componentLimitID
+                        ] = componentsOfommodityLimit
 
             yearlyComponentLimitDict = {}
 
             # iterate over commodity limit to define either minimal, maximal or fixed balance limits per balanceLimitID
             for ip in self.investmentPeriods:
-                for balanceLimitID, data in self.processedComponentLimit[ip].iterrows():
-                    # check which region is affected
-                    _elig = self.processedComponentLimitEligibility[ip].loc[
-                        :, balanceLimitID
-                    ]
-                    locs = _elig[_elig == 1].index.tolist()
-                    if locs:
-                        yearlyComponentLimitDict.setdefault(
-                            (
-                                balanceLimitID,
-                                ip,
-                                data["bound"],
-                                data["type"],
-                                data["value"],
-                            ),
-                            [componentsOfBalanceLimit[ip][balanceLimitID], locs],
-                        )
+                if self.processedComponentLimit[ip] is not None:
+                    for balanceLimitID, data in self.processedComponentLimit[ip].iterrows():
+                        # check which region is affected
+                        _elig = self.processedComponentLimitEligibility[ip].loc[
+                            :, balanceLimitID
+                        ]
+                        locs = _elig[_elig == 1].index.tolist()
+                        if locs:
+                            yearlyComponentLimitDict.setdefault(
+                                (
+                                    balanceLimitID,
+                                    ip,
+                                    data["bound"],
+                                    data["type"],
+                                    data["value"],
+                                ),
+                                [componentsOfComponentLimit[ip][balanceLimitID], locs],
+                            )
             setattr(pyM, "yearlyComponentLimitDict", yearlyComponentLimitDict)
 
             def yearlyComponentLimitConstraint(pyM, ID, ip, bound, type, value):
