@@ -34,7 +34,7 @@ dependencies:
   - sphinx
   - sphinx_rtd_theme
   - myst-parser
-  - pytest
+  - pytest<8.1
   - pytest-cov
   - nbval
   - black
