@@ -2052,7 +2052,11 @@ class EnergySystemModel:
                 + " "
                 + optimizationSpecs
             )
-            solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
+            solver_info = optimizer.solve(
+                self.pyM,
+                warmstart=warmstart,
+                tee=True,
+            )
         elif solver == "glpk":
             optimizer.set_options(optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, tee=True)
