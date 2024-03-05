@@ -31,6 +31,9 @@ class Component(metaclass=ABCMeta):
         sharedPotentialID=None,
         linkedQuantityID=None,
         capacityFix=None,
+        commissioningMin=None,
+        commissioningMax=None,
+        commissioningFix=None,
         isBuiltFix=None,
         investPerCapacity=0,
         investIfBuilt=0,
@@ -177,7 +180,7 @@ class Component(metaclass=ABCMeta):
 
         :param sharedPotentialID: if specified, indicates that the component has to share its maximum
             potential capacity with other components (e.g. due to space limitations). The shares of how
-            much of the maximum potential is used have to add up to less then 100%.
+            much of the maximum potential is used have to add up to less than 100%.
             |br| * the default value is None
         :type sharedPotentialID: string
 
@@ -192,6 +195,58 @@ class Component(metaclass=ABCMeta):
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
             |br| * the default value is None
         :type capacityFix:
+            * None or
+            * float or
+            * int or
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
+            * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
+              to equal the in the energy system model specified locations. or
+            * Dict with investment periods as keys and one of the options above as values.
+
+        :param commissioningMin: if specified, indicates the minimum commissioning for the respective
+            investment period. The type of this parameter depends on the dimension of the component:
+            * If dimension=1dim, it has to be a Pandas Series.
+            * If dimension=2dim, it has to be a Pandas Series or DataFrame.
+            If binary decision variables are declared, commissioningMin is only used
+            if the component is built.
+            |br| * the default value is None
+        :type commissioningMin:
+
+            * None or
+            * float or
+            * int or
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
+            * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
+              to equal the in the energy system model specified locations. or
+            * Dict with investment periods as keys and one of the options above as values.
+
+        :param commissioningMax: if specified, indicates the maximum commissioning for the respective
+            investment period. The type of this parameter depends on the dimension of the component:
+            * If dimension=1dim, it has to be a Pandas Series.
+            * If dimension=2dim, it has to be a Pandas Series or DataFrame.
+            |br| * the default value is None
+        :type commissioningMax:
+
+            * None or
+            * float or
+            * int or
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
+            * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
+              to equal the in the energy system model specified locations. or
+            * Dict with investment periods as keys and one of the options above as values.
+
+        :param commissioningFix: if specified, indicates the fixed commissioning for the respective
+            investment period. The type of this parameter depends on the dimension of the component:
+            * If dimension=1dim, it has to be a Pandas Series.
+            * If dimension=2dim, it has to be a Pandas Series or DataFrame.
+            |br| * the default value is None
+        :type commissioningFix:
             * None or
             * float or
             * int or
@@ -550,19 +605,36 @@ class Component(metaclass=ABCMeta):
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
-        self.capacityMin = capacityMin
-        self.capacityMax = capacityMax
-        self.capacityFix = capacityFix
+        if str(type(self))[-14:-2] != "Transmission":
+            self.capacityMin = capacityMin
+            self.capacityMax = capacityMax
+            self.capacityFix = capacityFix
+            self.commissioningMin = commissioningMin
+            self.commissioningMax = commissioningMax
+            self.commissioningFix = commissioningFix
         (
             self.processedCapacityMin,
             self.processedCapacityMax,
             self.processedCapacityFix,
-        ) = utils.checkAndSetCapacityBounds(
-            esM, name, capacityMin, capacityMax, capacityFix
+        ) = utils.checkAndSetBounds(
+            esM, name, "capacity", capacityMin, capacityMax, capacityFix
         )
+        (
+            self.processedCommissioningMin,
+            self.processedCommissioningMax,
+            self.processedCommissioningFix,
+        ) = utils.checkAndSetBounds(
+            esM,
+            name,
+            "commissioning",
+            commissioningMin,
+            commissioningMax,
+            commissioningFix,
+        )
+
         self.linkedQuantityID = linkedQuantityID
 
-        # Set yearly fullload hour parameters
+        # Set yearly full load hour parameters
         self.yearlyFullLoadHoursMin = yearlyFullLoadHoursMin
         self.yearlyFullLoadHoursMax = yearlyFullLoadHoursMax
         self.processedYearlyFullLoadHoursMin = utils.checkAndSetFullLoadHoursParameter(
@@ -602,7 +674,18 @@ class Component(metaclass=ABCMeta):
         self.processedCapacityMax = utils.setParamToNoneIfNoneForAllYears(
             self.processedCapacityMax
         )
-
+        self.processedCommissioningFix = utils.setParamToNoneIfNoneForAllYears(
+            self.processedCommissioningFix
+        )
+        self.processedCommissioningMin = utils.setParamToNoneIfNoneForAllYears(
+            self.processedCommissioningMin
+        )
+        self.processedCommissioningMax = utils.setParamToNoneIfNoneForAllYears(
+            self.processedCommissioningMax
+        )
+        # self.processedGrowthRate = utils.setParamToNoneIfNoneForAllYears(
+        #     self.processedGrowthRate
+        # )
         # stock commissioning
         self.stockCommissioning = stockCommissioning
         self.processedStockCommissioning = utils.checkAndSetStock(
@@ -612,7 +695,7 @@ class Component(metaclass=ABCMeta):
             self, esM, dimension
         )
 
-        # check the capacity development with stock for mismatchs
+        # check the capacity development with stock for mismatches
         utils.checkCapacityDevelopmentWithStock(
             esM.investmentPeriods,
             self.processedCapacityMax,
@@ -1339,6 +1422,36 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
+
+        def commisBounds(pyM, loc, compName, ip):
+            """Function for setting lower and upper commissioning bounds."""
+            comp = self.componentsDict[compName]
+            if (
+                comp.processedCommissioningFix is not None
+                and loc in comp.processedCommissioningFix[ip].index
+            ):
+                # in utils.py there are checks to ensure that CommissioningFix is between min and max
+                return (
+                    comp.processedCommissioningFix[ip][loc],
+                    comp.processedCommissioningFix[ip][loc],
+                )
+            else:
+                # the upper bound is only set if the parameter is given and no binary design variable exists
+                # In the case of the binary design variable, the bigM-constraint will suffice as upper bound.
+                if (comp.processedCommissioningMin is not None) and (
+                    not comp.hasIsBuiltBinaryVariable
+                ):
+                    commisLowerBound = comp.processedCommissioningMin[ip][loc]
+                else:
+                    commisLowerBound = 0
+
+                if comp.processedCommissioningMax is not None:
+                    commisUpperBound = comp.processedCommissioningMax[ip][loc]
+                else:
+                    commisUpperBound = None
+
+                return commisLowerBound, commisUpperBound
+
         abbrvName = self.abbrvName
         setattr(
             pyM,
@@ -1346,6 +1459,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Var(
                 getattr(pyM, "designCommisVarSet_" + abbrvName),
                 domain=pyomo.NonNegativeReals,
+                bounds=commisBounds,
             ),
         )
 
