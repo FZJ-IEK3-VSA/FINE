@@ -968,7 +968,7 @@ def writeEnergySystemModelToDatasets(esM):
     return xr_dss_results
 
 
-def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
+def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
     """
     Read optimization results from grouped netCDF file to dictionary of
     xr.Datasets.
@@ -988,18 +988,24 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
     :rtype: Nested dict
     """
 
+        
     with Dataset(filePath, "r", format="NETCDF4") as rootgrp:
         if groupPrefix:
             group_keys = rootgrp[groupPrefix].groups
         else:
             group_keys = rootgrp.groups
 
+    if lazy_load:
+        loader = xr.open_mfdataset
+    else:
+        loader = xr.open_dataset
+        
     if not groupPrefix:
         xr_dss = {}
         # read input from netcdf
         xr_dss["Input"] = {
             model_key: {
-                comp_key: xr.load_dataset(
+                comp_key: loader(
                     filePath, group=f"Input/{model_key}/{comp_key}"
                 )
                 for comp_key in group_keys["Input"][model_key].groups
@@ -1011,7 +1017,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
             xr_dss["Results"] = {
                 ip_key: {
                     model_key: {
-                        comp_key: xr.load_dataset(
+                        comp_key: loader(
                             filePath, group=f"Results/{ip_key}/{model_key}/{comp_key}"
                         )
                         for comp_key in group_keys["Results"][ip_key][model_key].groups
@@ -1021,13 +1027,13 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
                 for ip_key in group_keys["Results"].groups
             }
         # read parameters from netcdf
-        xr_dss["Parameters"] = xr.load_dataset(filePath, group=f"Parameters")
+        xr_dss["Parameters"] = loader(filePath, group=f"Parameters")
     else:
         xr_dss = {}
         # read input from netcdf
         xr_dss["Input"] = {
             model_key: {
-                comp_key: xr.load_dataset(
+                comp_key: loader(
                     filePath,
                     group=f"{groupPrefix}/Input/{model_key}/{comp_key}",
                 )
@@ -1040,7 +1046,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
             xr_dss["Results"] = {
                 ip_key: {
                     model_key: {
-                        comp_key: xr.load_dataset(
+                        comp_key: loader(
                             filePath,
                             group=f"{groupPrefix}/Results/{ip_key}/{model_key}/{comp_key}",
                         )
@@ -1051,7 +1057,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
                 for ip_key in group_keys["Results"].groups
             }
         # read parameters from netcdf
-        xr_dss["Parameters"] = xr.load_dataset(
+        xr_dss["Parameters"] = loader(
             filePath, group=f"{groupPrefix}/Parameters"
         )
 
