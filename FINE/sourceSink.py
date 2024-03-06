@@ -52,6 +52,7 @@ class Source(Component):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        materialDemandPerCapacity=None,
     ):
         """
         Constructor for creating an Source class instance.
@@ -264,6 +265,7 @@ class Source(Component):
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
+            materialDemandPerCapacity=materialDemandPerCapacity,
         )
 
         # Set general source/sink data: ID and yearly limit
@@ -569,6 +571,7 @@ class Sink(Source):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        materialDemandPerCapacity=None,
     ):
         """
         Constructor for creating a Sink class instance.
@@ -617,6 +620,7 @@ class Sink(Source):
             pathwayBalanceLimitID=pathwayBalanceLimitID,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            materialDemandPerCapacity=materialDemandPerCapacity,
         )
 
         self.sign = -1
@@ -985,7 +989,7 @@ class SourceSinkModel(ComponentModel):
             if compDict[compName].commodity == commod
         )
 
-    def getObjectiveFunctionContribution(self, esM, pyM):
+    def getObjectiveFunctionContribution(self, esM, pyM, objective="costs"):
         """
         Get contribution to the objective function.
             :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -994,40 +998,44 @@ class SourceSinkModel(ComponentModel):
             :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
             :type pym: pyomo ConcreteModel
         """
+        if objective not in ["costs", "material_demand"]:
+            raise NotImplementedError("The chosen objective is not supported yet.")
 
-        opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
-        )
-        commodCost = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedCommodityCost"], "op", "operationVarDict"
-        )
-        commodRevenue = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedCommodityRevenue"], "op", "operationVarDict"
-        )
-        commodCostTimeSeries = self.getEconomicsOperation(
-            pyM,
-            esM,
-            "TimeSeries",
-            ["processedCommodityCostTimeSeries"],
-            "op",
-            "operationVarDict",
-        )
-        commodRevenueTimeSeries = self.getEconomicsOperation(
-            pyM,
-            esM,
-            "TimeSeries",
-            ["processedCommodityRevenueTimeSeries"],
-            "op",
-            "operationVarDict",
-        )
-
-        return (
-            super().getObjectiveFunctionContribution(esM, pyM)
-            + opexOp
-            + commodCost
-            + commodCostTimeSeries
-            - (commodRevenue + commodRevenueTimeSeries)
-        )
+        if objective == "costs":
+            opexOp = self.getEconomicsOperation(
+                pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
+            )
+            commodCost = self.getEconomicsOperation(
+                pyM, esM, "TD", ["processedCommodityCost"], "op", "operationVarDict"
+            )
+            commodRevenue = self.getEconomicsOperation(
+                pyM, esM, "TD", ["processedCommodityRevenue"], "op", "operationVarDict"
+            )
+            commodCostTimeSeries = self.getEconomicsOperation(
+                pyM,
+                esM,
+                "TimeSeries",
+                ["processedCommodityCostTimeSeries"],
+                "op",
+                "operationVarDict",
+            )
+            commodRevenueTimeSeries = self.getEconomicsOperation(
+                pyM,
+                esM,
+                "TimeSeries",
+                ["processedCommodityRevenueTimeSeries"],
+                "op",
+                "operationVarDict",
+            )
+            return (
+                super().getObjectiveFunctionContribution(esM, pyM, objective)
+                + opexOp
+                + commodCost
+                + commodCostTimeSeries
+                - (commodRevenue + commodRevenueTimeSeries)
+            )
+        if objective == "material_demand":
+            return super().getObjectiveFunctionContribution(esM, pyM, objective)
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #
@@ -1199,12 +1207,14 @@ class SourceSinkModel(ComponentModel):
             tuples = list(
                 map(
                     lambda x: (
-                        x[0],
-                        x[1],
-                        x[2].replace("-", compDict[x[0]].commodityUnit),
-                    )
-                    if x[1] == "operation"
-                    else x,
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace("-", compDict[x[0]].commodityUnit),
+                        )
+                        if x[1] == "operation"
+                        else x
+                    ),
                     tuples,
                 )
             )

@@ -58,6 +58,7 @@ class Storage(Component):
         socOffsetDown=-1,
         socOffsetUp=-1,
         stockCommissioning=None,
+        materialDemandPerCapacity=None,
     ):
         """
         Constructor for creating an Storage class instance.
@@ -265,6 +266,7 @@ class Storage(Component):
             technicalLifetime=technicalLifetime,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            materialDemandPerCapacity=materialDemandPerCapacity,
         )
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,
@@ -1669,7 +1671,7 @@ class StorageModel(ComponentModel):
             if commod == self.componentsDict[compName].commodity
         )
 
-    def getObjectiveFunctionContribution(self, esM, pyM):
+    def getObjectiveFunctionContribution(self, esM, pyM, objective="costs"):
         """
         Get contribution to the objective function.
 
@@ -1679,77 +1681,83 @@ class StorageModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
+        if objective not in ["costs", "material_demand"]:
+            raise NotImplementedError("The chosen objective is not supported yet.")
 
-        capexCap = self.getEconomicsDesign(
-            pyM,
-            esM,
-            ["processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commis",
-            divisorName="CCF",
-        )
-        capexDec = self.getEconomicsDesign(
-            pyM,
-            esM,
-            ["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commisBin",
-            divisorName="CCF",
-        )
-        opexCap = self.getEconomicsDesign(
-            pyM,
-            esM,
-            ["processedOpexPerCapacity"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commis",
-        )
-        opexDec = self.getEconomicsDesign(
-            pyM,
-            esM,
-            ["processedOpexIfBuilt"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commisBin",
-        )
-        opexOp1 = self.getEconomicsOperation(
-            pyM,
-            esM,
-            "TD",
-            ["processedOpexPerChargeOperation"],
-            "chargeOp",
-            "operationVarDict",
-        )
-        opexOp2 = self.getEconomicsOperation(
-            pyM,
-            esM,
-            "TD",
-            ["processedOpexPerDischargeOperation"],
-            "dischargeOp",
-            "operationVarDict",
-        )
+        if objective == "costs":
+            compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        offsetUp = getattr(pyM, "stateOfChargeOffsetUp_" + abbrvName)
-        offsetDown = getattr(pyM, "stateOfChargeOffsetDown_" + abbrvName)
+            capexCap = self.getEconomicsDesign(
+                pyM,
+                esM,
+                ["processedInvestPerCapacity"],
+                lifetimeAttr="ipEconomicLifetime",
+                varName="commis",
+                divisorName="CCF",
+            )
+            capexDec = self.getEconomicsDesign(
+                pyM,
+                esM,
+                ["processedInvestIfBuilt"],
+                lifetimeAttr="ipEconomicLifetime",
+                varName="commisBin",
+                divisorName="CCF",
+            )
+            opexCap = self.getEconomicsDesign(
+                pyM,
+                esM,
+                ["processedOpexPerCapacity"],
+                lifetimeAttr="ipTechnicalLifetime",
+                varName="commis",
+            )
+            opexDec = self.getEconomicsDesign(
+                pyM,
+                esM,
+                ["processedOpexIfBuilt"],
+                lifetimeAttr="ipTechnicalLifetime",
+                varName="commisBin",
+            )
+            opexOp1 = self.getEconomicsOperation(
+                pyM,
+                esM,
+                "TD",
+                ["processedOpexPerChargeOperation"],
+                "chargeOp",
+                "operationVarDict",
+            )
+            opexOp2 = self.getEconomicsOperation(
+                pyM,
+                esM,
+                "TD",
+                ["processedOpexPerDischargeOperation"],
+                "dischargeOp",
+                "operationVarDict",
+            )
 
-        offsetUpOp = sum(
-            offsetUp[loc, compName, ip, period] * compDict[compName].socOffsetUp
-            for loc, compName, ip, period in offsetUp
-        )
-        offsetDownOp = sum(
-            offsetDown[loc, compName, ip, period] * compDict[compName].socOffsetDown
-            for loc, compName, ip, period in offsetDown
-        )
+            offsetUp = getattr(pyM, "stateOfChargeOffsetUp_" + abbrvName)
+            offsetDown = getattr(pyM, "stateOfChargeOffsetDown_" + abbrvName)
 
-        return (
-            capexCap
-            + capexDec
-            + opexCap
-            + opexDec
-            + opexOp1
-            + opexOp2
-            + offsetUpOp
-            + offsetDownOp
-        )
+            offsetUpOp = sum(
+                offsetUp[loc, compName, ip, period] * compDict[compName].socOffsetUp
+                for loc, compName, ip, period in offsetUp
+            )
+            offsetDownOp = sum(
+                offsetDown[loc, compName, ip, period] * compDict[compName].socOffsetDown
+                for loc, compName, ip, period in offsetDown
+            )
+
+            return (
+                capexCap
+                + capexDec
+                + opexCap
+                + opexDec
+                + opexOp1
+                + opexOp2
+                + offsetUpOp
+                + offsetDownOp
+            )
+        if objective == "material_demand":
+            return super().getObjectiveFunctionContribution(esM, pyM, objective)
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #
@@ -1849,24 +1857,28 @@ class StorageModel(ComponentModel):
             tuples = list(
                 map(
                     lambda x: (
-                        x[0],
-                        x[1],
-                        x[2].replace("-", compDict[x[0]].commodityUnit),
-                    )
-                    if x[1] in ["operationCharge", "NPV_operationCharge"]
-                    else x,
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace("-", compDict[x[0]].commodityUnit),
+                        )
+                        if x[1] in ["operationCharge", "NPV_operationCharge"]
+                        else x
+                    ),
                     tuples,
                 )
             )
             tuples = list(
                 map(
                     lambda x: (
-                        x[0],
-                        x[1],
-                        x[2].replace("-", compDict[x[0]].commodityUnit),
-                    )
-                    if x[1] in ["operationDischarge", "NPV_operationDischarge"]
-                    else x,
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace("-", compDict[x[0]].commodityUnit),
+                        )
+                        if x[1] in ["operationDischarge", "NPV_operationDischarge"]
+                        else x
+                    ),
                     tuples,
                 )
             )
@@ -1886,9 +1898,9 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._chargeOperationVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = optVal_charge
+            self._chargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                optVal_charge
+            )
 
             if optVal_charge is not None:
                 idx = pd.IndexSlice
@@ -1951,9 +1963,9 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._dischargeOperationVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = optVal_discharge
+            self._dischargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                optVal_discharge
+            )
             # Check if there are time steps, at which a storage component is both charging and discharging
             for compName in opSum.index:
                 simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(

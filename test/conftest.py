@@ -200,7 +200,9 @@ def minimal_test_esM(scope="session"):
             operationRateFix=demand,
         )
     )
+    import pytest
 
+    pytest.set_trace()
     return esM
 
 
@@ -286,6 +288,152 @@ def single_node_test_esM():
             opexPerCapacity=500 * 0.025,
             interestRate=0.08,
             economicLifetime=10,
+        )
+    )
+
+    ### Hydrogen filled somewhere
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Pressure tank",
+            commodity="hydrogen",
+            hasCapacityVariable=True,
+            capacityVariableDomain="continuous",
+            stateOfChargeMin=0.33,
+            investPerCapacity=0.5,  # eur/kWh
+            interestRate=0.08,
+            economicLifetime=30,
+        )
+    )
+
+    ### Industry site
+    demand = pd.Series(
+        np.array(
+            [
+                6e3,
+                6e3,
+                6e3,
+                6e3,
+            ]
+        )
+        * hoursPerTimeStep
+    )
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Industry site",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+
+    return esM
+
+
+# TODO make this nicer and not a complete copy just for one single flag change
+
+
+@pytest.fixture
+def multi_objective_test_esm():
+    """Returns minimal instance of esM with one node"""
+
+    numberOfTimeSteps = 4
+    hoursPerTimeStep = 2190
+
+    # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"Location"},
+        commodities={"electricity", "hydrogen"},
+        numberOfTimeSteps=numberOfTimeSteps,
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        hoursPerTimeStep=hoursPerTimeStep,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=1,
+        balanceLimit=None,
+        objective=["costs", "material_demand"],
+    )
+
+    # time step length [h]
+    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
+
+    ### Buy electricity at the electricity market
+    costs = pd.Series(
+        np.array(
+            [
+                0.05,
+                0.0,
+                0.1,
+                0.051,
+            ]
+        )
+    )
+    revenues = pd.Series(
+        np.array(
+            [
+                0.0,
+                0.01,
+                0.0,
+                0.0,
+            ]
+        )
+    )
+    maxpurchase = pd.Series(
+        np.array(
+            [
+                1e6,
+                1e6,
+                1e6,
+                1e6,
+            ]
+        )
+        * hoursPerTimeStep
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Electricity market",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateMax=maxpurchase,
+            commodityCostTimeSeries=costs,
+            commodityRevenueTimeSeries=revenues,
+        )
+    )  # eur/kWh
+
+    ### Electrolyzers
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzer_exp_lowMat",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=800,  # euro/kW
+            opexPerOperation=2,
+            interestRate=0.08,
+            economicLifetime=10,
+            materialDemandPerCapacity=15,
+        )
+    )
+
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzer_cheap_highMat",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=400,  # euro/kW
+            opexPerOperation=2,
+            interestRate=0.08,
+            economicLifetime=10,
+            materialDemandPerCapacity=30,
         )
     )
 
@@ -2751,6 +2899,374 @@ def perfectForesight_test_esM(scope="session"):
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateFix=demand,
+        )
+    )
+
+    return esM
+
+
+@pytest.fixture
+def multi_objective_optimization_test_esM(scope="session"):
+    # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand", "ForesightLand"},
+        commodities={"electricity", "hydrogen"},
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=4380,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=5,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        lengthUnit="km",
+        verboseLogLevel=2,
+        objective=["costs", "material_demand"],
+    )
+
+    PVoperationRateMax = pd.DataFrame(
+        [
+            np.array(
+                [
+                    0.5,
+                    0.25,
+                ]
+            ),
+            np.array(
+                [
+                    0.25,
+                    0.5,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=PVoperationRateMax,
+            capacityMax=4e6,
+            investPerCapacity=1e3,
+            opexPerCapacity=1,
+            interestRate=0.02,
+            opexPerOperation=0.01,
+            economicLifetime=10,
+        )
+    )
+
+    demand = {}
+    demand[2020] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T  # first investmentperiod
+    demand[2025] = demand[2020]
+    demand[2030] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+    demand[2035] = demand[2030]
+    demand[2040] = demand[2030]
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Hydrogen_demand",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+
+    ## Conversions
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzer_exp_lowMat",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=800,  # euro/kW
+            opexPerCapacity=500 * 0.025,
+            interestRate=0.08,
+            economicLifetime=10,
+            materialDemandPerCapacity=15,
+        )
+    )
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzer_cheap_highMat",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=400,  # euro/kW
+            opexPerCapacity=500 * 0.025,
+            interestRate=0.08,
+            economicLifetime=10,
+            materialDemandPerCapacity=30,
+        )
+    )
+
+    return esM
+
+
+@pytest.fixture
+def moo_single_region_single_year_test_esM():
+    """Returns minimal instance of esM with one node and one year"""
+
+    numberOfTimeSteps = 4
+    hoursPerTimeStep = 2190
+
+    # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"Location"},
+        commodities={"electricity", "hydrogen"},
+        numberOfTimeSteps=numberOfTimeSteps,
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        hoursPerTimeStep=hoursPerTimeStep,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=1,
+        objective=["costs", "material_demand"],
+    )
+
+    ## Sources
+    pv_profile = pd.Series(
+        np.full(numberOfTimeSteps, 10),
+    )
+    pv_profile[len(pv_profile) - 1] = 0
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="source_exp_low_material_demand",
+            commodity="electricity",
+            operationRateMax=pv_profile,
+            hasCapacityVariable=True,
+            investPerCapacity=100,
+            materialDemandPerCapacity=10,
+        )
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="source_cheap_high_material_demand",
+            commodity="electricity",
+            operationRateMax=pv_profile,
+            hasCapacityVariable=True,
+            investPerCapacity=10,
+            materialDemandPerCapacity=100,
+        )
+    )
+
+    ## Sinks
+    demand_el = pd.Series(
+        np.full(numberOfTimeSteps, 1e3),
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="El_Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=demand_el,
+        )
+    )
+    demand_h2 = pd.Series(
+        np.full(numberOfTimeSteps, 100),
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="H2_Demand",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateFix=demand_h2,
+        )
+    )
+
+    ## Conversion
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="H2Conversion_cheap_high_material_demand",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=400,
+            materialDemandPerCapacity=40,
+        )
+    )
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="H2Conversion_exp_low_material_demand",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=800,
+            materialDemandPerCapacity=20,
+        )
+    )
+
+    ## Storage
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="El_Storage",
+            commodity="electricity",
+            materialDemandPerCapacity=100,
+        )
+    )
+
+    return esM
+
+
+@pytest.fixture
+def temp_single_objective_test_model():
+    """Returns minimal instance of esM with one node and one year"""
+
+    numberOfTimeSteps = 4
+    hoursPerTimeStep = 2190
+
+    # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"Location"},
+        commodities={"electricity", "hydrogen"},
+        numberOfTimeSteps=numberOfTimeSteps,
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        hoursPerTimeStep=hoursPerTimeStep,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=1,
+    )
+
+    ## Sources
+    pv_profile = pd.Series(
+        np.full(numberOfTimeSteps, 10),
+    )
+    pv_profile[len(pv_profile) - 1] = 0
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="source_exp_low_material_demand",
+            commodity="electricity",
+            operationRateMax=pv_profile,
+            hasCapacityVariable=True,
+            investPerCapacity=100,
+            materialDemandPerCapacity=10,
+        )
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="source_cheap_high_material_demand",
+            commodity="electricity",
+            operationRateMax=pv_profile,
+            hasCapacityVariable=True,
+            investPerCapacity=10,
+            materialDemandPerCapacity=100,
+        )
+    )
+
+    ## Sinks
+    demand_el = pd.Series(
+        np.full(numberOfTimeSteps, 1e3),
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="El_Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=demand_el,
+        )
+    )
+    demand_h2 = pd.Series(
+        np.full(numberOfTimeSteps, 100),
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="H2_Demand",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateFix=demand_h2,
+        )
+    )
+
+    ## Conversion
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="H2Conversion_cheap_high_material_demand",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=400,
+            materialDemandPerCapacity=40,
+        )
+    )
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="H2Conversion_exp_low_material_demand",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=800,
+            materialDemandPerCapacity=20,
+        )
+    )
+
+    ## Storage
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="El_Storage",
+            commodity="electricity",
+            materialDemandPerCapacity=100,
         )
     )
 

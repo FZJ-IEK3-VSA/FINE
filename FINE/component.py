@@ -44,6 +44,7 @@ class Component(metaclass=ABCMeta):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        materialDemandPerCapacity=None,
     ):
         """
         Constructor for creating an Component class instance.
@@ -621,6 +622,13 @@ class Component(metaclass=ABCMeta):
             self.ipTechnicalLifetime,
             self.floorTechnicalLifetime,
         )
+
+        # Set material demand
+        self.materialDemandPerCapacity = materialDemandPerCapacity
+        if materialDemandPerCapacity:
+            self.processed_materialDemandPerCapacity = (
+                utils.checkAndSetMaterialDemandPerCapacity(materialDemandPerCapacity)
+            )
 
     def addToEnergySystemModel(self, esM):
         """
@@ -2656,7 +2664,7 @@ class ComponentModel(metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    def getObjectiveFunctionContribution(self, esM, pyM):
+    def getObjectiveFunctionContribution(self, esM, pyM, objective="costs"):
         """
         Get contribution to the objective function.
 
@@ -2665,43 +2673,73 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        """
-        capexCap = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commis",
-            divisorName="CCF",
-            QPdivisorNames=["QPbound", "CCF"],
-        )
-        capexDec = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commisBin",
-            divisorName="CCF",
-        )
-        opexCap = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedOpexPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commis",
-            QPdivisorNames=["QPbound"],
-        )
-        opexDec = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedOpexIfBuilt"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commisBin",
-        )
 
-        return capexCap + capexDec + opexCap + opexDec
+        :param objective: type of objective for which the objective function contribution is returned. Default: costs
+        :type objective: String
+        """
+        # options to select the objective from need to be added here
+        if objective not in ["costs", "material_demand"]:
+            raise NotImplementedError("The chosen objective is not supported yet.")
+        if objective == "costs":
+            capexCap = self.getEconomicsDesign(
+                pyM,
+                esM,
+                factorNames=["processedInvestPerCapacity", "QPcostDev"],
+                QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
+                lifetimeAttr="ipEconomicLifetime",
+                varName="commis",
+                divisorName="CCF",
+                QPdivisorNames=["QPbound", "CCF"],
+            )
+            capexDec = self.getEconomicsDesign(
+                pyM,
+                esM,
+                factorNames=["processedInvestIfBuilt"],
+                lifetimeAttr="ipEconomicLifetime",
+                varName="commisBin",
+                divisorName="CCF",
+            )
+            opexCap = self.getEconomicsDesign(
+                pyM,
+                esM,
+                factorNames=["processedOpexPerCapacity", "QPcostDev"],
+                QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
+                lifetimeAttr="ipTechnicalLifetime",
+                varName="commis",
+                QPdivisorNames=["QPbound"],
+            )
+            opexDec = self.getEconomicsDesign(
+                pyM,
+                esM,
+                factorNames=["processedOpexIfBuilt"],
+                lifetimeAttr="ipTechnicalLifetime",
+                varName="commisBin",
+            )
+            objective_function_contribution = capexCap + capexDec + opexCap + opexDec
+
+        if objective == "material_demand":
+            objective_function_contribution = self.getMaterialDemand(esM, pyM)
+            print("material demand objective got called")
+
+        return objective_function_contribution
+
+    def getMaterialDemand(self, esM, pyM, getOptValue=False):
+        # TODO Hier attribut mit get_opt_values um optimale Ergebnisse zu bekommen...
+        # TODO dann über commisVar.value -> .value = state der variable, statt variable selbst
+        # selbes design bei getLocEconomicsdesign
+        commisVar = getattr(pyM, "commis_" + self.abbrvName)
+        return sum(
+            commisVar[loc, compName, ip]
+            * esM.getComponentAttribute(compName, "processed_materialDemandPerCapacity")
+            for loc in esM.locations
+            for compName in self.componentsDict
+            for ip in esM.investmentPeriods
+            if self.componentsDict[
+                compName
+            ].hasCapacityVariable  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
+            and self.componentsDict[compName].materialDemandPerCapacity != None
+        )
+        # TODO Add option to retrieve optimal values
 
     def getSharedPotentialContribution(self, pyM, key, loc, ip):
         """
@@ -2953,10 +2991,11 @@ class ComponentModel(metaclass=ABCMeta):
                 # write costs into dataframe
                 # a) costs for complete intervals
                 for i in range(commisYear, commisYear + intervalsWithCompleteCosts):
-                    costContribution[(loc, compName)][
-                        (commisYear, i)
-                    ] = annuity * utils.annuityPresentValueFactor(
-                        esM, compName, loc, esM.investmentPeriodInterval
+                    costContribution[(loc, compName)][(commisYear, i)] = (
+                        annuity
+                        * utils.annuityPresentValueFactor(
+                            esM, compName, loc, esM.investmentPeriodInterval
+                        )
                     )
 
                 # b) costs for last economic interval
@@ -3023,14 +3062,15 @@ class ComponentModel(metaclass=ABCMeta):
                             ]
                         )
                         if getOptValueCostType == "NPV":
-                            cost_results[ip].loc[
-                                compName, loc
-                            ] = cContrSum * utils.discountFactor(esM, ip, compName, loc)
+                            cost_results[ip].loc[compName, loc] = (
+                                cContrSum * utils.discountFactor(esM, ip, compName, loc)
+                            )
                         elif getOptValueCostType == "TAC":
-                            cost_results[ip].loc[
-                                compName, loc
-                            ] = cContrSum / utils.annuityPresentValueFactor(
-                                esM, compName, loc, esM.investmentPeriodInterval
+                            cost_results[ip].loc[compName, loc] = (
+                                cContrSum
+                                / utils.annuityPresentValueFactor(
+                                    esM, compName, loc, esM.investmentPeriodInterval
+                                )
                             )
                 return cost_results
             else:
@@ -3191,6 +3231,8 @@ class ComponentModel(metaclass=ABCMeta):
             else:
                 return factor * _var.value + QPfactor * _var.value * _var.value
 
+            # TODO schau hier!!!
+
     def getEconomicsOperation(
         self,
         pyM,
@@ -3322,18 +3364,18 @@ class ComponentModel(metaclass=ABCMeta):
 
             locCompIpCombinations = list(set([(x[0], x[1], x[2]) for x in var]))
             for loc, compName, year in locCompIpCombinations:
-                costContribution[(loc, compName)][
-                    (year, year)
-                ] = self.getLocEconomicsOperation(
-                    pyM,
-                    esM,
-                    fncType,
-                    factorNames,
-                    varName,
-                    loc,
-                    compName,
-                    year,
-                    getOptValue,
+                costContribution[(loc, compName)][(year, year)] = (
+                    self.getLocEconomicsOperation(
+                        pyM,
+                        esM,
+                        fncType,
+                        factorNames,
+                        varName,
+                        loc,
+                        compName,
+                        year,
+                        getOptValue,
+                    )
                 )
 
             # create dictionary with ip as key and a dataframe with
@@ -3577,6 +3619,7 @@ class ComponentModel(metaclass=ABCMeta):
             "invest",
             "investLifetimeExtension",
             "revenueLifetimeShorteningResale",
+            "materialDemand",  # TODO Adjust Name if needed!
         ]
         units = [
             "[-]",
@@ -3592,6 +3635,7 @@ class ComponentModel(metaclass=ABCMeta):
             "[" + esM.costUnit + "]",
             "[" + esM.costUnit + "]",
             "[" + esM.costUnit + "]",
+            "[kg]",  # TODO adjust unit if needed!
         ]
         tuples = [
             (compName, prop, unit)
@@ -3601,12 +3645,14 @@ class ComponentModel(metaclass=ABCMeta):
         tuples = list(
             map(
                 lambda x: (
-                    x[0],
-                    x[1],
-                    "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
-                )
-                if x[1] in ["capacity", "commissioning", "decommissioning"]
-                else x,
+                    (
+                        x[0],
+                        x[1],
+                        "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
+                    )
+                    if x[1] in ["capacity", "commissioning", "decommissioning"]
+                    else x
+                ),
                 tuples,
             )
         )
@@ -3712,6 +3758,8 @@ class ComponentModel(metaclass=ABCMeta):
             getOptValueCostType="TAC",
         )
 
+        # Hierdran orientieren! -> getobjective function contribution...
+
         optSummary = {}
         for ip in esM.investmentPeriods:
             optSummary_ip = pd.DataFrame(
@@ -3735,9 +3783,10 @@ class ComponentModel(metaclass=ABCMeta):
             commisOptVal_ = utils.formatOptimizationOutput(
                 commisValues, "designVariables", self.dimension, ip, compDict=compDict
             )
-            self._commissioningVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = commisOptVal_
+
+            self._commissioningVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                commisOptVal_
+            )
             # Get and set optimal variable values for decommissioning
             decommisValues = decommisVar.get_values()
             decommisOptVal = utils.formatOptimizationOutput(
@@ -3746,9 +3795,9 @@ class ComponentModel(metaclass=ABCMeta):
             decommisOptVal_ = utils.formatOptimizationOutput(
                 decommisValues, "designVariables", self.dimension, ip, compDict=compDict
             )
-            self._decommissioningVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = decommisOptVal_
+            self._decommissioningVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                decommisOptVal_
+            )
 
             if capOptVal is not None:
                 # Check if the installed capacities are close to a bigM val

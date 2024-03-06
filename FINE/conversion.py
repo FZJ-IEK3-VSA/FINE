@@ -46,6 +46,7 @@ class Conversion(Component):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        materialDemandPerCapacity=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -185,6 +186,7 @@ class Conversion(Component):
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
+            materialDemandPerCapacity=materialDemandPerCapacity,
         )
 
         # opexPerOperation
@@ -381,13 +383,13 @@ class Conversion(Component):
             if self.fullCommodityConversionFactors[ip] != {}:
                 self.aggregatedCommodityConversionFactors[ip] = {}
                 for commod in self.fullCommodityConversionFactors[ip]:
-                    self.aggregatedCommodityConversionFactors[ip][
-                        commod
-                    ] = self.getTSAOutput(
-                        self.fullCommodityConversionFactors[ip][commod],
-                        "_commodityConversionFactorTimeSeries" + str(commod) + "_",
-                        data,
-                        ip,
+                    self.aggregatedCommodityConversionFactors[ip][commod] = (
+                        self.getTSAOutput(
+                            self.fullCommodityConversionFactors[ip][commod],
+                            "_commodityConversionFactorTimeSeries" + str(commod) + "_",
+                            data,
+                            ip,
+                        )
                     )
         else:
             # if depending on the commissioning year, iterate over the relevant commissioning years for the
@@ -1040,7 +1042,7 @@ class ConversionModel(ComponentModel):
 
         return sumCommisYearIndependent + sumCommisYearDependent
 
-    def getObjectiveFunctionContribution(self, esM, pyM):
+    def getObjectiveFunctionContribution(self, esM, pyM, objective="costs"):
         """
         Get contribution to the objective function.
 
@@ -1050,12 +1052,19 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
+        if objective not in ["costs", "material_demand"]:
+            raise NotImplementedError("The chosen objective is not supported yet.")
 
-        opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
-        )
-
-        return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
+        if objective == "costs":
+            opexOp = self.getEconomicsOperation(
+                pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
+            )
+            return (
+                super().getObjectiveFunctionContribution(esM, pyM, objective) + opexOp
+            )
+        if objective == "material_demand":
+            # TODO This looks redundant but might be okay as is...
+            return super().getObjectiveFunctionContribution(esM, pyM, objective)
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #
@@ -1131,12 +1140,14 @@ class ConversionModel(ComponentModel):
             tuples = list(
                 map(
                     lambda x: (
-                        x[0],
-                        x[1],
-                        x[2].replace("-", compDict[x[0]].physicalUnit),
-                    )
-                    if x[1] == "operation"
-                    else x,
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace("-", compDict[x[0]].physicalUnit),
+                        )
+                        if x[1] == "operation"
+                        else x
+                    ),
                     tuples,
                 )
             )

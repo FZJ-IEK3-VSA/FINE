@@ -865,7 +865,7 @@ class TransmissionModel(ComponentModel):
         )
         return aut
 
-    def getObjectiveFunctionContribution(self, esM, pyM):
+    def getObjectiveFunctionContribution(self, esM, pyM, objective="costs"):
         """
         Get contribution to the objective function.
 
@@ -875,47 +875,59 @@ class TransmissionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
+        if objective not in ["costs", "material_demand"]:
+            raise NotImplementedError("The chosen objective is not supported yet.")
 
-        opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDictOut"
-        )
+        if objective == "costs":
+            opexOp = self.getEconomicsOperation(
+                pyM,
+                esM,
+                "TD",
+                ["processedOpexPerOperation"],
+                "op",
+                "operationVarDictOut",
+            )
 
-        capexCap = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commis",
-            divisorName="CCF",
-            QPdivisorNames=["QPbound", "CCF"],
-        )
-        capexDec = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commisBin",
-            divisorName="CCF",
-        )
-        opexCap = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedOpexPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commis",
-            QPdivisorNames=["QPbound"],
-        )
-        opexDec = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedOpexIfBuilt"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commisBin",
-        )
+            capexCap = self.getEconomicsDesign(
+                pyM,
+                esM,
+                factorNames=["processedInvestPerCapacity", "QPcostDev"],
+                QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
+                lifetimeAttr="ipEconomicLifetime",
+                varName="commis",
+                divisorName="CCF",
+                QPdivisorNames=["QPbound", "CCF"],
+            )
+            capexDec = self.getEconomicsDesign(
+                pyM,
+                esM,
+                factorNames=["processedInvestIfBuilt"],
+                lifetimeAttr="ipEconomicLifetime",
+                varName="commisBin",
+                divisorName="CCF",
+            )
+            opexCap = self.getEconomicsDesign(
+                pyM,
+                esM,
+                factorNames=["processedOpexPerCapacity", "QPcostDev"],
+                QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
+                lifetimeAttr="ipTechnicalLifetime",
+                varName="commis",
+                QPdivisorNames=["QPbound"],
+            )
+            opexDec = self.getEconomicsDesign(
+                pyM,
+                esM,
+                factorNames=["processedOpexIfBuilt"],
+                lifetimeAttr="ipTechnicalLifetime",
+                varName="commisBin",
+            )
 
-        return opexOp + capexCap + capexDec + opexCap + opexDec
+            return opexOp + capexCap + capexDec + opexCap + opexDec
+        if objective == "material_demand":
+            raise NotImplementedError(
+                "Not yet implemented for transmission components..."
+            )
 
     def setOptimalValues(self, esM, pyM):
         """
@@ -1015,12 +1027,14 @@ class TransmissionModel(ComponentModel):
             tuples = list(
                 map(
                     lambda x: (
-                        x[0],
-                        x[1],
-                        x[2].replace("-", compDict[x[0]].commodityUnit),
-                    )
-                    if x[1] == "operation"
-                    else x,
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace("-", compDict[x[0]].commodityUnit),
+                        )
+                        if x[1] == "operation"
+                        else x
+                    ),
                     tuples,
                 )
             )
