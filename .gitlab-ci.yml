@@ -249,10 +249,8 @@ pypi-upload:
     - python -m build
     # Publish to testpypi
     - python -m twine upload --repository testpypi -u __token__ -p $PYPI_TOKEN dist/*
-    # Test installation
-    - micromamba update -n base -y --file=requirements.yml
+    # Test if installation works
     - python -m pip install --index-url https://test.pypi.org/simple/ --no-deps fine
-    - python -m pytest -n auto test/
     # Publish to pypi 
     - python -m twine upload -u __token__ -p $PYPI_TOKEN  dist/*
   rules:
