@@ -171,15 +171,15 @@ test-notebooks-docker-noupdate:
   script:
     - python -m pytest --nbval-lax --nbval-current-env  --durations=20 examples/
 
-test-formatting:
+test-codestyle:
   stage: test
-  image: pyfound/black:latest_release
+  image: registry.gitlab.com/pipeline-components/ruff:latest
   script:
-    # Dry-run black auto-formatter. If the code needs reformatting this test
-    # will fail.
-    - black --version
-    - black --check fine
-    - black --check test
+    # Run ruff check. If the code needs reformatting this test will fail.
+    - ruff version
+    - ruff check --output-format=gitlab fine
+    - ruff check --output-format=gitlab test
+    # - ruff check --output-format=gitlab examples
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has
     # been created on the branch.

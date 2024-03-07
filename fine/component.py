@@ -1013,7 +1013,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
+        abbrvName = self.abbrvName
 
         def declareContinuousDesignVarSet(pyM):
             return (
@@ -1863,7 +1863,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(pyM, "cap_" + abbrvName)
         commisBinVar = getattr(pyM, "commisBin_" + abbrvName)
         commisBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
@@ -1900,7 +1900,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-        compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(pyM, "cap_" + abbrvName)
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
@@ -1929,7 +1929,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict, abbrvName, dim = self.componentsDict, self.abbrvName, self.dimension
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         commisBinVar = getattr(pyM, "commisBin_" + abbrvName)
         commisBinVarSet = getattr(pyM, "designDecisionVarSet_" + abbrvName)
 
@@ -3100,9 +3100,6 @@ class ComponentModel(metaclass=ABCMeta):
             # contributions depending on the commissioning year (index) and the
             # investment period (columns)
             for loc, compName, commisYear in var:
-                lifeTimeAttrValue = getattr(esM.getComponent(compName), lifetimeAttr)[
-                    loc
-                ]
                 ipEconomicLifetime = getattr(
                     esM.getComponent(compName), "ipEconomicLifetime"
                 )[loc]
@@ -3500,7 +3497,7 @@ class ComponentModel(metaclass=ABCMeta):
         if fncType not in ["TD", "TimeSeries"]:
             raise ValueError("fncType must be either 'TD' or 'TimeSeries'")
         if fncType == "TimeSeries":
-            factorName = factorNames[0]
+            factorName = factorNames[0]  # noqa: F841
 
         var = getattr(pyM, varName + "_" + self.abbrvName)
         locCompIpCombinations = list(set([(x[0], x[1], x[2]) for x in var]))

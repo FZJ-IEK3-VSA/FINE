@@ -37,5 +37,5 @@ dependencies:
   - pytest<8.1
   - pytest-cov
   - nbval
-  - black
   - pytest-xdist
+  - ruff

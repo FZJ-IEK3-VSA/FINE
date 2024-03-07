@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import pwlf
 
+# ruff: noqa
 
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     """
