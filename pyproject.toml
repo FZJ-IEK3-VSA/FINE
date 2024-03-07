@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.3.4"
+# version = "2.3.4"
+dynamic = ["version"]
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
@@ -31,6 +32,8 @@ classifiers = [
 keywords = ["energy assesment", "energy system", "optimization"]
 dependencies = []
 requires-python = ">=3.10"
+
+[tool.setuptools_scm]
 
 #Configureation options
 # https://docs.pytest.org/en/7.1.x/reference/reference.html#configuration-options
