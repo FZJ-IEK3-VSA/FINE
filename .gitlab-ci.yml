@@ -231,7 +231,7 @@ build-dev:
     - if: $CI_COMMIT_BRANCH == "develop"
 
 get-current-version:
-  stage: publish
+  stage: test
   script:
     - pip install setuptools_scm
     - echo "This version will be used to publish to pypi."
