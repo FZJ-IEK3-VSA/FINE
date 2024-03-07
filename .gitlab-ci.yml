@@ -215,7 +215,7 @@ build-tag:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
-    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG
 
 # Push develop build to local jugit registry
 build-dev:
@@ -228,3 +228,16 @@ build-dev:
     - docker push jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
+
+pypi-upload:
+  stage: build
+  script:
+    - micromamba install -c conda-forge -n base -y python=3.10
+    - python -m pip install --upgrade build
+    - python -m pip install --upgrade twine
+    - python -m build
+    - python -m twine upload -u __token__ -p $PYPI_TOKEN  dist/*
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG
+  when: manual
+
