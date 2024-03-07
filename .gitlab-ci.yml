@@ -233,22 +233,24 @@ build-dev:
 get-current-version:
   stage: test
   script:
+    - micromamba install -n base -y python=3.10
     - pip install setuptools_scm
     - echo "This version will be used to publish to pypi."
     - python -m setuptools_scm
-  # rules:
-  #   - if: $CI_COMMIT_TAG
+  rules:
+    - if: $CI_COMMIT_TAG
 
 pypi-upload:
   stage: publish
   script:
+    - micromamba install -n base -y python=3.10
     - python -m pip install --upgrade build
     - python -m pip install --upgrade twine
     - python -m build
     # Publish to testpypi
     - python -m twine upload --repository testpypi -u __token__ -p $PYPI_TOKEN dist/*
     # Test installation
-    - micromamba install -n base -y --file=requirements.yml
+    - micromamba update -n base -y --file=requirements.yml
     - python -m pip install --index-url https://test.pypi.org/simple/ --no-deps fine
     - python -m pytest -n auto test/
     # Publish to pypi 
