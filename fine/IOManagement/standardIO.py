@@ -89,7 +89,7 @@ def writeOptimizationOutputToExcel(
         for name in esM.componentModelingDict.keys():
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
-            oL_ = oL[name] if type(oL) == dict else oL
+            oL_ = oL[name] if isinstance(oL, dict) else oL
 
             optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
             if not optSum.empty:
@@ -102,7 +102,7 @@ def writeOptimizationOutputToExcel(
 
             data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
             oL = optValOutputLevel
-            oL_ = oL[name] if type(oL) == dict else oL
+            oL_ = oL[name] if isinstance(oL, dict) else oL
             dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
             dataTI, indexTI = [], []
             for key, d in data.items():
@@ -203,7 +203,7 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
         .dropna(axis="index", how="all")
     )
     esMData = esMData.apply(
-        lambda v: ast.literal_eval(v) if type(v) == str and v[0] == "{" else v
+        lambda v: ast.literal_eval(v) if isinstance(v, str) and v[0] == "{" else v
     )
 
     kw = inspect.getargspec(fn.EnergySystemModel.__init__).args
@@ -243,7 +243,7 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
             temp = row.dropna()
             temp = temp.drop(temp[temp == "None"].index)
             temp = temp.apply(
-                lambda v: ast.literal_eval(v) if type(v) == str and v[0] == "{" else v
+                lambda v: ast.literal_eval(v) if isinstance(v, str) and v[0] == "{" else v
             )
 
             if comp + "LocSpecs" in file.sheet_names:
@@ -1041,7 +1041,7 @@ def plotTransmission(
         linewidth=linewidth,
         color=color,
         marker="_",
-        label="{:>4.4}".format(str(capMax), unit) + " " + unit,
+        label="{:>4.4}".format(str(capMax)) + " " + unit,
     )
     lineMax23 = plt.Line2D(
         range(1),
@@ -1210,7 +1210,7 @@ def plotLocationalColorMap(
     if len(excluded_regions) > 0:
         print(
             f"Missing regions: {compName} - {variableName} \n",
-            f"The following regions are not plotted as they are not contained in the provided shapefile: \n",
+            "The following regions are not plotted as they are not contained in the provided shapefile: \n",
             f"{excluded_regions} \n",
         )
 

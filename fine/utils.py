@@ -6,10 +6,11 @@ import pandas as pd
 
 import fine as fn
 
+# ruff: noqa
 
 def isString(string):
     """Check if the input argument is a string."""
-    if not type(string) == str:
+    if not isinstance(string, str):
         raise TypeError("The input argument has to be a string")
 
 

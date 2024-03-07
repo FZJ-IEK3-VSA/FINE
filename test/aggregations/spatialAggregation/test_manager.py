@@ -113,13 +113,13 @@ def test_error_in_reading_shp(test_esM_for_spagat):
             "InputData/SpatialData/ShapeFiles",
         )
 
-        aggregated_esM = test_esM_for_spagat.aggregateSpatially(
+        _ = test_esM_for_spagat.aggregateSpatially(
             shapefile=SHAPEFILE_PATH, n_groups=2, solver="glpk"
         )
 
     ## Case 2: invalid shapefile type
     with pytest.raises(TypeError):
-        aggregated_esM = test_esM_for_spagat.aggregateSpatially(
+        _ = test_esM_for_spagat.aggregateSpatially(
             shapefile=test_esM_for_spagat, n_groups=2, solver="glpk"
         )
 
@@ -131,7 +131,7 @@ def test_error_in_reading_shp(test_esM_for_spagat):
             "InputData/SpatialData/ShapeFiles/three_regions.shp",
         )
 
-        aggregated_esM = test_esM_for_spagat.aggregateSpatially(
+        _ = test_esM_for_spagat.aggregateSpatially(
             shapefile=SHAPEFILE_PATH, n_groups=5, solver="glpk"
         )
 
@@ -256,7 +256,7 @@ def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):
     gdf["index"] = [f"Region{i}" for i in [1, 2]]
 
     # FUNCTION CALL
-    aggregated_esM = esM.aggregateSpatially(
+    _ = esM.aggregateSpatially(
         shapefile=gdf,
         grouping_mode="distance_based",
         n_groups=1,

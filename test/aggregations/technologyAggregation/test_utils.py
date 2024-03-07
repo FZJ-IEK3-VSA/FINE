@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 
 from fine.aggregations.technologyAggregation import techAggregationUtils

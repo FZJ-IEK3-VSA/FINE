@@ -418,7 +418,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                     if varname[:3] == "2d_":
                         try:
                             aggregation_weight = comp_ds[f"2d_{aggregation_weight}"]
-                        except:
+                        except Exception:
                             warnings.warn(
                                 f"Aggregation mode for {comp} component's {varname[3:]} set to mean instead of \
                                 weighted mean because corresponding weight: {aggregation_weight} variable is not found"
@@ -429,7 +429,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                     else:
                         try:
                             aggregation_weight = comp_ds[f"1d_{aggregation_weight}"]
-                        except:
+                        except Exception:
                             warnings.warn(
                                 f"Aggregation mode for {comp} component's {varname[3:]} set to mean instead of \
                                 weighted mean because corresponding weight: {aggregation_weight} variable is not found"

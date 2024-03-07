@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 import os
 import shutil
-import io
-import time
 
 import fine as fn
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel

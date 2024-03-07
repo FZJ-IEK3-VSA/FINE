@@ -1,8 +1,6 @@
 import fine as fn
 import numpy as np
-import pytest
 import pandas as pd
-import math
 
 
 def test_pathwayBudget():

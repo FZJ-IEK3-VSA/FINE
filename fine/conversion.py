@@ -873,7 +873,7 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
+        abbrvName = self.abbrvName
         capVar, linkedList = (
             getattr(pyM, "cap_" + abbrvName),
             getattr(pyM, "linkedComponentsList_" + self.abbrvName),
