@@ -33,6 +33,9 @@ class LinearOptimalPowerFlow(Transmission):
         partLoadMin=None,
         sharedPotentialID=None,
         capacityFix=None,
+        commissioningMin=None,
+        commissioningMax=None,
+        commissioningFix=None,
         isBuiltFix=None,
         investPerCapacity=0,
         investIfBuilt=0,
@@ -79,6 +82,9 @@ class LinearOptimalPowerFlow(Transmission):
             partLoadMin=partLoadMin,
             sharedPotentialID=sharedPotentialID,
             capacityFix=capacityFix,
+            commissioningMin=commissioningMin,
+            commissioningMax=commissioningMax,
+            commissioningFix=commissioningFix,
             isBuiltFix=isBuiltFix,
             investPerCapacity=investPerCapacity,
             investIfBuilt=investIfBuilt,
@@ -101,7 +107,7 @@ class LinearOptimalPowerFlow(Transmission):
             self.reactances = pd.Series(self._mapC).apply(
                 lambda loc: self.reactances2dim[loc[0]][loc[1]]
             )
-        except:
+        except Exception:
             self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
 
@@ -332,7 +338,7 @@ class LOPFModel(TransmissionModel):
         """
         super().setOptimalValues(esM, pyM)
         for ip in esM.investmentPeriods:
-            compDict, abbrvName = self.componentsDict, self.abbrvName
+            abbrvName = self.abbrvName
             phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
 
             optVal_ = utils.formatOptimizationOutput(

@@ -33,6 +33,9 @@ class Conversion(Component):
         sharedPotentialID=None,
         linkedQuantityID=None,
         capacityFix=None,
+        commissioningMin=None,
+        commissioningMax=None,
+        commissioningFix=None,
         isBuiltFix=None,
         investPerCapacity=0,
         investIfBuilt=0,
@@ -186,6 +189,9 @@ class Conversion(Component):
             sharedPotentialID=sharedPotentialID,
             linkedQuantityID=linkedQuantityID,
             capacityFix=capacityFix,
+            commissioningMin=commissioningMin,
+            commissioningMax=commissioningMax,
+            commissioningFix=commissioningFix,
             isBuiltFix=isBuiltFix,
             investPerCapacity=investPerCapacity,
             investIfBuilt=investIfBuilt,
@@ -867,7 +873,7 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
+        abbrvName = self.abbrvName
         capVar, linkedList = (
             getattr(pyM, "cap_" + abbrvName),
             getattr(pyM, "linkedComponentsList_" + self.abbrvName),

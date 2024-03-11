@@ -171,15 +171,15 @@ test-notebooks-docker-noupdate:
   script:
     - python -m pytest --nbval-lax --nbval-current-env  --durations=20 examples/
 
-test-formatting:
+test-codestyle:
   stage: test
-  image: pyfound/black:latest_release
+  image: registry.gitlab.com/pipeline-components/ruff:latest
   script:
-    # Dry-run black auto-formatter. If the code needs reformatting this test
-    # will fail.
-    - black --version
-    - black --check fine
-    - black --check test
+    # Run ruff check. If the code needs reformatting this test will fail.
+    - ruff version
+    - ruff check --output-format=gitlab fine
+    - ruff check --output-format=gitlab test
+    # - ruff check --output-format=gitlab examples
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has
     # been created on the branch.
@@ -215,7 +215,7 @@ build-tag:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
-    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG
 
 # Push develop build to local jugit registry
 build-dev:
@@ -228,3 +228,16 @@ build-dev:
     - docker push jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
+
+pypi-upload:
+  stage: build
+  script:
+    - micromamba install -c conda-forge -n base -y python=3.10
+    - python -m pip install --upgrade build
+    - python -m pip install --upgrade twine
+    - python -m build
+    - python -m twine upload -u __token__ -p $PYPI_TOKEN  dist/*
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG
+  when: manual
+

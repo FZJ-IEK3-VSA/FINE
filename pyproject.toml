@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.3.4"
+version = "2.3.5"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
@@ -49,3 +49,11 @@ filterwarnings = []
 homepage = "https://www.fz-juelich.de/de/iek/iek-3/forschung/open-source/fine"
 repository = "https://github.com/FZJ-IEK3-VSA/FINE"
 documentation = "https://vsa-fine.readthedocs.io/en/master/"
+
+[tool.ruff]
+extend-include = ["*.ipynb"]
+
+[tool.ruff.lint]
+ignore = [
+    "F403",  # ‘from module import *’ used; unable to detect undefined names
+]

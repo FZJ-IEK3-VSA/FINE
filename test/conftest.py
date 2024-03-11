@@ -41,9 +41,6 @@ def minimal_test_esM(scope="session"):
         balanceLimit=None,
     )
 
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
-
     ### Buy electricity at the electricity market
     costs = pd.DataFrame(
         [
@@ -227,9 +224,6 @@ def single_node_test_esM():
         balanceLimit=None,
     )
 
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
-
     ### Buy electricity at the electricity market
     costs = pd.Series(
         np.array(
@@ -363,7 +357,6 @@ def esM_init():
     )
 
     return esM
-
 
 @pytest.fixture(scope="session")
 def multi_node_test_esM_init(esM_init):
@@ -1350,7 +1343,7 @@ def multi_node_test_esM_optimized(esM_init):
 
 
 @pytest.fixture
-def multi_node_test_esM_init(scope="session"):
+def multi_node_test_esM_init(scope="session"):  # noqa: F811
     data = getData()
 
     # 2. Create an energy system model instance
@@ -1372,8 +1365,6 @@ def multi_node_test_esM_init(scope="session"):
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
-    numberOfTimeSteps = 8760
-    hoursPerTimeStep = 1
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -1833,8 +1824,7 @@ def multi_node_test_esM_init(scope="session"):
 
 
 @pytest.fixture
-def multi_node_test_esM_optimized(scope="session"):
-    cwd = os.getcwd()
+def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
     data = getData()
 
     # 2. Create an energy system model instance
@@ -1856,8 +1846,6 @@ def multi_node_test_esM_optimized(scope="session"):
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
-    numberOfTimeSteps = 8760
-    hoursPerTimeStep = 1
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -2318,7 +2306,6 @@ def dsm_test_esM(scope="session"):
     for testing demand side management functionality.
     """
     # load without dsm
-    now = pd.Timestamp.now().round("h")
     number_of_time_steps = 28
     # t_index = pd.date_range(now, now + pd.DateOffset(hours=number_of_timeSteps - 1), freq='h')
     t_index = range(number_of_time_steps)
