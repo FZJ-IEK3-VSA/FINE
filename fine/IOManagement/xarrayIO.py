@@ -1,6 +1,5 @@
 import time
 from pathlib import Path
-from typing import Dict
 
 import pandas as pd
 import xarray as xr
@@ -102,13 +101,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
         for name in esM.componentModelingDict.keys():
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
-            oL_ = oL[name] if type(oL) == dict else oL
+            oL_ = oL[name] if isinstance(oL, dict) else oL
             optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
-            # if isinstance(optSum, pd.DataFrame):
-            #     if esM.numberOfInvestmentPeriods != 1:
-            #         raise ValueError()
-            #     optSum = {}
-            #     optSum[esM.startYear] = optSum
             if esM.componentModelingDict[name].dimension == "1dim":
                 for component in optSum.index.get_level_values(0).unique():
                     variables = optSum.loc[component].index.get_level_values(0)
@@ -327,7 +321,7 @@ def writeDatasetsToNetCDF(
             Path(outputFilePath).unlink()
 
     if not Path(outputFilePath).is_file():
-        with Dataset(outputFilePath, "w", format="NETCDF4") as rootgrp:
+        with Dataset(outputFilePath, "w", format="NETCDF4") as _:
             pass
 
     for group in datasets.keys():
@@ -376,11 +370,11 @@ def writeDatasetsToNetCDF(
                 # if the attribute is bool, add a corresponding string
                 elif isinstance(attr_value, bool):
                     xarray_dataset.attrs[attr_name] = (
-                        "True" if attr_value == True else "False"
+                        "True" if attr_value is True else "False"
                     )
 
                 # if the attribute is None, add a corresponding string
-                elif attr_value == None:
+                elif attr_value is None:
                     xarray_dataset.attrs[attr_name] = "None"
 
             if groupPrefix:
@@ -933,7 +927,7 @@ def writeEnergySystemModelToNetCDF(
 
     xr_dss_input = convertOptimizationInputToDatasets(esM)
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
-    if esM.objectiveValue != None:  # model was optimized
+    if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
@@ -950,7 +944,7 @@ def writeEnergySystemModelToDatasets(esM):
         dataset format
     :rtype: xr.DataSet
     """
-    if esM.objectiveValue != None:  # model was optimized
+    if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
         xr_dss_input = convertOptimizationInputToDatasets(esM)
         xr_dss_results = {
@@ -1021,7 +1015,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
                 for ip_key in group_keys["Results"].groups
             }
         # read parameters from netcdf
-        xr_dss["Parameters"] = xr.load_dataset(filePath, group=f"Parameters")
+        xr_dss["Parameters"] = xr.load_dataset(filePath, group="Parameters")
     else:
         xr_dss = {}
         # read input from netcdf

@@ -537,13 +537,13 @@ class EnergySystemModel:
         :param updateAttrs: A dict of component attributes as keys and values that shall be set as dict values.
         :type updateAttrs: dict
         """
-        if not componentName in self.componentNames.keys():
+        if componentName not in self.componentNames.keys():
             raise AttributeError(
                 f"componentName '{componentName}' is not a component in this esM instance."
             )
         if not (isinstance(updateAttrs, dict) and len(updateAttrs) > 0):
             raise TypeError(
-                f"updateAttrs must be dict type with at least one key/value pair."
+                "updateAttrs must be dict type with at least one key/value pair."
             )
 
         # get affected classes and extract relevant class attributes
@@ -552,7 +552,7 @@ class EnergySystemModel:
 
         # check if all arguments to be updated are class attributes
         for k in updateAttrs.keys():
-            if not k in class_attrs:
+            if k not in class_attrs:
                 raise AttributeError(
                     f"parameter '{k}' from updateAttrs is not an attribute of the component class '{_class}'."
                 )
@@ -1955,7 +1955,7 @@ class EnergySystemModel:
                     "A logFile Name has to be specified in order to extract Gurobi values! Gurobi values will not be listed in performance summary!"
                 )
             # If time series aggregation is enabled, the TSA instance needs to be saved in order to be included in the performance summary
-            if self.isTimeSeriesDataClustered and (self.tsaInstance == None):
+            if self.isTimeSeriesDataClustered and (self.tsaInstance is None):
                 warnings.warn(
                     "storeTSAinstance has to be set to true to extract TSA Parameters! TSA parameters will not be listed in performance summary!"
                 )
@@ -2000,7 +2000,7 @@ class EnergySystemModel:
         if solver != "None":
             try:
                 opt.SolverFactory(solver).available()
-            except:
+            except Exception:
                 solver = "None"
 
         if solver == "None":
@@ -2016,7 +2016,7 @@ class EnergySystemModel:
                                 self.verbose,
                                 0,
                             )
-                    except:
+                    except Exception:
                         pass
 
         if solver == "None":
@@ -2052,7 +2052,11 @@ class EnergySystemModel:
                 + " "
                 + optimizationSpecs
             )
-            solver_info = optimizer.solve(self.pyM, warmstart=warmstart, tee=True)
+            solver_info = optimizer.solve(
+                self.pyM,
+                warmstart=warmstart,
+                tee=True,
+            )
         elif solver == "glpk":
             optimizer.set_options(optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, tee=True)

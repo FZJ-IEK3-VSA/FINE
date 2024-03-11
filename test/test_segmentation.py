@@ -1,4 +1,3 @@
-import numpy as np
 
 
 def test_segmentation(minimal_test_esM):

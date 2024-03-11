@@ -1,7 +1,5 @@
-from typing import Type
 from fine.component import Component, ComponentModel
 from fine import utils
-import warnings
 import pyomo.environ as pyomo
 import pandas as pd
 
@@ -33,6 +31,9 @@ class Transmission(Component):
         sharedPotentialID=None,
         linkedQuantityID=None,
         capacityFix=None,
+        commissioningMin=None,
+        commissioningMax=None,
+        commissioningFix=None,
         isBuiltFix=None,
         investPerCapacity=0,
         investIfBuilt=0,
@@ -148,6 +149,10 @@ class Transmission(Component):
         self.capacityMax = capacityMax
         self.capacityMin = capacityMin
         self.capacityFix = capacityFix
+        self.commissioningMax = commissioningMax
+        self.commissioningMin = commissioningMin
+        self.commissioningFix = commissioningFix
+
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
         preprocessedCapacityMax = utils.process2dimCapacityData(
@@ -220,6 +225,21 @@ class Transmission(Component):
         preprocessedCapacityMin = utils.preprocess2dimData(
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
+        preprocessedCommissioningMin = utils.preprocess2dimData(
+            commissioningMin,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
+        )
+        preprocessedCommissioningMax = utils.preprocess2dimData(
+            commissioningMax,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
+        )
+        preprocessedCommissioningFix = utils.preprocess2dimData(
+            commissioningFix,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
+        )
         # stockCommissioning
         if stockCommissioning is None:
             self.stockCommissioning = stockCommissioning
@@ -260,6 +280,9 @@ class Transmission(Component):
             sharedPotentialID=sharedPotentialID,
             linkedQuantityID=linkedQuantityID,
             capacityFix=preprocessedCapacityFix,
+            commissioningMin=preprocessedCommissioningMin,
+            commissioningMax=preprocessedCommissioningMax,
+            commissioningFix=preprocessedCommissioningFix,
             isBuiltFix=self.isBuiltFix,
             investPerCapacity=0,
             investIfBuilt=0,

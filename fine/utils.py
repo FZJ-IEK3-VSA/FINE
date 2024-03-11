@@ -6,10 +6,11 @@ import pandas as pd
 
 import fine as fn
 
+# ruff: noqa
 
 def isString(string):
     """Check if the input argument is a string."""
-    if not type(string) == str:
+    if not isinstance(string, str):
         raise TypeError("The input argument has to be a string")
 
 
@@ -545,105 +546,92 @@ def checkLocationSpecficDesignInputParams(comp, esM):
             raise ValueError('QPcostScale must ba a number between "0" and "1".')
 
 
-def checkAndSetCapacityBounds(esM, name, capacityMin, capacityMax, capacityFix):
-    checkInvestmentPeriodParameters(name, capacityMin, esM.investmentPeriodNames)
-    checkInvestmentPeriodParameters(name, capacityMax, esM.investmentPeriodNames)
-    checkInvestmentPeriodParameters(name, capacityFix, esM.investmentPeriodNames)
-
-    def _checkAndSet(name, param):
+def processBoundParams(esM, param):
+    processedParam = {}
+    for ip in esM.investmentPeriods:
+        if param is None:
+            processedParam[ip] = None
         if isinstance(param, dict):
-            if all(x is None for x in param.values()):
-                return None
-            if any(x is None for x in param.values()):
-                raise ValueError(
-                    f"{name} cannot switch between None and values for different investment periods."
-                )
-
-        processedParam = {}
-        for ip in esM.investmentPeriods:
-            if param is None:
+            if param[esM.investmentPeriodNames[ip]] is None:
                 processedParam[ip] = None
-            if isinstance(param, dict):
+            else:
                 processedParam[ip] = castToSeries(
                     param[esM.investmentPeriodNames[ip]], esM
                 )
-            elif isinstance(param, pd.DataFrame) or isinstance(param, pd.Series):
-                processedParam[ip] = castToSeries(param, esM)
-            elif isinstance(param, int) or isinstance(param, float):
-                processedParam[ip] = castToSeries(param, esM)
-        return processedParam
+        elif isinstance(param, pd.DataFrame) or isinstance(param, pd.Series):
+            processedParam[ip] = castToSeries(param, esM)
+        elif isinstance(param, int) or isinstance(param, float):
+            processedParam[ip] = castToSeries(param, esM)
+    return processedParam
+
+
+def checkForConsistency(paramName, valueName, name, capacityBound):
+    if isinstance(capacityBound, dict):
+        if any(x is not None for x in capacityBound.values()):
+            if not all(x is not None for x in capacityBound.values()):
+                raise ValueError(
+                    "A mix between None and specified values is not allowed "
+                    + f"between investment periods for {paramName}{valueName} for {name}."
+                )
+
+
+def checkAndSetBounds(esM, name, paramName, MinVal, MaxVal, FixVal):
+    checkInvestmentPeriodParameters(name, MinVal, esM.investmentPeriodNames)
+    checkInvestmentPeriodParameters(name, MaxVal, esM.investmentPeriodNames)
+    checkInvestmentPeriodParameters(name, FixVal, esM.investmentPeriodNames)
 
     # set up parameter as dict with investment periods as keys and
     # dataframe with locations as values
-    processedCapacityMin = _checkAndSet(name, capacityMin)
-    processedCapacityMax = _checkAndSet(name, capacityMax)
-    processedCapacityFix = _checkAndSet(name, capacityFix)
+    processedMinVal = processBoundParams(esM, MinVal)
+    processedMaxVal = processBoundParams(esM, MaxVal)
+    processedFixVal = processBoundParams(esM, FixVal)
 
     for ip in esM.investmentPeriods:
-        if (
-            processedCapacityMin[ip] is not None
-            and (processedCapacityMin[ip] < 0).any()
-        ):
-            raise ValueError("capacityMin values smaller than 0 were detected.")
+        if processedMinVal[ip] is not None and (processedMinVal[ip] < 0).any():
+            raise ValueError(
+                f"{paramName}Min values for {name} smaller than 0 were detected."
+            )
 
-        if (
-            processedCapacityFix[ip] is not None
-            and (processedCapacityFix[ip] < 0).any()
-        ):
-            raise ValueError("capacityFix values smaller than 0 were detected.")
+        if processedFixVal[ip] is not None and (processedFixVal[ip] < 0).any():
+            raise ValueError(
+                f"{paramName}Fix values for {name} smaller than 0 were detected."
+            )
 
-        if (
-            processedCapacityMax[ip] is not None
-            and (processedCapacityMax[ip] < 0).any()
-        ):
-            raise ValueError("capacityMax values smaller than 0 were detected.")
+        if processedMaxVal[ip] is not None and (processedMaxVal[ip] < 0).any():
+            raise ValueError(
+                f"{paramName}Max values for {name} smaller than 0 were detected."
+            )
 
-        if (
-            processedCapacityMin[ip] is not None
-            and processedCapacityMax[ip] is not None
-        ):
+        if processedMinVal[ip] is not None and processedMaxVal[ip] is not None:
             # Test that capacityMin and capacityMax has the same index for comparing.
             # If capacityMin is missing for some locations, it´s set to 0.
-            if set(processedCapacityMin[ip].index).issubset(
-                processedCapacityMax[ip].index
-            ):
-                processedCapacityMin[ip] = (
-                    processedCapacityMin[ip]
-                    .reindex(processedCapacityMax[ip].index)
-                    .fillna(0)
+            if set(processedMinVal[ip].index).issubset(processedMaxVal[ip].index):
+                processedMinVal[ip] = (
+                    processedMinVal[ip].reindex(processedMaxVal[ip].index).fillna(0)
                 )
-            if (processedCapacityMin[ip] > processedCapacityMax[ip]).any():
-                raise ValueError("capacityMin values > capacityMax values detected.")
+            if (processedMinVal[ip] > processedMaxVal[ip]).any():
+                raise ValueError(
+                    f"{paramName}Min values > {paramName}Max values detected."
+                )
 
-        if (
-            processedCapacityFix[ip] is not None
-            and processedCapacityMax[ip] is not None
-        ):
-            if (processedCapacityFix[ip] > processedCapacityMax[ip]).any():
-                raise ValueError("capacityFix values > capacityMax values detected.")
+        if processedFixVal[ip] is not None and processedMaxVal[ip] is not None:
+            if (processedFixVal[ip] > processedMaxVal[ip]).any():
+                raise ValueError(
+                    f"{paramName}Fix values > {paramName}Max values detected."
+                )
 
-        if (
-            processedCapacityFix[ip] is not None
-            and processedCapacityMin[ip] is not None
-        ):
-            if (processedCapacityFix[ip] < processedCapacityMin[ip]).any():
-                raise ValueError("capacityFix values < capacityMax values detected.")
+        if processedFixVal[ip] is not None and processedMinVal[ip] is not None:
+            if (processedFixVal[ip] < processedMinVal[ip]).any():
+                raise ValueError(
+                    f"{paramName}Fix values < {paramName}Min values detected."
+                )
 
     # check if there is a mix of None and specified boundaries in one of the capacityBounds
-    def checkForConsistency(name, capacityBound):
-        if isinstance(capacityBound, dict):
-            if any(x is not None for x in capacityBound.values()):
-                if not all(x is not None for x in capacityBound.values()):
-                    raise ValueError(
-                        "A mix between None and specified values is not allowed "
-                        + f"between investment periods for {name}."
-                    )
+    checkForConsistency(paramName, "Max", name, MaxVal)
+    checkForConsistency(paramName, "Min", name, MinVal)
+    checkForConsistency(paramName, "Fix", name, FixVal)
 
-    checkForConsistency("capacityMax", capacityMax)
-    checkForConsistency("capacityMin", capacityMin)
-    checkForConsistency("capacityFix", capacityFix)
-
-    return processedCapacityMin, processedCapacityMax, processedCapacityFix
+    return processedMinVal, processedMaxVal, processedFixVal
 
 
 def checkInvestmentPeriodParameters(name, param, years):

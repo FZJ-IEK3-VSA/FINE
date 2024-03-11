@@ -2,6 +2,8 @@
 Aggregation of RE technologies in every region.
 """
 
+# ruff: noqa
+
 import logging
 import numpy as np
 import xarray as xr

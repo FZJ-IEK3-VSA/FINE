@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import pwlf
 
+# ruff: noqa
 
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     """
@@ -288,9 +289,31 @@ class ConversionPartLoad(Conversion):
 
         **Required arguments:**
 
-        :param commodityConversionFactorsPartLoad: Function or data set describing (nonlinear) part load behavior.
-        :type commodityConversionFactorsPartLoad: Lambda function or Pandas DataFrame with two columns for the x-axis
-            and the y-axis.
+        :param commodityConversionFactorsPartLoad: A dictionary containing key-value pairs, where each key represents
+        a commodity (e.g., "electricity", "hydrogen") and each value provides the conversion factors that vary with
+        the operation load. These conversion factors dictate the efficiency or rate at which one commodity is transformed
+        into another under different operational conditions. The (nonlinear) part load behavior, which is the relationship
+        between the conversion factors (or efficiency) and the operational load, can be described either using a lambda function
+        for a direct mathematical relationship or a Pandas DataFrame. If a Pandas DataFrame is used, it should contain two columns:
+        one for the x-axis, which represents the operation level (nominal load), and one for the y-axis, which represents the
+        corresponding conversion factor (efficiency) at the corresponding operation level. A negative value indicates that the
+        commodity is consumed. A positive value indicates that the commodity is produced.
+
+            Example:
+                * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
+                    depending on the operation level. The physicalUnit is given as GW_electric, the unit for the 'electricity'
+                    commodity isgiven in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue.
+                    Here, electricity consumption is represented by a negative value (-1), and hydrogen production efficiency
+                    is detailed in a DataFrame with operation levels and corresponding efficiencies.
+
+                    # Efficiency Curve of Electrolyzer
+                    Operation_level = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+                    Efficiency = [0.1, 0.15, 0.5, 0.7, 0.7, 0.65, 0.63, 0.62, 0.61, 0.60]
+                    d = {"x": Operation_level, "y": Efficiency}
+                    partLoadData = pd.DataFrame(d)
+
+                    # Definition of commodityConversionFactorsPartLoad
+                    -> the commodityConversionFactorsPartLoad are defined as {'electricity':-1,'hydrogen':partLoadData}.
 
         **Default arguments:**
 

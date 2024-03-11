@@ -47,7 +47,7 @@ def test_capacityBounds():
             )
         )
         # capacityFix
-        assert esM.getComponent("PressureTank" + type).capacityFix == None
+        assert esM.getComponent("PressureTank" + type).capacityFix is None
         assert esM.getComponent("PressureTank" + type).processedCapacityFix is None
         # capacity max and min
         assert isinstance(
