@@ -1697,7 +1697,8 @@ class StorageModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         if type == "operation":
-            raise NotImplementedError("ComponentLimit Constraint for operation not implemented for Storage components.")
+            warnings.warn("ComponentLimit Constraint for operation not implemented for Storage components.")
+            return None
         elif type == "capacity":
             capVar = getattr(pyM, "cap_" + abbrvName)
             balance = sum(
