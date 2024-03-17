@@ -477,7 +477,9 @@ def addConstantsToXarray(
             data = component_dict[classname][component]
             for item in key_list:
                 data = data[item]
-
+            if isinstance(data, list):
+                # convert to string with ":" as separator
+                data = ":".join(data)
             df_dict[df_description] = data
 
         df_variable = pd.Series(df_dict)

@@ -1,6 +1,7 @@
 import inspect
 
 import fine as fn
+import pandas as pd
 from fine.IOManagement import utilsIO
 
 
@@ -22,7 +23,11 @@ def exportToDict(esM, useProcessedValues=False):
     # Loop over all props
     for arg in inputkwargs.args:
         if arg != "self":
-            esmDict[arg] = getattr(esM, arg)
+            _data = getattr(esM, arg)
+            if isinstance(_data, pd.DataFrame):
+                if not "Eligibility" in arg:
+                    _data = _data.astype(str) # prevent errors when saving to netcdf becaue of mixed data types
+            esmDict[arg] = _data
 
     compDict = utilsIO.PowerDict()
     # Loop over all component models

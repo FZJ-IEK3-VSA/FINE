@@ -1358,7 +1358,7 @@ class EnergySystemModel:
                                     ip,
                                     data["bound"],
                                     data["type"],
-                                    data["value"],
+                                    float(data["value"]),
                                 ),
                                 [componentsOfComponentLimit[ip][balanceLimitID], locs],
                             )
