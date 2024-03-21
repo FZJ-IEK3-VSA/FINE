@@ -12,7 +12,7 @@ sys.path.append(
         os.path.dirname(__file__),
         "..",
         "examples",
-        "Multi-regional_Energy_System_Workflow",
+        "03_Multi-regional_Energy_System_Workflow",
     )
 )
 from getData import getData

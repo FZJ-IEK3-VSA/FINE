@@ -20,7 +20,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
 
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
@@ -109,7 +109,7 @@ def test_error_in_reading_shp(test_esM_for_spagat):
     with pytest.raises(FileNotFoundError):
         SHAPEFILE_PATH = os.path.join(
             os.path.dirname(__file__),
-            "../../../examples/Multi-regional_Energy_System_Workflow/",
+            "../../../examples/03_Multi-regional_Energy_System_Workflow/",
             "InputData/SpatialData/ShapeFiles",
         )
 
@@ -127,7 +127,7 @@ def test_error_in_reading_shp(test_esM_for_spagat):
     with pytest.raises(ValueError):
         SHAPEFILE_PATH = os.path.join(
             os.path.dirname(__file__),
-            "../../../examples/Multi-regional_Energy_System_Workflow/",
+            "../../../examples/03_Multi-regional_Energy_System_Workflow/",
             "InputData/SpatialData/ShapeFiles/three_regions.shp",
         )
 
@@ -139,7 +139,7 @@ def test_error_in_reading_shp(test_esM_for_spagat):
 def test_spatial_aggregation_string_based(test_esM_for_spagat):
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
@@ -184,7 +184,7 @@ def test_spatial_aggregation_distance_based(
 ):
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
@@ -221,7 +221,7 @@ def test_spatial_aggregation_parameter_based(
 ):
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
@@ -247,7 +247,7 @@ def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):
     esM = balanceLimitConstraint_test_esM[0]
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
