@@ -45,17 +45,17 @@ If you want to use ETHOS.FINE in a published work, please [**kindly cite followi
 ### Python package manager
 The installation process uses a Conda-based Python package manager. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/) instead of Conda. The recommended way to use Mamba on your system is to install the [Miniforge distribution](https://github.com/conda-forge/miniforge#miniforge3). They offer installers for Windows, Linux and OS X. In principle, Conda and Mamba are interchangeable. The commands and concepts are the same. The distributions differ in the methodology for determining dependencies when installing Python packages. Mamba relies on a more modern methodology, which (with the same result) leads to very significant time savings during the installation of FINE. Switching to Mamba usually does not lead to any problems, as it is virtually identical to Conda in terms of operation.
 
-If you decide to use Conda you have to expect longer installation times for FINE. In this case, we recommend the installation [through our conda-forge package](#installation-via-conda-forge).
+If you decide to use Conda you have to expect longer installation times for ETHOS.FINE. In this case, we recommend the installation [through our conda-forge package](#installation-via-conda-forge).
 
 ### Mixed Integer Linear Programming (MILP) solver
 The project environment includes [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](#installation-of-an-optimization-solver) for more information.
 
 ## Installation
 
-If you would like to run FINE for your analysis we recommend to install it directly from conda-forge into a new Python environment. Alternatively you can install it from a local folder by using the `requirements.yml` file. If you want to work on the FINE code base choose "Installation for developers". It performs an editable installation of FINE and add some developer tools (e.g. pytest, black) to the environment.
+If you would like to run ETHOS.FINE for your analysis we recommend to install it directly from conda-forge into a new Python environment. Alternatively you can install it from a local folder by using the `requirements.yml` file. If you want to work on the ETHOS.FINE code base choose "Installation for developers". It performs an editable installation of ETHOS.FINE and add some developer tools (e.g. pytest, black) to the environment.
 
 ###  Installation via conda-forge
-The simplest way ist to install FINE into a fresh environment from `conda-forge` with:
+The simplest way ist to install ETHOS.FINE into a fresh environment from `conda-forge` with:
 ```bash
 mamba create -n fine -c conda-forge fine
 ```
@@ -71,7 +71,7 @@ git clone --depth 1 https://github.com/FZJ-IEK3-VSA/FINE.git
 ```bash
 cd fine
 ```
-3. It is recommended to create a clean environment with conda to use FINE because it requires many dependencies. 
+3. It is recommended to create a clean environment with conda to use ETHOS.FINE because it requires many dependencies. 
 ```bash
 mamba env create -f requirements.yml
 ```
@@ -85,7 +85,7 @@ python -m pip install --no-deps .
 ```
 
 ### Installation for developers
-If you want to work on the FINE codebase you need to run. 
+If you want to work on the ETHOS.FINE codebase you need to run. 
 ```bash
 git clone https://github.com/FZJ-IEK3-VSA/FINE.git
 ```
@@ -93,8 +93,8 @@ to get the whole git history and then
 ```bash
 mamba env create -f requirements_dev.yml
 ```
-This installs additional dependencies such as `pytest` and installs FINE from the folder in editable mode with `pip -e`. Changes in the folder are then reflected in the package installation.
-Finally, install FINE in editable mode with:
+This installs additional dependencies such as `pytest` and installs ETHOS.FINE from the folder in editable mode with `pip -e`. Changes in the folder are then reflected in the package installation.
+Finally, install ETHOS.FINE in editable mode with:
 ```bash
 python -m pip install --no-deps --editable .
 ```
@@ -105,12 +105,12 @@ pytest
 
 ## Installation of an optimization solver
 
-FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). It searches for the following solvers in this order:
+ETHOS.FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). It searches for the following solvers in this order:
 - [GUROBI](http://www.gurobi.com/)
    - Recommended due to better performance but requires license (free academic version available)
    - Set as standard solver
 - [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download)
-  - This solver is installed with the FINE environment.
+  - This solver is installed with the ETHOS.FINE environment.
   - Free version available 
 - [CBC](https://projects.coin-or.org/Cbc)
   - Free version available
@@ -132,7 +132,31 @@ Installation procedure can be found [here](https://projects.coin-or.org/Cbc).
 
 ## Examples
 
-A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples) shows the capabilities of FINE.
+A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples) shows the capabilities of ETHOS.FINE.
+- [00_Tutorial](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/00_Tutorial)
+    - In this application, an energy supply system, consisting of two regions, is modeled and optimized. Recommended as starting point to get to know to ETHOS.FINE.
+- [01_1node_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/01_1node_Energy_System_Workflow)
+    - In this application, a single region energy system is modeled and optimized. The system includes only a few technologies. 
+- [02_EnergyLand](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/02_EnergyLand)
+    - In this application, a single region energy system is modeled and optimized. Compared to the previous examples, this example includes a lot more technologies considered in the system. 
+- [03_Multi-regional_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/03_Multi-regional_Energy_System_Workflow)
+    - In this application, an energy supply system, consisting of eight regions, is modeled and optimized. The example shows how to model multi-regional energy systems. The example also includes a notebook to get to know the optional performance summary. The summary shows how the optimization performed.
+- [04_Model_Run_from_Excel](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/04_Model_Run_from_Excel)
+    - ETHOS.FINE can also be run by excel. This example shows how to read and run a model using excel files.
+- [05_District_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/05_District_Optimization)
+    - In this application, a small district is modeled and optimized. This example also includes binary decision variables.
+- [06_Water_Supply_System](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/06_Water_Supply_System)
+    - The application cases of ETHOS.FINE are not limited. This application shows how to model the water supply system. 
+- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/07_NetCDF_to_save_and_set_up_model_instance)
+    - This example shows how to save the input and optimized results of an energy system Model instance to netCDF files to allow reproducibility.
+- [08_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/08_Spatial_and_technology_aggregation)
+    - These two examples show how to reduce the model complexity. Model regions can be aggregated to reduce the number of regions (spatial aggregation). Input parameters are automatically adapted. Furthermore, technologies can be aggregated to reduce complexity, e.g. reducing the number of different PV components (technology aggregation). Input parameters are automatically adapted. 
+- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/9_Stochastic_Optimizatio)
+    - In this application, a stochastic optimization is performed. It is possible to perform the optimization of an energy system model with different input parameter sets to receive a more robust solution.
+- [10_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/10_PerfectForesight)
+    -  In this application, a transformation pathway of an energy system is modeled and optimized showing how to handle several investment periods with time-dependent assumptions for costs and operation.
+- [11_Partload](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/11_Partload)
+    - In this application, a hydrogen system is modeled and optimized considering partload behavior of the electrolyzer. 
 
 ## License
 
