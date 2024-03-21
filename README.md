@@ -35,10 +35,10 @@ If you want to use ETHOS.FINE in a published work, please [**kindly cite followi
 * [Examples](#examples)
 * [License](#license)
 * [About Us](#about-us-)
-* [Contributions and Users](#contributions-and-users)
+* [Contributions and Support](#contributions-and-support)
+* [Code of Conduct](#code-of-conduct)
 * [Acknowledgement](#acknowledgement)
 <!-- TOC -->
-
 
 ## Requirements
 
@@ -138,11 +138,11 @@ A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples
 
 MIT License
 
-Copyright (C) 2016-2023 FZJ-IEK-3
+Copyright (C) 2016-2024 FZJ-IEK-3
 
-Active Developers: Theresa Groß, Kevin Knosala, Noah Pflugradt, Johannes Behrens, Julian Belina, Arne Burdack, Toni Busch, Philipp Dunkel, Patrick Freitag, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Shitab Ishmam, Stefan Kraus, Felix Kullmann, Jochen Linßen, Rachel Maier, Peter Markewitz, Lars Nolting, Shruthi Patil, Jan Priesmann, Stanley Risch, Julian Schönau, Bismark Singh, Maximilian Stargardt, Christoph Winkler, Michael Zier, Detlef Stolten
+Active Developers: Theresa Groß, Kevin Knosala, Noah Pflugradt, Johannes Behrens, Julian Belina, Arne Burdack, Toni Busch, Philipp Dunkel, David Franzmann, Patrick Freitag, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Jason Hu, Shitab Ishmam, Sebastian Kebrich, Felix Kullmann, Jochen Linßen, Rachel Maier, Shruthi Patil, Jan Priesmann, Julian Schönau, Maximilian Stargardt, Lovindu Wijesinghe, Christoph Winkler, Detlef Stolten
 
-Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Timo Kannengießer, Leander Kotzur, Martin Robinius, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder
+Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Timo Kannengießer, Leander Kotzur, Stefan Kraus, Peter Markewitz, Lars Nolting,Stanley Risch, Martin Robinius, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder, Michael Zier
 
 You should have received a copy of the MIT License along with this program.
 If not, see https://opensource.org/licenses/MIT
@@ -154,18 +154,21 @@ If not, see https://opensource.org/licenses/MIT
 
 We are the <a href="https://www.fz-juelich.de/en/iek/iek-3">Institute of Energy and Climate Research - Techno-economic Systems Analysis (IEK-3)</a> belonging to the <a href="https://www.fz-juelich.de/en">Forschungszentrum Jülich</a>. Our interdisciplinary department's research is focusing on energy-related process and systems analyses. Data searches and system simulations are used to determine energy and mass balances, as well as to evaluate performance, emissions and costs of energy systems. The results are used for performing comparative assessment studies between the various systems. Our current priorities include the development of energy strategies, in accordance with the German Federal Government’s greenhouse gas reduction targets, by designing new infrastructures for sustainable and secure energy supply chains and by conducting cost analysis studies for integrating new technologies into future energy market frameworks.
 
-## Contributions and Users
+## Contributions and Support
+Every contributions are welcome:
+- If you have a question, you can start a [Discussion](https://github.com/FZJ-IEK3-VSA/FINE/discussions). You will get a response as soon as possible.
+- If you want to report a bug, please open an [Issue](https://github.com/FZJ-IEK3-VSA/FINE/issues/new). We will then take care of the issue as soon as possible.
+- If you want to contribute with additional features or code improvements, open a [Pull request](https://github.com/FZJ-IEK3-VSA/FINE/pulls).
 
-From 2018 to 2022  we developed methods and models for ETHOS.FINE together with the RWTH-Aachen ([Prof. Aaron Praktiknjo](http://www.wiwi.rwth-aachen.de/cms/Wirtschaftswissenschaften/Die-Fakultaet/Institute-und-Lehrstuehle/Professoren/~jgfr/Praktiknjo-Aaron/?allou=1&lidx=1)), the [EDOM Team at FAU](https://www.math.fau.de/wirtschaftsmathematik/) and the [Jülich Supercomputing Centre](http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html)  within the BMWi funded project [METIS](http://www.metis-platform.net/).
-
-<p float="left">
-<a href="https://www.rwth-aachen.de/go/id/a/"> <img src="https://upload.wikimedia.org/wikipedia/commons/1/1e/RWTH_Logo_3.svg" width="230" /> </a> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
-<a href="https://www.fau.de/"> <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Friedrich-Alexander-Universit%C3%A4t_Erlangen-N%C3%BCrnberg_logo.svg/2000px-Friedrich-Alexander-Universit%C3%A4t_Erlangen-N%C3%BCrnberg_logo.svg.png" width="230" /> </a>
-</p>
+## Code of Conduct
+Please respect our [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Acknowledgement
+This work was initially supported by the Helmholtz Association under the Joint Initiative ["Energy System 2050   A Contribution of the Research Field Energy"](https://www.helmholtz.de/en/research/energy/energy_system_2050/). 
 
-This work was supported by the Helmholtz Association under the Joint Initiative ["Energy System 2050   A Contribution of the Research Field Energy"](https://www.helmholtz.de/en/research/energy/energy_system_2050/).
+The authors also gratefully acknowledge financial support by the Federal Ministry for Economic Affairs and Energy of Germany as part of the project [METIS](http://www.metis-platform.net/) (project number 03ET4064, 2018-2022).
+
+This work was supported by the Helmholtz Association under the program ["Energy System Design"](https://www.helmholtz.de/en/research/research-fields/energy/energy-system-design/).
 
 <p float="left">
 <a href="https://www.helmholtz.de/en/"><img src="https://www.helmholtz.de/fileadmin/user_upload/05_aktuelles/Marke_Design/logos/HG_LOGO_S_ENG_RGB.jpg" alt="Helmholtz Logo" width="200px"></a>
