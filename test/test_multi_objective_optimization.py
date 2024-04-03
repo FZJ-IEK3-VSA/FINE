@@ -22,7 +22,7 @@ def test_multi_objective_optimization(multi_objective_test_esm):
     # Make sure both of the objective functions are in the obj_list
     assert len(test_esm.pyM.obj_list) == 2
 
-    # Make sure all Conversions have the attribute material demand -> Future all Components!
+    # Make sure all components
     assert all(
         hasattr(
             test_esm.componentModelingDict["ConversionModel"].componentsDict[comp_name],

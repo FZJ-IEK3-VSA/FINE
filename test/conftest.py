@@ -449,6 +449,7 @@ def multi_objective_test_esm():
             investPerCapacity=0.5,  # eur/kWh
             interestRate=0.08,
             economicLifetime=30,
+            materialDemandPerCapacity=10,
         )
     )
 

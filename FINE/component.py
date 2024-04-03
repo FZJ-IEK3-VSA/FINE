@@ -2728,18 +2728,64 @@ class ComponentModel(metaclass=ABCMeta):
         # TODO dann über commisVar.value -> .value = state der variable, statt variable selbst
         # selbes design bei getLocEconomicsdesign
         commisVar = getattr(pyM, "commis_" + self.abbrvName)
-        return sum(
-            commisVar[loc, compName, ip]
-            * esM.getComponentAttribute(compName, "processed_materialDemandPerCapacity")
-            for loc in esM.locations
-            for compName in self.componentsDict
-            for ip in esM.investmentPeriods
-            if self.componentsDict[
-                compName
-            ].hasCapacityVariable  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
-            and self.componentsDict[compName].materialDemandPerCapacity != None
-        )
-        # TODO Add option to retrieve optimal values
+        if getOptValue:
+            # TODO Add option to retrieve optimal values
+            # TODO Refactor and make it less redundant with the code below
+            material_demand = {}
+            for ip in esM.investmentPeriods:
+                material_demand[ip] = pd.DataFrame()
+            for loc, compName, ip in commisVar:
+                if ip not in esM.investmentPeriods:
+                    continue
+                # check if component has a material demand - if not return NaN
+                # TODO Adapt if this get checked/set better within the corresponding utils function
+                if esM.getComponentAttribute(compName, "materialDemandPerCapacity"):
+                    material_demand[ip].loc[compName, loc] = commisVar[
+                        loc, compName, ip
+                    ].value * esM.getComponentAttribute(
+                        compName, "processed_materialDemandPerCapacity"
+                    )
+                else:
+                    # import pytest
+
+                    # pytest.set_trace()
+                    material_demand[ip].loc[compName, loc] = np.nan
+
+            return material_demand
+        else:
+            # for ip in esM.investmentPeriods:
+            #     for compName in self.componentsDict:
+            #         for loc in esM.locations:
+            #             if self.componentsDict[
+            #                 compName
+            #             ].hasCapacityVariable and self.componentsDict[  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
+            #                 compName
+            #             ].materialDemandPerCapacity != (
+            #                 None and 0  # has to be and because "not None AND not 0"
+            #             ):
+            #                 return sum(
+            #                     commisVar[loc, compName, ip]
+            #                     * esM.getComponentAttribute(
+            #                         compName, "processed_materialDemandPerCapacity"
+            #                     )
+            #                 )
+            #             else:
+            #                 return 0
+
+            return sum(
+                commisVar[loc, compName, ip]
+                * esM.getComponentAttribute(
+                    compName, "processed_materialDemandPerCapacity"
+                )
+                for loc in esM.locations
+                for compName in self.componentsDict
+                for ip in esM.investmentPeriods
+                if self.componentsDict[
+                    compName
+                ].hasCapacityVariable  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
+                and self.componentsDict[compName].materialDemandPerCapacity
+                != (None and 0)  # has to be and because "not None AND not 0"
+            )
 
     def getSharedPotentialContribution(self, pyM, key, loc, ip):
         """
@@ -3758,7 +3804,8 @@ class ComponentModel(metaclass=ABCMeta):
             getOptValueCostType="TAC",
         )
 
-        # Hierdran orientieren! -> getobjective function contribution...
+        # Get the material demand
+        results_material_demand = self.getMaterialDemand(esM, pyM, getOptValue=True)
 
         optSummary = {}
         for ip in esM.investmentPeriods:
@@ -4070,6 +4117,17 @@ class ComponentModel(metaclass=ABCMeta):
                 ],
                 npv.columns,
             ] = npv.values
+
+            # Add Material Demand to results
+            # TODO probably an if branch needed to check whether material demands are actually considered
+            optSummary_ip.loc[
+                [
+                    (ix, "materialDemand", "[kg]")
+                    for ix in results_material_demand[ip].index
+                ],
+                results_material_demand[ip].columns,
+            ] = results_material_demand[ip].values
+
             optSummary[esM.investmentPeriodNames[ip]] = optSummary_ip
 
         return optSummary

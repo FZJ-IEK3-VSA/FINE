@@ -2401,7 +2401,7 @@ class EnergySystemModel:
         # is set that can then be deleted.
         # Defining a custom export path in the options of pyaugmecon will prevent this behaviour!
         if not pyaugmeconOptions.get("custom_export_path"):
-            pyaugmeconOptions["custom_export_path"] = "_cache_moo/"
+            pyaugmeconOptions["custom_export_path"] = "_fine_moo_cache/"
 
         # Deactivate all objectives by default - this is pyaugmecon specific!
         for o in range(len(self.pyM.obj_list)):
