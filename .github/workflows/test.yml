@@ -69,21 +69,20 @@ jobs:
           path: './fine'
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-version: latest
-          channels: conda-forge
-          activate-environment: test_env
+          python-version: ${{ matrix.python-version }}
+          miniforge-variant: Mambaforge
+          activate-environment: fine 
+          environment-file: fine/requirements_dev.yml
       - name: Run tests
         shell: pwsh
         run: |
           ls
           echo "LS Done"
           cd fine
-          sed -i "\$a\  - python=${{ matrix.python-version }}" requirements_dev.yml
-          mamba env create --name fine_env --yes --file requirements_dev.yml
-          conda run --name fine_env pip install . --no-deps
+          conda run pip install . --no-deps
           echo "Installation done"
-          conda list --name fine_env
+          conda list test
           echo "libaries printed"
           echo "start pytest"
-          conda run --name fine_env pytest
+          conda run pytest
           echo "Pytest done"
