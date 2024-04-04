@@ -78,7 +78,7 @@ jobs:
           ls
           echo "LS Done"
           cd fine
-          sed -i "\$a\  - python=${{ matrix.python-version }}" requirements_dev.yml.copy
+          sed -i "\$a\  - python=${{ matrix.python-version }}" requirements_dev.yml
           mamba env create --name fine_env --yes --file requirements_dev.yml
           conda run --name fine_env pip install . --no-deps
           echo "Installation done"
