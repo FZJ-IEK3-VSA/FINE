@@ -81,7 +81,8 @@ jobs:
           cd fine
           conda run pip install . --no-deps
           echo "Installation done"
-          conda list test
+          conda run python -V
+          conda list fine
           echo "libaries printed"
           echo "start pytest"
           conda run pytest
