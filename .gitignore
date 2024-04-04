@@ -13,6 +13,7 @@ __pycache__/
 *.docs/build/
 .vscode/
 build/
+.venv/
 
 # file types to ignore
 *.pyc

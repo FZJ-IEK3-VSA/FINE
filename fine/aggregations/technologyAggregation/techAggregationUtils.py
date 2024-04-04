@@ -2,25 +2,12 @@
 Functions to assist technology aggregation algorithm.
 """
 
-import warnings
 import os
 import numpy as np
 from affine import Affine
 import xarray as xr
-
-try:
-    from rasterio import features
-except ImportError:
-    warnings.warn(
-        "The package rasterio is not installed. Spatial aggregation cannot be used without it."
-    )
-
-try:
-    import geopandas as gpd
-except ImportError:
-    warnings.warn(
-        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
-    )
+from rasterio import features
+import geopandas as gpd
 
 
 def rasterize_geometry(geometry, coords, latitude="y", longitude="x"):

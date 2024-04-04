@@ -30,7 +30,7 @@ variables:
     policy: pull
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
-    - python -m pip install .
+    - python -m pip install --no-deps .
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has
     # been created on the branch.
@@ -45,7 +45,7 @@ variables:
   stage: test
   image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
   before_script:
-    - python -m pip install -e .
+    - python -m pip install --no-deps -e .
   rules:
     # Do not run for pushes to master or develop and for merge requests to master
     - if: $CI_COMMIT_BRANCH == "master"
@@ -85,7 +85,7 @@ variables:
     policy: pull
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
-    - python -m pip install .
+    - python -m pip install --no-deps .
   rules:
     # Do not run for pushes to master or develop and for merge requests to master
     - if: $CI_COMMIT_BRANCH == "master"
@@ -113,6 +113,18 @@ variables:
     - docker:dind@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
 
 # Tests
+
+test-pypi:
+  stage: test
+  script:
+    - micromamba install -c conda-forge -n base -y python=3.10 glpk gdal
+    - python -m pip install .[develop]
+    - python -m pytest -n auto test/
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"'
 
 test-code:
   extends: .test_template
@@ -154,7 +166,7 @@ test-notebooks:
     # cell executing durations. With 'nbval-lax', notebooks are only tested for
     # execution errors Cells tagged 'nbval-check-output' are checked for
     # consistent output Cells tagged 'nbval-skip' are skipped.
-    - python -m pytest --nbval-lax --nbval-current-env --durations=20 examples/
+    - python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env --durations=20 examples/
   rules:
     # Run only for pushes to master or develop and for merge requests to master.
     - if: '$CI_COMMIT_BRANCH == "master"'
@@ -164,12 +176,12 @@ test-notebooks:
 test-notebooks-docker:
   extends: .test_docker_template
   script:
-    - python -m pytest --nbval-lax --nbval-current-env  --durations=20 examples/
+    - python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
 
 test-notebooks-docker-noupdate:
   extends: .test_docker_template_noupdate
   script:
-    - python -m pytest --nbval-lax --nbval-current-env  --durations=20 examples/
+    - python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
 
 test-codestyle:
   stage: test
