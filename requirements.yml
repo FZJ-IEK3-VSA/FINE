@@ -5,7 +5,7 @@ channels:
   - nodefaults
 
 dependencies:
-  - python>=3.10<3.13
+  - python>=3.10,<3.13
   - pip
   - geopandas<1
   - glpk
@@ -16,7 +16,7 @@ dependencies:
   - numpy<2
   - pandas<3
   - scipy<2
-  - scikit-learn>=1.2<2
+  - scikit-learn>=1.2,<2
   - xarray<=2024.3
   - rasterio<2
   - netcdf4<2
