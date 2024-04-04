@@ -21,8 +21,8 @@ on:
     # - cron: 0 0 * * 0
 
 jobs:
-  TestFineSingle:
-    name: Ex1 (${{ matrix.python-version }}, ${{ matrix.os }})
+  TestFineCondaForge:
+    name: TestFineCondaForge (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -53,8 +53,8 @@ jobs:
           pytest
           echo "Pytest done"
 
-  TestFineDevLocal:
-    name: Ex1 (${{ matrix.python-version }}, ${{ matrix.os }})
+  TestFinePip:
+    name: TestFinePip (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -78,7 +78,7 @@ jobs:
           ls
           echo "LS Done"
           cd fine
-          mamba env create --name fine_env --yes --file requirements_dev.yml python=${{ matrix.python-version }}
+          mamba create --name fine_env --yes --file requirements_dev.yml python=${{ matrix.python-version }}
           conda run --name fine_env pip install . --no-deps
           echo "Installation done"
           conda list --name fine_env
