@@ -5,28 +5,22 @@ channels:
   - nodefaults
 
 dependencies:
-  - python=3.10
-  - libiconv
-  - geopandas
-  - jupyter
-  - notebook
-  - libpysal
+  - python>=3.10<3.13
   - pip
-  - descartes
+  - geopandas<1
   - glpk
-  - openpyxl
-  - matplotlib
-  - xlrd
-  - pyomo
-  - numpy
-  - pandas
-  - networkx
-  - scipy
-  - scikit-learn>=1.2
-  - xarray
-  - rasterio
-  - netcdf4
+  - openpyxl<4
+  - matplotlib<4
+  - xlrd<3
+  - pyomo<7
+  - numpy<2
+  - pandas<3
+  - scipy<2
+  - scikit-learn>=1.2<2
+  - xarray<=2024.3
+  - rasterio<2
+  - netcdf4<2
   - tsam
-  - pwlf
-  - psutil
-  - gurobi-logtools
+  - pwlf<3
+  - psutil<6
+  - gurobi-logtools<4
