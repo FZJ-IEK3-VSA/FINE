@@ -78,8 +78,8 @@ jobs:
           ls
           echo "LS Done"
           cd fine
-          mamba create --name fine_env --yes python=${{ matrix.python-version }}
-          mamba env update --name fine_env --yes --file requirements_dev.yml
+          sed -i "\$a\  - python=${{ matrix.python-version }}" requirements_dev.yml.copy
+          mamba env create --name fine_env --yes --file requirements_dev.yml
           conda run --name fine_env pip install . --no-deps
           echo "Installation done"
           conda list --name fine_env
