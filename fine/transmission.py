@@ -46,6 +46,7 @@ class Transmission(Component):
         floorTechnicalLifetime=True,
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
+        componentLimitID=None,
         stockCommissioning=None,
     ):
         """
@@ -242,6 +243,7 @@ class Transmission(Component):
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
         self.balanceLimitID = balanceLimitID
         self.pathwayBalanceLimitID = pathwayBalanceLimitID
+        self.componentLimitID = componentLimitID
 
         Component.__init__(
             self,
@@ -872,6 +874,104 @@ class TransmissionModel(ComponentModel):
             for p in periods
             for t in timeSteps
         )
+        return aut
+    
+    def getComponentLimitContribution(
+        self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type
+    ):
+        """
+        Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
+        Sum of the operation time series of a SourceSink component is used as the componentLimit contribution:
+
+        - If commodity is transferred out of region a negative sign is used.
+        - If commodity is transferred into region a positive sign is used and losses are considered.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+
+        :type timeSeriesAggregation: boolean
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
+
+        :param ID: ID of the regarded componentLimitConstraint
+        :param ID: string
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+
+        :param componentNames: Names of components which contribute to the component limit
+        :type componentNames: list
+
+        :param type: Type of the variable ("operation" or "capacity")
+        :type type: string
+
+        """
+        
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        opVar = getattr(pyM, "op_" + abbrvName)
+        opVarDictIn = getattr(pyM, "operationVarDictIn_" + abbrvName)
+        opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
+        
+
+        if timeSeriesAggregation:
+            periods = esM.typicalPeriods
+            if esM.segmentation:
+                timeSteps = esM.segmentsPerPeriod
+            else:
+                timeSteps = esM.timeStepsPerPeriod
+        else:
+            periods = esM.periods
+            timeSteps = esM.totalTimeSteps
+            
+        if type == "operation":
+            aut = sum(
+                opVar[loc_ + "_" + loc, compName, ip, p, t]
+                * (
+                    1
+                    - compDict[compName].losses[loc_ + "_" + loc]
+                    * compDict[compName].distances[loc_ + "_" + loc]
+                )
+                * esM.periodOccurrences[ip][p]
+                for loc_ in opVarDictIn[ip][loc].keys()
+                for compName in opVarDictIn[ip][loc][loc_]
+                if compName in componentNames
+                for p in periods
+                for t in timeSteps
+            ) - sum(
+                opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                for loc_ in opVarDictOut[ip][loc].keys()
+                for compName in opVarDictOut[ip][loc][loc_]
+                if compName in componentNames
+                for p in periods
+                for t in timeSteps
+            )
+        elif type == "capacity":
+            aut = sum(
+                capVar[loc_ + "_" + loc, compName, ip]
+                for loc_ in opVarDictIn[ip][loc].keys()
+                for compName in opVarDictIn[ip][loc][loc_]
+                if compName in componentNames
+            ) + sum(
+                capVar[loc + "_" + loc_, compName, ip]
+                for loc_ in opVarDictOut[ip][loc].keys()
+                for compName in opVarDictOut[ip][loc][loc_]
+                if compName in componentNames
+            )
+            aut = aut/2
+        else:
+            raise ValueError(
+                "Invalid type in ComponentLimit Contraint. Please choose 'operation' or 'capacity'."
+            )
         return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):

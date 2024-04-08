@@ -1327,7 +1327,7 @@ class EnergySystemModel:
                         # Get Components per balance limit
                         componentsOfommodityLimit = {}
                         for mdl_type, mdl in self.componentModelingDict.items():
-                            if mdl_type in ["SourceSinkModel", "StorageModel"]:
+                            if mdl_type in ["SourceSinkModel", "StorageModel","TransmissionModel"]:
                                 for compName, comp in mdl.componentsDict.items():
                                     if comp.componentLimitID is not None:
                                         if componentLimitID in comp.componentLimitID:
@@ -1382,7 +1382,7 @@ class EnergySystemModel:
                     )
                     for loc in locs
                     for mdl_type, mdl in self.componentModelingDict.items()
-                    if (mdl_type in ["SourceSinkModel","StorageModel"])
+                    if (mdl_type in ["SourceSinkModel","StorageModel","TransmissionModel"])
                 ]
                 balanceSum = sum(const for const in balanceList if const is not None)
                 if isinstance(balanceSum, int) or isinstance(balanceSum, float):
