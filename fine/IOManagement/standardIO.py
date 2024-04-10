@@ -206,6 +206,9 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
         lambda v: ast.literal_eval(v) if isinstance(v, str) and v[0] == "{" else v
     )
 
+    if not hasattr(inspect, "getargspec"):
+        inspect.getargspec = inspect.getfullargspec
+
     kw = inspect.getargspec(fn.EnergySystemModel.__init__).args
     esM = fn.EnergySystemModel(**esMData[esMData.index.isin(kw)])
 
@@ -243,7 +246,9 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
             temp = row.dropna()
             temp = temp.drop(temp[temp == "None"].index)
             temp = temp.apply(
-                lambda v: ast.literal_eval(v) if isinstance(v, str) and v[0] == "{" else v
+                lambda v: ast.literal_eval(v)
+                if isinstance(v, str) and v[0] == "{"
+                else v
             )
 
             if comp + "LocSpecs" in file.sheet_names:
