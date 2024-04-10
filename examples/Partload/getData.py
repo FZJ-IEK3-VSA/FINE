@@ -4,7 +4,9 @@ from pathlib import Path
 
 
 def getData(engine="openpyxl"):
-    current_directory = Path(__file__).parents[1].joinpath("1node_Energy_System_Workflow").absolute()
+    current_directory = (
+        Path(__file__).parents[1].joinpath("01_1node_Energy_System_Workflow").absolute()
+    )
     inputDataPath = os.path.join(current_directory, "InputData")
     data = {}
 
