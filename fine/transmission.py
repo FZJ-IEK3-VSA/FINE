@@ -408,13 +408,12 @@ class Transmission(Component):
 
         # operationRateMax
         self.operationRateMax = operationRateMax
-        print(operationRateMax)
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
             esM, name, operationRateMax, self.locationalEligibility, "2dim"
         )
         self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
-        print(operationRateFix)
+        
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
