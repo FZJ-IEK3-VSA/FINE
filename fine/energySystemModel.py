@@ -2031,7 +2031,7 @@ class EnergySystemModel:
         ################################################################################################################
 
         # Set which solver should solve the specified optimization problem
-        optimizer = opt.SolverFactory(solver)
+        optimizer = opt.SolverFactory(solver, solver_io="python")
 
         # Set, if specified, the time limit
         if self.solverSpecs["timeLimit"] is not None and solver == "gurobi":
