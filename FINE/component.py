@@ -625,10 +625,9 @@ class Component(metaclass=ABCMeta):
 
         # Set material demand
         self.materialDemandPerCapacity = materialDemandPerCapacity
-        if materialDemandPerCapacity:
-            self.processed_materialDemandPerCapacity = (
-                utils.checkAndSetMaterialDemandPerCapacity(materialDemandPerCapacity)
-            )
+        self.processed_materialDemandPerCapacity = (
+            utils.checkAndSetMaterialDemandPerCapacity(materialDemandPerCapacity)
+        )
 
     def addToEnergySystemModel(self, esM):
         """
@@ -2677,7 +2676,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param objective: type of objective for which the objective function contribution is returned. Default: costs
         :type objective: String
         """
-        # options to select the objective from need to be added here
+        # If new objective functions are implemented, they need to be added here!
         if objective not in ["costs", "material_demand"]:
             raise NotImplementedError("The chosen objective is not supported yet.")
         if objective == "costs":
@@ -2719,73 +2718,108 @@ class ComponentModel(metaclass=ABCMeta):
 
         if objective == "material_demand":
             objective_function_contribution = self.getMaterialDemand(esM, pyM)
-            print("material demand objective got called")
 
         return objective_function_contribution
 
     def getMaterialDemand(self, esM, pyM, getOptValue=False):
-        # TODO Hier attribut mit get_opt_values um optimale Ergebnisse zu bekommen...
-        # TODO dann über commisVar.value -> .value = state der variable, statt variable selbst
-        # selbes design bei getLocEconomicsdesign
-        commisVar = getattr(pyM, "commis_" + self.abbrvName)
+        """
+        Get material demand of a component. This can be used to build the
+        objective function or to get the optimal values after optimizing
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param getOptValue: Boolean that defines the output of the function:
+
+            - True: Return the optimal material demand values.
+            - False: Return the material demand equation.
+
+            |br| * the default value is False.
+        :type getOptValue: boolean
+
+        :return: material demand equation or optimal material demand values (dictionary containing dataframes for each investment period)
+        :rtype: _type_
+        """
+        component_attribute = "processed_materialDemandPerCapacity"
         if getOptValue:
-            # TODO Add option to retrieve optimal values
-            # TODO Refactor and make it less redundant with the code below
-            material_demand = {}
-            for ip in esM.investmentPeriods:
-                material_demand[ip] = pd.DataFrame()
-            for loc, compName, ip in commisVar:
-                if ip not in esM.investmentPeriods:
-                    continue
-                # check if component has a material demand - if not return NaN
-                # TODO Adapt if this get checked/set better within the corresponding utils function
-                if esM.getComponentAttribute(compName, "materialDemandPerCapacity"):
-                    material_demand[ip].loc[compName, loc] = commisVar[
-                        loc, compName, ip
-                    ].value * esM.getComponentAttribute(
-                        compName, "processed_materialDemandPerCapacity"
-                    )
-                else:
-                    # import pytest
-
-                    # pytest.set_trace()
-                    material_demand[ip].loc[compName, loc] = np.nan
-
-            return material_demand
-        else:
-            # for ip in esM.investmentPeriods:
-            #     for compName in self.componentsDict:
-            #         for loc in esM.locations:
-            #             if self.componentsDict[
-            #                 compName
-            #             ].hasCapacityVariable and self.componentsDict[  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
-            #                 compName
-            #             ].materialDemandPerCapacity != (
-            #                 None and 0  # has to be and because "not None AND not 0"
-            #             ):
-            #                 return sum(
-            #                     commisVar[loc, compName, ip]
-            #                     * esM.getComponentAttribute(
-            #                         compName, "processed_materialDemandPerCapacity"
-            #                     )
-            #                 )
-            #             else:
-            #                 return 0
-
-            return sum(
-                commisVar[loc, compName, ip]
-                * esM.getComponentAttribute(
-                    compName, "processed_materialDemandPerCapacity"
-                )
-                for loc in esM.locations
-                for compName in self.componentsDict
-                for ip in esM.investmentPeriods
-                if self.componentsDict[
-                    compName
-                ].hasCapacityVariable  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
-                and self.componentsDict[compName].materialDemandPerCapacity
-                != (None and 0)  # has to be and because "not None AND not 0"
+            return self.get_commissioning_based_optimal_values(
+                esM, pyM, component_attribute
             )
+        else:
+            return self.get_commissioning_based_objective_contribution(
+                esM, pyM, component_attribute
+            )
+
+    def get_commissioning_based_objective_contribution(
+        self, esM, pyM, component_attribute
+    ):
+        """
+        Get the objective function contribution, i.e. the equation, of an attribute that is comissioning specific.
+        The resulting equation is the sum of "component_attribute * commissioning of component per year, per location"
+        over all locations, all components and all investment periods
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param component_attribute: commissioning specific attribute (e.g. processed_materialDemandPerCapacity)
+        :type component_attribute: String
+
+        :return: objective function contribution equation for passed component_attribute
+        :rtype: _type_
+        """
+        commisVar = getattr(pyM, "commis_" + self.abbrvName)
+        return sum(
+            commisVar[loc, compName, ip]
+            * esM.getComponentAttribute(compName, component_attribute)
+            for loc in esM.locations
+            for compName in self.componentsDict
+            for ip in esM.investmentPeriods
+            if self.componentsDict[
+                compName
+            ].hasCapacityVariable  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
+            and esM.getComponentAttribute(compName, component_attribute)
+            != (None and 0)  # has to be "and" because "not None AND not 0"
+        )
+
+    def get_commissioning_based_optimal_values(self, esM, pyM, component_attribute):
+        """
+        Get the optimal value of an attribute that is comissioning specific after the optimization is completed.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param component_attribute: commissioning specific attribute (e.g. processed_materialDemandPerCapacity)
+        :type component_attribute: String
+
+        :return: optimal value of the passed component_attribute
+        :rtype: _type_
+        """
+        commisVar = getattr(pyM, "commis_" + self.abbrvName)
+        optimal_values = {}
+        for ip in esM.investmentPeriods:
+            optimal_values[ip] = pd.DataFrame()
+        for loc, compName, ip in commisVar:
+            if ip not in esM.investmentPeriods:
+                continue
+            # check if component has a material demand - if not return NaN
+            # TODO Adapt if this get checked/set better within the corresponding utils function
+            if esM.getComponentAttribute(compName, component_attribute):
+                # commisVar.value -> .value = returns the state of the variable instead of the variable itself
+                optimal_values[ip].loc[compName, loc] = commisVar[
+                    loc, compName, ip
+                ].value * esM.getComponentAttribute(compName, component_attribute)
+            else:
+                optimal_values[ip].loc[compName, loc] = np.nan
+        return optimal_values
 
     def getSharedPotentialContribution(self, pyM, key, loc, ip):
         """

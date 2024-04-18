@@ -2711,4 +2711,7 @@ def checkAndSetMaterialDemandPerCapacity(materialDemand):
     #   - ...
     # 2. Is it only positive? - maybe not the best idea because a negative material demand could allow for easily including production sites! or geothermal plant that produce lithium and energy
     # 3. maybe more...
-    return materialDemand
+    if materialDemand:
+        return materialDemand
+    else:
+        return None
