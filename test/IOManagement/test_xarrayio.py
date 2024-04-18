@@ -5,7 +5,7 @@ from pandas.testing import assert_frame_equal, assert_series_equal
 import fine.IOManagement.xarrayIO as xrIO
 from fine.IOManagement.dictIO import exportToDict
 import fine as fn
-
+import pandas as pd
 
 def compare_values(value_1, value_2):
     """Apply assert functions from pandas if values are pandas.DataFrame or
@@ -242,8 +242,9 @@ def test_esm_to_datasets_with_processed_values(minimal_test_esM):
     )
 
 def test_transmission_dims(minimal_test_esM):
+    
     esM = minimal_test_esM
-    capacityMin=DataFrame([[0, 1], [1, 0]], index=list(esM.locations), columns=list(esM.locations))
+    capacityMin=pd.DataFrame([[0, 1], [1, 0]], index=list(esM.locations), columns=list(esM.locations))
 
     # update Pipeline component
     esM.updateComponent(
