@@ -267,7 +267,9 @@ def test_transmission_dims(minimal_test_esM):
     xr_dss = xrIO.convertOptimizationInputToDatasets(esM)
     assert (esM.totalTimeSteps == list(xr_dss["Input"]["Transmission"]["Pipelines"].time.to_numpy()))
 
-    esM2 = xrIO.convertDatasetsToEnergySystemModel(xrds)
+    esM2 = xrIO.convertDatasetsToEnergySystemModel(xr_dss)
 
-    capacityMin = esM2.getComponentAttribute("Pipelines", "capacityMin")
-    assert capacityMin.index.name == "space"
+    operationRateMax = esM2.getComponentAttribute("Pipelines", "operationRateMax")
+    assert operationRateMax.index.name == "time"
+    
+    esM2.optimize()
