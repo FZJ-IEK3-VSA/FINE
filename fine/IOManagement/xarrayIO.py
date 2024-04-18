@@ -46,7 +46,7 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
         }
 
     # STEP 4. Add all df variables to xr_ds
-    xr_dss = utilsIO.addDFVariablesToXarray(xr_dss, component_dict, df_iteration_dict)
+    xr_dss = utilsIO.addDFVariablesToXarray(xr_dss, component_dict, df_iteration_dict, list(esM.locations))
 
     # STEP 5. Add all series variables to xr_ds
     locations = sorted(esm_dict["locations"])

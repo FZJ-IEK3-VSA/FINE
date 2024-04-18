@@ -223,7 +223,7 @@ def generateIterationDicts(component_dict, investmentPeriods):
     return df_iteration_dict, series_iteration_dict, constants_iteration_dict
 
 
-def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
+def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
     """Adds all variables whose data is contained in a pd.DataFrame to xarray dataset.
     These variables are normally regional time series (dimensions - space, time)
 
@@ -237,6 +237,9 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
         keys - DF variable names
         values - list of tuple of component class and component name
     :type df_iteration_dict: dict
+    
+    :param locations: esM locations
+    :type locations: list
 
     :return: xr_ds
     """
@@ -270,7 +273,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
                 data = component_dict[classname][component][variable_description]
 
             multi_index_dataframe = data.stack()
-            if locations == set(component_dict[classname][component][variable_description].index.to_list()):
+            if set(locations) == set(component_dict[classname][component][variable_description].index.to_list()):
                 multi_index_dataframe.index.set_names("space", level=0, inplace=True)
                 multi_index_dataframe.index.set_names("space_2", level=1, inplace=True)
             else:
@@ -349,30 +352,32 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
 
             df_dict[df_description] = multi_index_dataframe
 
-        df_variable = pd.concat(df_dict)
-        df_variable.index.set_names("component", level=0, inplace=True)
+        # check if there is data
+        if len(df_dict) > 0:
+            df_variable = pd.concat(df_dict)
+            df_variable.index.set_names("component", level=0, inplace=True)
 
-        ds_component = xr.Dataset()
-        ds_component[f"ts_{variable_description}"] = (
-            df_variable.sort_index().to_xarray()
-        )
-
-        for comp in df_variable.index.get_level_values(0).unique():
-            this_class = comp.split("; ")[0]
-            this_comp = comp.split("; ")[1]
-
-            this_ds_component = (
-                ds_component.sel(component=comp)
-                .squeeze()
-                .reset_coords(names=["component"], drop=True)
+            ds_component = xr.Dataset()
+            ds_component[f"ts_{variable_description}"] = (
+                df_variable.sort_index().to_xarray()
             )
 
-            try:
-                xr_ds[this_class][this_comp] = xr.merge(
-                    [xr_ds[this_class][this_comp], this_ds_component]
+            for comp in df_variable.index.get_level_values(0).unique():
+                this_class = comp.split("; ")[0]
+                this_comp = comp.split("; ")[1]
+
+                this_ds_component = (
+                    ds_component.sel(component=comp)
+                    .squeeze()
+                    .reset_coords(names=["component"], drop=True)
                 )
-            except Exception:
-                pass
+
+                try:
+                    xr_ds[this_class][this_comp] = xr.merge(
+                        [xr_ds[this_class][this_comp], this_ds_component]
+                    )
+                except Exception:
+                    pass
 
     return xr_ds
 
