@@ -244,15 +244,22 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
     :return: xr_ds
     """
     # Treat transmission data separately
+    df_iteration_dict_orig = df_iteration_dict.copy()
     df_iteration_dict_transm = {}
-    for variable_description, description_tuple_list in df_iteration_dict.copy().items():
+    df_iteration_dict = {}
+    for variable_description, description_tuple_list in df_iteration_dict_orig.items():
         for description_tuple in description_tuple_list:
             # check if data is transmission and time dependent
             if "Transmission" in description_tuple[0]:
                 # add "2dim" to variable_description
-                df_iteration_dict_transm[variable_description] = [description_tuple]
-                # drop description_tuple from list
-                df_iteration_dict[variable_description].remove(description_tuple)
+                if variable_description not in df_iteration_dict_transm.keys():
+                    df_iteration_dict_transm[variable_description] = []
+                df_iteration_dict_transm[variable_description].append(description_tuple)
+
+            else:
+                if variable_description not in df_iteration_dict.keys():
+                    df_iteration_dict[variable_description] = []
+                df_iteration_dict[variable_description].append(description_tuple)
 
     for variable_description, description_tuple_list in df_iteration_dict_transm.items():
         df_dict = {}
@@ -709,10 +716,22 @@ def addTimeSeriesVariableToDict(
         df = comp_var_xr.to_series()
     elif drop_component:
         df = comp_var_xr.drop("component").to_dataframe().unstack(level=1)
+    elif "space_2" in comp_var_xr.dims:
+        df = comp_var_xr.to_dataframe().squeeze()
+        # merge space and space_2 levels
+        space_index = df.index.get_level_values("space")
+        space_2_index = df.index.get_level_values("space_2")
+        new_space_index = [f"{space_index[i]}_{space_2_index[i]}" for i in range(len(space_index))]
+        df.index = pd.MultiIndex.from_tuples(
+            [(df.index.get_level_values("time")[i], new_space_index[i]) for i in range(len(new_space_index))],
+            names=["time", "space"]
+        )
+        df = df.unstack()
+        df = df.dropna(axis=1, how="all")
     else:
         df = comp_var_xr.to_dataframe().unstack(level=1)
 
-    if isinstance(df, pd.DataFrame):
+    if isinstance(df, pd.DataFrame) and not "space_2" in comp_var_xr.dims:
         if len(df.columns) > 1:
             df.columns = df.columns.droplevel(0)
 
