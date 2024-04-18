@@ -240,7 +240,87 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict):
 
     :return: xr_ds
     """
+    # Treat transmission data separately
+    df_iteration_dict_transm = {}
+    for variable_description, description_tuple_list in df_iteration_dict.copy().items():
+        for description_tuple in description_tuple_list:
+            # check if data is transmission and time dependent
+            if "Transmission" in description_tuple[0]:
+                # add "2dim" to variable_description
+                df_iteration_dict_transm[variable_description] = [description_tuple]
+                # drop description_tuple from list
+                df_iteration_dict[variable_description].remove(description_tuple)
 
+    for variable_description, description_tuple_list in df_iteration_dict_transm.items():
+        df_dict = {}
+
+        for description_tuple in description_tuple_list:
+            classname, component = description_tuple
+
+            df_description = f"{classname}; {component}"
+
+            # If a . is present in variable name, then the data would be
+            # another level further in the component_dict
+            if "." in variable_description:
+                [var_name, subvar_name] = variable_description.split(".")
+                if subvar_name.isdigit():
+                    subvar_name = int(subvar_name)
+                data = component_dict[classname][component][var_name][subvar_name]
+            else:
+                data = component_dict[classname][component][variable_description]
+
+            multi_index_dataframe = data.stack()
+            if locations == set(component_dict[classname][component][variable_description].index.to_list()):
+                multi_index_dataframe.index.set_names("space", level=0, inplace=True)
+                multi_index_dataframe.index.set_names("space_2", level=1, inplace=True)
+            else:
+                # split X_X into multiindex
+                multi_index_dataframe.index.set_names("time", level=0, inplace=True)
+                multi_index_dataframe.index.set_names("space", level=1, inplace=True)
+                # use regex to split via location names 
+                import re
+                pattern = re.compile("(" + "|".join(locations) + ")")
+                space_index = multi_index_dataframe.index.get_level_values("space").str.findall(pattern)
+                time_index = multi_index_dataframe.index.get_level_values("time")
+                # reconstruct multiindex
+                multi_index_dataframe.index = pd.MultiIndex.from_tuples(
+                    [(time_index[i], space_index[i][0], space_index[i][1]) for i in range(len(space_index))],
+                    names=["time", "space", "space_2"]
+                )
+
+            df_dict[df_description] = multi_index_dataframe
+
+        df_variable = pd.concat(df_dict)
+        df_variable.index.set_names("component", level=0, inplace=True)
+
+        ds_component = xr.Dataset()
+        if "time" in df_variable.index.names:
+            ds_component[f"ts_{variable_description}"] = (
+                df_variable.sort_index().to_xarray()
+            )
+        else:
+            ds_component[f"2d_{variable_description}"] = (
+                df_variable.sort_index().to_xarray()
+            )
+
+        for comp in df_variable.index.get_level_values(0).unique():
+            this_class = comp.split("; ")[0]
+            this_comp = comp.split("; ")[1]
+
+            this_ds_component = (
+                ds_component.sel(component=comp)
+                .squeeze()
+                .reset_coords(names=["component"], drop=True)
+            )
+
+            try:
+                xr_ds[this_class][this_comp] = xr.merge(
+                    [xr_ds[this_class][this_comp], this_ds_component]
+                )
+            except Exception:
+                pass
+        
+    
     for variable_description, description_tuple_list in df_iteration_dict.items():
         df_dict = {}
 
