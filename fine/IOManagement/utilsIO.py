@@ -237,7 +237,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
         keys - DF variable names
         values - list of tuple of component class and component name
     :type df_iteration_dict: dict
-    
+
     :param locations: esM locations
     :type locations: list
 
@@ -261,7 +261,10 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
                     df_iteration_dict[variable_description] = []
                 df_iteration_dict[variable_description].append(description_tuple)
 
-    for variable_description, description_tuple_list in df_iteration_dict_transm.items():
+    for (
+        variable_description,
+        description_tuple_list,
+    ) in df_iteration_dict_transm.items():
         df_dict = {}
 
         for description_tuple in description_tuple_list:
@@ -280,22 +283,32 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
                 data = component_dict[classname][component][variable_description]
 
             multi_index_dataframe = data.stack()
-            if set(locations) == set(component_dict[classname][component][variable_description].index.to_list()):
+            if set(locations) == set(
+                component_dict[classname][component][
+                    variable_description
+                ].index.to_list()
+            ):
                 multi_index_dataframe.index.set_names("space", level=0, inplace=True)
                 multi_index_dataframe.index.set_names("space_2", level=1, inplace=True)
             else:
                 # split X_X into multiindex
                 multi_index_dataframe.index.set_names("time", level=0, inplace=True)
                 multi_index_dataframe.index.set_names("space", level=1, inplace=True)
-                # use regex to split via location names 
+                # use regex to split via location names
                 import re
+
                 pattern = re.compile("(" + "|".join(locations) + ")")
-                space_index = multi_index_dataframe.index.get_level_values("space").str.findall(pattern)
+                space_index = multi_index_dataframe.index.get_level_values(
+                    "space"
+                ).str.findall(pattern)
                 time_index = multi_index_dataframe.index.get_level_values("time")
                 # reconstruct multiindex
                 multi_index_dataframe.index = pd.MultiIndex.from_tuples(
-                    [(time_index[i], space_index[i][0], space_index[i][1]) for i in range(len(space_index))],
-                    names=["time", "space", "space_2"]
+                    [
+                        (time_index[i], space_index[i][0], space_index[i][1])
+                        for i in range(len(space_index))
+                    ],
+                    names=["time", "space", "space_2"],
                 )
 
             df_dict[df_description] = multi_index_dataframe
@@ -329,8 +342,7 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
                 )
             except Exception:
                 pass
-        
-    
+
     for variable_description, description_tuple_list in df_iteration_dict.items():
         df_dict = {}
 
@@ -721,10 +733,15 @@ def addTimeSeriesVariableToDict(
         # merge space and space_2 levels
         space_index = df.index.get_level_values("space")
         space_2_index = df.index.get_level_values("space_2")
-        new_space_index = [f"{space_index[i]}_{space_2_index[i]}" for i in range(len(space_index))]
+        new_space_index = [
+            f"{space_index[i]}_{space_2_index[i]}" for i in range(len(space_index))
+        ]
         df.index = pd.MultiIndex.from_tuples(
-            [(df.index.get_level_values("time")[i], new_space_index[i]) for i in range(len(new_space_index))],
-            names=["time", "space"]
+            [
+                (df.index.get_level_values("time")[i], new_space_index[i])
+                for i in range(len(new_space_index))
+            ],
+            names=["time", "space"],
         )
         df = df.unstack()
         df = df.dropna(axis=1, how="all")
