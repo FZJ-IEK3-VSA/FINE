@@ -2,7 +2,7 @@ image: mambaorg/micromamba
 
 stages:
   - test
-  - build
+  - deploy
 
 variables:
   DOCKER_HOST: tcp://docker:2375
@@ -38,6 +38,8 @@ variables:
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
+    - if: $CI_COMMIT_TAG
+      when: never
   retry: 1
 
 
@@ -64,6 +66,8 @@ variables:
         - pyproject.toml
         - requirements.yml
         - requirements_dev.yml
+      when: never
+    - if: $CI_COMMIT_TAG
       when: never
     - when: on_success
 
@@ -100,6 +104,8 @@ variables:
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
+    - if: $CI_COMMIT_TAG
+      when: never
     - changes:
         - pyproject.toml
         - requirements.yml
@@ -107,7 +113,7 @@ variables:
       when: on_success
 
 .build_template:
-  stage: build
+  stage: deploy
   image: docker@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
   services:
     - docker:dind@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
@@ -121,6 +127,8 @@ test-pypi:
     - python -m pip install .[develop]
     - python -m pytest -n auto test/
   rules:
+    - if: $CI_COMMIT_TAG
+      when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
     - if: '$CI_COMMIT_BRANCH == "develop"'
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
@@ -203,27 +211,12 @@ test-codestyle:
 
 # Deployment
 
-build-master-latest:
-  extends: .build_template
-  script:
-    # Login to the DockerHub repo using a specialized access token.
-    # Then, build the docker image with the tested code and tag it
-    # with the current version, as well as latest.
-    # Afterwards, push to DockerHub.
-    - docker login -u fzjiek3 -p $DOCKER_AT
-    - docker build -t "fzjiek3/fine:latest" .
-    - docker push fzjiek3/fine:latest
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never
-    - if: $CI_COMMIT_BRANCH == "master"
-
 build-tag:
   extends: .build_template
   script:
     - docker login -u fzjiek3 -p $DOCKER_AT
-    - docker build -t fzjiek3/fine:${CI_COMMIT_TAG} .
-    - docker push fzjiek3/fine:${CI_COMMIT_TAG}
+    - docker build -t fzjiek3/fine:${CI_COMMIT_TAG} -t fzjiek3/fine:latest .
+    - docker push fzjiek3/fine --all-tags
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
@@ -242,14 +235,21 @@ build-dev:
     - if: $CI_COMMIT_BRANCH == "develop"
 
 pypi-upload:
-  stage: build
+  stage: deploy
+  image: python:3.12
+  before_script:
+    - python3 -m pip install --upgrade build
+    - python3 -m pip install --upgrade twine
+  variables:
+    TWINE_USERNAME: $PYPI_USERNAME
+    TWINE_PASSWORD: $PYPI_PASSWORD
   script:
-    - micromamba install -c conda-forge -n base -y python=3.10
-    - python -m pip install --upgrade build
-    - python -m pip install --upgrade twine
-    - python -m build
-    - python -m twine upload -u __token__ -p $PYPI_TOKEN  dist/*
+    # Test if the version defined in `pyproject.toml` is the same as the tag
+    - PYPROJECT_VERSION=$(grep -m 1 version pyproject.toml | tr -s ' ' | tr -d '"' | tr -d "'" | cut -d' ' -f3)
+    - test PYPROJECT_VERSION = v${CI_COMMIT_TAG}    
+    # Build and push to pypi
+    - python3 -m build
+    - python3 -m twine upload dist/*
   rules:
     - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG
-  when: manual
 
