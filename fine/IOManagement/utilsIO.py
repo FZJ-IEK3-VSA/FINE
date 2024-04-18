@@ -280,7 +280,8 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
                 data = component_dict[classname][component][variable_description]
 
             multi_index_dataframe = data.stack()
-            if set(locations) == set(component_dict[classname][component][variable_description].index.to_list()):
+            # check if data is subset of locations
+            if set(data.index.to_list()).issubset(set(locations)):            
                 multi_index_dataframe.index.set_names("space", level=0, inplace=True)
                 multi_index_dataframe.index.set_names("space_2", level=1, inplace=True)
             else:
