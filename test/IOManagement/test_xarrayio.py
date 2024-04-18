@@ -240,3 +240,18 @@ def test_esm_to_datasets_with_processed_values(minimal_test_esM):
         .item()
         == 0.177
     )
+
+def test_transmission_dims(minimal_test_esM):
+    esM = minimal_test_esM
+    capacityMin=DataFrame([[0, 1], [1, 0]], index=list(esM.locations), columns=list(esM.locations))
+
+    # update Pipeline component
+    esM.updateComponent(
+            componentName="Pipelines",
+            updateAttrs={"capacityMin": capacityMin},
+        )
+    esM.optimize()
+    xr_dss = xrIO.convertOptimizationInputToDatasets(esM)
+    assert (esM.totalTimeSteps == list(xr_dss["Input"]["Transmission"]["Pipelines"].time.to_numpy()))
+
+
