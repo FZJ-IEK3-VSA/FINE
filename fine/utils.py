@@ -1064,33 +1064,6 @@ def checkAndSetInvestmentPeriodTimeSeries(
     return parameter
 
 
-def checkAndSetInvestmentPeriodTimeSeries(
-    esM, name, data, locationalEligibility, dimension="1dim"
-):
-    checkInvestmentPeriodParameters(name, data, esM.investmentPeriodNames)
-    parameter = {}
-    for _ip in esM.investmentPeriodNames:
-        # map name of investment period (e.g. 2020) to index (e.g. 0)
-        ip = esM.investmentPeriodNames.index(_ip)
-        if (
-            isinstance(data, pd.DataFrame)
-            or data is None
-            or isinstance(data, pd.Series)
-        ):
-            parameter[ip] = checkAndSetTimeSeries(
-                esM, name, data, locationalEligibility, dimension
-            )
-        elif isinstance(data, dict):
-            parameter[ip] = checkAndSetTimeSeries(
-                esM, name, data[_ip], locationalEligibility, dimension
-            )
-        else:
-            raise TypeError(
-                f"Parameter of {name} should be a pandas dataframe or a dictionary."
-            )
-    return parameter
-
-
 def checkAndSetTimeSeries(
     esM, name, operationTimeSeries, locationalEligibility, dimension="1dim"
 ):
@@ -1201,7 +1174,6 @@ def checkAndSetTimeSeries(
 
     else:
         return None
-
 
 def checkDesignVariableModelingParameters(
     esM,
