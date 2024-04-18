@@ -748,7 +748,7 @@ def addTimeSeriesVariableToDict(
     else:
         df = comp_var_xr.to_dataframe().unstack(level=1)
 
-    if isinstance(df, pd.DataFrame) and not "space_2" in comp_var_xr.dims:
+    if isinstance(df, pd.DataFrame) and "space_2" not in comp_var_xr.dims:
         if len(df.columns) > 1:
             df.columns = df.columns.droplevel(0)
 
