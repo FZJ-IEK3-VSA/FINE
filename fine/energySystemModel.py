@@ -2,6 +2,7 @@ import inspect
 import os
 import time
 import warnings
+import importlib.util
 
 import gurobi_logtools as glt
 import pandas as pd
@@ -2031,7 +2032,11 @@ class EnergySystemModel:
         ################################################################################################################
 
         # Set which solver should solve the specified optimization problem
-        optimizer = opt.SolverFactory(solver)
+        if solver == "gurobi" and importlib.util.find_spec('gurobipy'):
+            # Use the direct gurobi solver that uses the Python API.
+            optimizer = opt.SolverFactory(solver, solver_io="python")
+        else:
+            optimizer = opt.SolverFactory(solver)
 
         # Set, if specified, the time limit
         if self.solverSpecs["timeLimit"] is not None and solver == "gurobi":
