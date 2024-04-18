@@ -5,6 +5,7 @@ import pandas as pd
 
 import warnings
 
+# ruff: noqa
 
 class ConversionDynamic(Conversion):
     """

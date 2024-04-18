@@ -21,13 +21,14 @@ on:
     # - cron: 0 0 * * 0
 
 jobs:
-  TestFineSingle:
-    name: Ex1 (${{ matrix.python-version }}, ${{ matrix.os }})
+  TestFineCondaForge:
+    name: TestFineCondaForge (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,7 +45,7 @@ jobs:
         run: |
           ls
           echo "LS Done"
-          mamba install fine pytest
+          mamba install fine pytest python=${{ matrix.python-version }}
           echo "Installation done"
           conda list
           echo "libaries printed"
@@ -52,13 +53,14 @@ jobs:
           pytest
           echo "Pytest done"
 
-  TestFineDevLocal:
-    name: Ex1 (${{ matrix.python-version }}, ${{ matrix.os }})
+  TestFinePip:
+    name: TestFinePip (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,20 +69,21 @@ jobs:
           path: './fine'
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-version: latest
-          channels: conda-forge
-          activate-environment: test_env
+          python-version: ${{ matrix.python-version }}
+          miniforge-variant: Mambaforge
+          activate-environment: fine 
+          environment-file: fine/requirements_dev.yml
       - name: Run tests
         shell: pwsh
         run: |
           ls
           echo "LS Done"
           cd fine
-          mamba env create --name fine_env --yes --file requirements_dev.yml
-          conda run --name fine_env pip install . --no-deps
+          conda run pip install . --no-deps
           echo "Installation done"
-          conda list --name fine_env
+          conda run python -V
+          conda list fine
           echo "libaries printed"
           echo "start pytest"
-          conda run --name fine_env pytest
+          conda run pytest
           echo "Pytest done"

@@ -38,9 +38,6 @@ def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False
         verboseLogLevel=2,
     )
 
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
-
     # Sources
     # Electricity market
     yearlyCostsElec = pd.DataFrame(

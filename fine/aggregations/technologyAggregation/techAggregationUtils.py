@@ -2,25 +2,12 @@
 Functions to assist technology aggregation algorithm.
 """
 
-import warnings
 import os
 import numpy as np
 from affine import Affine
 import xarray as xr
-
-try:
-    from rasterio import features
-except ImportError:
-    warnings.warn(
-        "The package rasterio is not installed. Spatial aggregation cannot be used without it."
-    )
-
-try:
-    import geopandas as gpd
-except ImportError:
-    warnings.warn(
-        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
-    )
+from rasterio import features
+import geopandas as gpd
 
 
 def rasterize_geometry(geometry, coords, latitude="y", longitude="x"):
@@ -127,7 +114,7 @@ def rasterize_xr_ds(
     if isinstance(gridded_RE_ds, str):
         try:
             gridded_RE_ds = xr.open_dataset(gridded_RE_ds)
-        except:
+        except Exception:
             raise FileNotFoundError("The gridded_RE_ds path specified is not valid")
 
     elif not isinstance(gridded_RE_ds, xr.Dataset):

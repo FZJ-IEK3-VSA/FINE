@@ -3,6 +3,8 @@ Grouping algorithms determine how to reduce the number of input regions to
 fewer regions while minimizing information loss.
 """
 
+# ruff: noqa
+
 import logging
 import numpy as np
 import sklearn.cluster as skc

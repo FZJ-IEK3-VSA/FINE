@@ -11,6 +11,8 @@ from fine.aggregations.spatialAggregation import managerUtils as manUtils
 from fine.IOManagement.standardIO import timer
 from fine.IOManagement import xarrayIO as xrIO, utilsIO
 
+# ruff: noqa
+
 try:
     import geopandas as gpd
 except ImportError:

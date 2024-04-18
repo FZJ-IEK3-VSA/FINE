@@ -272,7 +272,7 @@ def test_perfectForesight_variableConversions_input(
             stockCommissioning={2015: pd.Series(index=esM.locations, data=[0, 1])},
         )
     )
-    assert esM.getComponent("Electrolyzers5").isCommisDepending == False
+    assert esM.getComponent("Electrolyzers5").isCommisDepending is False
 
 
 @pytest.mark.parametrize("use_tsa", [True, False])
@@ -623,7 +623,6 @@ def test_perfectForesight_variableConversions_operationRateMax(
     )
     if use_tsa is False:
         esM.optimize()
-        timeStepList = [0, 1]
 
     else:
         esM.aggregateTemporally(
@@ -635,7 +634,6 @@ def test_perfectForesight_variableConversions_operationRateMax(
             rescaleClusterPeriods=True,
         )
         esM.optimize(timeSeriesAggregation=True, solver="glpk")
-        timeStepList = [0]
 
     # test the sum of the operation
     processedOperation = (

@@ -6,6 +6,8 @@ import numpy as np
 from scipy.cluster import hierarchy
 from fine.IOManagement.utilsIO import PowerDict
 
+# ruff: noqa
+
 try:
     import geopandas as gpd
 except ImportError:

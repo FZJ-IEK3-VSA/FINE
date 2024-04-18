@@ -1,5 +1,4 @@
 import os
-from importlib.metadata import version
 from pathlib import Path
 
 import pandas as pd
@@ -63,12 +62,12 @@ def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
         dataPath, "expected_result_multinode_pandas1.xlsx"
     )
 
-    if int(version("pandas").split(".")[0]) < 2:
+    try:
+        compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)
+    except ValueError:
         compareTwoExcelFiles(
             pathMultiNodeExcel_expected_pandas1, pathMultiNodeExcel_output
         )
-    else:
-        compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)
 
 
 def compareTwoExcelFiles(path1, path2):

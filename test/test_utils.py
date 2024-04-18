@@ -1,7 +1,6 @@
 import pandas as pd
 from fine import utils
 import fine as fn
-import numpy as np
 
 
 def test_checkSimultaneousChargeDischarge():

@@ -50,8 +50,6 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
                     exch_out = cables.loc[loc, loc_].T.sum()
                     exch_out_h = pipes.loc[loc, loc_].T.sum()
 
-            tolerance = 0.001
-
             ## Compare modelled autarky to limit set in constraint.
             assert np.isclose(
                 (el_purchase + exch_in - exch_out), balanceLimit.loc["el", loc]
@@ -549,11 +547,11 @@ def test_CO2Limit(co2_limits):
         minCheckingValue = CO2_limit.loc["CO2 limit", "Total"]
         maxCheckingValue = CO2_limit.loc["CO2 limit", "Total"]
     else:
-        CO2_limit.loc[CO2_limit["lowerBound"] == True].loc["CO2 limit", "Total"]
-        minCheckingValue = CO2_limit.loc[CO2_limit["lowerBound"] == False].loc[
+        CO2_limit.loc[CO2_limit["lowerBound"] == True].loc["CO2 limit", "Total"]  # noqa: E712
+        minCheckingValue = CO2_limit.loc[CO2_limit["lowerBound"] == False].loc[  # noqa: E712
             "CO2 limit", "Total"
         ]
-        maxCheckingValue = CO2_limit.loc[CO2_limit["lowerBound"] == True].loc[
+        maxCheckingValue = CO2_limit.loc[CO2_limit["lowerBound"] == True].loc[  # noqa: E712
             "CO2 limit", "Total"
         ]
 

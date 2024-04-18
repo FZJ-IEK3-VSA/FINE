@@ -44,6 +44,9 @@ class Storage(Component):
         sharedPotentialID=None,
         linkedQuantityID=None,
         capacityFix=None,
+        commissioningMin=None,
+        commissioningMax=None,
+        commissioningFix=None,
         isBuiltFix=None,
         investPerCapacity=0,
         investIfBuilt=0,
@@ -256,6 +259,9 @@ class Storage(Component):
             sharedPotentialID=sharedPotentialID,
             linkedQuantityID=linkedQuantityID,
             capacityFix=capacityFix,
+            commissioningMin=commissioningMin,
+            commissioningMax=commissioningMax,
+            commissioningFix=commissioningFix,
             isBuiltFix=isBuiltFix,
             investPerCapacity=investPerCapacity,
             investIfBuilt=investIfBuilt,
@@ -456,7 +462,7 @@ class Storage(Component):
 
         """
         weightDict, data = {}, []
-        I = [
+        tsa_input = [
             (
                 self.fullChargeOpRateFix,
                 self.fullChargeOpRateMax,
@@ -471,7 +477,7 @@ class Storage(Component):
             ),
         ]
 
-        for rateFix, rateMax, rateName, rateWeight in I:
+        for rateFix, rateMax, rateName, rateWeight in tsa_input:
             if rateFix:
                 weightDict, data = self.prepareTSAInput(
                     rateFix, rateName, rateWeight, weightDict, data, ip
@@ -1725,7 +1731,7 @@ class StorageModel(ComponentModel):
             \\text{C}^{comp,comm}_{loc,ip,p,t} = op^{comp,discharge}_{loc,ip,p,t} - op^{comp,charge}_{loc,ip,p,t}
 
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
+        abbrvName = self.abbrvName
         chargeOp, dischargeOp = (
             getattr(pyM, "chargeOp_" + abbrvName),
             getattr(pyM, "dischargeOp_" + abbrvName),

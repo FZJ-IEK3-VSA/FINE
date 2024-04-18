@@ -1,4 +1,3 @@
-import pandas as pd
 import fine as fn
 import numpy as np
 

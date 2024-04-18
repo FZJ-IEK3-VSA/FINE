@@ -1,12 +1,9 @@
 import pytest
-import sys
-import os
 
 import numpy as np
 import pandas as pd
 
 import fine as fn
-import warnings
 
 
 def test_Stock_wrongStockYears():
@@ -68,9 +65,6 @@ def stock_esM():
         verboseLogLevel=1,
         balanceLimit=None,
     )
-
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
     ### Buy electricity at the electricity market
     costs = pd.DataFrame(

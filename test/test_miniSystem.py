@@ -21,7 +21,6 @@
 
 # 1. Import required packages and set input data path
 
-import fine as fn
 import numpy as np
 import pandas as pd
 
