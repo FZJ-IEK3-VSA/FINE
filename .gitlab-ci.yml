@@ -248,7 +248,9 @@ pypi-upload:
   script:
     # Test if the version defined in `pyproject.toml` is the same as the tag
     - PYPROJECT_VERSION=$(grep -m 1 version pyproject.toml | tr -s ' ' | tr -d '"' | tr -d "'" | cut -d' ' -f3)
-    - test PYPROJECT_VERSION = v${CI_COMMIT_TAG}    
+    - echo ${PYPROJECT_VERSION}
+    - echo v${CI_COMMIT_TAG}
+    - test $PYPROJECT_VERSION = v${CI_COMMIT_TAG}
     # Build and push to pypi
     - python3 -m build
     - python3 -m twine upload dist/*
