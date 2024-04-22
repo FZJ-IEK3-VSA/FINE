@@ -242,9 +242,6 @@ pypi-upload:
   before_script:
     - python3 -m pip install --upgrade build
     - python3 -m pip install --upgrade twine
-  variables:
-    TWINE_USERNAME: $PYPI_USERNAME
-    TWINE_PASSWORD: $PYPI_PASSWORD
   script:
     # Test if the version defined in `pyproject.toml` is the same as the tag
     - PYPROJECT_VERSION=$(grep -m 1 version pyproject.toml | tr -s ' ' | tr -d '"' | tr -d "'" | cut -d' ' -f3)
@@ -253,7 +250,7 @@ pypi-upload:
     - test v${PYPROJECT_VERSION} = ${CI_COMMIT_TAG}
     # Build and push to pypi
     - python3 -m build
-    - python3 -m twine upload --username $TWINE_USERNAME --password $TWINE_PASSWORD --non-interactive --verbose --disable-progress-bar dist/*
+    - python3 -m twine upload dist/* --username $PYPI_USERNAME --password $PYPI_PASSWORD --non-interactive --verbose --disable-progress-bar
   rules:
     - if: $CI_COMMIT_TAG
 
