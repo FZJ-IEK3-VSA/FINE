@@ -200,9 +200,6 @@ def minimal_test_esM(scope="session"):
             operationRateFix=demand,
         )
     )
-    import pytest
-
-    pytest.set_trace()
     return esM
 
 

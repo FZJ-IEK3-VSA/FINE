@@ -1898,9 +1898,9 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._chargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
-                optVal_charge
-            )
+            self._chargeOperationVariablesOptimum[
+                esM.investmentPeriodNames[ip]
+            ] = optVal_charge
 
             if optVal_charge is not None:
                 idx = pd.IndexSlice
@@ -1963,9 +1963,9 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._dischargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
-                optVal_discharge
-            )
+            self._dischargeOperationVariablesOptimum[
+                esM.investmentPeriodNames[ip]
+            ] = optVal_discharge
             # Check if there are time steps, at which a storage component is both charging and discharging
             for compName in opSum.index:
                 simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(

@@ -22,6 +22,9 @@ warnings.filterwarnings("always", category=UserWarning)
 ####### MOO Additions ######
 from pyaugmecon import PyAugmecon
 import json
+import copy
+import cloudpickle
+from FINE.IOManagement import standardIO
 
 
 class EnergySystemModel:
@@ -2150,60 +2153,64 @@ class EnergySystemModel:
                 warnings.warn("Output is generated for a non-optimal solution.")
             utils.output("\nProcessing optimization output...", self.verbose, 0)
             # Declare component specific sets, variables and constraints
-            w = str(len(max(self.componentModelingDict.keys())) + 6)
+            # w = str(len(max(self.componentModelingDict.keys())) + 6)
 
-            # iterate over investment periods, to get yearly results
-            for key, mdl in self.componentModelingDict.items():
-                if not isinstance(mdl._capacityVariablesOptimum, dict):
-                    mdl._capacityVariablesOptimum = {}
-                __t = time.time()
-                # if _capacityVariablesOptimum is not a dict, convert to dict
-                # (if single year system is optimized several times)
+            # # iterate over investment periods, to get yearly results
+            # for key, mdl in self.componentModelingDict.items():
+            #     if not isinstance(mdl._capacityVariablesOptimum, dict):
+            #         mdl._capacityVariablesOptimum = {}
+            #     __t = time.time()
+            #     # if _capacityVariablesOptimum is not a dict, convert to dict
+            #     # (if single year system is optimized several times)
 
-                mdl.setOptimalValues(self, self.pyM)
-                outputString = (
-                    ("for {:" + w + "}").format(key + " ...")
-                    + "(%.4f" % (time.time() - __t)
-                    + "sec)"
-                )
-                utils.output(outputString, self.verbose, 0)
+            #     mdl.setOptimalValues(self, self.pyM)
+            #     outputString = (
+            #         ("for {:" + w + "}").format(key + " ...")
+            #         + "(%.4f" % (time.time() - __t)
+            #         + "sec)"
+            #     )
+            #     utils.output(outputString, self.verbose, 0)
 
-                # convert optimal values from internal name to external name
-                # e.g. from _capacityVariablesOptimum to capacityVariablesOptimum
-                # For perfectForesight the data stays the same, for a single year optimization
-                # the data is converted from a dict with a single entry to a dataframe
-                # By this, old models will not fail.
-                def convertOptimalValues(esM, mdl, key):
-                    if key in mdl.__dict__.keys():
-                        if esM.numberOfInvestmentPeriods == 1:
-                            setattr(
-                                mdl,
-                                key.replace("_", ""),
-                                getattr(mdl, key)[esM.investmentPeriodNames[0]],
-                            )
-                        else:
-                            setattr(mdl, key.replace("_", ""), getattr(mdl, key))
-                    else:
-                        pass
+            #     # convert optimal values from internal name to external name
+            #     # e.g. from _capacityVariablesOptimum to capacityVariablesOptimum
+            #     # For perfectForesight the data stays the same, for a single year optimization
+            #     # the data is converted from a dict with a single entry to a dataframe
+            #     # By this, old models will not fail.
+            #     def convertOptimalValues(esM, mdl, key):
+            #         if key in mdl.__dict__.keys():
+            #             if esM.numberOfInvestmentPeriods == 1:
+            #                 setattr(
+            #                     mdl,
+            #                     key.replace("_", ""),
+            #                     getattr(mdl, key)[esM.investmentPeriodNames[0]],
+            #                 )
+            #             else:
+            #                 setattr(mdl, key.replace("_", ""), getattr(mdl, key))
+            #         else:
+            #             pass
 
-                optimalValueParameters = [
-                    "_optSummary",
-                    "_stateOfChargeOperationVSariablesOptimum",
-                    "_chargeOperationVariablesOptimum",
-                    "_dischargeOperationVariablesOptimum",
-                    "_phaseAngleVariablesOptimum",
-                    "_operationVariablesOptimum",
-                    "_discretizationPointVariablesOptimun",
-                    "_discretizationSegmentConVariablesOptimun",
-                    "_discretizationSegmentBinVariablesOptimun",
-                    "_capacityVariablesOptimum",
-                    "_isBuiltVariablesOptimum",
-                    "_commissioningVariablesOptimum",
-                    "_decommissioningVariablesOptimum",
-                ]
+            #     optimalValueParameters = [
+            #         "_optSummary",
+            #         "_stateOfChargeOperationVSariablesOptimum",
+            #         "_chargeOperationVariablesOptimum",
+            #         "_dischargeOperationVariablesOptimum",
+            #         "_phaseAngleVariablesOptimum",
+            #         "_operationVariablesOptimum",
+            #         "_discretizationPointVariablesOptimun",
+            #         "_discretizationSegmentConVariablesOptimun",
+            #         "_discretizationSegmentBinVariablesOptimun",
+            #         "_capacityVariablesOptimum",
+            #         "_isBuiltVariablesOptimum",
+            #         "_commissioningVariablesOptimum",
+            #         "_decommissioningVariablesOptimum",
+            #     ]
 
-                for optParam in optimalValueParameters:
-                    convertOptimalValues(self, mdl, optParam)
+            #     for optParam in optimalValueParameters:
+            #         convertOptimalValues(self, mdl, optParam)
+
+            self.process_fine_output(
+                solved_pyomo_model=self.pyM
+            )  # TODO STILL NEEDS TO BE TESTED!
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
@@ -2302,13 +2309,13 @@ class EnergySystemModel:
             self.performanceSummary = PerformanceSummary_df
 
     def process_fine_output(self, solved_pyomo_model):
-        """Standalone of the pyomo model focused part of the FINE optimization output processing.
-        This way the post processing of FINE can be used with any compatible pyomo instance.
-        TODO Maybe think about integrating this into FINE and then just call this function within the output processing to reduce redundancy...
+        """
+        Process the pyomo-based FINE optimization output. This method can be used
+        with any FINE compatible pyomo instance.
+        returns nothing since the output is directly written to the esm-instance on which the method was called
 
-
-        Args:
-            solved_pyomo_model (pyomo.ConcreteModel): pyomo model instance that was generated by/with FINE.
+        :param solved_pyomo_model: pyomo model instance that was generated by/with FINE
+        :type solved_pyomo_model: pyomo.ConcreteModel
         """
 
         w = str(len(max(self.componentModelingDict.keys())) + 6)
@@ -2415,11 +2422,6 @@ class EnergySystemModel:
         with open(file_path, "w") as file:
             file.write(str(pyaugmecon.unique_pareto_sols))
 
-        # TODO Move these imports to the top of the file
-        from FINE.IOManagement import standardIO
-        import copy
-        import cloudpickle
-
         def load_pyomo_model_from_file(file_name, custom_path=None, delete_file=False):
             """Load a "pickled" pyomo model instance from a file.
             Important: To use the imported model to process its output with FINE
@@ -2431,6 +2433,7 @@ class EnergySystemModel:
             Returns:
                 pyomo.ConcreteModel: The unpickled pyomo model instance.
             """
+
             file_path = file_name
             if custom_path:
                 if not os.path.isdir(custom_path):

@@ -27,11 +27,7 @@ import pandas as pd
 
 
 def test_miniSystem(minimal_test_esM):
-    import pytest
-
-    pytest.set_trace()
     minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
-    pytest.set_trace()
     # test if solve fits to the original results
     testresults = minimal_test_esM.componentModelingDict[
         "SourceSinkModel"

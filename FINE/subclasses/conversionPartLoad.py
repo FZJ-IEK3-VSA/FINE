@@ -339,7 +339,6 @@ class ConversionPartLoad(Conversion):
 
 
 class ConversionPartLoadModel(ConversionModel):
-
     """
     A ConversionPartLoad class instance will be instantly created if a ConversionPartLoad class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the Conversion class
@@ -853,7 +852,7 @@ class ConversionPartLoadModel(ConversionModel):
             if commod in compDict[compName].discretizedPartLoad
         )
 
-    def getObjectiveFunctionContribution(self, esM, pyM):
+    def getObjectiveFunctionContribution(self, esM, pyM, objective="costs"):
         """
         Get contribution to the objective function.
 
@@ -863,7 +862,12 @@ class ConversionPartLoadModel(ConversionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-        return super().getObjectiveFunctionContribution(esM, pyM)
+        if objective not in ["costs", "material_demand"]:
+            raise NotImplementedError("The chosen objective is not supported yet.")
+        if objective == "costs":
+            return super().getObjectiveFunctionContribution(esM, pyM, objective)
+        if objective == "material_demand":
+            return super().getObjectiveFunctionContribution(esM, pyM, objective)
 
     def setOptimalValues(self, esM, pyM):
         """
