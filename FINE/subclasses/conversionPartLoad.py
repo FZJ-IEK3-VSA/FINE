@@ -915,9 +915,9 @@ class ConversionPartLoadModel(ConversionModel):
                 esM=esM,
             )
 
-            self.discretizationPointVariablesOptimun[
-                esM.investmentPeriodNames[ip]
-            ] = discretizationPointVariablesOptVal_
+            self.discretizationPointVariablesOptimun[esM.investmentPeriodNames[ip]] = (
+                discretizationPointVariablesOptVal_
+            )
             self.discretizationSegmentConVariablesOptimun[
                 esM.investmentPeriodNames[ip]
             ] = discretizationSegmentConVariablesOptVal_

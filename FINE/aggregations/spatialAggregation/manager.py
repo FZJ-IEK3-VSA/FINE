@@ -1,5 +1,6 @@
 """Manager function that calls spatial grouping and aggregation algorithm. 
 """
+
 import os
 import logging
 import warnings

@@ -106,7 +106,6 @@ class LinearOptimalPowerFlow(Transmission):
 
 
 class LOPFModel(TransmissionModel):
-
     """
     A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the LinearOptimalPowerFlow
