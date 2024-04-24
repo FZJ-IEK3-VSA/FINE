@@ -857,7 +857,7 @@ class ConversionModel(ComponentModel):
             isOperationCommisYearDepending=True,
         )
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "op_bin")
+        # self.declareOperationBinaryVars(pyM, "op_bin")
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -1001,19 +1001,19 @@ class ConversionModel(ComponentModel):
         )
 
         # Operation [physicalUnit*h] is limited by minimum part Load
-        self.additionalMinPartLoad(
-            pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
-        )
-        self.additionalMinPartLoad(
-            pyM,
-            esM,
-            "ConstrOperationCommis",
-            "opCommisConstrSet",
-            "op",
-            "op_bin",
-            "cap",
-            isOperationCommisYearDepending=True,
-        )
+        # self.additionalMinPartLoad(
+        #     pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
+        # )
+        # self.additionalMinPartLoad(
+        #     pyM,
+        #     esM,
+        #     "ConstrOperationCommis",
+        #     "opCommisConstrSet",
+        #     "op",
+        #     "op_bin",
+        #     "cap",
+        #     isOperationCommisYearDepending=True,
+        # )
         # Operation for components with commissioning year depending commodity conversions
         self.getTotalOperationIfDifferentCommodityConversionFactors(
             pyM, esM

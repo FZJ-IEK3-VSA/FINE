@@ -837,7 +837,7 @@ class SourceSinkModel(ComponentModel):
         # Operation of component [commodityUnit*hour]
         self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "op_bin")
+        # self.declareOperationBinaryVars(pyM, "op_bin")
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -949,9 +949,9 @@ class SourceSinkModel(ComponentModel):
         # series [-] and the hours per time step [h])
         self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is limited by minimum part Load
-        self.additionalMinPartLoad(
-            pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
-        )
+        # self.additionalMinPartLoad(
+        #     pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
+        # )
 
         self.yearlyLimitationConstraint(pyM, esM)
 

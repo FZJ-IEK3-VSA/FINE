@@ -607,7 +607,7 @@ class TransmissionModel(ComponentModel):
         # Operation of component [commodityUnit]
         self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "op_bin")
+        # self.declareOperationBinaryVars(pyM, "op_bin")
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -754,9 +754,9 @@ class TransmissionModel(ComponentModel):
         # series [-] and the hours per time step [h]
         self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
         # Operation [physicalUnit*h] is limited by minimum part Load
-        self.additionalMinPartLoad(
-            pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
-        )
+        # self.additionalMinPartLoad(
+        #     pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
+        # )
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
