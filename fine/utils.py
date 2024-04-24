@@ -1031,7 +1031,7 @@ def setLocationalEligibility(
 
             # set location eligibility to 1 if capacity bound exists
             for ip in esM.investmentPeriods:
-                loc_idx = data[ip][data[ip] > 0].index
+                loc_idx = data[ip][data[ip] >= 0].index
                 _data[loc_idx] = 1
 
             return _data
@@ -2074,7 +2074,7 @@ def preprocess2dimInvestmentPeriodData(
     return parameter
 
 
-def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
+def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=False):
     """
     Change format of 2-dimensional data (for transmission components).
     """
@@ -2098,7 +2098,7 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
             data_.sort_index(inplace=True)
             return data_
         else:
-            data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+            data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]]).dropna()
             data_.sort_index(inplace=True)
             return data_
     elif isinstance(data, float) and locationalEligibility is not None:
