@@ -44,9 +44,13 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
         xr_dss[classname] = {
             component: xr.Dataset() for component in component_dict[classname]
         }
-
+    # STEP 3.1 get _mapC for all transmission components
+    _mapC_dict = {}
+    for tech in component_dict["Transmission"].keys():
+        _mapC_dict[tech] = esM.getComponent(tech)._mapC
+    
     # STEP 4. Add all df variables to xr_ds
-    xr_dss = utilsIO.addDFVariablesToXarray(xr_dss, component_dict, df_iteration_dict, list(esM.locations))
+    xr_dss = utilsIO.addDFVariablesToXarray(xr_dss, component_dict, df_iteration_dict, _mapC_dict, list(esM.locations))
 
     # STEP 5. Add all series variables to xr_ds
     locations = sorted(esm_dict["locations"])

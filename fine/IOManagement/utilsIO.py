@@ -223,7 +223,7 @@ def generateIterationDicts(component_dict, investmentPeriods):
     return df_iteration_dict, series_iteration_dict, constants_iteration_dict
 
 
-def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
+def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict, locations):
     """Adds all variables whose data is contained in a pd.DataFrame to xarray dataset.
     These variables are normally regional time series (dimensions - space, time)
 
@@ -238,7 +238,10 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
         values - list of tuple of component class and component name
     :type df_iteration_dict: dict
     
-    :param locations: esM locations
+    :param _mapC_dict: dictionaries with joined component regions as keys and tuples of component regions as values for each component
+    :type _mapC_dict: dict
+    
+    :param locations: sorted esM locations
     :type locations: list
 
     :return: xr_ds
@@ -288,14 +291,16 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, locations):
                 # split X_X into multiindex
                 multi_index_dataframe.index.set_names("time", level=0, inplace=True)
                 multi_index_dataframe.index.set_names("space", level=1, inplace=True)
-                # use regex to split via location names 
-                import re
-                pattern = re.compile("(" + "|".join(locations) + ")")
-                space_index = multi_index_dataframe.index.get_level_values("space").str.findall(pattern)
+                # use _mapC to split via location names 
+                space_index = multi_index_dataframe.index.get_level_values("space")
                 time_index = multi_index_dataframe.index.get_level_values("time")
                 # reconstruct multiindex
+                space_index_split = []
+                for idx in space_index:
+                    loc1, loc2 = _mapC_dict[component][idx]
+                    space_index_split.append((loc1, loc2))
                 multi_index_dataframe.index = pd.MultiIndex.from_tuples(
-                    [(time_index[i], space_index[i][0], space_index[i][1]) for i in range(len(space_index))],
+                    [(time_index[i], space_index_split[i][0], space_index_split[i][1]) for i in range(len(space_index_split))],
                     names=["time", "space", "space_2"]
                 )
 
@@ -724,11 +729,15 @@ def addTimeSeriesVariableToDict(
         # merge space and space_2 levels
         space_index = df.index.get_level_values("space")
         space_2_index = df.index.get_level_values("space_2")
+        time_index = df.index.get_level_values("time")
         new_space_index = [f"{space_index[i]}_{space_2_index[i]}" for i in range(len(space_index))]
-        df.index = pd.MultiIndex.from_tuples(
-            [(df.index.get_level_values("time")[i], new_space_index[i]) for i in range(len(new_space_index))],
-            names=["time", "space"]
-        )
+        df_temp = pd.DataFrame({'time': time_index, 'space': new_space_index})
+        df.index = pd.MultiIndex.from_frame(df_temp)
+        # df.index = pd.MultiIndex.from_tuples(
+        #     [(df.index.get_level_values("time")[i], new_space_index[i]) for i in range(len(new_space_index))],
+        #     names=["time", "space"]
+        # )
+        
         df = df.unstack()
         df = df.dropna(axis=1, how="all")
     else:
