@@ -3,7 +3,7 @@
 
 # # Workflow for a multi-regional energy system
 #
-import FINE as fn
+import fine as fn
 import pandas as pd
 
 import pytest

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#https://unix.stackexchange.com/questions/74571/vim-shortcut-to-open-a-file-under-cursor-in-an-already-opened-window!/usr/bin/env python
 # coding: utf-8
 
 # # Workflow for a multi-regional energy system
@@ -21,10 +21,9 @@
 
 # 1. Import required packages and set input data path
 
-import FINE as fn
+import fine as fn
 import pandas as pd
 import numpy as np
-import os
 
 
 def test_miniSystem():
@@ -61,14 +60,6 @@ def test_miniSystem():
             hasCapacityVariable=False,
             commodityCostTimeSeries=costTS,
         )
-    )
-
-    revenueTS = pd.DataFrame(
-        [
-            [(j % 5) * (i + 1) for i in range(len(locations))]
-            for j in range(numberOfTimeSteps)
-        ],
-        columns=["loc1", "loc2"],
     )
 
     demandTS = pd.DataFrame(

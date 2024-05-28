@@ -5,14 +5,14 @@ import os
 import numpy as np
 import pandas as pd
 
-import FINE as fn
+import fine as fn
 
 sys.path.append(
     os.path.join(
         os.path.dirname(__file__),
         "..",
         "examples",
-        "Multi-regional_Energy_System_Workflow",
+        "03_Multi-regional_Energy_System_Workflow",
     )
 )
 from getData import getData
@@ -40,9 +40,6 @@ def minimal_test_esM(scope="session"):
         verboseLogLevel=1,
         balanceLimit=None,
     )
-
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
     ### Buy electricity at the electricity market
     costs = pd.DataFrame(
@@ -225,9 +222,6 @@ def single_node_test_esM():
         verboseLogLevel=1,
         balanceLimit=None,
     )
-
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
     ### Buy electricity at the electricity market
     costs = pd.Series(
@@ -509,7 +503,6 @@ def esM_init():
     )
 
     return esM
-
 
 @pytest.fixture(scope="session")
 def multi_node_test_esM_init(esM_init):
@@ -869,7 +862,6 @@ def multi_node_test_esM_init(esM_init):
             distances=data["Pipelines, distances"],
             hasCapacityVariable=True,
             hasIsBuiltBinaryVariable=False,
-            bigM=300,
             locationalEligibility=data["Pipelines, eligibility"],
             capacityMax=data["Pipelines, eligibility"] * 15,
             sharedPotentialID="pipelines",
@@ -891,7 +883,6 @@ def multi_node_test_esM_init(esM_init):
             distances=data["Pipelines, distances"],
             hasCapacityVariable=True,
             hasIsBuiltBinaryVariable=False,
-            bigM=300,
             locationalEligibility=data["Pipelines, eligibility"],
             capacityMax=data["Pipelines, eligibility"] * 15,
             sharedPotentialID="pipelines",
@@ -1408,7 +1399,6 @@ def multi_node_test_esM_optimized(esM_init):
             distances=data["Pipelines, distances"],
             hasCapacityVariable=True,
             hasIsBuiltBinaryVariable=False,
-            bigM=300,
             locationalEligibility=data["Pipelines, eligibility"],
             capacityMax=data["Pipelines, eligibility"] * 15,
             sharedPotentialID="pipelines",
@@ -1430,7 +1420,6 @@ def multi_node_test_esM_optimized(esM_init):
             distances=data["Pipelines, distances"],
             hasCapacityVariable=True,
             hasIsBuiltBinaryVariable=False,
-            bigM=300,
             locationalEligibility=data["Pipelines, eligibility"],
             capacityMax=data["Pipelines, eligibility"] * 15,
             sharedPotentialID="pipelines",
@@ -1500,7 +1489,7 @@ def multi_node_test_esM_optimized(esM_init):
 
 
 @pytest.fixture
-def multi_node_test_esM_init(scope="session"):
+def multi_node_test_esM_init(scope="session"):  # noqa: F811
     data = getData()
 
     # 2. Create an energy system model instance
@@ -1522,8 +1511,6 @@ def multi_node_test_esM_init(scope="session"):
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
-    numberOfTimeSteps = 8760
-    hoursPerTimeStep = 1
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -1903,7 +1890,6 @@ def multi_node_test_esM_init(scope="session"):
             distances=data["Pipelines, distances"],
             hasCapacityVariable=True,
             hasIsBuiltBinaryVariable=False,
-            bigM=300,
             locationalEligibility=data["Pipelines, eligibility"],
             capacityMax=data["Pipelines, eligibility"] * 15,
             sharedPotentialID="pipelines",
@@ -1926,7 +1912,6 @@ def multi_node_test_esM_init(scope="session"):
             distances=data["Pipelines, distances"],
             hasCapacityVariable=True,
             hasIsBuiltBinaryVariable=False,
-            bigM=300,
             locationalEligibility=data["Pipelines, eligibility"],
             capacityMax=data["Pipelines, eligibility"] * 15,
             sharedPotentialID="pipelines",
@@ -1985,8 +1970,7 @@ def multi_node_test_esM_init(scope="session"):
 
 
 @pytest.fixture
-def multi_node_test_esM_optimized(scope="session"):
-    cwd = os.getcwd()
+def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
     data = getData()
 
     # 2. Create an energy system model instance
@@ -2008,8 +1992,6 @@ def multi_node_test_esM_optimized(scope="session"):
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
-    numberOfTimeSteps = 8760
-    hoursPerTimeStep = 1
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -2374,7 +2356,6 @@ def multi_node_test_esM_optimized(scope="session"):
             distances=data["Pipelines, distances"],
             hasCapacityVariable=True,
             hasIsBuiltBinaryVariable=False,
-            bigM=300,
             locationalEligibility=data["Pipelines, eligibility"],
             capacityMax=data["Pipelines, eligibility"] * 15,
             sharedPotentialID="pipelines",
@@ -2396,7 +2377,6 @@ def multi_node_test_esM_optimized(scope="session"):
             distances=data["Pipelines, distances"],
             hasCapacityVariable=True,
             hasIsBuiltBinaryVariable=False,
-            bigM=300,
             locationalEligibility=data["Pipelines, eligibility"],
             capacityMax=data["Pipelines, eligibility"] * 15,
             sharedPotentialID="pipelines",
@@ -2472,7 +2452,6 @@ def dsm_test_esM(scope="session"):
     for testing demand side management functionality.
     """
     # load without dsm
-    now = pd.Timestamp.now().round("h")
     number_of_time_steps = 28
     # t_index = pd.date_range(now, now + pd.DateOffset(hours=number_of_timeSteps - 1), freq='h')
     t_index = range(number_of_time_steps)

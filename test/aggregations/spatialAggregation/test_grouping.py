@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.datasets import make_blobs
 from shapely.geometry import Point
 
-from FINE.aggregations.spatialAggregation import grouping
+from fine.aggregations.spatialAggregation import grouping
 
 
 # %%

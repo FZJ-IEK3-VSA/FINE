@@ -1,4 +1,4 @@
-import FINE as fn
+import fine as fn
 import pandas as pd
 
 
@@ -8,7 +8,6 @@ def test_linkedQuantityID(minimal_test_esM):
 
     # get components
     electrolyzer = esM.getComponent("Electrolyzers")
-    market = esM.getComponent("Electricity market")
 
     # create dummy component
     esM.add(
@@ -16,7 +15,7 @@ def test_linkedQuantityID(minimal_test_esM):
             esM=esM,
             name="Dummy",
             physicalUnit=r"kW$_{el}$",
-            commodityConversionFactors={"electricity": -1, "electricity": 1},
+            commodityConversionFactors={"electricity": -1, "electricity": 1},  # noqa: F601
             hasCapacityVariable=True,
             capacityPerPlantUnit=1.0,
             opexPerCapacity=1.0,

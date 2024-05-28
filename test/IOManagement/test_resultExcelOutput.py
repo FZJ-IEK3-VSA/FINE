@@ -1,14 +1,14 @@
 import os
-from importlib.metadata import version
+from pathlib import Path
 
 import pandas as pd
 
-from FINE.IOManagement.standardIO import writeOptimizationOutputToExcel
+from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
 
 def test_compareResults_miniSystem(minimal_test_esM):
-    cwd = os.getcwd()
-    dataPath = os.path.join(cwd, "test", "data")
+    module_directory = Path(__file__).parent.absolute()
+    dataPath = os.path.join(module_directory, "..", "data")
 
     # create new result excel files
     pathWithoutSegmentation_output = os.path.join(dataPath, "output_result_minisystem")
@@ -36,8 +36,8 @@ def test_compareResults_miniSystem(minimal_test_esM):
 
 
 def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
-    cwd = os.getcwd()
-    dataPath = os.path.join(cwd, "test", "data")
+    module_directory = Path(__file__).parent.absolute()
+    dataPath = os.path.join(module_directory, "..", "data")
 
     # create new result excel files
     pathMultiNode_output = os.path.join(dataPath, "output_result_multinode")
@@ -62,12 +62,12 @@ def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
         dataPath, "expected_result_multinode_pandas1.xlsx"
     )
 
-    if int(version("pandas").split(".")[0]) < 2:
+    try:
+        compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)
+    except ValueError:
         compareTwoExcelFiles(
             pathMultiNodeExcel_expected_pandas1, pathMultiNodeExcel_output
         )
-    else:
-        compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)
 
 
 def compareTwoExcelFiles(path1, path2):

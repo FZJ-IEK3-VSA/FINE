@@ -2,7 +2,7 @@ image: mambaorg/micromamba
 
 stages:
   - test
-  - build
+  - deploy
 
 variables:
   DOCKER_HOST: tcp://docker:2375
@@ -30,6 +30,7 @@ variables:
     policy: pull
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
+    - python -m pip install --no-deps .
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has
     # been created on the branch.
@@ -37,13 +38,16 @@ variables:
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+  retry: 1
 
 
 .test_docker_template_noupdate:
   stage: test
-  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
+  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
   before_script:
-    - python -m pip install -e .
+    - python -m pip install --no-deps -e .
   rules:
     # Do not run for pushes to master or develop and for merge requests to master
     - if: $CI_COMMIT_BRANCH == "master"
@@ -63,12 +67,14 @@ variables:
         - requirements.yml
         - requirements_dev.yml
       when: never
+    - if: $CI_COMMIT_TAG
+      when: never
     - when: on_success
 
 
 .test_docker_template:
   stage: test
-  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest 
+  image: jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
   variables:
     CONDA_PKGS_DIRS: "$CI_PROJECT_DIR/.cache/pkgs"
   cache:
@@ -83,6 +89,7 @@ variables:
     policy: pull
   before_script:
     - micromamba install -n base -y --file=requirements_dev.yml
+    - python -m pip install --no-deps .
   rules:
     # Do not run for pushes to master or develop and for merge requests to master
     - if: $CI_COMMIT_BRANCH == "master"
@@ -97,6 +104,8 @@ variables:
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
+    - if: $CI_COMMIT_TAG
+      when: never
     - changes:
         - pyproject.toml
         - requirements.yml
@@ -104,17 +113,31 @@ variables:
       when: on_success
 
 .build_template:
-  stage: build
+  stage: deploy
   image: docker@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
   services:
     - docker:dind@sha256:c8bb6fa5388b56304dd770c4bc0478de81ce18540173b1a589178c0d31bfce90
 
 # Tests
 
+test-pypi:
+  stage: test
+  script:
+    - micromamba install -c conda-forge -n base -y python=3.10 glpk gdal
+    - python -m pip install .[develop]
+    - python -m pytest -n auto test/
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"'
+
 test-code:
   extends: .test_template
   script:
-    - python -m pytest --cov=FINE test/
+    - python -m pytest -n auto --cov=fine test/
   rules:
     # Run only for pushes to master or develop and for merge requests to master.
     # Do not run for scheduled pushes to master (runs `test-code-push-cache` instead).
@@ -129,44 +152,20 @@ test-code-push-cache:
   cache:
     policy: push
   script:
-    - python -m pytest --cov=FINE test/
+    - python -m pytest -n auto --cov=fine test/
   rules:
     # Run only for scheduled pushes to master.
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "master"'
 
-create-frozen-requirements:
-  extends: .test_template
-  stage: build
-  script:
-    - micromamba env export --no-md5 --no-build -n base > requirements_frozen.yml
-    # Replace `name: base` with `name: fine_frozen`
-    - >
-        sed -ri 's/^(\s*)(name\s*:\s*base\s*$)/\1name: fine_frozen/' requirements_frozen.yml
-    - micromamba install -n base -y -c conda-forge git
-    - git config --global user.name "${GITLAB_USER_NAME}"
-    - git config --global user.email "${GITLAB_USER_EMAIL}"
-    - git config --global --add safe.directory /builds/iek-3/shared-code/fine
-    - git add requirements_frozen.yml
-    - git commit -m "Update frozen requirements"
-    - git push https://fine:${PROJECT_ACCESS_TOKEN}@jugit.fz-juelich.de/iek-3/shared-code/fine.git HEAD:develop -o ci.skip
-  dependencies:
-    - test-code
-    - test-notebooks
-    - test-formatting
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never
-    - if: $CI_COMMIT_BRANCH == "develop"
-
 test-code-docker:
   extends: .test_docker_template
   script:
-    - python -m pytest --cov=FINE test/
+    - python -m pytest -n auto --cov=fine test/
 
 test-code-docker-noupdate:
   extends: .test_docker_template_noupdate
   script:
-    - python -m pytest --cov=FINE test/
+    - python -m pytest -n auto --cov=fine test/
 
 test-notebooks:
   extends: .test_template
@@ -175,7 +174,7 @@ test-notebooks:
     # cell executing durations. With 'nbval-lax', notebooks are only tested for
     # execution errors Cells tagged 'nbval-check-output' are checked for
     # consistent output Cells tagged 'nbval-skip' are skipped.
-    - python -m pytest --nbval-lax --nbval-current-env --durations=20 examples/
+    - python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env --durations=20 examples/
   rules:
     # Run only for pushes to master or develop and for merge requests to master.
     - if: '$CI_COMMIT_BRANCH == "master"'
@@ -185,22 +184,22 @@ test-notebooks:
 test-notebooks-docker:
   extends: .test_docker_template
   script:
-    - python -m pytest --nbval-lax --nbval-current-env  --durations=20 examples/
+    - python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
 
 test-notebooks-docker-noupdate:
   extends: .test_docker_template_noupdate
   script:
-    - python -m pytest --nbval-lax --nbval-current-env  --durations=20 examples/
+    - python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
 
-test-formatting:
+test-codestyle:
   stage: test
-  image: pyfound/black:latest_release
+  image: registry.gitlab.com/pipeline-components/ruff:latest
   script:
-    # Dry-run black auto-formatter. If the code needs reformatting this test
-    # will fail.
-    - black --version
-    - black --check FINE
-    - black --check test
+    # Run ruff check. If the code needs reformatting this test will fail.
+    - ruff version
+    - ruff check --output-format=gitlab fine
+    - ruff check --output-format=gitlab test
+    # - ruff check --output-format=gitlab examples
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has
     # been created on the branch.
@@ -212,31 +211,16 @@ test-formatting:
 
 # Deployment
 
-build-master-latest:
-  extends: .build_template
-  script:
-    # Login to the DockerHub repo using a specialized access token.
-    # Then, build the docker image with the tested code and tag it
-    # with the current version, as well as latest.
-    # Afterwards, push to DockerHub.
-    - docker login -u fzjiek3 -p $DOCKER_AT
-    - docker build -t "fzjiek3/fine:latest" .
-    - docker push fzjiek3/fine:latest
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never
-    - if: $CI_COMMIT_BRANCH == "master"
-
 build-tag:
   extends: .build_template
   script:
     - docker login -u fzjiek3 -p $DOCKER_AT
-    - docker build -t fzjiek3/fine:${CI_COMMIT_TAG} .
-    - docker push fzjiek3/fine:${CI_COMMIT_TAG}
+    - docker build -t fzjiek3/fine:${CI_COMMIT_TAG} -t fzjiek3/fine:latest .
+    - docker push fzjiek3/fine --all-tags
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
-    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG
 
 # Push develop build to local jugit registry
 build-dev:
@@ -249,3 +233,23 @@ build-dev:
     - docker push jugit-registry.fz-juelich.de/iek-3/shared-code/fine/fine-dev:latest
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
+
+pypi-upload:
+  stage: deploy
+  image: python:3.12
+  before_script:
+    - python3 -m pip install --upgrade build
+    - python3 -m pip install --upgrade twine
+  variables:
+    TWINE_USERNAME: $PYPI_USERNAME
+    TWINE_PASSWORD: $PYPI_PASSWORD
+  script:
+    # Test if the version defined in `pyproject.toml` is the same as the tag
+    - PYPROJECT_VERSION=$(grep -m 1 version pyproject.toml | tr -s ' ' | tr -d '"' | tr -d "'" | cut -d' ' -f3)
+    - test PYPROJECT_VERSION = v${CI_COMMIT_TAG}    
+    # Build and push to pypi
+    - python3 -m build
+    - python3 -m twine upload dist/*
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG
+

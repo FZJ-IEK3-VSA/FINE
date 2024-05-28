@@ -1,6 +1,4 @@
-import FINE as fn
 import numpy as np
-import pytest
 
 
 def test_Mini_netPresentValue(minimal_test_esM):

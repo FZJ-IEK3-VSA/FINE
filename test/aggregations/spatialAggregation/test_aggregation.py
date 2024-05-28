@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from FINE.aggregations.spatialAggregation import aggregation
+from fine.aggregations.spatialAggregation import aggregation
 
 
 def test_aggregate_geometries(xr_and_dict_for_basic_representation):

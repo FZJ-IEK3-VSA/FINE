@@ -2,13 +2,17 @@
 FINE's News Feed
 ################
 
+Since version 2.3.3 this news feed is not updated anymore. Please refer to the [release page](https://github.com/FZJ-IEK3-VSA/FINE/releases) for changelogs.
+
 *********************
 Release version 2.3.2
 *********************
 
-FINE release 2.3.1 provides minor changes in the requirements:
+IMPORTANT: The name of the package folder has been changed from `FINE` to `fine` in this release. If you still see a `FINE` folder locally after pulling the latest change, you might need to clone the repository to a new folder.
 
-* Specify `GDAL` version 3.4.3 because version 3.4.1 is not compatible with the latest Fiona versions. 
+Further, FINE release 2.3.2 provides changes in the requirements:
+
+* Pin `GDAL` to version 3.4.3 because version 3.4.1 is not compatible with the latest Fiona versions.
 * Change the repository of `gurobi-logtools` from pypi to conda-forge.
 
 *********************
