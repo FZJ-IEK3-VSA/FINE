@@ -2152,65 +2152,9 @@ class EnergySystemModel:
             ):
                 warnings.warn("Output is generated for a non-optimal solution.")
             utils.output("\nProcessing optimization output...", self.verbose, 0)
-            # Declare component specific sets, variables and constraints
-            # w = str(len(max(self.componentModelingDict.keys())) + 6)
 
-            # # iterate over investment periods, to get yearly results
-            # for key, mdl in self.componentModelingDict.items():
-            #     if not isinstance(mdl._capacityVariablesOptimum, dict):
-            #         mdl._capacityVariablesOptimum = {}
-            #     __t = time.time()
-            #     # if _capacityVariablesOptimum is not a dict, convert to dict
-            #     # (if single year system is optimized several times)
-
-            #     mdl.setOptimalValues(self, self.pyM)
-            #     outputString = (
-            #         ("for {:" + w + "}").format(key + " ...")
-            #         + "(%.4f" % (time.time() - __t)
-            #         + "sec)"
-            #     )
-            #     utils.output(outputString, self.verbose, 0)
-
-            #     # convert optimal values from internal name to external name
-            #     # e.g. from _capacityVariablesOptimum to capacityVariablesOptimum
-            #     # For perfectForesight the data stays the same, for a single year optimization
-            #     # the data is converted from a dict with a single entry to a dataframe
-            #     # By this, old models will not fail.
-            #     def convertOptimalValues(esM, mdl, key):
-            #         if key in mdl.__dict__.keys():
-            #             if esM.numberOfInvestmentPeriods == 1:
-            #                 setattr(
-            #                     mdl,
-            #                     key.replace("_", ""),
-            #                     getattr(mdl, key)[esM.investmentPeriodNames[0]],
-            #                 )
-            #             else:
-            #                 setattr(mdl, key.replace("_", ""), getattr(mdl, key))
-            #         else:
-            #             pass
-
-            #     optimalValueParameters = [
-            #         "_optSummary",
-            #         "_stateOfChargeOperationVSariablesOptimum",
-            #         "_chargeOperationVariablesOptimum",
-            #         "_dischargeOperationVariablesOptimum",
-            #         "_phaseAngleVariablesOptimum",
-            #         "_operationVariablesOptimum",
-            #         "_discretizationPointVariablesOptimun",
-            #         "_discretizationSegmentConVariablesOptimun",
-            #         "_discretizationSegmentBinVariablesOptimun",
-            #         "_capacityVariablesOptimum",
-            #         "_isBuiltVariablesOptimum",
-            #         "_commissioningVariablesOptimum",
-            #         "_decommissioningVariablesOptimum",
-            #     ]
-
-            #     for optParam in optimalValueParameters:
-            #         convertOptimalValues(self, mdl, optParam)
-
-            self.process_fine_output(
-                solved_pyomo_model=self.pyM
-            )  # TODO STILL NEEDS TO BE TESTED!
+            # Process the pyomo-based FINE optimization output
+            self.process_fine_output(solved_pyomo_model=self.pyM)
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
@@ -2384,10 +2328,12 @@ class EnergySystemModel:
     ):
         # TODO Add docstrings
 
-        # Normally this gets set within esM.optimize() therefore we have to set it manually here otherwise it will be missed
-        # TODO Find out if theres a way to make everything work with TSA otherwise its going to be a calcualation nightmare...
+        # TODO This function does currently only work with a customized fork of the original PyAugmecon package
+        # This fork can be found here: https://github.com/kschulze26/pyaugmecon/tree/add_model_export
+
+        self.segmentation = False  # Normally this gets set within esM.optimize() therefore we have to set it manually here otherwise it will be missed
+        # TODO Find out if there is a way to make everything work with TSA otherwise its going to be a calcualation nightmare...
         # TODO implement the switch based on the argument timeSeriesAggregation as for example used within the "declareOptimizationProblem"
-        self.segmentation = False
 
         if declaresOptimizationProblem:
             self.declareOptimizationProblem()
@@ -2400,6 +2346,10 @@ class EnergySystemModel:
                 )
 
         ################ PYAUGMECON ################
+        # This section deals with the PyAugmecon-specific operations
+        # For a detailed documentation of the corresponding package please
+        # refer to https://github.com/wouterbles/pyaugmecon
+
         # Make sure that "export_solved_pyomo_models" is enabled - otherwise FINE export post-processing won´t work
         if not pyaugmeconOptions.get("export_solved_pyomo_models"):
             pyaugmeconOptions["export_solved_pyomo_models"] = True
@@ -2410,22 +2360,16 @@ class EnergySystemModel:
         if not pyaugmeconOptions.get("custom_export_path"):
             pyaugmeconOptions["custom_export_path"] = "_fine_moo_cache/"
 
-        # Deactivate all objectives by default - this is pyaugmecon specific!
+        # Deactivate all objectives by default - this is PyAugmecon-specific!
         for o in range(len(self.pyM.obj_list)):
             self.pyM.obj_list[o + 1].deactivate()
         pyaugmecon = PyAugmecon(self.pyM, pyaugmeconOptions)
         pyaugmecon.solve()  # solve PyAugmecon multi-objective optimization problem
-        ### TEMP SAVE SOLUTIONS AS txt
-        # Specify the file path where you want to save the txt file
-        file_path = "logs/moo_temp_output.txt"
-        # Save the dictionary as a txt file
-        with open(file_path, "w") as file:
-            file.write(str(pyaugmecon.unique_pareto_sols))
 
         def load_pyomo_model_from_file(file_name, custom_path=None, delete_file=False):
             """Load a "pickled" pyomo model instance from a file.
-            Important: To use the imported model to process its output with FINE
-            it has to be compatible with current FINE-model instance.
+            Important: To use the imported model and to process its output with FINE
+            it has to be compatible with the current FINE-model instance.
 
             Args:
                 file_name (str): name of file that contains pickled pyomo model instance
@@ -2447,6 +2391,11 @@ class EnergySystemModel:
 
         # delete existing pyomo model from esm to make the esm "copyable"
         del self.pyM
+
+        # for each solution (i.e. pareto point) copy the existing esm instance,
+        # load the corresponding pyomo model instance and assign it to the pyM
+        # instance of the copied esm model, use the default FINE result post-processing
+        # and delete the copied esm instance when done.
         for sol in pyaugmecon.sols.keys():
             esm_copy = copy.deepcopy(self)
             pyomo_model = load_pyomo_model_from_file(
