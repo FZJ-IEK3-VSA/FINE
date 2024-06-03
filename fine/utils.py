@@ -932,9 +932,8 @@ def setLocationalEligibility(
     if locationalEligibility is not None:
         # TODO implement checks for the locationalEligiblity, especially for transmission components
         return locationalEligibility
-    else:  # if locationalEligibility is not None
+    else:
         # If the location eligibility is None set it based on other information available
-        # if not hasCapacityVariable and all(not isinstance(value,type(None)) for value in operationTimeSeries.values()):
         def defineLocDependencyCapacityBounds(name, capacityBound):
             if capacityBound is None:
                 return False
@@ -2001,42 +2000,48 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
     """
     Change format of 2-dimensional data (for transmission components).
     """
-    if data is not None and isinstance(data, pd.DataFrame):
-        if mapC is None:
-            index, data_ = [], []
-            for loc1 in data.columns:
-                for loc2 in data.index:
-                    if discard:
-                        # Structure: data[column][row]
-                        if data[loc1][loc2] > 0:
-                            index.append(loc1 + "_" + loc2), data_.append(
-                                data[loc1][loc2]
-                            )
-                    else:
-                        if data[loc1][loc2] >= 0:
-                            index.append(loc1 + "_" + loc2), data_.append(
-                                data[loc1][loc2]
-                            )
-            data_ = pd.Series(data_, index=index)
+    def preprocessDataPerIp(data):
+        if data is not None and isinstance(data, pd.DataFrame):
+            if mapC is None:
+                index, data_ = [], []
+                for loc1 in data.columns:
+                    for loc2 in data.index:
+                        if loc1 != loc2:
+                            if discard:
+                                # Structure: data[column][row]
+                                if data[loc1][loc2] > 0:
+                                    index.append(loc1 + "_" + loc2), data_.append(
+                                        data[loc1][loc2]
+                                    )
+                            else:
+                                if data[loc1][loc2] >= 0:
+                                    index.append(loc1 + "_" + loc2), data_.append(
+                                        data[loc1][loc2]
+                                    )
+                data_ = pd.Series(data_, index=index)
+                data_.sort_index(inplace=True)
+                return data_
+            else:
+                data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+                data_.sort_index(inplace=True)
+                return data_
+        elif isinstance(data, float) and locationalEligibility is not None:
+            data_ = data * locationalEligibility
             data_.sort_index(inplace=True)
+            return data_
+        elif isinstance(data, int) and locationalEligibility is not None:
+            data_ = data * locationalEligibility
+            data_.sort_index(inplace=True)
+            return data_
+        elif isinstance(data, pd.Series):
+            data_ = data.sort_index()
             return data_
         else:
-            data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
-            data_.sort_index(inplace=True)
-            return data_
-    elif isinstance(data, float) and locationalEligibility is not None:
-        data_ = data * locationalEligibility
-        data_.sort_index(inplace=True)
-        return data_
-    elif isinstance(data, int) and locationalEligibility is not None:
-        data_ = data * locationalEligibility
-        data_.sort_index(inplace=True)
-        return data_
-    elif isinstance(data, pd.Series):
-        data_ = data.sort_index()
-        return data_
+            return data
+    if isinstance(data, dict):
+        return {ip: preprocessDataPerIp(data[ip]) for ip in data.keys()}
     else:
-        return data
+        return preprocessDataPerIp(data)
 
 
 def map2dimData(data, mapC):
