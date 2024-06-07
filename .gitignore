@@ -16,6 +16,8 @@ build/
 logs/
 results/
 .venv/
+# multi-objective optimization temp folder 
+_fine_moo_cache
 
 # file types to ignore
 *.pyc

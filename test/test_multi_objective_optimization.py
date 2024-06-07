@@ -1,9 +1,9 @@
-import FINE as fn
+import fine as fn
 import numpy as np
 import pandas as pd
 import pytest
 import copy
-from FINE.IOManagement import standardIO
+from fine.IOManagement import standardIO
 
 
 # This is the test for multi objective optimization for the use case of raw material demands

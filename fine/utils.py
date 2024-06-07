@@ -8,6 +8,7 @@ import fine as fn
 
 # ruff: noqa
 
+
 def isString(string):
     """Check if the input argument is a string."""
     if not isinstance(string, str):
@@ -1174,6 +1175,7 @@ def checkAndSetTimeSeries(
 
     else:
         return None
+
 
 def checkDesignVariableModelingParameters(
     esM,
@@ -2677,7 +2679,12 @@ def checkAndSetMaterialDemandPerCapacity(materialDemand):
     #   - ...
     # 2. Is it only positive? - maybe not the best idea because a negative material demand could allow for easily including production sites! or geothermal plant that produce lithium and energy
     # 3. maybe more...
+    # TEMP print Material Demand
+    print(materialDemand)
     if materialDemand:
         return materialDemand
     else:
+        # TODO This is only temporary for implementing/testing - remove when done!
+        print("############## MATERIAL DEMAND IS NONE #############")
         return None
+        # raise ValueError("Material demand is NONE!")

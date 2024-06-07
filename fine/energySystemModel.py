@@ -25,7 +25,8 @@ from pyaugmecon import PyAugmecon
 import json
 import copy
 import cloudpickle
-from FINE.IOManagement import standardIO
+from fine.IOManagement import standardIO
+from typing import Union, List
 
 
 class EnergySystemModel:
@@ -91,7 +92,9 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
-        objective="costs",  # maybe not the best option...TODO Think about this flag
+        objective: Union[
+            str, List[str]
+        ] = "costs",  # maybe not the best option...TODO Think about this flag
     ):
         """
         Constructor for creating an EnergySystemModel class instance
@@ -2061,7 +2064,7 @@ class EnergySystemModel:
         ################################################################################################################
 
         # Set which solver should solve the specified optimization problem
-        if solver == "gurobi" and importlib.util.find_spec('gurobipy'):
+        if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
             # Use the direct gurobi solver that uses the Python API.
             optimizer = opt.SolverFactory(solver, solver_io="python")
         else:
@@ -2282,9 +2285,6 @@ class EnergySystemModel:
             # (if single year system is optimized several times)
 
             mdl.setOptimalValues(self, solved_pyomo_model)
-            # import pytest
-
-            # pytest.set_trace()
             outputString = (
                 ("for {:" + w + "}").format(key + " ...")
                 + "(%.4f" % (time.time() - __t)
@@ -2334,6 +2334,8 @@ class EnergySystemModel:
         pyaugmeconOptions,
         declaresOptimizationProblem=True,
         deletePyomoModels=True,
+        write_excel_output=True,
+        excel_output_path=None,
     ):
         # TODO Add docstrings
 
@@ -2372,9 +2374,90 @@ class EnergySystemModel:
         # Deactivate all objectives by default - this is PyAugmecon-specific!
         for o in range(len(self.pyM.obj_list)):
             self.pyM.obj_list[o + 1].deactivate()
+
+        print("########## CALLING PY AUGMECON #######")
         pyaugmecon = PyAugmecon(self.pyM, pyaugmeconOptions)
         pyaugmecon.solve()  # solve PyAugmecon multi-objective optimization problem
 
+        # def load_pyomo_model_from_file(file_name, custom_path=None, delete_file=False):
+        #     """Load a "pickled" pyomo model instance from a file.
+        #     Important: To use the imported model and to process its output with FINE
+        #     it has to be compatible with the current FINE-model instance.
+
+        #     Args:
+        #         file_name (str): name of file that contains pickled pyomo model instance
+
+        #     Returns:
+        #         pyomo.ConcreteModel: The unpickled pyomo model instance.
+        #     """
+
+        #     file_path = file_name
+        #     if custom_path:
+        #         if not os.path.isdir(custom_path):
+        #             os.mkdir(custom_path)
+        #         file_path = os.path.join(custom_path, file_name)
+        #     with open(f"{file_path}.pkl", mode="rb") as file:
+        #         pyomo_model = cloudpickle.load(file)
+        #     if delete_file:
+        #         os.remove(f"{file_path}.pkl")
+        #     return pyomo_model
+
+        # # delete existing pyomo model from esm to make the esm "copyable"
+        # del self.pyM
+
+        # # for each solution (i.e. pareto point) copy the existing esm instance,
+        # # load the corresponding pyomo model instance and assign it to the pyM
+        # # instance of the copied esm model, use the default FINE result post-processing
+        # # and delete the copied esm instance when done.
+        # for sol in pyaugmecon.sols.keys():
+        #     esm_copy = copy.deepcopy(self)
+        #     pyomo_model = load_pyomo_model_from_file(
+        #         f"_pyomo_model_{tuple(s*(-1) for s in sol)}",
+        #         pyaugmeconOptions.get("custom_export_path"),
+        #         delete_file=deletePyomoModels,
+        #     )
+        #     # Add solved pyomo_model to esm copy
+        #     esm_copy.pyM = pyomo_model
+        #     esm_copy.process_fine_output(pyomo_model)
+        #     if write_excel_output:
+        #         if not excel_output_path or "":
+        #             excel_output_path = os.path.join(os.getcwd(), "Results")
+        #             print(
+        #                 f"No custom output path for the excel results was provided. Saving to default folder: {excel_output_path}"
+        #             )
+        #         else:
+        #             print(
+        #                 f"Exporting results of multi-objective optimization to {excel_output_path}"
+        #             )
+        #         standardIO.writeOptimizationOutputToExcel(
+        #             esm_copy,
+        #             outputFileName=os.path.join(
+        #                 excel_output_path,
+        #                 f"results_for_{tuple(s*(-1) for s in sol)}",
+        #             ),
+        #         )
+        #     del esm_copy.pyM
+        # # Delete temporary "_fine_moo_cache" folder - it should be empty
+        # if deletePyomoModels:
+        #     try:
+        #         os.rmdir(pyaugmeconOptions.get("custom_export_path"))
+        #     except OSError as e:
+        #         print(
+        #             f"{e} \n This will occur if the folder containing the temporary pyomo instances was not empty before you tried to delete it!"
+        #         )
+        return pyaugmecon
+
+    def process_fine_moo_output(
+        self,
+        pyaugmecon,
+        deletePyomoModels=True,
+        write_excel_output=True,
+        excel_output_path=None,
+    ):
+
+        pyaugmeconOptions = pyaugmecon.opts
+
+        # TODO import this from utilsIO and use it instead of the following function!
         def load_pyomo_model_from_file(file_name, custom_path=None, delete_file=False):
             """Load a "pickled" pyomo model instance from a file.
             Important: To use the imported model and to process its output with FINE
@@ -2388,7 +2471,7 @@ class EnergySystemModel:
             """
 
             file_path = file_name
-            if custom_path:
+            if custom_path:  # TODO WHY DO YOU NEED THIS?!
                 if not os.path.isdir(custom_path):
                     os.mkdir(custom_path)
                 file_path = os.path.join(custom_path, file_name)
@@ -2406,26 +2489,49 @@ class EnergySystemModel:
         # instance of the copied esm model, use the default FINE result post-processing
         # and delete the copied esm instance when done.
         for sol in pyaugmecon.sols.keys():
+            # .get_pareto_solutions is not suitable here because it rounds the values and therefore makes it impossible to find the corresponding pickle files
             esm_copy = copy.deepcopy(self)
             pyomo_model = load_pyomo_model_from_file(
                 f"_pyomo_model_{tuple(s*(-1) for s in sol)}",
-                pyaugmeconOptions.get("custom_export_path"),
+                pyaugmeconOptions.custom_export_path,
                 delete_file=deletePyomoModels,
             )
             # Add solved pyomo_model to esm copy
             esm_copy.pyM = pyomo_model
             esm_copy.process_fine_output(pyomo_model)
-            standardIO.writeOptimizationOutputToExcel(
-                esm_copy,
-                outputFileName=f"results/results_for_{tuple(s*(-1) for s in sol)}",
-            )
+            if write_excel_output:
+                if not excel_output_path or "":
+                    excel_output_path = os.path.join(os.getcwd(), "results")
+                    print(
+                        f"No custom output path for the excel results was provided. Saving to default folder: {excel_output_path}"
+                    )
+                else:
+                    print(
+                        f"Exporting results of multi-objective optimization to {excel_output_path}"
+                    )
+                if len(self.investmentPeriodNames) > 1:
+                    # if the results are not for a single year, adapt the layout of the results folder to provide a better overview
+                    _excel_output_path = os.path.join(
+                        excel_output_path, f"pareto_solution_{sol}"
+                    )
+                    os.mkdir(_excel_output_path)
+                else:
+                    _excel_output_path = excel_output_path
+                standardIO.writeOptimizationOutputToExcel(
+                    esm_copy,
+                    outputFileName=os.path.join(
+                        _excel_output_path,
+                        f"results_for_{tuple(s*(-1) for s in sol)}",
+                    ),
+                )
             del esm_copy.pyM
         # Delete temporary "_fine_moo_cache" folder - it should be empty
         if deletePyomoModels:
             try:
-                os.rmdir(pyaugmeconOptions.get("custom_export_path"))
+                os.rmdir(pyaugmeconOptions.custom_export_path)
             except OSError as e:
                 print(
                     f"{e} \n This will occur if the folder containing the temporary pyomo instances was not empty before you tried to delete it!"
                 )
-        return pyaugmecon
+
+        return None

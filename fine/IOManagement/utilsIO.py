@@ -3,6 +3,8 @@ import pandas as pd
 import xarray as xr
 from functools import reduce  # forward compatibility for Python 3
 import operator
+import os
+import cloudpickle
 
 
 def getFromDict(dataDict, mapList):
@@ -891,3 +893,26 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
         setInDict(component_dict[class_name][comp_name], key_list, var_value.item())
 
     return component_dict
+
+
+def load_pyomo_model_from_file(file_name, custom_path=None, delete_file=False):
+    """Load a "pickled" pyomo model instance from a file.
+    Important: To use the imported model and to process its output with FINE
+    it has to be compatible with the current FINE-model instance.
+
+    Args:
+        file_name (str): name of file that contains pickled pyomo model instance
+
+    Returns:
+        pyomo.ConcreteModel: The unpickled pyomo model instance.
+    """
+    
+    if custom_path:
+        file_path = os.path.join(custom_path, file_name)
+    else: file_path = file_name
+
+    with open(f"{file_path}.pkl", mode="rb") as file:
+        pyomo_model = cloudpickle.load(file)
+    if delete_file:
+        os.remove(f"{file_path}.pkl")
+    return pyomo_model
