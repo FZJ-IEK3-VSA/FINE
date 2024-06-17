@@ -72,6 +72,27 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
 
     return xr_dss
 
+def convertPerformanceSummaryToDatasets(esM):
+    import pandas as pd
+    df = esM.performanceSummary.squeeze()
+    # summary_dict = {}
+    # for category in df.index.get_level_values("Category").unique():
+        # _df = df.xs(category, level="Category")
+        # summary_dict[category] = _df.to_dict()  
+    df = df.droplevel("Category")
+    df = df.apply(lambda x: pd.to_numeric(x, errors='ignore'))
+    # convert datetime to string
+    for idx, value in df.items():
+        if isinstance(value, pd.Timestamp):
+            print(value)
+            df.loc[idx] = value.strftime('%Y-%m-%d %H:%M:%S')
+    summary_dict = df.to_dict()
+    summary_xr = xr.Dataset()
+    summary_xr.attrs = summary_dict
+    
+    xr_dss = {"PerformanceSummary": summary_xr}
+    
+    return xr_dss
 
 def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
     """
@@ -329,7 +350,7 @@ def writeDatasetsToNetCDF(
             pass
 
     for group in datasets.keys():
-        if group == "Parameters":
+        if group == "Parameters" or group == "PerformanceSummary":
             xarray_dataset = datasets[group]
             _xarray_dataset = (
                 xarray_dataset.copy()
@@ -393,7 +414,6 @@ def writeDatasetsToNetCDF(
                 # Use mode='a' to append datasets to existing file. Variables will be overwritten.
                 mode=mode,
             )
-            continue
 
         elif group == "Results":
             for ip in datasets[group].keys():
@@ -415,7 +435,7 @@ def writeDatasetsToNetCDF(
                                 # Use zlib variable compression to reduce filesize with little performance loss
                                 # for our use-case. Complevel 9 for best compression.
                                 encoding={
-                                    var: {"zlib": True, "complevel": 9}
+                                    var: {"zlib": True, "complevel": 5}
                                     for var in list(
                                         datasets[group][ip][model][component].data_vars
                                     )
@@ -438,7 +458,7 @@ def writeDatasetsToNetCDF(
                             # Use zlib variable compression to reduce filesize with little performance loss
                             # for our use-case. Complevel 9 for best compression.
                             encoding={
-                                var: {"zlib": True, "complevel": 9}
+                                var: {"zlib": True, "complevel": 5}
                                 for var in list(
                                     datasets[group][model][component].data_vars
                                 )
@@ -933,6 +953,10 @@ def writeEnergySystemModelToNetCDF(
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
+        if hasattr(esM, "performanceSummary"):
+            xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
+            xr_dss_output["PerformanceSummary"] = xr_dss_performance["PerformanceSummary"]
+            print(xr_dss_output.keys())
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
@@ -951,11 +975,21 @@ def writeEnergySystemModelToDatasets(esM):
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
         xr_dss_input = convertOptimizationInputToDatasets(esM)
-        xr_dss_results = {
-            "Results": xr_dss_output["Results"],
-            "Input": xr_dss_input["Input"],
-            "Parameters": xr_dss_input["Parameters"],
-        }
+        if hasattr(esM, "performanceSummary"):
+            xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
+            
+            xr_dss_results = {
+                "Results": xr_dss_output["Results"],
+                "Input": xr_dss_input["Input"],
+                "Parameters": xr_dss_input["Parameters"],
+                "PerformanceSummary": xr_dss_performance["PerformanceSummary"],
+            }
+        else:
+            xr_dss_results = {
+                "Results": xr_dss_output["Results"],
+                "Input": xr_dss_input["Input"],
+                "Parameters": xr_dss_input["Parameters"],
+            }
     else:
         xr_dss_input = convertOptimizationInputToDatasets(esM)
         xr_dss_results = {
@@ -964,7 +998,6 @@ def writeEnergySystemModelToDatasets(esM):
         }
 
     return xr_dss_results
-
 
 def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
     """
@@ -994,9 +1027,9 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
             group_keys = rootgrp.groups
 
     if lazy_load:
-        loader = xr.open_mfdataset
-    else:
         loader = xr.open_dataset
+    else:
+        loader = xr.load_dataset
         
     if not groupPrefix:
         xr_dss = {}
@@ -1026,6 +1059,11 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
             }
         # read parameters from netcdf
         xr_dss["Parameters"] = loader(filePath, group=f"Parameters")
+        # read performance summary from netcdf (if exists)
+        if "PerformanceSummary" in group_keys:
+            xr_dss["PerformanceSummary"] = loader(
+                filePath, group=f"PerformanceSummary"
+            )
     else:
         xr_dss = {}
         # read input from netcdf
@@ -1058,6 +1096,11 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
         xr_dss["Parameters"] = loader(
             filePath, group=f"{groupPrefix}/Parameters"
         )
+        # read performance summary from netcdf (if exists)
+        if "PerformanceSummary" in group_keys:
+            xr_dss["PerformanceSummary"] = loader(
+                filePath, group=f"{groupPrefix}/PerformanceSummary"
+            )
 
     return xr_dss
 
