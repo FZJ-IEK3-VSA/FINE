@@ -50,6 +50,7 @@ class Conversion(Component):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        componentLimitID=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -264,6 +265,8 @@ class Conversion(Component):
         )
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
+        
+        self.componentLimitID = componentLimitID
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
@@ -1092,6 +1095,91 @@ class ConversionModel(ComponentModel):
                 for yearDefinition in comp.processedCommodityConversionFactors.keys()
             ]
         )
+
+
+    def getComponentLimitContribution(
+        self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type
+    ):
+        """
+        Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
+        Sum of the operation time series of a SourceSink component is used as the componentLimit contribution:
+
+        - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
+        - A Sink contributes with a negative sign. Example: Sale of electricity
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+
+        :type timeSeriesAggregation: boolean
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
+
+        :param ID: ID of the regarded componentLimitConstraint
+        :param ID: string
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+
+        :param componentNames: Names of components which contribute to the component limit
+        :type componentNames: list
+
+        :param type: Type of the variable ("operation" or "capacity")
+        :type type: string
+
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        if type == "operation":
+            opVar = getattr(pyM, "op_" + abbrvName)
+
+            if timeSeriesAggregation:
+                periods = esM.typicalPeriods
+                if esM.segmentation:
+                    timeSteps = esM.segmentsPerPeriod
+                else:
+                    timeSteps = esM.timeStepsPerPeriod
+            else:
+                periods = esM.periods
+                timeSteps = esM.totalTimeSteps
+
+            balance = sum(
+                opVar[loc, compName, ip, p, t]
+                * esM.periodOccurrences[ip][p]
+                for compName in compDict.keys()
+                if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
+                for p in periods
+                for t in timeSteps
+            )
+            if isinstance(balance, int) or isinstance(balance, float):
+                return None
+            else:
+                return balance
+        elif type == "capacity":
+            capVar = getattr(pyM, "cap_" + abbrvName)
+            balance = sum(
+                capVar[loc, compName, ip]
+                for compName in compDict.keys()
+                if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
+            )
+            if isinstance(balance, int) or isinstance(balance, float):
+                return None
+            else:
+                return balance
+        else:
+            raise ValueError(
+                "Invalid type in ComponentLimit Contraint. Please choose 'operation' or 'capacity'."
+            )
+
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         """Get contribution to a commodity balance.
