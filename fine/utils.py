@@ -961,6 +961,9 @@ def setLocationalEligibility(
             "capacityFix", capacityFix
         )
 
+        if isinstance(operationTimeSeries, dict) and len(operationTimeSeries) == 0:
+            operationTimeSeries = None
+
         if not hasCapacityVariable and operationTimeSeries is not None:
             if dimension == "1dim":
                 data = 0
