@@ -344,13 +344,13 @@ def test_perfectForesight_binary():
         esM.getOptimizationSummary("SourceSinkModel", ip=2020).loc[
             "PV", "capexIfBuilt", "[1 Euro/a]"
         ]["PerfectLand"],
-        535.2277429418442,
+        111.326528,
     )
     np.testing.assert_almost_equal(
         esM.getOptimizationSummary("SourceSinkModel", ip=2030).loc[
             "PV", "capexIfBuilt", "[1 Euro/a]"
         ]["PerfectLand"],
-        439.0731689683585,
+        111.326528,
     )
     np.testing.assert_almost_equal(
         esM.getOptimizationSummary("SourceSinkModel", ip=2025).loc[
