@@ -2688,3 +2688,21 @@ def checkAndSetMaterialDemandPerCapacity(materialDemand):
         print("############## MATERIAL DEMAND IS NONE #############")
         return None
         # raise ValueError("Material demand is NONE!")
+
+
+def convertOptimizationSpecsToDict(optimizationSpecs: str) -> dict:
+    """Converts optimization specifications for gurobi in string form to dictionary form
+
+    Args:
+        optimizationSpecs (str): gurobi optimization specs in the form 'OptimalityTol=1e-6 method=2 cuts=0 crossover=0'
+
+    Returns:
+        dict: gurobi optimization specs in the form {'OptimalityTol': '1e-6', 'method':'2', ...}
+        Note: Returns a dict with strings as keys and values, however gurobi handles this just fine.
+    """
+    optimizationSpecs_dict = {}
+    individual_optimization_specs = optimizationSpecs.split()
+    for spec in individual_optimization_specs:
+        spec_splitted = spec.split("=")
+        optimizationSpecs_dict[spec_splitted[0]] = spec_splitted[1]
+    return optimizationSpecs_dict

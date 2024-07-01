@@ -32,20 +32,10 @@ def test_multi_objective_optimization(multi_objective_test_esm):
             "ConversionModel"
         ].componentsDict
     )
-    # USE THIS LATER!
-    # assert all(
-    #     hasattr(
-    #         test_esm.componentModelingDict[model].componentsDict[comp_name],
-    #         "processed_materialDemandPerCapacity",
-    #     )
-    #     for model in test_esm.componentModelingDict
-    #     for comp_name in test_esm.componentModelingDict[model].componentsDict
-    # )
 
     opts = {
         "grid_points": 5,
         "output_excel": True,
-        # "cpu_count": 2,
         "process_logging": True,
         "export_solved_pyomo_models": True,
     }
@@ -87,11 +77,11 @@ def test_obj_value_single_vs_multi(
         pyaugmeconOptions=opts
     ).get_pareto_solutions()
 
-    # Assert whether the objective value of the single objective optimziation is
+    # Assert whether the objective value of the single objective optimization is
     # almost equal to the value of the first objective of the multi-objective
     # optimizations first pareto point
     # IMPORTANT: This does only work if the costs objective is the first objective
-    # Future TODO: Find a way to make sure that this is always the case...
+    # Maybe future TODO: Find a way to make sure that this is always the case...
     np.testing.assert_almost_equal(
         test_esm_single_objective.pyM.Obj(), pareto_solutions_moo[0][0]
     )

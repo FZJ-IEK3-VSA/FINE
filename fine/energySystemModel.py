@@ -1731,6 +1731,7 @@ class EnergySystemModel:
             utils.output(
                 "Initializing multi-objective optimization...", self.verbose, 0
             )
+            # Add create an objective list and add all objectives to it
             pyM.obj_list = pyomo.ObjectiveList()
             for (
                 obj
@@ -2333,37 +2334,70 @@ class EnergySystemModel:
         self,
         pyaugmeconOptions,
         declaresOptimizationProblem=True,
+        timeSeriesAggregation=False,
+        solver="gurobi",
+        optimizationSpecs: Union[dict, str] = None,
         deletePyomoModels=True,
         write_excel_output=True,
         excel_output_path=None,
     ):
         # TODO Add docstrings
+        # Future TODO add a performance summary similar to the one within esm.optimize()
+        # Future TODO maybe use the utils.checkOptimizeInput() function to also check the input here or implement a similar function
 
-        # TODO This function does currently only work with a customized fork of the original PyAugmecon package
+        # TODO This method does currently only work with a customized fork of the original PyAugmecon package
         # This fork can be found here: https://github.com/kschulze26/pyaugmecon/tree/add_model_export
 
-        self.segmentation = False  # Normally this gets set within esM.optimize() therefore we have to set it manually here otherwise it will be missed
-        # TODO Find out if there is a way to make everything work with TSA otherwise its going to be a calcualation nightmare...
-        # TODO implement the switch based on the argument timeSeriesAggregation as for example used within the "declareOptimizationProblem"
+        # Set the segmentation parameter to false if time series aggregation is disabled
+        if not timeSeriesAggregation:
+            self.segmentation = False
 
+        # Declare optimization problem if not already done
         if declaresOptimizationProblem:
-            self.declareOptimizationProblem()
-            # TODO pass more options/arguments to declareOptimizationProblem
+            self.declareOptimizationProblem(timeSeriesAggregation)
         else:
+            # Throw an error if declareOptimizationProblem is False but no pyomo model exists (same error as in optimize())
             if self.pyM is None:
                 raise TypeError(
                     "The optimization problem is not declared yet. Set the argument declaresOptimization"
                     " problem to True or call the declareOptimizationProblem function first."
                 )
 
-        ################ PYAUGMECON ################
+        ############################################################################
+        ################################ PYAUGMECON ################################
+        ############################################################################
+
         # This section deals with the PyAugmecon-specific operations
         # For a detailed documentation of the corresponding package please
         # refer to https://github.com/wouterbles/pyaugmecon
 
+        # Integrate fine solver options and optimization specs into pyaugmecon options
+
+        # Set which solver should solve the specified optimization problem
+        if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
+            # Use the direct gurobi solver that uses the Python API.
+            pyaugmeconOptions["solver_io"] = "python"
+        else:
+            pyaugmeconOptions["solver_io"] = None
+
+        if not pyaugmeconOptions.get("solver_name"):
+            pyaugmeconOptions["solver_name"] = solver
+        else:
+            if pyaugmeconOptions["solver_name"] != solver:
+                raise ValueError(
+                    f'Two different solver name were passed! \n solver defined in pyaugmecon options: {pyaugmeconOptions["solver_name"]} \n solver defined in esm.optimize_moo(): {solver}.'
+                )
+
+        # Convert optimization specs from string to dictionary
+        if optimizationSpecs:
+            solver_opts_dict = utils.convertOptimizationSpecsToDict(optimizationSpecs)
+        else:
+            solver_opts_dict = {}
+
         # Make sure that "export_solved_pyomo_models" is enabled - otherwise FINE export post-processing won´t work
         if not pyaugmeconOptions.get("export_solved_pyomo_models"):
             pyaugmeconOptions["export_solved_pyomo_models"] = True
+
         # By default the solved pyomo models are only stored temporary and deleted after
         # the FINE output post-processing is performed. Therefore in this case a custom folder
         # is set that can then be deleted.
@@ -2376,75 +2410,9 @@ class EnergySystemModel:
             self.pyM.obj_list[o + 1].deactivate()
 
         print("########## CALLING PY AUGMECON #######")
-        pyaugmecon = PyAugmecon(self.pyM, pyaugmeconOptions)
+        pyaugmecon = PyAugmecon(self.pyM, pyaugmeconOptions, solver_opts_dict)
         pyaugmecon.solve()  # solve PyAugmecon multi-objective optimization problem
 
-        # def load_pyomo_model_from_file(file_name, custom_path=None, delete_file=False):
-        #     """Load a "pickled" pyomo model instance from a file.
-        #     Important: To use the imported model and to process its output with FINE
-        #     it has to be compatible with the current FINE-model instance.
-
-        #     Args:
-        #         file_name (str): name of file that contains pickled pyomo model instance
-
-        #     Returns:
-        #         pyomo.ConcreteModel: The unpickled pyomo model instance.
-        #     """
-
-        #     file_path = file_name
-        #     if custom_path:
-        #         if not os.path.isdir(custom_path):
-        #             os.mkdir(custom_path)
-        #         file_path = os.path.join(custom_path, file_name)
-        #     with open(f"{file_path}.pkl", mode="rb") as file:
-        #         pyomo_model = cloudpickle.load(file)
-        #     if delete_file:
-        #         os.remove(f"{file_path}.pkl")
-        #     return pyomo_model
-
-        # # delete existing pyomo model from esm to make the esm "copyable"
-        # del self.pyM
-
-        # # for each solution (i.e. pareto point) copy the existing esm instance,
-        # # load the corresponding pyomo model instance and assign it to the pyM
-        # # instance of the copied esm model, use the default FINE result post-processing
-        # # and delete the copied esm instance when done.
-        # for sol in pyaugmecon.sols.keys():
-        #     esm_copy = copy.deepcopy(self)
-        #     pyomo_model = load_pyomo_model_from_file(
-        #         f"_pyomo_model_{tuple(s*(-1) for s in sol)}",
-        #         pyaugmeconOptions.get("custom_export_path"),
-        #         delete_file=deletePyomoModels,
-        #     )
-        #     # Add solved pyomo_model to esm copy
-        #     esm_copy.pyM = pyomo_model
-        #     esm_copy.process_fine_output(pyomo_model)
-        #     if write_excel_output:
-        #         if not excel_output_path or "":
-        #             excel_output_path = os.path.join(os.getcwd(), "Results")
-        #             print(
-        #                 f"No custom output path for the excel results was provided. Saving to default folder: {excel_output_path}"
-        #             )
-        #         else:
-        #             print(
-        #                 f"Exporting results of multi-objective optimization to {excel_output_path}"
-        #             )
-        #         standardIO.writeOptimizationOutputToExcel(
-        #             esm_copy,
-        #             outputFileName=os.path.join(
-        #                 excel_output_path,
-        #                 f"results_for_{tuple(s*(-1) for s in sol)}",
-        #             ),
-        #         )
-        #     del esm_copy.pyM
-        # # Delete temporary "_fine_moo_cache" folder - it should be empty
-        # if deletePyomoModels:
-        #     try:
-        #         os.rmdir(pyaugmeconOptions.get("custom_export_path"))
-        #     except OSError as e:
-        #         print(
-        #             f"{e} \n This will occur if the folder containing the temporary pyomo instances was not empty before you tried to delete it!"
-        #         )
         return pyaugmecon
 
     def process_fine_moo_output(
