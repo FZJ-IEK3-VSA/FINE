@@ -213,6 +213,14 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
             commodity="hydrogen",
             hasCapacityVariable=True,
             investPerCapacity=0.177,
+            capacityMax={
+                ip: pd.DataFrame(
+                    data=[[0.2, 0.2], [0.25, 0.25]],
+                    index=list(esM.locations),
+                    columns=list(esM.locations)
+                ) * (1+(ip-2020)/40)
+                for ip in esM.investmentPeriodNames
+            },
             interestRate=0.08,
             economicLifetime=40,
         )
@@ -344,13 +352,13 @@ def test_perfectForesight_binary():
         esM.getOptimizationSummary("SourceSinkModel", ip=2020).loc[
             "PV", "capexIfBuilt", "[1 Euro/a]"
         ]["PerfectLand"],
-        535.2277429418442,
+        111.326528,
     )
     np.testing.assert_almost_equal(
         esM.getOptimizationSummary("SourceSinkModel", ip=2030).loc[
             "PV", "capexIfBuilt", "[1 Euro/a]"
         ]["PerfectLand"],
-        439.0731689683585,
+        111.326528,
     )
     np.testing.assert_almost_equal(
         esM.getOptimizationSummary("SourceSinkModel", ip=2025).loc[
