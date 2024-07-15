@@ -3,9 +3,21 @@ import inspect
 import fine as fn
 import pandas as pd
 from fine.IOManagement import utilsIO
+from fine.utils import buildFullTimeSeries
 
+def reconstruct_full_timeseries(esM, timeseries, ip):
+    print("Reconstructing timeseries from TSA")
 
-def exportToDict(esM, useProcessedValues=False):
+    # switch first index level and column level
+    df = timeseries.copy()
+    df = df.stack().unstack(level=1)
+    df.index.names = [None] * len(df.index.names)
+    full_df = buildFullTimeSeries(df, esM.periodsOrder[ip],ip=ip, esM=esM, divide=False).reset_index(level=0,drop=True).T
+    full_df.columns = timeseries.columns
+    
+    return full_df
+
+def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
     """
     Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
 
@@ -85,7 +97,7 @@ def exportToDict(esM, useProcessedValues=False):
                         # not be created before adding the data.
                         compDict[classname][componentname][prop[0]] = getattr(
                             component, prop[1]
-                        )
+                        )                    
             else:
                 # Loop over all input props
                 for prop in prop_list:
@@ -93,6 +105,16 @@ def exportToDict(esM, useProcessedValues=False):
                         compDict[classname][componentname][prop] = getattr(
                             component, prop
                         )
+                # Add aggregatedRate timeseries from TSA
+                prop_list_full_set = component.__dict__.keys()
+                for prop in prop_list_full_set:
+                    if (prop != "self") and (prop != "esM"):
+                        if ("aggregated" in prop) and ("Rate" in prop):
+                            timeseries = getattr(component, prop)[0]
+                            if timeseries is not None:
+                                compDict[classname][componentname][prop] = reconstruct_full_timeseries(esM, timeseries, ip=0) #TODO: what happens for multiple ips?
+                            else:
+                                compDict[classname][componentname][prop] = timeseries
 
     return esmDict, compDict
 
