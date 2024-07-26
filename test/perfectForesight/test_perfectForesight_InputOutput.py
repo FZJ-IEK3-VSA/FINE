@@ -2,11 +2,9 @@ import numpy as np
 import pandas as pd
 import os
 import shutil
-import io
-import time
 
-import FINE as fn
-from FINE.IOManagement.standardIO import writeOptimizationOutputToExcel
+import fine as fn
+from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 from pathlib import Path
 
 
@@ -128,7 +126,7 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
             output_OptSum = output_esM_xarray.getOptimizationSummary(mdl, ip=ip)
 
             # see test/IOManagement/test_xarrayio.py: "Only total operation is
-            # saved in netCDF not the yearly value so we drop the
+            # saved in netCDF not the yearly value, so we drop the
             # operation value. This needs to be fixed in the future."
             drop_rows_condition = [
                 x
@@ -206,8 +204,8 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
             output_OptSum = output_esM_xarray.getOptimizationSummary(mdl, ip=ip)
 
             # see test/IOManagement/test_xarrayio.py: "Only total operation is
-            # saved in netCDF not the yearly value so we drop the
-            # opreation value. This needs to be fixed in future."
+            # saved in netCDF not the yearly value, so we drop the
+            # operation value. This needs to be fixed in future."
             drop_rows_condition = [
                 x
                 for x in expected_OptSum.index

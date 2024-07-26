@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-import FINE as fn
+import fine as fn
 
 
 @pytest.mark.parametrize("TSA", [True, False])
@@ -110,9 +110,9 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
         )
 
         assert np.array_equal(original_max_stg2.values, dummy_time_series.values)
-        assert full_max_stg2 == None
-        assert processed_max_stg2 == None
-        assert aggregated_max_stg2 == None
+        assert full_max_stg2 is None
+        assert processed_max_stg2 is None
+        assert aggregated_max_stg2 is None
 
         assert np.array_equal(original_fix_stg2.values, dummy_time_series.values)
         assert np.array_equal(full_fix_stg2.values, original_fix_stg2.values)
@@ -142,7 +142,7 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
         assert np.array_equal(original_max_stg1.values, dummy_time_series.values)
         assert np.array_equal(full_max_stg1.values, original_max_stg1.values)
         assert np.array_equal(processed_max_stg1.values, full_max_stg1.values)
-        assert aggregated_max_stg1 == None
+        assert aggregated_max_stg1 is None
 
         ### dummy_storage_2
         original_max_stg2 = minimal_test_esM.getComponentAttribute(
@@ -172,11 +172,11 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
         )
 
         assert np.array_equal(original_max_stg2.values, dummy_time_series.values)
-        assert full_max_stg2 == None
-        assert processed_max_stg2 == None
-        assert aggregated_max_stg2 == None
+        assert full_max_stg2 is None
+        assert processed_max_stg2 is None
+        assert aggregated_max_stg2 is None
 
         assert np.array_equal(original_fix_stg2.values, dummy_time_series.values)
         assert np.array_equal(full_fix_stg2.values, original_fix_stg2.values)
         assert np.array_equal(processed_fix_stg2.values, full_fix_stg2.values)
-        assert aggregated_fix_stg2 == None
+        assert aggregated_fix_stg2 is None

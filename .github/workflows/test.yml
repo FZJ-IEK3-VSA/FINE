@@ -1,0 +1,89 @@
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+  # Allows to trigger the workflow manually
+  workflow_dispatch:
+    branches:
+      - master
+      - develop
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # Some Examples for cron syntax https://crontab.guru/examples.html
+    # Schedules job at any point after 12 pm
+    - cron:  '0 0 * * *'
+    # Weekly after sunday
+    # - cron: 0 0 * * 0
+
+jobs:
+  TestFineCondaForge:
+    name: TestFineCondaForge (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: FZJ-IEK3-VSA/FINE
+          path: './fine'
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge
+          activate-environment: test_env
+      - name: Run tests
+        shell: pwsh
+        run: |
+          ls
+          echo "LS Done"
+          mamba install fine pytest python=${{ matrix.python-version }}
+          echo "Installation done"
+          conda list
+          echo "libaries printed"
+          echo "start pytest"
+          pytest
+          echo "Pytest done"
+
+  TestFinePip:
+    name: TestFinePip (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: FZJ-IEK3-VSA/FINE
+          path: './fine'
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+          miniforge-variant: Mambaforge
+          activate-environment: fine 
+          environment-file: fine/requirements_dev.yml
+      - name: Run tests
+        shell: pwsh
+        run: |
+          ls
+          echo "LS Done"
+          cd fine
+          conda run pip install . --no-deps
+          echo "Installation done"
+          conda run python -V
+          conda list fine
+          echo "libaries printed"
+          echo "start pytest"
+          conda run pytest
+          echo "Pytest done"

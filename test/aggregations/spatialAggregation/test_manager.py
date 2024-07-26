@@ -1,7 +1,7 @@
 import os
 import pytest
 import numpy as np
-from FINE import xarrayIO as xrIO
+from fine import xarrayIO as xrIO
 import geopandas as gpd
 
 
@@ -20,7 +20,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
 
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
@@ -109,17 +109,17 @@ def test_error_in_reading_shp(test_esM_for_spagat):
     with pytest.raises(FileNotFoundError):
         SHAPEFILE_PATH = os.path.join(
             os.path.dirname(__file__),
-            "../../../examples/Multi-regional_Energy_System_Workflow/",
+            "../../../examples/03_Multi-regional_Energy_System_Workflow/",
             "InputData/SpatialData/ShapeFiles",
         )
 
-        aggregated_esM = test_esM_for_spagat.aggregateSpatially(
+        _ = test_esM_for_spagat.aggregateSpatially(
             shapefile=SHAPEFILE_PATH, n_groups=2, solver="glpk"
         )
 
     ## Case 2: invalid shapefile type
     with pytest.raises(TypeError):
-        aggregated_esM = test_esM_for_spagat.aggregateSpatially(
+        _ = test_esM_for_spagat.aggregateSpatially(
             shapefile=test_esM_for_spagat, n_groups=2, solver="glpk"
         )
 
@@ -127,11 +127,11 @@ def test_error_in_reading_shp(test_esM_for_spagat):
     with pytest.raises(ValueError):
         SHAPEFILE_PATH = os.path.join(
             os.path.dirname(__file__),
-            "../../../examples/Multi-regional_Energy_System_Workflow/",
+            "../../../examples/03_Multi-regional_Energy_System_Workflow/",
             "InputData/SpatialData/ShapeFiles/three_regions.shp",
         )
 
-        aggregated_esM = test_esM_for_spagat.aggregateSpatially(
+        _ = test_esM_for_spagat.aggregateSpatially(
             shapefile=SHAPEFILE_PATH, n_groups=5, solver="glpk"
         )
 
@@ -139,7 +139,7 @@ def test_error_in_reading_shp(test_esM_for_spagat):
 def test_spatial_aggregation_string_based(test_esM_for_spagat):
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
@@ -184,7 +184,7 @@ def test_spatial_aggregation_distance_based(
 ):
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
@@ -221,7 +221,7 @@ def test_spatial_aggregation_parameter_based(
 ):
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
@@ -247,7 +247,7 @@ def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):
     esM = balanceLimitConstraint_test_esM[0]
     SHAPEFILE_PATH = os.path.join(
         os.path.dirname(__file__),
-        "../../../examples/Multi-regional_Energy_System_Workflow/",
+        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
@@ -256,7 +256,7 @@ def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):
     gdf["index"] = [f"Region{i}" for i in [1, 2]]
 
     # FUNCTION CALL
-    aggregated_esM = esM.aggregateSpatially(
+    _ = esM.aggregateSpatially(
         shapefile=gdf,
         grouping_mode="distance_based",
         n_groups=1,

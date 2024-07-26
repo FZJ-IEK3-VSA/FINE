@@ -14,9 +14,8 @@ import os
 import pytest
 import pandas as pd
 
-from attr import dataclass
 
-import FINE as fn
+import fine as fn
 
 sys.path.append(
     os.path.join(
@@ -61,7 +60,7 @@ def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibil
     data["Wind (onshore), operationRateMax"].drop("cluster_0", axis=1, inplace=True)
     data["Wind (onshore), capacityMax"].drop("cluster_0", inplace=True)
 
-    with pytest.raises(ValueError) as e_info:
+    with pytest.raises(ValueError):
         esM.add(
             fn.Source(
                 esM=esM,

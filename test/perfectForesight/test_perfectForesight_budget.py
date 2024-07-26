@@ -1,8 +1,6 @@
-import FINE as fn
+import fine as fn
 import numpy as np
-import pytest
 import pandas as pd
-import math
 
 
 def test_pathwayBudget():
@@ -32,7 +30,7 @@ def test_pathwayBudget():
     )
 
     # 1.1. pv source
-    PVoperationRateMax = pd.DataFrame(columns=["PerfectLand"], data=[1, 1])
+    PvOperationRateMax = pd.DataFrame(columns=["PerfectLand"], data=[1, 1])
 
     esM.add(
         fn.Source(
@@ -40,7 +38,7 @@ def test_pathwayBudget():
             name="PV",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=PVoperationRateMax,
+            operationRateMax=PvOperationRateMax,
             investPerCapacity=1000000,  # dummy values to make gas plant cheaper
             interestRate=0.02,
             opexPerOperation=1000000,  # dummy values to make gas plant cheaper
@@ -120,8 +118,8 @@ def test_pathwayBudget():
     esM.optimize(solver="glpk")
 
     # 3. test
-    # Without a budget limit for CO2, the cost optimal system would only built
-    # gas plants, as its for free and PV is expensive.
+    # Without a budget limit for CO2, the cost optimal system would only build
+    # gas plants, as it is for free and PV is expensive.
     # gas plant capacity in 2020: 22.83
     # CO2 operation in 2020: 48.24
     # CO2 operation in 2025: 48.239999999999995
@@ -130,7 +128,7 @@ def test_pathwayBudget():
     # CO2 operation in 2040: 96.47999999999999
     # CO2 over the pathway: (15*48.24)+(5*72.36)+(5*96.48) = 1567.8
 
-    # with limitation it must be below 1000
+    # with limitation, it must be below 1000
     co2_emissions = (
         esM.getOptimizationSummary("SourceSinkModel", ip=2020)
         + esM.getOptimizationSummary("SourceSinkModel", ip=2025)

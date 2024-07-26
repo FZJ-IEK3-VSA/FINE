@@ -1,5 +1,4 @@
-import FINE as fn
-import numpy as np
+import fine as fn
 import pandas as pd
 import pytest
 
@@ -52,9 +51,6 @@ def test_QPinvest():
         lengthUnit="km",
         verboseLogLevel=2,
     )
-
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
     # Buy electricity at the electricity market
     costs = pd.Series([0.5, 0.4, 0.2, 0.5], index=[0, 1, 2, 3])

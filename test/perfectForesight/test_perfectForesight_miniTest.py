@@ -1,7 +1,8 @@
-import FINE as fn
+import fine as fn
+import math
 import numpy as np
 import pandas as pd
-import math
+import pytest
 
 
 def test_perfectForesight_mini(perfectForesight_test_esM):
@@ -13,7 +14,31 @@ def test_perfectForesight_mini(perfectForesight_test_esM):
 
 def test_perfectForesight_stock(perfectForesight_test_esM):
     esM = perfectForesight_test_esM
-    PVoperationRateMax = esM.getComponent("PV").operationRateMax
+    PvOperationRateMax = esM.getComponent("PV").operationRateMax
+
+    with pytest.warns(UserWarning, match=r".*Stock of component.*"):
+        esM.add(
+            fn.Source(
+                esM=esM,
+                name="PV",
+                commodity="electricity",
+                hasCapacityVariable=True,
+                operationRateMax=PvOperationRateMax,
+                capacityMax=4e6,
+                investPerCapacity=1e3,
+                opexPerCapacity=1,
+                interestRate=0.02,
+                opexPerOperation=0.01,
+                economicLifetime=10,
+                stockCommissioning={
+                    2005: pd.Series([10, 5], index=["ForesightLand", "PerfectLand"]),
+                    2010: pd.Series([10, 5], index=["ForesightLand", "PerfectLand"]),
+                    2015: pd.Series(
+                        [0.5, 0.25], index=["ForesightLand", "PerfectLand"]
+                    ),
+                },
+            )
+        )
 
     esM.add(
         fn.Source(
@@ -21,7 +46,7 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
             name="PV",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=PVoperationRateMax,
+            operationRateMax=PvOperationRateMax,
             capacityMax=4e6,
             investPerCapacity=1e3,
             opexPerCapacity=1,
@@ -29,7 +54,6 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
             opexPerOperation=0.01,
             economicLifetime=10,
             stockCommissioning={
-                2005: pd.Series([10, 5], index=["ForesightLand", "PerfectLand"]),
                 2010: pd.Series([10, 5], index=["ForesightLand", "PerfectLand"]),
                 2015: pd.Series([0.5, 0.25], index=["ForesightLand", "PerfectLand"]),
             },
@@ -56,7 +80,7 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
     assert list(esM.getComponent("PV").processedStockCommissioning.keys()) == [-1, -2]
     assert perfectForesight_test_esM.getComponent("PV").processedStockYears == [-2, -1]
 
-    # check that parameters are correctly setup
+    # check that parameters are correctly set up
     # a) parameters which need to include stock years as commissioning year dependent
     assert list(esM.getComponent("PV").processedInvestPerCapacity.keys()) == [
         -2,
@@ -189,6 +213,14 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
             commodity="hydrogen",
             hasCapacityVariable=True,
             investPerCapacity=0.177,
+            capacityMax={
+                ip: pd.DataFrame(
+                    data=[[0.2, 0.2], [0.25, 0.25]],
+                    index=list(esM.locations),
+                    columns=list(esM.locations)
+                ) * (1+(ip-2020)/40)
+                for ip in esM.investmentPeriodNames
+            },
             interestRate=0.08,
             economicLifetime=40,
         )
@@ -271,14 +303,14 @@ def test_perfectForesight_binary():
     )
 
     # add PV
-    PVoperationRateMax = pd.DataFrame(columns=["PerfectLand"], data=[1, 1])
+    PvOperationRateMax = pd.DataFrame(columns=["PerfectLand"], data=[1, 1])
     esM.add(
         fn.Source(
             esM=esM,
             name="PV",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=PVoperationRateMax,
+            operationRateMax=PvOperationRateMax,
             investPerCapacity=1e3,
             investIfBuilt=1e3,
             opexPerCapacity=1,
@@ -320,13 +352,13 @@ def test_perfectForesight_binary():
         esM.getOptimizationSummary("SourceSinkModel", ip=2020).loc[
             "PV", "capexIfBuilt", "[1 Euro/a]"
         ]["PerfectLand"],
-        535.2277429418442,
+        111.326528,
     )
     np.testing.assert_almost_equal(
         esM.getOptimizationSummary("SourceSinkModel", ip=2030).loc[
             "PV", "capexIfBuilt", "[1 Euro/a]"
         ]["PerfectLand"],
-        439.0731689683585,
+        111.326528,
     )
     np.testing.assert_almost_equal(
         esM.getOptimizationSummary("SourceSinkModel", ip=2025).loc[
@@ -342,3 +374,55 @@ def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 31984.802368949295
     )
+
+
+@pytest.mark.parametrize("annuityPerpetuity", [True, False])
+def test_perfectForesight_npv_with_stock(perfectForesight_test_esM, annuityPerpetuity):
+    PvOperationRateMax = pd.DataFrame(
+        [
+            np.array(
+                [
+                    0.01,
+                    0.01,
+                ]
+            ),
+            np.array(
+                [
+                    0.01,
+                    0.01,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+
+    perfectForesight_test_esM.add(
+        fn.Source(
+            esM=perfectForesight_test_esM,
+            name="PV_expensive",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            capacityMax=4e6,
+            investPerCapacity=1e4,
+            operationRateMax=PvOperationRateMax,
+            opexPerCapacity=1,
+            interestRate=0.02,
+            opexPerOperation=0.01,
+            economicLifetime=10,
+            stockCommissioning={
+                2015: pd.Series(index=["PerfectLand", "ForesightLand"], data=[10, 10])
+            },
+        )
+    )
+    perfectForesight_test_esM.annuityPerpetuity = annuityPerpetuity
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+
+    print(perfectForesight_test_esM.pyM.Obj())
+    if annuityPerpetuity:
+        np.testing.assert_almost_equal(
+            perfectForesight_test_esM.pyM.Obj(), 138802.48424830733
+        )
+    else:
+        np.testing.assert_almost_equal(
+            perfectForesight_test_esM.pyM.Obj(), 118679.45366263221
+        )

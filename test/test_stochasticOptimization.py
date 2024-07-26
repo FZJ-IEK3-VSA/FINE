@@ -1,4 +1,4 @@
-import FINE as fn
+import fine as fn
 import numpy as np
 import pandas as pd
 
@@ -37,9 +37,6 @@ def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False
         lengthUnit="km",
         verboseLogLevel=2,
     )
-
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
     # Sources
     # Electricity market

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.3.0"
+version = "2.3.8"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
@@ -29,8 +29,38 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 keywords = ["energy assesment", "energy system", "optimization"]
-dependencies = []
-requires-python = ">=3.10"
+dependencies = [
+    "geopandas<1",
+    "openpyxl<4",
+    "matplotlib<4",
+    "xlrd<3",
+    "pyomo<7",
+    "numpy<2",
+    "pandas>=2,<3",
+    "scipy<2",
+    "scikit-learn>=1.2,<2",
+    "xarray<=2024.3",
+    "rasterio<2",
+    "netcdf4<2",
+    "tsam",
+    "pwlf<3",
+    "psutil<6",
+    "gurobi-logtools<4",
+]
+
+requires-python = ">=3.10,<3.13"
+
+[project.optional-dependencies]
+develop = [
+    "sphinx<8",
+    "sphinx_rtd_theme<3",
+    "myst-parser<3",
+    "pytest<9",
+    "pytest-cov<5",
+    "pytest-xdist<4",
+    "nbval<1",
+    "ruff<1",
+]
 
 #Configureation options
 # https://docs.pytest.org/en/7.1.x/reference/reference.html#configuration-options
@@ -49,3 +79,11 @@ filterwarnings = []
 homepage = "https://www.fz-juelich.de/de/iek/iek-3/forschung/open-source/fine"
 repository = "https://github.com/FZJ-IEK3-VSA/FINE"
 documentation = "https://vsa-fine.readthedocs.io/en/master/"
+
+[tool.ruff]
+extend-include = ["*.ipynb"]
+
+[tool.ruff.lint]
+ignore = [
+    "F403", # ‘from module import *’ used; unable to detect undefined names
+]

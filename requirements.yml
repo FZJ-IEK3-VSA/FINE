@@ -1,30 +1,26 @@
-name: FINE
-channels:
-  - nodefaults
-dependencies:
-  - conda-forge::python>=3.10
-  - conda-forge::libiconv
-  - conda-forge::gdal=3.4
-  - conda-forge::geopandas
-  - conda-forge::jupyter
-  - conda-forge::notebook
-  - conda-forge::libpysal
-  - conda-forge::pip
-  - conda-forge::descartes
-  - conda-forge::glpk
-  - conda-forge::openpyxl
-  - conda-forge::matplotlib
-  - conda-forge::xlrd
-  - conda-forge::pyomo
-  - conda-forge::numpy
-  - conda-forge::pandas>=2
-  - conda-forge::networkx
-  - conda-forge::scipy
-  - conda-forge::scikit-learn
-  - conda-forge::xarray
-  - conda-forge::rasterio
-  - conda-forge::netcdf4
-  - conda-forge::tsam
+name: fine
 
-  - pip:
-      - .
+channels:
+  - conda-forge
+  - nodefaults
+
+dependencies:
+  - python>=3.10,<3.13
+  - pip
+  - geopandas<1
+  - glpk
+  - openpyxl<4
+  - matplotlib<4
+  - xlrd<3
+  - pyomo<7
+  - numpy<2
+  - pandas<3
+  - scipy<2
+  - scikit-learn>=1.2,<2
+  - xarray<=2024.3
+  - rasterio<2
+  - netcdf4<2
+  - tsam
+  - pwlf<3
+  - psutil<6
+  - gurobi-logtools<4

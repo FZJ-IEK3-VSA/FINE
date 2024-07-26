@@ -1,6 +1,6 @@
 import pytest
 
-import FINE as fn
+import fine as fn
 
 
 def test_export_to_dict_minimal(minimal_test_esM):

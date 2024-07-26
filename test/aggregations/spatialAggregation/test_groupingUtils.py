@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import xarray as xr
 
-import FINE.aggregations.spatialAggregation.groupingUtils as gprUtils
+import fine.aggregations.spatialAggregation.groupingUtils as gprUtils
 
 
 @pytest.mark.parametrize(
@@ -177,9 +177,20 @@ def test_get_custom_distance_matrix(
 
     # FUNCTION CALL
     n_regions = 3
-    output_dist_matrix = gprUtils.get_custom_distance_matrix(
-        test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
-    )
+    if isinstance(weights, dict):
+        if "variables" not in weights:
+            with pytest.warns(UserWarning):
+                output_dist_matrix = gprUtils.get_custom_distance_matrix(
+                    test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
+                )
+        else:
+            output_dist_matrix = gprUtils.get_custom_distance_matrix(
+                test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
+            )
+    else:
+        output_dist_matrix = gprUtils.get_custom_distance_matrix(
+            test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
+        )
 
     # ASSERTION
     assert np.isclose(expected_dist_matrix, output_dist_matrix).all()
@@ -202,7 +213,7 @@ def test_get_custom_distance_matrix_with_unusual_weights(
     # FUNCTION CALL
     n_regions = 3
     with pytest.raises(ValueError):
-        output_dist_matrix = gprUtils.get_custom_distance_matrix(
+        _ = gprUtils.get_custom_distance_matrix(
             test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
         )
 

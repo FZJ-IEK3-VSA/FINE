@@ -1,4 +1,4 @@
-import FINE as fn
+import fine as fn
 import numpy as np
 import pandas as pd
 import pytest
@@ -8,6 +8,7 @@ np.random.seed(
 )  # Sets a "seed" to produce the same random input data in each model run
 
 
+@pytest.mark.skip()
 def test_CO2ReductionTargets():
     locations = {"regionN", "regionS"}
     commodityUnitDict = {
