@@ -82,6 +82,7 @@ def test_obj_value_single_vs_multi(
     # optimizations first pareto point
     # IMPORTANT: This does only work if the costs objective is the first objective
     # Maybe future TODO: Find a way to make sure that this is always the case...
+    # TODO currently FAILS due to changes within the pyaugmecon fork...
     np.testing.assert_almost_equal(
         test_esm_single_objective.pyM.Obj(), pareto_solutions_moo[0][0]
     )
