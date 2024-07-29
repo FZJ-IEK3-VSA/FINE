@@ -226,19 +226,13 @@ class Transmission(Component):
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
         preprocessedCommissioningMin = utils.preprocess2dimData(
-            commissioningMin,
-            self._mapC,
-            locationalEligibility=self.locationalEligibility,
+            commissioningMin, self._mapC, locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningMax = utils.preprocess2dimData(
-            commissioningMax,
-            self._mapC,
-            locationalEligibility=self.locationalEligibility,
+            commissioningMax, self._mapC, locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningFix = utils.preprocess2dimData(
-            commissioningFix,
-            self._mapC,
-            locationalEligibility=self.locationalEligibility,
+            commissioningFix, self._mapC, locationalEligibility=self.locationalEligibility,
         )
         # stockCommissioning
         if stockCommissioning is None:

@@ -4060,7 +4060,7 @@ class ComponentModel(metaclass=ABCMeta):
             varName="commisBin",
             divisorName="CCF",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType="TAC",
         )
 
         # Get NPV cost contribution for the annualized operational costs if built ox (OPEX)
